@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { useLocale } from '@/i18n/client';
 import {
   Dialog,
   DialogContent,
@@ -66,6 +67,12 @@ interface StrengthSessionAssignmentDialogProps {
   businessId?: string;
 }
 
+type AppLocale = 'en' | 'sv';
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
 export function StrengthSessionAssignmentDialog({
   sessionId,
   sessionName,
@@ -75,6 +82,7 @@ export function StrengthSessionAssignmentDialog({
   onAssigned,
   businessId,
 }: StrengthSessionAssignmentDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const [internalOpen, setInternalOpen] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
@@ -86,7 +94,6 @@ export function StrengthSessionAssignmentDialog({
   // Coach selection state
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [selectedCoach, setSelectedCoach] = useState<string>('');
-  const [loadingCoaches, setLoadingCoaches] = useState(false);
 
   // Scheduling state
   const [schedulingOpen, setSchedulingOpen] = useState(false);
@@ -132,7 +139,6 @@ export function StrengthSessionAssignmentDialog({
   }, [businessId]);
 
   const fetchCoaches = useCallback(async () => {
-    setLoadingCoaches(true);
     try {
       if (businessId) {
         // Business context: fetch list of coaches from the business
@@ -150,7 +156,7 @@ export function StrengthSessionAssignmentDialog({
           if (data.success && data.data) {
             setCoaches([{
               id: data.data.id,
-              name: data.data.name || 'Jag',
+              name: data.data.name || copy(locale, 'Me', 'Jag'),
               email: data.data.email,
             }]);
           }
@@ -158,10 +164,8 @@ export function StrengthSessionAssignmentDialog({
       }
     } catch (error) {
       console.error('Failed to fetch coaches:', error);
-    } finally {
-      setLoadingCoaches(false);
     }
-  }, [businessId]);
+  }, [businessId, locale]);
 
   useEffect(() => {
     const wasOpen = prevOpenRef.current;
@@ -171,24 +175,26 @@ export function StrengthSessionAssignmentDialog({
     const businessChangedWhileOpen = open && wasOpen && prevBusinessId !== businessId;
 
     if (justOpened) {
-      fetchAthletes();
-      fetchCoaches();
-      // Reset form (only when dialog opens)
-      setSelectedAthletes([]);
-      setAssignedDate(new Date().toISOString().split('T')[0]);
-      setNotes('');
-      setSelectedCoach('');
-      // Reset scheduling
-      setSchedulingOpen(false);
-      setStartTime('');
-      setEndTime('');
-      setLocationId('');
-      setLocationName('');
-      setCreateCalendarEvent(true);
+      void Promise.resolve().then(() => {
+        void fetchAthletes();
+        void fetchCoaches();
+        // Reset form (only when dialog opens)
+        setSelectedAthletes([]);
+        setAssignedDate(new Date().toISOString().split('T')[0]);
+        setNotes('');
+        setSelectedCoach('');
+        // Reset scheduling
+        setSchedulingOpen(false);
+        setStartTime('');
+        setEndTime('');
+        setLocationId('');
+        setLocationName('');
+        setCreateCalendarEvent(true);
+      });
     } else if (businessChangedWhileOpen) {
       // If context changes while open, refresh lists but keep user input intact
-      fetchAthletes();
-      fetchCoaches();
+      void fetchAthletes();
+      void fetchCoaches();
     }
 
     prevOpenRef.current = open;
@@ -236,21 +242,25 @@ export function StrengthSessionAssignmentDialog({
       });
 
       if (response.ok) {
-        toast.success('Pass tilldelat!', {
-          description: `Tilldelat till ${selectedAthletes.length} atlet(er).`,
+        toast.success(copy(locale, 'Session assigned!', 'Pass tilldelat!'), {
+          description: copy(
+            locale,
+            `Assigned to ${selectedAthletes.length} athlete(s).`,
+            `Tilldelat till ${selectedAthletes.length} atlet(er).`
+          ),
         });
         setOpen(false);
         onAssigned?.();
       } else {
         const data = await response.json();
-        toast.error('Tilldelning misslyckades', {
-          description: data.error || 'Kunde inte tilldela passet.',
+        toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
+          description: data.error || copy(locale, 'Could not assign the session.', 'Kunde inte tilldela passet.'),
         });
       }
     } catch (error) {
       console.error('Failed to assign session:', error);
-      toast.error('Tilldelning misslyckades', {
-        description: 'Ett oväntat fel inträffade.',
+      toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
+        description: copy(locale, 'An unexpected error occurred.', 'Ett oväntat fel inträffade.'),
       });
     } finally {
       setLoading(false);
@@ -262,10 +272,12 @@ export function StrengthSessionAssignmentDialog({
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Tilldela Styrkepass
+          {copy(locale, 'Assign Strength Session', 'Tilldela Styrkepass')}
         </DialogTitle>
         <DialogDescription>
-          {sessionName ? `Tilldela "${sessionName}" till en eller flera atleter.` : 'Välj atleter att tilldela passet till.'}
+          {sessionName
+            ? copy(locale, `Assign "${sessionName}" to one or more athletes.`, `Tilldela "${sessionName}" till en eller flera atleter.`)
+            : copy(locale, 'Select athletes to assign the session to.', 'Välj atleter att tilldela passet till.')}
         </DialogDescription>
       </DialogHeader>
 
@@ -274,7 +286,7 @@ export function StrengthSessionAssignmentDialog({
         <div className="space-y-2">
           <Label htmlFor="assignedDate" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Datum
+            {copy(locale, 'Date', 'Datum')}
           </Label>
           <Input
             id="assignedDate"
@@ -287,9 +299,11 @@ export function StrengthSessionAssignmentDialog({
         {/* Athletes Selection */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label>Atleter</Label>
+            <Label>{copy(locale, 'Athletes', 'Atleter')}</Label>
             <Button variant="ghost" size="sm" onClick={selectAll}>
-              {selectedAthletes.length === athletes.length ? 'Avmarkera alla' : 'Markera alla'}
+              {selectedAthletes.length === athletes.length
+                ? copy(locale, 'Clear all', 'Avmarkera alla')
+                : copy(locale, 'Select all', 'Markera alla')}
             </Button>
           </div>
 
@@ -299,7 +313,7 @@ export function StrengthSessionAssignmentDialog({
             </div>
           ) : athletes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Inga atleter hittades. Lägg till atleter först.
+              {copy(locale, 'No athletes found. Add athletes first.', 'Inga atleter hittades. Lägg till atleter först.')}
             </p>
           ) : (
             <ScrollArea className="h-[200px] border rounded-md p-2">
@@ -328,7 +342,7 @@ export function StrengthSessionAssignmentDialog({
           )}
           {selectedAthletes.length > 0 && (
             <p className="text-xs text-muted-foreground">
-              {selectedAthletes.length} atlet(er) valda
+              {selectedAthletes.length} {copy(locale, 'athlete(s) selected', 'atlet(er) valda')}
             </p>
           )}
         </div>
@@ -343,7 +357,7 @@ export function StrengthSessionAssignmentDialog({
             >
               <span className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Schemalägg tid (valfritt)
+                {copy(locale, 'Schedule time (optional)', 'Schemalägg tid (valfritt)')}
               </span>
               <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
             </Button>
@@ -371,17 +385,17 @@ export function StrengthSessionAssignmentDialog({
           <div className="space-y-2">
             <Label htmlFor="coach" className="flex items-center gap-2">
               <UserCircle className="h-4 w-4" />
-              Ansvarig coach (valfritt)
+              {copy(locale, 'Responsible coach (optional)', 'Ansvarig coach (valfritt)')}
             </Label>
             <Select
               value={selectedCoach || 'none'}
               onValueChange={(val) => setSelectedCoach(val === 'none' ? '' : val)}
             >
               <SelectTrigger id="coach">
-                <SelectValue placeholder="Välj coach för kalender..." />
+                <SelectValue placeholder={copy(locale, 'Select coach for calendar...', 'Välj coach för kalender...')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen vald</SelectItem>
+                <SelectItem value="none">{copy(locale, 'None selected', 'Ingen vald')}</SelectItem>
                 {coaches.map((coach) => (
                   <SelectItem key={coach.id} value={coach.id}>
                     {coach.name}
@@ -395,19 +409,19 @@ export function StrengthSessionAssignmentDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Passet visas i den valda coachens kalender
+              {copy(locale, "The session appears in the selected coach's calendar", 'Passet visas i den valda coachens kalender')}
             </p>
           </div>
         )}
 
         {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+          <Label htmlFor="notes">{copy(locale, 'Notes (optional)', 'Anteckningar (valfritt)')}</Label>
           <Textarea
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Eventuella instruktioner till atleten..."
+            placeholder={copy(locale, 'Any instructions for the athlete...', 'Eventuella instruktioner till atleten...')}
             rows={2}
           />
         </div>
@@ -415,7 +429,7 @@ export function StrengthSessionAssignmentDialog({
 
       <DialogFooter>
         <Button variant="outline" onClick={() => setOpen(false)}>
-          Avbryt
+          {copy(locale, 'Cancel', 'Avbryt')}
         </Button>
         <Button
           onClick={handleAssign}
@@ -424,12 +438,12 @@ export function StrengthSessionAssignmentDialog({
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Tilldelar...
+              {copy(locale, 'Assigning...', 'Tilldelar...')}
             </>
           ) : (
             <>
               <Users className="h-4 w-4 mr-2" />
-              Tilldela ({selectedAthletes.length})
+              {copy(locale, 'Assign', 'Tilldela')} ({selectedAthletes.length})
             </>
           )}
         </Button>
