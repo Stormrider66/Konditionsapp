@@ -269,7 +269,8 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
         ],
         TEAM: [
-            allMoreItems.staff, allMoreItems.teams, allMoreItems.messages, allMoreItems.settings,
+            allMoreItems.staff, allMoreItems.teams, allMoreItems.messages,
+            allMoreItems.docs, allMoreItems.orgs, allMoreItems.settings,
         ],
         GYM: [
             allMoreItems.community, allMoreItems.competitions, allMoreItems.messages, allMoreItems.settings,
@@ -327,6 +328,17 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         hiddenToolHrefs.add(allToolItems.intervals.href)
         hiddenToolHrefs.add(allToolItems.hockeyTests.href)
         hiddenToolHrefs.add(allToolItems.testProtocols.href)
+
+        hiddenMoreHrefs.add(allMoreItems.social.href)
+        hiddenMoreHrefs.add(allMoreItems.competitions.href)
+        hiddenMoreHrefs.add(allMoreItems.community.href)
+        hiddenMoreHrefs.add(allMoreItems.analytics.href)
+        hiddenMoreHrefs.add(allMoreItems.browse.href)
+        hiddenMoreHrefs.add(allMoreItems.referrals.href)
+
+        if (!isAdmin) {
+            hiddenMoreHrefs.add(allMoreItems.orgs.href)
+        }
     }
 
     // Get prioritized items, then add remaining ones not already included
