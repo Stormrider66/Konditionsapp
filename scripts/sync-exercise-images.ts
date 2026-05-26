@@ -250,10 +250,14 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Bomben Step 1': ['bomben-step-one'],
   'Stir the Pot': ['stir-the-pot'],
   'Dead Bug': ['dead-bug'],
+  'Dead Bug with Lateral Band': ['dead-bug-with-lateral-band'],
   'Bird Dog': ['bird-dog'],
   'Pallof Press': ['pallof-press'],
   'Pallof Press (band)': ['pallof-press-band'],
   'Rotational Medicine Ball Throw': ['rotational-medicine-ball-throw'],
+  "Farmer's Walk": ['farmers-walk'],
+  'Farmers Carry': ['farmers-carry'],
+  'Farmers Carry (HYROX)': ['farmers-carry-hyrox'],
   'Suitcase Carry': ['suitcase-carry'],
   'Mountain Climbers': ['mountain-climber'],
   'Bicycle Crunches': ['bicycle-crunches'],
@@ -334,6 +338,7 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Turkish Get-Up': ['turkish-get-up'],
   'Hip Bridge': ['hoftbrygga', 'hip-bridge'],
   'Single-Leg Bridge': ['enbensbrygga', 'single-leg-bridge'],
+  'Kbox Iso Squat Hold': ['kbox-iso-squat-hold'],
 }
 
 // Find images for an exercise
