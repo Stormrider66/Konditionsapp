@@ -5,9 +5,9 @@
  * Handles volume adjustments, session planning, and recovery considerations.
  */
 
-import { addDays, differenceInDays, format } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { addDays, differenceInDays } from 'date-fns'
 
+export type TrainingCampLocale = 'en' | 'sv'
 export type CampType = 'ENDURANCE' | 'SPEED' | 'MIXED' | 'RECOVERY'
 export type CampFocus = 'VOLUME' | 'INTENSITY' | 'TECHNIQUE' | 'MIXED'
 
@@ -21,6 +21,7 @@ export interface TrainingCampInfo {
   isAltitude?: boolean
   altitude?: number
   location?: string
+  locale?: TrainingCampLocale
 }
 
 export interface CampDay {
@@ -51,6 +52,10 @@ export interface TrainingCampPlan {
   generalGuidelines: string[]
   recoveryRecommendations: string[]
   nutritionTips: string[]
+}
+
+function text(locale: TrainingCampLocale, en: string, svText: string): string {
+  return locale === 'sv' ? svText : en
 }
 
 /**
@@ -109,22 +114,26 @@ export function getRestDayPattern(totalDays: number): number[] {
  * Generate sessions for a camp day
  */
 function generateDaySessions(
-  day: number,
   volumePercent: number,
   sessionsPerDay: number,
   campType: CampType,
   campFocus: CampFocus,
-  isRestDay: boolean
+  isRestDay: boolean,
+  locale: TrainingCampLocale
 ): CampSession[] {
   if (isRestDay) {
     return [
       {
         sessionNumber: 1,
         type: 'MORNING',
-        focus: 'Aktiv vila',
+        focus: text(locale, 'Active recovery', 'Aktiv vila'),
         durationMinutes: 30,
         intensity: 'RECOVERY',
-        notes: 'Lätt promenad, stretching, massage',
+        notes: text(
+          locale,
+          'Easy walk, stretching, massage',
+          'Lätt promenad, stretching, massage'
+        ),
       },
     ]
   }
@@ -141,7 +150,8 @@ function generateDaySessions(
       effectiveSessions,
       campType,
       campFocus,
-      volumePercent
+      volumePercent,
+      locale
     )
 
     sessions.push({
@@ -150,7 +160,7 @@ function generateDaySessions(
       focus,
       durationMinutes: duration,
       intensity,
-      notes: getSessionNotes(i, effectiveSessions, campType),
+      notes: getSessionNotes(i, effectiveSessions, campType, locale),
     })
   }
 
@@ -174,32 +184,36 @@ function getSessionDetails(
   totalSessions: number,
   campType: CampType,
   campFocus: CampFocus,
-  volumePercent: number
+  volumePercent: number,
+  locale: TrainingCampLocale
 ): { focus: string; duration: number; intensity: CampSession['intensity'] } {
   // First session is usually the main/quality session
   if (sessionNumber === 1) {
     switch (campType) {
       case 'ENDURANCE':
         return {
-          focus: campFocus === 'INTENSITY' ? 'Tempopass' : 'Långpass',
+          focus:
+            campFocus === 'INTENSITY'
+              ? text(locale, 'Tempo session', 'Tempopass')
+              : text(locale, 'Long session', 'Långpass'),
           duration: volumePercent >= 100 ? 90 : 60,
           intensity: campFocus === 'INTENSITY' ? 'HARD' : 'MODERATE',
         }
       case 'SPEED':
         return {
-          focus: 'Intervaller',
+          focus: text(locale, 'Intervals', 'Intervaller'),
           duration: 60,
           intensity: 'HARD',
         }
       case 'RECOVERY':
         return {
-          focus: 'Lätt löpning',
+          focus: text(locale, 'Easy run', 'Lätt löpning'),
           duration: 45,
           intensity: 'EASY',
         }
       default:
         return {
-          focus: 'Huvudpass',
+          focus: text(locale, 'Main session', 'Huvudpass'),
           duration: 75,
           intensity: 'MODERATE',
         }
@@ -209,7 +223,10 @@ function getSessionDetails(
   // Second session
   if (sessionNumber === 2) {
     return {
-      focus: totalSessions === 2 ? 'Distanspass' : 'Teknik/Styrka',
+      focus:
+        totalSessions === 2
+          ? text(locale, 'Distance session', 'Distanspass')
+          : text(locale, 'Technique/Strength', 'Teknik/Styrka'),
       duration: totalSessions === 2 ? 60 : 45,
       intensity: 'MODERATE',
     }
@@ -217,7 +234,7 @@ function getSessionDetails(
 
   // Third session (if exists)
   return {
-    focus: 'Lätt jogging',
+    focus: text(locale, 'Easy jog', 'Lätt jogging'),
     duration: 30,
     intensity: 'EASY',
   }
@@ -226,16 +243,29 @@ function getSessionDetails(
 function getSessionNotes(
   sessionNumber: number,
   totalSessions: number,
-  campType: CampType
+  campType: CampType,
+  locale: TrainingCampLocale
 ): string {
   if (sessionNumber === 1 && campType === 'ENDURANCE') {
-    return 'Huvudpass - fokus på aerob utveckling'
+    return text(
+      locale,
+      'Main session - focus on aerobic development',
+      'Huvudpass - fokus på aerob utveckling'
+    )
   }
   if (sessionNumber === 1 && campType === 'SPEED') {
-    return 'Kvalitetspass - full återhämtning mellan intervaller'
+    return text(
+      locale,
+      'Quality session - full recovery between intervals',
+      'Kvalitetspass - full återhämtning mellan intervaller'
+    )
   }
   if (sessionNumber === totalSessions && totalSessions > 1) {
-    return 'Avslutande pass - lätt för återhämtning'
+    return text(
+      locale,
+      'Closing session - easy for recovery',
+      'Avslutande pass - lätt för återhämtning'
+    )
   }
   return ''
 }
@@ -243,7 +273,10 @@ function getSessionNotes(
 /**
  * Generate complete training camp plan
  */
-export function generateTrainingCampPlan(info: TrainingCampInfo): TrainingCampPlan {
+export function generateTrainingCampPlan(
+  info: TrainingCampInfo,
+  locale: TrainingCampLocale = info.locale ?? 'en'
+): TrainingCampPlan {
   const totalDays = differenceInDays(info.endDate, info.startDate) + 1
   const volumeProgression = calculateVolumeProgression(totalDays, info.campType)
   const restDayPattern = getRestDayPattern(totalDays)
@@ -259,12 +292,12 @@ export function generateTrainingCampPlan(info: TrainingCampInfo): TrainingCampPl
     const volumePercent = volumeProgression[day - 1]
 
     const sessions = generateDaySessions(
-      day,
       volumePercent,
       sessionsPerDay,
       info.campType,
       campFocus,
-      isRestDay
+      isRestDay,
+      locale
     )
 
     totalSessions += sessions.length
@@ -275,7 +308,7 @@ export function generateTrainingCampPlan(info: TrainingCampInfo): TrainingCampPl
       isRestDay,
       sessions,
       volumePercent,
-      recommendations: getDayRecommendations(day, totalDays, isRestDay, volumePercent),
+      recommendations: getDayRecommendations(day, totalDays, isRestDay, volumePercent, locale),
     })
   }
 
@@ -286,9 +319,9 @@ export function generateTrainingCampPlan(info: TrainingCampInfo): TrainingCampPl
     days,
     volumeProgression,
     restDayPattern,
-    generalGuidelines: getGeneralGuidelines(info.campType, totalDays),
-    recoveryRecommendations: getRecoveryRecommendations(totalDays),
-    nutritionTips: getNutritionTips(info.campType),
+    generalGuidelines: getGeneralGuidelines(info.campType, locale),
+    recoveryRecommendations: getRecoveryRecommendations(totalDays, locale),
+    nutritionTips: getNutritionTips(info.campType, locale),
   }
 }
 
@@ -296,103 +329,180 @@ function getDayRecommendations(
   day: number,
   totalDays: number,
   isRestDay: boolean,
-  volumePercent: number
+  volumePercent: number,
+  locale: TrainingCampLocale
 ): string[] {
   const recommendations: string[] = []
 
   if (day === 1) {
-    recommendations.push('Sätt dig in i planen, bekanta dig med miljön')
-    recommendations.push('Ta det lugnt första dagen - kroppen behöver anpassa sig')
+    recommendations.push(
+      text(
+        locale,
+        'Get familiar with the plan and the environment',
+        'Sätt dig in i planen, bekanta dig med miljön'
+      )
+    )
+    recommendations.push(
+      text(
+        locale,
+        'Take it easy on day one - the body needs time to adapt',
+        'Ta det lugnt första dagen - kroppen behöver anpassa sig'
+      )
+    )
   }
 
   if (isRestDay) {
-    recommendations.push('Aktiv vila - promenad, simning, massage')
-    recommendations.push('Extra fokus på sömn och näring')
+    recommendations.push(
+      text(
+        locale,
+        'Active recovery - walking, swimming, massage',
+        'Aktiv vila - promenad, simning, massage'
+      )
+    )
+    recommendations.push(
+      text(locale, 'Extra focus on sleep and nutrition', 'Extra fokus på sömn och näring')
+    )
     return recommendations
   }
 
   if (volumePercent >= 130) {
-    recommendations.push('Hög volymdag - prioritera bränsle och vätskeintag')
-    recommendations.push('Planera för extra vila mellan passen')
+    recommendations.push(
+      text(
+        locale,
+        'High-volume day - prioritize fuel and fluids',
+        'Hög volymdag - prioritera bränsle och vätskeintag'
+      )
+    )
+    recommendations.push(
+      text(locale, 'Plan extra rest between sessions', 'Planera för extra vila mellan passen')
+    )
   }
 
   if (day === totalDays - 1 || day === totalDays) {
-    recommendations.push('Börja sänka belastningen inför hemresa')
-    recommendations.push('Fokus på återhämtning')
+    recommendations.push(
+      text(
+        locale,
+        'Start lowering the load before traveling home',
+        'Börja sänka belastningen inför hemresa'
+      )
+    )
+    recommendations.push(text(locale, 'Focus on recovery', 'Fokus på återhämtning'))
   }
 
   if (recommendations.length === 0) {
-    recommendations.push('Normal träningsdag enligt plan')
+    recommendations.push(
+      text(locale, 'Normal training day according to plan', 'Normal träningsdag enligt plan')
+    )
   }
 
   return recommendations
 }
 
-function getGeneralGuidelines(campType: CampType, totalDays: number): string[] {
+function getGeneralGuidelines(campType: CampType, locale: TrainingCampLocale): string[] {
   const common = [
-    'Håll en stabil dygnsrytm med regelbundna måltider',
-    'Sov minst 8-9 timmar per natt',
-    'Dokumentera träningen och hur du mår',
-    'Lyssna på kroppen - anpassa vid behov',
+    text(
+      locale,
+      'Keep a stable daily rhythm with regular meals',
+      'Håll en stabil dygnsrytm med regelbundna måltider'
+    ),
+    text(locale, 'Sleep at least 8-9 hours per night', 'Sov minst 8-9 timmar per natt'),
+    text(locale, 'Log your training and how you feel', 'Dokumentera träningen och hur du mår'),
+    text(locale, 'Listen to your body - adjust when needed', 'Lyssna på kroppen - anpassa vid behov'),
   ]
 
   switch (campType) {
     case 'ENDURANCE':
       return [
         ...common,
-        'Fokus på att bygga aerob kapacitet',
-        'Undvik för höga intensiteter tidigt i lägret',
-        'Använd pulsklocka för att hålla rätt zon',
+        text(locale, 'Focus on building aerobic capacity', 'Fokus på att bygga aerob kapacitet'),
+        text(
+          locale,
+          'Avoid high intensities early in the camp',
+          'Undvik för höga intensiteter tidigt i lägret'
+        ),
+        text(
+          locale,
+          'Use a heart rate monitor to stay in the right zone',
+          'Använd pulsklocka för att hålla rätt zon'
+        ),
       ]
     case 'SPEED':
       return [
         ...common,
-        'Full återhämtning mellan intervaller',
-        'Värm upp ordentligt före kvalitetspass',
-        'Ta det lugnt om benmuskulaturen är trött',
+        text(locale, 'Full recovery between intervals', 'Full återhämtning mellan intervaller'),
+        text(
+          locale,
+          'Warm up thoroughly before quality sessions',
+          'Värm upp ordentligt före kvalitetspass'
+        ),
+        text(locale, 'Ease off if the leg muscles feel tired', 'Ta det lugnt om benmuskulaturen är trött'),
       ]
     case 'RECOVERY':
       return [
         ...common,
-        'Detta är ett återhämtningsläger - ingen press',
-        'Fokus på teknik och rörlighet',
-        'Mental avkoppling lika viktigt som fysisk',
+        text(
+          locale,
+          'This is a recovery camp - no pressure',
+          'Detta är ett återhämtningsläger - ingen press'
+        ),
+        text(locale, 'Focus on technique and mobility', 'Fokus på teknik och rörlighet'),
+        text(
+          locale,
+          'Mental relaxation is as important as physical recovery',
+          'Mental avkoppling lika viktigt som fysisk'
+        ),
       ]
     default:
       return common
   }
 }
 
-function getRecoveryRecommendations(totalDays: number): string[] {
+function getRecoveryRecommendations(totalDays: number, locale: TrainingCampLocale): string[] {
   const baseRecs = [
-    'Planera 2-3 lätta dagar efter hemkomst',
-    'Återgå gradvis till normal träning',
-    'Extra sömn första veckan hem',
+    text(locale, 'Plan 2-3 easy days after returning home', 'Planera 2-3 lätta dagar efter hemkomst'),
+    text(locale, 'Gradually return to normal training', 'Återgå gradvis till normal träning'),
+    text(locale, 'Extra sleep during the first week at home', 'Extra sömn första veckan hem'),
   ]
 
   if (totalDays >= 7) {
     return [
       ...baseRecs,
-      'Första kvalitetspasset tidigast 4-5 dagar efter lägret',
-      'Var uppmärksam på tecken på överträning',
+      text(
+        locale,
+        'First quality session no earlier than 4-5 days after camp',
+        'Första kvalitetspasset tidigast 4-5 dagar efter lägret'
+      ),
+      text(locale, 'Watch for signs of overtraining', 'Var uppmärksam på tecken på överträning'),
     ]
   }
 
   return baseRecs
 }
 
-function getNutritionTips(campType: CampType): string[] {
+function getNutritionTips(campType: CampType, locale: TrainingCampLocale): string[] {
   const common = [
-    'Ät regelbundet var 3-4:e timme',
-    'Drick minst 2-3 liter per dag (mer vid värme)',
-    'Ta med energi under pass längre än 60 min',
+    text(locale, 'Eat regularly every 3-4 hours', 'Ät regelbundet var 3-4:e timme'),
+    text(
+      locale,
+      'Drink at least 2-3 liters per day (more in hot weather)',
+      'Drick minst 2-3 liter per dag (mer vid värme)'
+    ),
+    text(locale, 'Bring fuel for sessions longer than 60 min', 'Ta med energi under pass längre än 60 min'),
   ]
 
   if (campType === 'ENDURANCE') {
     return [
       ...common,
-      'Kolhydratrik kost - 6-8 g/kg kroppsvikt/dag',
-      'Återhämtningsmat inom 30 min efter pass',
+      text(
+        locale,
+        'Carbohydrate-rich diet - 6-8 g/kg body weight/day',
+        'Kolhydratrik kost - 6-8 g/kg kroppsvikt/dag'
+      ),
+      text(
+        locale,
+        'Recovery food within 30 min after sessions',
+        'Återhämtningsmat inom 30 min efter pass'
+      ),
     ]
   }
 
@@ -402,7 +512,7 @@ function getNutritionTips(campType: CampType): string[] {
 /**
  * Get camp type label.
  */
-export function getCampTypeLabel(campType: CampType, locale: 'en' | 'sv' = 'sv'): string {
+export function getCampTypeLabel(campType: CampType, locale: TrainingCampLocale = 'en'): string {
   if (locale === 'en') {
     switch (campType) {
       case 'ENDURANCE':
@@ -431,7 +541,7 @@ export function getCampTypeLabel(campType: CampType, locale: 'en' | 'sv' = 'sv')
 /**
  * Get camp focus label.
  */
-export function getCampFocusLabel(campFocus: CampFocus, locale: 'en' | 'sv' = 'sv'): string {
+export function getCampFocusLabel(campFocus: CampFocus, locale: TrainingCampLocale = 'en'): string {
   if (locale === 'en') {
     switch (campFocus) {
       case 'VOLUME':

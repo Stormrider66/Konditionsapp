@@ -34,7 +34,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   generateTrainingCampPlan,
   getCampTypeLabel,
-  getCampFocusLabel,
   type TrainingCampInfo,
   type CampDay,
   type CampSession,
@@ -74,10 +73,11 @@ export function TrainingCampPreview({
       campType,
       campFocus,
       sessionsPerDay,
+      locale: appLocale,
     }
 
-    return generateTrainingCampPlan(info)
-  }, [startDate, endDate, campType, campFocus, sessionsPerDay])
+    return generateTrainingCampPlan(info, appLocale)
+  }, [startDate, endDate, campType, campFocus, sessionsPerDay, appLocale])
 
   if (!plan) return null
 
