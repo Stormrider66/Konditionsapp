@@ -15,6 +15,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { getLocale, getTranslations } from '@/i18n/server'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -39,13 +40,16 @@ function formatEnum(value: string | null | undefined) {
   return value.replace(/_/g, ' ').toLowerCase()
 }
 
-function formatDate(date: Date | string | null | undefined) {
+function formatDate(date: Date | string | null | undefined, dateLocale: string) {
   if (!date) return '-'
-  return new Date(date).toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' })
+  return new Date(date).toLocaleDateString(dateLocale, { day: 'numeric', month: 'short' })
 }
 
 export default async function TeamMedicalBoardPage({ params }: PageProps) {
   const { businessSlug, teamId } = await params
+  const t = await getTranslations('coach.pages.teamMedical')
+  const locale = await getLocale()
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const user = await requireCoach()
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -177,7 +181,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
       <Button asChild variant="ghost" className="mb-6">
         <Link href={`/${businessSlug}/coach/teams/${teamId}`}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka till laget
+          {t('backToTeam')}
         </Link>
       </Button>
 
@@ -186,17 +190,17 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
           <div className="flex items-center gap-3">
             <ShieldAlert className="h-8 w-8 text-orange-500" />
             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-              Medical board
+              {t('title')}
             </h1>
           </div>
           <p className="mt-2 max-w-3xl text-muted-foreground">
-            {team.name}: skador, restriktioner, rehabstatus och spelare som behöver uppföljning.
+            {t('description', { teamName: team.name })}
           </p>
         </div>
         <Button asChild>
           <Link href={`/${businessSlug}/coach/teams/${teamId}/calendar`}>
             <ClipboardList className="mr-2 h-4 w-4" />
-            Öppna lagkalender
+            {t('openTeamCalendar')}
           </Link>
         </Button>
       </div>
@@ -205,7 +209,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">Skadade</p>
+              <p className="text-sm text-muted-foreground">{t('stats.injured')}</p>
               <p className="text-3xl font-bold">{injuredCount}</p>
             </div>
             <HeartPulse className="h-7 w-7 text-red-500" />
@@ -214,7 +218,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">Restriktioner</p>
+              <p className="text-sm text-muted-foreground">{t('stats.restrictions')}</p>
               <p className="text-3xl font-bold">{restrictedCount}</p>
             </div>
             <Ban className="h-7 w-7 text-orange-500" />
@@ -223,7 +227,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">Behöver program</p>
+              <p className="text-sm text-muted-foreground">{t('stats.needsProgram')}</p>
               <p className="text-3xl font-bold">{needsProgramCount}</p>
             </div>
             <AlertTriangle className="h-7 w-7 text-amber-500" />
@@ -232,7 +236,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">I rehab</p>
+              <p className="text-sm text-muted-foreground">{t('stats.inRehab')}</p>
               <p className="text-3xl font-bold">{rehabCount}</p>
             </div>
             <Stethoscope className="h-7 w-7 text-blue-500" />
@@ -241,7 +245,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
         <Card>
           <CardContent className="flex items-center justify-between p-5">
             <div>
-              <p className="text-sm text-muted-foreground">Nya rapporter</p>
+              <p className="text-sm text-muted-foreground">{t('stats.newReports')}</p>
               <p className="text-3xl font-bold">{pendingReportsCount}</p>
             </div>
             <ClipboardList className="h-7 w-7 text-purple-500" />
@@ -251,22 +255,22 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Spelarstatus</CardTitle>
+          <CardTitle>{t('table.title')}</CardTitle>
           <CardDescription>
-            En enkel överblick för fys, huvudtränare och assisterande tränare innan pass tilldelas.
+            {t('table.description')}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Spelare</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Skada / rapport</TableHead>
-                <TableHead>Restriktion</TableHead>
-                <TableHead>Rehab</TableHead>
-                <TableHead>Senaste check-in</TableHead>
-                <TableHead className="text-right">Åtgärd</TableHead>
+                <TableHead>{t('table.headers.player')}</TableHead>
+                <TableHead>{t('table.headers.status')}</TableHead>
+                <TableHead>{t('table.headers.injury')}</TableHead>
+                <TableHead>{t('table.headers.restriction')}</TableHead>
+                <TableHead>{t('table.headers.rehab')}</TableHead>
+                <TableHead>{t('table.headers.latestCheckIn')}</TableHead>
+                <TableHead className="text-right">{t('table.headers.action')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -297,28 +301,28 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                         {row.isAvailable && (
                           <Badge variant="outline" className="border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300">
                             <CheckCircle2 className="mr-1 h-3 w-3" />
-                            Tillgänglig
+                            {t('badges.available')}
                           </Badge>
                         )}
-                        {row.hasInjury && <Badge variant="destructive">Skadad</Badge>}
+                        {row.hasInjury && <Badge variant="destructive">{t('badges.injured')}</Badge>}
                         {row.hasRestriction && (
                           <Badge variant="outline" className="border-orange-300 text-orange-700 dark:border-orange-800 dark:text-orange-300">
-                            Restriktion
+                            {t('badges.restriction')}
                           </Badge>
                         )}
                         {row.needsProgram && (
                           <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-300">
-                            Behöver program
+                            {t('badges.needsProgram')}
                           </Badge>
                         )}
                         {row.hasProgram && (
                           <Badge variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-300">
-                            I rehab
+                            {t('badges.inRehab')}
                           </Badge>
                         )}
                         {row.hasPendingReport && (
                           <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-800 dark:text-purple-300">
-                            Ny rapport
+                            {t('badges.newReport')}
                           </Badge>
                         )}
                       </div>
@@ -328,14 +332,14 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                         <div className="text-sm">
                           <p className="font-medium">{formatEnum(injury.injuryType || injury.bodyPart)}</p>
                           <p className="text-muted-foreground">
-                            {formatEnum(injury.bodyPart)} · smärta {injury.painLevel}/10
+                            {formatEnum(injury.bodyPart)} · {t('labels.pain')} {injury.painLevel}/10
                           </p>
                         </div>
                       ) : report ? (
                         <div className="text-sm">
                           <p className="font-medium">{formatEnum(report.bodyPart)}</p>
                           <p className="text-muted-foreground">
-                            {formatEnum(report.urgency)} · {formatDate(report.incidentDate)}
+                            {formatEnum(report.urgency)} · {formatDate(report.incidentDate, dateLocale)}
                           </p>
                         </div>
                       ) : (
@@ -348,7 +352,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                           <p className="font-medium">{formatEnum(restriction.type)}</p>
                           <p className="text-muted-foreground">
                             {formatEnum(restriction.severity)}
-                            {restriction.endDate ? ` · till ${formatDate(restriction.endDate)}` : ''}
+                            {restriction.endDate ? ` · ${t('labels.until')} ${formatDate(restriction.endDate, dateLocale)}` : ''}
                           </p>
                         </div>
                       ) : (
@@ -360,12 +364,12 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                         <div className="text-sm">
                           <p className="font-medium">{program.name}</p>
                           <p className="text-muted-foreground">
-                            {formatEnum(program.currentPhase)} · {program._count.exercises} övningar
+                            {formatEnum(program.currentPhase)} · {t('labels.exercises', { count: program._count.exercises })}
                           </p>
                         </div>
                       ) : row.needsProgram ? (
                         <span className="text-sm font-medium text-amber-600 dark:text-amber-300">
-                          Saknas
+                          {t('labels.missing')}
                         </span>
                       ) : (
                         <span className="text-muted-foreground">-</span>
@@ -374,10 +378,10 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                     <TableCell>
                       {row.latestCheckIn ? (
                         <div className="text-sm">
-                          <p>{formatDate(row.latestCheckIn.date)}</p>
+                          <p>{formatDate(row.latestCheckIn.date, dateLocale)}</p>
                           <p className="text-muted-foreground">
-                            Smärta {row.latestCheckIn.injuryPain ?? 0}/10
-                            {row.latestCheckIn.requestPhysioContact ? ' · vill ha kontakt' : ''}
+                            {t('labels.pain')} {row.latestCheckIn.injuryPain ?? 0}/10
+                            {row.latestCheckIn.requestPhysioContact ? ` · ${t('labels.wantsContact')}` : ''}
                           </p>
                         </div>
                       ) : (
@@ -387,7 +391,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                     <TableCell className="text-right">
                       <Button asChild variant="outline" size="sm">
                         <Link href={`/${businessSlug}/coach/clients/${row.id}`}>
-                          Öppna
+                          {t('actions.open')}
                         </Link>
                       </Button>
                     </TableCell>

@@ -2955,6 +2955,50 @@
         "title": "Team analysis",
         "description": "Who needs attention today? Load, activity, and PRs per athlete."
       },
+      "teamMedical": {
+        "backToTeam": "Back to team",
+        "title": "Medical board",
+        "description": "{teamName}: injuries, restrictions, rehab status, and players who need follow-up.",
+        "openTeamCalendar": "Open team calendar",
+        "stats": {
+          "injured": "Injured",
+          "restrictions": "Restrictions",
+          "needsProgram": "Needs program",
+          "inRehab": "In rehab",
+          "newReports": "New reports"
+        },
+        "table": {
+          "title": "Player status",
+          "description": "A simple overview for physios, head coaches, and assistant coaches before workouts are assigned.",
+          "headers": {
+            "player": "Player",
+            "status": "Status",
+            "injury": "Injury / report",
+            "restriction": "Restriction",
+            "rehab": "Rehab",
+            "latestCheckIn": "Latest check-in",
+            "action": "Action"
+          }
+        },
+        "badges": {
+          "available": "Available",
+          "injured": "Injured",
+          "restriction": "Restriction",
+          "needsProgram": "Needs program",
+          "inRehab": "In rehab",
+          "newReport": "New report"
+        },
+        "labels": {
+          "pain": "Pain",
+          "until": "until",
+          "exercises": "{count, plural, one {# exercise} other {# exercises}}",
+          "missing": "Missing",
+          "wantsContact": "wants contact"
+        },
+        "actions": {
+          "open": "Open"
+        }
+      },
       "organizationDayPrint": {
         "emptyTitle": "No print view to show",
         "missingDate": "Choose a date from the organization page first.",

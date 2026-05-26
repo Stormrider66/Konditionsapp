@@ -2955,6 +2955,50 @@
         "title": "Lagets analys",
         "description": "Vem behöver uppmärksamhet idag? Belastning, aktivitet och PRs per atlet."
       },
+      "teamMedical": {
+        "backToTeam": "Tillbaka till laget",
+        "title": "Medicinsk översikt",
+        "description": "{teamName}: skador, restriktioner, rehabstatus och spelare som behöver uppföljning.",
+        "openTeamCalendar": "Öppna lagkalender",
+        "stats": {
+          "injured": "Skadade",
+          "restrictions": "Restriktioner",
+          "needsProgram": "Behöver program",
+          "inRehab": "I rehab",
+          "newReports": "Nya rapporter"
+        },
+        "table": {
+          "title": "Spelarstatus",
+          "description": "En enkel överblick för fys, huvudtränare och assisterande tränare innan pass tilldelas.",
+          "headers": {
+            "player": "Spelare",
+            "status": "Status",
+            "injury": "Skada / rapport",
+            "restriction": "Restriktion",
+            "rehab": "Rehab",
+            "latestCheckIn": "Senaste check-in",
+            "action": "Åtgärd"
+          }
+        },
+        "badges": {
+          "available": "Tillgänglig",
+          "injured": "Skadad",
+          "restriction": "Restriktion",
+          "needsProgram": "Behöver program",
+          "inRehab": "I rehab",
+          "newReport": "Ny rapport"
+        },
+        "labels": {
+          "pain": "Smärta",
+          "until": "till",
+          "exercises": "{count, plural, one {# övning} other {# övningar}}",
+          "missing": "Saknas",
+          "wantsContact": "vill ha kontakt"
+        },
+        "actions": {
+          "open": "Öppna"
+        }
+      },
       "organizationDayPrint": {
         "emptyTitle": "Ingen utskrift att visa",
         "missingDate": "Välj ett datum från organisationssidan först.",
