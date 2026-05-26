@@ -62,6 +62,7 @@ function syncWorkoutDisplayFields(workoutData: GeneratedWorkoutData): GeneratedW
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: 'en' | 'sv' = user.language === 'sv' ? 'sv' : 'en'
     const { id } = await context.params
 
     const rateLimited = await rateLimitJsonResponse('voice-workout:confirm', user.id, {
@@ -373,7 +374,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
               clientId: athleteId,
               createdById: user.id,
               title: workoutData.name,
-              description: `Tilldelat via röstkommando`,
+              description: locale === 'sv' ? 'Tilldelat via röstkommando' : 'Assigned via voice command',
               type: 'EXTERNAL_EVENT',
               status: 'SCHEDULED',
               trainingImpact: 'NORMAL',
