@@ -44,6 +44,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 // Running icon (use Activity as fallback)
 const RunningIcon = Activity
@@ -77,6 +78,14 @@ interface CardioTemplateLibraryProps {
   showCopyButton?: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+
+type LocalizedLabel = Record<AppLocale, string>
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 const SPORT_ICONS: Record<string, React.ReactNode> = {
   RUNNING: <RunningIcon className="h-4 w-4" />,
   CYCLING: <Bike className="h-4 w-4" />,
@@ -91,6 +100,13 @@ const SPORT_COLORS: Record<string, string> = {
   SKIING: 'bg-indigo-100 text-indigo-700',
 }
 
+const SPORT_LABELS: Record<string, LocalizedLabel> = {
+  RUNNING: { en: 'Running', sv: 'Löpning' },
+  CYCLING: { en: 'Cycling', sv: 'Cykling' },
+  SWIMMING: { en: 'Swimming', sv: 'Simning' },
+  SKIING: { en: 'Skiing', sv: 'Skidåkning' },
+}
+
 const ZONE_COLORS: Record<number, string> = {
   1: 'bg-gray-100 text-gray-700',
   2: 'bg-green-100 text-green-700',
@@ -99,14 +115,22 @@ const ZONE_COLORS: Record<number, string> = {
   5: 'bg-red-100 text-red-700',
 }
 
-const SEGMENT_TYPE_LABELS: Record<string, string> = {
-  WARMUP: 'Uppvärmning',
-  COOLDOWN: 'Nedvarvning',
-  INTERVAL: 'Intervall',
-  STEADY: 'Jämnt',
-  RECOVERY: 'Återhämtning',
-  HILL: 'Backe',
-  DRILLS: 'Övningar',
+const SEGMENT_TYPE_LABELS: Record<string, LocalizedLabel> = {
+  WARMUP: { en: 'Warm-up', sv: 'Uppvärmning' },
+  COOLDOWN: { en: 'Cool-down', sv: 'Nedvarvning' },
+  INTERVAL: { en: 'Interval', sv: 'Intervall' },
+  STEADY: { en: 'Steady', sv: 'Jämnt' },
+  RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+  HILL: { en: 'Hill', sv: 'Backe' },
+  DRILLS: { en: 'Drills', sv: 'Övningar' },
+}
+
+function sportLabel(sport: string, locale: AppLocale) {
+  return SPORT_LABELS[sport]?.[locale] ?? sport
+}
+
+function segmentTypeLabel(type: string, locale: AppLocale) {
+  return SEGMENT_TYPE_LABELS[type]?.[locale] ?? type
 }
 
 export function CardioTemplateLibrary({
@@ -114,6 +138,7 @@ export function CardioTemplateLibrary({
   onClose,
   showCopyButton = true,
 }: CardioTemplateLibraryProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
   const [templates, setTemplates] = useState<CardioTemplate[]>([])
   const [loading, setLoading] = useState(true)
@@ -131,8 +156,8 @@ export function CardioTemplateLibrary({
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      if (sportFilter) params.set('sport', sportFilter)
-      if (tagFilter) params.set('tag', tagFilter)
+      if (sportFilter && sportFilter !== 'all') params.set('sport', sportFilter)
+      if (tagFilter && tagFilter !== 'all') params.set('tag', tagFilter)
       if (searchQuery) params.set('search', searchQuery)
 
       const response = await fetch(`/api/cardio-templates?${params.toString()}`)
@@ -144,17 +169,17 @@ export function CardioTemplateLibrary({
       }
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte hämta mallar',
+        title: copy(locale, 'Error', 'Fel'),
+        description: copy(locale, 'Could not fetch templates', 'Kunde inte hämta mallar'),
         variant: 'destructive',
       })
     } finally {
       setLoading(false)
     }
-  }, [sportFilter, tagFilter, searchQuery, toast])
+  }, [locale, searchQuery, sportFilter, tagFilter, toast])
 
   useEffect(() => {
-    fetchTemplates()
+    void Promise.resolve().then(fetchTemplates)
   }, [fetchTemplates])
 
   // Copy template to coach's library
@@ -171,16 +196,16 @@ export function CardioTemplateLibrary({
 
       if (result.success) {
         toast({
-          title: 'Mall kopierad',
-          description: `"${template.name}" har lagts till i ditt bibliotek`,
+          title: copy(locale, 'Template copied', 'Mall kopierad'),
+          description: copy(locale, `"${template.name}" has been added to your library`, `"${template.name}" har lagts till i ditt bibliotek`),
         })
       } else {
         throw new Error(result.error)
       }
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte kopiera mallen',
+        title: copy(locale, 'Error', 'Fel'),
+        description: copy(locale, 'Could not copy the template', 'Kunde inte kopiera mallen'),
         variant: 'destructive',
       })
     } finally {
@@ -214,7 +239,11 @@ export function CardioTemplateLibrary({
     setTagFilter('')
   }
 
-  const hasActiveFilters = !!searchQuery || !!sportFilter || !!tagFilter
+  const hasActiveFilters = Boolean(
+    searchQuery ||
+    (sportFilter && sportFilter !== 'all') ||
+    (tagFilter && tagFilter !== 'all')
+  )
 
   return (
     <div className="space-y-4">
@@ -223,7 +252,7 @@ export function CardioTemplateLibrary({
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Sök mallar..."
+            placeholder={copy(locale, 'Search templates...', 'Sök mallar...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -235,20 +264,20 @@ export function CardioTemplateLibrary({
             <SelectValue placeholder="Sport" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla sporter</SelectItem>
-            <SelectItem value="RUNNING">Löpning</SelectItem>
-            <SelectItem value="CYCLING">Cykling</SelectItem>
-            <SelectItem value="SWIMMING">Simning</SelectItem>
-            <SelectItem value="SKIING">Skidåkning</SelectItem>
+            <SelectItem value="all">{copy(locale, 'All sports', 'Alla sporter')}</SelectItem>
+            <SelectItem value="RUNNING">{copy(locale, 'Running', 'Löpning')}</SelectItem>
+            <SelectItem value="CYCLING">{copy(locale, 'Cycling', 'Cykling')}</SelectItem>
+            <SelectItem value="SWIMMING">{copy(locale, 'Swimming', 'Simning')}</SelectItem>
+            <SelectItem value="SKIING">{copy(locale, 'Skiing', 'Skidåkning')}</SelectItem>
           </SelectContent>
         </Select>
 
         <Select value={tagFilter} onValueChange={setTagFilter}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Typ" />
+            <SelectValue placeholder={copy(locale, 'Type', 'Typ')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla typer</SelectItem>
+            <SelectItem value="all">{copy(locale, 'All types', 'Alla typer')}</SelectItem>
             {availableTags.map((tag) => (
               <SelectItem key={tag} value={tag}>
                 {tag}
@@ -260,7 +289,7 @@ export function CardioTemplateLibrary({
         {hasActiveFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4 mr-1" />
-            Rensa filter
+            {copy(locale, 'Clear filters', 'Rensa filter')}
           </Button>
         )}
       </div>
@@ -273,10 +302,10 @@ export function CardioTemplateLibrary({
       ) : templates.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <Filter className="h-12 w-12 mx-auto mb-4 opacity-50" />
-          <p>Inga mallar hittades</p>
+          <p>{copy(locale, 'No templates found', 'Inga mallar hittades')}</p>
           {hasActiveFilters && (
             <Button variant="link" onClick={clearFilters}>
-              Rensa filter och försök igen
+              {copy(locale, 'Clear filters and try again', 'Rensa filter och försök igen')}
             </Button>
           )}
         </div>
@@ -293,14 +322,14 @@ export function CardioTemplateLibrary({
                   <div className="flex items-center gap-2">
                     <Badge className={cn('text-xs', SPORT_COLORS[template.sport])}>
                       {SPORT_ICONS[template.sport]}
-                      <span className="ml-1">{template.sport}</span>
+                      <span className="ml-1">{sportLabel(template.sport, locale)}</span>
                     </Badge>
                   </div>
                   <Badge
                     variant="outline"
                     className={cn('text-xs', ZONE_COLORS[Math.round(template.avgZone)])}
                   >
-                    Zon {Math.round(template.avgZone)}
+                    {copy(locale, 'Zone', 'Zon')} {Math.round(template.avgZone)}
                   </Badge>
                 </div>
                 <CardTitle className="text-base mt-2">{template.name}</CardTitle>
@@ -319,7 +348,7 @@ export function CardioTemplateLibrary({
                   )}
                   <div className="flex items-center gap-1">
                     <Heart className="h-4 w-4" />
-                    {template.segments.length} segment
+                    {template.segments.length} {copy(locale, 'segments', 'segment')}
                   </div>
                 </div>
 
@@ -351,13 +380,13 @@ export function CardioTemplateLibrary({
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className={cn('text-xs', SPORT_COLORS[selectedTemplate.sport])}>
                     {SPORT_ICONS[selectedTemplate.sport]}
-                    <span className="ml-1">{selectedTemplate.sport}</span>
+                    <span className="ml-1">{sportLabel(selectedTemplate.sport, locale)}</span>
                   </Badge>
                   <Badge
                     variant="outline"
                     className={cn('text-xs', ZONE_COLORS[Math.round(selectedTemplate.avgZone)])}
                   >
-                    Zon {Math.round(selectedTemplate.avgZone)}
+                    {copy(locale, 'Zone', 'Zon')} {Math.round(selectedTemplate.avgZone)}
                   </Badge>
                 </div>
                 <DialogTitle>{selectedTemplate.name}</DialogTitle>
@@ -391,7 +420,7 @@ export function CardioTemplateLibrary({
                     >
                       <div className="flex items-center gap-3">
                         <Badge variant="outline" className="text-xs">
-                          {SEGMENT_TYPE_LABELS[segment.type] || segment.type}
+                          {segmentTypeLabel(segment.type, locale)}
                         </Badge>
                         {segment.notes && (
                           <span className="text-xs text-muted-foreground truncate max-w-[150px]">
@@ -428,7 +457,7 @@ export function CardioTemplateLibrary({
 
               <DialogFooter className="gap-2">
                 <Button variant="outline" onClick={() => setSelectedTemplate(null)}>
-                  Stäng
+                  {copy(locale, 'Close', 'Stäng')}
                 </Button>
                 {onTemplateSelect && (
                   <Button
@@ -439,7 +468,7 @@ export function CardioTemplateLibrary({
                     }}
                   >
                     <Check className="h-4 w-4 mr-2" />
-                    Använd mall
+                    {copy(locale, 'Use template', 'Använd mall')}
                   </Button>
                 )}
                 {showCopyButton && (
@@ -452,7 +481,7 @@ export function CardioTemplateLibrary({
                     ) : (
                       <Copy className="h-4 w-4 mr-2" />
                     )}
-                    Kopiera till bibliotek
+                    {copy(locale, 'Copy to library', 'Kopiera till bibliotek')}
                   </Button>
                 )}
               </DialogFooter>

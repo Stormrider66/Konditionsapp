@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { logger } from '@/lib/logger';
+import { useLocale } from '@/i18n/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,14 +66,22 @@ interface CardioSessionLibraryProps {
   businessId?: string;
 }
 
-const sportLabels: Record<string, { label: string; icon: string }> = {
-  RUNNING: { label: 'Löpning', icon: '🏃' },
-  CYCLING: { label: 'Cykling', icon: '🚴' },
-  SWIMMING: { label: 'Simning', icon: '🏊' },
-  SKIING: { label: 'Skidor', icon: '⛷️' },
-  TRIATHLON: { label: 'Triathlon', icon: '🏊🚴🏃' },
-  HYROX: { label: 'HYROX', icon: '💪' },
-  GENERAL_FITNESS: { label: 'Allmän', icon: '🏋️' },
+type AppLocale = 'en' | 'sv';
+
+type LocalizedLabel = Record<AppLocale, string>;
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
+const sportLabels: Record<string, { label: LocalizedLabel; icon: string }> = {
+  RUNNING: { label: { en: 'Running', sv: 'Löpning' }, icon: '🏃' },
+  CYCLING: { label: { en: 'Cycling', sv: 'Cykling' }, icon: '🚴' },
+  SWIMMING: { label: { en: 'Swimming', sv: 'Simning' }, icon: '🏊' },
+  SKIING: { label: { en: 'Skiing', sv: 'Skidor' }, icon: '⛷️' },
+  TRIATHLON: { label: { en: 'Triathlon', sv: 'Triathlon' }, icon: '🏊🚴🏃' },
+  HYROX: { label: { en: 'HYROX', sv: 'HYROX' }, icon: '💪' },
+  GENERAL_FITNESS: { label: { en: 'General fitness', sv: 'Allmän kondition' }, icon: '🏋️' },
 };
 
 const zoneColors: Record<number, string> = {
@@ -102,11 +111,19 @@ function formatDistance(meters?: number): string {
   return `${meters} m`;
 }
 
+function getSportInfo(sport: string, locale: AppLocale) {
+  const sportInfo = sportLabels[sport];
+  return sportInfo
+    ? { label: sportInfo.label[locale], icon: sportInfo.icon }
+    : { label: sport, icon: '🏃' };
+}
+
 export function CardioSessionLibrary({
   onNewSession,
   onEditSession,
   businessId,
 }: CardioSessionLibraryProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
   const pathname = usePathname();
@@ -168,7 +185,7 @@ export function CardioSessionLibrary({
   }, [businessHeaders, search, sportFilter, teamFilter, yearFilter]);
 
   useEffect(() => {
-    void fetchSessions();
+    void Promise.resolve().then(fetchSessions);
   }, [fetchSessions]);
 
   function handleOpenSheet(session: CardioSessionData) {
@@ -217,16 +234,16 @@ export function CardioSessionLibrary({
       });
 
       if (response.ok) {
-        toast.success('Pass borttaget', {
-          description: `"${deleteSession.name}" har tagits bort.`,
+        toast.success(copy(locale, 'Session deleted', 'Pass borttaget'), {
+          description: copy(locale, `"${deleteSession.name}" has been deleted.`, `"${deleteSession.name}" har tagits bort.`),
         });
         void fetchSessions();
       } else {
-        toast.error('Kunde inte ta bort passet');
+        toast.error(copy(locale, 'Could not delete the session', 'Kunde inte ta bort passet'));
       }
     } catch (error) {
       console.error('Failed to delete session:', error);
-      toast.error('Ett fel uppstod');
+      toast.error(copy(locale, 'Something went wrong', 'Ett fel uppstod'));
     } finally {
       setDeleting(false);
       setDeleteSession(null);
@@ -240,7 +257,7 @@ export function CardioSessionLibrary({
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Sök pass..."
+            placeholder={copy(locale, 'Search sessions...', 'Sök pass...')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -248,17 +265,17 @@ export function CardioSessionLibrary({
         </div>
         <Select value={sportFilter} onValueChange={setSportFilter}>
           <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue placeholder="Alla sporter" />
+            <SelectValue placeholder={copy(locale, 'All sports', 'Alla sporter')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Alla sporter</SelectItem>
-            <SelectItem value="RUNNING">Löpning</SelectItem>
-            <SelectItem value="CYCLING">Cykling</SelectItem>
-            <SelectItem value="SWIMMING">Simning</SelectItem>
-            <SelectItem value="SKIING">Skidor</SelectItem>
-            <SelectItem value="TRIATHLON">Triathlon</SelectItem>
+            <SelectItem value="all">{copy(locale, 'All sports', 'Alla sporter')}</SelectItem>
+            <SelectItem value="RUNNING">{copy(locale, 'Running', 'Löpning')}</SelectItem>
+            <SelectItem value="CYCLING">{copy(locale, 'Cycling', 'Cykling')}</SelectItem>
+            <SelectItem value="SWIMMING">{copy(locale, 'Swimming', 'Simning')}</SelectItem>
+            <SelectItem value="SKIING">{copy(locale, 'Skiing', 'Skidor')}</SelectItem>
+            <SelectItem value="TRIATHLON">{copy(locale, 'Triathlon', 'Triathlon')}</SelectItem>
             <SelectItem value="HYROX">HYROX</SelectItem>
-            <SelectItem value="GENERAL_FITNESS">Allmän Kondition</SelectItem>
+            <SelectItem value="GENERAL_FITNESS">{copy(locale, 'General fitness', 'Allmän kondition')}</SelectItem>
           </SelectContent>
         </Select>
         <WorkoutTeamYearFilters
@@ -271,7 +288,7 @@ export function CardioSessionLibrary({
         {onNewSession && (
           <Button onClick={onNewSession}>
             <Plus className="h-4 w-4 mr-2" />
-            Nytt Pass
+            {copy(locale, 'New session', 'Nytt Pass')}
           </Button>
         )}
       </div>
@@ -284,26 +301,28 @@ export function CardioSessionLibrary({
       ) : sessions.length === 0 ? (
         <Card className="p-12 text-center" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <Activity className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
-          <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Inga pass ännu</h3>
+          <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>
+            {copy(locale, 'No sessions yet', 'Inga pass ännu')}
+          </h3>
           <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
             {search || sportFilter !== 'all' || teamFilter !== 'all' || yearFilter !== 'all'
-              ? 'Inga pass matchar din sökning.'
-              : 'Skapa ditt första konditionspass för att komma igång.'}
+              ? copy(locale, 'No sessions match your search.', 'Inga pass matchar din sökning.')
+              : copy(locale, 'Create your first cardio session to get started.', 'Skapa ditt första konditionspass för att komma igång.')}
           </p>
           {onNewSession && !search && sportFilter === 'all' && teamFilter === 'all' && yearFilter === 'all' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
-              Skapa Pass
+              {copy(locale, 'Create session', 'Skapa Pass')}
             </Button>
           )}
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sessions.map((session) => {
-            const sportInfo = sportLabels[session.sport] || { label: session.sport, icon: '🏃' };
+            const sportInfo = getSportInfo(session.sport, locale);
             const segments = session.segments || [];
             const visibleTags = visibleWorkoutTags(session.tags);
-            const teamName = session.teamId ? teamNames.get(session.teamId) ?? 'Lag' : null;
+            const teamName = session.teamId ? teamNames.get(session.teamId) ?? copy(locale, 'Team', 'Lag') : null;
 
             return (
               <Card
@@ -315,7 +334,7 @@ export function CardioSessionLibrary({
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg">{sportInfo.icon}</span>
+                      <span className="text-lg" title={sportInfo.label}>{sportInfo.icon}</span>
                       <h3 className="font-medium truncate" style={{ color: theme.colors.textPrimary }}>{session.name}</h3>
                     </div>
                     {session.avgZone && (
@@ -387,7 +406,7 @@ export function CardioSessionLibrary({
                     }}
                   >
                     <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
-                    Planera
+                    {copy(locale, 'Plan', 'Planera')}
                   </Button>
                 </CardContent>
               </Card>
@@ -452,20 +471,21 @@ export function CardioSessionLibrary({
       <AlertDialog open={!!deleteSession} onOpenChange={() => setDeleteSession(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort pass?</AlertDialogTitle>
+            <AlertDialogTitle>{copy(locale, 'Delete session?', 'Ta bort pass?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort &quot;{deleteSession?.name}&quot;?
-              Detta kan inte ångras.
+              {copy(locale, 'Are you sure you want to delete', 'Är du säker på att du vill ta bort')}{' '}
+              &quot;{deleteSession?.name}&quot;?{' '}
+              {copy(locale, 'This cannot be undone.', 'Detta kan inte ångras.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>{copy(locale, 'Cancel', 'Avbryt')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting}
             >
-              {deleting ? 'Tar bort...' : 'Ta bort'}
+              {deleting ? copy(locale, 'Deleting...', 'Tar bort...') : copy(locale, 'Delete', 'Ta bort')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
