@@ -86,6 +86,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   } | null>(null)
   const [clients, setClients] = useState<TestPageClient[]>([])
   const [selectedClientId, setSelectedClientId] = useState<string>('')
+  const [selectedTeamId, setSelectedTeamId] = useState<string>('all')
   const [testType, setTestType] = useState<TestType>('RUNNING')
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>('')
@@ -145,7 +146,18 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
     return () => controller.abort()
   }, [businessSlug, initialClientId, toast, t])
 
-  const selectedClient = clients.find((c) => c.id === selectedClientId)
+  const teams = Array.from(
+    new Map(
+      clients
+        .map((client) => client.team)
+        .filter((team): team is NonNullable<TestPageClient['team']> => Boolean(team))
+        .map((team) => [team.id, { id: team.id, name: team.name }])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name, locale === 'sv' ? 'sv' : 'en'))
+  const filteredClients = selectedTeamId === 'all'
+    ? clients
+    : clients.filter((client) => client.teamId === selectedTeamId)
+  const selectedClient = filteredClients.find((c) => c.id === selectedClientId)
   const isHockeyClient = (client: TestPageClient | undefined) => {
     if (!client) return false
     return client.sportProfile?.primarySport === HOCKEY_SPORT
@@ -156,27 +168,42 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   const visibleTestCategories = TEST_CATEGORIES.filter((category) => category.value !== 'hockey' || selectedClientIsHockey || testCategory === 'hockey')
   const hasProfileContext = Boolean(initialClientId && clients.some((client) => client.id === initialClientId))
   const orderedClients = selectedClientId
-    ? [...clients].sort((a, b) => {
+    ? [...filteredClients].sort((a, b) => {
         if (a.id === selectedClientId) return -1
         if (b.id === selectedClientId) return 1
         return a.name.localeCompare(b.name, locale === 'sv' ? 'sv' : 'en')
       })
-    : clients
+    : filteredClients
   const sportFormClients = orderedClients.map(c => ({
     id: c.id,
     name: c.name,
     weight: c.weight || 70,
     gender: (c.gender as 'MALE' | 'FEMALE') || 'MALE',
   }))
-  const hockeyTeams = Array.from(
-    new Map(
-      orderedClients
-        .map((client) => client.team)
-        .filter((team): team is NonNullable<TestPageClient['team']> => Boolean(team))
-        .map((team) => [team.id, { id: team.id, name: team.name }])
-    ).values()
+  const hockeyTeams = teams.filter((team) =>
+    clients.some((client) => client.teamId === team.id && isHockeyClient(client))
   )
   const profileHref = selectedClient ? `${basePath}/clients/${selectedClient.id}/profile` : null
+
+  const handleTeamChange = (teamId: string) => {
+    setSelectedTeamId(teamId)
+    const nextClients = teamId === 'all'
+      ? clients
+      : clients.filter((client) => client.teamId === teamId)
+    const nextSelectedClient = nextClients.find((client) => client.id === selectedClientId) ?? nextClients[0]
+    setSelectedClientId(nextSelectedClient?.id ?? '')
+    if (testCategory === 'hockey' && !isHockeyClient(nextSelectedClient)) {
+      setTestCategory('lactate')
+    }
+  }
+
+  const handleClientChange = (clientId: string) => {
+    setSelectedClientId(clientId)
+    const nextClient = clients.find((client) => client.id === clientId)
+    if (testCategory === 'hockey' && !isHockeyClient(nextClient)) {
+      setTestCategory('lactate')
+    }
+  }
 
   const handleSubmit = async (data: CreateTestFormData) => {
     if (!selectedClient) {
@@ -304,13 +331,37 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
     }
   }
 
+  const renderTeamFilter = () => {
+    if (teams.length === 0 || hasProfileContext) return null
+
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="team-select" className="text-slate-900 dark:text-white">{t('Lag', 'Team')}</Label>
+        <Select value={selectedTeamId} onValueChange={handleTeamChange}>
+          <SelectTrigger id="team-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
+            <SelectValue placeholder={t('Välj lag', 'Select team')} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">{t('Alla lag', 'All teams')}</SelectItem>
+            {teams.map((team) => (
+              <SelectItem key={team.id} value={team.id}>
+                {team.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    )
+  }
+
   const renderClientSelector = () => (
     <GlassCard glow="blue">
       <GlassCardHeader>
         <GlassCardTitle>{t('Välj klient', 'Select client')}</GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>
-        <div className="space-y-2">
+        <div className="space-y-4">
+          {renderTeamFilter()}
           <Label htmlFor="client-select" className="text-slate-900 dark:text-white">{t('Klient', 'Client')}</Label>
           {loading ? (
             <div className="h-10 bg-gray-100 rounded-md animate-pulse" />
@@ -322,13 +373,17 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               </Link>{' '}
               {t('för att lägga till en klient.', 'to add a client.')}
             </p>
+          ) : filteredClients.length === 0 ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              {t('Inga klienter i valt lag.', 'No clients in the selected team.')}
+            </p>
           ) : (
-            <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+            <Select value={selectedClientId} onValueChange={handleClientChange}>
               <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10">
                 <SelectValue placeholder={t('Välj en klient', 'Select a client')} />
               </SelectTrigger>
               <SelectContent>
-                {clients.map((client) => (
+                {orderedClients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.name}
                   </SelectItem>
@@ -340,6 +395,21 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
       </GlassCardContent>
     </GlassCard>
   )
+
+  const renderTeamFilterCard = () => {
+    if (teams.length === 0 || hasProfileContext) return null
+
+    return (
+      <GlassCard glow="blue">
+        <GlassCardHeader>
+          <GlassCardTitle>{t('Filtrera atleter', 'Filter athletes')}</GlassCardTitle>
+        </GlassCardHeader>
+        <GlassCardContent>
+          {renderTeamFilter()}
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8">
@@ -384,6 +454,8 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                     <GlassCardTitle>{t('Laktattestinställningar', 'Lactate test settings')}</GlassCardTitle>
                   </GlassCardHeader>
                   <GlassCardContent className="space-y-4">
+                    {renderTeamFilter()}
+
                     <div className="space-y-2">
                       <Label htmlFor="client-select" className="text-slate-900 dark:text-white">{t('Klient', 'Client')}</Label>
                       {loading ? (
@@ -396,13 +468,17 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
                           </Link>{' '}
                           {t('för att lägga till en klient.', 'to add a client.')}
                         </p>
+                      ) : filteredClients.length === 0 ? (
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          {t('Inga klienter i valt lag.', 'No clients in the selected team.')}
+                        </p>
                       ) : (
-                        <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                        <Select value={selectedClientId} onValueChange={handleClientChange}>
                           <SelectTrigger id="client-select" className="bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
                             <SelectValue placeholder={t('Välj en klient', 'Select a client')} />
                           </SelectTrigger>
                           <SelectContent>
-                            {clients.map((client) => (
+                            {orderedClients.map((client) => (
                               <SelectItem key={client.id} value={client.id}>
                                 {client.name}
                               </SelectItem>
@@ -465,49 +541,62 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               </TabsContent>
 
               {/* Power Test Content */}
-              <TabsContent value="power" className="mt-6">
+              <TabsContent value="power" className="mt-6 space-y-6">
+                {renderTeamFilterCard()}
                 <PowerTestForm
+                  key={selectedTeamId}
                   clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Speed Test Content */}
-              <TabsContent value="speed" className="mt-6">
+              <TabsContent value="speed" className="mt-6 space-y-6">
+                {renderTeamFilterCard()}
                 <SpeedTestForm
+                  key={selectedTeamId}
                   clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Agility Test Content */}
-              <TabsContent value="agility" className="mt-6">
+              <TabsContent value="agility" className="mt-6 space-y-6">
+                {renderTeamFilterCard()}
                 <AgilityTestForm
+                  key={selectedTeamId}
                   clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Strength Test Content */}
-              <TabsContent value="strength" className="mt-6">
+              <TabsContent value="strength" className="mt-6 space-y-6">
+                {renderTeamFilterCard()}
                 <StrengthTestForm
+                  key={selectedTeamId}
                   clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Swimming Test Content */}
-              <TabsContent value="swimming" className="mt-6">
+              <TabsContent value="swimming" className="mt-6 space-y-6">
+                {renderTeamFilterCard()}
                 <SwimmingCSSTestForm
+                  key={selectedTeamId}
                   clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* Endurance Test Content */}
-              <TabsContent value="endurance" className="mt-6">
+              <TabsContent value="endurance" className="mt-6 space-y-6">
+                {renderTeamFilterCard()}
                 <YoYoTestForm
+                  key={selectedTeamId}
                   clients={sportFormClients}
                 />
               </TabsContent>
 
               {/* HYROX Test Content */}
-              <TabsContent value="hyrox" className="mt-6">
+              <TabsContent value="hyrox" className="mt-6 space-y-6">
+                {renderTeamFilterCard()}
                 <Tabs defaultValue="station" className="space-y-4">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="station">{t('Stationstest', 'Station test')}</TabsTrigger>
@@ -516,12 +605,14 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
 
                   <TabsContent value="station">
                     <HYROXStationTestForm
+                      key={`station-${selectedTeamId}`}
                       clients={sportFormClients}
                     />
                   </TabsContent>
 
                   <TabsContent value="simulation">
                     <HYROXRaceSimulationForm
+                      key={`simulation-${selectedTeamId}`}
                       clients={sportFormClients}
                     />
                   </TabsContent>
@@ -529,9 +620,10 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
               </TabsContent>
 
               {selectedClientIsHockey && (
-                <TabsContent value="hockey" className="mt-6">
+                <TabsContent value="hockey" className="mt-6 space-y-6">
+                  {renderTeamFilterCard()}
                   <HockeyTestForm
-                    key={selectedClientId}
+                    key={`${selectedTeamId}-${selectedClientId}`}
                     clients={orderedClients.map((client) => ({
                       id: client.id,
                       name: client.name,
