@@ -14,7 +14,7 @@ import { PLATFORM_NAME } from '@/lib/branding/types'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame, Shield, Video, CheckCircle2, ExternalLink, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, Printer, User, Home, Droplet, Scale, Zap, Timer, Dumbbell, Shuffle, Waves, Activity, Flame, Shield, Video, CheckCircle2, ExternalLink, AlertTriangle, Gauge, ClipboardList } from 'lucide-react'
 import {
   Select,
   SelectContent,
@@ -184,6 +184,18 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
     clients.some((client) => client.teamId === team.id && isHockeyClient(client))
   )
   const profileHref = selectedClient ? `${basePath}/clients/${selectedClient.id}/profile` : null
+  const relatedTestLinks = [
+    {
+      href: `${basePath}/ergometer-tests`,
+      label: t('Ergometertester', 'Ergometer tests'),
+      icon: Gauge,
+    },
+    {
+      href: `${basePath}/test-protocols`,
+      label: t('Testprotokoll', 'Test protocols'),
+      icon: ClipboardList,
+    },
+  ]
 
   const handleTeamChange = (teamId: string) => {
     setSelectedTeamId(teamId)
@@ -419,14 +431,27 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
           <div>
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('Nytt Test', 'New Test')}</h1>
-              {hasProfileContext && profileHref && (
-                <Link href={profileHref}>
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    <ArrowLeft className="mr-2 h-4 w-4" />
-                    {t('Tillbaka till profil', 'Back to profile')}
-                  </Button>
-                </Link>
-              )}
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
+                {relatedTestLinks.map((link) => {
+                  const Icon = link.icon
+                  return (
+                    <Link key={link.href} href={link.href}>
+                      <Button variant="outline" className="w-full sm:w-auto">
+                        <Icon className="mr-2 h-4 w-4" />
+                        {link.label}
+                      </Button>
+                    </Link>
+                  )
+                })}
+                {hasProfileContext && profileHref && (
+                  <Link href={profileHref}>
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      <ArrowLeft className="mr-2 h-4 w-4" />
+                      {t('Tillbaka till profil', 'Back to profile')}
+                    </Button>
+                  </Link>
+                )}
+              </div>
             </div>
             <Tabs value={testCategory} onValueChange={(v) => setTestCategory(v as TestCategory)}>
               <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 h-auto gap-1.5 bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 backdrop-blur-md p-1.5 rounded-xl shadow-inner">

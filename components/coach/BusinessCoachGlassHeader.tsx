@@ -253,10 +253,9 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
             allToolItems.intervals, allToolItems.aiStudio, allToolItems.aiCanvas,
         ],
         TEAM: [
-            allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
-            allToolItems.hybrid, allToolItems.agility, allToolItems.intervals,
-            allToolItems.drills, allToolItems.hockeyTests, allToolItems.testProtocols,
-            allToolItems.monitoring, allToolItems.liveHR, allToolItems.aiCanvas,
+            allToolItems.test, allToolItems.strength, allToolItems.cardio,
+            allToolItems.hybrid, allToolItems.agility, allToolItems.drills,
+            allToolItems.liveHR, allToolItems.aiCanvas,
         ],
         GYM: [
             allToolItems.test, allToolItems.testOverview, allToolItems.strength, allToolItems.cardio,
@@ -296,6 +295,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         hiddenMoreHrefs.add(allMoreItems.browse.href)
     } else if (staffRole === 'PHYSICAL_TRAINER') {
         // Fystränare: has studios and AI, no settings/billing
+        hiddenToolHrefs.add(allToolItems.drills.href)
         hiddenMoreHrefs.add(allMoreItems.settings.href)
         hiddenMoreHrefs.add(allMoreItems.referrals.href)
         hiddenMoreHrefs.add(allMoreItems.orgs.href)
@@ -316,6 +316,17 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
     // Staff management only visible to ADMIN/OWNER
     if (!isAdmin) {
         hiddenMoreHrefs.add(allMoreItems.staff.href)
+    }
+
+    if (dashboardMode === 'TEAM') {
+        hiddenToolHrefs.add(allToolItems.testOverview.href)
+        hiddenToolHrefs.add(allToolItems.aiStudio.href)
+        hiddenToolHrefs.add(allToolItems.ergometer.href)
+        hiddenToolHrefs.add(allToolItems.video.href)
+        hiddenToolHrefs.add(allToolItems.monitoring.href)
+        hiddenToolHrefs.add(allToolItems.intervals.href)
+        hiddenToolHrefs.add(allToolItems.hockeyTests.href)
+        hiddenToolHrefs.add(allToolItems.testProtocols.href)
     }
 
     // Get prioritized items, then add remaining ones not already included
