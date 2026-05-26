@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from '@/i18n/client'
 import {
   AlertTriangle,
   ArrowLeft,
@@ -35,6 +36,11 @@ interface InjuryReportFormProps {
 
 type Mechanism = 'CONTACT' | 'NON_CONTACT' | 'OVERUSE' | 'UNKNOWN'
 type Urgency = 'EMERGENCY' | 'URGENT' | 'MODERATE' | 'LOW'
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
 
 function todayDate() {
   return new Date().toISOString().slice(0, 10)
@@ -54,6 +60,7 @@ function severityToUrgency(severity: number): Urgency {
 
 export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryReportFormProps) {
   const router = useRouter()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
@@ -103,17 +110,19 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
       })
 
       const data = await response.json()
-      if (!response.ok) throw new Error(data.error || 'Failed to send injury report')
+      if (!response.ok) {
+        throw new Error(data.error || copy(locale, 'Failed to send injury report', 'Misslyckades med att skicka skaderapport'))
+      }
 
       setSubmitted(true)
       toast({
-        title: 'Skaderapport skickad',
-        description: 'Fysio och ledarstab får den för uppföljning.',
+        title: copy(locale, 'Injury report sent', 'Skaderapport skickad'),
+        description: copy(locale, 'The physio and staff will receive it for follow-up.', 'Fysio och ledarstab får den för uppföljning.'),
       })
     } catch (error) {
       toast({
-        title: 'Kunde inte skicka rapporten',
-        description: error instanceof Error ? error.message : 'Försök igen.',
+        title: copy(locale, 'Could not send the report', 'Kunde inte skicka rapporten'),
+        description: error instanceof Error ? error.message : copy(locale, 'Try again.', 'Försök igen.'),
         variant: 'destructive',
       })
     } finally {
@@ -129,16 +138,22 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
             <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10">
               <CheckCircle2 className="h-8 w-8 text-emerald-500" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Rapporten är skickad</h1>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              {copy(locale, 'The report has been sent', 'Rapporten är skickad')}
+            </h1>
             <p className="mx-auto mt-3 max-w-xl text-slate-600 dark:text-slate-400">
-              Din rapport ligger nu hos fysio och berörd ledarstab. Om det är akut eller snabbt blir värre ska du kontakta vård direkt.
+              {copy(
+                locale,
+                'Your report is now with the physio and relevant staff. If it is urgent or gets worse quickly, contact medical care directly.',
+                'Din rapport ligger nu hos fysio och berörd ledarstab. Om det är akut eller snabbt blir värre ska du kontakta vård direkt.'
+              )}
             </p>
             <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
               <Button onClick={() => router.push(`${basePath}/athlete/dashboard`)}>
-                Till dashboard
+                {copy(locale, 'To dashboard', 'Till dashboard')}
               </Button>
               <Button variant="outline" onClick={() => router.push(`${basePath}/athlete/check-in`)}>
-                Gör daglig check-in
+                {copy(locale, 'Do daily check-in', 'Gör daglig check-in')}
               </Button>
             </div>
           </CardContent>
@@ -155,7 +170,7 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
         onClick={() => router.back()}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
-        Tillbaka
+        {copy(locale, 'Back', 'Tillbaka')}
       </Button>
 
       <Card className="border-slate-200 bg-white shadow-sm dark:border-white/10 dark:bg-slate-900/70">
@@ -163,15 +178,21 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-300">
               <ShieldAlert className="mr-1 h-3 w-3" />
-              Skada / smärta
+              {copy(locale, 'Injury / pain', 'Skada / smärta')}
             </Badge>
             <Badge variant="outline" className="border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400">
               {athleteName}
             </Badge>
           </div>
-          <CardTitle className="text-3xl text-slate-900 dark:text-white">Rapportera skada</CardTitle>
+          <CardTitle className="text-3xl text-slate-900 dark:text-white">
+            {copy(locale, 'Report injury', 'Rapportera skada')}
+          </CardTitle>
           <CardDescription className="text-base">
-            Använd den här när du behöver att fysio, fystränare eller ledare följer upp en skadekänning.
+            {copy(
+              locale,
+              'Use this when you need a physio, physical trainer, or staff member to follow up on an injury concern.',
+              'Använd den här när du behöver att fysio, fystränare eller ledare följer upp en skadekänning.'
+            )}
           </CardDescription>
         </CardHeader>
 
@@ -180,13 +201,17 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
             <div className="flex gap-3">
               <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0" />
               <p>
-                Om du har kraftig smärta, domningar, svårt att belasta, misstänkt fraktur eller huvudskada ska du söka vård direkt. Rapporten här ersätter inte akut vård.
+                {copy(
+                  locale,
+                  'If you have severe pain, numbness, trouble bearing weight, a suspected fracture, or a head injury, seek medical care directly. This report does not replace emergency care.',
+                  'Om du har kraftig smärta, domningar, svårt att belasta, misstänkt fraktur eller huvudskada ska du söka vård direkt. Rapporten här ersätter inte akut vård.'
+                )}
               </p>
             </div>
           </section>
 
           <div className="grid gap-5 md:grid-cols-2">
-            <Field label="Datum">
+            <Field label={copy(locale, 'Date', 'Datum')}>
               <div className="relative">
                 <CalendarDays className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                 <Input
@@ -197,64 +222,64 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
                 />
               </div>
             </Field>
-            <Field label="Tid">
+            <Field label={copy(locale, 'Time', 'Tid')}>
               <Input
                 type="time"
                 value={incidentTime}
                 onChange={(event) => setIncidentTime(event.target.value)}
               />
             </Field>
-            <Field label="Kroppsdel">
+            <Field label={copy(locale, 'Body part', 'Kroppsdel')}>
               <Input
                 value={bodyPart}
                 onChange={(event) => setBodyPart(event.target.value)}
-                placeholder="t.ex. knä, ljumske, axel, rygg"
+                placeholder={copy(locale, 'e.g. knee, groin, shoulder, back', 't.ex. knä, ljumske, axel, rygg')}
               />
             </Field>
-            <Field label="Sida">
+            <Field label={copy(locale, 'Side', 'Sida')}>
               <Select value={side} onValueChange={setSide}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Ej angivet</SelectItem>
-                  <SelectItem value="LEFT">Vänster</SelectItem>
-                  <SelectItem value="RIGHT">Höger</SelectItem>
-                  <SelectItem value="BILATERAL">Båda</SelectItem>
-                  <SelectItem value="CENTRAL">Centralt</SelectItem>
+                  <SelectItem value="none">{copy(locale, 'Not specified', 'Ej angivet')}</SelectItem>
+                  <SelectItem value="LEFT">{copy(locale, 'Left', 'Vänster')}</SelectItem>
+                  <SelectItem value="RIGHT">{copy(locale, 'Right', 'Höger')}</SelectItem>
+                  <SelectItem value="BILATERAL">{copy(locale, 'Both', 'Båda')}</SelectItem>
+                  <SelectItem value="CENTRAL">{copy(locale, 'Center', 'Centralt')}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Hur uppstod det?">
+            <Field label={copy(locale, 'How did it happen?', 'Hur uppstod det?')}>
               <Select value={mechanism} onValueChange={(value) => setMechanism(value as Mechanism)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="UNKNOWN">Vet inte</SelectItem>
-                  <SelectItem value="CONTACT">Kontakt / smäll</SelectItem>
-                  <SelectItem value="NON_CONTACT">Icke-kontakt / vridning</SelectItem>
-                  <SelectItem value="OVERUSE">Smygande / överbelastning</SelectItem>
+                  <SelectItem value="UNKNOWN">{copy(locale, 'Not sure', 'Vet inte')}</SelectItem>
+                  <SelectItem value="CONTACT">{copy(locale, 'Contact / impact', 'Kontakt / smäll')}</SelectItem>
+                  <SelectItem value="NON_CONTACT">{copy(locale, 'Non-contact / twist', 'Icke-kontakt / vridning')}</SelectItem>
+                  <SelectItem value="OVERUSE">{copy(locale, 'Gradual / overload', 'Smygande / överbelastning')}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
-            <Field label="Aktivitet">
+            <Field label={copy(locale, 'Activity', 'Aktivitet')}>
               <Select value={activityType} onValueChange={setActivityType}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="TRAINING">Träning</SelectItem>
+                  <SelectItem value="TRAINING">{copy(locale, 'Training', 'Träning')}</SelectItem>
                   <SelectItem value="MATCH">Match</SelectItem>
                   <SelectItem value="GYM">Gym</SelectItem>
                   <SelectItem value="OFF_ICE">Off-ice</SelectItem>
-                  <SelectItem value="OTHER">Annat</SelectItem>
+                  <SelectItem value="OTHER">{copy(locale, 'Other', 'Annat')}</SelectItem>
                 </SelectContent>
               </Select>
             </Field>
           </div>
 
-          <Field label={`Smärta / problem ${initialSeverity}/10`}>
+          <Field label={copy(locale, `Pain / issue ${initialSeverity}/10`, `Smärta / problem ${initialSeverity}/10`)}>
             <Input
               type="range"
               min={1}
@@ -264,42 +289,46 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
             />
           </Field>
 
-          <Field label="Prioritet">
+          <Field label={copy(locale, 'Priority', 'Prioritet')}>
             <Select value={urgency} onValueChange={(value) => setUrgency(value as Urgency)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="LOW">Låg - kan vänta</SelectItem>
-                <SelectItem value="MODERATE">Måttlig - följ upp inom 1-2 dagar</SelectItem>
-                <SelectItem value="URGENT">Brådskande - följ upp idag</SelectItem>
-                <SelectItem value="EMERGENCY">Akut - behöver direkt hjälp</SelectItem>
+                <SelectItem value="LOW">{copy(locale, 'Low - can wait', 'Låg - kan vänta')}</SelectItem>
+                <SelectItem value="MODERATE">{copy(locale, 'Moderate - follow up within 1-2 days', 'Måttlig - följ upp inom 1-2 dagar')}</SelectItem>
+                <SelectItem value="URGENT">{copy(locale, 'Urgent - follow up today', 'Brådskande - följ upp idag')}</SelectItem>
+                <SelectItem value="EMERGENCY">{copy(locale, 'Emergency - needs immediate help', 'Akut - behöver direkt hjälp')}</SelectItem>
               </SelectContent>
             </Select>
           </Field>
 
-          <Field label="Beskriv vad som hänt">
+          <Field label={copy(locale, 'Describe what happened', 'Beskriv vad som hänt')}>
             <Textarea
               value={description}
               onChange={(event) => setDescription(event.target.value)}
-              placeholder="Vad gjorde du, när kände du det, vad gör ont, vad blir värre/bättre?"
+              placeholder={copy(
+                locale,
+                'What were you doing, when did you feel it, what hurts, what makes it worse/better?',
+                'Vad gjorde du, när kände du det, vad gör ont, vad blir värre/bättre?'
+              )}
               className="min-h-32"
             />
           </Field>
 
-          <Field label="Akut åtgärd">
+          <Field label={copy(locale, 'Immediate care', 'Akut åtgärd')}>
             <Textarea
               value={immediateCareGiven}
               onChange={(event) => setImmediateCareGiven(event.target.value)}
-              placeholder="t.ex. is, vila, tejpning, avbröt passet..."
+              placeholder={copy(locale, 'e.g. ice, rest, taping, stopped the session...', 't.ex. is, vila, tejpning, avbröt passet...')}
               className="min-h-24"
             />
           </Field>
 
           <div className="grid gap-3 md:grid-cols-3">
-            <CheckRow checked={iceApplied} onChange={setIceApplied} label="Jag har lagt is" />
-            <CheckRow checked={removedFromPlay} onChange={setRemovedFromPlay} label="Jag avbröt aktivitet" />
-            <CheckRow checked={ambulanceCalled} onChange={setAmbulanceCalled} label="Akut hjälp kontaktad" warning />
+            <CheckRow checked={iceApplied} onChange={setIceApplied} label={copy(locale, 'I applied ice', 'Jag har lagt is')} />
+            <CheckRow checked={removedFromPlay} onChange={setRemovedFromPlay} label={copy(locale, 'I stopped activity', 'Jag avbröt aktivitet')} />
+            <CheckRow checked={ambulanceCalled} onChange={setAmbulanceCalled} label={copy(locale, 'Emergency help contacted', 'Akut hjälp kontaktad')} warning />
           </div>
 
           <div className="flex flex-col gap-3 border-t border-slate-200 pt-6 dark:border-white/10 sm:flex-row sm:justify-end">
@@ -308,7 +337,7 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
               variant="outline"
               onClick={() => router.push(`${basePath}/athlete/dashboard`)}
             >
-              Avbryt
+              {copy(locale, 'Cancel', 'Avbryt')}
             </Button>
             <Button
               type="button"
@@ -317,7 +346,7 @@ export function InjuryReportForm({ clientId, athleteName, basePath }: InjuryRepo
               className="bg-red-600 hover:bg-red-700"
             >
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldAlert className="mr-2 h-4 w-4" />}
-              Skicka rapport
+              {copy(locale, 'Send report', 'Skicka rapport')}
             </Button>
           </div>
         </CardContent>
