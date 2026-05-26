@@ -134,10 +134,10 @@ export function buildTierAwareContext(
         context += buildFunctionalFitnessContext(athlete);
         break;
       case 'TEAM_ICE_HOCKEY':
-        context += buildHockeyContext(athlete);
+        context += buildHockeyContext(athlete, locale);
         break;
       case 'TEAM_FOOTBALL':
-        context += buildFootballContext(athlete);
+        context += buildFootballContext(athlete, locale);
         break;
     }
   }
@@ -168,10 +168,10 @@ export function buildTierAwareContext(
         // Summary for STANDARD
         const totalDistance = athlete.stravaActivities.reduce((sum, a) => sum + (a.distance || 0), 0) / 1000;
         const activityCount = athlete.stravaActivities.length;
-        context += `\n## Strava-sammanfattning\n`;
-        context += `- **Aktiviteter (14 dagar)**: ${activityCount}\n`;
-        context += `- **Total distans**: ${totalDistance.toFixed(1)} km\n`;
-        context += `*Uppgradera till Pro för detaljerad träningsanalys*\n`;
+        context += `\n## ${locale === 'sv' ? 'Strava-sammanfattning' : 'Strava Summary'}\n`;
+        context += `- **${locale === 'sv' ? 'Aktiviteter (14 dagar)' : 'Activities (14 days)'}**: ${activityCount}\n`;
+        context += `- **${locale === 'sv' ? 'Total distans' : 'Total distance'}**: ${totalDistance.toFixed(1)} km\n`;
+        context += `*${locale === 'sv' ? 'Uppgradera till Pro för detaljerad träningsanalys' : 'Upgrade to Pro for detailed training analysis'}*\n`;
       }
     }
 
@@ -182,11 +182,11 @@ export function buildTierAwareContext(
         context += buildGarminContext(athlete.garminMetrics, locale);
       } else {
         // Summary for STANDARD
-        context += `\n## Garmin-sammanfattning\n`;
+        context += `\n## ${locale === 'sv' ? 'Garmin-sammanfattning' : 'Garmin Summary'}\n`;
         if (athlete.garminMetrics.readinessScore !== null) {
-          context += `- **Beredskapspoäng**: ${athlete.garminMetrics.readinessScore}/100\n`;
+          context += `- **${locale === 'sv' ? 'Beredskapspoäng' : 'Readiness score'}**: ${athlete.garminMetrics.readinessScore}/100\n`;
         }
-        context += `*Uppgradera till Pro för fullständig hälsoanalys*\n`;
+        context += `*${locale === 'sv' ? 'Uppgradera till Pro för fullständig hälsoanalys' : 'Upgrade to Pro for full health analysis'}*\n`;
       }
     }
   }

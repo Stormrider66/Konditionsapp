@@ -692,7 +692,9 @@ export function generateProgramPrompt(
   const sportInfo = SPORT_PROMPTS[sport];
   const methodInfo = methodology ? METHODOLOGIES[methodology] : null;
 
-  let prompt = `## UPPGIFT: SKAPA TRÄNINGSPROGRAM
+  let prompt = `## TASK: CREATE TRAINING PROGRAM
+
+LANGUAGE: Write every user-facing field, explanation, workout name, phase name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
 Du ska skapa ett strukturerat träningsprogram för en atlet.
 
@@ -783,7 +785,9 @@ export function modifyProgramPrompt(
   modification: string,
   currentWeekSummary: string
 ): string {
-  return `## UPPGIFT: MODIFIERA TRÄNINGSPROGRAM
+  return `## TASK: MODIFY TRAINING PROGRAM
+
+LANGUAGE: Write every user-facing field, explanation, workout name, phase name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
 Du ska modifiera ett befintligt träningsprogram baserat på coachens instruktion.
 
@@ -813,7 +817,9 @@ export function quickWorkoutPrompt(
 ): string {
   const sportInfo = SPORT_PROMPTS[sport];
 
-  return `## SNABBPASS: ${sport}
+  return `## QUICK WORKOUT: ${sport}
+
+LANGUAGE: Write every user-facing field, workout name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
 Skapa ett ${duration}-minuters ${intensity === 'easy' ? 'lätt' : intensity === 'moderate' ? 'medel' : 'hårt'} pass.
 
@@ -842,7 +848,9 @@ export function injuryModificationPrompt(
   painLevel: number,
   originalWorkout: string
 ): string {
-  return `## SKADEANPASSNING
+  return `## INJURY MODIFICATION
+
+LANGUAGE: Write every user-facing field, explanation, workout name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
 En atlet har rapporterat:
 - Skadetyp: ${injuryType}
@@ -1012,7 +1020,9 @@ export function calendarAwareWorkoutPrompt(
   const sportInfo = SPORT_PROMPTS[sport];
 
   if (calendarContext.isBlocked) {
-    return `## VILOD: ${targetDate}
+    return `## REST DAY: ${targetDate}
+
+LANGUAGE: Write every user-facing field, suggestion, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
 Denna dag är blockerad i atletens kalender. Ingen träning ska planeras.
 
@@ -1061,7 +1071,9 @@ Föreslå istället:
     sessionRecommendation = 'Lätt återhämtningspass eller rörlighet';
   }
 
-  return `## PASS FÖR ${targetDate}
+  return `## WORKOUT FOR ${targetDate}
+
+LANGUAGE: Write every user-facing field, workout name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
 ${intensityGuide ? `**Begränsning**: ${intensityGuide}` : ''}
 

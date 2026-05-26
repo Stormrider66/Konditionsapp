@@ -12,11 +12,9 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import {
   Dumbbell,
   Moon,
-  Heart,
   Utensils,
   ArrowDown,
   ArrowUp,
@@ -25,6 +23,7 @@ import {
   Battery,
   Brain,
 } from 'lucide-react';
+import { useLocale } from '@/i18n/client';
 
 type Phase = 'MENSTRUAL' | 'FOLLICULAR' | 'OVULATORY' | 'LUTEAL';
 
@@ -36,7 +35,9 @@ interface PhaseRecommendationsProps {
   focusAreas: string[];
 }
 
-const PHASE_DATA: Record<Phase, {
+type AppLocale = 'en' | 'sv';
+
+type PhaseData = Record<Phase, {
   title: string;
   icon: string;
   color: string;
@@ -51,7 +52,9 @@ const PHASE_DATA: Record<Phase, {
   nutrition: string[];
   recovery: string[];
   hormoneInfo: string;
-}> = {
+}>;
+
+const PHASE_DATA_SV: PhaseData = {
   MENSTRUAL: {
     title: 'Menstruationsfas',
     icon: '🔴',
@@ -158,6 +161,153 @@ const PHASE_DATA: Record<Phase, {
   },
 };
 
+const PHASE_DATA_EN: PhaseData = {
+  MENSTRUAL: {
+    title: 'Menstrual phase',
+    icon: '🔴',
+    color: 'text-red-600',
+    bgColor: 'bg-red-50 dark:bg-red-950/30',
+    description: 'Days 1-5: The body is recovering. Hormone levels are low, which can affect energy and mood.',
+    training: {
+      intensity: 'Low to moderate',
+      volume: 'Reduced (80%)',
+      types: ['Easy running', 'Yoga', 'Swimming', 'Walks', 'Stretching'],
+      avoid: ['High-intensity interval training', 'Heavy strength lifting', 'Competition'],
+    },
+    nutrition: [
+      'Iron-rich foods (meat, legumes, spinach)',
+      'Anti-inflammatory foods',
+      'Warm food and drinks may help',
+      'Avoid caffeine if cramps are heavy',
+    ],
+    recovery: [
+      'Prioritize sleep (7-9 hours)',
+      'Heat treatment for cramp relief',
+      'Light movement rather than total rest',
+      'Listen to body signals',
+    ],
+    hormoneInfo: 'Estrogen and progesterone are at their lowest. FSH starts rising to prepare the next egg.',
+  },
+  FOLLICULAR: {
+    title: 'Follicular phase',
+    icon: '🌱',
+    color: 'text-green-600',
+    bgColor: 'bg-green-50 dark:bg-green-950/30',
+    description: 'Days 6-13: Energy increases. Estrogen rises and the body is ready for challenges.',
+    training: {
+      intensity: 'Moderate to high',
+      volume: 'Normal (100%)',
+      types: ['Strength training', 'HIIT', 'Intervals', 'Technical training', 'New exercises'],
+      avoid: ['Undertraining - use the energy'],
+    },
+    nutrition: [
+      'Increase protein intake for muscle building',
+      'Complex carbohydrates for energy',
+      'Eat after training for optimal recovery',
+      'Fiber-rich foods support hormone balance',
+    ],
+    recovery: [
+      'Recovery is faster now',
+      'Good time for back-to-back training sessions',
+      'Muscles respond better to strength training',
+      'Note personal bests - you are strong now',
+    ],
+    hormoneInfo: 'Estrogen rises steadily and stimulates FSH. The body prepares for ovulation.',
+  },
+  OVULATORY: {
+    title: 'Ovulatory phase',
+    icon: '🌸',
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-50 dark:bg-yellow-950/30',
+    description: 'Days 14-16: Peak form. Estrogen reaches its peak and you may perform at your best.',
+    training: {
+      intensity: 'High to maximal',
+      volume: 'Slightly increased (105%)',
+      types: ['Competition', 'Personal-best attempts', 'Explosive training', 'Sprint', 'Max strength'],
+      avoid: ['Excessive knee-joint loading', 'Ignoring pain - increased injury risk'],
+    },
+    nutrition: [
+      'Good time for performance nutrition',
+      'Caffeine can give an extra boost',
+      'Antioxidants for recovery',
+      'Stay well hydrated',
+    ],
+    recovery: [
+      'Note: Increased ligament injury risk',
+      'Focus on warm-up and technique',
+      'Plan competitions during this phase',
+      'Be mindful of possible overtraining',
+    ],
+    hormoneInfo: 'LH and estrogen peak, triggering ovulation. Testosterone also rises, which can support performance.',
+  },
+  LUTEAL: {
+    title: 'Luteal phase',
+    icon: '🌙',
+    color: 'text-purple-600',
+    bgColor: 'bg-purple-50 dark:bg-purple-950/30',
+    description: 'Days 17-28: The body is preparing. Progesterone rises and RPE can feel higher.',
+    training: {
+      intensity: 'Moderate',
+      volume: 'Slightly reduced (85%)',
+      types: ['Steady-state aerobic', 'Technique focus', 'Endurance', 'Mobility training'],
+      avoid: ['Very high intensity', 'New heavy exercises', 'Overexertion'],
+    },
+    nutrition: [
+      'Increase carbohydrates toward the end of the phase',
+      'Magnesium-rich foods can help',
+      'Extra iron if blood loss is high',
+      'Reduce salt if swelling occurs',
+    ],
+    recovery: [
+      'Expect higher perceived exertion',
+      'Extra hydration needs',
+      'Sleep quality can be affected - prioritize it',
+      'PMS symptoms can affect motivation',
+    ],
+    hormoneInfo: 'Progesterone dominates and raises body temperature. Estrogen drops toward the end, which can cause PMS.',
+  },
+};
+
+const PHASE_DATA: Record<AppLocale, PhaseData> = {
+  en: PHASE_DATA_EN,
+  sv: PHASE_DATA_SV,
+};
+
+const LABELS = {
+  en: {
+    dayOfCycle: (day: number) => `Day ${day} of cycle`,
+    intensity: 'Intensity',
+    volume: 'Volume',
+    training: 'Training',
+    recommendedActivities: 'Recommended activities',
+    avoid: 'Avoid',
+    nutrition: 'Nutrition',
+    recovery: 'Recovery',
+    hormones: 'Hormones',
+  },
+  sv: {
+    dayOfCycle: (day: number) => `Dag ${day} av cykeln`,
+    intensity: 'Intensitet',
+    volume: 'Volym',
+    training: 'Träning',
+    recommendedActivities: 'Rekommenderade aktiviteter',
+    avoid: 'Undvik',
+    nutrition: 'Kost',
+    recovery: 'Återhämtning',
+    hormones: 'Hormoner',
+  },
+} satisfies Record<AppLocale, {
+  dayOfCycle: (day: number) => string;
+  intensity: string;
+  volume: string;
+  training: string;
+  recommendedActivities: string;
+  avoid: string;
+  nutrition: string;
+  recovery: string;
+  hormones: string;
+}>;
+
 export function PhaseRecommendations({
   phase,
   cycleDay,
@@ -165,7 +315,9 @@ export function PhaseRecommendations({
   volumeModifier,
   focusAreas,
 }: PhaseRecommendationsProps) {
-  const data = PHASE_DATA[phase];
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const data = PHASE_DATA[locale][phase];
+  const labels = LABELS[locale];
 
   // Calculate intensity arrow
   const intensityArrow = intensityModifier > 1 ? (
@@ -193,7 +345,7 @@ export function PhaseRecommendations({
             <span className="text-3xl">{data.icon}</span>
             <div>
               <CardTitle className={data.color}>{data.title}</CardTitle>
-              <CardDescription>Dag {cycleDay} av cykeln</CardDescription>
+              <CardDescription>{labels.dayOfCycle(cycleDay)}</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -205,7 +357,7 @@ export function PhaseRecommendations({
             <div className="flex items-center gap-2 p-3 bg-background rounded-lg">
               <Zap className="h-5 w-5 text-orange-500" />
               <div>
-                <p className="text-xs text-muted-foreground">Intensitet</p>
+                <p className="text-xs text-muted-foreground">{labels.intensity}</p>
                 <div className="flex items-center gap-1">
                   <span className="font-bold">{Math.round(intensityModifier * 100)}%</span>
                   {intensityArrow}
@@ -215,7 +367,7 @@ export function PhaseRecommendations({
             <div className="flex items-center gap-2 p-3 bg-background rounded-lg">
               <Battery className="h-5 w-5 text-blue-500" />
               <div>
-                <p className="text-xs text-muted-foreground">Volym</p>
+                <p className="text-xs text-muted-foreground">{labels.volume}</p>
                 <div className="flex items-center gap-1">
                   <span className="font-bold">{Math.round(volumeModifier * 100)}%</span>
                   {volumeArrow}
@@ -231,12 +383,12 @@ export function PhaseRecommendations({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Dumbbell className="h-4 w-4" />
-            Träning
+            {labels.training}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div>
-            <p className="text-xs text-muted-foreground mb-1">Rekommenderade aktiviteter</p>
+            <p className="text-xs text-muted-foreground mb-1">{labels.recommendedActivities}</p>
             <div className="flex flex-wrap gap-1">
               {data.training.types.map((type, i) => (
                 <Badge key={i} variant="secondary" className="text-xs">{type}</Badge>
@@ -245,7 +397,7 @@ export function PhaseRecommendations({
           </div>
           {data.training.avoid.length > 0 && (
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Undvik</p>
+              <p className="text-xs text-muted-foreground mb-1">{labels.avoid}</p>
               <div className="flex flex-wrap gap-1">
                 {data.training.avoid.map((item, i) => (
                   <Badge key={i} variant="outline" className="text-xs text-red-600 border-red-200">{item}</Badge>
@@ -261,7 +413,7 @@ export function PhaseRecommendations({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Utensils className="h-4 w-4" />
-            Kost
+            {labels.nutrition}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -281,7 +433,7 @@ export function PhaseRecommendations({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Moon className="h-4 w-4" />
-            Återhämtning
+            {labels.recovery}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -301,7 +453,7 @@ export function PhaseRecommendations({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Brain className="h-4 w-4" />
-            Hormoner
+            {labels.hormones}
           </CardTitle>
         </CardHeader>
         <CardContent>

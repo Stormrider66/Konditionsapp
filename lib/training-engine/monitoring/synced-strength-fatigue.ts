@@ -179,9 +179,9 @@ export async function calculateSyncedStrengthFatigue(
   // Generate warning if needed
   let warning: string | undefined
   if (score < 4) {
-    warning = 'Hög muskulär belastning - överväg vila eller lättare pass'
+    warning = 'High muscular load - consider rest or an easier session'
   } else if (score < 6) {
-    warning = 'Måttlig muskulär trötthet - planera återhämtning'
+    warning = 'Moderate muscular fatigue - plan recovery'
   }
 
   return {

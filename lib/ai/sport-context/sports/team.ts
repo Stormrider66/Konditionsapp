@@ -1,27 +1,31 @@
 import type { AthleteData, FootballSettings, HockeySettings } from '../types'
 
-export function buildHockeyContext(athlete: AthleteData): string {
+type AppLocale = 'en' | 'sv'
+
+const t = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
+export function buildHockeyContext(athlete: AthleteData, locale: AppLocale = 'en'): string {
   const sp = athlete.sportProfile;
   const settings = sp?.hockeySettings as HockeySettings | null;
 
-  let context = `\n## ISHOCKEYSPECIFIK DATA\n`;
+  let context = `\n## ${t(locale, 'ICE HOCKEY-SPECIFIC DATA', 'ISHOCKEYSPECIFIK DATA')}\n`;
 
   // Team and position
   if (settings?.teamName) {
-    context += `- **Lag**: ${settings.teamName}\n`;
+    context += `- **${t(locale, 'Team', 'Lag')}**: ${settings.teamName}\n`;
   }
   if (settings?.position) {
     const positionLabels: Record<string, string> = {
       center: 'Center',
       wing: 'Forward (Wing)',
-      defense: 'Back',
-      goalie: 'Målvakt',
+      defense: t(locale, 'Defense', 'Back'),
+      goalie: t(locale, 'Goalie', 'Målvakt'),
     };
     context += `- **Position**: ${positionLabels[settings.position] || settings.position}\n`;
   }
   if (settings?.leagueLevel) {
     const leagueLabels: Record<string, string> = {
-      recreational: 'Motionshockey',
+      recreational: t(locale, 'Recreational hockey', 'Motionshockey'),
       junior: 'Junior',
       division_3: 'Division 3',
       division_2: 'Division 2',
@@ -30,33 +34,33 @@ export function buildHockeyContext(athlete: AthleteData): string {
       hockeyallsvenskan: 'Hockeyallsvenskan',
       shl: 'SHL',
     };
-    context += `- **Liga**: ${leagueLabels[settings.leagueLevel] || settings.leagueLevel}\n`;
+    context += `- **${t(locale, 'League', 'Liga')}**: ${leagueLabels[settings.leagueLevel] || settings.leagueLevel}\n`;
   }
   if (settings?.yearsPlaying) {
-    context += `- **År aktiv**: ${settings.yearsPlaying} år\n`;
+    context += `- **${t(locale, 'Years active', 'År aktiv')}**: ${settings.yearsPlaying} ${t(locale, 'years', 'år')}\n`;
   }
 
   // Season phase
   if (settings?.seasonPhase) {
     const phaseLabels: Record<string, string> = {
-      off_season: 'Off-season (sommarträning)',
-      pre_season: 'Försäsong',
-      in_season: 'Säsong',
-      playoffs: 'Slutspel',
+      off_season: t(locale, 'Off-season (summer training)', 'Off-season (sommarträning)'),
+      pre_season: t(locale, 'Pre-season', 'Försäsong'),
+      in_season: t(locale, 'In-season', 'Säsong'),
+      playoffs: t(locale, 'Playoffs', 'Slutspel'),
     };
-    context += `- **Säsongsfas**: ${phaseLabels[settings.seasonPhase] || settings.seasonPhase}\n`;
+    context += `- **${t(locale, 'Season phase', 'Säsongsfas')}**: ${phaseLabels[settings.seasonPhase] || settings.seasonPhase}\n`;
   }
 
   // Ice time and shifts
   if (settings?.averageIceTimeMinutes || settings?.shiftsPerGame) {
-    context += `\n### Istid & Byten\n`;
+    context += `\n### ${t(locale, 'Ice Time & Shifts', 'Istid & Byten')}\n`;
     if (settings?.averageIceTimeMinutes) {
-      context += `- **Genomsnittlig istid**: ${settings.averageIceTimeMinutes} min/match\n`;
+      context += `- **${t(locale, 'Average ice time', 'Genomsnittlig istid')}**: ${settings.averageIceTimeMinutes} min/${t(locale, 'game', 'match')}\n`;
       // Calculate approximate shift length
       if (settings?.shiftsPerGame) {
         const avgShiftLength = Math.round((settings.averageIceTimeMinutes * 60) / settings.shiftsPerGame);
-        context += `- **Byten per match**: ${settings.shiftsPerGame}\n`;
-        context += `- **Genomsnittlig byteslängd**: ${avgShiftLength} sekunder\n`;
+        context += `- **${t(locale, 'Shifts per game', 'Byten per match')}**: ${settings.shiftsPerGame}\n`;
+        context += `- **${t(locale, 'Average shift length', 'Genomsnittlig byteslängd')}**: ${avgShiftLength} ${t(locale, 'seconds', 'sekunder')}\n`;
       }
     }
   }
@@ -64,25 +68,25 @@ export function buildHockeyContext(athlete: AthleteData): string {
   // Play style
   if (settings?.playStyle) {
     const styleLabels: Record<string, string> = {
-      offensive: 'Offensiv - poängproducent',
-      defensive: 'Defensiv - pålitlig i egen zon',
-      two_way: 'Tvåvägsspelare - balanserad',
-      physical: 'Fysisk - kroppsspel',
-      skill: 'Teknisk - puckhantering',
+      offensive: t(locale, 'Offensive - point producer', 'Offensiv - poängproducent'),
+      defensive: t(locale, 'Defensive - reliable in own zone', 'Defensiv - pålitlig i egen zon'),
+      two_way: t(locale, 'Two-way player - balanced', 'Tvåvägsspelare - balanserad'),
+      physical: t(locale, 'Physical - body play', 'Fysisk - kroppsspel'),
+      skill: t(locale, 'Technical - puck handling', 'Teknisk - puckhantering'),
     };
-    context += `\n### Spelstil\n`;
-    context += `- **Typ**: ${styleLabels[settings.playStyle] || settings.playStyle}\n`;
+    context += `\n### ${t(locale, 'Playing Style', 'Spelstil')}\n`;
+    context += `- **${t(locale, 'Type', 'Typ')}**: ${styleLabels[settings.playStyle] || settings.playStyle}\n`;
   }
 
   // Strengths and weaknesses
   if (settings?.strengthFocus && settings.strengthFocus.length > 0) {
-    context += `\n### Styrkor\n`;
+    context += `\n### ${t(locale, 'Strengths', 'Styrkor')}\n`;
     for (const strength of settings.strengthFocus) {
       context += `- ${strength}\n`;
     }
   }
   if (settings?.weaknesses && settings.weaknesses.length > 0) {
-    context += `\n### Utvecklingsområden\n`;
+    context += `\n### ${t(locale, 'Development Areas', 'Utvecklingsområden')}\n`;
     for (const weakness of settings.weaknesses) {
       context += `- ${weakness}\n`;
     }
@@ -90,58 +94,58 @@ export function buildHockeyContext(athlete: AthleteData): string {
 
   // Injury history
   if (settings?.injuryHistory && settings.injuryHistory.length > 0) {
-    context += `\n### Skadehistorik (att ta hänsyn till)\n`;
+    context += `\n### ${t(locale, 'Injury History (to account for)', 'Skadehistorik (att ta hänsyn till)')}\n`;
     for (const injury of settings.injuryHistory) {
       context += `- ${injury}\n`;
     }
   }
 
   // Position-specific training recommendations
-  context += `\n### Positionsspecifika träningsrekommendationer\n`;
+  context += `\n### ${t(locale, 'Position-Specific Training Recommendations', 'Positionsspecifika träningsrekommendationer')}\n`;
   if (settings?.position === 'goalie') {
-    context += `- **Fokus**: Reaktionsförmåga, flexibilitet, mental fokus\n`;
-    context += `- **Styrka**: Core-stabilitet, explosiv kraft i benen\n`;
-    context += `- **Kondition**: Intervalltolerans för korta intensiva moment\n`;
-    context += `- **Skadeförebyggande**: Höftflexibilitet, knästabilitet\n`;
+    context += `- **${t(locale, 'Focus', 'Fokus')}**: ${t(locale, 'Reaction ability, flexibility, mental focus', 'Reaktionsförmåga, flexibilitet, mental fokus')}\n`;
+    context += `- **${t(locale, 'Strength', 'Styrka')}**: ${t(locale, 'Core stability, explosive leg power', 'Core-stabilitet, explosiv kraft i benen')}\n`;
+    context += `- **${t(locale, 'Conditioning', 'Kondition')}**: ${t(locale, 'Interval tolerance for short intense actions', 'Intervalltolerans för korta intensiva moment')}\n`;
+    context += `- **${t(locale, 'Injury prevention', 'Skadeförebyggande')}**: ${t(locale, 'Hip flexibility, knee stability', 'Höftflexibilitet, knästabilitet')}\n`;
   } else if (settings?.position === 'defense') {
-    context += `- **Fokus**: Baklängesåkning, positionering, fysisk styrka\n`;
-    context += `- **Styrka**: Överkroppsstyrka för dueller, benstyrka för åkning\n`;
-    context += `- **Kondition**: Uthållighet för längre byten, återhämtningsförmåga\n`;
-    context += `- **Skadeförebyggande**: Höft, ljumske, axlar\n`;
+    context += `- **${t(locale, 'Focus', 'Fokus')}**: ${t(locale, 'Backward skating, positioning, physical strength', 'Baklängesåkning, positionering, fysisk styrka')}\n`;
+    context += `- **${t(locale, 'Strength', 'Styrka')}**: ${t(locale, 'Upper-body strength for duels, leg strength for skating', 'Överkroppsstyrka för dueller, benstyrka för åkning')}\n`;
+    context += `- **${t(locale, 'Conditioning', 'Kondition')}**: ${t(locale, 'Endurance for longer shifts, recovery ability', 'Uthållighet för längre byten, återhämtningsförmåga')}\n`;
+    context += `- **${t(locale, 'Injury prevention', 'Skadeförebyggande')}**: ${t(locale, 'Hips, groin, shoulders', 'Höft, ljumske, axlar')}\n`;
   } else {
-    context += `- **Fokus**: Acceleration, skott, offensiv kreativitet\n`;
-    context += `- **Styrka**: Explosiv kraft, skottstyrka\n`;
-    context += `- **Kondition**: Sprint-uthållighet, snabb återhämtning\n`;
-    context += `- **Skadeförebyggande**: Hamstrings, ljumske\n`;
+    context += `- **${t(locale, 'Focus', 'Fokus')}**: ${t(locale, 'Acceleration, shooting, offensive creativity', 'Acceleration, skott, offensiv kreativitet')}\n`;
+    context += `- **${t(locale, 'Strength', 'Styrka')}**: ${t(locale, 'Explosive power, shot strength', 'Explosiv kraft, skottstyrka')}\n`;
+    context += `- **${t(locale, 'Conditioning', 'Kondition')}**: ${t(locale, 'Sprint endurance, fast recovery', 'Sprint-uthållighet, snabb återhämtning')}\n`;
+    context += `- **${t(locale, 'Injury prevention', 'Skadeförebyggande')}**: ${t(locale, 'Hamstrings, groin', 'Hamstrings, ljumske')}\n`;
   }
 
   // Season-specific training notes
   if (settings?.seasonPhase) {
-    context += `\n### Säsongsanpassad träning\n`;
+    context += `\n### ${t(locale, 'Season-Adjusted Training', 'Säsongsanpassad träning')}\n`;
     switch (settings.seasonPhase) {
       case 'off_season':
-        context += `- **Prioritet**: Bygg aerob bas, maxstyrka, åtgärda skador\n`;
-        context += `- **Volym**: Hög (4-6 pass/vecka utöver is)\n`;
-        context += `- **Intensitet**: Medel-hög, progressiv\n`;
-        context += `- **Fokus**: Styrkelyft, löpning/cykling, rörlighet\n`;
+        context += `- **${t(locale, 'Priority', 'Prioritet')}**: ${t(locale, 'Build aerobic base, max strength, address injuries', 'Bygg aerob bas, maxstyrka, åtgärda skador')}\n`;
+        context += `- **${t(locale, 'Volume', 'Volym')}**: ${t(locale, 'High (4-6 sessions/week beyond ice)', 'Hög (4-6 pass/vecka utöver is)')}\n`;
+        context += `- **${t(locale, 'Intensity', 'Intensitet')}**: ${t(locale, 'Medium-high, progressive', 'Medel-hög, progressiv')}\n`;
+        context += `- **${t(locale, 'Focus', 'Fokus')}**: ${t(locale, 'Strength lifting, running/cycling, mobility', 'Styrkelyft, löpning/cykling, rörlighet')}\n`;
         break;
       case 'pre_season':
-        context += `- **Prioritet**: Sport-specifik kondition, explosivitet\n`;
-        context += `- **Volym**: Medel-hög (3-4 pass/vecka utöver is)\n`;
-        context += `- **Intensitet**: Hög, bytessimulering\n`;
-        context += `- **Fokus**: Intervaller, plyometrics, teknik på is\n`;
+        context += `- **${t(locale, 'Priority', 'Prioritet')}**: ${t(locale, 'Sport-specific conditioning, explosiveness', 'Sport-specifik kondition, explosivitet')}\n`;
+        context += `- **${t(locale, 'Volume', 'Volym')}**: ${t(locale, 'Medium-high (3-4 sessions/week beyond ice)', 'Medel-hög (3-4 pass/vecka utöver is)')}\n`;
+        context += `- **${t(locale, 'Intensity', 'Intensitet')}**: ${t(locale, 'High, shift simulation', 'Hög, bytessimulering')}\n`;
+        context += `- **${t(locale, 'Focus', 'Fokus')}**: ${t(locale, 'Intervals, plyometrics, on-ice technique', 'Intervaller, plyometrics, teknik på is')}\n`;
         break;
       case 'in_season':
-        context += `- **Prioritet**: Underhåll styrka, optimal återhämtning\n`;
-        context += `- **Volym**: Låg-medel (1-2 styrkepass/vecka)\n`;
-        context += `- **Intensitet**: Måttlig, undvik överbelastning\n`;
-        context += `- **Fokus**: Matchförberedelse, skadeförebyggande\n`;
+        context += `- **${t(locale, 'Priority', 'Prioritet')}**: ${t(locale, 'Maintain strength, optimize recovery', 'Underhåll styrka, optimal återhämtning')}\n`;
+        context += `- **${t(locale, 'Volume', 'Volym')}**: ${t(locale, 'Low-medium (1-2 strength sessions/week)', 'Låg-medel (1-2 styrkepass/vecka)')}\n`;
+        context += `- **${t(locale, 'Intensity', 'Intensitet')}**: ${t(locale, 'Moderate, avoid overload', 'Måttlig, undvik överbelastning')}\n`;
+        context += `- **${t(locale, 'Focus', 'Fokus')}**: ${t(locale, 'Game preparation, injury prevention', 'Matchförberedelse, skadeförebyggande')}\n`;
         break;
       case 'playoffs':
-        context += `- **Prioritet**: Maximal återhämtning, mental skärpa\n`;
-        context += `- **Volym**: Minimal off-ice träning\n`;
-        context += `- **Intensitet**: Aktivering endast\n`;
-        context += `- **Fokus**: Vila, nutrition, mental förberedelse\n`;
+        context += `- **${t(locale, 'Priority', 'Prioritet')}**: ${t(locale, 'Maximum recovery, mental sharpness', 'Maximal återhämtning, mental skärpa')}\n`;
+        context += `- **${t(locale, 'Volume', 'Volym')}**: ${t(locale, 'Minimal off-ice training', 'Minimal off-ice träning')}\n`;
+        context += `- **${t(locale, 'Intensity', 'Intensitet')}**: ${t(locale, 'Activation only', 'Aktivering endast')}\n`;
+        context += `- **${t(locale, 'Focus', 'Fokus')}**: ${t(locale, 'Rest, nutrition, mental preparation', 'Vila, nutrition, mental förberedelse')}\n`;
         break;
     }
   }
@@ -150,27 +154,27 @@ export function buildHockeyContext(athlete: AthleteData): string {
 }
 
 
-export function buildFootballContext(athlete: AthleteData): string {
+export function buildFootballContext(athlete: AthleteData, locale: AppLocale = 'en'): string {
   const sp = athlete.sportProfile;
   const settings = sp?.footballSettings as FootballSettings | null;
 
-  let context = `\n## FOTBOLLSSPECIFIK DATA\n`;
+  let context = `\n## ${t(locale, 'FOOTBALL-SPECIFIC DATA', 'FOTBOLLSSPECIFIK DATA')}\n`;
 
   if (settings?.teamName) {
-    context += `- **Lag**: ${settings.teamName}\n`;
+    context += `- **${t(locale, 'Team', 'Lag')}**: ${settings.teamName}\n`;
   }
   if (settings?.position) {
     const positionLabels: Record<string, string> = {
-      goalkeeper: 'Målvakt',
-      defender: 'Försvarare',
-      midfielder: 'Mittfältare',
-      forward: 'Anfallare',
+      goalkeeper: t(locale, 'Goalkeeper', 'Målvakt'),
+      defender: t(locale, 'Defender', 'Försvarare'),
+      midfielder: t(locale, 'Midfielder', 'Mittfältare'),
+      forward: t(locale, 'Forward', 'Anfallare'),
     };
     context += `- **Position**: ${positionLabels[settings.position] || settings.position}\n`;
   }
   if (settings?.leagueLevel) {
     const leagueLabels: Record<string, string> = {
-      recreational: 'Motion/Korpen',
+      recreational: t(locale, 'Recreational', 'Motion/Korpen'),
       division_4: 'Division 4',
       division_3: 'Division 3',
       division_2: 'Division 2',
@@ -178,32 +182,31 @@ export function buildFootballContext(athlete: AthleteData): string {
       superettan: 'Superettan',
       allsvenskan: 'Allsvenskan',
     };
-    context += `- **Liga**: ${leagueLabels[settings.leagueLevel] || settings.leagueLevel}\n`;
+    context += `- **${t(locale, 'League', 'Liga')}**: ${leagueLabels[settings.leagueLevel] || settings.leagueLevel}\n`;
   }
 
   // GPS data if available
   if (settings?.avgMatchDistanceKm) {
-    context += `\n### Matchstatistik (GPS)\n`;
-    context += `- **Genomsnittlig matchdistans**: ${settings.avgMatchDistanceKm} km\n`;
+    context += `\n### ${t(locale, 'Match Statistics (GPS)', 'Matchstatistik (GPS)')}\n`;
+    context += `- **${t(locale, 'Average match distance', 'Genomsnittlig matchdistans')}**: ${settings.avgMatchDistanceKm} km\n`;
     if (settings?.avgSprintDistanceKm) {
-      context += `- **Sprintdistans/match**: ${settings.avgSprintDistanceKm} km\n`;
+      context += `- **${t(locale, 'Sprint distance/game', 'Sprintdistans/match')}**: ${settings.avgSprintDistanceKm} km\n`;
     }
     if (settings?.gpsProvider) {
-      context += `- **GPS-system**: ${settings.gpsProvider}\n`;
+      context += `- **${t(locale, 'GPS system', 'GPS-system')}**: ${settings.gpsProvider}\n`;
     }
   }
 
   if (settings?.playStyle) {
     const styleLabels: Record<string, string> = {
-      possession: 'Bollinnehav - passingsspel',
-      counter: 'Kontring - snabba omställningar',
-      pressing: 'Högt press - aggressiv',
-      physical: 'Fysisk - duellstark',
+      possession: t(locale, 'Possession - passing play', 'Bollinnehav - passingsspel'),
+      counter: t(locale, 'Counterattack - fast transitions', 'Kontring - snabba omställningar'),
+      pressing: t(locale, 'High press - aggressive', 'Högt press - aggressiv'),
+      physical: t(locale, 'Physical - strong in duels', 'Fysisk - duellstark'),
     };
-    context += `- **Lagstil**: ${styleLabels[settings.playStyle] || settings.playStyle}\n`;
+    context += `- **${t(locale, 'Team style', 'Lagstil')}**: ${styleLabels[settings.playStyle] || settings.playStyle}\n`;
   }
 
   return context;
 }
-
 

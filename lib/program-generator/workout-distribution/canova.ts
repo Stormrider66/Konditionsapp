@@ -534,7 +534,7 @@ function distributeNormalCanovaWeek(
         reps: 8 + Math.min(4, weekInPhase),  // Progress from 8 to 12 reps
         workSeconds: 35,
         rest: 3,
-        description: 'Backsprints: Maximal ansträngning uppför backe',
+        description: 'Hill sprints: Maximum effort uphill',
       }
     })
   } else if (canovaPhase === 'FUNDAMENTAL' && weekInPhase >= 2) {

@@ -1,7 +1,7 @@
 export const AI_ALLOWANCE_EXHAUSTED_CODE = 'AI_ALLOWANCE_EXHAUSTED'
-export const AI_ALLOWANCE_EXHAUSTED_MESSAGE = 'Dina AI-krediter är slut för den här månaden.'
-export const AI_ALLOWANCE_UPGRADE_MESSAGE = 'Uppgradera din plan eller fyll på AI-krediter för att fortsätta.'
-export const AI_ALLOWANCE_ACTION_LABEL = 'Hantera AI-krediter'
+export const AI_ALLOWANCE_EXHAUSTED_MESSAGE = 'Your AI credits are used up for this month.'
+export const AI_ALLOWANCE_UPGRADE_MESSAGE = 'Upgrade your plan or top up AI credits to continue.'
+export const AI_ALLOWANCE_ACTION_LABEL = 'Manage AI credits'
 export const AI_ALLOWANCE_ACTION_URL = '/athlete/subscription'
 
 export interface AiAllowanceErrorBody {

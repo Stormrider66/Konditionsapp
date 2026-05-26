@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ProtocolBuilder } from '@/components/coach/test-protocols/ProtocolBuilder'
 import { ProtocolList } from '@/components/coach/test-protocols/ProtocolList'
 import { ClipboardList } from 'lucide-react'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -13,6 +14,7 @@ interface PageProps {
 export default async function TestProtocolsPage({ params }: PageProps) {
   const { businessSlug } = await params
   const user = await requireCoach()
+  const t = await getTranslations('coach.pages.testProtocols')
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
@@ -22,17 +24,17 @@ export default async function TestProtocolsPage({ params }: PageProps) {
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
           <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
-          Testprotokoll
+          {t('title')}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Skapa och hantera egna testbatterier
+          {t('description')}
         </p>
       </div>
 
       <Tabs defaultValue="protocols" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="protocols">Mina protokoll</TabsTrigger>
-          <TabsTrigger value="create">Skapa protokoll</TabsTrigger>
+          <TabsTrigger value="protocols">{t('tabs.protocols')}</TabsTrigger>
+          <TabsTrigger value="create">{t('tabs.create')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="protocols">

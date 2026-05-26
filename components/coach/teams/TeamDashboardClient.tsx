@@ -17,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Dumbbell, Heart, Zap, Timer } from 'lucide-react'
+import { useTranslations } from '@/i18n/client'
 
 interface TeamDashboardClientProps {
   teamId: string
@@ -25,6 +26,7 @@ interface TeamDashboardClientProps {
 
 export function TeamDashboardClient({ teamId, basePath }: TeamDashboardClientProps) {
   const router = useRouter()
+  const t = useTranslations('components.teamDashboardClient')
 
   const handleAssignClick = (type: 'strength' | 'cardio' | 'hybrid') => {
     // Navigate to workout selection with team context
@@ -41,25 +43,25 @@ export function TeamDashboardClient({ teamId, basePath }: TeamDashboardClientPro
       <DropdownMenuTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
-          Tilldela pass
+          {t('assignWorkout')}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => handleAssignClick('strength')}>
           <Dumbbell className="mr-2 h-4 w-4" />
-          Styrkepass
+          {t('strengthWorkout')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleAssignClick('cardio')}>
           <Heart className="mr-2 h-4 w-4" />
-          Konditionspass
+          {t('cardioWorkout')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => handleAssignClick('hybrid')}>
           <Zap className="mr-2 h-4 w-4" />
-          Hybridpass
+          {t('hybridWorkout')}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => router.push(`${basePath}/coach/interval-sessions?teamId=${teamId}`)}>
           <Timer className="mr-2 h-4 w-4" />
-          Starta intervallsession
+          {t('startIntervalSession')}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

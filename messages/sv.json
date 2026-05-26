@@ -2477,6 +2477,14 @@
       "liveHr": {
         "description": "Övervaka atleters puls i realtid under träningspass"
       },
+      "testProtocols": {
+        "title": "Testprotokoll",
+        "description": "Skapa och hantera egna testbatterier",
+        "tabs": {
+          "protocols": "Mina protokoll",
+          "create": "Skapa protokoll"
+        }
+      },
       "social": {
         "title": "Sociala medier",
         "description": "Skapa, hantera och publicera inlägg till dina sociala medier"
@@ -4895,6 +4903,74 @@
       "logFood": "Logga mat",
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
+    },
+    "cycleTracker": {
+      "title": "Cykelspårning",
+      "description": "Spåra din menscykel för personliga träningsrekommendationer",
+      "empty": "Ingen aktiv cykel hittad. Starta en ny cykel för att börja spåra.",
+      "day": "Dag {day}",
+      "cycleSummary": "Cykel #{cycle} - {days} dagar kvar i denna fas",
+      "progress": "Cykelframsteg",
+      "phases": {
+        "menstrual": "Menstruationsfas",
+        "follicular": "Follikelfas",
+        "ovulatory": "Ovulationsfas",
+        "luteal": "Lutealfas",
+        "unknown": "okänd fas"
+      },
+      "phaseTitles": {
+        "menstruation": "Menstruation",
+        "follicular": "Follikelfas",
+        "ovulation": "Ovulation",
+        "luteal": "Lutealfas"
+      },
+      "recommendations": {
+        "title": "Träningsrekommendationer",
+        "intensity": "Intensitet",
+        "volume": "Volym",
+        "focusAreas": "Fokusområden",
+        "tips": "Tips"
+      },
+      "log": {
+        "title": "Dagens logg",
+        "flow": "Flöde",
+        "none": "Inget",
+        "heavy": "Kraftigt",
+        "cramps": "Kramper",
+        "noCramps": "Inga",
+        "severe": "Svåra",
+        "fatigue": "Trötthet",
+        "energetic": "Pigg",
+        "exhausted": "Utmattad",
+        "mood": "Humör",
+        "low": "Lågt",
+        "excellent": "Utmärkt"
+      },
+      "actions": {
+        "startCycle": "Starta ny cykel (Mens börjar idag)",
+        "restartCycle": "Ny mens? Starta ny cykel",
+        "logNow": "Logga nu",
+        "save": "Spara",
+        "cancel": "Avbryt"
+      },
+      "toasts": {
+        "errorTitle": "Fel",
+        "fetchError": "Kunde inte hämta cykeldata",
+        "cycleStartedTitle": "Ny cykel startad",
+        "cycleStartedDescription": "Din menscykel har börjat spåras.",
+        "startError": "Kunde inte starta ny cykel",
+        "logSavedTitle": "Logg sparad",
+        "logSavedDescription": "Dag {day} i {phase}",
+        "warningTitle": "Observera",
+        "saveError": "Kunde inte spara loggen"
+      }
+    },
+    "teamDashboardClient": {
+      "assignWorkout": "Tilldela pass",
+      "strengthWorkout": "Styrkepass",
+      "cardioWorkout": "Konditionspass",
+      "hybridWorkout": "Hybridpass",
+      "startIntervalSession": "Starta intervallsession"
     },
     "teamForm": {
       "title": {

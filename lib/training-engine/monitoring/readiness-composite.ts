@@ -64,7 +64,7 @@ export function getCyclePhaseModifiers(phase: MenstrualPhase, cycleDay: number):
     MENSTRUAL: {
       intensityModifier: 0.85,
       volumeModifier: 0.80,
-      warning: 'Menstruationsfas - prioritera återhämtning, minska intensitet',
+      warning: 'Menstrual phase - prioritize recovery and reduce intensity',
     },
     FOLLICULAR: {
       intensityModifier: 1.0,
@@ -73,12 +73,12 @@ export function getCyclePhaseModifiers(phase: MenstrualPhase, cycleDay: number):
     OVULATORY: {
       intensityModifier: 1.1,
       volumeModifier: 1.05,
-      warning: 'Ovulationsfas - ökad prestationsförmåga men högre ligamentrisk',
+      warning: 'Ovulatory phase - increased performance potential but higher ligament risk',
     },
     LUTEAL: {
       intensityModifier: 0.90,
       volumeModifier: 0.85,
-      warning: 'Lutealfas - högre upplevd ansträngning, reducera intensitet',
+      warning: 'Luteal phase - higher perceived exertion, reduce intensity',
     },
   }
 
@@ -309,10 +309,10 @@ export function calculateReadinessScore(
   let cyclePhaseAdjustment: ReadinessScore['cyclePhaseAdjustment']
   if (inputs.cyclePhase) {
     const phaseRecommendations: Record<MenstrualPhase, string> = {
-      MENSTRUAL: 'Menstruationsfas: Prioritera återhämtning. Lätt rörelse och yoga passar bäst. Minska intensiteten med 15%.',
-      FOLLICULAR: 'Follikelfas: Optimal tid för hård träning! Energin ökar - utnyttja det för styrka och höga intensiteter.',
-      OVULATORY: 'Ovulationsfas: Toppform! Bra tid för tävling och personbästa. Var medveten om ökad ligamentrisk.',
-      LUTEAL: 'Lutealfas: Förvänta dig högre upplevd ansträngning. Fokusera på steady-state och teknik. Minska intensiteten med 10%.',
+      MENSTRUAL: 'Menstrual phase: Prioritize recovery. Light movement and yoga fit best. Reduce intensity by 15%.',
+      FOLLICULAR: 'Follicular phase: Optimal time for hard training. Energy rises, so use it for strength and high-intensity work.',
+      OVULATORY: 'Ovulatory phase: Peak form. Good time for competition and personal bests. Be mindful of increased ligament risk.',
+      LUTEAL: 'Luteal phase: Expect higher perceived exertion. Focus on steady-state work and technique. Reduce intensity by 10%.',
     }
 
     cyclePhaseAdjustment = {

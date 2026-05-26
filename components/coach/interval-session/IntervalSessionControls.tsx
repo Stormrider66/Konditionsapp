@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { Play, SkipForward, Square, Droplets, Pause } from 'lucide-react'
 import type { IntervalSessionStatus, IntervalProtocol, RestMode } from '@/lib/interval-session/types'
+import { useLocale } from '@/i18n/client'
 
 interface IntervalSessionControlsProps {
   sessionId: string
@@ -36,6 +37,10 @@ function formatCountdown(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
+type AppLocale = 'en' | 'sv'
+
+const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
 export function IntervalSessionControls({
   sessionId,
   status,
@@ -48,6 +53,7 @@ export function IntervalSessionControls({
   onStatusChange,
   onAutoAdvance,
 }: IntervalSessionControlsProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [elapsed, setElapsed] = useState(0)
   const [loading, setLoading] = useState(false)
   const [groupRestRemaining, setGroupRestRemaining] = useState<number | null>(null)
@@ -185,8 +191,8 @@ export function IntervalSessionControls({
       ? `${currentStep.label} · ${currentInterval}/${protocol.intervalCount}`
       : currentStep.label
     : protocol?.intervalCount
-      ? `Intervall ${currentInterval} / ${protocol.intervalCount}`
-      : `Intervall ${currentInterval}`
+      ? copy(locale, `Interval ${currentInterval} / ${protocol.intervalCount}`, `Intervall ${currentInterval} / ${protocol.intervalCount}`)
+      : copy(locale, `Interval ${currentInterval}`, `Intervall ${currentInterval}`)
 
   const isGroupResting = restMode === 'GROUP' && groupRestRemaining !== null && groupRestRemaining > 0
   const restProgress = isGroupResting && protocol?.restDurationSeconds
@@ -203,7 +209,7 @@ export function IntervalSessionControls({
         <div className="text-center">
           {isGroupResting ? (
             <>
-              <div className="text-sm text-slate-550 dark:text-slate-400 mb-1 font-medium">Gruppvila</div>
+              <div className="text-sm text-slate-550 dark:text-slate-400 mb-1 font-medium">{copy(locale, 'Group rest', 'Gruppvila')}</div>
               <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums text-amber-600 dark:text-amber-400">
                 {formatCountdown(groupRestRemaining)}
               </div>
@@ -231,7 +237,7 @@ export function IntervalSessionControls({
           {status === 'SETUP' && (
             <Button size="lg" onClick={handleStart} disabled={loading} className="px-8 bg-blue-600 hover:bg-blue-700 text-white">
               <Play className="h-5 w-5 mr-2" />
-              Starta
+              {copy(locale, 'Start', 'Starta')}
             </Button>
           )}
 
@@ -251,20 +257,20 @@ export function IntervalSessionControls({
               {restMode === 'GROUP' && allTapped && !groupRestStartedAt ? (
                 <Button size="default" onClick={handleStartGroupRest} disabled={loading} className="sm:size-lg bg-amber-600 hover:bg-amber-700 text-white">
                   <Pause className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                  <span className="hidden sm:inline">Starta vila</span>
-                  <span className="sm:hidden">Vila</span>
+                  <span className="hidden sm:inline">{copy(locale, 'Start rest', 'Starta vila')}</span>
+                  <span className="sm:hidden">{copy(locale, 'Rest', 'Vila')}</span>
                 </Button>
               ) : restMode === 'GROUP' && !allTapped && !groupRestStartedAt ? (
                 <Button size="default" variant="outline" onClick={handleStartGroupRest} disabled={loading} className="sm:size-lg border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-350">
                   <Pause className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 text-amber-500" />
-                  <span className="hidden sm:inline">Starta vila</span>
-                  <span className="sm:hidden">Vila</span>
+                  <span className="hidden sm:inline">{copy(locale, 'Start rest', 'Starta vila')}</span>
+                  <span className="sm:hidden">{copy(locale, 'Rest', 'Vila')}</span>
                 </Button>
               ) : null}
               <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg bg-blue-600 hover:bg-blue-700 text-white">
                 <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Nästa intervall</span>
-                <span className="sm:hidden">Nästa</span>
+                <span className="hidden sm:inline">{copy(locale, 'Next interval', 'Nästa intervall')}</span>
+                <span className="sm:hidden">{copy(locale, 'Next', 'Nästa')}</span>
               </Button>
               <Button
                 size="default"
@@ -274,7 +280,7 @@ export function IntervalSessionControls({
                 className="sm:size-lg"
               >
                 <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                Avsluta
+                {copy(locale, 'End', 'Avsluta')}
               </Button>
             </>
           )}
@@ -283,8 +289,8 @@ export function IntervalSessionControls({
             <>
               <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg bg-amber-600 hover:bg-amber-700 text-white">
                 <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Hoppa över vila</span>
-                <span className="sm:hidden">Hoppa</span>
+                <span className="hidden sm:inline">{copy(locale, 'Skip rest', 'Hoppa över vila')}</span>
+                <span className="sm:hidden">{copy(locale, 'Skip', 'Hoppa')}</span>
               </Button>
               <Button
                 size="default"
@@ -294,7 +300,7 @@ export function IntervalSessionControls({
                 className="sm:size-lg"
               >
                 <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                Avsluta
+                {copy(locale, 'End', 'Avsluta')}
               </Button>
             </>
           )}
@@ -303,13 +309,13 @@ export function IntervalSessionControls({
             <>
               <Button size="default" onClick={handleResume} disabled={loading} className="sm:size-lg bg-emerald-600 hover:bg-emerald-700 text-white">
                 <Play className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Återgå till timing</span>
+                <span className="hidden sm:inline">{copy(locale, 'Return to timing', 'Återgå till timing')}</span>
                 <span className="sm:hidden">Timing</span>
               </Button>
               <Button size="default" onClick={handleAdvance} disabled={loading} className="sm:size-lg bg-blue-605 hover:bg-blue-700 text-white">
                 <SkipForward className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                <span className="hidden sm:inline">Nästa intervall</span>
-                <span className="sm:hidden">Nästa</span>
+                <span className="hidden sm:inline">{copy(locale, 'Next interval', 'Nästa intervall')}</span>
+                <span className="sm:hidden">{copy(locale, 'Next', 'Nästa')}</span>
               </Button>
               <Button
                 size="default"
@@ -319,13 +325,13 @@ export function IntervalSessionControls({
                 className="sm:size-lg"
               >
                 <Square className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" />
-                Avsluta
+                {copy(locale, 'End', 'Avsluta')}
               </Button>
             </>
           )}
 
           {status === 'ENDED' && (
-            <div className="text-slate-550 dark:text-slate-400 font-medium">Session avslutad</div>
+            <div className="text-slate-550 dark:text-slate-400 font-medium">{copy(locale, 'Session ended', 'Session avslutad')}</div>
           )}
         </div>
       </GlassCardContent>

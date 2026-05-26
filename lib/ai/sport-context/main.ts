@@ -72,14 +72,14 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
       // Strength uses general fitness context + strength experience
       context += buildGeneralFitnessContext(athlete);
       if (athlete.sportProfile?.strengthExperience) {
-        context += `\n- **Styrketräningserfarenhet**: ${athlete.sportProfile.strengthExperience}\n`;
+        context += `\n- **${locale === 'sv' ? 'Styrketräningserfarenhet' : 'Strength training experience'}**: ${athlete.sportProfile.strengthExperience}\n`;
       }
       break;
     case 'TEAM_ICE_HOCKEY':
-      context += buildHockeyContext(athlete);
+      context += buildHockeyContext(athlete, locale);
       break;
     case 'TEAM_FOOTBALL':
-      context += buildFootballContext(athlete);
+      context += buildFootballContext(athlete, locale);
       break;
     case 'TEAM_HANDBALL':
     case 'TEAM_FLOORBALL':
@@ -124,7 +124,7 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
   }
 
   // Add session types and periodization notes
-  context += `\n### Rekommenderade passtyper\n`;
+  context += `\n### ${locale === 'sv' ? 'Rekommenderade passtyper' : 'Recommended Session Types'}\n`;
   for (const session of sportPrompt.sessionTypes.slice(0, 6)) {
     context += `- ${session}\n`;
   }

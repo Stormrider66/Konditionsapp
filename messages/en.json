@@ -2477,6 +2477,14 @@
       "liveHr": {
         "description": "Monitor athletes' heart rate in real time during training sessions"
       },
+      "testProtocols": {
+        "title": "Test protocols",
+        "description": "Create and manage your own test batteries",
+        "tabs": {
+          "protocols": "My protocols",
+          "create": "Create protocol"
+        }
+      },
       "social": {
         "title": "Social media",
         "description": "Create, manage, and publish posts to your social media channels"
@@ -4895,6 +4903,74 @@
       "logFood": "Log food",
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
+    },
+    "cycleTracker": {
+      "title": "Cycle tracking",
+      "description": "Track your menstrual cycle for personalized training recommendations",
+      "empty": "No active cycle found. Start a new cycle to begin tracking.",
+      "day": "Day {day}",
+      "cycleSummary": "Cycle #{cycle} - {days} days left in this phase",
+      "progress": "Cycle progress",
+      "phases": {
+        "menstrual": "Menstrual phase",
+        "follicular": "Follicular phase",
+        "ovulatory": "Ovulatory phase",
+        "luteal": "Luteal phase",
+        "unknown": "unknown phase"
+      },
+      "phaseTitles": {
+        "menstruation": "Menstruation",
+        "follicular": "Follicular phase",
+        "ovulation": "Ovulation",
+        "luteal": "Luteal phase"
+      },
+      "recommendations": {
+        "title": "Training recommendations",
+        "intensity": "Intensity",
+        "volume": "Volume",
+        "focusAreas": "Focus areas",
+        "tips": "Tips"
+      },
+      "log": {
+        "title": "Today’s log",
+        "flow": "Flow",
+        "none": "None",
+        "heavy": "Heavy",
+        "cramps": "Cramps",
+        "noCramps": "None",
+        "severe": "Severe",
+        "fatigue": "Fatigue",
+        "energetic": "Energetic",
+        "exhausted": "Exhausted",
+        "mood": "Mood",
+        "low": "Low",
+        "excellent": "Excellent"
+      },
+      "actions": {
+        "startCycle": "Start new cycle (period starts today)",
+        "restartCycle": "Period started? Start new cycle",
+        "logNow": "Log now",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "toasts": {
+        "errorTitle": "Error",
+        "fetchError": "Could not fetch cycle data",
+        "cycleStartedTitle": "New cycle started",
+        "cycleStartedDescription": "Your menstrual cycle is now being tracked.",
+        "startError": "Could not start a new cycle",
+        "logSavedTitle": "Log saved",
+        "logSavedDescription": "Day {day} in {phase}",
+        "warningTitle": "Note",
+        "saveError": "Could not save the log"
+      }
+    },
+    "teamDashboardClient": {
+      "assignWorkout": "Assign workout",
+      "strengthWorkout": "Strength session",
+      "cardioWorkout": "Cardio session",
+      "hybridWorkout": "Hybrid session",
+      "startIntervalSession": "Start interval session"
     },
     "teamForm": {
       "title": {
