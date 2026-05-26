@@ -35,6 +35,7 @@ import {
   CheckCircle2,
   XCircle,
 } from 'lucide-react';
+import { useLocale } from '@/i18n/client';
 import type { RunningGaitAnalysisResult } from '@/lib/validations/gemini-schemas';
 
 interface RunningGaitDashboardProps {
@@ -42,10 +43,17 @@ interface RunningGaitDashboardProps {
   onJumpToTimestamp?: (timestamp: string) => void;
 }
 
+type AppLocale = 'en' | 'sv';
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
 export function RunningGaitDashboard({
   data,
   onJumpToTimestamp,
 }: RunningGaitDashboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const [activeTimestamp, setActiveTimestamp] = useState<string | null>(null);
 
   const handleJumpToTimestamp = (timestamp: string) => {
@@ -53,13 +61,6 @@ export function RunningGaitDashboard({
     onJumpToTimestamp?.(timestamp);
     // Clear highlight after 2 seconds
     setTimeout(() => setActiveTimestamp(null), 2000);
-  };
-
-  // Helper functions for styling
-  const getRiskColor = (score: number) => {
-    if (score <= 3) return 'bg-green-500';
-    if (score <= 6) return 'bg-yellow-500';
-    return 'bg-red-500';
   };
 
   const getSeverityBadge = (severity: 'LOW' | 'MEDIUM' | 'HIGH') => {
@@ -70,7 +71,11 @@ export function RunningGaitDashboard({
     };
     return (
       <Badge className={variants[severity]} variant="outline">
-        {severity === 'LOW' ? 'Låg' : severity === 'MEDIUM' ? 'Medel' : 'Hög'}
+        {severity === 'LOW'
+          ? copy(locale, 'Low', 'Låg')
+          : severity === 'MEDIUM'
+            ? copy(locale, 'Medium', 'Medel')
+            : copy(locale, 'High', 'Hög')}
       </Badge>
     );
   };
@@ -97,7 +102,7 @@ export function RunningGaitDashboard({
         <Card className="flex-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Target className="h-5 w-5" /> Övergripande poäng
+              <Target className="h-5 w-5" /> {copy(locale, 'Overall score', 'Övergripande poäng')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -114,19 +119,19 @@ export function RunningGaitDashboard({
         <Card className="flex-1">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" /> Löpeffektivitet
+              <TrendingUp className="h-5 w-5" /> {copy(locale, 'Running efficiency', 'Löpeffektivitet')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
               <div className={`text-2xl font-bold ${getEfficiencyColor(data.efficiency.rating)}`}>
                 {data.efficiency.rating === 'EXCELLENT'
-                  ? 'Utmärkt'
+                  ? copy(locale, 'Excellent', 'Utmärkt')
                   : data.efficiency.rating === 'GOOD'
-                  ? 'Bra'
+                  ? copy(locale, 'Good', 'Bra')
                   : data.efficiency.rating === 'MODERATE'
-                  ? 'Måttlig'
-                  : 'Behöver förbättras'}
+                  ? copy(locale, 'Moderate', 'Måttlig')
+                  : copy(locale, 'Needs improvement', 'Behöver förbättras')}
               </div>
               <Badge variant="secondary">{data.efficiency.score}/100</Badge>
             </div>
@@ -138,15 +143,15 @@ export function RunningGaitDashboard({
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Activity className="h-5 w-5" /> Biometriska mätvärden
+            <Activity className="h-5 w-5" /> {copy(locale, 'Biometric metrics', 'Biometriska mätvärden')}
           </CardTitle>
-          <CardDescription>Uppskattade värden från videoanalys</CardDescription>
+          <CardDescription>{copy(locale, 'Estimated values from video analysis', 'Uppskattade värden från videoanalys')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
               <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Timer className="h-3 w-3" /> Kadens
+                <Timer className="h-3 w-3" /> {copy(locale, 'Cadence', 'Kadens')}
               </span>
               <span className="text-2xl font-bold">
                 {data.biometrics.estimatedCadence}
@@ -155,50 +160,50 @@ export function RunningGaitDashboard({
             </div>
 
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Markontakttid</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Ground contact time', 'Markontakttid')}</span>
               <span className="text-xl font-semibold capitalize">
                 {data.biometrics.groundContactTime === 'SHORT'
-                  ? 'Kort'
+                  ? copy(locale, 'Short', 'Kort')
                   : data.biometrics.groundContactTime === 'NORMAL'
-                  ? 'Normal'
-                  : 'Lång'}
+                  ? copy(locale, 'Normal', 'Normal')
+                  : copy(locale, 'Long', 'Lång')}
               </span>
             </div>
 
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
               <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <ArrowUpCircle className="h-3 w-3" /> Vertikal osc.
+                <ArrowUpCircle className="h-3 w-3" /> {copy(locale, 'Vertical osc.', 'Vertikal osc.')}
               </span>
               <span className="text-xl font-semibold capitalize">
                 {data.biometrics.verticalOscillation === 'MINIMAL'
-                  ? 'Minimal'
+                  ? copy(locale, 'Minimal', 'Minimal')
                   : data.biometrics.verticalOscillation === 'MODERATE'
-                  ? 'Måttlig'
-                  : 'Överdriven'}
+                  ? copy(locale, 'Moderate', 'Måttlig')
+                  : copy(locale, 'Excessive', 'Överdriven')}
               </span>
             </div>
 
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Steglängd</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Stride length', 'Steglängd')}</span>
               <span className="text-xl font-semibold capitalize">
                 {data.biometrics.strideLength === 'SHORT'
-                  ? 'Kort'
+                  ? copy(locale, 'Short', 'Kort')
                   : data.biometrics.strideLength === 'OPTIMAL'
-                  ? 'Optimal'
-                  : 'Överstriding'}
+                  ? copy(locale, 'Optimal', 'Optimal')
+                  : copy(locale, 'Overstriding', 'Överstriding')}
               </span>
             </div>
 
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
               <span className="text-sm text-muted-foreground flex items-center gap-1">
-                <Footprints className="h-3 w-3" /> Fotisättning
+                <Footprints className="h-3 w-3" /> {copy(locale, 'Foot strike', 'Fotisättning')}
               </span>
               <span className="text-xl font-semibold">
                 {data.biometrics.footStrike === 'HEEL'
-                  ? 'Häl'
+                  ? copy(locale, 'Heel', 'Häl')
                   : data.biometrics.footStrike === 'MIDFOOT'
-                  ? 'Mittfot'
-                  : 'Framfot'}
+                  ? copy(locale, 'Midfoot', 'Mittfot')
+                  : copy(locale, 'Forefoot', 'Framfot')}
               </span>
             </div>
           </div>
@@ -213,7 +218,7 @@ export function RunningGaitDashboard({
                 </span>
                 {data.asymmetry.overallPercent > 10 && (
                   <Badge variant="destructive" className="ml-2">
-                    Behöver åtgärdas
+                    {copy(locale, 'Needs action', 'Behöver åtgärdas')}
                   </Badge>
                 )}
               </div>
@@ -235,7 +240,7 @@ export function RunningGaitDashboard({
         <Card className="border-red-100 dark:border-red-900/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2 text-red-700 dark:text-red-400">
-              <AlertTriangle className="h-5 w-5" /> Skaderiskbedömning
+              <AlertTriangle className="h-5 w-5" /> {copy(locale, 'Injury risk assessment', 'Skaderiskbedömning')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -252,16 +257,16 @@ export function RunningGaitDashboard({
 
             {/* Posterior Chain Status */}
             <div className="mb-4 flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">Bakre kedjan:</span>
+              <span className="text-muted-foreground">{copy(locale, 'Posterior chain:', 'Bakre kedjan:')}</span>
               {data.injuryRiskAnalysis.posteriorChainEngagement ? (
                 <Badge variant="secondary" className="bg-green-100 text-green-800">
                   <CheckCircle2 className="h-3 w-3 mr-1" />
-                  God aktivering
+                  {copy(locale, 'Good activation', 'God aktivering')}
                 </Badge>
               ) : (
                 <Badge variant="secondary" className="bg-red-100 text-red-800">
                   <XCircle className="h-3 w-3 mr-1" />
-                  Svag aktivering
+                  {copy(locale, 'Weak activation', 'Svag aktivering')}
                 </Badge>
               )}
             </div>
@@ -302,7 +307,7 @@ export function RunningGaitDashboard({
 
               {data.injuryRiskAnalysis.detectedCompensations.length === 0 && (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Inga signifikanta kompensationsmönster upptäckta
+                  {copy(locale, 'No significant compensation patterns detected', 'Inga signifikanta kompensationsmönster upptäckta')}
                 </p>
               )}
             </div>
@@ -313,10 +318,10 @@ export function RunningGaitDashboard({
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" /> Energiläckage
+              <TrendingUp className="h-5 w-5" /> {copy(locale, 'Energy leaks', 'Energiläckage')}
             </CardTitle>
             <CardDescription>
-              Identifierade ineffektiviteter som påverkar löpekonomi
+              {copy(locale, 'Identified inefficiencies that affect running economy', 'Identifierade ineffektiviteter som påverkar löpekonomi')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -338,10 +343,10 @@ export function RunningGaitDashboard({
                       }
                     >
                       {leak.impactLevel === 'SIGNIFICANT'
-                        ? 'Betydande'
+                        ? copy(locale, 'Significant', 'Betydande')
                         : leak.impactLevel === 'MODERATE'
-                        ? 'Måttlig'
-                        : 'Mindre'}
+                        ? copy(locale, 'Moderate', 'Måttlig')
+                        : copy(locale, 'Minor', 'Mindre')}
                     </Badge>
                   </div>
                   <p className="text-sm text-muted-foreground mt-1">
@@ -354,7 +359,7 @@ export function RunningGaitDashboard({
                 <div className="text-center py-4">
                   <CheckCircle2 className="h-8 w-8 mx-auto text-green-500 mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Inga betydande energiläckage identifierade
+                    {copy(locale, 'No significant energy leaks identified', 'Inga betydande energiläckage identifierade')}
                   </p>
                 </div>
               )}
@@ -368,14 +373,14 @@ export function RunningGaitDashboard({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Dumbbell className="h-6 w-6 text-primary" />
-            Coachens handlingsplan
+            {copy(locale, "Coach's action plan", 'Coachens handlingsplan')}
           </CardTitle>
-          <CardDescription>AI-genererade interventioner baserat på analysen</CardDescription>
+          <CardDescription>{copy(locale, 'AI-generated interventions based on the analysis', 'AI-genererade interventioner baserat på analysen')}</CardDescription>
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <h3 className="font-semibold text-primary flex items-center gap-2">
-              🎯 Omedelbar korrigering
+              🎯 {copy(locale, 'Immediate correction', 'Omedelbar korrigering')}
             </h3>
             <p className="text-lg font-medium leading-tight p-3 bg-background rounded-lg border shadow-sm">
               &ldquo;{data.coachingCues.immediateCorrection}&rdquo;
@@ -384,7 +389,7 @@ export function RunningGaitDashboard({
 
           <div className="space-y-2">
             <h3 className="font-semibold flex items-center gap-2">
-              🛠️ Rekommenderad övning
+              🛠️ {copy(locale, 'Recommended drill', 'Rekommenderad övning')}
             </h3>
             <div className="p-3 bg-background rounded-lg border shadow-sm">
               <span className="font-medium">{data.coachingCues.drillRecommendation}</span>
@@ -393,7 +398,7 @@ export function RunningGaitDashboard({
 
           <div className="space-y-2">
             <h3 className="font-semibold flex items-center gap-2">
-              💪 Styrkeprioriteringar
+              💪 {copy(locale, 'Strength priorities', 'Styrkeprioriteringar')}
             </h3>
             <div className="flex flex-wrap gap-2">
               {data.coachingCues.strengthFocus.map((muscle, i) => (
@@ -409,7 +414,7 @@ export function RunningGaitDashboard({
       {/* Summary */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Sammanfattning</CardTitle>
+          <CardTitle className="text-lg">{copy(locale, 'Summary', 'Sammanfattning')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground leading-relaxed">{data.summary}</p>
