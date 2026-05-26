@@ -4,6 +4,8 @@ Generated on 2026-05-24 as the first hero-frame review batch for `docs/exercise-
 
 These images are review assets only. Do not sync them into the exercise database or replace `public/images/` files until the batch has been visually approved in the mobile Strength Studio UI.
 
+Use `strategy-notes.md` as the standing rollout rules for scope, ambiguity, frame counts, subject balance, and exercise-specific clarifications.
+
 ## Hero Frames
 
 | Exercise | Subject | File |
