@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useLocale } from '@/i18n/client';
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider';
 import {
   GlassCard,
@@ -29,9 +30,33 @@ interface MonitoringChartsProps {
   athleteId: string;
 }
 
+type AppLocale = 'en' | 'sv';
+type TimeRange = '7d' | '30d' | '90d';
+
+interface MonitoringMetric {
+  date: string;
+  hrvRMSSD?: number | null;
+  restingHR?: number | null;
+  wellnessScore?: number | null;
+  sleepQuality?: number | null;
+  soreness?: number | null;
+  stressLevel?: number | null;
+  readinessScore?: number | null;
+}
+
+interface MonitoringData {
+  metrics: MonitoringMetric[];
+  criticalFlags?: number | null;
+}
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
 export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d'>('30d');
-  const [data, setData] = useState<any>(null);
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const [timeRange, setTimeRange] = useState<TimeRange>('30d');
+  const [data, setData] = useState<MonitoringData | null>(null);
   const [loading, setLoading] = useState(true);
   const pageCtx = usePageContextOptional();
 
@@ -43,7 +68,7 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
         const response = await fetch(`/api/daily-metrics?athleteId=${athleteId}&days=${timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90}`);
         if (response.ok) {
           const result = await response.json();
-          setData(result.data);
+          setData(result.data ?? null);
         }
       } catch (error) {
         console.error('Failed to fetch monitoring data:', error);
@@ -52,7 +77,7 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       }
     }
 
-    fetchData();
+    void fetchData();
   }, [athleteId, timeRange]);
 
   // Rich page context for AI chat
@@ -60,12 +85,12 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
     if (!data?.metrics?.length || !pageCtx?.setPageContext) return;
     const latest = data.metrics[data.metrics.length - 1];
     const avg = {
-      hrv: (data.metrics.reduce((s: number, m: any) => s + (m.hrvRMSSD || 0), 0) / data.metrics.length).toFixed(1),
-      rhr: (data.metrics.reduce((s: number, m: any) => s + (m.restingHR || 0), 0) / data.metrics.length).toFixed(0),
+      hrv: (data.metrics.reduce((s, m) => s + (m.hrvRMSSD || 0), 0) / data.metrics.length).toFixed(1),
+      rhr: (data.metrics.reduce((s, m) => s + (m.restingHR || 0), 0) / data.metrics.length).toFixed(0),
     };
     pageCtx.setPageContext({
       type: 'monitoring',
-      title: 'Atletövervakning',
+      title: copy(locale, 'Athlete monitoring', 'Atletövervakning'),
       data: {
         currentHRV: latest.hrvRMSSD,
         currentRHR: latest.restingHR,
@@ -75,22 +100,26 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
         dataPoints: data.metrics.length,
         timeRange,
       },
-      summary: `Monitoreringsdata för atlet. Senaste HRV: ${latest.hrvRMSSD?.toFixed(1) || 'N/A'} ms, Vilopuls: ${latest.restingHR || 'N/A'} bpm, Beredskap: ${latest.readinessScore || 'N/A'}.`,
+      summary: copy(
+        locale,
+        `Athlete monitoring data. Latest HRV: ${latest.hrvRMSSD?.toFixed(1) || 'N/A'} ms, resting HR: ${latest.restingHR || 'N/A'} bpm, readiness: ${latest.readinessScore || 'N/A'}.`,
+        `Monitoreringsdata för atlet. Senaste HRV: ${latest.hrvRMSSD?.toFixed(1) || 'N/A'} ms, vilopuls: ${latest.restingHR || 'N/A'} bpm, beredskap: ${latest.readinessScore || 'N/A'}.`
+      ),
       conceptKeys: ['readiness', 'hrv', 'tss', 'acwr', 'trainingZones', 'rhrDeviation'],
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, timeRange]);
+  }, [data, locale, timeRange]);
 
   if (loading) {
-    return <div>Loading monitoring data...</div>;
+    return <div>{copy(locale, 'Loading monitoring data...', 'Laddar monitoreringsdata...')}</div>;
   }
 
   if (!data || !data.metrics || data.metrics.length === 0) {
     return (
       <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
         <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">Monitoring Data</GlassCardTitle>
-          <GlassCardDescription className="text-slate-650 dark:text-slate-400">No monitoring data available for this athlete</GlassCardDescription>
+          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Monitoring Data', 'Monitoreringsdata')}</GlassCardTitle>
+          <GlassCardDescription className="text-slate-650 dark:text-slate-400">{copy(locale, 'No monitoring data available for this athlete', 'Ingen monitoreringsdata tillgänglig för den här atleten')}</GlassCardDescription>
         </GlassCardHeader>
       </GlassCard>
     );
@@ -98,12 +127,12 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
 
   // Calculate summary statistics
   const latestMetrics = data.metrics[data.metrics.length - 1];
-  const avgHRV = data.metrics.reduce((sum: number, m: any) => sum + (m.hrvRMSSD || 0), 0) / data.metrics.length;
-  const avgRHR = data.metrics.reduce((sum: number, m: any) => sum + (m.restingHR || 0), 0) / data.metrics.length;
+  const avgHRV = data.metrics.reduce((sum, m) => sum + (m.hrvRMSSD || 0), 0) / data.metrics.length;
+  const avgRHR = data.metrics.reduce((sum, m) => sum + (m.restingHR || 0), 0) / data.metrics.length;
 
   // Prepare chart data
-  const chartData = data.metrics.map((m: any) => ({
-    date: new Date(m.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+  const chartData = data.metrics.map((m) => ({
+    date: new Date(m.date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { month: 'short', day: 'numeric' }),
     hrv: m.hrvRMSSD,
     rhr: m.restingHR,
     wellness: m.wellnessScore,
@@ -117,15 +146,15 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
     <div className="space-y-6">
       {/* Time Range Selector */}
       <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">Monitoring Trends</h3>
-        <Select value={timeRange} onValueChange={(v: any) => setTimeRange(v)}>
+        <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">{copy(locale, 'Monitoring Trends', 'Monitoreringstrender')}</h3>
+        <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
           <SelectTrigger className="w-32 bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="7d">7 days</SelectItem>
-            <SelectItem value="30d">30 days</SelectItem>
-            <SelectItem value="90d">90 days</SelectItem>
+            <SelectItem value="7d">{copy(locale, '7 days', '7 dagar')}</SelectItem>
+            <SelectItem value="30d">{copy(locale, '30 days', '30 dagar')}</SelectItem>
+            <SelectItem value="90d">{copy(locale, '90 days', '90 dagar')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -136,14 +165,14 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
           <GlassCardHeader className="pb-2">
             <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
               <Activity className="h-4 w-4 text-purple-500" />
-              Current HRV
+              {copy(locale, 'Current HRV', 'Aktuell HRV')}
               <InfoTooltip conceptKey="hrv" />
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{latestMetrics.hrvRMSSD?.toFixed(1) || 'N/A'} ms</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Avg: {avgHRV.toFixed(1)} ms
+              {copy(locale, 'Avg:', 'Snitt:')} {avgHRV.toFixed(1)} ms
               {latestMetrics.hrvRMSSD && (
                 <span className={latestMetrics.hrvRMSSD > avgHRV ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
                   {' '}({latestMetrics.hrvRMSSD > avgHRV ? '↑' : '↓'})
@@ -157,13 +186,13 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
           <GlassCardHeader className="pb-2">
             <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
               <Heart className="h-4 w-4 text-red-500" />
-              Resting HR
+              {copy(locale, 'Resting HR', 'Vilopuls')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{latestMetrics.restingHR || 'N/A'} bpm</p>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Avg: {avgRHR.toFixed(0)} bpm
+              {copy(locale, 'Avg:', 'Snitt:')} {avgRHR.toFixed(0)} bpm
               {latestMetrics.restingHR && (
                 <span className={latestMetrics.restingHR < avgRHR ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
                   {' '}({latestMetrics.restingHR < avgRHR ? '↓' : '↑'})
@@ -177,14 +206,14 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
           <GlassCardHeader className="pb-2">
             <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
               <TrendingUp className="h-4 w-4 text-emerald-500" />
-              Readiness
+              {copy(locale, 'Readiness', 'Beredskap')}
               <InfoTooltip conceptKey="readiness" />
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{latestMetrics.readinessScore || 'N/A'}</p>
             <Badge variant={getReadinessBadge(latestMetrics.readinessScore)}>
-              {getReadinessCategory(latestMetrics.readinessScore)}
+              {getReadinessCategory(latestMetrics.readinessScore, locale)}
             </Badge>
           </GlassCardContent>
         </GlassCard>
@@ -193,12 +222,12 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
           <GlassCardHeader className="pb-2">
             <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
               <AlertTriangle className="h-4 w-4 text-amber-500" />
-              Red Flags
+              {copy(locale, 'Red Flags', 'Varningsflaggor')}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">{data.criticalFlags || 0}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Requires attention</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{copy(locale, 'Requires attention', 'Kräver uppmärksamhet')}</p>
           </GlassCardContent>
         </GlassCard>
       </div>
@@ -206,9 +235,9 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       {/* HRV Trend Chart */}
       <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
         <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">HRV Trend (rMSSD)</GlassCardTitle>
+          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'HRV Trend (rMSSD)', 'HRV-trend (rMSSD)')}</GlassCardTitle>
           <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-            Higher HRV indicates better recovery. Watch for declining trends.
+            {copy(locale, 'Higher HRV indicates better recovery. Watch for declining trends.', 'Högre HRV indikerar bättre återhämtning. Håll koll på fallande trender.')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
@@ -239,9 +268,9 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       {/* Resting HR Trend Chart */}
       <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
         <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">Resting Heart Rate Trend</GlassCardTitle>
+          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Resting Heart Rate Trend', 'Trend för vilopuls')}</GlassCardTitle>
           <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-            Lower RHR indicates better fitness. Elevated RHR may signal overtraining or illness.
+            {copy(locale, 'Lower RHR indicates better fitness. Elevated RHR may signal overtraining or illness.', 'Lägre vilopuls indikerar bättre kondition. Förhöjd vilopuls kan signalera överträning eller sjukdom.')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
@@ -266,9 +295,9 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       {/* Wellness Components */}
       <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
         <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">Wellness Components</GlassCardTitle>
+          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Wellness Components', 'Välmåendekomponenter')}</GlassCardTitle>
           <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-            Sleep quality, soreness, and stress levels (1-5 scale)
+            {copy(locale, 'Sleep quality, soreness, and stress levels (1-5 scale)', 'Sömnkvalitet, ömhet och stressnivåer (1-5-skala)')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
@@ -279,9 +308,9 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
               <YAxis label={{ value: 'Score (1-5)', angle: -90, position: 'insideLeft' }} domain={[0, 5]} />
               <Tooltip />
               <Legend />
-              <Bar dataKey="sleep" fill="#10b981" name="Sleep Quality" />
-              <Bar dataKey="soreness" fill="#f59e0b" name="Soreness" />
-              <Bar dataKey="stress" fill="#ef4444" name="Stress" />
+              <Bar dataKey="sleep" fill="#10b981" name={copy(locale, 'Sleep Quality', 'Sömnkvalitet')} />
+              <Bar dataKey="soreness" fill="#f59e0b" name={copy(locale, 'Soreness', 'Ömhet')} />
+              <Bar dataKey="stress" fill="#ef4444" name={copy(locale, 'Stress', 'Stress')} />
             </BarChart>
           </ResponsiveContainer>
         </GlassCardContent>
@@ -290,9 +319,9 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       {/* Readiness Score Trend */}
       <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
         <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">Readiness Score Trend</GlassCardTitle>
+          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Readiness Score Trend', 'Beredskapstrend')}</GlassCardTitle>
           <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-            Composite score (0-100) indicating training readiness
+            {copy(locale, 'Composite score (0-100) indicating training readiness', 'Sammanvägd poäng (0-100) som visar träningsberedskap')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
@@ -323,16 +352,18 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
   );
 }
 
-function getReadinessCategory(score: number): string {
-  if (score >= 80) return 'EXCELLENT';
-  if (score >= 65) return 'GOOD';
-  if (score >= 50) return 'FAIR';
-  if (score >= 35) return 'POOR';
-  return 'VERY POOR';
+function getReadinessCategory(score: number | null | undefined, locale: AppLocale): string {
+  const value = score ?? 0;
+  if (value >= 80) return copy(locale, 'EXCELLENT', 'UTMÄRKT');
+  if (value >= 65) return copy(locale, 'GOOD', 'BRA');
+  if (value >= 50) return copy(locale, 'FAIR', 'OK');
+  if (value >= 35) return copy(locale, 'POOR', 'SVAG');
+  return copy(locale, 'VERY POOR', 'MYCKET SVAG');
 }
 
-function getReadinessBadge(score: number): 'default' | 'secondary' | 'destructive' {
-  if (score >= 65) return 'default';
-  if (score >= 35) return 'secondary';
+function getReadinessBadge(score: number | null | undefined): 'default' | 'secondary' | 'destructive' {
+  const value = score ?? 0;
+  if (value >= 65) return 'default';
+  if (value >= 35) return 'secondary';
   return 'destructive';
 }

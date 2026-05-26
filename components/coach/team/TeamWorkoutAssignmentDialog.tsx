@@ -13,6 +13,7 @@
 
 import { useCallback, useState, useEffect, useMemo } from 'react'
 import { usePathname } from 'next/navigation'
+import { useLocale } from '@/i18n/client'
 import {
   Dialog,
   DialogContent,
@@ -74,6 +75,12 @@ interface TeamWorkoutAssignmentDialogProps {
   onAssigned?: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export function TeamWorkoutAssignmentDialog({
   workoutType,
   workoutId,
@@ -83,6 +90,7 @@ export function TeamWorkoutAssignmentDialog({
   onOpenChange: controlledOnOpenChange,
   onAssigned,
 }: TeamWorkoutAssignmentDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [internalOpen, setInternalOpen] = useState(false)
   const [selectedTeamId, setSelectedTeamId] = useState<string>('')
   const [team, setTeam] = useState<Team | null>(null)
@@ -162,7 +170,9 @@ export function TeamWorkoutAssignmentDialog({
   }, [businessHeaders])
 
   useEffect(() => {
-    if (open) {
+    if (!open) return
+
+    void Promise.resolve().then(() => {
       void fetchLocations()
       void fetchTrainers()
       // Reset form
@@ -183,16 +193,18 @@ export function TeamWorkoutAssignmentDialog({
       setLocationId('')
       setLocationName('')
       setCreateCalendarEvent(true)
-    }
+    })
   }, [fetchLocations, fetchTrainers, open])
 
   useEffect(() => {
-    if (selectedTeamId) {
-      void fetchTeamDetails(selectedTeamId)
-    } else {
-      setTeam(null)
-      setExcludedMembers([])
-    }
+    void Promise.resolve().then(() => {
+      if (selectedTeamId) {
+        void fetchTeamDetails(selectedTeamId)
+      } else {
+        setTeam(null)
+        setExcludedMembers([])
+      }
+    })
   }, [fetchTeamDetails, selectedTeamId])
 
   function toggleMemberExclusion(memberId: string) {
@@ -247,54 +259,51 @@ export function TeamWorkoutAssignmentDialog({
 
       if (response.ok) {
         const result = await response.json()
-        toast.success('Lagpass tilldelat!', {
-          description: `${workoutName} tilldelat till ${result.data.assignmentCount} spelare i ${result.data.teamName}.`,
+        toast.success(copy(locale, 'Team workout assigned!', 'Lagpass tilldelat!'), {
+          description: copy(
+            locale,
+            `${workoutName} assigned to ${result.data.assignmentCount} players in ${result.data.teamName}.`,
+            `${workoutName} tilldelat till ${result.data.assignmentCount} spelare i ${result.data.teamName}.`
+          ),
         })
         setOpen(false)
         onAssigned?.()
       } else {
         const data = await response.json()
-        toast.error('Tilldelning misslyckades', {
-          description: data.error || 'Kunde inte tilldela passet till laget.',
+        toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
+          description: data.error || copy(locale, 'Could not assign the workout to the team.', 'Kunde inte tilldela passet till laget.'),
         })
       }
     } catch (error) {
       console.error('Failed to assign workout to team:', error)
-      toast.error('Tilldelning misslyckades', {
-        description: 'Ett oväntat fel inträffade.',
+      toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
+        description: copy(locale, 'An unexpected error occurred.', 'Ett oväntat fel inträffade.'),
       })
     } finally {
       setLoading(false)
     }
   }
 
-  const workoutTypeLabel =
-    workoutType === 'strength'
-      ? 'Styrkepass'
-      : workoutType === 'cardio'
-        ? 'Konditionspass'
-        : 'Hybridpass'
-
   const dialogContent = (
     <DialogContent className="sm:max-w-md max-h-[85vh] flex flex-col">
       <DialogHeader>
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Tilldela till Lag
+          {copy(locale, 'Assign to Team', 'Tilldela till Lag')}
         </DialogTitle>
         <DialogDescription>
-          Tilldela &quot;{workoutName}&quot; till ett helt lag.
+          {copy(locale, 'Assign', 'Tilldela')} &quot;{workoutName}&quot; {copy(locale, 'to an entire team.', 'till ett helt lag.')}
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4 py-4 overflow-y-auto min-h-0">
         {/* Team Selection */}
         <div className="space-y-2">
-          <Label>Välj lag</Label>
+          <Label>{copy(locale, 'Select team', 'Välj lag')}</Label>
           <TeamSelector
             value={selectedTeamId}
             onValueChange={setSelectedTeamId}
-            placeholder="Välj ett lag..."
+            placeholder={copy(locale, 'Select a team...', 'Välj ett lag...')}
           />
         </div>
 
@@ -302,7 +311,7 @@ export function TeamWorkoutAssignmentDialog({
         <div className="space-y-2">
           <Label htmlFor="assignedDate" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Datum
+            {copy(locale, 'Date', 'Datum')}
           </Label>
           <Input
             id="assignedDate"
@@ -316,7 +325,7 @@ export function TeamWorkoutAssignmentDialog({
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Plats (valfritt)
+            {copy(locale, 'Location (optional)', 'Plats (valfritt)')}
           </Label>
           {locations.length > 0 && !useCustomLocation ? (
             <Select value={selectedLocationId || 'none'} onValueChange={(v) => {
@@ -331,20 +340,20 @@ export function TeamWorkoutAssignmentDialog({
               }
             }}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj plats..." />
+                <SelectValue placeholder={copy(locale, 'Select location...', 'Välj plats...')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen plats</SelectItem>
+                <SelectItem value="none">{copy(locale, 'No location', 'Ingen plats')}</SelectItem>
                 {locations.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                 ))}
-                <SelectItem value="custom">Annan plats...</SelectItem>
+                <SelectItem value="custom">{copy(locale, 'Other location...', 'Annan plats...')}</SelectItem>
               </SelectContent>
             </Select>
           ) : (
             <div className="space-y-1">
               <Input
-                placeholder="Ange plats (t.ex. Löparbanan, Gymmet)"
+                placeholder={copy(locale, 'Enter location (e.g. Track, Gym)', 'Ange plats (t.ex. Löparbanan, Gymmet)')}
                 value={customLocationName}
                 onChange={(e) => setCustomLocationName(e.target.value)}
               />
@@ -354,7 +363,7 @@ export function TeamWorkoutAssignmentDialog({
                   className="text-xs text-blue-600 hover:underline"
                   onClick={() => { setUseCustomLocation(false); setCustomLocationName('') }}
                 >
-                  Välj från lista istället
+                  {copy(locale, 'Choose from list instead', 'Välj från lista istället')}
                 </button>
               )}
             </div>
@@ -366,14 +375,14 @@ export function TeamWorkoutAssignmentDialog({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <UserCheck className="h-4 w-4" />
-              Tränare (valfritt)
+              {copy(locale, 'Coach (optional)', 'Tränare (valfritt)')}
             </Label>
             <Select value={selectedTrainerId || 'none'} onValueChange={(v) => setSelectedTrainerId(v === 'none' ? '' : v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj tränare..." />
+                <SelectValue placeholder={copy(locale, 'Select coach...', 'Välj tränare...')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen specifik tränare</SelectItem>
+                <SelectItem value="none">{copy(locale, 'No specific coach', 'Ingen specifik tränare')}</SelectItem>
                 {trainers.map((t) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
@@ -386,7 +395,7 @@ export function TeamWorkoutAssignmentDialog({
         {selectedTeamId && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Spelare</Label>
+              <Label>{copy(locale, 'Players', 'Spelare')}</Label>
               {team && (
                 <div className="flex items-center gap-2">
                   <Button
@@ -395,7 +404,7 @@ export function TeamWorkoutAssignmentDialog({
                     onClick={selectAllMembers}
                     disabled={excludedMembers.length === 0}
                   >
-                    Alla
+                    {copy(locale, 'All', 'Alla')}
                   </Button>
                   <Button
                     variant="ghost"
@@ -403,7 +412,7 @@ export function TeamWorkoutAssignmentDialog({
                     onClick={deselectAllMembers}
                     disabled={excludedMembers.length === team.members.length}
                   >
-                    Ingen
+                    {copy(locale, 'None', 'Ingen')}
                   </Button>
                 </div>
               )}
@@ -415,7 +424,7 @@ export function TeamWorkoutAssignmentDialog({
               </div>
             ) : team && team.members.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
-                Laget har inga medlemmar.
+                {copy(locale, 'The team has no members.', 'Laget har inga medlemmar.')}
               </p>
             ) : team ? (
               <ScrollArea className="h-[200px] border rounded-md p-2">
@@ -458,7 +467,7 @@ export function TeamWorkoutAssignmentDialog({
             {team && (
               <div className="flex items-center gap-2">
                 <Badge variant={selectedMemberCount > 0 ? 'default' : 'secondary'}>
-                  {selectedMemberCount} av {team.members.length} spelare valda
+                  {selectedMemberCount} {copy(locale, 'of', 'av')} {team.members.length} {copy(locale, 'players selected', 'spelare valda')}
                 </Badge>
               </div>
             )}
@@ -475,7 +484,7 @@ export function TeamWorkoutAssignmentDialog({
             >
               <span className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Schemalägg tid (valfritt)
+                {copy(locale, 'Schedule time (optional)', 'Schemalägg tid (valfritt)')}
               </span>
               <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
             </Button>
@@ -500,12 +509,12 @@ export function TeamWorkoutAssignmentDialog({
 
         {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+          <Label htmlFor="notes">{copy(locale, 'Notes (optional)', 'Anteckningar (valfritt)')}</Label>
           <Textarea
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Eventuella instruktioner till spelarna..."
+            placeholder={copy(locale, 'Any instructions for the players...', 'Eventuella instruktioner till spelarna...')}
             rows={2}
           />
         </div>
@@ -513,7 +522,7 @@ export function TeamWorkoutAssignmentDialog({
 
       <DialogFooter>
         <Button variant="outline" onClick={() => setOpen(false)}>
-          Avbryt
+          {copy(locale, 'Cancel', 'Avbryt')}
         </Button>
         <Button
           onClick={handleAssign}
@@ -522,12 +531,12 @@ export function TeamWorkoutAssignmentDialog({
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Tilldelar...
+              {copy(locale, 'Assigning...', 'Tilldelar...')}
             </>
           ) : (
             <>
               <Users className="h-4 w-4 mr-2" />
-              Tilldela ({selectedMemberCount})
+              {copy(locale, 'Assign', 'Tilldela')} ({selectedMemberCount})
             </>
           )}
         </Button>
