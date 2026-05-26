@@ -1,5 +1,6 @@
 'use client'
 
+import { useLocale } from '@/i18n/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Badge } from '@/components/ui/badge'
@@ -39,13 +40,26 @@ interface TriathlonDashboardProps {
   clientName: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 // Race distance data
-const RACE_DATA: Record<string, { name: string; swim: number; bike: number; run: number; swimUnit: string; bikeUnit: string; runUnit: string }> = {
-  super_sprint: { name: 'Super Sprint', swim: 400, bike: 10, run: 2.5, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
-  sprint: { name: 'Sprint', swim: 750, bike: 20, run: 5, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
-  olympic: { name: 'Olympisk', swim: 1500, bike: 40, run: 10, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
-  half_ironman: { name: 'Halv Ironman (70.3)', swim: 1900, bike: 90, run: 21.1, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
-  ironman: { name: 'Ironman (140.6)', swim: 3800, bike: 180, run: 42.2, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
+const RACE_DATA: Record<string, { name: Record<AppLocale, string>; swim: number; bike: number; run: number; swimUnit: string; bikeUnit: string; runUnit: string }> = {
+  super_sprint: { name: { en: 'Super Sprint', sv: 'Super Sprint' }, swim: 400, bike: 10, run: 2.5, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
+  sprint: { name: { en: 'Sprint', sv: 'Sprint' }, swim: 750, bike: 20, run: 5, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
+  olympic: { name: { en: 'Olympic', sv: 'Olympisk' }, swim: 1500, bike: 40, run: 10, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
+  half_ironman: { name: { en: 'Half Ironman (70.3)', sv: 'Halv Ironman (70.3)' }, swim: 1900, bike: 90, run: 21.1, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
+  ironman: { name: { en: 'Ironman (140.6)', sv: 'Ironman (140.6)' }, swim: 3800, bike: 180, run: 42.2, swimUnit: 'm', bikeUnit: 'km', runUnit: 'km' },
+}
+
+const OPEN_WATER_EXPERIENCE_LABELS: Record<string, Record<AppLocale, string>> = {
+  none: { en: 'No experience', sv: 'Ingen erfarenhet' },
+  beginner: { en: 'Beginner', sv: 'Nybörjare' },
+  intermediate: { en: 'Intermediate', sv: 'Mellan' },
+  advanced: { en: 'Advanced', sv: 'Avancerad' },
 }
 
 // Format pace as mm:ss
@@ -118,39 +132,12 @@ function estimateRaceTime(
   }
 }
 
-// Get discipline icon
-function DisciplineIcon({ discipline, className }: { discipline: string; className?: string }) {
-  switch (discipline) {
-    case 'swim':
-      return <Waves className={cn('h-5 w-5', className)} />
-    case 'bike':
-      return <Bike className={cn('h-5 w-5', className)} />
-    case 'run':
-      return <PersonStanding className={cn('h-5 w-5', className)} />
-    default:
-      return null
-  }
-}
-
-// Get discipline name in Swedish
-function getDisciplineName(discipline: string): string {
-  switch (discipline) {
-    case 'swim':
-      return 'Simning'
-    case 'bike':
-      return 'Cykling'
-    case 'run':
-      return 'Löpning'
-    default:
-      return discipline
-  }
-}
-
 export function TriathlonDashboard({
   triathlonSettings,
-  experience,
-  clientName,
+  experience: _experience,
+  clientName: _clientName,
 }: TriathlonDashboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const themeContext = useWorkoutThemeOptional()
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
 
@@ -159,7 +146,7 @@ export function TriathlonDashboard({
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardContent className="py-6">
           <p className="text-center" style={{ color: theme.colors.textMuted }}>
-            Ingen triathloninställning hittades. Vänligen slutför din profil.
+            {copy(locale, 'No triathlon settings found. Please complete your profile.', 'Ingen triathloninställning hittades. Vänligen slutför din profil.')}
           </p>
         </CardContent>
       </Card>
@@ -207,7 +194,7 @@ export function TriathlonDashboard({
             </div>
             {race && (
               <Badge variant="secondary" className="text-sm">
-                {race.name}
+                {race.name[locale]}
               </Badge>
             )}
           </div>
@@ -221,34 +208,34 @@ export function TriathlonDashboard({
                 <PersonStanding className="h-4 w-4 text-green-500" /> {race.run}{race.runUnit}
               </span>
             ) : (
-              'Välj din måltävlingsdistans i profilen'
+              copy(locale, 'Choose your target race distance in your profile', 'Välj din måltävlingsdistans i profilen')
             )}
           </CardDescription>
         </CardHeader>
         {estimatedTimes && estimatedTimes.total !== '--:--' && (
           <CardContent>
             <div className="rounded-lg p-4" style={{ backgroundColor: theme.colors.backgroundCard + 'cc' }}>
-              <p className="text-sm mb-2" style={{ color: theme.colors.textMuted }}>Uppskattad tävlingstid</p>
+              <p className="text-sm mb-2" style={{ color: theme.colors.textMuted }}>{copy(locale, 'Estimated race time', 'Uppskattad tävlingstid')}</p>
               <div className="grid grid-cols-4 gap-4 text-center">
                 <div>
                   <Waves className="h-4 w-4 mx-auto mb-1 text-blue-500" />
                   <p className="font-bold" style={{ color: theme.colors.textPrimary }}>{estimatedTimes.swim}</p>
-                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Sim</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>{copy(locale, 'Swim', 'Sim')}</p>
                 </div>
                 <div>
                   <Bike className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
                   <p className="font-bold" style={{ color: theme.colors.textPrimary }}>{estimatedTimes.bike}</p>
-                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Cykel</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>{copy(locale, 'Bike', 'Cykel')}</p>
                 </div>
                 <div>
                   <PersonStanding className="h-4 w-4 mx-auto mb-1 text-green-500" />
                   <p className="font-bold" style={{ color: theme.colors.textPrimary }}>{estimatedTimes.run}</p>
-                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Löp</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>{copy(locale, 'Run', 'Löp')}</p>
                 </div>
                 <div className="border-l" style={{ borderColor: theme.colors.border }}>
                   <Timer className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.accent }} />
                   <p className="font-bold" style={{ color: theme.colors.accent }}>{estimatedTimes.total}</p>
-                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>Totalt</p>
+                  <p className="text-xs" style={{ color: theme.colors.textMuted }}>{copy(locale, 'Total', 'Totalt')}</p>
                 </div>
               </div>
             </div>
@@ -269,9 +256,9 @@ export function TriathlonDashboard({
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Waves className="h-5 w-5 text-blue-500" />
-              Simning
+              {copy(locale, 'Swimming', 'Simning')}
               {triathlonSettings.strongestDiscipline === 'swim' && (
-                <Badge variant="outline" className="text-green-600 border-green-600 text-xs">Starkast</Badge>
+                <Badge variant="outline" className="text-green-600 border-green-600 text-xs">{copy(locale, 'Strongest', 'Starkast')}</Badge>
               )}
               {triathlonSettings.weakestDiscipline === 'swim' && (
                 <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">Fokus</Badge>
@@ -287,15 +274,14 @@ export function TriathlonDashboard({
             ) : (
               <div className="flex items-center gap-2" style={{ color: theme.colors.textMuted }}>
                 <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">CSS ej testat</span>
+                <span className="text-sm">{copy(locale, 'CSS not tested', 'CSS ej testat')}</span>
               </div>
             )}
             <div className="text-sm">
-              <p style={{ color: theme.colors.textMuted }}>Öppet vatten: {
-                triathlonSettings.openWaterExperience === 'none' ? 'Ingen erfarenhet' :
-                triathlonSettings.openWaterExperience === 'beginner' ? 'Nybörjare' :
-                triathlonSettings.openWaterExperience === 'intermediate' ? 'Mellan' : 'Avancerad'
-              }</p>
+              <p style={{ color: theme.colors.textMuted }}>
+                {copy(locale, 'Open water:', 'Öppet vatten:')}{' '}
+                {OPEN_WATER_EXPERIENCE_LABELS[triathlonSettings.openWaterExperience || 'advanced']?.[locale] || copy(locale, 'Advanced', 'Avancerad')}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -311,9 +297,9 @@ export function TriathlonDashboard({
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <Bike className="h-5 w-5 text-yellow-500" />
-              Cykling
+              {copy(locale, 'Cycling', 'Cykling')}
               {triathlonSettings.strongestDiscipline === 'bike' && (
-                <Badge variant="outline" className="text-green-600 border-green-600 text-xs">Starkast</Badge>
+                <Badge variant="outline" className="text-green-600 border-green-600 text-xs">{copy(locale, 'Strongest', 'Starkast')}</Badge>
               )}
               {triathlonSettings.weakestDiscipline === 'bike' && (
                 <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">Fokus</Badge>
@@ -334,12 +320,14 @@ export function TriathlonDashboard({
             ) : (
               <div className="flex items-center gap-2" style={{ color: theme.colors.textMuted }}>
                 <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">FTP ej testat</span>
+                <span className="text-sm">{copy(locale, 'FTP not tested', 'FTP ej testat')}</span>
               </div>
             )}
             <div className="text-sm">
               <p style={{ color: theme.colors.textMuted }}>
-                {triathlonSettings.hasPowerMeter ? 'Wattmätare' : 'Ingen wattmätare'}
+                {triathlonSettings.hasPowerMeter
+                  ? copy(locale, 'Power meter', 'Wattmätare')
+                  : copy(locale, 'No power meter', 'Ingen wattmätare')}
               </p>
             </div>
           </CardContent>
@@ -356,9 +344,9 @@ export function TriathlonDashboard({
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
               <PersonStanding className="h-5 w-5 text-green-500" />
-              Löpning
+              {copy(locale, 'Running', 'Löpning')}
               {triathlonSettings.strongestDiscipline === 'run' && (
-                <Badge variant="outline" className="text-green-600 border-green-600 text-xs">Starkast</Badge>
+                <Badge variant="outline" className="text-green-600 border-green-600 text-xs">{copy(locale, 'Strongest', 'Starkast')}</Badge>
               )}
               {triathlonSettings.weakestDiscipline === 'run' && (
                 <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">Fokus</Badge>
@@ -369,12 +357,12 @@ export function TriathlonDashboard({
             {triathlonSettings.currentThresholdPace ? (
               <div>
                 <p className="text-2xl font-bold" style={{ color: theme.colors.textPrimary }}>{formatPace(triathlonSettings.currentThresholdPace)}</p>
-                <p className="text-xs" style={{ color: theme.colors.textMuted }}>Tröskeltempo per km</p>
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>{copy(locale, 'Threshold pace per km', 'Tröskeltempo per km')}</p>
               </div>
             ) : (
               <div className="flex items-center gap-2" style={{ color: theme.colors.textMuted }}>
                 <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">Tröskeltempo ej testat</span>
+                <span className="text-sm">{copy(locale, 'Threshold pace not tested', 'Tröskeltempo ej testat')}</span>
               </div>
             )}
           </CardContent>
@@ -386,10 +374,10 @@ export function TriathlonDashboard({
         <CardHeader className="pb-2">
           <CardTitle className="text-lg flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
             <Target className="h-5 w-5" />
-            Träningsfördelning
+            {copy(locale, 'Training distribution', 'Träningsfördelning')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            {triathlonSettings.weeklyHoursAvailable}h/vecka - {totalSessions} pass + {triathlonSettings.brickWorkoutsPerWeek || 0} kombipass
+            {triathlonSettings.weeklyHoursAvailable}h/{copy(locale, 'week', 'vecka')} - {totalSessions} {copy(locale, 'sessions', 'pass')} + {triathlonSettings.brickWorkoutsPerWeek || 0} {copy(locale, 'brick workouts', 'kombipass')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -398,8 +386,8 @@ export function TriathlonDashboard({
               <Waves className="h-4 w-4 text-blue-500 shrink-0" />
               <div className="flex-1">
                 <div className="flex justify-between text-sm mb-1" style={{ color: theme.colors.textPrimary }}>
-                  <span>Simning</span>
-                  <span>{triathlonSettings.swimSessions || 0} pass ({swimPercent}%)</span>
+                  <span>{copy(locale, 'Swimming', 'Simning')}</span>
+                  <span>{triathlonSettings.swimSessions || 0} {copy(locale, 'sessions', 'pass')} ({swimPercent}%)</span>
                 </div>
                 <Progress value={swimPercent} className="h-2 bg-blue-100" />
               </div>
@@ -408,8 +396,8 @@ export function TriathlonDashboard({
               <Bike className="h-4 w-4 text-yellow-500 shrink-0" />
               <div className="flex-1">
                 <div className="flex justify-between text-sm mb-1" style={{ color: theme.colors.textPrimary }}>
-                  <span>Cykling</span>
-                  <span>{triathlonSettings.bikeSessions || 0} pass ({bikePercent}%)</span>
+                  <span>{copy(locale, 'Cycling', 'Cykling')}</span>
+                  <span>{triathlonSettings.bikeSessions || 0} {copy(locale, 'sessions', 'pass')} ({bikePercent}%)</span>
                 </div>
                 <Progress value={bikePercent} className="h-2 bg-yellow-100" />
               </div>
@@ -418,8 +406,8 @@ export function TriathlonDashboard({
               <PersonStanding className="h-4 w-4 text-green-500 shrink-0" />
               <div className="flex-1">
                 <div className="flex justify-between text-sm mb-1" style={{ color: theme.colors.textPrimary }}>
-                  <span>Löpning</span>
-                  <span>{triathlonSettings.runSessions || 0} pass ({runPercent}%)</span>
+                  <span>{copy(locale, 'Running', 'Löpning')}</span>
+                  <span>{triathlonSettings.runSessions || 0} {copy(locale, 'sessions', 'pass')} ({runPercent}%)</span>
                 </div>
                 <Progress value={runPercent} className="h-2 bg-green-100" />
               </div>
@@ -430,8 +418,10 @@ export function TriathlonDashboard({
             <div className="pt-2 border-t" style={{ borderColor: theme.colors.border }}>
               <div className="flex items-center gap-2 text-sm">
                 <TrendingUp className="h-4 w-4 text-purple-500" />
-                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>{triathlonSettings.brickWorkoutsPerWeek} kombipass/vecka</span>
-                <span style={{ color: theme.colors.textMuted }}>(cykel+löp)</span>
+                <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
+                  {triathlonSettings.brickWorkoutsPerWeek} {copy(locale, 'brick workouts/week', 'kombipass/vecka')}
+                </span>
+                <span style={{ color: theme.colors.textMuted }}>{copy(locale, '(bike+run)', '(cykel+löp)')}</span>
               </div>
             </div>
           )}
@@ -441,36 +431,66 @@ export function TriathlonDashboard({
       {/* Training Tips */}
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>Träningstips</CardTitle>
+          <CardTitle className="text-lg" style={{ color: theme.colors.textPrimary }}>{copy(locale, 'Training tips', 'Träningstips')}</CardTitle>
         </CardHeader>
         <CardContent>
           <ul className="space-y-2 text-sm" style={{ color: theme.colors.textPrimary }}>
             {triathlonSettings.weakestDiscipline === 'swim' && (
               <li className="flex items-start gap-2">
                 <Waves className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                <span>Fokusera på teknik och öppet vatten-simning. CSS-träning förbättrar din uthållighet.</span>
+                <span>
+                  {copy(
+                    locale,
+                    'Focus on technique and open-water swimming. CSS training improves your endurance.',
+                    'Fokusera på teknik och öppet vatten-simning. CSS-träning förbättrar din uthållighet.'
+                  )}
+                </span>
               </li>
             )}
             {triathlonSettings.weakestDiscipline === 'bike' && (
               <li className="flex items-start gap-2">
                 <Bike className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-                <span>Bygg din cykelstyrka med sweet spot-träning. Använd en wattmätare för bästa resultat.</span>
+                <span>
+                  {copy(
+                    locale,
+                    'Build your bike strength with sweet spot training. Use a power meter for best results.',
+                    'Bygg din cykelstyrka med sweet spot-träning. Använd en wattmätare för bästa resultat.'
+                  )}
+                </span>
               </li>
             )}
             {triathlonSettings.weakestDiscipline === 'run' && (
               <li className="flex items-start gap-2">
                 <PersonStanding className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                <span>Fokusera på löploppet - det är där många triathlon avgörs. Brick-löpning är viktigt.</span>
+                <span>
+                  {copy(
+                    locale,
+                    'Focus on the run leg, where many triathlons are decided. Brick running is important.',
+                    'Fokusera på löploppet - det är där många triathlon avgörs. Brick-löpning är viktigt.'
+                  )}
+                </span>
               </li>
             )}
             <li className="flex items-start gap-2">
               <TrendingUp className="h-4 w-4 text-purple-500 mt-0.5 shrink-0" />
-              <span>Kombipass (brick workouts) förberedrar kroppen för övergången cykel-löp.</span>
+              <span>
+                {copy(
+                  locale,
+                  'Brick workouts prepare the body for the bike-to-run transition.',
+                  'Kombipass (brick workouts) förberedrar kroppen för övergången cykel-löp.'
+                )}
+              </span>
             </li>
-            {race && race.name.includes('Ironman') && (
+            {race && race.name.en.includes('Ironman') && (
               <li className="flex items-start gap-2">
                 <Trophy className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-                <span>Ironman kräver extremt fokus på näring. Träna matintag under långa pass.</span>
+                <span>
+                  {copy(
+                    locale,
+                    'Ironman requires extreme focus on nutrition. Practice fueling during long sessions.',
+                    'Ironman kräver extremt fokus på näring. Träna matintag under långa pass.'
+                  )}
+                </span>
               </li>
             )}
           </ul>

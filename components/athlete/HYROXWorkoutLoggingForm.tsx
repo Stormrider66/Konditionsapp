@@ -1,13 +1,13 @@
 'use client'
 
 import { useState } from 'react'
+import { useLocale } from '@/i18n/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Slider } from '@/components/ui/slider'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -17,9 +17,14 @@ import {
   Zap,
   Target,
   Timer,
-  Save,
-  ChevronRight
+  Save
 } from 'lucide-react'
+
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
 
 interface HYROXWorkoutLoggingFormProps {
   workoutId: string
@@ -72,11 +77,11 @@ export interface HYROXWorkoutLogData {
 }
 
 const WORKOUT_TYPES = [
-  { value: 'running', label: 'Löpning', icon: Footprints, color: 'text-green-500' },
-  { value: 'strength', label: 'Styrka', icon: Dumbbell, color: 'text-purple-500' },
-  { value: 'hyrox_simulation', label: 'HYROX Simulation', icon: Target, color: 'text-orange-500' },
-  { value: 'station_practice', label: 'Stationsträning', icon: Activity, color: 'text-blue-500' },
-  { value: 'mixed', label: 'Kombinerat', icon: Zap, color: 'text-yellow-500' },
+  { value: 'running', label: { en: 'Running', sv: 'Löpning' }, icon: Footprints, color: 'text-green-500' },
+  { value: 'strength', label: { en: 'Strength', sv: 'Styrka' }, icon: Dumbbell, color: 'text-purple-500' },
+  { value: 'hyrox_simulation', label: { en: 'HYROX Simulation', sv: 'HYROX Simulation' }, icon: Target, color: 'text-orange-500' },
+  { value: 'station_practice', label: { en: 'Station training', sv: 'Stationsträning' }, icon: Activity, color: 'text-blue-500' },
+  { value: 'mixed', label: { en: 'Combined', sv: 'Kombinerat' }, icon: Zap, color: 'text-yellow-500' },
 ]
 
 const STATIONS = [
@@ -84,7 +89,7 @@ const STATIONS = [
   { key: 'sledPush', label: 'Sled Push', distance: '50m', icon: Dumbbell },
   { key: 'sledPull', label: 'Sled Pull', distance: '50m', icon: Dumbbell },
   { key: 'burpeeBroadJump', label: 'Burpee Broad Jump', distance: '80m', icon: Zap },
-  { key: 'rowing', label: 'Rodd', distance: '1000m', icon: Activity },
+  { key: 'rowing', label: 'Rowing', distance: '1000m', icon: Activity },
   { key: 'farmersCarry', label: 'Farmers Carry', distance: '200m', icon: Dumbbell },
   { key: 'sandbagLunge', label: 'Sandbag Lunge', distance: '100m', icon: Footprints },
   { key: 'wallBall', label: 'Wall Balls', distance: '75-100 reps', icon: Target },
@@ -114,6 +119,7 @@ export function HYROXWorkoutLoggingForm({
   onSubmit,
   isSubmitting = false
 }: HYROXWorkoutLoggingFormProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [activeTab, setActiveTab] = useState(workoutType === 'running' ? 'running' : workoutType === 'strength' ? 'strength' : 'stations')
   const [data, setData] = useState<Partial<HYROXWorkoutLogData>>({
     workoutId,
@@ -159,7 +165,7 @@ export function HYROXWorkoutLoggingForm({
             <div>
               <CardTitle>{workoutName}</CardTitle>
               <CardDescription>
-                {typeConfig?.label} • Logga ditt träningspass
+                {typeConfig?.label[locale]} • {copy(locale, 'Log your workout', 'Logga ditt träningspass')}
               </CardDescription>
             </div>
           </div>
@@ -169,22 +175,22 @@ export function HYROXWorkoutLoggingForm({
       {/* Main Form */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Träningsdata</CardTitle>
+          <CardTitle className="text-lg">{copy(locale, 'Training data', 'Träningsdata')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="general">Allmänt</TabsTrigger>
-              <TabsTrigger value="running">Löpning</TabsTrigger>
-              <TabsTrigger value="stations">Stationer</TabsTrigger>
-              <TabsTrigger value="strength">Styrka</TabsTrigger>
+              <TabsTrigger value="general">{copy(locale, 'General', 'Allmänt')}</TabsTrigger>
+              <TabsTrigger value="running">{copy(locale, 'Running', 'Löpning')}</TabsTrigger>
+              <TabsTrigger value="stations">{copy(locale, 'Stations', 'Stationer')}</TabsTrigger>
+              <TabsTrigger value="strength">{copy(locale, 'Strength', 'Styrka')}</TabsTrigger>
             </TabsList>
 
             {/* General Tab */}
             <TabsContent value="general" className="space-y-4 mt-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Total tid (minuter)</Label>
+                  <Label>{copy(locale, 'Total time (minutes)', 'Total tid (minuter)')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -195,7 +201,7 @@ export function HYROXWorkoutLoggingForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Datum</Label>
+                  <Label>{copy(locale, 'Date', 'Datum')}</Label>
                   <Input
                     type="datetime-local"
                     value={data.completedAt ? new Date(data.completedAt).toISOString().slice(0, 16) : ''}
@@ -205,7 +211,7 @@ export function HYROXWorkoutLoggingForm({
               </div>
 
               <div className="space-y-2">
-                <Label>Upplevd ansträngning (RPE): {data.perceivedEffort}/10</Label>
+                <Label>{copy(locale, 'Perceived effort (RPE):', 'Upplevd ansträngning (RPE):')} {data.perceivedEffort}/10</Label>
                 <Slider
                   value={[data.perceivedEffort || 5]}
                   onValueChange={([value]) => updateData({ perceivedEffort: value })}
@@ -215,15 +221,15 @@ export function HYROXWorkoutLoggingForm({
                   className="w-full"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>Lätt</span>
-                  <span>Moderat</span>
-                  <span>Maximalt</span>
+                  <span>{copy(locale, 'Easy', 'Lätt')}</span>
+                  <span>{copy(locale, 'Moderate', 'Moderat')}</span>
+                  <span>{copy(locale, 'Maximum', 'Maximalt')}</span>
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Genomsnittspuls</Label>
+                  <Label>{copy(locale, 'Average heart rate', 'Genomsnittspuls')}</Label>
                   <Input
                     type="number"
                     min={40}
@@ -235,7 +241,7 @@ export function HYROXWorkoutLoggingForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Max puls</Label>
+                  <Label>{copy(locale, 'Max heart rate', 'Max puls')}</Label>
                   <Input
                     type="number"
                     min={40}
@@ -247,7 +253,7 @@ export function HYROXWorkoutLoggingForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Kalorier</Label>
+                  <Label>{copy(locale, 'Calories', 'Kalorier')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -259,11 +265,11 @@ export function HYROXWorkoutLoggingForm({
               </div>
 
               <div className="space-y-2">
-                <Label>Anteckningar</Label>
+                <Label>{copy(locale, 'Notes', 'Anteckningar')}</Label>
                 <Textarea
                   value={data.notes || ''}
                   onChange={(e) => updateData({ notes: e.target.value })}
-                  placeholder="Hur kändes passet? Något särskilt att notera?"
+                  placeholder={copy(locale, 'How did the session feel? Anything specific to note?', 'Hur kändes passet? Något särskilt att notera?')}
                   rows={3}
                 />
               </div>
@@ -273,7 +279,7 @@ export function HYROXWorkoutLoggingForm({
             <TabsContent value="running" className="space-y-4 mt-4">
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label>Distans (m)</Label>
+                  <Label>{copy(locale, 'Distance (m)', 'Distans (m)')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -284,7 +290,7 @@ export function HYROXWorkoutLoggingForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tid (mm:ss)</Label>
+                  <Label>{copy(locale, 'Time (mm:ss)', 'Tid (mm:ss)')}</Label>
                   <Input
                     placeholder="35:00"
                     value={data.runningDuration ? formatTime(data.runningDuration) : ''}
@@ -293,7 +299,7 @@ export function HYROXWorkoutLoggingForm({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Snitt-tempo (/km)</Label>
+                  <Label>{copy(locale, 'Average pace (/km)', 'Snitt-tempo (/km)')}</Label>
                   <Input
                     placeholder="4:30"
                     value={data.avgPace ? formatTime(data.avgPace) : ''}
@@ -305,7 +311,11 @@ export function HYROXWorkoutLoggingForm({
               {workoutType === 'hyrox_simulation' && (
                 <div className="p-4 bg-muted rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    HYROX inkluderar 8 x 1km löpning mellan stationerna. Logga den totala löpdistansen och tiden här.
+                    {copy(
+                      locale,
+                      'HYROX includes 8 x 1 km running between stations. Log the total running distance and time here.',
+                      'HYROX inkluderar 8 x 1km löpning mellan stationerna. Logga den totala löpdistansen och tiden här.'
+                    )}
                   </p>
                 </div>
               )}
@@ -330,7 +340,7 @@ export function HYROXWorkoutLoggingForm({
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                          <Label className="text-xs">Tid (mm:ss)</Label>
+                          <Label className="text-xs">{copy(locale, 'Time (mm:ss)', 'Tid (mm:ss)')}</Label>
                           <Input
                             placeholder="3:00"
                             value={(data[timeKey] as number) ? formatTime(data[timeKey] as number) : ''}
@@ -340,7 +350,7 @@ export function HYROXWorkoutLoggingForm({
                         </div>
                         <div className="space-y-1">
                           <Label className="text-xs">
-                            {station.key === 'wallBall' ? 'Reps' : 'Distans (m)'}
+                            {station.key === 'wallBall' ? 'Reps' : copy(locale, 'Distance (m)', 'Distans (m)')}
                           </Label>
                           <Input
                             type="number"
@@ -360,7 +370,7 @@ export function HYROXWorkoutLoggingForm({
                 <Card className="p-4 bg-orange-50 dark:bg-orange-950/20">
                   <div className="flex items-center gap-2">
                     <Timer className="h-5 w-5 text-orange-500" />
-                    <span className="font-medium">Total stationstid:</span>
+                    <span className="font-medium">{copy(locale, 'Total station time:', 'Total stationstid:')}</span>
                     <span className="text-xl font-bold">
                       {formatTime(calculateTotalTime())}
                     </span>
@@ -376,7 +386,7 @@ export function HYROXWorkoutLoggingForm({
                   <Card key={index} className="p-4">
                     <div className="grid grid-cols-4 gap-2">
                       <div className="col-span-4 space-y-1">
-                        <Label className="text-xs">Övning</Label>
+                        <Label className="text-xs">{copy(locale, 'Exercise', 'Övning')}</Label>
                         <Input
                           value={exercise.name}
                           onChange={(e) => {
@@ -384,7 +394,7 @@ export function HYROXWorkoutLoggingForm({
                             exercises[index] = { ...exercise, name: e.target.value }
                             updateData({ exercises })
                           }}
-                          placeholder="Övningsnamn"
+                          placeholder={copy(locale, 'Exercise name', 'Övningsnamn')}
                         />
                       </div>
                       <div className="space-y-1">
@@ -414,7 +424,7 @@ export function HYROXWorkoutLoggingForm({
                         />
                       </div>
                       <div className="space-y-1">
-                        <Label className="text-xs">Vikt (kg)</Label>
+                        <Label className="text-xs">{copy(locale, 'Weight (kg)', 'Vikt (kg)')}</Label>
                         <Input
                           type="number"
                           min={0}
@@ -436,7 +446,7 @@ export function HYROXWorkoutLoggingForm({
                           updateData({ exercises })
                         }}
                       >
-                        Ta bort
+                        {copy(locale, 'Remove', 'Ta bort')}
                       </Button>
                     </div>
                   </Card>
@@ -449,7 +459,7 @@ export function HYROXWorkoutLoggingForm({
                     updateData({ exercises })
                   }}
                 >
-                  + Lägg till övning
+                  + {copy(locale, 'Add exercise', 'Lägg till övning')}
                 </Button>
               </div>
             </TabsContent>
@@ -460,13 +470,13 @@ export function HYROXWorkoutLoggingForm({
       {/* Summary & Submit */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Sammanfattning</CardTitle>
+          <CardTitle className="text-lg">{copy(locale, 'Summary', 'Sammanfattning')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
             <div className="p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold">{data.duration || 0}</div>
-              <div className="text-xs text-muted-foreground">minuter</div>
+              <div className="text-xs text-muted-foreground">{copy(locale, 'minutes', 'minuter')}</div>
             </div>
             <div className="p-3 bg-muted rounded-lg">
               <div className="text-2xl font-bold">{data.perceivedEffort || 5}/10</div>
@@ -475,13 +485,13 @@ export function HYROXWorkoutLoggingForm({
             {data.runningDistance && (
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-2xl font-bold">{(data.runningDistance / 1000).toFixed(1)}</div>
-                <div className="text-xs text-muted-foreground">km löpning</div>
+                <div className="text-xs text-muted-foreground">{copy(locale, 'km running', 'km löpning')}</div>
               </div>
             )}
             {workoutType === 'hyrox_simulation' && (
               <div className="p-3 bg-muted rounded-lg">
                 <div className="text-2xl font-bold">{formatTime(calculateTotalTime())}</div>
-                <div className="text-xs text-muted-foreground">total tid</div>
+                <div className="text-xs text-muted-foreground">{copy(locale, 'total time', 'total tid')}</div>
               </div>
             )}
           </div>
@@ -493,11 +503,11 @@ export function HYROXWorkoutLoggingForm({
             disabled={isSubmitting}
           >
             {isSubmitting ? (
-              'Sparar...'
+              copy(locale, 'Saving...', 'Sparar...')
             ) : (
               <>
                 <Save className="h-4 w-4 mr-2" />
-                Spara träningspass
+                {copy(locale, 'Save workout', 'Spara träningspass')}
               </>
             )}
           </Button>
