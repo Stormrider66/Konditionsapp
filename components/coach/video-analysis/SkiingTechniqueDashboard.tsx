@@ -35,6 +35,7 @@ import {
   Gauge,
   MoveHorizontal,
 } from 'lucide-react';
+import { useLocale } from '@/i18n/client';
 
 // Type for the skiing technique analysis data
 interface SkiingAnalysisData {
@@ -99,19 +100,27 @@ interface SkiingTechniqueDashboardProps {
   data: SkiingAnalysisData;
 }
 
+type AppLocale = 'en' | 'sv';
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
 export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+
   const getTechniqueLabel = () => {
     switch (data.techniqueType) {
       case 'CLASSIC':
-        return 'Klassisk (Diagonalgång)';
+        return copy(locale, 'Classic (diagonal stride)', 'Klassisk (Diagonalgång)');
       case 'SKATING':
         return data.skatingVariant
           ? `Skating (${data.skatingVariant.replace('_', '-')})`
           : 'Skating';
       case 'DOUBLE_POLE':
-        return 'Dubbelstakning';
+        return copy(locale, 'Double poling', 'Dubbelstakning');
       default:
-        return 'Okänd teknik';
+        return copy(locale, 'Unknown technique', 'Okänd teknik');
     }
   };
 
@@ -127,11 +136,11 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
     if (!timing) return '-';
     switch (timing) {
       case 'EARLY':
-        return 'Tidig';
+        return copy(locale, 'Early', 'Tidig');
       case 'ON_TIME':
-        return 'I tid';
+        return copy(locale, 'On time', 'I tid');
       case 'LATE':
-        return 'Sen';
+        return copy(locale, 'Late', 'Sen');
       default:
         return timing;
     }
@@ -141,15 +150,15 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
     if (!level) return '-';
     switch (level) {
       case 'GOOD':
-        return 'Bra';
+        return copy(locale, 'Good', 'Bra');
       case 'MODERATE':
-        return 'Måttlig';
+        return copy(locale, 'Moderate', 'Måttlig');
       case 'POOR':
-        return 'Svag';
+        return copy(locale, 'Weak', 'Svag');
       case 'SIGNIFICANT':
-        return 'Betydande';
+        return copy(locale, 'Significant', 'Betydande');
       case 'MINIMAL':
-        return 'Minimal';
+        return copy(locale, 'Minimal', 'Minimal');
       default:
         return level;
     }
@@ -159,11 +168,11 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
     if (!ext) return '-';
     switch (ext) {
       case 'FULL':
-        return 'Full';
+        return copy(locale, 'Full', 'Full');
       case 'PARTIAL':
-        return 'Partiell';
+        return copy(locale, 'Partial', 'Partiell');
       case 'INCOMPLETE':
-        return 'Ofullständig';
+        return copy(locale, 'Incomplete', 'Ofullständig');
       default:
         return ext;
     }
@@ -173,11 +182,11 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
     if (!depth) return '-';
     switch (depth) {
       case 'SHALLOW':
-        return 'Grund';
+        return copy(locale, 'Shallow', 'Grund');
       case 'OPTIMAL':
-        return 'Optimal';
+        return copy(locale, 'Optimal', 'Optimal');
       case 'EXCESSIVE':
-        return 'Överdriven';
+        return copy(locale, 'Excessive', 'Överdriven');
       default:
         return depth;
     }
@@ -187,11 +196,11 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
     if (!speed) return '-';
     switch (speed) {
       case 'FAST':
-        return 'Snabb';
+        return copy(locale, 'Fast', 'Snabb');
       case 'MODERATE':
-        return 'Måttlig';
+        return copy(locale, 'Moderate', 'Måttlig');
       case 'SLOW':
-        return 'Långsam';
+        return copy(locale, 'Slow', 'Långsam');
       default:
         return speed;
     }
@@ -201,15 +210,15 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
     if (!path) return '-';
     switch (path) {
       case 'COMPACT':
-        return 'Kompakt';
+        return copy(locale, 'Compact', 'Kompakt');
       case 'WIDE':
-        return 'Bred';
+        return copy(locale, 'Wide', 'Bred');
       case 'INCONSISTENT':
-        return 'Inkonsekvent';
+        return copy(locale, 'Inconsistent', 'Inkonsekvent');
       case 'EFFICIENT':
-        return 'Effektiv';
+        return copy(locale, 'Efficient', 'Effektiv');
       case 'INEFFICIENT':
-        return 'Ineffektiv';
+        return copy(locale, 'Inefficient', 'Ineffektiv');
       default:
         return path;
     }
@@ -224,7 +233,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
         </div>
         <div>
           <h2 className="text-lg font-semibold">{getTechniqueLabel()}</h2>
-          <p className="text-sm text-muted-foreground">AI-driven teknikanalys</p>
+          <p className="text-sm text-muted-foreground">{copy(locale, 'AI-driven technique analysis', 'AI-driven teknikanalys')}</p>
         </div>
       </div>
 
@@ -233,7 +242,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <Target className="h-4 w-4" /> Övergripande
+              <Target className="h-4 w-4" /> {copy(locale, 'Overall', 'Övergripande')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -255,11 +264,11 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
             <CardTitle className="text-sm flex items-center gap-2">
               {data.techniqueType === 'DOUBLE_POLE' ? (
                 <>
-                  <Zap className="h-4 w-4" /> Kraft
+                  <Zap className="h-4 w-4" /> {copy(locale, 'Power', 'Kraft')}
                 </>
               ) : (
                 <>
-                  <ArrowUpDown className="h-4 w-4" /> Balans
+                  <ArrowUpDown className="h-4 w-4" /> {copy(locale, 'Balance', 'Balans')}
                 </>
               )}
             </CardTitle>
@@ -282,7 +291,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
             <CardTitle className="text-sm flex items-center gap-2">
               {data.techniqueType === 'DOUBLE_POLE' ? (
                 <>
-                  <Gauge className="h-4 w-4" /> Rytm
+                  <Gauge className="h-4 w-4" /> {copy(locale, 'Rhythm', 'Rytm')}
                 </>
               ) : (
                 <>
@@ -306,7 +315,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" /> Effektivitet
+              <TrendingUp className="h-4 w-4" /> {copy(locale, 'Efficiency', 'Effektivitet')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -323,19 +332,19 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
       {/* Pole Mechanics Panel */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Stavmekanik</CardTitle>
-          <CardDescription>Analys av stavteknik och timing</CardDescription>
+          <CardTitle className="text-lg">{copy(locale, 'Pole mechanics', 'Stavmekanik')}</CardTitle>
+          <CardDescription>{copy(locale, 'Analysis of pole technique and timing', 'Analys av stavteknik och timing')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Plantvinkel</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Plant angle', 'Plantvinkel')}</span>
               <span className="text-xl font-semibold">
                 {data.poleAngleAtPlant != null ? `${data.poleAngleAtPlant}°` : '-'}
               </span>
             </div>
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Släppvinkel</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Release angle', 'Släppvinkel')}</span>
               <span className="text-xl font-semibold">
                 {data.poleAngleAtRelease != null ? `${data.poleAngleAtRelease}°` : '-'}
               </span>
@@ -347,13 +356,13 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
               </span>
             </div>
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Kraftöverföring</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Force transfer', 'Kraftöverföring')}</span>
               <span className="text-xl font-semibold">
                 {getEngagementLabel(data.poleForceApplication)}
               </span>
             </div>
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Armsymmetri</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Arm symmetry', 'Armsymmetri')}</span>
               <span className="text-xl font-semibold">
                 {data.armSwingSymmetry != null ? `${data.armSwingSymmetry}%` : '-'}
               </span>
@@ -365,31 +374,31 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
       {/* Hip & Core Panel */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg">Höft & Bål</CardTitle>
-          <CardDescription>Position och stabilitet</CardDescription>
+          <CardTitle className="text-lg">{copy(locale, 'Hip & Trunk', 'Höft & Bål')}</CardTitle>
+          <CardDescription>{copy(locale, 'Position and stability', 'Position och stabilitet')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Höftposition</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Hip position', 'Höftposition')}</span>
               <span className={`text-xl font-semibold ${getScoreColor(data.hipPositionScore)}`}>
                 {data.hipPositionScore != null ? `${data.hipPositionScore}/100` : '-'}
               </span>
             </div>
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Höjdkonsistens</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Height consistency', 'Höjdkonsistens')}</span>
               <span className="text-xl font-semibold">
                 {data.hipHeightConsistency != null ? `${data.hipHeightConsistency}%` : '-'}
               </span>
             </div>
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Bålengagemang</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Trunk engagement', 'Bålengagemang')}</span>
               <span className="text-xl font-semibold">
                 {getEngagementLabel(data.coreEngagement)}
               </span>
             </div>
             <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Framåtlutning</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Forward lean', 'Framåtlutning')}</span>
               <span className="text-xl font-semibold">
                 {data.forwardLean != null ? `${data.forwardLean}°` : '-'}
               </span>
@@ -402,37 +411,37 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
       {data.techniqueType === 'CLASSIC' && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Klassisk Teknik</CardTitle>
-            <CardDescription>Frånspark och glidfas</CardDescription>
+            <CardTitle className="text-lg">{copy(locale, 'Classic technique', 'Klassisk Teknik')}</CardTitle>
+            <CardDescription>{copy(locale, 'Kick and glide phase', 'Frånspark och glidfas')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Frånspark timing</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Kick timing', 'Frånspark timing')}</span>
                 <span className={`text-xl font-semibold ${getScoreColor(data.kickTimingScore)}`}>
                   {data.kickTimingScore != null ? `${data.kickTimingScore}/100` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Frånspark extension</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Kick extension', 'Frånspark extension')}</span>
                 <span className="text-xl font-semibold">
                   {getExtensionLabel(data.kickExtension)}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Glidfas</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Glide phase', 'Glidfas')}</span>
                 <span className="text-xl font-semibold">
                   {data.glidePhaseDuration != null ? `${data.glidePhaseDuration}s` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Benåterhämtning</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Leg recovery', 'Benåterhämtning')}</span>
                 <span className="text-xl font-semibold">
                   {getLegPathLabel(data.legRecoveryPattern)}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Fästezon</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Grip zone', 'Fästezon')}</span>
                 <span className="text-xl font-semibold">
                   {getEngagementLabel(data.waxPocketEngagement)}
                 </span>
@@ -446,35 +455,35 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <MoveHorizontal className="h-5 w-5" /> Skate Teknik
+              <MoveHorizontal className="h-5 w-5" /> {copy(locale, 'Skate technique', 'Skate Teknik')}
               {data.skatingVariant && (
                 <Badge variant="secondary">{data.skatingVariant.replace('_', '-')}</Badge>
               )}
             </CardTitle>
-            <CardDescription>Kantvinklar och V-mönster</CardDescription>
+            <CardDescription>{copy(locale, 'Edge angles and V-pattern', 'Kantvinklar och V-mönster')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Kantvinkel vänster</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Left edge angle', 'Kantvinkel vänster')}</span>
                 <span className="text-xl font-semibold">
                   {data.edgeAngleLeft != null ? `${data.edgeAngleLeft}°` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Kantvinkel höger</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Right edge angle', 'Kantvinkel höger')}</span>
                 <span className="text-xl font-semibold">
                   {data.edgeAngleRight != null ? `${data.edgeAngleRight}°` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Kantsymmetri</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Edge symmetry', 'Kantsymmetri')}</span>
                 <span className="text-xl font-semibold">
                   {data.edgeAngleSymmetry != null ? `${data.edgeAngleSymmetry}%` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Avsparksvinkel</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Push-off angle', 'Avsparksvinkel')}</span>
                 <span className="text-xl font-semibold">
                   {data.pushOffAngle != null ? `${data.pushOffAngle}°` : '-'}
                 </span>
@@ -482,19 +491,19 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">V-mönster bredd</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'V-pattern width', 'V-mönster bredd')}</span>
                 <span className="text-xl font-semibold">
                   {data.vPatternWidth != null ? `${data.vPatternWidth} cm` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Skatefrekvens</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Skate frequency', 'Skatefrekvens')}</span>
                 <span className="text-xl font-semibold">
                   {data.skateFrequency != null ? `${data.skateFrequency} Hz` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Återhämtning ben</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Leg recovery', 'Återhämtning ben')}</span>
                 <span className="text-xl font-semibold">
                   {getLegPathLabel(data.recoveryLegPath)}
                 </span>
@@ -507,37 +516,37 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
       {data.techniqueType === 'DOUBLE_POLE' && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Dubbelstakning</CardTitle>
-            <CardDescription>Bålrörelse och rytm</CardDescription>
+            <CardTitle className="text-lg">{copy(locale, 'Double poling', 'Dubbelstakning')}</CardTitle>
+            <CardDescription>{copy(locale, 'Trunk movement and rhythm', 'Bålrörelse och rytm')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Bålflexion</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Trunk flexion', 'Bålflexion')}</span>
                 <span className="text-xl font-semibold">
                   {data.trunkFlexionRange != null ? `${data.trunkFlexionRange}°` : '-'}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Kompressionsdjup</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Compression depth', 'Kompressionsdjup')}</span>
                 <span className="text-xl font-semibold">
                   {getDepthLabel(data.compressionDepth)}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Återgångsfas</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Return phase', 'Återgångsfas')}</span>
                 <span className="text-xl font-semibold">
                   {getSpeedLabel(data.returnPhaseSpeed)}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Bendrivning</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Leg drive', 'Bendrivning')}</span>
                 <span className="text-xl font-semibold">
                   {getEngagementLabel(data.legDriveContribution)}
                 </span>
               </div>
               <div className="flex flex-col p-3 bg-muted/50 rounded-lg">
-                <span className="text-sm text-muted-foreground">Rytmkonsistens</span>
+                <span className="text-sm text-muted-foreground">{copy(locale, 'Rhythm consistency', 'Rytmkonsistens')}</span>
                 <span className="text-xl font-semibold">
                   {data.rhythmConsistency != null ? `${data.rhythmConsistency}%` : '-'}
                 </span>
@@ -553,7 +562,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
         <Card className="border-green-200 dark:border-green-900/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
-              <CheckCircle2 className="h-5 w-5" /> Styrkor
+              <CheckCircle2 className="h-5 w-5" /> {copy(locale, 'Strengths', 'Styrkor')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -567,7 +576,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
                 ))}
               </ul>
             ) : (
-              <p className="text-muted-foreground">Inga styrkor identifierade</p>
+              <p className="text-muted-foreground">{copy(locale, 'No strengths identified', 'Inga styrkor identifierade')}</p>
             )}
           </CardContent>
         </Card>
@@ -576,7 +585,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
         <Card className="border-yellow-200 dark:border-yellow-900/30">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
-              <TrendingUp className="h-5 w-5" /> Förbättringsområden
+              <TrendingUp className="h-5 w-5" /> {copy(locale, 'Improvement areas', 'Förbättringsområden')}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -590,7 +599,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
                 ))}
               </ul>
             ) : (
-              <p className="text-muted-foreground">Inga förbättringsområden identifierade</p>
+              <p className="text-muted-foreground">{copy(locale, 'No improvement areas identified', 'Inga förbättringsområden identifierade')}</p>
             )}
           </CardContent>
         </Card>
@@ -602,9 +611,9 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Dumbbell className="h-6 w-6 text-primary" />
-              Rekommenderade övningar
+              {copy(locale, 'Recommended drills', 'Rekommenderade övningar')}
             </CardTitle>
-            <CardDescription>Prioriterade teknikövningar baserat på analysen</CardDescription>
+            <CardDescription>{copy(locale, 'Prioritized technique drills based on the analysis', 'Prioriterade teknikövningar baserat på analysen')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -617,7 +626,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-semibold text-lg">{drill.drill}</span>
-                      <Badge variant="secondary">Prioritet {drill.priority}</Badge>
+                      <Badge variant="secondary">{copy(locale, 'Priority', 'Prioritet')} {drill.priority}</Badge>
                     </div>
                     <p className="text-muted-foreground">{drill.focus}</p>
                   </div>
@@ -631,7 +640,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
       {data.comparisonToElite && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg">Jämförelse med elitåkare</CardTitle>
+            <CardTitle className="text-lg">{copy(locale, 'Comparison with elite skiers', 'Jämförelse med elitåkare')}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground leading-relaxed">
