@@ -20,7 +20,7 @@ export function getExerciseImage(name: string | undefined | null): string {
     if (normalized.includes('snatch') && !normalized.includes('dumbbell')) return '/images/posterior-chain/snatch-1.png';
     if (normalized.includes('swing') || normalized.includes('kettlebell')) return '/images/posterior-chain/kettlebell-swing-1.png';
     if (normalized.includes('boxjump')) return '/images/posterior-chain/box-jump-1.png';
-    if (normalized.includes('row')) return '/images/posterior-chain/row-calories-1.png';
+    if (normalized.includes('row')) return '/images/upper-body/row-calories-1.png';
 
     // Knee Dominance
     if (normalized.includes('squat') && normalized.includes('loblet')) return '/images/knee-dominance/goblet-squat-1.png';
