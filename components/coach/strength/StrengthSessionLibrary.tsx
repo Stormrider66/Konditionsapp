@@ -12,6 +12,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { logger } from '@/lib/logger';
+import { useLocale } from '@/i18n/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,20 +90,28 @@ interface SystemTemplate {
   isSystemTemplate: boolean;
 }
 
-const CATEGORY_LABELS: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-  RUNNER: { label: 'Löpare', icon: TrendingUp, color: 'bg-blue-100 text-blue-800' },
-  BEGINNER: { label: 'Nybörjare', icon: Target, color: 'bg-green-100 text-green-800' },
-  MARATHON: { label: 'Maraton', icon: Target, color: 'bg-purple-100 text-purple-800' },
-  INJURY_PREVENTION: { label: 'Skadeprevention', icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
-  POWER: { label: 'Kraft', icon: Zap, color: 'bg-red-100 text-red-800' },
-  MAINTENANCE: { label: 'Underhåll', icon: Dumbbell, color: 'bg-gray-100 text-gray-800' },
+type AppLocale = 'en' | 'sv';
+
+type LocalizedLabel = Record<AppLocale, string>;
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
+const CATEGORY_LABELS: Record<string, { label: LocalizedLabel; icon: React.ElementType; color: string }> = {
+  RUNNER: { label: { en: 'Runner', sv: 'Löpare' }, icon: TrendingUp, color: 'bg-blue-100 text-blue-800' },
+  BEGINNER: { label: { en: 'Beginner', sv: 'Nybörjare' }, icon: Target, color: 'bg-green-100 text-green-800' },
+  MARATHON: { label: { en: 'Marathon', sv: 'Maraton' }, icon: Target, color: 'bg-purple-100 text-purple-800' },
+  INJURY_PREVENTION: { label: { en: 'Injury prevention', sv: 'Skadeprevention' }, icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
+  POWER: { label: { en: 'Power', sv: 'Kraft' }, icon: Zap, color: 'bg-red-100 text-red-800' },
+  MAINTENANCE: { label: { en: 'Maintenance', sv: 'Underhåll' }, icon: Dumbbell, color: 'bg-gray-100 text-gray-800' },
 };
 
-const LEVEL_LABELS: Record<string, string> = {
-  BEGINNER: 'Nybörjare',
-  INTERMEDIATE: 'Mellan',
-  ADVANCED: 'Avancerad',
-  ELITE: 'Elit',
+const LEVEL_LABELS: Record<string, LocalizedLabel> = {
+  BEGINNER: { en: 'Beginner', sv: 'Nybörjare' },
+  INTERMEDIATE: { en: 'Intermediate', sv: 'Mellan' },
+  ADVANCED: { en: 'Advanced', sv: 'Avancerad' },
+  ELITE: { en: 'Elite', sv: 'Elit' },
 };
 
 interface StrengthSessionLibraryProps {
@@ -111,19 +120,36 @@ interface StrengthSessionLibraryProps {
   businessId?: string;
 }
 
-const phaseLabels: Record<string, { label: string; color: string }> = {
-  ANATOMICAL_ADAPTATION: { label: 'Anatom. Anpassning', color: 'bg-blue-500' },
-  MAXIMUM_STRENGTH: { label: 'Maxstyrka', color: 'bg-red-500' },
-  POWER: { label: 'Power', color: 'bg-orange-500' },
-  MAINTENANCE: { label: 'Underhåll', color: 'bg-green-500' },
-  TAPER: { label: 'Taper', color: 'bg-purple-500' },
+const phaseLabels: Record<string, { label: LocalizedLabel; color: string }> = {
+  ANATOMICAL_ADAPTATION: { label: { en: 'Anatomical adaptation', sv: 'Anatom. Anpassning' }, color: 'bg-blue-500' },
+  MAXIMUM_STRENGTH: { label: { en: 'Maximum strength', sv: 'Maxstyrka' }, color: 'bg-red-500' },
+  POWER: { label: { en: 'Power', sv: 'Power' }, color: 'bg-orange-500' },
+  MAINTENANCE: { label: { en: 'Maintenance', sv: 'Underhåll' }, color: 'bg-green-500' },
+  TAPER: { label: { en: 'Taper', sv: 'Taper' }, color: 'bg-purple-500' },
 };
+
+function localizedValue(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
+function categoryLabel(category: string, locale: AppLocale) {
+  return CATEGORY_LABELS[category]?.label[locale] ?? category;
+}
+
+function levelLabel(level: string, locale: AppLocale) {
+  return LEVEL_LABELS[level]?.[locale] ?? level;
+}
+
+function phaseLabel(phase: string, locale: AppLocale) {
+  return phaseLabels[phase]?.label[locale] ?? phase;
+}
 
 export function StrengthSessionLibrary({
   onNewSession,
   onEditSession,
   businessId,
 }: StrengthSessionLibraryProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
   const pathname = usePathname();
@@ -190,7 +216,7 @@ export function StrengthSessionLibrary({
   }, [businessHeaders, search, phaseFilter, teamFilter, yearFilter]);
 
   useEffect(() => {
-    void fetchSessions();
+    void Promise.resolve().then(fetchSessions);
   }, [fetchSessions]);
 
   // Fetch system templates
@@ -215,7 +241,7 @@ export function StrengthSessionLibrary({
 
   useEffect(() => {
     if (activeTab === 'templates') {
-      void fetchTemplates();
+      void Promise.resolve().then(fetchTemplates);
     }
   }, [activeTab, fetchTemplates]);
 
@@ -234,15 +260,15 @@ export function StrengthSessionLibrary({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...businessHeaders },
         body: JSON.stringify({
-          name: template.nameSv,
-          description: template.descriptionSv,
+          name: localizedValue(locale, template.name, template.nameSv),
+          description: localizedValue(locale, template.description, template.descriptionSv),
           phase: template.phase,
           estimatedDuration: template.estimatedDuration,
           exercises: fullTemplate.exercises
             .filter((e: { section: string }) => e.section === 'MAIN')
             .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; tempo?: string; notes?: string }, idx: number) => ({
               exerciseId: `template-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-              exerciseName: e.exerciseNameSv,
+              exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
               order: idx,
               sets: e.sets,
               reps: parseInt(e.reps) || 10,
@@ -251,26 +277,26 @@ export function StrengthSessionLibrary({
               notes: e.notes,
             })),
           warmupData: template.includesWarmup ? {
-            notes: 'Uppvärmning från mall',
+            notes: copy(locale, 'Warm-up from template', 'Uppvärmning från mall'),
             duration: 8,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'WARMUP')
               .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; notes?: string }) => ({
                 exerciseId: `template-warmup-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-                exerciseName: e.exerciseNameSv,
+                exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 sets: e.sets,
                 reps: e.reps,
                 notes: e.notes,
               })),
           } : undefined,
           coreData: template.includesCore ? {
-            notes: 'Core-övningar från mall',
+            notes: copy(locale, 'Core exercises from template', 'Core-övningar från mall'),
             duration: 5,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'CORE')
               .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; notes?: string }) => ({
                 exerciseId: `template-core-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-                exerciseName: e.exerciseNameSv,
+                exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 sets: e.sets,
                 reps: e.reps,
                 restSeconds: e.restSeconds,
@@ -278,13 +304,13 @@ export function StrengthSessionLibrary({
               })),
           } : undefined,
           cooldownData: template.includesCooldown ? {
-            notes: 'Nedvarvning från mall',
+            notes: copy(locale, 'Cool-down from template', 'Nedvarvning från mall'),
             duration: 7,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'COOLDOWN')
               .map((e: { exerciseName: string; exerciseNameSv: string; notes?: string }) => ({
                 exerciseId: `template-cooldown-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
-                exerciseName: e.exerciseNameSv,
+                exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 duration: 30,
                 notes: e.notes,
               })),
@@ -294,8 +320,12 @@ export function StrengthSessionLibrary({
       });
 
       if (createResponse.ok) {
-        toast.success('Mall kopierad!', {
-          description: `"${template.nameSv}" har lagts till i dina pass.`,
+        toast.success(copy(locale, 'Template copied!', 'Mall kopierad!'), {
+          description: copy(
+            locale,
+            `"${template.name}" has been added to your sessions.`,
+            `"${template.nameSv}" har lagts till i dina pass.`
+          ),
         });
         setActiveTab('sessions');
         void fetchSessions();
@@ -304,7 +334,7 @@ export function StrengthSessionLibrary({
       }
     } catch (error) {
       console.error('Failed to copy template:', error);
-      toast.error('Kunde inte kopiera mallen');
+      toast.error(copy(locale, 'Could not copy the template', 'Kunde inte kopiera mallen'));
     } finally {
       setCopyingTemplate(null);
     }
@@ -356,16 +386,16 @@ export function StrengthSessionLibrary({
       });
 
       if (response.ok) {
-        toast.success('Pass borttaget', {
-          description: `"${deleteSession.name}" har tagits bort.`,
+        toast.success(copy(locale, 'Session deleted', 'Pass borttaget'), {
+          description: copy(locale, `"${deleteSession.name}" has been deleted.`, `"${deleteSession.name}" har tagits bort.`),
         });
         void fetchSessions();
       } else {
-        toast.error('Kunde inte ta bort passet');
+        toast.error(copy(locale, 'Could not delete the session', 'Kunde inte ta bort passet'));
       }
     } catch (error) {
       console.error('Failed to delete session:', error);
-      toast.error('Ett fel uppstod');
+      toast.error(copy(locale, 'Something went wrong', 'Ett fel uppstod'));
     } finally {
       setDeleting(false);
       setDeleteSession(null);
@@ -380,17 +410,17 @@ export function StrengthSessionLibrary({
           <TabsList>
             <TabsTrigger value="sessions" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
-              Mina Pass
+              {copy(locale, 'My sessions', 'Mina Pass')}
             </TabsTrigger>
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <Library className="h-4 w-4" />
-              Systemmallar
+              {copy(locale, 'System templates', 'Systemmallar')}
             </TabsTrigger>
           </TabsList>
           {onNewSession && activeTab === 'sessions' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
-              Nytt Pass
+              {copy(locale, 'New session', 'Nytt Pass')}
             </Button>
           )}
         </div>
@@ -401,7 +431,7 @@ export function StrengthSessionLibrary({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Sök pass..."
+                placeholder={copy(locale, 'Search sessions...', 'Sök pass...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -409,14 +439,14 @@ export function StrengthSessionLibrary({
             </div>
             <Select value={phaseFilter} onValueChange={setPhaseFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Alla faser" />
+                <SelectValue placeholder={copy(locale, 'All phases', 'Alla faser')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla faser</SelectItem>
-                <SelectItem value="ANATOMICAL_ADAPTATION">Anatomisk Anpassning</SelectItem>
-                <SelectItem value="MAXIMUM_STRENGTH">Maxstyrka</SelectItem>
+                <SelectItem value="all">{copy(locale, 'All phases', 'Alla faser')}</SelectItem>
+                <SelectItem value="ANATOMICAL_ADAPTATION">{copy(locale, 'Anatomical adaptation', 'Anatomisk Anpassning')}</SelectItem>
+                <SelectItem value="MAXIMUM_STRENGTH">{copy(locale, 'Maximum strength', 'Maxstyrka')}</SelectItem>
                 <SelectItem value="POWER">Power</SelectItem>
-                <SelectItem value="MAINTENANCE">Underhåll</SelectItem>
+                <SelectItem value="MAINTENANCE">{copy(locale, 'Maintenance', 'Underhåll')}</SelectItem>
                 <SelectItem value="TAPER">Taper</SelectItem>
               </SelectContent>
             </Select>
@@ -437,26 +467,28 @@ export function StrengthSessionLibrary({
       ) : sessions.length === 0 ? (
         <Card className="p-12 text-center" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <Dumbbell className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
-          <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Inga pass ännu</h3>
+          <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>
+            {copy(locale, 'No sessions yet', 'Inga pass ännu')}
+          </h3>
           <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
             {search || phaseFilter !== 'all' || teamFilter !== 'all' || yearFilter !== 'all'
-              ? 'Inga pass matchar din sökning.'
-              : 'Skapa ditt första styrkepass för att komma igång.'}
+              ? copy(locale, 'No sessions match your search.', 'Inga pass matchar din sökning.')
+              : copy(locale, 'Create your first strength session to get started.', 'Skapa ditt första styrkepass för att komma igång.')}
           </p>
           {onNewSession && !search && phaseFilter === 'all' && teamFilter === 'all' && yearFilter === 'all' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
-              Skapa Pass
+              {copy(locale, 'Create session', 'Skapa Pass')}
             </Button>
           )}
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {sessions.map((session) => {
-            const phaseInfo = phaseLabels[session.phase] || { label: session.phase, color: 'bg-gray-500' };
+            const phaseInfo = phaseLabels[session.phase] || { label: { en: session.phase, sv: session.phase }, color: 'bg-gray-500' };
             const exerciseCount = countStrengthSessionExercises(session);
             const visibleTags = visibleStrengthSessionTags(session.tags);
-            const teamName = session.teamId ? teamNames.get(session.teamId) ?? 'Lag' : null;
+            const teamName = session.teamId ? teamNames.get(session.teamId) ?? copy(locale, 'Team', 'Lag') : null;
 
             return (
               <Card
@@ -472,7 +504,7 @@ export function StrengthSessionLibrary({
                       <h3 className="font-medium truncate" style={{ color: theme.colors.textPrimary }}>{session.name}</h3>
                     </div>
                     <Badge className={`${phaseInfo.color} text-white text-xs`}>
-                      {phaseInfo.label}
+                      {phaseLabel(session.phase, locale)}
                     </Badge>
                   </div>
 
@@ -485,7 +517,7 @@ export function StrengthSessionLibrary({
                   <div className="flex items-center gap-4 text-sm" style={{ color: theme.colors.textMuted }}>
                     <span className="flex items-center gap-1">
                       <Dumbbell className="h-3.5 w-3.5" />
-                      {exerciseCount} övningar
+                      {exerciseCount} {copy(locale, 'exercises', 'övningar')}
                     </span>
                     {session.estimatedDuration && (
                       <span className="flex items-center gap-1">
@@ -532,7 +564,7 @@ export function StrengthSessionLibrary({
                     }}
                   >
                     <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
-                    Planera
+                    {copy(locale, 'Plan', 'Planera')}
                   </Button>
                 </CardContent>
               </Card>
@@ -548,7 +580,7 @@ export function StrengthSessionLibrary({
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Sök mallar..."
+                placeholder={copy(locale, 'Search templates...', 'Sök mallar...')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
@@ -556,12 +588,12 @@ export function StrengthSessionLibrary({
             </div>
             <Select value={categoryFilter} onValueChange={setCategoryFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Alla kategorier" />
+                <SelectValue placeholder={copy(locale, 'All categories', 'Alla kategorier')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alla kategorier</SelectItem>
-                {Object.entries(CATEGORY_LABELS).map(([key, { label }]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
+                <SelectItem value="all">{copy(locale, 'All categories', 'Alla kategorier')}</SelectItem>
+                {Object.entries(CATEGORY_LABELS).map(([key]) => (
+                  <SelectItem key={key} value={key}>{categoryLabel(key, locale)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -575,16 +607,18 @@ export function StrengthSessionLibrary({
           ) : templates.length === 0 ? (
             <Card className="p-12 text-center" style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
               <Library className="h-12 w-12 mx-auto mb-4" style={{ color: theme.colors.textMuted }} />
-              <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>Inga mallar hittades</h3>
+              <h3 className="text-lg font-medium mb-2" style={{ color: theme.colors.textPrimary }}>
+                {copy(locale, 'No templates found', 'Inga mallar hittades')}
+              </h3>
               <p className="text-sm mb-4" style={{ color: theme.colors.textMuted }}>
-                Justera din sökning eller välj en annan kategori.
+                {copy(locale, 'Adjust your search or choose another category.', 'Justera din sökning eller välj en annan kategori.')}
               </p>
             </Card>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {templates.map((template) => {
                 const categoryInfo = CATEGORY_LABELS[template.category] || {
-                  label: template.category || 'Okänd',
+                  label: { en: template.category || 'Unknown', sv: template.category || 'Okänd' },
                   icon: Dumbbell,
                   color: 'bg-gray-100 text-gray-800',
                 };
@@ -601,22 +635,22 @@ export function StrengthSessionLibrary({
                         <div className="flex items-center gap-2">
                           <CategoryIcon className="h-4 w-4" />
                           <h3 className="font-medium truncate" style={{ color: theme.colors.textPrimary }}>
-                            {template.nameSv}
+                            {localizedValue(locale, template.name, template.nameSv)}
                           </h3>
                         </div>
                         <Badge className={categoryInfo.color}>
-                          {categoryInfo.label}
+                          {categoryInfo.label[locale]}
                         </Badge>
                       </div>
 
                       <p className="text-sm line-clamp-2 mb-3" style={{ color: theme.colors.textMuted }}>
-                        {template.descriptionSv}
+                        {localizedValue(locale, template.description, template.descriptionSv)}
                       </p>
 
                       <div className="flex items-center gap-4 text-sm mb-3" style={{ color: theme.colors.textMuted }}>
                         <span className="flex items-center gap-1">
                           <Dumbbell className="h-3.5 w-3.5" />
-                          {template.exerciseCount} övningar
+                          {template.exerciseCount} {copy(locale, 'exercises', 'övningar')}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="h-3.5 w-3.5" />
@@ -626,12 +660,12 @@ export function StrengthSessionLibrary({
 
                       <div className="flex flex-wrap gap-1 mb-3">
                         <Badge variant="outline" className="text-xs">
-                          {LEVEL_LABELS[template.athleteLevel] || template.athleteLevel}
+                          {levelLabel(template.athleteLevel, locale)}
                         </Badge>
                         {template.includesWarmup && (
                           <Badge variant="outline" className="text-xs">
                             <Flame className="h-3 w-3 mr-1 text-yellow-500" />
-                            Uppvärmning
+                            {copy(locale, 'Warm-up', 'Uppvärmning')}
                           </Badge>
                         )}
                         {template.includesCore && (
@@ -643,7 +677,7 @@ export function StrengthSessionLibrary({
                         {template.includesCooldown && (
                           <Badge variant="outline" className="text-xs">
                             <Timer className="h-3 w-3 mr-1 text-green-500" />
-                            Nedvarvning
+                            {copy(locale, 'Cool-down', 'Nedvarvning')}
                           </Badge>
                         )}
                       </div>
@@ -657,12 +691,12 @@ export function StrengthSessionLibrary({
                         {copyingTemplate === template.id ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Kopierar...
+                            {copy(locale, 'Copying...', 'Kopierar...')}
                           </>
                         ) : (
                           <>
                             <Copy className="h-4 w-4 mr-2" />
-                            Kopiera till mina pass
+                            {copy(locale, 'Copy to my sessions', 'Kopiera till mina pass')}
                           </>
                         )}
                       </Button>
@@ -730,27 +764,29 @@ export function StrengthSessionLibrary({
       <AlertDialog open={!!deleteSession} onOpenChange={() => setDeleteSession(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Ta bort pass?</AlertDialogTitle>
+            <AlertDialogTitle>{copy(locale, 'Delete session?', 'Ta bort pass?')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Är du säker på att du vill ta bort &quot;{deleteSession?.name}&quot;?
+              {copy(locale, 'Are you sure you want to delete', 'Är du säker på att du vill ta bort')}{' '}
+              &quot;{deleteSession?.name}&quot;?
               {(deleteSession?._count?.assignments ?? 0) > 0 && (
                 <>
                   {' '}
-                  Det här tar även bort {deleteSession?._count?.assignments}{' '}
-                  schemalagda pass från atletens kalender.
+                  {copy(locale, 'This also removes', 'Det här tar även bort')}{' '}
+                  {deleteSession?._count?.assignments}{' '}
+                  {copy(locale, "scheduled sessions from the athlete's calendar.", 'schemalagda pass från atletens kalender.')}
                 </>
               )}
-              {' '}Detta kan inte ångras.
+              {' '}{copy(locale, 'This cannot be undone.', 'Detta kan inte ångras.')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Avbryt</AlertDialogCancel>
+            <AlertDialogCancel>{copy(locale, 'Cancel', 'Avbryt')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               disabled={deleting}
             >
-              {deleting ? 'Tar bort...' : 'Ta bort'}
+              {deleting ? copy(locale, 'Deleting...', 'Tar bort...') : copy(locale, 'Delete', 'Ta bort')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
