@@ -4,7 +4,7 @@
  * Quick Workout Dialog
  *
  * A lightweight dialog for creating simple workouts quickly.
- * Used when coach clicks "Snabbpass" in the day action menu.
+ * Used when coach clicks the quick-workout action in the day menu.
  */
 
 import { useState, useEffect, useCallback } from 'react'
@@ -149,12 +149,17 @@ export function QuickWorkoutDialog({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Kunde inte skapa passet')
+        throw new Error(
+          result.error || (appLocale === 'sv' ? 'Kunde inte skapa passet' : 'Could not create the workout')
+        )
       }
 
       toast({
-        title: 'Pass skapat',
-        description: `${name} har lagts till i kalendern`,
+        title: appLocale === 'sv' ? 'Pass skapat' : 'Workout created',
+        description:
+          appLocale === 'sv'
+            ? `${name} har lagts till i kalendern`
+            : `${name} has been added to the calendar`,
       })
 
       emitWorkoutLogged()
@@ -163,8 +168,13 @@ export function QuickWorkoutDialog({
     } catch (error) {
       console.error('Error creating workout:', error)
       toast({
-        title: 'Fel',
-        description: error instanceof Error ? error.message : 'Kunde inte skapa passet',
+        title: appLocale === 'sv' ? 'Fel' : 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : appLocale === 'sv'
+              ? 'Kunde inte skapa passet'
+              : 'Could not create the workout',
         variant: 'destructive',
       })
     } finally {
@@ -178,7 +188,7 @@ export function QuickWorkoutDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Skapa snabbpass</DialogTitle>
+          <DialogTitle>{appLocale === 'sv' ? 'Skapa snabbpass' : 'Create quick workout'}</DialogTitle>
           <DialogDescription className="capitalize">
             {formattedDate}
           </DialogDescription>

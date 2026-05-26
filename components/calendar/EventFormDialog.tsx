@@ -141,10 +141,10 @@ export function EventFormDialog({
     if (!title) {
       const config = EVENT_TYPE_CONFIG[type]
       if (config) {
-        setTitle(config.labelSv)
+        setTitle(appLocale === 'sv' ? config.labelSv : config.label)
       }
     }
-  }, [type, title])
+  }, [appLocale, type, title])
 
   // Auto-adjust training impact based on type
   useEffect(() => {
