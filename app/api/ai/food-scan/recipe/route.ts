@@ -39,8 +39,8 @@ const recipeSchema = z.object({
   ingredients: z
     .array(
       z.object({
-        name: z.string().describe('Ingrediensens svenska namn — så nära Livsmedelsverkets terminologi som möjligt.'),
-        grams: z.number().nonnegative().describe('Vikt i gram för hela receptet/satsen.'),
+        name: z.string().describe('Swedish ingredient lookup name, as close as possible to Livsmedelsverket food terminology.'),
+        grams: z.number().nonnegative().describe('Weight in grams for the full recipe or batch.'),
       })
     )
     .min(1),
@@ -51,6 +51,54 @@ type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function buildRecipePrompt(locale: AppLocale): string {
+  if (locale === 'sv') {
+    return `Du är en expert på näringslära. Bilden visar ett recept eller en ingredienslista -
+det kan vara ett receptkort, en ingrediensförteckning på en förpackning, en handskriven lista
+eller ett fotograferat recept. Din uppgift är att extrahera alla ingredienser med uppskattad
+vikt i gram för hela receptet/satsen.
+
+INSTRUKTIONER:
+1. Identifiera varje separat ingrediens och dess mängd. Ange svensk benämning i ingredients[].name som matchar
+   svenska livsmedelsdatabasens terminologi (t.ex. "havregryn", "vetemjöl", "kycklingfilé").
+2. Skriv title och notes på svenska.
+3. Konvertera alla mått till gram. Vanliga konverteringar: 1 dl mjöl ungefär 60 g, 1 dl vatten/mjölk = 100 g,
+   1 msk olja ungefär 14 g, 1 tsk salt ungefär 5 g, 1 ägg ungefär 55 g, 1 standardportion ris (torrt) ungefär 75 g.
+4. Om receptet anger att det räcker till flera portioner, dela INTE ingredienserna per portion.
+   Spara hela satsens ingrediensmängder så användaren senare kan logga hur mycket hen åt eller drack.
+5. Om receptet anger slutvolym eller slutvikt (t.ex. "ca 8 dl"), nämn det i notes men behåll ingrediensmängderna för hela satsen.
+6. Om antalet portioner inte framgår, gissa inte portioner. Arbeta med hela receptet.
+7. Ignorera kryddor i mycket små mängder (under 1 g) om de inte är betydande näringsämnen.
+
+VIKTIGT:
+- Returnera alltid minst en ingrediens.
+- Använd korrekta svenska termer i ingredients[].name - undvik engelska eller varumärken om generiska finns.
+- Var konservativ med portionsuppskattning - det är bättre att underskatta än överskatta.`
+  }
+
+  return `You are a nutrition expert. The image shows a recipe or ingredient list -
+it may be a recipe card, a package ingredient list, a handwritten list, or a photographed recipe.
+Your task is to extract every ingredient with an estimated weight in grams for the full recipe or batch.
+
+INSTRUCTIONS:
+1. Identify each separate ingredient and its quantity. For ingredients[].name, use a Swedish lookup term that matches
+   the Swedish food database as closely as possible (for example "havregryn", "vetemjöl", "kycklingfilé").
+   This field is used for database matching, so keep ingredients[].name in Swedish even when the app language is English.
+2. Write title and notes in English.
+3. Convert all measurements to grams. Common conversions: 1 dl flour is about 60 g, 1 dl water/milk = 100 g,
+   1 tbsp oil is about 14 g, 1 tsp salt is about 5 g, 1 egg is about 55 g, 1 standard dry rice serving is about 75 g.
+4. If the recipe says it serves multiple portions, do NOT divide ingredients per portion.
+   Save the full batch amounts so the user can later log how much they ate or drank.
+5. If the recipe gives final volume or final weight (for example "about 8 dl"), mention it in notes but keep ingredient amounts for the full batch.
+6. If the number of portions is not clear, do not guess portions. Work with the full recipe.
+7. Ignore spices in very small amounts (under 1 g) unless they are nutritionally meaningful.
+
+IMPORTANT:
+- Always return at least one ingredient.
+- Use correct Swedish terms in ingredients[].name; avoid English or brand names when a generic term exists.
+- Be conservative with portion estimates - underestimating is better than overestimating.`
 }
 
 export async function POST(request: NextRequest) {
@@ -135,26 +183,7 @@ export async function POST(request: NextRequest) {
 
     const google = createGoogleGenerativeAI({ apiKey: googleKey })
 
-    const prompt = `Du är en expert på näringslära. Bilden visar ett recept eller en ingredienslista —
-det kan vara ett receptkort, en ingrediensförteckning på en förpackning, en handskriven lista
-eller ett fotograferat recept. Din uppgift är att extrahera alla ingredienser med uppskattad
-vikt i gram för hela receptet/satsen.
-
-INSTRUKTIONER:
-1. Identifiera varje separat ingrediens och dess mängd. Ange svensk benämning som matchar
-   svenska livsmedelsdatabasens terminologi (t.ex. "havregryn", "vetemjöl", "kycklingfilé").
-2. Konvertera alla mått till gram. Vanliga konverteringar: 1 dl mjöl ≈ 60 g, 1 dl vatten/mjölk = 100 g,
-   1 msk olja ≈ 14 g, 1 tsk salt ≈ 5 g, 1 ägg ≈ 55 g, 1 standardportion ris (torrt) ≈ 75 g.
-3. Om receptet anger att det räcker till flera portioner, dela INTE ingredienserna per portion.
-   Spara hela satsens ingrediensmängder så användaren senare kan logga hur mycket hen åt eller drack.
-4. Om receptet anger slutvolym eller slutvikt (t.ex. "ca 8 dl"), nämn det i notes men behåll ingrediensmängderna för hela satsen.
-5. Om antalet portioner inte framgår, gissa inte portioner. Arbeta med hela receptet.
-6. Ignorera kryddor i mycket små mängder (under 1 g) om de inte är betydande näringsämnen.
-
-VIKTIGT:
-- Returnera alltid minst en ingrediens.
-- Använd korrekta svenska termer — undvik engelska eller varumärken om generiska finns.
-- Var konservativ med portionsuppskattning — det är bättre att underskatta än överskatta.`
+    const prompt = buildRecipePrompt(locale)
 
     const result = await withAiContext(
       { userId: user.id, clientId, category: 'food_scan_recipe' },
