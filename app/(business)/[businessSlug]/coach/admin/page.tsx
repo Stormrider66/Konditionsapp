@@ -5,10 +5,24 @@ import { BusinessAdminClient } from './BusinessAdminClient'
 
 interface BusinessAdminPageProps {
   params: Promise<{ businessSlug: string }>
+  searchParams: Promise<{ tab?: string }>
 }
 
-export default async function BusinessAdminPage({ params }: BusinessAdminPageProps) {
+const adminTabs = new Set([
+  'overview',
+  'locations',
+  'members',
+  'assignments',
+  'branding',
+  'ai-keys',
+  'api-keys',
+  'referrals',
+  'settings',
+])
+
+export default async function BusinessAdminPage({ params, searchParams }: BusinessAdminPageProps) {
   const { businessSlug } = await params
+  const { tab } = await searchParams
   const user = await requireCoach()
 
   // Validate business membership
@@ -31,6 +45,7 @@ export default async function BusinessAdminPage({ params }: BusinessAdminPagePro
       businessRole={membership.role as 'OWNER' | 'ADMIN'}
       businessSlug={businessSlug}
       isPlatformAdmin={!!user.adminRole}
+      initialTab={tab && adminTabs.has(tab) ? tab : undefined}
     />
   )
 }

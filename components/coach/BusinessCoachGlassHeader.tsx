@@ -231,7 +231,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
 
     // All "more" items
     const allMoreItems = {
-        staff: { href: `${basePath}/coach/staff`, label: tBusinessCoachHeader('nav.staff'), icon: Shield },
+        staff: { href: `${basePath}/coach/admin?tab=members`, label: tBusinessCoachHeader('nav.staff'), icon: Shield },
         social: { href: `${basePath}/coach/social`, label: tBusinessCoachHeader('nav.socialMedia'), icon: Share2 },
         competitions: { href: `${basePath}/coach/competitions`, label: tBusinessCoachHeader('nav.challenges'), icon: Trophy },
         community: { href: `${basePath}/coach/community`, label: tBusinessCoachHeader('nav.community'), icon: Megaphone },

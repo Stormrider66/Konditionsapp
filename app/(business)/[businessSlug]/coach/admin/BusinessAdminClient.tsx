@@ -33,6 +33,7 @@ interface BusinessAdminClientProps {
   businessRole: 'OWNER' | 'ADMIN'
   businessSlug: string
   isPlatformAdmin?: boolean
+  initialTab?: string
 }
 
 export function BusinessAdminClient({
@@ -40,8 +41,9 @@ export function BusinessAdminClient({
   businessName,
   businessRole,
   isPlatformAdmin,
+  initialTab,
 }: BusinessAdminClientProps) {
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(initialTab ?? 'overview')
 
   return (
     <BusinessAdminProvider businessId={businessId}>
