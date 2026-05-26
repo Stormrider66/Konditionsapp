@@ -582,7 +582,7 @@ export function PoseAnalyzer({
 
             // Calculate joint angles based on detected camera view
             const currentCameraAngle = detectedCameraAngle !== 'UNKNOWN' ? detectedCameraAngle : detectCameraAngle(landmarks)
-            const angles = calculateJointAngles(landmarks, videoType, currentCameraAngle)
+            const angles = calculateJointAngles(landmarks, videoType, currentCameraAngle, locale)
             setCurrentAngles(angles)
 
             // Update min/max angle ranges
@@ -954,10 +954,10 @@ export function PoseAnalyzer({
     })
 
     // Update current angles for this frame (using detected camera angle)
-    const angles = calculateJointAngles(landmarks, videoType, detectedCameraAngle)
+    const angles = calculateJointAngles(landmarks, videoType, detectedCameraAngle, locale)
     setCurrentAngles(angles)
     setCurrentFrameIndex(index)
-  }, [frames, calculateJointAngles, videoType, isEditMode, hoveredLandmark, draggingLandmark, detectedCameraAngle])
+  }, [frames, videoType, isEditMode, hoveredLandmark, draggingLandmark, detectedCameraAngle, locale])
 
   // Start review mode
   const startReviewMode = useCallback(() => {
@@ -1198,12 +1198,12 @@ export function PoseAnalyzer({
     if (draggingLandmark !== null) {
       // Recalculate angles after edit (using detected camera angle)
       if (currentFrameIndex < frames.length) {
-        const angles = calculateJointAngles(frames[currentFrameIndex].landmarks, videoType, detectedCameraAngle)
+        const angles = calculateJointAngles(frames[currentFrameIndex].landmarks, videoType, detectedCameraAngle, locale)
         setCurrentAngles(angles)
       }
       setDraggingLandmark(null)
     }
-  }, [draggingLandmark, currentFrameIndex, frames, calculateJointAngles, videoType, detectedCameraAngle])
+  }, [draggingLandmark, currentFrameIndex, frames, videoType, detectedCameraAngle, locale])
 
   // Handle mouse leave
   const handleCanvasMouseLeave = useCallback(() => {
