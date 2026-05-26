@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from '@/i18n/client'
 import {
   Table,
   TableBody,
@@ -93,7 +94,14 @@ interface TeamRosterTableProps {
   members: TeamRosterMember[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTableProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const router = useRouter()
   const { toast } = useToast()
   const [removingId, setRemovingId] = useState<string | null>(null)
@@ -163,7 +171,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
       else {
         const n = Number(value)
         if (!Number.isInteger(n) || n < 0 || n > 999) {
-          toast({ title: 'Ogiltigt tröjnummer (0-999)', variant: 'destructive' })
+          toast({ title: copy(locale, 'Invalid jersey number (0-999)', 'Ogiltigt tröjnummer (0-999)'), variant: 'destructive' })
           setSavingId(null)
           return false
         }
@@ -175,12 +183,12 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
       } else {
         const email = value.trim().toLowerCase()
         if (!email) {
-          toast({ title: 'Ange en e-postadress', variant: 'destructive' })
+          toast({ title: copy(locale, 'Enter an email address', 'Ange en e-postadress'), variant: 'destructive' })
           setSavingId(null)
           return false
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-          toast({ title: 'Ogiltig e-postadress', variant: 'destructive' })
+          toast({ title: copy(locale, 'Invalid email address', 'Ogiltig e-postadress'), variant: 'destructive' })
           setSavingId(null)
           return false
         }
@@ -195,14 +203,14 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
         body: JSON.stringify(payload),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Sparning misslyckades')
-      if (field === 'email') toast({ title: 'E-post sparad' })
+      if (!res.ok) throw new Error(data?.error || copy(locale, 'Save failed', 'Sparning misslyckades'))
+      if (field === 'email') toast({ title: copy(locale, 'Email saved', 'E-post sparad') })
       router.refresh()
       return true
     } catch (e) {
       toast({
-        title: 'Kunde inte spara',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: copy(locale, 'Could not save', 'Kunde inte spara'),
+        description: e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
       return false
@@ -212,7 +220,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
   }
 
   const removeMember = async (clientId: string, name: string) => {
-    if (!confirm(`Ta bort ${name} från laget? Spelaren finns kvar i atletregistret.`)) return
+    if (!confirm(copy(locale, `Remove ${name} from the team? The player remains in the athlete registry.`, `Ta bort ${name} från laget? Spelaren finns kvar i atletregistret.`))) return
     setRemovingId(clientId)
     try {
       const res = await fetch(`/api/coach/teams/${teamId}/members/${clientId}`, {
@@ -220,14 +228,14 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        throw new Error(data?.error || 'Kunde inte ta bort')
+        throw new Error(data?.error || copy(locale, 'Could not remove', 'Kunde inte ta bort'))
       }
-      toast({ title: `${name} borttagen från laget` })
+      toast({ title: copy(locale, `${name} removed from the team`, `${name} borttagen från laget`) })
       router.refresh()
     } catch (e) {
       toast({
-        title: 'Fel',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: copy(locale, 'Error', 'Fel'),
+        description: e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -238,7 +246,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
   if (sorted.length === 0) {
     return (
       <p className="text-sm text-muted-foreground text-center py-8">
-        Inga spelare i laget ännu — lägg till din första spelare.
+        {copy(locale, 'No players on the team yet - add your first player.', 'Inga spelare i laget ännu - lägg till din första spelare.')}
       </p>
     )
   }
@@ -249,42 +257,42 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
         <div className="flex flex-col gap-3 rounded-md border bg-slate-50 p-3 dark:border-white/10 dark:bg-slate-900/60 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-medium dark:text-slate-100">
-              {selectedMembers.length} spelare markerade
+              {selectedMembers.length} {copy(locale, 'players selected', 'spelare markerade')}
             </p>
             <p className="text-xs text-muted-foreground">
-              Tilldela befintliga pass direkt eller starta ett nytt pass med urvalet sparat som kontext.
+              {copy(locale, 'Assign existing sessions directly or start a new session with the selection saved as context.', 'Tilldela befintliga pass direkt eller starta ett nytt pass med urvalet sparat som kontext.')}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={() => setAssignOpen(true)}>
               <Tags className="mr-2 h-4 w-4" />
-              Tilldela befintligt
+              {copy(locale, 'Assign existing', 'Tilldela befintligt')}
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="outline">
                   <Plus className="mr-2 h-4 w-4" />
-                  Skapa pass
+                  {copy(locale, 'Create session', 'Skapa pass')}
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => pushCreateWorkout('strength')}>
                   <Dumbbell className="mr-2 h-4 w-4" />
-                  Styrkepass
+                  {copy(locale, 'Strength session', 'Styrkepass')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => pushCreateWorkout('cardio')}>
                   <Heart className="mr-2 h-4 w-4" />
-                  Konditionspass
+                  {copy(locale, 'Cardio session', 'Konditionspass')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => pushCreateWorkout('hybrid')}>
                   <Zap className="mr-2 h-4 w-4" />
-                  Hybridpass
+                  {copy(locale, 'Hybrid session', 'Hybridpass')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
             <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>
-              Avmarkera
+              {copy(locale, 'Clear selection', 'Avmarkera')}
             </Button>
           </div>
         </div>
@@ -297,16 +305,16 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
             <Checkbox
               checked={allVisibleSelected ? true : someVisibleSelected ? 'indeterminate' : false}
               onCheckedChange={toggleAllVisible}
-              aria-label="Markera alla spelare"
+              aria-label={copy(locale, 'Select all players', 'Markera alla spelare')}
             />
           </TableHead>
           <TableHead className="w-14"></TableHead>
           <TableHead className="w-20">#</TableHead>
-          <TableHead>Namn</TableHead>
+          <TableHead>{copy(locale, 'Name', 'Namn')}</TableHead>
           <TableHead className="w-40">Position</TableHead>
           <TableHead className="min-w-48">Status</TableHead>
-          <TableHead className="hidden md:table-cell">E-post</TableHead>
-          <TableHead className="w-32 text-right">Planera</TableHead>
+          <TableHead className="hidden md:table-cell">{copy(locale, 'Email', 'E-post')}</TableHead>
+          <TableHead className="w-32 text-right">{copy(locale, 'Plan', 'Planera')}</TableHead>
           <TableHead className="w-12"></TableHead>
         </TableRow>
       </TableHeader>
@@ -317,7 +325,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
               <Checkbox
                 checked={selectedIds.has(m.id)}
                 onCheckedChange={() => toggleMember(m.id)}
-                aria-label={`Markera ${m.name}`}
+                aria-label={copy(locale, `Select ${m.name}`, `Markera ${m.name}`)}
               />
             </TableCell>
             <TableCell>
@@ -361,8 +369,8 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => pushPlayerTab(m.id, 'calendar')}
-                  aria-label={`Öppna kalender för ${m.name}`}
-                  title="Öppna spelarkalender"
+                  aria-label={copy(locale, `Open calendar for ${m.name}`, `Öppna kalender för ${m.name}`)}
+                  title={copy(locale, 'Open player calendar', 'Öppna spelarkalender')}
                 >
                   <CalendarDays className="h-4 w-4" />
                 </Button>
@@ -377,8 +385,8 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      aria-label={m.hasAthleteAccount ? `Skicka invite till ${m.name}` : `Bjud in ${m.name}`}
-                      title={m.hasAthleteAccount ? 'Skicka invite' : 'Skapa atletkonto och invite'}
+                      aria-label={m.hasAthleteAccount ? copy(locale, `Send invite to ${m.name}`, `Skicka invite till ${m.name}`) : copy(locale, `Invite ${m.name}`, `Bjud in ${m.name}`)}
+                      title={m.hasAthleteAccount ? copy(locale, 'Send invite', 'Skicka invite') : copy(locale, 'Create athlete account and invite', 'Skapa atletkonto och invite')}
                     >
                       <MailPlus className="h-4 w-4" />
                     </Button>
@@ -389,8 +397,8 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                   size="icon"
                   className="h-8 w-8"
                   onClick={() => pushPlayerTab(m.id, 'programs')}
-                  aria-label={`Öppna program för ${m.name}`}
-                  title="Öppna spelarprogram"
+                  aria-label={copy(locale, `Open programs for ${m.name}`, `Öppna program för ${m.name}`)}
+                  title={copy(locale, 'Open player programs', 'Öppna spelarprogram')}
                 >
                   <ClipboardList className="h-4 w-4" />
                 </Button>
@@ -402,7 +410,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                 size="icon"
                 disabled={removingId === m.id}
                 onClick={() => removeMember(m.id, m.name)}
-                aria-label={`Ta bort ${m.name}`}
+                aria-label={copy(locale, `Remove ${m.name}`, `Ta bort ${m.name}`)}
               >
                 {removingId === m.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -433,6 +441,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
 }
 
 function RosterStatusBadges({ member }: { member: TeamRosterMember }) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const hasCareFlag = member.activeRestrictionCount > 0 || member.activeInjuryCount > 0
 
   return (
@@ -440,13 +449,13 @@ function RosterStatusBadges({ member }: { member: TeamRosterMember }) {
       {member.todayWorkoutCount > 0 && (
         <Badge variant="default" className="text-[10px]">
           <CalendarDays className="mr-1 h-3 w-3" />
-          {member.todayWorkoutCount} idag
+          {member.todayWorkoutCount} {copy(locale, 'today', 'idag')}
         </Badge>
       )}
       {member.todayWorkoutCount === 0 && member.upcomingWorkoutCount > 0 && (
         <Badge variant="secondary" className="text-[10px]">
           <CalendarDays className="mr-1 h-3 w-3" />
-          {member.upcomingWorkoutCount} kommande
+          {member.upcomingWorkoutCount} {copy(locale, 'upcoming', 'kommande')}
         </Badge>
       )}
       {member.activeRestrictionCount > 0 && (
@@ -458,7 +467,7 @@ function RosterStatusBadges({ member }: { member: TeamRosterMember }) {
       {member.activeRestrictionCount === 0 && member.activeInjuryCount > 0 && (
         <Badge variant="outline" className="border-amber-300 text-[10px] text-amber-700 dark:border-amber-800 dark:text-amber-300">
           <HeartPulse className="mr-1 h-3 w-3" />
-          {member.activeInjuryCount} skada
+          {member.activeInjuryCount} {copy(locale, 'injury', 'skada')}
         </Badge>
       )}
       {!hasCareFlag && member.todayWorkoutCount === 0 && member.upcomingWorkoutCount === 0 && (
@@ -476,10 +485,10 @@ interface WorkoutOption {
   description?: string | null
 }
 
-const workoutTypeLabels: Record<WorkoutType, string> = {
-  strength: 'Styrka',
-  cardio: 'Kondition',
-  hybrid: 'Hybrid',
+const workoutTypeLabels: Record<WorkoutType, Record<AppLocale, string>> = {
+  strength: { en: 'Strength', sv: 'Styrka' },
+  cardio: { en: 'Cardio', sv: 'Kondition' },
+  hybrid: { en: 'Hybrid', sv: 'Hybrid' },
 }
 
 const workoutTypeIcons: Record<WorkoutType, typeof Dumbbell> = {
@@ -509,6 +518,7 @@ function RosterWorkoutAssignmentDialog({
   selectedIds: string[]
   onAssigned: () => void
 }) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const { toast } = useToast()
   const [workoutType, setWorkoutType] = useState<WorkoutType>('strength')
   const [workouts, setWorkouts] = useState<WorkoutOption[]>([])
@@ -547,7 +557,7 @@ function RosterWorkoutAssignmentDialog({
         })
         if (!res.ok) {
           const data = await res.json().catch(() => ({}))
-          throw new Error(data?.error || 'Kunde inte hämta pass')
+          throw new Error(data?.error || copy(locale, 'Could not fetch sessions', 'Kunde inte hämta pass'))
         }
         const data = await res.json()
         const list = workoutType === 'hybrid' ? data.workouts : data.sessions
@@ -561,8 +571,8 @@ function RosterWorkoutAssignmentDialog({
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') return
         toast({
-          title: 'Kunde inte hämta pass',
-          description: error instanceof Error ? error.message : 'Okänt fel',
+          title: copy(locale, 'Could not fetch sessions', 'Kunde inte hämta pass'),
+          description: error instanceof Error ? error.message : copy(locale, 'Unknown error', 'Okänt fel'),
           variant: 'destructive',
         })
       } finally {
@@ -573,7 +583,7 @@ function RosterWorkoutAssignmentDialog({
     void loadWorkouts()
 
     return () => controller.abort()
-  }, [businessSlug, open, toast, workoutType])
+  }, [businessSlug, locale, open, toast, workoutType])
 
   const assignWorkout = async () => {
     if (!selectedWorkoutId || selectedMembers.length === 0) return
@@ -595,18 +605,22 @@ function RosterWorkoutAssignmentDialog({
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Tilldelning misslyckades')
+      if (!res.ok) throw new Error(data?.error || copy(locale, 'Assignment failed', 'Tilldelning misslyckades'))
 
       toast({
-        title: 'Pass tilldelat',
-        description: `${selectedWorkout?.name ?? 'Passet'} tilldelades till ${data.data?.assignmentCount ?? selectedMembers.length} spelare.`,
+        title: copy(locale, 'Session assigned', 'Pass tilldelat'),
+        description: copy(
+          locale,
+          `${selectedWorkout?.name ?? 'The session'} was assigned to ${data.data?.assignmentCount ?? selectedMembers.length} players.`,
+          `${selectedWorkout?.name ?? 'Passet'} tilldelades till ${data.data?.assignmentCount ?? selectedMembers.length} spelare.`
+        ),
       })
       onOpenChange(false)
       onAssigned()
     } catch (error) {
       toast({
-        title: 'Kunde inte tilldela pass',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: copy(locale, 'Could not assign session', 'Kunde inte tilldela pass'),
+        description: error instanceof Error ? error.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -620,16 +634,16 @@ function RosterWorkoutAssignmentDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Tilldela pass till urval
+            {copy(locale, 'Assign session to selection', 'Tilldela pass till urval')}
           </DialogTitle>
           <DialogDescription>
-            Välj ett befintligt pass och datum. Endast de markerade spelarna får passet.
+            {copy(locale, 'Choose an existing session and date. Only selected players receive it.', 'Välj ett befintligt pass och datum. Endast de markerade spelarna får passet.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="grid gap-2">
-            <Label>Passkategori</Label>
+            <Label>{copy(locale, 'Session category', 'Passkategori')}</Label>
             <div className="grid grid-cols-3 gap-2">
               {(Object.keys(workoutTypeLabels) as WorkoutType[]).map((type) => {
                 const Icon = workoutTypeIcons[type]
@@ -644,7 +658,7 @@ function RosterWorkoutAssignmentDialog({
                     }}
                   >
                     <Icon className="mr-2 h-4 w-4" />
-                    {workoutTypeLabels[type]}
+                    {workoutTypeLabels[type][locale]}
                   </Button>
                 )
               })}
@@ -652,7 +666,7 @@ function RosterWorkoutAssignmentDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="workout-select">Pass</Label>
+            <Label htmlFor="workout-select">{copy(locale, 'Session', 'Pass')}</Label>
             <select
               id="workout-select"
               value={selectedWorkoutId}
@@ -660,7 +674,7 @@ function RosterWorkoutAssignmentDialog({
               disabled={loadingWorkouts}
               className="h-10 rounded-md border border-input bg-background px-3 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <option value="">{loadingWorkouts ? 'Laddar pass...' : 'Välj pass...'}</option>
+              <option value="">{loadingWorkouts ? copy(locale, 'Loading sessions...', 'Laddar pass...') : copy(locale, 'Select session...', 'Välj pass...')}</option>
               {workouts.map((workout) => (
                 <option key={workout.id} value={workout.id}>
                   {workout.name}
@@ -670,7 +684,7 @@ function RosterWorkoutAssignmentDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="assigned-date">Datum</Label>
+            <Label htmlFor="assigned-date">{copy(locale, 'Date', 'Datum')}</Label>
             <Input
               id="assigned-date"
               type="date"
@@ -680,18 +694,18 @@ function RosterWorkoutAssignmentDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="assignment-notes">Anteckningar</Label>
+            <Label htmlFor="assignment-notes">{copy(locale, 'Notes', 'Anteckningar')}</Label>
             <Textarea
               id="assignment-notes"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Instruktioner till spelarna..."
+              placeholder={copy(locale, 'Instructions for the players...', 'Instruktioner till spelarna...')}
               rows={2}
             />
           </div>
 
           <div className="rounded-md border bg-muted/40 p-3">
-            <p className="text-sm font-medium">{selectedMembers.length} spelare får passet</p>
+            <p className="text-sm font-medium">{selectedMembers.length} {copy(locale, 'players receive the session', 'spelare får passet')}</p>
             <p className="mt-1 text-xs text-muted-foreground">
               {selectedMembers.slice(0, 5).map((member) => member.name).join(', ')}
               {selectedMembers.length > 5 ? ` +${selectedMembers.length - 5}` : ''}
@@ -702,15 +716,15 @@ function RosterWorkoutAssignmentDialog({
             <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
               <p className="flex items-center gap-2 text-sm font-medium">
                 <ShieldAlert className="h-4 w-4" />
-                Kontrollera restriktioner innan tilldelning
+                {copy(locale, 'Check restrictions before assignment', 'Kontrollera restriktioner innan tilldelning')}
               </p>
               <div className="mt-2 space-y-1 text-xs">
                 {careFlags.slice(0, 4).map((member) => (
                   <p key={member.id}>
-                    {member.name}: {formatCareFlag(member)}
+                    {member.name}: {formatCareFlag(member, locale)}
                   </p>
                 ))}
-                {careFlags.length > 4 && <p>+{careFlags.length - 4} fler spelare</p>}
+                {careFlags.length > 4 && <p>+{careFlags.length - 4} {copy(locale, 'more players', 'fler spelare')}</p>}
               </div>
             </div>
           )}
@@ -718,7 +732,7 @@ function RosterWorkoutAssignmentDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
+            {copy(locale, 'Cancel', 'Avbryt')}
           </Button>
           <Button
             onClick={assignWorkout}
@@ -729,7 +743,7 @@ function RosterWorkoutAssignmentDialog({
             ) : (
               <Tags className="mr-2 h-4 w-4" />
             )}
-            Tilldela ({selectedMembers.length})
+            {copy(locale, 'Assign', 'Tilldela')} ({selectedMembers.length})
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -737,13 +751,17 @@ function RosterWorkoutAssignmentDialog({
   )
 }
 
-function formatCareFlag(member: TeamRosterMember) {
+function formatCareFlag(member: TeamRosterMember, locale: AppLocale) {
   if (member.restrictionSummaries.length > 0) {
     const first = member.restrictionSummaries[0]
     const bodyParts = first.bodyParts.length > 0 ? `, ${first.bodyParts.join('/')}` : ''
     return `${first.type.replace(/_/g, ' ')} (${first.severity.toLowerCase()}${bodyParts})`
   }
-  return `${member.activeInjuryCount} aktiv ${member.activeInjuryCount === 1 ? 'skada' : 'skador'}`
+  return copy(
+    locale,
+    `${member.activeInjuryCount} active ${member.activeInjuryCount === 1 ? 'injury' : 'injuries'}`,
+    `${member.activeInjuryCount} aktiv ${member.activeInjuryCount === 1 ? 'skada' : 'skador'}`
+  )
 }
 
 function PlayerAvatarCell({
@@ -757,6 +775,7 @@ function PlayerAvatarCell({
   name: string
   photoUrl: string | null
 }) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const router = useRouter()
   const { toast } = useToast()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -764,7 +783,11 @@ function PlayerAvatarCell({
 
   const upload = async (file: File) => {
     if (!file.type.startsWith('image/')) {
-      toast({ title: 'Ogiltigt format', description: 'Välj en bild (JPG/PNG/WebP/HEIC)', variant: 'destructive' })
+      toast({
+        title: copy(locale, 'Invalid format', 'Ogiltigt format'),
+        description: copy(locale, 'Choose an image (JPG/PNG/WebP/HEIC)', 'Välj en bild (JPG/PNG/WebP/HEIC)'),
+        variant: 'destructive',
+      })
       return
     }
     setUploading(true)
@@ -776,12 +799,12 @@ function PlayerAvatarCell({
         { method: 'POST', body: form }
       )
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Uppladdning misslyckades')
+      if (!res.ok) throw new Error(data?.error || copy(locale, 'Upload failed', 'Uppladdning misslyckades'))
       router.refresh()
     } catch (e) {
       toast({
-        title: 'Fel',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: copy(locale, 'Error', 'Fel'),
+        description: e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -791,19 +814,19 @@ function PlayerAvatarCell({
   }
 
   const remove = async () => {
-    if (!confirm(`Ta bort foto för ${name}?`)) return
+    if (!confirm(copy(locale, `Remove photo for ${name}?`, `Ta bort foto för ${name}?`))) return
     setUploading(true)
     try {
       const res = await fetch(
         `/api/coach/teams/${teamId}/members/${clientId}/photo`,
         { method: 'DELETE' }
       )
-      if (!res.ok) throw new Error('Kunde inte ta bort')
+      if (!res.ok) throw new Error(copy(locale, 'Could not remove', 'Kunde inte ta bort'))
       router.refresh()
     } catch (e) {
       toast({
-        title: 'Fel',
-        description: e instanceof Error ? e.message : 'Okänt fel',
+        title: copy(locale, 'Error', 'Fel'),
+        description: e instanceof Error ? e.message : copy(locale, 'Unknown error', 'Okänt fel'),
         variant: 'destructive',
       })
     } finally {
@@ -828,7 +851,7 @@ function PlayerAvatarCell({
         onClick={() => fileInputRef.current?.click()}
         disabled={uploading}
         className="h-10 w-10 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-800 flex items-center justify-center hover:ring-2 hover:ring-blue-500 focus:ring-2 focus:ring-blue-500 transition"
-        aria-label={`Ladda upp foto för ${name}`}
+        aria-label={copy(locale, `Upload photo for ${name}`, `Ladda upp foto för ${name}`)}
       >
         {uploading ? (
           <Loader2 className="h-4 w-4 animate-spin text-slate-500" />
@@ -848,7 +871,7 @@ function PlayerAvatarCell({
         <button
           type="button"
           onClick={remove}
-          aria-label={`Ta bort foto för ${name}`}
+          aria-label={copy(locale, `Remove photo for ${name}`, `Ta bort foto för ${name}`)}
           className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-slate-700 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition"
         >
           <X className="h-3 w-3" />
@@ -935,6 +958,7 @@ function RosterEmailCell({
   saving: boolean
   onSave: (v: string) => Promise<boolean>
 }) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const inputRef = useRef<HTMLInputElement>(null)
   const [editing, setEditing] = useState(false)
   const [buffer, setBuffer] = useState('')
@@ -963,7 +987,7 @@ function RosterEmailCell({
         }}
       >
         <MailPlus className="mr-1.5 h-3.5 w-3.5" />
-        Lägg till
+        {copy(locale, 'Add', 'Lägg till')}
       </Button>
     )
   }
@@ -1004,7 +1028,7 @@ function RosterEmailCell({
         className="h-8 w-8"
         disabled={saving || !buffer.trim()}
         onClick={() => void save()}
-        aria-label="Spara e-postadress"
+        aria-label={copy(locale, 'Save email address', 'Spara e-postadress')}
       >
         {saving ? (
           <Loader2 className="h-4 w-4 animate-spin" />
@@ -1022,7 +1046,7 @@ function RosterEmailCell({
           setEditing(false)
           setBuffer('')
         }}
-        aria-label="Avbryt e-post"
+        aria-label={copy(locale, 'Cancel email edit', 'Avbryt e-post')}
       >
         <X className="h-4 w-4" />
       </Button>
