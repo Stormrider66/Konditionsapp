@@ -47,6 +47,30 @@ import {
   getDuringWorkoutFuel,
 } from '../constants/food-suggestions'
 
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale?: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function getIntensityLabel(intensity: WorkoutIntensity, locale: AppLocale): string {
+  if (locale === 'sv') return getIntensityLabelSv(intensity)
+
+  const labels: Record<WorkoutIntensity, string> = {
+    RECOVERY: 'recovery',
+    EASY: 'easy',
+    MODERATE: 'moderate',
+    THRESHOLD: 'threshold',
+    INTERVAL: 'interval',
+    MAX: 'maximal',
+  }
+  return labels[intensity] ?? intensity.toLowerCase()
+}
+
 // ==========================================
 // MAIN GUIDANCE GENERATOR
 // ==========================================
@@ -65,6 +89,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     currentTime,
     bodyComposition,
   } = input
+  const locale = getAppLocale(input.locale)
 
   const weightKg = client.weightKg
   const completedTodaysWorkouts = todaysWorkouts.filter((workout) => workout.status === 'COMPLETED')
@@ -98,21 +123,24 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     preferences ?? undefined,
     weightKg,
     currentTime,
-    goalType
+    goalType,
+    locale
   )
 
   const duringWorkoutGuidance = generateDuringWorkoutGuidanceList(
     todaysWorkouts,
     preferences ?? undefined,
     weightKg,
-    goalType
+    goalType,
+    locale
   )
 
   const postWorkoutGuidance = generatePostWorkoutGuidanceList(
     completedTodaysWorkouts,
     preferences ?? undefined,
     weightKg,
-    goalType
+    goalType,
+    locale
   )
 
   // Generate tips
@@ -122,7 +150,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     isRestDay,
     isDoubleDay,
     preferences ?? undefined,
-    weightKg
+    weightKg,
+    locale
   )
 
   // Generate meal suggestions (optional)
@@ -131,7 +160,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
     targets,
     preferences ?? undefined,
     isRestDay,
-    goalType
+    goalType,
+    locale
   )
 
   return {
@@ -620,7 +650,8 @@ function generatePreWorkoutGuidanceList(
   preferences: import('../types').DietaryPreferencesInput | undefined,
   weightKg: number,
   currentTime: Date,
-  goalType?: NutritionGoalType
+  goalType: NutritionGoalType | undefined,
+  locale: AppLocale
 ): NutritionGuidance[] {
   return workouts
     .filter((w) => {
@@ -647,25 +678,28 @@ function generatePreWorkoutGuidanceList(
       // Determine timing label
       let timingLabel: string
       if (hoursUntil >= 4) {
-        timingLabel = '3-4 timmar före passet'
+        timingLabel = text(locale, '3-4 hours before workout', '3-4 timmar före passet')
       } else if (hoursUntil >= 3) {
-        timingLabel = '3 timmar före passet'
+        timingLabel = text(locale, '3 hours before workout', '3 timmar före passet')
       } else if (hoursUntil >= 2) {
-        timingLabel = '2 timmar före passet'
+        timingLabel = text(locale, '2 hours before workout', '2 timmar före passet')
       } else if (hoursUntil >= 1) {
-        timingLabel = '1 timme före passet'
+        timingLabel = text(locale, '1 hour before workout', '1 timme före passet')
       } else {
-        timingLabel = 'Strax före passet'
+        timingLabel = text(locale, 'Right before workout', 'Strax före passet')
       }
 
       return {
         timing: hoursUntil >= 3 ? 'PRE_WORKOUT_3H' : hoursUntil >= 2 ? 'PRE_WORKOUT_2H' : 'PRE_WORKOUT_1H',
         timingLabel,
-        recommendation: `${rule.descriptionSv}. Ät ca ${carbsG}g kolhydrater${proteinG > 0 ? ` och ${proteinG}g protein` : ''} före ditt ${getIntensityLabelSv(workout.intensity)} pass (${workout.name}).`,
+        recommendation:
+          locale === 'sv'
+            ? `${rule.descriptionSv}. Ät ca ${carbsG}g kolhydrater${proteinG > 0 ? ` och ${proteinG}g protein` : ''} före ditt ${getIntensityLabel(workout.intensity, locale)} pass (${workout.name}).`
+            : `${rule.description}. Eat about ${carbsG}g carbohydrates${proteinG > 0 ? ` and ${proteinG}g protein` : ''} before your ${getIntensityLabel(workout.intensity, locale)} workout (${workout.name}).`,
         carbsTargetG: carbsG,
         proteinTargetG: proteinG > 0 ? proteinG : undefined,
         foodSuggestions,
-        reasoning: rule.description,
+        reasoning: locale === 'sv' ? rule.descriptionSv : rule.description,
       } as NutritionGuidance
     })
 }
@@ -674,7 +708,8 @@ function generateDuringWorkoutGuidanceList(
   workouts: WorkoutContext[],
   preferences: import('../types').DietaryPreferencesInput | undefined,
   weightKg: number,
-  goalType?: NutritionGoalType
+  goalType: NutritionGoalType | undefined,
+  locale: AppLocale
 ): NutritionGuidance[] {
   return workouts
     .filter((w) => w.status !== 'COMPLETED' && w.duration && w.duration >= 60)
@@ -688,21 +723,38 @@ function generateDuringWorkoutGuidanceList(
 
       let recommendation: string
       if (needsMultipleTransportable) {
-        recommendation = `Under ditt ${workout.duration} min pass: ${carbsPerHour}g kolhydrater/timme. Viktigt: Använd glukos + fruktos (1:0.8) för bästa upptag vid dessa mängder.`
+        recommendation = text(
+          locale,
+          `During your ${workout.duration} min workout: ${carbsPerHour}g carbohydrates/hour. Important: use glucose + fructose (1:0.8) for best absorption at these amounts.`,
+          `Under ditt ${workout.duration} min pass: ${carbsPerHour}g kolhydrater/timme. Viktigt: Använd glukos + fruktos (1:0.8) för bästa upptag vid dessa mängder.`
+        )
       } else {
-        recommendation = `Under ditt ${workout.duration} min pass: ${carbsPerHour}g kolhydrater/timme. Enkla kolhydratkällor fungerar bra.`
+        recommendation = text(
+          locale,
+          `During your ${workout.duration} min workout: ${carbsPerHour}g carbohydrates/hour. Simple carbohydrate sources work well.`,
+          `Under ditt ${workout.duration} min pass: ${carbsPerHour}g kolhydrater/timme. Enkla kolhydratkällor fungerar bra.`
+        )
       }
 
       return {
         timing: 'DURING_WORKOUT',
-        timingLabel: `Under ${workout.name}`,
+        timingLabel: text(locale, `During ${workout.name}`, `Under ${workout.name}`),
         recommendation,
         carbsTargetG: Math.round(carbsPerHour * (workout.duration! / 60)),
         hydrationMl,
         foodSuggestions,
-        reasoning: needsMultipleTransportable
-          ? 'Sessions >2.5h require multiple transportable carbohydrates (glucose:fructose) to exceed 60g/h absorption limit.'
-          : 'Sessions 60-150 min can use single carbohydrate sources effectively.',
+        reasoning:
+          needsMultipleTransportable
+            ? text(
+                locale,
+                'Sessions >2.5h require multiple transportable carbohydrates (glucose:fructose) to exceed the 60g/h absorption limit.',
+                'Pass över 2,5 timmar kräver flera transporterbara kolhydrater (glukos:fruktos) för att komma över upptagsgränsen på 60g/h.'
+              )
+            : text(
+                locale,
+                'Sessions 60-150 min can use single carbohydrate sources effectively.',
+                'Pass på 60-150 min kan använda enkla kolhydratkällor effektivt.'
+              ),
       } as NutritionGuidance
     })
 }
@@ -711,7 +763,8 @@ function generatePostWorkoutGuidanceList(
   workouts: WorkoutContext[],
   preferences: import('../types').DietaryPreferencesInput | undefined,
   weightKg: number,
-  goalType?: NutritionGoalType
+  goalType: NutritionGoalType | undefined,
+  locale: AppLocale
 ): NutritionGuidance[] {
   return workouts.map((workout) => {
     const { carbsG, proteinG, windowMinutes, rule } = calculatePostWorkoutNutrition(
@@ -726,17 +779,22 @@ function generatePostWorkoutGuidanceList(
 
     const windowLabel =
       windowMinutes >= 60
-        ? `${Math.round(windowMinutes / 60)} timme${windowMinutes >= 120 ? 'r' : ''}`
-        : `${windowMinutes} minuter`
+        ? locale === 'sv'
+          ? `${Math.round(windowMinutes / 60)} timme${windowMinutes >= 120 ? 'r' : ''}`
+          : `${Math.round(windowMinutes / 60)} hour${windowMinutes >= 120 ? 's' : ''}`
+        : text(locale, `${windowMinutes} minutes`, `${windowMinutes} minuter`)
 
     return {
       timing: windowMinutes <= 30 ? 'POST_WORKOUT_30M' : 'POST_WORKOUT_2H',
-      timingLabel: `Inom ${windowLabel} efter ${workout.name}`,
-      recommendation: `${rule.descriptionSv}. Sikta på ${carbsG}g kolhydrater och ${proteinG}g protein (med 2-3g leucin).`,
+      timingLabel: text(locale, `Within ${windowLabel} after ${workout.name}`, `Inom ${windowLabel} efter ${workout.name}`),
+      recommendation:
+        locale === 'sv'
+          ? `${rule.descriptionSv}. Sikta på ${carbsG}g kolhydrater och ${proteinG}g protein (med 2-3g leucin).`
+          : `${rule.description}. Aim for ${carbsG}g carbohydrates and ${proteinG}g protein (with 2-3g leucine).`,
       carbsTargetG: carbsG,
       proteinTargetG: proteinG,
       foodSuggestions,
-      reasoning: rule.description,
+      reasoning: locale === 'sv' ? rule.descriptionSv : rule.description,
     } as NutritionGuidance
   })
 }
@@ -751,17 +809,22 @@ function generateDailyTips(
   isRestDay: boolean,
   isDoubleDay: boolean,
   preferences: import('../types').DietaryPreferencesInput | undefined,
-  weightKg: number
+  weightKg: number,
+  locale: AppLocale
 ): NutritionTip[] {
   const tips: NutritionTip[] = []
+  void preferences
 
   // Double day warning
   if (isDoubleDay) {
     tips.push({
       type: 'GENERAL',
-      title: 'Dubbeldag',
-      message:
-        'Du har två pass idag. Fokusera på snabb återhämtning mellan passen: 1.0-1.2 g/kg kolhydrater per timme de första 4 timmarna efter första passet. Välj snabba kolhydrater (vitt ris, potatis).',
+      title: text(locale, 'Double day', 'Dubbeldag'),
+      message: text(
+        locale,
+        'You have two workouts today. Focus on fast recovery between sessions: 1.0-1.2 g/kg carbohydrates per hour for the first 4 hours after the first workout. Choose fast carbohydrates such as white rice or potatoes.',
+        'Du har två pass idag. Fokusera på snabb återhämtning mellan passen: 1.0-1.2 g/kg kolhydrater per timme de första 4 timmarna efter första passet. Välj snabba kolhydrater (vitt ris, potatis).'
+      ),
       priority: 'HIGH',
     })
   }
@@ -771,12 +834,16 @@ function generateDailyTips(
   if (longSession) {
     tips.push({
       type: 'PRE_WORKOUT',
-      title: 'Långt pass idag',
-      message: `Ditt ${longSession.duration} min pass kräver planerad energi under passet. Förbered gel, sportdryck eller annan lättsmält energi. Testa ingenting nytt på tävling!`,
+      title: text(locale, 'Long workout today', 'Långt pass idag'),
+      message: text(
+        locale,
+        `Your ${longSession.duration} min workout needs planned fueling during the session. Prepare gels, sports drink, or another easy-to-digest energy source. Do not test anything new on race day!`,
+        `Ditt ${longSession.duration} min pass kräver planerad energi under passet. Förbered gel, sportdryck eller annan lättsmält energi. Testa ingenting nytt på tävling!`
+      ),
       priority: 'MEDIUM',
       workoutContext: {
         name: longSession.name,
-        intensity: getIntensityLabelSv(longSession.intensity),
+        intensity: getIntensityLabel(longSession.intensity, locale),
       },
     })
   }
@@ -788,12 +855,16 @@ function generateDailyTips(
   if (hardTomorrow && !isRestDay) {
     tips.push({
       type: 'PRE_WORKOUT',
-      title: 'Hårt pass imorgon',
-      message: `Imorgon väntar ${getIntensityLabelSv(hardTomorrow.intensity)} pass (${hardTomorrow.name}). Se till att fylla på glykogenlagren ikväll med kolhydratrik middag.`,
+      title: text(locale, 'Hard workout tomorrow', 'Hårt pass imorgon'),
+      message: text(
+        locale,
+        `Tomorrow has a ${getIntensityLabel(hardTomorrow.intensity, locale)} workout (${hardTomorrow.name}). Make sure to top up glycogen tonight with a carbohydrate-rich dinner.`,
+        `Imorgon väntar ${getIntensityLabel(hardTomorrow.intensity, locale)} pass (${hardTomorrow.name}). Se till att fylla på glykogenlagren ikväll med kolhydratrik middag.`
+      ),
       priority: 'MEDIUM',
       workoutContext: {
         name: hardTomorrow.name,
-        intensity: getIntensityLabelSv(hardTomorrow.intensity),
+        intensity: getIntensityLabel(hardTomorrow.intensity, locale),
       },
     })
   }
@@ -802,9 +873,12 @@ function generateDailyTips(
   if (isRestDay) {
     tips.push({
       type: 'RECOVERY_DAY',
-      title: 'Vilodag - fiberrik mat OK',
-      message:
-        'Vilodagar är perfekta för fiberrika livsmedel (grönsaker, baljväxter, fullkorn) som kan vara obekväma före hårda pass. Fyll på med mikronäringsämnen!',
+      title: text(locale, 'Rest day - high-fiber foods are fine', 'Vilodag - fiberrik mat OK'),
+      message: text(
+        locale,
+        'Rest days are perfect for fiber-rich foods (vegetables, legumes, whole grains) that can be uncomfortable before hard sessions. Top up on micronutrients!',
+        'Vilodagar är perfekta för fiberrika livsmedel (grönsaker, baljväxter, fullkorn) som kan vara obekväma före hårda pass. Fyll på med mikronäringsämnen!'
+      ),
       priority: 'LOW',
     })
   }
@@ -812,8 +886,11 @@ function generateDailyTips(
   // Hydration reminder
   tips.push({
     type: 'HYDRATION',
-    title: 'Vätska',
-    message: `Sikta på minst ${((weightKg * 28) / 1000).toFixed(1)} liter dricksvatten idag (exklusive vatten i mat)${!isRestDay ? ', plus 400-600ml extra per träningstimme' : ''}.`,
+    title: text(locale, 'Hydration', 'Vätska'),
+    message:
+      locale === 'sv'
+        ? `Sikta på minst ${((weightKg * 28) / 1000).toFixed(1)} liter dricksvatten idag (exklusive vatten i mat)${!isRestDay ? ', plus 400-600ml extra per träningstimme' : ''}.`
+        : `Aim for at least ${((weightKg * 28) / 1000).toFixed(1)} liters of drinking water today (excluding water in food)${!isRestDay ? ', plus 400-600ml extra per training hour' : ''}.`,
     priority: 'LOW',
   })
 
@@ -829,47 +906,51 @@ function generateMealStructure(
   targets: DailyMacroTargets,
   preferences: import('../types').DietaryPreferencesInput | undefined,
   isRestDay: boolean,
-  goalType?: NutritionGoalType
+  goalType: NutritionGoalType | undefined,
+  locale: AppLocale
 ): DailyNutritionGuidance['mealSuggestions'] {
+  void targets
+  void preferences
+
   // Simple structure suggestions
   if (isRestDay) {
     if (goalType === 'WEIGHT_LOSS') {
       return {
-        breakfast: 'Ägg med grönsaker (skippa brödet eller välj 1 skiva)',
-        morningSnack: 'Kvarg med bär',
-        lunch: 'Sallad med protein (kyckling/lax/tofu) och grönsaker',
-        afternoonSnack: 'Cottage cheese eller proteinshake',
-        dinner: 'Kyckling eller fisk med grönsaker',
-        eveningSnack: 'Kvarg med kanel (valfritt)',
+        breakfast: text(locale, 'Eggs with vegetables (skip bread or choose 1 slice)', 'Ägg med grönsaker (skippa brödet eller välj 1 skiva)'),
+        morningSnack: text(locale, 'Quark with berries', 'Kvarg med bär'),
+        lunch: text(locale, 'Salad with protein (chicken/salmon/tofu) and vegetables', 'Sallad med protein (kyckling/lax/tofu) och grönsaker'),
+        afternoonSnack: text(locale, 'Cottage cheese or protein shake', 'Cottage cheese eller proteinshake'),
+        dinner: text(locale, 'Chicken or fish with vegetables', 'Kyckling eller fisk med grönsaker'),
+        eveningSnack: text(locale, 'Quark with cinnamon (optional)', 'Kvarg med kanel (valfritt)'),
       }
     }
     if (goalType === 'WEIGHT_GAIN') {
       return {
-        breakfast: 'Havregrynsgröt med banan, nötter och honung',
-        morningSnack: 'Smoothie med proteinpulver och frukt',
-        lunch: 'Kyckling/lax med ris och grönsaker, extra portion',
-        afternoonSnack: 'Smörgås med ost och skinka',
-        dinner: 'Lax med potatis, grönsaker och olivolja',
-        eveningSnack: 'Kvarg med müsli och bär',
+        breakfast: text(locale, 'Oatmeal with banana, nuts, and honey', 'Havregrynsgröt med banan, nötter och honung'),
+        morningSnack: text(locale, 'Smoothie with protein powder and fruit', 'Smoothie med proteinpulver och frukt'),
+        lunch: text(locale, 'Chicken/salmon with rice and vegetables, extra portion', 'Kyckling/lax med ris och grönsaker, extra portion'),
+        afternoonSnack: text(locale, 'Sandwich with cheese and ham', 'Smörgås med ost och skinka'),
+        dinner: text(locale, 'Salmon with potatoes, vegetables, and olive oil', 'Lax med potatis, grönsaker och olivolja'),
+        eveningSnack: text(locale, 'Quark with muesli and berries', 'Kvarg med müsli och bär'),
       }
     }
     if (goalType === 'BODY_RECOMP') {
       return {
-        breakfast: 'Ägg med fullkornsbröd och grönsaker',
-        morningSnack: 'Kvarg med bär',
-        lunch: 'Sallad med dubbel protein (kyckling/lax/tofu) och baljväxter',
-        afternoonSnack: 'Cottage cheese eller proteinshake',
-        dinner: 'Kyckling eller fisk med sötpotatis och grönsaker',
-        eveningSnack: 'Cottage cheese med bär (valfritt)',
+        breakfast: text(locale, 'Eggs with whole grain bread and vegetables', 'Ägg med fullkornsbröd och grönsaker'),
+        morningSnack: text(locale, 'Quark with berries', 'Kvarg med bär'),
+        lunch: text(locale, 'Salad with double protein (chicken/salmon/tofu) and legumes', 'Sallad med dubbel protein (kyckling/lax/tofu) och baljväxter'),
+        afternoonSnack: text(locale, 'Cottage cheese or protein shake', 'Cottage cheese eller proteinshake'),
+        dinner: text(locale, 'Chicken or fish with sweet potato and vegetables', 'Kyckling eller fisk med sötpotatis och grönsaker'),
+        eveningSnack: text(locale, 'Cottage cheese with berries (optional)', 'Cottage cheese med bär (valfritt)'),
       }
     }
     return {
-      breakfast: 'Ägg med fullkornsbröd och grönsaker',
-      morningSnack: 'Frukt med nötter',
-      lunch: 'Sallad med protein (kyckling/lax/tofu) och baljväxter',
-      afternoonSnack: 'Kvarg eller grekisk yoghurt',
-      dinner: 'Lax med grönsaker och sötpotatis',
-      eveningSnack: 'Cottage cheese med bär (valfritt)',
+      breakfast: text(locale, 'Eggs with whole grain bread and vegetables', 'Ägg med fullkornsbröd och grönsaker'),
+      morningSnack: text(locale, 'Fruit with nuts', 'Frukt med nötter'),
+      lunch: text(locale, 'Salad with protein (chicken/salmon/tofu) and legumes', 'Sallad med protein (kyckling/lax/tofu) och baljväxter'),
+      afternoonSnack: text(locale, 'Quark or Greek yogurt', 'Kvarg eller grekisk yoghurt'),
+      dinner: text(locale, 'Salmon with vegetables and sweet potato', 'Lax med grönsaker och sötpotatis'),
+      eveningSnack: text(locale, 'Cottage cheese with berries (optional)', 'Cottage cheese med bär (valfritt)'),
     }
   }
 
@@ -886,28 +967,28 @@ function generateMealStructure(
 
   if (hasEarlyWorkout) {
     return {
-      breakfast: 'Lätt frukost 1-2h före: Havregrynsgröt med banan',
-      morningSnack: 'Återhämtning efter pass: Kvarg med frukt',
-      lunch: 'Kyckling/fisk med ris eller pasta, grönsaker',
-      afternoonSnack: 'Smörgås med pålägg eller smoothie',
-      dinner: 'Balanserad måltid med protein och kolhydrater',
+      breakfast: text(locale, 'Light breakfast 1-2h before: oatmeal with banana', 'Lätt frukost 1-2h före: Havregrynsgröt med banan'),
+      morningSnack: text(locale, 'Post-workout recovery: quark with fruit', 'Återhämtning efter pass: Kvarg med frukt'),
+      lunch: text(locale, 'Chicken/fish with rice or pasta, vegetables', 'Kyckling/fisk med ris eller pasta, grönsaker'),
+      afternoonSnack: text(locale, 'Sandwich with toppings or smoothie', 'Smörgås med pålägg eller smoothie'),
+      dinner: text(locale, 'Balanced meal with protein and carbohydrates', 'Balanserad måltid med protein och kolhydrater'),
     }
   }
 
   if (hasLateWorkout) {
     return {
-      breakfast: 'Havregrynsgröt med banan och nötter',
-      morningSnack: 'Frukt eller yoghurt',
-      lunch: 'Större måltid: Pasta/ris med protein',
-      afternoonSnack: 'Pre-workout: Banan, rostat bröd (1-2h före)',
-      dinner: 'Återhämtningsmåltid efter pass: Protein + kolhydrater',
-      eveningSnack: 'Kvarg eller proteinshake vid behov',
+      breakfast: text(locale, 'Oatmeal with banana and nuts', 'Havregrynsgröt med banan och nötter'),
+      morningSnack: text(locale, 'Fruit or yogurt', 'Frukt eller yoghurt'),
+      lunch: text(locale, 'Larger meal: pasta/rice with protein', 'Större måltid: Pasta/ris med protein'),
+      afternoonSnack: text(locale, 'Pre-workout: banana, toast (1-2h before)', 'Pre-workout: Banan, rostat bröd (1-2h före)'),
+      dinner: text(locale, 'Post-workout recovery meal: protein + carbohydrates', 'Återhämtningsmåltid efter pass: Protein + kolhydrater'),
+      eveningSnack: text(locale, 'Quark or protein shake if needed', 'Kvarg eller proteinshake vid behov'),
     }
   }
 
   return {
-    breakfast: 'Havregrynsgröt eller ägg med bröd',
-    lunch: 'Balanserad måltid med protein och kolhydrater',
-    dinner: 'Protein (kyckling/fisk) med ris/potatis och grönsaker',
+    breakfast: text(locale, 'Oatmeal or eggs with bread', 'Havregrynsgröt eller ägg med bröd'),
+    lunch: text(locale, 'Balanced meal with protein and carbohydrates', 'Balanserad måltid med protein och kolhydrater'),
+    dinner: text(locale, 'Protein (chicken/fish) with rice/potatoes and vegetables', 'Protein (kyckling/fisk) med ris/potatis och grönsaker'),
   }
 }

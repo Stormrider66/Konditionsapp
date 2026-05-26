@@ -19,6 +19,17 @@ import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
 
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv'
+  return request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/nutrition/guidance
  * Get comprehensive daily nutrition guidance for the athlete dashboard.
@@ -47,7 +58,10 @@ export async function GET(request: NextRequest) {
       where: { id: clientId },
       include: {
         athleteAccount: {
-          select: { userId: true },
+          select: {
+            userId: true,
+            user: { select: { language: true } },
+          },
         },
         dietaryPreferences: true,
         nutritionGoal: true,
@@ -62,6 +76,7 @@ export async function GET(request: NextRequest) {
     if (!client.athleteAccount?.userId) {
       return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
     }
+    const locale = getRequestLocale(request, client.athleteAccount.user.language)
 
     // `now` drives time-of-day logic in the generator (e.g. pre-workout
     // countdown). For historical dates we pin it to noon of the selected
@@ -220,7 +235,7 @@ export async function GET(request: NextRequest) {
     const incompleteAiWods = todaysAiWods.filter((wod) => wod.status !== 'COMPLETED')
     const aiWodContexts: WorkoutContext[] = incompleteAiWods.map((wod) => ({
       id: wod.id,
-      name: `AI-Pass: ${wod.title}`,
+      name: `${t(locale, 'AI workout', 'AI-pass')}: ${wod.title}`,
       type: (wod.primarySport as WorkoutType) || 'STRENGTH',
       intensity: wod.intensityAdjusted === 'RECOVERY' ? 'RECOVERY' :
                  wod.intensityAdjusted === 'EASY' ? 'EASY' :
@@ -241,7 +256,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: workout.id,
-        name: workout.workoutName || parsed?.name || 'Loggat pass',
+        name: workout.workoutName || parsed?.name || t(locale, 'Logged workout', 'Loggat pass'),
         type: mapAdHocTypeToWorkoutType(parsed),
         intensity: parsed?.intensity || 'MODERATE',
         duration: parsed?.duration ?? null,
@@ -326,6 +341,7 @@ export async function GET(request: NextRequest) {
       todaysWorkouts: allTodaysWorkouts,
       tomorrowsWorkouts,
       currentTime: now,
+      locale,
       bodyComposition: bodyComposition || client.nutritionGoal?.customBmrKcal
         ? {
             bmrKcal: client.nutritionGoal?.customBmrKcal ?? bodyComposition?.bmrKcal ?? undefined,

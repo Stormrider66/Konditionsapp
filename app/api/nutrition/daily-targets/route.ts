@@ -22,6 +22,16 @@ import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { logger } from '@/lib/logger'
 
 const MAX_RANGE_DAYS = 31
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv'
+  return request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 function mapAdHocTypeToWorkoutType(parsed: ParsedWorkout | null): WorkoutType {
   if (!parsed) return 'OTHER'
@@ -68,7 +78,12 @@ export async function GET(request: NextRequest) {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       include: {
-        athleteAccount: { select: { userId: true } },
+        athleteAccount: {
+          select: {
+            userId: true,
+            user: { select: { language: true } },
+          },
+        },
         nutritionGoal: true,
         sportProfile: { select: { lifestyleActivity: true, primarySport: true } },
       },
@@ -78,6 +93,7 @@ export async function GET(request: NextRequest) {
     }
 
     const athleteUserId = client.athleteAccount.userId
+    const locale = getRequestLocale(request, client.athleteAccount.user.language)
     const weightKg = client.weight ?? 70
     const nutritionGoal: Pick<
       NutritionGoalInput,
@@ -186,7 +202,7 @@ export async function GET(request: NextRequest) {
       if (!plannedByDay[key]) plannedByDay[key] = []
       plannedByDay[key].push({
         id: wod.id,
-        name: `AI-Pass: ${wod.title}`,
+        name: `${t(locale, 'AI workout', 'AI-pass')}: ${wod.title}`,
         type: (wod.primarySport as WorkoutType) || 'STRENGTH',
         intensity:
           wod.intensityAdjusted === 'RECOVERY' ? 'RECOVERY' :
@@ -209,7 +225,7 @@ export async function GET(request: NextRequest) {
       if (!plannedByDay[key]) plannedByDay[key] = []
       plannedByDay[key].push({
         id: workout.id,
-        name: workout.workoutName || parsed?.name || 'Loggat pass',
+        name: workout.workoutName || parsed?.name || t(locale, 'Logged workout', 'Loggat pass'),
         type: mapAdHocTypeToWorkoutType(parsed),
         intensity: parsed?.intensity || 'MODERATE',
         duration: parsed?.duration ?? null,

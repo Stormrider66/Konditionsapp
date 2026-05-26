@@ -340,6 +340,7 @@ export interface GuidanceGeneratorInput {
   todaysWorkouts: WorkoutContext[]
   tomorrowsWorkouts: WorkoutContext[]
   currentTime: Date
+  locale?: 'en' | 'sv'
   bodyComposition?: {
     bodyFatPercent?: number
     muscleMassKg?: number
