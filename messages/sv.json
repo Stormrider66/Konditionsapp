@@ -10891,6 +10891,74 @@
         "missingRequired": "Välj spelare och namn på program"
       }
     },
+    "restrictionForm": {
+      "title": {
+        "create": "Ny träningsrestriktion",
+        "edit": "Uppdatera restriktion"
+      },
+      "description": "Sätt tydliga ramar som syns för tränare och spelare innan pass tilldelas.",
+      "fields": {
+        "athlete": "Spelare",
+        "linkedInjury": "Kopplad skada",
+        "type": "Typ",
+        "severity": "Allvarlighet",
+        "endDate": "Gäller till",
+        "bodyParts": "Kroppsdelar",
+        "affectedWorkoutTypes": "Påverkar träningsformer",
+        "volumeReduction": "Volymreduktion (%)",
+        "maxIntensityZone": "Max intensitetszon",
+        "reason": "Kort orsak",
+        "coachInstruction": "Instruktion till tränare",
+        "internalNote": "Intern anteckning"
+      },
+      "placeholders": {
+        "selectAthlete": "Välj spelare",
+        "optional": "Valfritt",
+        "bodyParts": "t.ex. knä, ljumske, axel",
+        "reason": "t.ex. Ljumske, ingen acceleration",
+        "coachInstruction": "Vad ska tränaren undvika eller modifiera?"
+      },
+      "injuries": {
+        "none": "Ingen kopplad skada",
+        "selected": "Vald skada",
+        "active": "Aktiv skada"
+      },
+      "restrictionTypes": {
+        "NO_RUNNING": "Ingen löpning",
+        "NO_JUMPING": "Inga hopp / plyo",
+        "NO_IMPACT": "Ingen impact",
+        "NO_UPPER_BODY": "Ingen överkropp",
+        "NO_LOWER_BODY": "Ingen underkropp",
+        "REDUCED_VOLUME": "Reducerad volym",
+        "REDUCED_INTENSITY": "Reducerad intensitet",
+        "MODIFIED_ONLY": "Endast modifierat",
+        "SPECIFIC_EXERCISES": "Specifika övningar",
+        "CUSTOM": "Egen restriktion"
+      },
+      "severities": {
+        "MILD": "Mild",
+        "MODERATE": "Måttlig",
+        "SEVERE": "Allvarlig",
+        "COMPLETE": "Helt stopp"
+      },
+      "actions": {
+        "clear": "Klarmarkera",
+        "save": "Spara"
+      },
+      "toasts": {
+        "created": "Restriktionen skapad",
+        "updated": "Restriktionen uppdaterad",
+        "cleared": "Restriktionen är klarmarkerad"
+      },
+      "errors": {
+        "genericTitle": "Något gick fel",
+        "unknown": "Okänt fel",
+        "loadRestriction": "Kunde inte hämta restriktionen",
+        "saveRestriction": "Kunde inte spara restriktionen",
+        "clearRestriction": "Kunde inte klarmarkera restriktionen",
+        "selectAthlete": "Välj spelare"
+      }
+    },
     "physioAthleteDetail": {
       "errors": {
         "notFound": "Atlet hittades inte"

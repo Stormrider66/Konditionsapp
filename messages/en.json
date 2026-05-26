@@ -10524,6 +10524,74 @@
         "missingRequired": "Select a player and enter a program name"
       }
     },
+    "restrictionForm": {
+      "title": {
+        "create": "New training restriction",
+        "edit": "Update restriction"
+      },
+      "description": "Set clear limits that coaches and players can see before workouts are assigned.",
+      "fields": {
+        "athlete": "Player",
+        "linkedInjury": "Linked injury",
+        "type": "Type",
+        "severity": "Severity",
+        "endDate": "Applies until",
+        "bodyParts": "Body parts",
+        "affectedWorkoutTypes": "Affects workout types",
+        "volumeReduction": "Volume reduction (%)",
+        "maxIntensityZone": "Max intensity zone",
+        "reason": "Short reason",
+        "coachInstruction": "Instruction for coach",
+        "internalNote": "Internal note"
+      },
+      "placeholders": {
+        "selectAthlete": "Select player",
+        "optional": "Optional",
+        "bodyParts": "e.g. knee, groin, shoulder",
+        "reason": "e.g. Groin, no acceleration",
+        "coachInstruction": "What should the coach avoid or modify?"
+      },
+      "injuries": {
+        "none": "No linked injury",
+        "selected": "Selected injury",
+        "active": "Active injury"
+      },
+      "restrictionTypes": {
+        "NO_RUNNING": "No running",
+        "NO_JUMPING": "No jumping / plyo",
+        "NO_IMPACT": "No impact",
+        "NO_UPPER_BODY": "No upper body",
+        "NO_LOWER_BODY": "No lower body",
+        "REDUCED_VOLUME": "Reduced volume",
+        "REDUCED_INTENSITY": "Reduced intensity",
+        "MODIFIED_ONLY": "Modified only",
+        "SPECIFIC_EXERCISES": "Specific exercises",
+        "CUSTOM": "Custom restriction"
+      },
+      "severities": {
+        "MILD": "Mild",
+        "MODERATE": "Moderate",
+        "SEVERE": "Severe",
+        "COMPLETE": "Full stop"
+      },
+      "actions": {
+        "clear": "Clear restriction",
+        "save": "Save"
+      },
+      "toasts": {
+        "created": "Restriction created",
+        "updated": "Restriction updated",
+        "cleared": "Restriction cleared"
+      },
+      "errors": {
+        "genericTitle": "Something went wrong",
+        "unknown": "Unknown error",
+        "loadRestriction": "Could not load the restriction",
+        "saveRestriction": "Could not save the restriction",
+        "clearRestriction": "Could not clear the restriction",
+        "selectAthlete": "Select a player"
+      }
+    },
     "physioAthleteDetail": {
       "errors": {
         "notFound": "Athlete not found"

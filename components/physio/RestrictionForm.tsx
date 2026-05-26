@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
+import { useTranslations } from '@/i18n/client'
 
 type AthleteOption = {
   id: string
@@ -39,17 +40,17 @@ type RestrictionPayload = {
 }
 
 const restrictionTypes = [
-  ['NO_RUNNING', 'Ingen löpning'],
-  ['NO_JUMPING', 'Inga hopp / plyo'],
-  ['NO_IMPACT', 'Ingen impact'],
-  ['NO_UPPER_BODY', 'Ingen överkropp'],
-  ['NO_LOWER_BODY', 'Ingen underkropp'],
-  ['REDUCED_VOLUME', 'Reducerad volym'],
-  ['REDUCED_INTENSITY', 'Reducerad intensitet'],
-  ['MODIFIED_ONLY', 'Endast modifierat'],
-  ['SPECIFIC_EXERCISES', 'Specifika övningar'],
-  ['CUSTOM', 'Egen restriktion'],
-]
+  'NO_RUNNING',
+  'NO_JUMPING',
+  'NO_IMPACT',
+  'NO_UPPER_BODY',
+  'NO_LOWER_BODY',
+  'REDUCED_VOLUME',
+  'REDUCED_INTENSITY',
+  'MODIFIED_ONLY',
+  'SPECIFIC_EXERCISES',
+  'CUSTOM',
+] as const
 
 const workoutTypes = ['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY', 'ICE', 'MATCH']
 
@@ -83,6 +84,7 @@ export function RestrictionForm({
 }) {
   const router = useRouter()
   const { toast } = useToast()
+  const t = useTranslations('components.restrictionForm')
   const [loading, setLoading] = useState(Boolean(restrictionId))
   const [saving, setSaving] = useState(false)
   const [athletes, setAthletes] = useState<AthleteOption[]>([])
@@ -121,7 +123,7 @@ export function RestrictionForm({
       try {
         const res = await fetch(`/api/physio/restrictions/${restrictionId}`)
         const data = await res.json()
-        if (!res.ok) throw new Error(data?.error || 'Kunde inte hämta restriktionen')
+        if (!res.ok) throw new Error(data?.error || t('errors.loadRestriction'))
         if (cancelled) return
         setClientId(data.clientId)
         setInjuryId(data.injuryId || '')
@@ -137,8 +139,8 @@ export function RestrictionForm({
         setNotes(data.notes || '')
       } catch (error) {
         toast({
-          title: 'Något gick fel',
-          description: error instanceof Error ? error.message : 'Okänt fel',
+          title: t('errors.genericTitle'),
+          description: error instanceof Error ? error.message : t('errors.unknown'),
           variant: 'destructive',
         })
       } finally {
@@ -149,7 +151,7 @@ export function RestrictionForm({
     return () => {
       cancelled = true
     }
-  }, [restrictionId, toast])
+  }, [restrictionId, t, toast])
 
   const selectedAthlete = useMemo(
     () => athletes.find((athlete) => athlete.id === clientId),
@@ -158,7 +160,7 @@ export function RestrictionForm({
 
   const submit = async () => {
     if (!clientId) {
-      toast({ title: 'Välj spelare', variant: 'destructive' })
+      toast({ title: t('errors.selectAthlete'), variant: 'destructive' })
       return
     }
 
@@ -188,14 +190,14 @@ export function RestrictionForm({
         }
       )
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Kunde inte spara restriktionen')
-      toast({ title: restrictionId ? 'Restriktionen uppdaterad' : 'Restriktionen skapad' })
+      if (!res.ok) throw new Error(data?.error || t('errors.saveRestriction'))
+      toast({ title: restrictionId ? t('toasts.updated') : t('toasts.created') })
       router.push(`${basePath}/athletes/${clientId}`)
       router.refresh()
     } catch (error) {
       toast({
-        title: 'Något gick fel',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('errors.genericTitle'),
+        description: error instanceof Error ? error.message : t('errors.unknown'),
         variant: 'destructive',
       })
     } finally {
@@ -213,14 +215,14 @@ export function RestrictionForm({
         body: JSON.stringify({ isActive: false }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Kunde inte klarmarkera restriktionen')
-      toast({ title: 'Restriktionen är klarmarkerad' })
+      if (!res.ok) throw new Error(data?.error || t('errors.clearRestriction'))
+      toast({ title: t('toasts.cleared') })
       router.push(`${basePath}/athletes/${clientId}`)
       router.refresh()
     } catch (error) {
       toast({
-        title: 'Något gick fel',
-        description: error instanceof Error ? error.message : 'Okänt fel',
+        title: t('errors.genericTitle'),
+        description: error instanceof Error ? error.message : t('errors.unknown'),
         variant: 'destructive',
       })
     } finally {
@@ -243,19 +245,19 @@ export function RestrictionForm({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-white">
           <Ban className="h-5 w-5 text-orange-400" />
-          {restrictionId ? 'Uppdatera restriktion' : 'Ny träningsrestriktion'}
+          {restrictionId ? t('title.edit') : t('title.create')}
         </CardTitle>
         <CardDescription className="text-slate-400">
-          Sätt tydliga ramar som syns för tränare och spelare innan pass tilldelas.
+          {t('description')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-slate-200">Spelare</Label>
+            <Label className="text-slate-200">{t('fields.athlete')}</Label>
             <Select value={clientId} onValueChange={setClientId} disabled={Boolean(restrictionId)}>
               <SelectTrigger className="bg-slate-950/50 text-white">
-                <SelectValue placeholder="Välj spelare" />
+                <SelectValue placeholder={t('placeholders.selectAthlete')} />
               </SelectTrigger>
               <SelectContent>
                 {athletes.map((athlete) => (
@@ -268,19 +270,19 @@ export function RestrictionForm({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-200">Kopplad skada</Label>
+            <Label className="text-slate-200">{t('fields.linkedInjury')}</Label>
             <Select value={injuryId || 'none'} onValueChange={(value) => setInjuryId(value === 'none' ? '' : value)}>
               <SelectTrigger className="bg-slate-950/50 text-white">
-                <SelectValue placeholder="Valfritt" />
+                <SelectValue placeholder={t('placeholders.optional')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen kopplad skada</SelectItem>
+                <SelectItem value="none">{t('injuries.none')}</SelectItem>
                 {injuryId && selectedAthlete?.currentInjury?.id !== injuryId && (
-                  <SelectItem value={injuryId}>Vald skada</SelectItem>
+                  <SelectItem value={injuryId}>{t('injuries.selected')}</SelectItem>
                 )}
                 {selectedAthlete?.currentInjury && (
                   <SelectItem value={selectedAthlete.currentInjury.id}>
-                    {selectedAthlete.currentInjury.injuryType || selectedAthlete.currentInjury.bodyPart || 'Aktiv skada'}
+                    {selectedAthlete.currentInjury.injuryType || selectedAthlete.currentInjury.bodyPart || t('injuries.active')}
                   </SelectItem>
                 )}
               </SelectContent>
@@ -290,36 +292,36 @@ export function RestrictionForm({
 
         <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
-            <Label className="text-slate-200">Typ</Label>
+            <Label className="text-slate-200">{t('fields.type')}</Label>
             <Select value={type} onValueChange={setType}>
               <SelectTrigger className="bg-slate-950/50 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {restrictionTypes.map(([value, label]) => (
+                {restrictionTypes.map((value) => (
                   <SelectItem key={value} value={value}>
-                    {label}
+                    {t(`restrictionTypes.${value}`)}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">Allvarlighet</Label>
+            <Label className="text-slate-200">{t('fields.severity')}</Label>
             <Select value={severity} onValueChange={setSeverity}>
               <SelectTrigger className="bg-slate-950/50 text-white">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MILD">Mild</SelectItem>
-                <SelectItem value="MODERATE">Måttlig</SelectItem>
-                <SelectItem value="SEVERE">Allvarlig</SelectItem>
-                <SelectItem value="COMPLETE">Helt stopp</SelectItem>
+                <SelectItem value="MILD">{t('severities.MILD')}</SelectItem>
+                <SelectItem value="MODERATE">{t('severities.MODERATE')}</SelectItem>
+                <SelectItem value="SEVERE">{t('severities.SEVERE')}</SelectItem>
+                <SelectItem value="COMPLETE">{t('severities.COMPLETE')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">Gäller till</Label>
+            <Label className="text-slate-200">{t('fields.endDate')}</Label>
             <Input
               type="date"
               value={endDate}
@@ -330,17 +332,17 @@ export function RestrictionForm({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">Kroppsdelar</Label>
+          <Label className="text-slate-200">{t('fields.bodyParts')}</Label>
           <Input
             value={bodyParts}
             onChange={(event) => setBodyParts(event.target.value)}
-            placeholder="t.ex. knä, ljumske, axel"
+            placeholder={t('placeholders.bodyParts')}
             className="bg-slate-950/50 text-white"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">Påverkar träningsformer</Label>
+          <Label className="text-slate-200">{t('fields.affectedWorkoutTypes')}</Label>
           <div className="flex flex-wrap gap-2">
             {workoutTypes.map((workoutType) => {
               const selected = affectedTypes.includes(workoutType)
@@ -367,7 +369,7 @@ export function RestrictionForm({
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <Label className="text-slate-200">Volymreduktion (%)</Label>
+            <Label className="text-slate-200">{t('fields.volumeReduction')}</Label>
             <Input
               type="number"
               min="0"
@@ -378,7 +380,7 @@ export function RestrictionForm({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">Max intensitetszon</Label>
+            <Label className="text-slate-200">{t('fields.maxIntensityZone')}</Label>
             <Input
               type="number"
               min="1"
@@ -391,27 +393,27 @@ export function RestrictionForm({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">Kort orsak</Label>
+          <Label className="text-slate-200">{t('fields.reason')}</Label>
           <Input
             value={reason}
             onChange={(event) => setReason(event.target.value)}
-            placeholder="t.ex. Ljumske, ingen acceleration"
+            placeholder={t('placeholders.reason')}
             className="bg-slate-950/50 text-white"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">Instruktion till tränare</Label>
+          <Label className="text-slate-200">{t('fields.coachInstruction')}</Label>
           <Textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Vad ska tränaren undvika eller modifiera?"
+            placeholder={t('placeholders.coachInstruction')}
             className="min-h-24 bg-slate-950/50 text-white"
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">Intern anteckning</Label>
+          <Label className="text-slate-200">{t('fields.internalNote')}</Label>
           <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
@@ -429,14 +431,14 @@ export function RestrictionForm({
               className="border-emerald-500/30 text-emerald-300"
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
-              Klarmarkera
+              {t('actions.clear')}
             </Button>
           ) : (
             <span />
           )}
           <Button type="button" onClick={submit} disabled={saving}>
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Spara
+            {t('actions.save')}
           </Button>
         </div>
       </CardContent>
