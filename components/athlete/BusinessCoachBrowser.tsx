@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { UserCircle, Briefcase, Users, Star, Send } from 'lucide-react'
+import { Users, Star, Send } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 interface AvailableCoach {
   id: string
@@ -29,7 +30,88 @@ interface BusinessCoachBrowserProps {
   onRequestSent: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  errors: {
+    title: string
+    load: string
+    loadDescription: string
+    send: string
+    sendDescription: string
+  }
+  empty: string
+  request: {
+    sentTitle: string
+    sentDescription: (coachName: string) => string
+    button: string
+    dialogTitle: (coachName?: string) => string
+    dialogDescription: string
+    placeholder: string
+    cancel: string
+    send: string
+    sending: string
+  }
+  labels: {
+    experience: (years: number) => string
+    activeAthletes: (count: number) => string
+  }
+}> = {
+  en: {
+    errors: {
+      title: 'Error',
+      load: 'Could not fetch coaches',
+      loadDescription: 'Could not fetch available coaches.',
+      send: 'Could not send request',
+      sendDescription: 'Could not send the request. Please try again.',
+    },
+    empty: 'There are no available coaches right now',
+    request: {
+      sentTitle: 'Request sent',
+      sentDescription: (coachName) => `Your request to ${coachName} has been sent.`,
+      button: 'Send request',
+      dialogTitle: (coachName) => `Send request to ${coachName ?? ''}`.trim(),
+      dialogDescription: 'You can write an optional message to the coach with your request.',
+      placeholder: 'Briefly tell them about yourself and your training goals (optional)...',
+      cancel: 'Cancel',
+      send: 'Send',
+      sending: 'Sending...',
+    },
+    labels: {
+      experience: (years) => `${years} ${years === 1 ? 'year' : 'years'} experience`,
+      activeAthletes: (count) => `${count} active ${count === 1 ? 'athlete' : 'athletes'}`,
+    },
+  },
+  sv: {
+    errors: {
+      title: 'Fel',
+      load: 'Kunde inte hämta coacher',
+      loadDescription: 'Kunde inte hämta tillgängliga coacher.',
+      send: 'Kunde inte skicka förfrågan',
+      sendDescription: 'Kunde inte skicka förfrågan. Försök igen.',
+    },
+    empty: 'Det finns inga tillgängliga coacher just nu',
+    request: {
+      sentTitle: 'Förfrågan skickad',
+      sentDescription: (coachName) => `Din förfrågan till ${coachName} har skickats.`,
+      button: 'Skicka förfrågan',
+      dialogTitle: (coachName) => `Skicka förfrågan till ${coachName ?? ''}`.trim(),
+      dialogDescription: 'Du kan skriva ett valfritt meddelande till coachen med din förfrågan.',
+      placeholder: 'Berätta kort om dig själv och dina träningsmål (valfritt)...',
+      cancel: 'Avbryt',
+      send: 'Skicka',
+      sending: 'Skickar...',
+    },
+    labels: {
+      experience: (years) => `${years} års erfarenhet`,
+      activeAthletes: (count) => `${count} aktiva ${count === 1 ? 'atlet' : 'atleter'}`,
+    },
+  },
+}
+
 export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoachBrowserProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [coaches, setCoaches] = useState<AvailableCoach[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCoach, setSelectedCoach] = useState<AvailableCoach | null>(null)
@@ -43,21 +125,21 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
       try {
         setLoading(true)
         const res = await fetch(`/api/business/${businessId}/coaches/available`)
-        if (!res.ok) throw new Error('Kunde inte hämta coacher')
+        if (!res.ok) throw new Error(copy.errors.load)
         const json = await res.json()
         setCoaches(json.coaches || json || [])
-      } catch (err) {
+      } catch {
         toast({
-          title: 'Fel',
-          description: 'Kunde inte hämta tillgängliga coacher.',
+          title: copy.errors.title,
+          description: copy.errors.loadDescription,
           variant: 'destructive',
         })
       } finally {
         setLoading(false)
       }
     }
-    fetchCoaches()
-  }, [businessId, toast])
+    void fetchCoaches()
+  }, [businessId, copy, toast])
 
   const handleOpenDialog = (coach: AvailableCoach) => {
     setSelectedCoach(coach)
@@ -79,20 +161,20 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
       })
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Kunde inte skicka förfrågan')
+        throw new Error(errorData.error || copy.errors.send)
       }
       toast({
-        title: 'Förfrågan skickad',
-        description: `Din förfrågan till ${selectedCoach.name} har skickats.`,
+        title: copy.request.sentTitle,
+        description: copy.request.sentDescription(selectedCoach.name),
       })
       setDialogOpen(false)
       setSelectedCoach(null)
       setMessage('')
       onRequestSent()
-    } catch (err: any) {
+    } catch (err) {
       toast({
-        title: 'Fel',
-        description: err.message || 'Kunde inte skicka förfrågan. Försök igen.',
+        title: copy.errors.title,
+        description: err instanceof Error ? err.message : copy.errors.sendDescription,
         variant: 'destructive',
       })
     } finally {
@@ -117,7 +199,7 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
             <Users className="w-6 h-6 text-slate-400" />
           </div>
           <p className="text-sm text-slate-400">
-            Det finns inga tillgängliga coacher just nu
+            {copy.empty}
           </p>
         </CardContent>
       </Card>
@@ -160,13 +242,13 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
                 {coach.experienceYears != null && (
                   <div className="flex items-center gap-1.5">
                     <Star className="w-3.5 h-3.5" />
-                    <span>{coach.experienceYears} års erfarenhet</span>
+                    <span>{copy.labels.experience(coach.experienceYears)}</span>
                   </div>
                 )}
                 {coach.activeClientCount != null && (
                   <div className="flex items-center gap-1.5">
                     <Users className="w-3.5 h-3.5" />
-                    <span>{coach.activeClientCount} aktiva atleter</span>
+                    <span>{copy.labels.activeAthletes(coach.activeClientCount)}</span>
                   </div>
                 )}
               </div>
@@ -176,7 +258,7 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white"
               >
                 <Send className="w-4 h-4 mr-2" />
-                Skicka förfrågan
+                {copy.request.button}
               </Button>
             </CardContent>
           </Card>
@@ -188,15 +270,15 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
         <DialogContent className="bg-slate-950 border-white/10 sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-white">
-              Skicka förfrågan till {selectedCoach?.name}
+              {copy.request.dialogTitle(selectedCoach?.name)}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-slate-400">
-              Du kan skriva ett valfritt meddelande till coachen med din förfrågan.
+              {copy.request.dialogDescription}
             </p>
             <Textarea
-              placeholder="Berätta kort om dig själv och dina träningsmål (valfritt)..."
+              placeholder={copy.request.placeholder}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               className="bg-slate-900 border-white/10 text-white placeholder:text-slate-500 min-h-[100px] resize-none"
@@ -210,7 +292,7 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
               onClick={() => setDialogOpen(false)}
               className="border-white/10 text-slate-300 hover:bg-white/5"
             >
-              Avbryt
+              {copy.request.cancel}
             </Button>
             <Button
               onClick={handleSendRequest}
@@ -218,7 +300,7 @@ export function BusinessCoachBrowser({ businessId, onRequestSent }: BusinessCoac
               className="bg-orange-500 hover:bg-orange-600 text-white"
             >
               <Send className="w-4 h-4 mr-2" />
-              {sending ? 'Skickar...' : 'Skicka'}
+              {sending ? copy.request.sending : copy.request.send}
             </Button>
           </DialogFooter>
         </DialogContent>

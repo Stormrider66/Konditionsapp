@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -17,19 +16,22 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, Video, Loader2, CheckCircle2, Info } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useLocale } from '@/i18n/client'
 
 interface AthleteVideoUploaderProps {
   clientId: string
 }
 
+type AppLocale = 'en' | 'sv'
+
 const VIDEO_TYPES = [
-  { value: 'RUNNING_GAIT', label: 'Löpteknik' },
-  { value: 'STRENGTH', label: 'Styrkelyft' },
-  { value: 'SKIING_CLASSIC', label: 'Klassisk skidåkning' },
-  { value: 'SKIING_SKATING', label: 'Skate-skidåkning' },
-  { value: 'SKIING_DOUBLE_POLE', label: 'Dubbelstakning' },
-  { value: 'HYROX_STATION', label: 'HYROX Station' },
-  { value: 'SPORT_SPECIFIC', label: 'Sportspecifik teknik' },
+  { value: 'RUNNING_GAIT', label: { en: 'Running gait', sv: 'Löpteknik' } },
+  { value: 'STRENGTH', label: { en: 'Strength lift', sv: 'Styrkelyft' } },
+  { value: 'SKIING_CLASSIC', label: { en: 'Classic skiing', sv: 'Klassisk skidåkning' } },
+  { value: 'SKIING_SKATING', label: { en: 'Skate skiing', sv: 'Skate-skidåkning' } },
+  { value: 'SKIING_DOUBLE_POLE', label: { en: 'Double poling', sv: 'Dubbelstakning' } },
+  { value: 'HYROX_STATION', label: { en: 'HYROX station', sv: 'HYROX Station' } },
+  { value: 'SPORT_SPECIFIC', label: { en: 'Sport-specific technique', sv: 'Sportspecifik teknik' } },
 ]
 
 const HYROX_STATIONS = [
@@ -43,9 +45,130 @@ const HYROX_STATIONS = [
   { value: 'WALL_BALLS', label: 'Wall Balls (75-100 reps)' },
 ]
 
+const COPY: Record<AppLocale, {
+  errors: {
+    uploadUrl: string
+    storageUpload: string
+    confirmUpload: string
+    uploadTitle: string
+    uploadFallback: string
+  }
+  success: {
+    title: string
+    toastDescription: string
+    alertDescription: string
+  }
+  tips: {
+    title: string
+    sideView: string
+    lighting: string
+    fullBody: string
+    length: string
+  }
+  fields: {
+    videoType: string
+    selectType: string
+    hyroxStation: string
+    selectStation: string
+    notes: string
+  }
+  dropzone: {
+    replace: string
+    active: string
+    idle: string
+    formats: string
+  }
+  upload: {
+    progress: string
+    button: string
+    notesPlaceholder: string
+  }
+}> = {
+  en: {
+    errors: {
+      uploadUrl: 'Could not create upload URL',
+      storageUpload: 'Upload to storage failed',
+      confirmUpload: 'Could not confirm the upload',
+      uploadTitle: 'Upload error',
+      uploadFallback: 'Could not upload video',
+    },
+    success: {
+      title: 'Video uploaded!',
+      toastDescription: 'Your video has been uploaded and is waiting for analysis from your coach.',
+      alertDescription: 'Your video has been uploaded and is waiting for analysis. You will get a notification when the analysis is ready.',
+    },
+    tips: {
+      title: 'Tips for good video analysis',
+      sideView: 'Film from the side for running technique (90-degree angle)',
+      lighting: 'Use good lighting and a stable camera',
+      fullBody: 'Include the whole body in the frame',
+      length: '5-30 seconds of video is optimal',
+    },
+    fields: {
+      videoType: 'Video type',
+      selectType: 'Select type',
+      hyroxStation: 'Select HYROX station',
+      selectStation: 'Select station',
+      notes: 'Notes (optional)',
+    },
+    dropzone: {
+      replace: 'Click or drag to replace video',
+      active: 'Drop the video here...',
+      idle: 'Drag and drop a video, or click to choose',
+      formats: 'MP4, MOV, AVI, WebM - Max 100MB',
+    },
+    upload: {
+      progress: 'Uploading...',
+      button: 'Upload video',
+      notesPlaceholder: "e.g. 'Discomfort in left knee', 'Focusing on cadence'",
+    },
+  },
+  sv: {
+    errors: {
+      uploadUrl: 'Kunde inte skapa uppladdnings-URL',
+      storageUpload: 'Uppladdning till lagring misslyckades',
+      confirmUpload: 'Kunde inte bekräfta uppladdningen',
+      uploadTitle: 'Fel vid uppladdning',
+      uploadFallback: 'Kunde inte ladda upp video',
+    },
+    success: {
+      title: 'Video uppladdad!',
+      toastDescription: 'Din video har laddats upp och väntar på analys från din coach.',
+      alertDescription: 'Din video har laddats upp och väntar på analys. Du får en notifikation när analysen är klar.',
+    },
+    tips: {
+      title: 'Tips för bra videoanalys',
+      sideView: 'Filma från sidan för löpteknik (90 graders vinkel)',
+      lighting: 'God belysning och stabil kamera',
+      fullBody: 'Inkludera hela kroppen i bilden',
+      length: '5-30 sekunder video är optimalt',
+    },
+    fields: {
+      videoType: 'Typ av video',
+      selectType: 'Välj typ',
+      hyroxStation: 'Välj HYROX-station',
+      selectStation: 'Välj station',
+      notes: 'Anteckningar (valfritt)',
+    },
+    dropzone: {
+      replace: 'Klicka eller dra för att byta video',
+      active: 'Släpp videon här...',
+      idle: 'Dra och släpp en video, eller klicka för att välja',
+      formats: 'MP4, MOV, AVI, WebM - Max 100MB',
+    },
+    upload: {
+      progress: 'Laddar upp...',
+      button: 'Ladda upp video',
+      notesPlaceholder: "T.ex. 'Känner obehag i vänster knä', 'Fokuserar på kadensen'",
+    },
+  },
+}
+
 export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
   const { toast } = useToast()
   const router = useRouter()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadSuccess, setUploadSuccess] = useState(false)
@@ -93,7 +216,7 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
 
       const urlData = await urlRes.json()
       if (!urlRes.ok) {
-        throw new Error(urlData.error || 'Kunde inte skapa uppladdnings-URL')
+        throw new Error(urlData.error || copy.errors.uploadUrl)
       }
 
       // Step 2: Upload directly to Supabase Storage
@@ -105,7 +228,7 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       })
 
       if (!uploadRes.ok) {
-        throw new Error('Uppladdning till lagring misslyckades')
+        throw new Error(copy.errors.storageUpload)
       }
 
       setUploadProgress(80)
@@ -127,13 +250,13 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       setUploadProgress(100)
 
       if (!confirmRes.ok) {
-        throw new Error(confirmData.error || 'Kunde inte bekräfta uppladdningen')
+        throw new Error(confirmData.error || copy.errors.confirmUpload)
       }
 
       setUploadSuccess(true)
       toast({
-        title: 'Video uppladdad!',
-        description: 'Din video har laddats upp och vantar pa analys fran din coach.',
+        title: copy.success.title,
+        description: copy.success.toastDescription,
       })
 
       // Reset form after a delay
@@ -146,8 +269,8 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
     } catch (error) {
       console.error('Upload error:', error)
       toast({
-        title: 'Fel vid uppladdning',
-        description: error instanceof Error ? error.message : 'Kunde inte ladda upp video',
+        title: copy.errors.uploadTitle,
+        description: error instanceof Error ? error.message : copy.errors.uploadFallback,
         variant: 'destructive',
       })
     } finally {
@@ -159,10 +282,9 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
     return (
       <Alert className="bg-green-50 border-green-200">
         <CheckCircle2 className="h-5 w-5 text-green-600" />
-        <AlertTitle className="text-green-900">Video uppladdad!</AlertTitle>
+        <AlertTitle className="text-green-900">{copy.success.title}</AlertTitle>
         <AlertDescription className="text-green-800">
-          Din video har laddats upp och vantar pa analys. Du far en notifikation nar
-          analysen ar klar.
+          {copy.success.alertDescription}
         </AlertDescription>
       </Alert>
     )
@@ -173,20 +295,20 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       {/* Tips */}
       <Alert className="bg-blue-50 border-blue-200">
         <Info className="h-4 w-4 text-blue-600" />
-        <AlertTitle className="text-blue-900">Tips for bra videoanalys</AlertTitle>
+        <AlertTitle className="text-blue-900">{copy.tips.title}</AlertTitle>
         <AlertDescription className="text-blue-800 text-sm">
           <ul className="list-disc list-inside space-y-1 mt-2">
-            <li>Filma fran sidan for lopteknik (90 graders vinkel)</li>
-            <li>God belysning och stabil kamera</li>
-            <li>Inkludera hela kroppen i bilden</li>
-            <li>5-30 sekunder video ar optimalt</li>
+            <li>{copy.tips.sideView}</li>
+            <li>{copy.tips.lighting}</li>
+            <li>{copy.tips.fullBody}</li>
+            <li>{copy.tips.length}</li>
           </ul>
         </AlertDescription>
       </Alert>
 
       {/* Video Type Selection */}
       <div className="space-y-2">
-        <Label>Typ av video</Label>
+        <Label>{copy.fields.videoType}</Label>
         <Select value={videoType} onValueChange={(value) => {
           setVideoType(value)
           if (value !== 'HYROX_STATION') {
@@ -194,12 +316,12 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
           }
         }}>
           <SelectTrigger>
-            <SelectValue placeholder="Valj typ" />
+            <SelectValue placeholder={copy.fields.selectType} />
           </SelectTrigger>
           <SelectContent>
             {VIDEO_TYPES.map((type) => (
               <SelectItem key={type.value} value={type.value}>
-                {type.label}
+                {type.label[locale]}
               </SelectItem>
             ))}
           </SelectContent>
@@ -209,10 +331,10 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       {/* HYROX Station Selection - Only for HYROX_STATION */}
       {videoType === 'HYROX_STATION' && (
         <div className="space-y-2">
-          <Label>Välj HYROX-station</Label>
+          <Label>{copy.fields.hyroxStation}</Label>
           <Select value={hyroxStation} onValueChange={setHyroxStation}>
             <SelectTrigger>
-              <SelectValue placeholder="Välj station" />
+              <SelectValue placeholder={copy.fields.selectStation} />
             </SelectTrigger>
             <SelectContent>
               {HYROX_STATIONS.map((station) => (
@@ -244,15 +366,15 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
             <p className="text-sm text-green-700">
               {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
             </p>
-            <p className="text-xs text-gray-500">Klicka eller dra for att byta video</p>
+            <p className="text-xs text-gray-500">{copy.dropzone.replace}</p>
           </div>
         ) : (
           <div className="space-y-2">
             <Upload className="h-12 w-12 mx-auto text-gray-400" />
             <p className="text-gray-600">
-              {isDragActive ? 'Slapp videon har...' : 'Dra och slapp en video, eller klicka for att valja'}
+              {isDragActive ? copy.dropzone.active : copy.dropzone.idle}
             </p>
-            <p className="text-sm text-gray-500">MP4, MOV, AVI, WebM - Max 100MB</p>
+            <p className="text-sm text-gray-500">{copy.dropzone.formats}</p>
           </div>
         )}
       </div>
@@ -261,7 +383,7 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
       {isUploading && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span>Laddar upp...</span>
+            <span>{copy.upload.progress}</span>
             <span>{uploadProgress}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -275,12 +397,12 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
 
       {/* Notes */}
       <div className="space-y-2">
-        <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+        <Label htmlFor="notes">{copy.fields.notes}</Label>
         <Textarea
           id="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="T.ex. 'Kanner obehag i vanster kna', 'Fokuserar pa kadensen'"
+          placeholder={copy.upload.notesPlaceholder}
           rows={3}
         />
       </div>
@@ -295,12 +417,12 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
         {isUploading ? (
           <>
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            Laddar upp...
+            {copy.upload.progress}
           </>
         ) : (
           <>
             <Upload className="h-4 w-4 mr-2" />
-            Ladda upp video
+            {copy.upload.button}
           </>
         )}
       </Button>

@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Bell, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 
 interface Notification {
   id: string
@@ -20,10 +21,32 @@ interface Notification {
   createdAt: string
 }
 
-function formatTimeAgo(dateStr: string): string {
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  now: string
+  title: string
+  markAllRead: string
+  empty: string
+}> = {
+  en: {
+    now: 'Now',
+    title: 'Messages',
+    markAllRead: 'Mark all read',
+    empty: 'No messages',
+  },
+  sv: {
+    now: 'Nu',
+    title: 'Meddelanden',
+    markAllRead: 'Markera alla lästa',
+    empty: 'Inga meddelanden',
+  },
+}
+
+function formatTimeAgo(dateStr: string, locale: AppLocale): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60000)
-  if (mins < 1) return 'Nu'
+  if (mins < 1) return COPY[locale].now
   if (mins < 60) return `${mins}m`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h`
@@ -32,6 +55,8 @@ function formatTimeAgo(dateStr: string): string {
 }
 
 export function BroadcastNotificationBell() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
 
@@ -49,7 +74,7 @@ export function BroadcastNotificationBell() {
       }
     }
 
-    fetchNotifications()
+    void fetchNotifications()
     // Poll every 60 seconds
     const interval = setInterval(fetchNotifications, 60000)
     return () => clearInterval(interval)
@@ -83,20 +108,20 @@ export function BroadcastNotificationBell() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
         <div className="flex items-center justify-between px-3 py-2 border-b">
-          <span className="font-semibold text-sm">Meddelanden</span>
+          <span className="font-semibold text-sm">{copy.title}</span>
           {unreadCount > 0 && (
             <button
               onClick={markAllRead}
               className="text-xs text-blue-600 hover:underline flex items-center gap-1"
             >
               <Check className="h-3 w-3" />
-              Markera alla lästa
+              {copy.markAllRead}
             </button>
           )}
         </div>
         {notifications.length === 0 ? (
           <div className="py-6 text-center text-sm text-muted-foreground">
-            Inga meddelanden
+            {copy.empty}
           </div>
         ) : (
           notifications.map((n) => (
@@ -112,7 +137,7 @@ export function BroadcastNotificationBell() {
                   {n.title}
                 </span>
                 <span className="text-[10px] text-muted-foreground shrink-0">
-                  {formatTimeAgo(n.createdAt)}
+                  {formatTimeAgo(n.createdAt, locale)}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground line-clamp-2">{n.message}</p>
