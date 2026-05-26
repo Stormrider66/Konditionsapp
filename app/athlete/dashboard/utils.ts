@@ -26,7 +26,7 @@ export function getExerciseImage(name: string | undefined | null): string {
     if (normalized.includes('squat') && normalized.includes('loblet')) return '/images/knee-dominance/goblet-squat-1.png';
     if (normalized.includes('wallball')) return '/images/knee-dominance/wall-ball-1.png';
     if (normalized.includes('burpee')) return '/images/knee-dominance/burpee-1.png';
-    if (normalized.includes('assault') || normalized.includes('bike')) return '/images/knee-dominance/assault-bike-calories-1.png';
+    if (normalized.includes('assault') || normalized.includes('bike')) return '/images/foot-ankle/assault-bike-calories-1.png';
     if (normalized.includes('stepup')) return '/images/knee-dominance/step-up-1.png';
 
     // Upper Body
@@ -46,7 +46,7 @@ export function getExerciseImage(name: string | undefined | null): string {
     if (normalized.includes('squat')) return '/images/knee-dominance/goblet-squat-1.png';
     if (normalized.includes('press') || normalized.includes('push')) return '/images/upper-body/handstand-push-up-1.png';
     if (normalized.includes('pull') || normalized.includes('chin')) return '/images/upper-body/muscle-up-bar-1.png';
-    if (normalized.includes('run') || normalized.includes('cardio')) return '/images/knee-dominance/assault-bike-calories-1.png';
+    if (normalized.includes('run') || normalized.includes('cardio')) return '/images/foot-ankle/assault-bike-calories-1.png';
 
     return '/images/posterior-chain/marklyft-1.png';
 }
