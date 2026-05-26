@@ -9,11 +9,60 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { ArrowLeft, Printer, Rocket } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  subtitle: string
+  cardTitle: string
+  description: string
+  generate: string
+  reportGenerated: string
+  reportReady: string
+  errorTitle: string
+  unknownError: string
+  back: string
+  print: string
+}> = {
+  en: {
+    subtitle: 'Simple Test',
+    cardTitle: 'Test the calculation engine',
+    description: 'Click the button below to generate a test report with predefined data.',
+    generate: 'Generate Test Report',
+    reportGenerated: 'Report generated!',
+    reportReady: 'The test results have been calculated and the report is ready.',
+    errorTitle: 'Error',
+    unknownError: 'Unknown error',
+    back: 'Back',
+    print: 'Print',
+  },
+  sv: {
+    subtitle: 'Enkel Test',
+    cardTitle: 'Testa beräkningsmotorn',
+    description: 'Klicka på knappen nedan för att generera en testrapport med fördefinierad data.',
+    generate: 'Generera Testrapport',
+    reportGenerated: 'Rapport genererad!',
+    reportReady: 'Testresultaten har beräknats och rapporten är klar.',
+    errorTitle: 'Fel',
+    unknownError: 'Okänt fel',
+    back: 'Tillbaka',
+    print: 'Skriv ut',
+  },
+}
+
+type ReportData = {
+  client: Client
+  test: Test
+  calculations: Awaited<ReturnType<typeof performAllCalculations>>
+}
 
 export default function SimpleTestPage() {
   const [showReport, setShowReport] = useState(false)
-  const [reportData, setReportData] = useState<any>(null)
+  const [reportData, setReportData] = useState<ReportData | null>(null)
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
 
   const sampleClient: Client = {
     id: '1',
@@ -102,14 +151,14 @@ export default function SimpleTestPage() {
       })
       setShowReport(true)
       toast({
-        title: 'Rapport genererad!',
-        description: 'Testresultaten har beräknats och rapporten är klar.',
+        title: copy.reportGenerated,
+        description: copy.reportReady,
       })
     } catch (error) {
       console.error('Error:', error)
       toast({
-        title: 'Fel',
-        description: `Fel: ${error instanceof Error ? error.message : 'Okänt fel'}`,
+        title: copy.errorTitle,
+        description: `${copy.errorTitle}: ${error instanceof Error ? error.message : copy.unknownError}`,
         variant: 'destructive',
       })
     }
@@ -120,7 +169,7 @@ export default function SimpleTestPage() {
       <header className="gradient-primary text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <h1 className="text-3xl font-bold">Trainomics</h1>
-          <p className="text-white/90 mt-1">Enkel Test</p>
+          <p className="text-white/90 mt-1">{copy.subtitle}</p>
         </div>
       </header>
 
@@ -128,19 +177,19 @@ export default function SimpleTestPage() {
         {!showReport ? (
           <Card>
             <CardHeader>
-              <CardTitle>Testa beräkningsmotorn</CardTitle>
+              <CardTitle>{copy.cardTitle}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <p className="text-muted-foreground">
-                Klicka på knappen nedan för att generera en testrapport med fördefinierad data.
+                {copy.description}
               </p>
               <Button
-                onClick={handleGenerateReport}
+                onClick={() => void handleGenerateReport()}
                 size="lg"
                 className="w-full"
               >
                 <Rocket className="w-5 h-5 mr-2" />
-                Generera Testrapport
+                {copy.generate}
               </Button>
             </CardContent>
           </Card>
@@ -149,11 +198,11 @@ export default function SimpleTestPage() {
             <div className="mb-4 flex gap-4 print:hidden">
               <Button variant="outline" onClick={() => setShowReport(false)}>
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Tillbaka
+                {copy.back}
               </Button>
               <Button variant="secondary" onClick={() => window.print()}>
                 <Printer className="w-4 h-4 mr-2" />
-                Skriv ut
+                {copy.print}
               </Button>
               {reportData && (
                 <PDFExportButton

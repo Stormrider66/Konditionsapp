@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  LineChart,
   Line,
   XAxis,
   YAxis,
@@ -10,10 +9,10 @@ import {
   Legend,
   ResponsiveContainer,
   ReferenceLine,
-  Area,
   ComposedChart,
 } from 'recharts'
 import { TestStage, PowerZone } from '@/types'
+import { useLocale } from '@/i18n/client'
 
 interface PowerChartProps {
   data: TestStage[]
@@ -23,13 +22,58 @@ interface PowerChartProps {
   height?: number
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  titles: {
+    powerCadence: string
+    powerLactate: string
+  }
+  labels: {
+    power: string
+    cadence: string
+    heartRateAxis: string
+    heartRate: string
+    lactate: string
+  }
+}> = {
+  en: {
+    titles: {
+      powerCadence: 'Power and Cadence',
+      powerLactate: 'Power and Lactate',
+    },
+    labels: {
+      power: 'Power (watts)',
+      cadence: 'Cadence (rpm)',
+      heartRateAxis: 'Heart rate (bpm)',
+      heartRate: 'Heart rate',
+      lactate: 'Lactate',
+    },
+  },
+  sv: {
+    titles: {
+      powerCadence: 'Effekt och Kadens',
+      powerLactate: 'Effekt och Laktat',
+    },
+    labels: {
+      power: 'Effekt (watt)',
+      cadence: 'Kadens (rpm)',
+      heartRateAxis: 'Puls (slag/min)',
+      heartRate: 'Puls',
+      lactate: 'Laktat',
+    },
+  },
+}
+
 export function PowerChart({
   data,
   ftp,
-  powerZones,
+  powerZones: _powerZones,
   showLegend = true,
   height = 400
 }: PowerChartProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const chartData = data.map((stage) => ({
     power: stage.power || 0,
     cadence: stage.cadence || 0,
@@ -38,29 +82,18 @@ export function PowerChart({
     wattsPerKg: stage.wattsPerKg || 0,
   }))
 
-  // Färger för power zones (från blå/grön till röd)
-  const zoneColors = [
-    '#a0d8f1', // Zon 1 - ljusblå
-    '#90c9e8', // Zon 2 - blå
-    '#6eb5d9', // Zon 3 - mellanbå
-    '#f9d71c', // Zon 4 - gul (FTP)
-    '#ff8c42', // Zon 5 - orange
-    '#ff6b6b', // Zon 6 - röd
-    '#e63946', // Zon 7 - mörkröd
-  ]
-
   return (
     <div className="space-y-4">
-      {/* Power och Cadence Chart */}
+      {/* Power and cadence chart */}
       <div className="w-full bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-2">Effekt och Kadens</h3>
+        <h3 className="text-lg font-semibold mb-2">{copy.titles.powerCadence}</h3>
         <ResponsiveContainer width="100%" height={height}>
           <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
             <XAxis
               dataKey="power"
               label={{
-                value: 'Effekt (watt)',
+                value: copy.labels.power,
                 position: 'insideBottom',
                 offset: -15,
                 style: { fontSize: '14px', fontWeight: 500 },
@@ -70,7 +103,7 @@ export function PowerChart({
             <YAxis
               yAxisId="left"
               label={{
-                value: 'Kadens (rpm)',
+                value: copy.labels.cadence,
                 angle: -90,
                 position: 'insideLeft',
                 style: { fontSize: '14px', fontWeight: 500 },
@@ -81,7 +114,7 @@ export function PowerChart({
               yAxisId="right"
               orientation="right"
               label={{
-                value: 'Puls (slag/min)',
+                value: copy.labels.heartRateAxis,
                 angle: 90,
                 position: 'insideRight',
                 style: { fontSize: '14px', fontWeight: 500 },
@@ -126,7 +159,7 @@ export function PowerChart({
               type="monotone"
               dataKey="cadence"
               stroke="#667eea"
-              name="Kadens (rpm)"
+              name={copy.labels.cadence}
               strokeWidth={2}
               dot={{ fill: '#667eea', r: 4 }}
               activeDot={{ r: 6 }}
@@ -136,7 +169,7 @@ export function PowerChart({
               type="monotone"
               dataKey="heartRate"
               stroke="#4caf50"
-              name="Puls"
+              name={copy.labels.heartRate}
               strokeWidth={2}
               dot={{ fill: '#4caf50', r: 4 }}
               activeDot={{ r: 6 }}
@@ -145,16 +178,16 @@ export function PowerChart({
         </ResponsiveContainer>
       </div>
 
-      {/* Laktat Chart */}
+      {/* Lactate chart */}
       <div className="w-full bg-white p-4 rounded-lg shadow">
-        <h3 className="text-lg font-semibold mb-2">Effekt och Laktat</h3>
+        <h3 className="text-lg font-semibold mb-2">{copy.titles.powerLactate}</h3>
         <ResponsiveContainer width="100%" height={height}>
           <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 60 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
             <XAxis
               dataKey="power"
               label={{
-                value: 'Effekt (watt)',
+                value: copy.labels.power,
                 position: 'insideBottom',
                 offset: -15,
                 style: { fontSize: '14px', fontWeight: 500 },
@@ -164,7 +197,7 @@ export function PowerChart({
             <YAxis
               yAxisId="left"
               label={{
-                value: 'Laktat (mmol/L)',
+                value: `${copy.labels.lactate} (mmol/L)`,
                 angle: -90,
                 position: 'insideLeft',
                 style: { fontSize: '14px', fontWeight: 500 },
@@ -220,7 +253,7 @@ export function PowerChart({
               type="monotone"
               dataKey="lactate"
               stroke="#ff6b6b"
-              name="Laktat"
+              name={copy.labels.lactate}
               strokeWidth={2}
               dot={{ fill: '#ff6b6b', r: 4 }}
               activeDot={{ r: 6 }}

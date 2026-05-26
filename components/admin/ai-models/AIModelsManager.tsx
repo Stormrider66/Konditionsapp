@@ -15,6 +15,7 @@ import {
 import { RefreshCw, Bot } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
+import { useLocale } from '@/i18n/client'
 
 interface AIModel {
   id: string
@@ -41,8 +42,89 @@ const providerNames: Record<string, string> = {
   OPENAI: 'OpenAI',
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  toasts: {
+    updated: string
+    accessDescription: (modelName: string, available: boolean) => string
+    updateFailed: string
+    retry: string
+  }
+  description: string
+  refresh: string
+  modelCount: (count: number) => string
+  headers: {
+    model: string
+    modelId: string
+    active: string
+    default: string
+    athleteAccess: string
+    price: string
+  }
+  badges: {
+    yes: string
+    no: string
+    default: string
+  }
+  empty: string
+}> = {
+  en: {
+    toasts: {
+      updated: 'Model updated',
+      accessDescription: (modelName, available) => `${modelName} is ${available ? 'available' : 'not available'} for athletes`,
+      updateFailed: 'Could not update',
+      retry: 'Please try again later.',
+    },
+    description: 'Manage which AI models are available to athletes. These toggles control global availability; coaches can restrict further.',
+    refresh: 'Refresh',
+    modelCount: (count) => `${count} ${count === 1 ? 'model' : 'models'}`,
+    headers: {
+      model: 'Model',
+      modelId: 'Model ID',
+      active: 'Active',
+      default: 'Default',
+      athleteAccess: 'Athlete access',
+      price: 'Price (per 1K tokens)',
+    },
+    badges: {
+      yes: 'Yes',
+      no: 'No',
+      default: 'Default',
+    },
+    empty: 'No AI models were found in the database.',
+  },
+  sv: {
+    toasts: {
+      updated: 'Modell uppdaterad',
+      accessDescription: (modelName, available) => `${modelName} ${available ? 'tillgänglig' : 'inte tillgänglig'} för atleter`,
+      updateFailed: 'Kunde inte uppdatera',
+      retry: 'Försök igen senare.',
+    },
+    description: 'Hantera vilka AI-modeller som är tillgängliga för atleter. Togglarna styr den globala tillgängligheten — coacher kan ytterligare begränsa.',
+    refresh: 'Uppdatera',
+    modelCount: (count) => `${count} ${count === 1 ? 'modell' : 'modeller'}`,
+    headers: {
+      model: 'Modell',
+      modelId: 'Model ID',
+      active: 'Aktiv',
+      default: 'Standard',
+      athleteAccess: 'Atlet-tillgång',
+      price: 'Pris (per 1K tokens)',
+    },
+    badges: {
+      yes: 'Ja',
+      no: 'Nej',
+      default: 'Standard',
+    },
+    empty: 'Inga AI-modeller hittades i databasen.',
+  },
+}
+
 export function AIModelsManager() {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [models, setModels] = useState<AIModel[]>([])
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState<string | null>(null)
@@ -62,7 +144,7 @@ export function AIModelsManager() {
   }, [])
 
   useEffect(() => {
-    fetchModels()
+    void Promise.resolve().then(fetchModels)
   }, [fetchModels])
 
   async function handleToggleAthleteAccess(modelId: string, availableForAthletes: boolean) {
@@ -79,15 +161,15 @@ export function AIModelsManager() {
           prev.map(m => m.id === modelId ? { ...m, availableForAthletes } : m)
         )
         toast({
-          title: 'Modell uppdaterad',
-          description: `${data.data.displayName} ${availableForAthletes ? 'tillgänglig' : 'inte tillgänglig'} för atleter`,
+          title: copy.toasts.updated,
+          description: copy.toasts.accessDescription(data.data.displayName, availableForAthletes),
         })
       }
     } catch (error) {
       console.error('Failed to update model:', error)
       toast({
-        title: 'Kunde inte uppdatera',
-        description: 'Försök igen senare.',
+        title: copy.toasts.updateFailed,
+        description: copy.toasts.retry,
         variant: 'destructive',
       })
     } finally {
@@ -121,13 +203,12 @@ export function AIModelsManager() {
                 AI Models
               </CardTitle>
               <CardDescription>
-                Hantera vilka AI-modeller som är tillgängliga för atleter.
-                Togglarna styr den globala tillgängligheten — coacher kan ytterligare begränsa.
+                {copy.description}
               </CardDescription>
             </div>
-            <Button variant="outline" size="sm" onClick={fetchModels}>
+            <Button variant="outline" size="sm" onClick={() => void fetchModels()}>
               <RefreshCw className="h-4 w-4 mr-1" />
-              Uppdatera
+              {copy.refresh}
             </Button>
           </div>
         </CardHeader>
@@ -139,19 +220,19 @@ export function AIModelsManager() {
                   {providerNames[provider]}
                 </Badge>
                 <span className="text-muted-foreground">
-                  ({providerModels.length} modeller)
+                  ({copy.modelCount(providerModels.length)})
                 </span>
               </h3>
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Modell</TableHead>
-                      <TableHead>Model ID</TableHead>
-                      <TableHead className="text-center">Aktiv</TableHead>
-                      <TableHead className="text-center">Standard</TableHead>
-                      <TableHead className="text-center">Atlet-tillgång</TableHead>
-                      <TableHead className="text-right">Pris (per 1K tokens)</TableHead>
+                      <TableHead>{copy.headers.model}</TableHead>
+                      <TableHead>{copy.headers.modelId}</TableHead>
+                      <TableHead className="text-center">{copy.headers.active}</TableHead>
+                      <TableHead className="text-center">{copy.headers.default}</TableHead>
+                      <TableHead className="text-center">{copy.headers.athleteAccess}</TableHead>
+                      <TableHead className="text-right">{copy.headers.price}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -163,12 +244,12 @@ export function AIModelsManager() {
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant={model.isActive ? 'default' : 'secondary'} className="text-xs">
-                            {model.isActive ? 'Ja' : 'Nej'}
+                            {model.isActive ? copy.badges.yes : copy.badges.no}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-center">
                           {model.isDefault && (
-                            <Badge className="bg-amber-100 text-amber-700 text-xs">Standard</Badge>
+                            <Badge className="bg-amber-100 text-amber-700 text-xs">{copy.badges.default}</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-center">
@@ -195,7 +276,7 @@ export function AIModelsManager() {
 
           {models.length === 0 && (
             <p className="text-center text-muted-foreground py-8">
-              Inga AI-modeller hittades i databasen.
+              {copy.empty}
             </p>
           )}
         </CardContent>

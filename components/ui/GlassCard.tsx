@@ -26,10 +26,10 @@ export function GlassCard({ children, className, gradient = false, glow = 'none'
                 // Base layout
                 "overflow-hidden relative shadow-xl backdrop-blur-xl transition-all duration-300 rounded-[2rem] border border-slate-200/80 dark:border-white/10",
 
-                // Dark Mode (Fitapp Mörk)
+                // Dark mode
                 "dark:bg-slate-900/60 dark:ring-1 dark:ring-white/10 dark:shadow-slate-900/20",
 
-                // Light Mode (Minimalistik Vit)
+                // Light mode
                 "bg-white/85 shadow-slate-200/50",
 
                 // Gradient options
