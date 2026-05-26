@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useLocale } from '@/i18n/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -70,7 +71,14 @@ interface Exercise {
   nameSv: string | null
 }
 
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export function VideoAnalysisList() {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const searchParams = useSearchParams()
   const initialAnalysisId = searchParams.get('analysisId')
   const [analyses, setAnalyses] = useState<VideoAnalysis[]>([])
@@ -96,18 +104,18 @@ export function VideoAnalysisList() {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Kunde inte hämta analyser')
+        throw new Error(data.error || copy(locale, 'Could not fetch analyses', 'Kunde inte hämta analyser'))
       }
 
       setAnalyses(data.analyses || [])
     } catch (error) {
       // Toast is called outside the dependency array to prevent infinite loops
-      const errorMessage = error instanceof Error ? error.message : 'Kunde inte hämta analyser'
+      const errorMessage = error instanceof Error ? error.message : copy(locale, 'Could not fetch analyses', 'Kunde inte hämta analyser')
       console.error('Failed to fetch analyses:', errorMessage)
     } finally {
       setIsLoading(false)
     }
-  }, [statusFilter, typeFilter, athleteFilter])
+  }, [athleteFilter, locale, statusFilter, typeFilter])
 
   const fetchAthletes = async () => {
     try {
@@ -143,9 +151,11 @@ export function VideoAnalysisList() {
   }
 
   useEffect(() => {
-    void fetchAnalyses()
-    void fetchAthletes()
-    void fetchExercises()
+    void Promise.resolve().then(() => {
+      void fetchAnalyses()
+      void fetchAthletes()
+      void fetchExercises()
+    })
   }, [fetchAnalyses])
 
   // Filter analyses by search query
@@ -179,15 +189,15 @@ export function VideoAnalysisList() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
             <Video className="h-6 w-6 text-blue-500" />
-            Videoanalys
+            {copy(locale, 'Video analysis', 'Videoanalys')}
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Ladda upp videos för AI-driven teknikanalys
+            {copy(locale, 'Upload videos for AI-driven technique analysis', 'Ladda upp videos för AI-driven teknikanalys')}
           </p>
         </div>
         <Button onClick={() => setShowUploader(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
           <Upload className="h-4 w-4 mr-2" />
-          Ladda upp video
+          {copy(locale, 'Upload video', 'Ladda upp video')}
         </Button>
       </div>
 
@@ -196,7 +206,7 @@ export function VideoAnalysisList() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
           <Input
-            placeholder="Sök på atlet eller övning..."
+            placeholder={copy(locale, 'Search by athlete or exercise...', 'Sök på atlet eller övning...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
@@ -209,11 +219,11 @@ export function VideoAnalysisList() {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alla status</SelectItem>
-              <SelectItem value="PENDING">Väntar</SelectItem>
-              <SelectItem value="PROCESSING">Bearbetar</SelectItem>
-              <SelectItem value="COMPLETED">Klara</SelectItem>
-              <SelectItem value="FAILED">Misslyckade</SelectItem>
+              <SelectItem value="all">{copy(locale, 'All statuses', 'Alla status')}</SelectItem>
+              <SelectItem value="PENDING">{copy(locale, 'Pending', 'Väntar')}</SelectItem>
+              <SelectItem value="PROCESSING">{copy(locale, 'Processing', 'Bearbetar')}</SelectItem>
+              <SelectItem value="COMPLETED">{copy(locale, 'Completed', 'Klara')}</SelectItem>
+              <SelectItem value="FAILED">{copy(locale, 'Failed', 'Misslyckade')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -222,14 +232,14 @@ export function VideoAnalysisList() {
               <SelectValue placeholder="Typ" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alla typer</SelectItem>
-              <SelectItem value="STRENGTH">Styrkeövning</SelectItem>
-              <SelectItem value="RUNNING_GAIT">Löpteknik</SelectItem>
-              <SelectItem value="SKIING_CLASSIC">Skidåkning - Klassisk</SelectItem>
-              <SelectItem value="SKIING_SKATING">Skidåkning - Skating</SelectItem>
-              <SelectItem value="SKIING_DOUBLE_POLE">Skidåkning - Dubbelstakning</SelectItem>
+              <SelectItem value="all">{copy(locale, 'All types', 'Alla typer')}</SelectItem>
+              <SelectItem value="STRENGTH">{copy(locale, 'Strength exercise', 'Styrkeövning')}</SelectItem>
+              <SelectItem value="RUNNING_GAIT">{copy(locale, 'Running gait', 'Löpteknik')}</SelectItem>
+              <SelectItem value="SKIING_CLASSIC">{copy(locale, 'Skiing - Classic', 'Skidåkning - Klassisk')}</SelectItem>
+              <SelectItem value="SKIING_SKATING">{copy(locale, 'Skiing - Skating', 'Skidåkning - Skating')}</SelectItem>
+              <SelectItem value="SKIING_DOUBLE_POLE">{copy(locale, 'Skiing - Double poling', 'Skidåkning - Dubbelstakning')}</SelectItem>
               <SelectItem value="HYROX_STATION">HYROX Station</SelectItem>
-              <SelectItem value="SPORT_SPECIFIC">Sportspecifik</SelectItem>
+              <SelectItem value="SPORT_SPECIFIC">{copy(locale, 'Sport specific', 'Sportspecifik')}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -238,7 +248,7 @@ export function VideoAnalysisList() {
               <SelectValue placeholder="Atlet" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Alla atleter</SelectItem>
+              <SelectItem value="all">{copy(locale, 'All athletes', 'Alla atleter')}</SelectItem>
               {athletes.map((athlete) => (
                 <SelectItem key={athlete.id} value={athlete.id}>
                   {athlete.name}
@@ -261,16 +271,16 @@ export function VideoAnalysisList() {
         <GlassCard glow="blue" className="text-center py-12 border border-slate-200 dark:border-white/5">
           <GlassCardContent>
             <VideoOff className="h-12 w-12 mx-auto text-slate-450 mb-4" />
-            <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-white">Inga videoanalyser</h3>
+            <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-white">{copy(locale, 'No video analyses', 'Inga videoanalyser')}</h3>
             <p className="text-slate-600 dark:text-slate-400 mb-4">
               {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || athleteFilter !== 'all'
-                ? 'Inga analyser matchar dina filter'
-                : 'Ladda upp din första video för AI-analys'}
+                ? copy(locale, 'No analyses match your filters', 'Inga analyser matchar dina filter')
+                : copy(locale, 'Upload your first video for AI analysis', 'Ladda upp din första video för AI-analys')}
             </p>
             {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && athleteFilter === 'all' && (
               <Button onClick={() => setShowUploader(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
                 <Upload className="h-4 w-4 mr-2" />
-                Ladda upp video
+                {copy(locale, 'Upload video', 'Ladda upp video')}
               </Button>
             )}
           </GlassCardContent>
