@@ -116,7 +116,6 @@ const EXPLICIT_MAPPINGS: Record<string, string[]> = {
   'Tåhävningar (raka ben)': ['tahavningar-raka-ben'],
   'Tåhävningar (böjda ben)': ['tahavningar-bojda-ben'],
   'Enbenig tåhävning': ['enbenig-tahavning'],
-  'Farmer\'s Walk': ['farmers-carry'],
   'Farmer\'s Carry (HYROX)': ['farmers-carry-hyrox'],
   'Hopprep': ['hopprep', 'jump-rope'],
   'Låga lådhopp': ['laga-ladhopp', 'low-box-jumps'],
