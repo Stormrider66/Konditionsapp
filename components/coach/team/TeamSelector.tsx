@@ -23,6 +23,7 @@ import { Loader2, Users } from 'lucide-react'
 import { SportType } from '@/types'
 import { getSportLabel } from '@/lib/sports/catalog'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import { useLocale } from '@/i18n/client'
 
 interface Team {
   id: string
@@ -45,15 +46,39 @@ interface TeamSelectorProps {
   className?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  placeholder: string
+  loading: string
+  empty: string
+  noOrganization: string
+}> = {
+  en: {
+    placeholder: 'Select team...',
+    loading: 'Loading teams...',
+    empty: 'No teams found',
+    noOrganization: 'No organization',
+  },
+  sv: {
+    placeholder: 'Välj lag...',
+    loading: 'Laddar lag...',
+    empty: 'Inga lag hittades',
+    noOrganization: 'Utan organisation',
+  },
+}
+
 export function TeamSelector({
   value,
   onValueChange,
-  placeholder = 'Välj lag...',
+  placeholder,
   disabled = false,
   showMemberCount = true,
   showSportBadge = true,
   className,
 }: TeamSelectorProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
   const [teams, setTeams] = useState<Team[]>([])
   const [loading, setLoading] = useState(true)
   const pathname = usePathname()
@@ -83,7 +108,7 @@ export function TeamSelector({
   // Group teams by organization
   const groupedTeams = teams.reduce(
     (acc, team) => {
-      const orgName = team.organization?.name || 'Utan organisation'
+      const orgName = team.organization?.name || copy.noOrganization
       if (!acc[orgName]) {
         acc[orgName] = []
       }
@@ -94,8 +119,9 @@ export function TeamSelector({
   )
 
   const hasOrganizations = Object.keys(groupedTeams).some(
-    (key) => key !== 'Utan organisation'
+    (key) => key !== copy.noOrganization
   )
+  const selectedPlaceholder = placeholder ?? copy.placeholder
 
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled || loading}>
@@ -103,16 +129,16 @@ export function TeamSelector({
         {loading ? (
           <div className="flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-muted-foreground">Laddar lag...</span>
+            <span className="text-muted-foreground">{copy.loading}</span>
           </div>
         ) : (
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={selectedPlaceholder} />
         )}
       </SelectTrigger>
       <SelectContent>
         {teams.length === 0 ? (
           <div className="p-2 text-sm text-muted-foreground text-center">
-            Inga lag hittades
+            {copy.empty}
           </div>
         ) : hasOrganizations ? (
           // Render with organization groups
@@ -133,7 +159,7 @@ export function TeamSelector({
                     )}
                     {showSportBadge && team.sportType && (
                       <Badge variant="outline" className="text-xs">
-                        {getSportLabel(team.sportType, 'sv')}
+                        {getSportLabel(team.sportType, locale)}
                       </Badge>
                     )}
                   </div>
@@ -155,7 +181,7 @@ export function TeamSelector({
                 )}
                 {showSportBadge && team.sportType && (
                   <Badge variant="outline" className="text-xs">
-                    {getSportLabel(team.sportType, 'sv')}
+                    {getSportLabel(team.sportType, locale)}
                   </Badge>
                 )}
               </div>

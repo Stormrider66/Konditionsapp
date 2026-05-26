@@ -11,9 +11,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useLocale } from '@/i18n/client'
 
 const ALL_VALUE = 'all'
 const NONE_VALUE = 'none'
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  team: string
+  year: string
+  noTeam: string
+  noYear: string
+  allTeams: string
+  allYears: string
+}> = {
+  en: {
+    team: 'Team',
+    year: 'Year',
+    noTeam: 'No team',
+    noYear: 'No year',
+    allTeams: 'All teams',
+    allYears: 'All years',
+  },
+  sv: {
+    team: 'Lag',
+    year: 'År',
+    noTeam: 'Inget lag',
+    noYear: 'Inget år',
+    allTeams: 'Alla lag',
+    allYears: 'Alla år',
+  },
+}
 
 export interface WorkoutLibraryTeamOption {
   id: string
@@ -114,11 +142,13 @@ export function WorkoutTeamYearFields({
   className,
   labels,
 }: WorkoutTeamYearFieldsProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const defaults = COPY[locale]
   const copy = {
-    team: labels?.team ?? 'Lag',
-    year: labels?.year ?? 'År',
-    noTeam: labels?.noTeam ?? 'Inget lag',
-    noYear: labels?.noYear ?? 'Inget år',
+    team: labels?.team ?? defaults.team,
+    year: labels?.year ?? defaults.year,
+    noTeam: labels?.noTeam ?? defaults.noTeam,
+    noYear: labels?.noYear ?? defaults.noYear,
   }
 
   return (
@@ -188,8 +218,10 @@ export function WorkoutTeamYearFilters({
   className,
   labels,
 }: WorkoutTeamYearFiltersProps) {
-  const allTeams = labels?.allTeams ?? 'Alla lag'
-  const allYears = labels?.allYears ?? 'Alla år'
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const defaults = COPY[locale]
+  const allTeams = labels?.allTeams ?? defaults.allTeams
+  const allYears = labels?.allYears ?? defaults.allYears
 
   return (
     <div className={className ?? 'flex flex-col gap-3 sm:flex-row'}>
