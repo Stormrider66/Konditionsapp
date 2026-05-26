@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
+import { useLocale } from '@/i18n/client';
 import {
   Dialog,
   DialogContent,
@@ -70,6 +71,12 @@ interface CardioSessionAssignmentDialogProps {
   businessId?: string;
 }
 
+type AppLocale = 'en' | 'sv';
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en;
+}
+
 export function CardioSessionAssignmentDialog({
   sessionId,
   sessionName,
@@ -79,6 +86,7 @@ export function CardioSessionAssignmentDialog({
   onAssigned,
   businessId,
 }: CardioSessionAssignmentDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const [internalOpen, setInternalOpen] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
@@ -121,36 +129,6 @@ export function CardioSessionAssignmentDialog({
   const isControlled = controlledOpen !== undefined;
   const open = isControlled ? controlledOpen : internalOpen;
   const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
-
-  useEffect(() => {
-    if (open) {
-      fetchAthletes();
-      fetchLocations();
-      fetchTrainers();
-      // Reset form
-      setSelectedAthletes([]);
-      setSearchQuery('');
-      setAthletesExpanded(true);
-      setAssignedDate(new Date().toISOString().split('T')[0]);
-      setNotes('');
-      // Reset location & trainer
-      setSelectedLocationId('');
-      setCustomLocationName('');
-      setUseCustomLocation(false);
-      setSelectedTrainerId('');
-      // Reset Garmin and scheduling
-      setPushToGarmin(false);
-      setSchedulingOpen(false);
-      setStartTime('');
-      setEndTime('');
-      setLocationId('');
-      setLocationName('');
-      setCreateCalendarEvent(true);
-      // Reset repeat
-      setRepeatEnabled(false);
-      setOccurrences(DEFAULT_OCCURRENCES);
-    }
-  }, [open]);
 
   async function fetchAthletes() {
     setLoadingAthletes(true);
@@ -215,6 +193,39 @@ export function CardioSessionAssignmentDialog({
       console.error('Failed to fetch trainers:', error);
     }
   }
+
+  useEffect(() => {
+    if (!open) return;
+
+    void Promise.resolve().then(() => {
+      void fetchAthletes();
+      void fetchLocations();
+      void fetchTrainers();
+      // Reset form
+      setSelectedAthletes([]);
+      setSearchQuery('');
+      setAthletesExpanded(true);
+      setAssignedDate(new Date().toISOString().split('T')[0]);
+      setNotes('');
+      // Reset location & trainer
+      setSelectedLocationId('');
+      setCustomLocationName('');
+      setUseCustomLocation(false);
+      setSelectedTrainerId('');
+      // Reset Garmin and scheduling
+      setPushToGarmin(false);
+      setSchedulingOpen(false);
+      setStartTime('');
+      setEndTime('');
+      setLocationId('');
+      setLocationName('');
+      setCreateCalendarEvent(true);
+      // Reset repeat
+      setRepeatEnabled(false);
+      setOccurrences(DEFAULT_OCCURRENCES);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   function toggleAthlete(athleteId: string) {
     setSelectedAthletes((prev) =>
@@ -285,8 +296,16 @@ export function CardioSessionAssignmentDialog({
       if (successCount > 0) {
         let description =
           dates.length > 1
-            ? `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${totalAssignments} tilldelningar.`
-            : `Tilldelat till ${selectedAthletes.length} atlet(er).`;
+            ? copy(
+                locale,
+                `${selectedAthletes.length} athlete(s) x ${successCount} dates = ${totalAssignments} assignments.`,
+                `${selectedAthletes.length} atlet(er) × ${successCount} datum = ${totalAssignments} tilldelningar.`
+              )
+            : copy(
+                locale,
+                `Assigned to ${selectedAthletes.length} athlete(s).`,
+                `Tilldelat till ${selectedAthletes.length} atlet(er).`
+              );
 
         if (pushToGarmin) {
           let garminSuccess = 0;
@@ -299,35 +318,40 @@ export function CardioSessionAssignmentDialog({
             }
           }
           if (garminSuccess > 0) {
-            description += ` Skickat till Garmin för ${garminSuccess} pass.`;
+            description += copy(locale, ` Sent to Garmin for ${garminSuccess} sessions.`, ` Skickat till Garmin för ${garminSuccess} pass.`);
           }
           if (garminFailed > 0) {
-            description += ` Garmin-push misslyckades för ${garminFailed} pass.`;
+            description += copy(locale, ` Garmin push failed for ${garminFailed} sessions.`, ` Garmin-push misslyckades för ${garminFailed} pass.`);
           }
           if (garminSuccess === 0 && garminFailed === 0) {
-            description += ' Ingen atlet har Garmin anslutet.';
+            description += copy(locale, ' No athlete has Garmin connected.', ' Ingen atlet har Garmin anslutet.');
           }
         }
 
         if (failCount > 0) {
-          description += ` ${failCount} datum kunde inte tilldelas.`;
-          toast.warning('Delvis tilldelat', { description });
+          description += copy(locale, ` ${failCount} dates could not be assigned.`, ` ${failCount} datum kunde inte tilldelas.`);
+          toast.warning(copy(locale, 'Partially assigned', 'Delvis tilldelat'), { description });
         } else {
-          toast.success(dates.length > 1 ? 'Pass tilldelade!' : 'Pass tilldelat!', { description });
+          toast.success(
+            dates.length > 1
+              ? copy(locale, 'Sessions assigned!', 'Pass tilldelade!')
+              : copy(locale, 'Session assigned!', 'Pass tilldelat!'),
+            { description }
+          );
         }
 
         setOpen(false);
         onAssigned?.();
       } else {
         const firstError = (responses[0]?.body as { error?: string })?.error;
-        toast.error('Tilldelning misslyckades', {
-          description: firstError || 'Kunde inte tilldela passet.',
+        toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
+          description: firstError || copy(locale, 'Could not assign the session.', 'Kunde inte tilldela passet.'),
         });
       }
     } catch (error) {
       console.error('Failed to assign session:', error);
-      toast.error('Tilldelning misslyckades', {
-        description: 'Ett oväntat fel inträffade.',
+      toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
+        description: copy(locale, 'An unexpected error occurred.', 'Ett oväntat fel inträffade.'),
       });
     } finally {
       setLoading(false);
@@ -348,10 +372,12 @@ export function CardioSessionAssignmentDialog({
       <DialogHeader className="sticky top-0 z-10 border-b bg-background px-6 pt-6 pb-4">
         <DialogTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
-          Tilldela Konditionspass
+          {copy(locale, 'Assign Cardio Session', 'Tilldela Konditionspass')}
         </DialogTitle>
         <DialogDescription>
-          {sessionName ? `Tilldela "${sessionName}" till en eller flera atleter.` : 'Välj atleter att tilldela passet till.'}
+          {sessionName
+            ? copy(locale, `Assign "${sessionName}" to one or more athletes.`, `Tilldela "${sessionName}" till en eller flera atleter.`)
+            : copy(locale, 'Select athletes to assign the session to.', 'Välj atleter att tilldela passet till.')}
         </DialogDescription>
       </DialogHeader>
 
@@ -360,7 +386,7 @@ export function CardioSessionAssignmentDialog({
         <div className="space-y-2">
           <Label htmlFor="assignedDate" className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
-            Datum
+            {copy(locale, 'Date', 'Datum')}
           </Label>
           <Input
             id="assignedDate"
@@ -382,7 +408,7 @@ export function CardioSessionAssignmentDialog({
         <div className="space-y-2">
           <Label className="flex items-center gap-2">
             <MapPin className="h-4 w-4" />
-            Plats (valfritt)
+            {copy(locale, 'Location (optional)', 'Plats (valfritt)')}
           </Label>
           {locations.length > 0 && !useCustomLocation ? (
             <Select value={selectedLocationId || 'none'} onValueChange={(v) => {
@@ -397,20 +423,20 @@ export function CardioSessionAssignmentDialog({
               }
             }}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj plats..." />
+                <SelectValue placeholder={copy(locale, 'Select location...', 'Välj plats...')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen plats</SelectItem>
+                <SelectItem value="none">{copy(locale, 'No location', 'Ingen plats')}</SelectItem>
                 {locations.map((loc) => (
                   <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
                 ))}
-                <SelectItem value="custom">Annan plats...</SelectItem>
+                <SelectItem value="custom">{copy(locale, 'Other location...', 'Annan plats...')}</SelectItem>
               </SelectContent>
             </Select>
           ) : (
             <div className="space-y-1">
               <Input
-                placeholder="Ange plats (t.ex. Löparbanan, Gymmet)"
+                placeholder={copy(locale, 'Enter location (e.g. Track, Gym)', 'Ange plats (t.ex. Löparbanan, Gymmet)')}
                 value={customLocationName}
                 onChange={(e) => setCustomLocationName(e.target.value)}
               />
@@ -420,7 +446,7 @@ export function CardioSessionAssignmentDialog({
                   className="text-xs text-blue-600 hover:underline"
                   onClick={() => { setUseCustomLocation(false); setCustomLocationName(''); }}
                 >
-                  Välj från lista istället
+                  {copy(locale, 'Choose from list instead', 'Välj från lista istället')}
                 </button>
               )}
             </div>
@@ -432,14 +458,14 @@ export function CardioSessionAssignmentDialog({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <UserCheck className="h-4 w-4" />
-              Tränare (valfritt)
+              {copy(locale, 'Coach (optional)', 'Tränare (valfritt)')}
             </Label>
             <Select value={selectedTrainerId || 'none'} onValueChange={(v) => setSelectedTrainerId(v === 'none' ? '' : v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Välj tränare..." />
+                <SelectValue placeholder={copy(locale, 'Select coach...', 'Välj tränare...')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">Ingen specifik tränare</SelectItem>
+                <SelectItem value="none">{copy(locale, 'No specific coach', 'Ingen specifik tränare')}</SelectItem>
                 {trainers.map((t) => (
                   <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
                 ))}
@@ -451,23 +477,25 @@ export function CardioSessionAssignmentDialog({
         {/* Athletes Selection */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Button
+              <Button
               variant="ghost"
               size="sm"
               className="flex items-center gap-1 px-0 hover:bg-transparent"
               onClick={() => setAthletesExpanded(!athletesExpanded)}
             >
               <ChevronDown className={`h-4 w-4 transition-transform ${athletesExpanded ? 'rotate-180' : ''}`} />
-              <Label className="cursor-pointer">Atleter</Label>
+              <Label className="cursor-pointer">{copy(locale, 'Athletes', 'Atleter')}</Label>
               {!athletesExpanded && selectedAthletes.length > 0 && (
                 <span className="text-xs text-muted-foreground ml-1">
-                  ({selectedAthletes.length} valda)
+                  ({selectedAthletes.length} {copy(locale, 'selected', 'valda')})
                 </span>
               )}
             </Button>
             {athletesExpanded && (
               <Button variant="ghost" size="sm" onClick={selectAll}>
-                {selectedAthletes.length === athletes.length ? 'Avmarkera alla' : 'Markera alla'}
+                {selectedAthletes.length === athletes.length
+                  ? copy(locale, 'Clear all', 'Avmarkera alla')
+                  : copy(locale, 'Select all', 'Markera alla')}
               </Button>
             )}
           </div>
@@ -494,7 +522,7 @@ export function CardioSessionAssignmentDialog({
                 </div>
               ) : athletes.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">
-                  Inga atleter hittades. Lägg till atleter först.
+                  {copy(locale, 'No athletes found. Add athletes first.', 'Inga atleter hittades. Lägg till atleter först.')}
                 </p>
               ) : (
                 <>
@@ -502,7 +530,7 @@ export function CardioSessionAssignmentDialog({
                     <div className="relative">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
-                        placeholder="Sök atlet..."
+                        placeholder={copy(locale, 'Search athlete...', 'Sök atlet...')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-8 h-9"
@@ -534,12 +562,12 @@ export function CardioSessionAssignmentDialog({
                   </div>
                   {searchQuery && filteredAthletes.length === 0 && (
                     <p className="text-sm text-muted-foreground text-center py-2">
-                      Inga atleter matchar din sökning.
+                      {copy(locale, 'No athletes match your search.', 'Inga atleter matchar din sökning.')}
                     </p>
                   )}
                   {selectedAthletes.length > 0 && (
                     <p className="text-xs text-muted-foreground">
-                      {selectedAthletes.length} atlet(er) valda
+                      {selectedAthletes.length} {copy(locale, 'athlete(s) selected', 'atlet(er) valda')}
                     </p>
                   )}
                 </>
@@ -555,10 +583,10 @@ export function CardioSessionAssignmentDialog({
               <Watch className="h-4 w-4 text-muted-foreground" />
               <div>
                 <Label htmlFor="pushToGarmin" className="text-sm font-medium cursor-pointer">
-                  Skicka till Garmin
+                  {copy(locale, 'Send to Garmin', 'Skicka till Garmin')}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Passet visas på atletens Garmin-klocka
+                  {copy(locale, "The session appears on the athlete's Garmin watch", 'Passet visas på atletens Garmin-klocka')}
                 </p>
               </div>
             </div>
@@ -580,7 +608,7 @@ export function CardioSessionAssignmentDialog({
             >
               <span className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                Schemalägg tid (valfritt)
+                {copy(locale, 'Schedule time (optional)', 'Schemalägg tid (valfritt)')}
               </span>
               <ChevronDown className={`h-4 w-4 transition-transform ${schedulingOpen ? 'rotate-180' : ''}`} />
             </Button>
@@ -605,12 +633,12 @@ export function CardioSessionAssignmentDialog({
 
         {/* Notes */}
         <div className="space-y-2">
-          <Label htmlFor="notes">Anteckningar (valfritt)</Label>
+          <Label htmlFor="notes">{copy(locale, 'Notes (optional)', 'Anteckningar (valfritt)')}</Label>
           <Textarea
             id="notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Eventuella instruktioner till atleten..."
+            placeholder={copy(locale, 'Any instructions for the athlete...', 'Eventuella instruktioner till atleten...')}
             rows={2}
           />
         </div>
@@ -618,7 +646,7 @@ export function CardioSessionAssignmentDialog({
 
       <DialogFooter className="sticky bottom-0 z-10 border-t bg-background px-6 py-4">
         <Button variant="outline" onClick={() => setOpen(false)}>
-          Avbryt
+          {copy(locale, 'Cancel', 'Avbryt')}
         </Button>
         <Button
           onClick={handleAssign}
@@ -627,12 +655,12 @@ export function CardioSessionAssignmentDialog({
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Tilldelar...
+              {copy(locale, 'Assigning...', 'Tilldelar...')}
             </>
           ) : (
             <>
               <Users className="h-4 w-4 mr-2" />
-              Tilldela ({repeatEnabled ? `${selectedAthletes.length}×${occurrences}` : selectedAthletes.length})
+              {copy(locale, 'Assign', 'Tilldela')} ({repeatEnabled ? `${selectedAthletes.length}x${occurrences}` : selectedAthletes.length})
             </>
           )}
         </Button>
