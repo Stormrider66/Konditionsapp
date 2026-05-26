@@ -139,6 +139,23 @@ describe('Threshold Calculations', () => {
 
       expect(result?.unit).toBe('watt')
     })
+
+    it('falls back when a sparse cycling curve makes cubic D-max overshoot lactate', () => {
+      const stages: TestStage[] = [
+        { id: '1', testId: 't1', sequence: 0, duration: 3, power: 140, heartRate: 120, lactate: 2.8 },
+        { id: '2', testId: 't1', sequence: 1, duration: 3, power: 160, heartRate: 139, lactate: 2.4 },
+        { id: '3', testId: 't1', sequence: 2, duration: 3, power: 180, heartRate: 140, lactate: 3.2 },
+        { id: '4', testId: 't1', sequence: 3, duration: 4, power: 397, heartRate: 194, lactate: 25 },
+      ]
+
+      const result = calculateAnaerobicThreshold(stages)
+
+      expect(result).not.toBeNull()
+      expect(result?.unit).toBe('watt')
+      expect(result?.lactate).toBeLessThan(5)
+      expect(result?.value).toBeLessThan(210)
+      expect(result?.method).not.toBe('DMAX')
+    })
   })
 })
 

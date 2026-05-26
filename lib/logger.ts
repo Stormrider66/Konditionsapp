@@ -243,12 +243,14 @@ function log(
     case 'warn':
       console.warn(formatted)
       // Optionally capture warnings to Sentry as breadcrumbs
-      Sentry.addBreadcrumb({
-        category: 'log',
-        message: message,
-        level: 'warning',
-        data: entry.context,
-      })
+      if (typeof Sentry.addBreadcrumb === 'function') {
+        Sentry.addBreadcrumb({
+          category: 'log',
+          message: message,
+          level: 'warning',
+          data: entry.context,
+        })
+      }
       break
     case 'error':
       console.error(formatted)

@@ -15,6 +15,13 @@ const POOR_CURVE_DATA = {
   unit: 'km/h'
 }
 
+const SPARSE_HIGH_PEAK_CYCLING_DATA = {
+  intensity: [140, 160, 180, 397],
+  lactate: [2.8, 2.4, 3.2, 25],
+  heartRate: [120, 139, 140, 194],
+  unit: 'watt'
+}
+
 describe('D-max Algorithm', () => {
   it('detects threshold from known-good lactate curve', () => {
     const result = calculateDmax(KNOWN_GOOD_DATA)
@@ -34,5 +41,12 @@ describe('D-max Algorithm', () => {
     expect(result.warning).toContain('4.0 mmol/L')
     expect(result.lactate).toBe(4)
   })
-})
 
+  it('falls back when a sparse high-peak curve puts D-max near max lactate', () => {
+    const result = calculateDmax(SPARSE_HIGH_PEAK_CYCLING_DATA)
+
+    expect(result.method).toBe('FALLBACK')
+    expect(result.lactate).toBe(4)
+    expect(result.intensity).toBeCloseTo(188, 0)
+  })
+})

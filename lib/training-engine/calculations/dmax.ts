@@ -15,6 +15,10 @@ import { fitPolynomial3, PolynomialCoefficients } from '../utils/polynomial-fit'
 import { interpolateHeartRate } from '../utils/interpolation'
 import { logger } from '@/lib/logger'
 
+const MAX_PLAUSIBLE_THRESHOLD_LACTATE = 10
+const PLAUSIBILITY_FALLBACK_WARNING =
+  'D-max fitted lactate outside plausible threshold range. Using 4.0 mmol/L threshold instead.'
+
 export interface LactateTestData {
   intensity: number[];    // km/h, watts, or m/s
   lactate: number[];      // mmol/L
@@ -98,6 +102,10 @@ export function calculateDmax(data: LactateTestData): DmaxResult {
     x2
   );
 
+  if (!isFittedLactatePhysiologicallyPlausible(dmaxPoint.lactate, lactate, 'D-max')) {
+    return calculateFallbackThreshold(data, coefficients, r2, PLAUSIBILITY_FALLBACK_WARNING);
+  }
+
   // Interpolate heart rate at D-max intensity
   const dmaxHR = interpolateHeartRate(intensity, heartRate, dmaxPoint.intensity);
 
@@ -179,7 +187,8 @@ function findMaxPerpendicularDistance(
 function calculateFallbackThreshold(
   data: LactateTestData,
   coefficients: PolynomialCoefficients,
-  r2: number
+  r2: number,
+  warning?: string
 ): DmaxResult {
   const { intensity, lactate, heartRate } = data;
 
@@ -205,7 +214,7 @@ function calculateFallbackThreshold(
     method: 'FALLBACK',
     r2: parseFloat(r2.toFixed(4)),
     confidence: 'LOW',
-    warning: `Poor polynomial fit (R²=${r2.toFixed(2)}). Using 4.0 mmol/L threshold instead.`,
+    warning: warning ?? `Poor polynomial fit (R²=${r2.toFixed(2)}). Using 4.0 mmol/L threshold instead.`,
     coefficients,
     dmaxDistance: 0
   };
@@ -377,6 +386,10 @@ export function calculateModDmax(data: LactateTestData): DmaxResult {
     x2
   );
 
+  if (!isFittedLactatePhysiologicallyPlausible(dmaxPoint.lactate, lactate, 'Bishop Mod-Dmax')) {
+    return calculateFallbackThreshold(data, coefficients, r2, PLAUSIBILITY_FALLBACK_WARNING);
+  }
+
   // Interpolate heart rate at D-max intensity
   const dmaxHR = interpolateHeartRate(intensity, heartRate, dmaxPoint.intensity);
 
@@ -489,6 +502,11 @@ export function calculateDmaxByHeartRate(data: LactateTestData): DmaxResult & { 
     hr1,
     hr2
   );
+
+  if (!isFittedLactatePhysiologicallyPlausible(dmaxPoint.lactate, lactate, 'D-max by Heart Rate')) {
+    const fallback = calculateDmax(data);
+    return { ...fallback, hrBasedMethod: false };
+  }
 
   // The D-max point gives us HR at threshold
   const thresholdHR = dmaxPoint.intensity; // This is HR, not speed
@@ -651,4 +669,38 @@ function findMaxPerpendicularDistanceInRange(
   }
 
   return maxPoint;
+}
+
+function isFittedLactatePhysiologicallyPlausible(
+  fittedLactate: number,
+  observedLactate: number[],
+  method: string
+): boolean {
+  const finiteObserved = observedLactate.filter(Number.isFinite);
+
+  if (!Number.isFinite(fittedLactate) || finiteObserved.length === 0) {
+    logger.warn(`[${method}] Invalid fitted lactate value - falling back to interpolation`, {
+      fittedLactate
+    });
+    return false;
+  }
+
+  const minObserved = Math.min(...finiteObserved);
+  const maxObserved = Math.max(...finiteObserved);
+  const observedRange = maxObserved - minObserved;
+  const tolerance = Math.max(0.5, observedRange * 0.05);
+  const upperBound = Math.min(maxObserved + tolerance, MAX_PLAUSIBLE_THRESHOLD_LACTATE);
+
+  if (fittedLactate < minObserved - tolerance || fittedLactate > upperBound) {
+    logger.warn(`[${method}] Fitted lactate outside plausible threshold range - falling back to interpolation`, {
+      fittedLactate: fittedLactate.toFixed(2),
+      minObserved: minObserved.toFixed(2),
+      maxObserved: maxObserved.toFixed(2),
+      upperBound: upperBound.toFixed(2),
+      tolerance: tolerance.toFixed(2)
+    });
+    return false;
+  }
+
+  return true;
 }
