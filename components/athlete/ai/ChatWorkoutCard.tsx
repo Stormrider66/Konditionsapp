@@ -8,7 +8,7 @@ import { Player } from '@remotion/player'
 import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 import { scheduleWODToDashboard } from '@/app/actions/schedule-wod'
 import { useToast } from '@/hooks/use-toast'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ChatWorkoutCardProps {
   wodId: string
@@ -48,6 +48,7 @@ export function ChatWorkoutCard({
   previewImages = [],
 }: ChatWorkoutCardProps) {
   const t = useTranslations('components.chatWorkoutCard')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const router = useRouter()
   const { toast } = useToast()
   const [isScheduling, setIsScheduling] = useState(false)
@@ -56,7 +57,7 @@ export function ChatWorkoutCard({
   const handleSchedule = async () => {
     setIsScheduling(true)
     try {
-      const res = await scheduleWODToDashboard(wodId)
+      const res = await scheduleWODToDashboard(wodId, locale)
       
       if (res.success) {
         setIsScheduled(true)

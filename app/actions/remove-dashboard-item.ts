@@ -10,10 +10,25 @@ type RemovePayload =
   | { kind: 'program'; workoutId: string; isCustom: boolean }
   | { kind: 'assignment'; assignmentType: AssignmentType; id: string }
 
-export async function removeDashboardItem(payload: RemovePayload) {
+type AppLocale = 'en' | 'sv'
+type RemovableAssignment = {
+  athleteId: string
+  status: string
+}
+
+function resolveLocale(locale?: string | null): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
+export async function removeDashboardItem(payload: RemovePayload, localeInput?: string) {
+  const locale = resolveLocale(localeInput)
   const resolved = await resolveAthleteClientId()
   if (!resolved) {
-    return { success: false, error: 'Ej inloggad' }
+    return { success: false, error: copy(locale, 'Not signed in', 'Ej inloggad') }
   }
 
   const clientId = resolved.clientId
@@ -25,10 +40,10 @@ export async function removeDashboardItem(payload: RemovePayload) {
           where: { id: payload.id },
         })
         if (!wod || wod.clientId !== clientId) {
-          return { success: false, error: 'Passet hittades inte' }
+          return { success: false, error: copy(locale, 'Workout not found', 'Passet hittades inte') }
         }
         if (wod.status === 'COMPLETED') {
-          return { success: false, error: 'Kan inte ta bort ett slutfört pass' }
+          return { success: false, error: copy(locale, 'Cannot remove a completed workout', 'Kan inte ta bort ett slutfört pass') }
         }
         await prisma.aIGeneratedWOD.update({
           where: { id: payload.id },
@@ -46,10 +61,10 @@ export async function removeDashboardItem(payload: RemovePayload) {
           },
         })
         if (!workout || workout.day.week.program.clientId !== clientId) {
-          return { success: false, error: 'Passet hittades inte' }
+          return { success: false, error: copy(locale, 'Workout not found', 'Passet hittades inte') }
         }
         if (workout.logs.length > 0) {
-          return { success: false, error: 'Kan inte ta bort ett slutfört pass' }
+          return { success: false, error: copy(locale, 'Cannot remove a completed workout', 'Kan inte ta bort ett slutfört pass') }
         }
         if (payload.isCustom && workout.isCustom) {
           await prisma.workout.delete({ where: { id: payload.workoutId } })
@@ -63,20 +78,14 @@ export async function removeDashboardItem(payload: RemovePayload) {
       }
 
       case 'assignment': {
-        const table = getAssignmentTable(payload.assignmentType)
-        const assignment = await (prisma as any)[table].findUnique({
-          where: { id: payload.id },
-        })
+        const assignment = await findAssignment(payload.assignmentType, payload.id)
         if (!assignment || assignment.athleteId !== clientId) {
-          return { success: false, error: 'Uppgiften hittades inte' }
+          return { success: false, error: copy(locale, 'Assignment not found', 'Uppgiften hittades inte') }
         }
         if (assignment.status === 'COMPLETED') {
-          return { success: false, error: 'Kan inte ta bort en slutförd uppgift' }
+          return { success: false, error: copy(locale, 'Cannot remove a completed assignment', 'Kan inte ta bort en slutförd uppgift') }
         }
-        await (prisma as any)[table].update({
-          where: { id: payload.id },
-          data: { status: 'SKIPPED' },
-        })
+        await skipAssignment(payload.assignmentType, payload.id)
         break
       }
     }
@@ -90,11 +99,56 @@ export async function removeDashboardItem(payload: RemovePayload) {
   }
 }
 
-function getAssignmentTable(type: AssignmentType): string {
+async function findAssignment(type: AssignmentType, id: string): Promise<RemovableAssignment | null> {
   switch (type) {
-    case 'strength': return 'strengthSessionAssignment'
-    case 'cardio':   return 'cardioSessionAssignment'
-    case 'hybrid':   return 'hybridWorkoutAssignment'
-    case 'agility':  return 'agilityWorkoutAssignment'
+    case 'strength':
+      return prisma.strengthSessionAssignment.findUnique({
+        where: { id },
+        select: { athleteId: true, status: true },
+      })
+    case 'cardio':
+      return prisma.cardioSessionAssignment.findUnique({
+        where: { id },
+        select: { athleteId: true, status: true },
+      })
+    case 'hybrid':
+      return prisma.hybridWorkoutAssignment.findUnique({
+        where: { id },
+        select: { athleteId: true, status: true },
+      })
+    case 'agility':
+      return prisma.agilityWorkoutAssignment.findUnique({
+        where: { id },
+        select: { athleteId: true, status: true },
+      })
+  }
+}
+
+async function skipAssignment(type: AssignmentType, id: string) {
+  switch (type) {
+    case 'strength':
+      await prisma.strengthSessionAssignment.update({
+        where: { id },
+        data: { status: 'SKIPPED' },
+      })
+      break
+    case 'cardio':
+      await prisma.cardioSessionAssignment.update({
+        where: { id },
+        data: { status: 'SKIPPED' },
+      })
+      break
+    case 'hybrid':
+      await prisma.hybridWorkoutAssignment.update({
+        where: { id },
+        data: { status: 'SKIPPED' },
+      })
+      break
+    case 'agility':
+      await prisma.agilityWorkoutAssignment.update({
+        where: { id },
+        data: { status: 'SKIPPED' },
+      })
+      break
   }
 }

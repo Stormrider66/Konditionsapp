@@ -6,13 +6,39 @@ import { logger } from '@/lib/logger'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
 
-export async function scheduleWODToDashboard(wodId: string) {
+type AppLocale = 'en' | 'sv'
+type WodSection = {
+  type?: string
+  duration?: number
+  name?: string
+  exercises?: {
+    exerciseId?: string
+    sets?: number
+    reps?: number
+    weight?: number
+  }[]
+}
+
+type WodJson = {
+  sections?: WodSection[]
+}
+
+function resolveLocale(locale?: string | null): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
+export async function scheduleWODToDashboard(wodId: string, localeInput?: string) {
+  const locale = resolveLocale(localeInput)
   try {
     // 1. Authenticate and resolve correct clientId (handles both ATHLETE and COACH in athlete mode)
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return { success: false, error: 'Ej inloggad' }
+      return { success: false, error: copy(locale, 'Not signed in', 'Ej inloggad') }
     }
 
     const clientId = resolved.clientId
@@ -23,7 +49,7 @@ export async function scheduleWODToDashboard(wodId: string) {
       select: { userId: true },
     })
     if (!clientRecord) {
-      return { success: false, error: 'Klientprofil saknas' }
+      return { success: false, error: copy(locale, 'Client profile is missing', 'Klientprofil saknas') }
     }
     const coachId = clientRecord.userId
 
@@ -33,7 +59,7 @@ export async function scheduleWODToDashboard(wodId: string) {
     })
 
     if (!wod || wod.clientId !== clientId) {
-      return { success: false, error: 'Passet hittades inte' }
+      return { success: false, error: copy(locale, 'Workout not found', 'Passet hittades inte') }
     }
 
     // 3. Find today's Training Day for this athlete (auto-create if needed)
@@ -59,7 +85,7 @@ export async function scheduleWODToDashboard(wodId: string) {
         data: {
           clientId,
           coachId,
-          name: 'Personlig Träning',
+          name: copy(locale, 'Personal Training', 'Personlig Träning'),
           startDate: now,
           endDate: new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()),
           isActive: true,
@@ -87,8 +113,8 @@ export async function scheduleWODToDashboard(wodId: string) {
     const targetDayId = todayDay.id
 
     // 4. Parse the WOD JSON structure
-    const workoutData = wod.workoutJson as any
-    const sections = workoutData.sections || []
+    const workoutData = wod.workoutJson as WodJson | null
+    const sections = Array.isArray(workoutData?.sections) ? workoutData.sections : []
 
     // Map workoutType to WorkoutType enum
     const typeMap: Record<string, 'STRENGTH' | 'RUNNING' | 'CYCLING' | 'SWIMMING' | 'HYROX' | 'CORE' | 'OTHER'> = {
@@ -110,11 +136,11 @@ export async function scheduleWODToDashboard(wodId: string) {
     const wIntensity = wod.intensityAdjusted ? (intensityMap[wod.intensityAdjusted] || 'MODERATE') : 'MODERATE'
 
     const categoryMap: Record<string, string> = {
-      STRENGTH: 'STYRKA',
-      RUNNING: 'LÖPNING',
-      HYROX: 'EXPLOSIVITET',
-      CORE: 'CORE STABILITET',
-      OTHER: 'TRÄNING'
+      STRENGTH: copy(locale, 'STRENGTH', 'STYRKA'),
+      RUNNING: copy(locale, 'RUNNING', 'LÖPNING'),
+      HYROX: copy(locale, 'EXPLOSIVENESS', 'EXPLOSIVITET'),
+      CORE: copy(locale, 'CORE STABILITY', 'CORE STABILITET'),
+      OTHER: copy(locale, 'TRAINING', 'TRÄNING')
     }
 
     // 5. Create the official Workout record
@@ -129,11 +155,11 @@ export async function scheduleWODToDashboard(wodId: string) {
         status: 'PLANNED',
         isCustom: true,
         heroTitle: wod.title,
-        heroDescription: wod.subtitle || wod.description || 'AI Genererat pass',
-        heroCategory: categoryMap[wType] || 'STYRKA',
+        heroDescription: wod.subtitle || wod.description || copy(locale, 'AI-generated workout', 'AI Genererat pass'),
+        heroCategory: categoryMap[wType] || copy(locale, 'STRENGTH', 'STYRKA'),
         focusGeneratedBy: 'AI',
         segments: {
-          create: sections.map((section: any, sIdx: number) => ({
+          create: sections.map((section, sIdx) => ({
             order: sIdx + 1,
             type: section.type === 'WARMUP' ? 'warmup' : section.type === 'COOLDOWN' ? 'cooldown' : 'work',
             duration: section.duration,
@@ -141,8 +167,8 @@ export async function scheduleWODToDashboard(wodId: string) {
             description: section.name,
             exerciseId: section.exercises?.[0]?.exerciseId,
             sets: section.exercises?.[0]?.sets,
-            repsCount: section.exercises?.[0]?.reps,
-            weight: section.exercises?.[0]?.weight,
+            repsCount: section.exercises?.[0]?.reps?.toString(),
+            weight: section.exercises?.[0]?.weight?.toString(),
           }))
         }
       }

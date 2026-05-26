@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { HeroWorkoutCard } from './HeroWorkoutCard'
 import { AssignmentHeroCard } from './AssignmentHeroCard'
 import { WODHeroCard } from './WODHeroCard'
@@ -36,6 +36,7 @@ function buildPayload(item: DashboardItem) {
 
 export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderProps) {
   const t = useTranslations('components.heroCardSlider')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   // Auto-focus on first incomplete item
   const initialIndex = items.findIndex(item => !isItemCompleted(item))
   const [activeIndex, setActiveIndex] = useState(Math.max(0, initialIndex))
@@ -86,7 +87,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
     }
     setIsRemoving(true)
     try {
-      const result = await removeDashboardItem(payload)
+      const result = await removeDashboardItem(payload, locale)
       if (!result.success) {
         toast.error(result.error || t('errors.removeFailed'))
       }
@@ -96,7 +97,7 @@ export function HeroCardSlider({ items, athleteName, basePath }: HeroCardSliderP
       setIsRemoving(false)
       setRemoveTarget(null)
     }
-  }, [removeTarget, t])
+  }, [locale, removeTarget, t])
 
   const handleRemoveRequest = useCallback((item: DashboardItem) => {
     setRemoveTarget(item)
