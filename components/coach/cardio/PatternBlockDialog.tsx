@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import { useLocale } from '@/i18n/client'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ interface PatternBlockDialogProps {
 }
 
 type PatternMode = 'ladder' | 'single' | 'custom' | 'combined'
+type AppLocale = 'en' | 'sv'
 
 type CombinedSlot = {
   id: string
@@ -63,6 +65,10 @@ const DEFAULT_COMBINED_SLOTS: CombinedSlot[] = [
 ]
 
 const slotId = () => `slot-${Math.random().toString(36).slice(2, 9)}`
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
 
 function parseCustomCsv(input: string): number[] {
   return input
@@ -124,6 +130,7 @@ export function PatternBlockDialog({
   equipmentLabelByValue,
   onAdd,
 }: PatternBlockDialogProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const [selected, setSelected] = useState<string[]>(DEFAULT_SELECTED)
   const [mode, setMode] = useState<PatternMode>('ladder')
 
@@ -213,19 +220,29 @@ export function PatternBlockDialog({
   }
 
   const previewLine = (() => {
-    if (totalSteps === 0) return 'Inget att förhandsgranska — kontrollera mönster och utrustning.'
+    if (totalSteps === 0) {
+      return copy(locale, 'Nothing to preview - check pattern and equipment.', 'Inget att förhandsgranska - kontrollera mönster och utrustning.')
+    }
     if (mode === 'combined') {
       const rounds = Math.max(1, Math.floor(combinedRounds || 0))
       const slotSummary = combinedSlots
         .map(s => `${s.value}${unitLabel(s.unit)} ${equipmentLabelByValue[s.equipment] || s.equipment}`)
         .join(' + ')
-      return `${rounds} runda${rounds === 1 ? '' : 'r'} × ${combinedSlots.length} steg = ${totalSteps} intervall (${slotSummary})`
+      return copy(
+        locale,
+        `${rounds} round${rounds === 1 ? '' : 's'} x ${combinedSlots.length} steps = ${totalSteps} intervals (${slotSummary})`,
+        `${rounds} runda${rounds === 1 ? '' : 'r'} x ${combinedSlots.length} steg = ${totalSteps} intervall (${slotSummary})`
+      )
     }
     const valuesPreview =
       values.length <= 8
         ? values.join(', ')
-        : `${values.slice(0, 6).join(', ')}, … (${values.length} st)`
-    return `${values.length} runda${values.length === 1 ? '' : 'r'} × ${selected.length} utrustning = ${totalSteps} intervall (${valuesPreview} ${unit})`
+        : `${values.slice(0, 6).join(', ')}, ... (${values.length} ${copy(locale, 'pcs', 'st')})`
+    return copy(
+      locale,
+      `${values.length} round${values.length === 1 ? '' : 's'} x ${selected.length} equipment = ${totalSteps} intervals (${valuesPreview} ${unit})`,
+      `${values.length} runda${values.length === 1 ? '' : 'r'} x ${selected.length} utrustning = ${totalSteps} intervall (${valuesPreview} ${unit})`
+    )
   })()
 
   const showSharedEquipment = mode !== 'combined'
@@ -235,35 +252,35 @@ export function PatternBlockDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Bygg mönsterblock</DialogTitle>
+          <DialogTitle>{copy(locale, 'Build pattern block', 'Bygg mönsterblock')}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-2">
           <div className="space-y-2">
-            <Label className="text-sm">Mönster</Label>
+            <Label className="text-sm">{copy(locale, 'Pattern', 'Mönster')}</Label>
             <RadioGroup
               value={mode}
               onValueChange={(v) => setMode(v as PatternMode)}
               className="flex flex-row flex-wrap gap-4"
             >
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <RadioGroupItem value="ladder" /> Stege
+                <RadioGroupItem value="ladder" /> {copy(locale, 'Ladder', 'Stege')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <RadioGroupItem value="single" /> Ett värde
+                <RadioGroupItem value="single" /> {copy(locale, 'Single value', 'Ett värde')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <RadioGroupItem value="custom" /> Anpassad
+                <RadioGroupItem value="custom" /> {copy(locale, 'Custom', 'Anpassad')}
               </label>
               <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <RadioGroupItem value="combined" /> Kombinerat
+                <RadioGroupItem value="combined" /> {copy(locale, 'Combined', 'Kombinerat')}
               </label>
             </RadioGroup>
           </div>
 
           {showSharedEquipment && (
             <div className="space-y-2">
-              <Label className="text-sm">Utrustning (i ordning per runda)</Label>
+              <Label className="text-sm">{copy(locale, 'Equipment (in order per round)', 'Utrustning (i ordning per runda)')}</Label>
               <div className="grid grid-cols-2 gap-2">
                 {equipmentOptions.map(opt => (
                   <label
@@ -280,7 +297,7 @@ export function PatternBlockDialog({
               </div>
               {selected.length > 1 && (
                 <p className="text-xs text-muted-foreground">
-                  Ordning: {selected.map(v => equipmentLabelByValue[v] || v).join(' → ')}
+                  {copy(locale, 'Order:', 'Ordning:')} {selected.map(v => equipmentLabelByValue[v] || v).join(' -> ')}
                 </p>
               )}
             </div>
@@ -289,7 +306,7 @@ export function PatternBlockDialog({
           {mode === 'ladder' && (
             <div className="grid grid-cols-3 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">Från</Label>
+                <Label className="text-xs text-muted-foreground">{copy(locale, 'From', 'Från')}</Label>
                 <Input
                   type="number"
                   value={Number.isFinite(from) ? from : ''}
@@ -298,7 +315,7 @@ export function PatternBlockDialog({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Till</Label>
+                <Label className="text-xs text-muted-foreground">{copy(locale, 'To', 'Till')}</Label>
                 <Input
                   type="number"
                   value={Number.isFinite(to) ? to : ''}
@@ -307,7 +324,7 @@ export function PatternBlockDialog({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Steg</Label>
+                <Label className="text-xs text-muted-foreground">{copy(locale, 'Step', 'Steg')}</Label>
                 <Input
                   type="number"
                   value={Number.isFinite(step) ? step : ''}
@@ -321,7 +338,7 @@ export function PatternBlockDialog({
           {mode === 'single' && (
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">Värde</Label>
+                <Label className="text-xs text-muted-foreground">{copy(locale, 'Value', 'Värde')}</Label>
                 <Input
                   type="number"
                   value={Number.isFinite(singleValue) ? singleValue : ''}
@@ -330,7 +347,7 @@ export function PatternBlockDialog({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Antal rundor</Label>
+                <Label className="text-xs text-muted-foreground">{copy(locale, 'Number of rounds', 'Antal rundor')}</Label>
                 <Input
                   type="number"
                   min={1}
@@ -344,7 +361,7 @@ export function PatternBlockDialog({
 
           {mode === 'custom' && (
             <div>
-              <Label className="text-xs text-muted-foreground">Värden (kommaseparerade)</Label>
+              <Label className="text-xs text-muted-foreground">{copy(locale, 'Values (comma-separated)', 'Värden (kommaseparerade)')}</Label>
               <Input
                 value={customInput}
                 onChange={(e) => setCustomInput(e.target.value)}
@@ -356,12 +373,12 @@ export function PatternBlockDialog({
 
           {mode === 'combined' && (
             <div className="space-y-2">
-              <Label className="text-sm">Steg i varje runda</Label>
+              <Label className="text-sm">{copy(locale, 'Steps in each round', 'Steg i varje runda')}</Label>
               <div className="space-y-2">
                 {combinedSlots.map((slot, idx) => (
                   <div key={slot.id} className="grid grid-cols-[1fr_80px_90px_28px] gap-2 items-end">
                     <div>
-                      {idx === 0 && <Label className="text-xs text-muted-foreground">Utrustning</Label>}
+                      {idx === 0 && <Label className="text-xs text-muted-foreground">{copy(locale, 'Equipment', 'Utrustning')}</Label>}
                       <Select value={slot.equipment} onValueChange={(v) => updateSlot(slot.id, { equipment: v })}>
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue />
@@ -374,7 +391,7 @@ export function PatternBlockDialog({
                       </Select>
                     </div>
                     <div>
-                      {idx === 0 && <Label className="text-xs text-muted-foreground">Värde</Label>}
+                      {idx === 0 && <Label className="text-xs text-muted-foreground">{copy(locale, 'Value', 'Värde')}</Label>}
                       <Input
                         type="number"
                         value={Number.isFinite(slot.value) ? slot.value : ''}
@@ -383,7 +400,7 @@ export function PatternBlockDialog({
                       />
                     </div>
                     <div>
-                      {idx === 0 && <Label className="text-xs text-muted-foreground">Enhet</Label>}
+                      {idx === 0 && <Label className="text-xs text-muted-foreground">{copy(locale, 'Unit', 'Enhet')}</Label>}
                       <Select value={slot.unit} onValueChange={(v) => updateSlot(slot.id, { unit: v as PatternUnit })}>
                         <SelectTrigger className="h-8 text-sm">
                           <SelectValue />
@@ -401,7 +418,7 @@ export function PatternBlockDialog({
                       className="h-8 w-8"
                       disabled={combinedSlots.length === 1}
                       onClick={() => removeSlot(slot.id)}
-                      title="Ta bort"
+                      title={copy(locale, 'Remove', 'Ta bort')}
                     >
                       <X className="h-3.5 w-3.5" />
                     </Button>
@@ -410,11 +427,11 @@ export function PatternBlockDialog({
               </div>
               <Button variant="outline" size="sm" onClick={addSlot}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                Lägg till steg
+                {copy(locale, 'Add step', 'Lägg till steg')}
               </Button>
               <div className="pt-2 grid grid-cols-2 gap-2">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Antal rundor</Label>
+                  <Label className="text-xs text-muted-foreground">{copy(locale, 'Number of rounds', 'Antal rundor')}</Label>
                   <Input
                     type="number"
                     min={1}
@@ -430,21 +447,21 @@ export function PatternBlockDialog({
           <div className="grid grid-cols-3 gap-3">
             {showSharedUnit && (
               <div>
-                <Label className="text-xs text-muted-foreground">Enhet</Label>
+                <Label className="text-xs text-muted-foreground">{copy(locale, 'Unit', 'Enhet')}</Label>
                 <Select value={unit} onValueChange={(v) => setUnit(v as PatternUnit)}>
                   <SelectTrigger className="h-8">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="cal">Kalorier</SelectItem>
-                    <SelectItem value="m">Meter</SelectItem>
-                    <SelectItem value="min">Minuter</SelectItem>
+                    <SelectItem value="cal">{copy(locale, 'Calories', 'Kalorier')}</SelectItem>
+                    <SelectItem value="m">{copy(locale, 'Meters', 'Meter')}</SelectItem>
+                    <SelectItem value="min">{copy(locale, 'Minutes', 'Minuter')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             )}
             <div>
-              <Label className="text-xs text-muted-foreground">Zon</Label>
+              <Label className="text-xs text-muted-foreground">{copy(locale, 'Zone', 'Zon')}</Label>
               <Select value={zone} onValueChange={setZone}>
                 <SelectTrigger className="h-8">
                   <SelectValue />
@@ -457,7 +474,7 @@ export function PatternBlockDialog({
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-muted-foreground">Vila mellan rundor (min)</Label>
+              <Label className="text-xs text-muted-foreground">{copy(locale, 'Rest between rounds (min)', 'Vila mellan rundor (min)')}</Label>
               <Input
                 type="number"
                 min={0}
@@ -471,13 +488,13 @@ export function PatternBlockDialog({
           </div>
 
           <div className="rounded-md bg-muted/50 p-3 text-sm">
-            <div className="font-medium text-xs text-muted-foreground mb-1">Förhandsgranskning</div>
+            <div className="font-medium text-xs text-muted-foreground mb-1">{copy(locale, 'Preview', 'Förhandsgranskning')}</div>
             <div>{previewLine}</div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Avbryt</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{copy(locale, 'Cancel', 'Avbryt')}</Button>
           <Button
             onClick={handleAdd}
             disabled={
@@ -485,7 +502,7 @@ export function PatternBlockDialog({
               (mode === 'combined' ? combinedSlots.length === 0 : selected.length === 0)
             }
           >
-            Lägg till block
+            {copy(locale, 'Add block', 'Lägg till block')}
           </Button>
         </DialogFooter>
       </DialogContent>

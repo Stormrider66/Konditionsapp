@@ -8,6 +8,7 @@
  */
 
 import { cn } from '@/lib/utils'
+import { useLocale } from '@/i18n/client'
 import { Mic, Radio } from 'lucide-react'
 
 interface TranscriptEntry {
@@ -23,14 +24,24 @@ interface LiveVoiceTranscriptViewProps {
   painFlagged?: boolean
 }
 
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export function LiveVoiceTranscriptView({
   transcripts,
   summary,
   painFlagged,
 }: LiveVoiceTranscriptViewProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+
   if (transcripts.length === 0) {
     return (
-      <p className="text-sm text-slate-400 italic">Inga transkriptioner tillgängliga.</p>
+      <p className="text-sm text-slate-400 italic">
+        {copy(locale, 'No transcripts available.', 'Inga transkriptioner tillgängliga.')}
+      </p>
     )
   }
 
@@ -45,7 +56,7 @@ export function LiveVoiceTranscriptView({
             : 'bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20'
         )}>
           <p className="font-semibold text-xs uppercase tracking-wide mb-1 text-slate-500">
-            AI-sammanfattning
+            {copy(locale, 'AI summary', 'AI-sammanfattning')}
           </p>
           <p className="text-slate-700 dark:text-slate-300">{summary}</p>
         </div>
