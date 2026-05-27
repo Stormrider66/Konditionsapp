@@ -1046,7 +1046,7 @@ function FuelingBuildUpPreview({
             <p className="mt-1 text-lg font-semibold tabular-nums text-slate-900 dark:text-white">
               {session.targetCarbsGPerHour} g/h
             </p>
-            <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{locale === 'sv' ? session.focusSv : session.focusSv.replace('Gradvis ökning', 'Gradual increase').replace('Race-specifikt intag', 'Race-specific intake').replace('Stabilisera intaget', 'Stabilize intake')}</p>
+            <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{locale === 'sv' ? session.focusSv : session.focusEn}</p>
           </div>
         ))}
       </div>

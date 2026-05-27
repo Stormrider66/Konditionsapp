@@ -305,8 +305,8 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
               <div key={session.week} className="rounded-md border border-blue-100 bg-white/70 p-3">
                 <p className="text-xs font-medium text-blue-700">{t('buildUp.week', { week: session.week })}</p>
                 <p className="mt-1 text-lg font-semibold text-gray-900">{session.targetCarbsGPerHour} g/h</p>
-                <p className="text-xs font-medium text-gray-700">{session.focusSv}</p>
-                <p className="mt-1 text-xs text-gray-600">{session.noteSv}</p>
+                <p className="text-xs font-medium text-gray-700">{locale === 'sv' ? session.focusSv : session.focusEn}</p>
+                <p className="mt-1 text-xs text-gray-600">{locale === 'sv' ? session.noteSv : session.noteEn}</p>
               </div>
             ))}
           </div>

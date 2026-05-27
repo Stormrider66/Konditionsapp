@@ -2,7 +2,9 @@ export interface FuelingBuildUpSession {
   week: number
   targetCarbsGPerHour: number
   focusSv: string
+  focusEn: string
   noteSv: string
+  noteEn: string
 }
 
 export interface FuelingBuildUpPlan {
@@ -47,7 +49,9 @@ function buildSession(week: number, target: number, raceTarget: number): Fueling
       week,
       targetCarbsGPerHour: target,
       focusSv: 'Sätt basnivå',
+      focusEn: 'Set baseline',
       noteSv: 'Logga mage, energi och vilka produkter som användes direkt efter långpasset.',
+      noteEn: 'Log gut feel, energy, and products used right after the long session.',
     }
   }
 
@@ -56,7 +60,9 @@ function buildSession(week: number, target: number, raceTarget: number): Fueling
       week,
       targetCarbsGPerHour: target,
       focusSv: 'Race-repetition',
+      focusEn: 'Race rehearsal',
       noteSv: 'Repetera tävlingsprodukter, timing och vätska så nära raceupplägget som möjligt.',
+      noteEn: 'Repeat race products, timing, and fluid as close to the race setup as possible.',
     }
   }
 
@@ -64,9 +70,13 @@ function buildSession(week: number, target: number, raceTarget: number): Fueling
     week,
     targetCarbsGPerHour: target,
     focusSv: needsMultiCarb ? 'Bygg upptag' : 'Höj försiktigt',
+    focusEn: needsMultiCarb ? 'Build absorption' : 'Increase carefully',
     noteSv: needsMultiCarb
       ? 'Använd glukos/fruktos-blandning och sprid intaget jämnt över passet.'
       : 'Höj bara om magen var stabil på förra nivån.',
+    noteEn: needsMultiCarb
+      ? 'Use a glucose/fructose mix and spread intake evenly across the session.'
+      : 'Only increase if gut feel was stable at the previous level.',
   }
 }
 
