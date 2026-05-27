@@ -40,9 +40,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocale } from '@/i18n/client'
 
-const hockeyTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+type AppLocale = 'en' | 'sv'
+
+const createHockeyTestSchema = (locale: AppLocale) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   position: z.enum(['goalie', 'defenseman', 'center', 'winger']),
   // Yo-Yo IR1
   yoyoLevel: z.number().min(5).max(23).optional(),
@@ -56,7 +58,7 @@ const hockeyTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type HockeyTestFormData = z.infer<typeof hockeyTestSchema>
+type HockeyTestFormData = z.infer<ReturnType<typeof createHockeyTestSchema>>
 
 interface Client {
   id: string
@@ -70,11 +72,11 @@ interface HockeyTestBatteryFormProps {
   onTestSaved?: (tests: any[]) => void
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  goalie: 'Målvakt',
-  defenseman: 'Back',
-  center: 'Center',
-  winger: 'Ytterforward',
+const POSITION_LABELS: Record<string, Record<AppLocale, string>> = {
+  goalie: { sv: 'Målvakt', en: 'Goalie' },
+  defenseman: { sv: 'Back', en: 'Defenseman' },
+  center: { sv: 'Center', en: 'Center' },
+  winger: { sv: 'Ytterforward', en: 'Winger' },
 }
 
 // Position-specific benchmarks (elite level)
@@ -93,16 +95,21 @@ function getBenchmarkClass(actual: number | undefined, target: number, lowerIsBe
   return actual >= target ? 'text-green-600' : 'text-orange-500'
 }
 
-function getBenchmarkLabel(actual: number | undefined, target: number, lowerIsBetter = false): string {
+function getPositionLabel(position: string, locale: AppLocale): string {
+  return POSITION_LABELS[position]?.[locale] ?? position
+}
+
+function getBenchmarkLabel(locale: AppLocale, actual: number | undefined, target: number, lowerIsBetter = false): string {
   if (!actual) return '-'
   const percentage = lowerIsBetter
     ? Math.round((target / actual) * 100)
     : Math.round((actual / target) * 100)
-  return `${percentage}% av elit`
+  return locale === 'sv' ? `${percentage}% av elit` : `${percentage}% of elite`
 }
 
 export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatteryFormProps) {
-  const locale = useLocale()
+  const rawLocale = useLocale()
+  const locale: AppLocale = rawLocale === 'sv' ? 'sv' : 'en'
   const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [submitting, setSubmitting] = useState(false)
   const [results, setResults] = useState<any[]>([])
@@ -110,14 +117,13 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
   const [activeTab, setActiveTab] = useState('yoyo')
 
   const form = useForm<HockeyTestFormData>({
-    resolver: zodResolver(hockeyTestSchema),
+    resolver: zodResolver(createHockeyTestSchema(locale)),
     defaultValues: {
       testDate: new Date().toISOString().split('T')[0],
       position: 'center',
     },
   })
 
-  const selectedClient = clients.find((c) => c.id === form.watch('clientId'))
   const position = form.watch('position')
   const benchmarks = POSITION_BENCHMARKS[position] || POSITION_BENCHMARKS.center
 
@@ -134,7 +140,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(t('Klient hittades inte', 'Client not found'))
 
       const savedTests: any[] = []
 
@@ -236,14 +242,14 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
       }
 
       if (savedTests.length === 0) {
-        throw new Error('Inga testresultat att spara. Fyll i minst ett test.')
+        throw new Error(t('Inga testresultat att spara. Fyll i minst ett test.', 'No test results to save. Fill in at least one test.'))
       }
 
       setResults(savedTests)
       onTestSaved?.(savedTests)
     } catch (err) {
       console.error('Failed to save hockey tests:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('Ett fel uppstod', 'Something went wrong'))
     } finally {
       setSubmitting(false)
     }
@@ -255,12 +261,12 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-cyan-500" />
-            Ishockey - Testbatteri
+            {t('Ishockey - Testbatteri', 'Ice hockey - Test battery')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {t('Inga klienter hittades. Lägg till klienter för att kunna registrera test.', 'No clients found. Add clients before registering tests.')}
           </p>
         </CardContent>
       </Card>
@@ -275,10 +281,10 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-cyan-500" />
-                Ishockey - Testbatteri
+                {t('Ishockey - Testbatteri', 'Ice hockey - Test battery')}
               </CardTitle>
               <CardDescription>
-                Fysiska tester för ishockeyspelare (off-ice): Yo-Yo IR1, Sprint 30m, Pro Agility 5-10-5, CMJ
+                {t('Fysiska tester för ishockeyspelare (off-ice): Yo-Yo IR1, Sprint 30m, Pro Agility 5-10-5, CMJ', 'Physical tests for ice hockey players (off-ice): Yo-Yo IR1, Sprint 30m, Pro Agility 5-10-5, CMJ')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -288,11 +294,11 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{t('Klient', 'Client')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={t('Välj klient', 'Select client')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -337,13 +343,13 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                         <SelectContent>
                           {Object.entries(POSITION_LABELS).map(([value, label]) => (
                             <SelectItem key={value} value={value}>
-                              {label}
+                              {label[locale]}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Jämförs mot elitreferensvärden för {POSITION_LABELS[position]}
+                        {t('Jämförs mot elitreferensvärden för', 'Compared with elite reference values for')} {getPositionLabel(position, locale)}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -382,7 +388,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                     Yo-Yo Intermittent Recovery Test (IR1)
                   </CardTitle>
                   <CardDescription>
-                    Mäter aerob kapacitet och återhämtningsförmåga (off-ice)
+                    {t('Mäter aerob kapacitet och återhämtningsförmåga (off-ice)', 'Measures aerobic capacity and recovery ability (off-ice)')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -392,7 +398,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                       name="yoyoLevel"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Nivå</FormLabel>
+                          <FormLabel>{t('Nivå', 'Level')}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -437,18 +443,18 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                   {yoyoLevel && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(yoyoLevel, benchmarks.yoyoIR1)}`}>
                             {yoyoLevel.toFixed(1)}
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(yoyoLevel, benchmarks.yoyoIR1)}`}>
-                            {getBenchmarkLabel(yoyoLevel, benchmarks.yoyoIR1)}
+                            {getBenchmarkLabel(locale, yoyoLevel, benchmarks.yoyoIR1)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.yoyoIR1.toFixed(1)}
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.yoyoIR1.toFixed(1)}
                       </p>
                     </div>
                   )}
@@ -464,7 +470,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                     30 meter Sprint
                   </CardTitle>
                   <CardDescription>
-                    Mäter maximal sprintsnabbhet (off-ice)
+                    {t('Mäter maximal sprintsnabbhet (off-ice)', 'Measures maximum sprint speed (off-ice)')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -473,7 +479,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                     name="sprint30m"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -494,18 +500,18 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                   {sprint30m && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(sprint30m, benchmarks.sprint30m, true)}`}>
                             {sprint30m.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(sprint30m, benchmarks.sprint30m, true)}`}>
-                            {getBenchmarkLabel(sprint30m, benchmarks.sprint30m, true)}
+                            {getBenchmarkLabel(locale, sprint30m, benchmarks.sprint30m, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.sprint30m.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.sprint30m.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -521,7 +527,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                     Pro Agility 5-10-5
                   </CardTitle>
                   <CardDescription>
-                    Mäter lateral rörlighet och riktningsförändringar
+                    {t('Mäter lateral rörlighet och riktningsförändringar', 'Measures lateral movement and change of direction')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -530,7 +536,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                     name="proAgility"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -554,18 +560,18 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                   {proAgility && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(proAgility, benchmarks.proAgility, true)}`}>
                             {proAgility.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(proAgility, benchmarks.proAgility, true)}`}>
-                            {getBenchmarkLabel(proAgility, benchmarks.proAgility, true)}
+                            {getBenchmarkLabel(locale, proAgility, benchmarks.proAgility, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.proAgility.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.proAgility.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -581,7 +587,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                     Counter Movement Jump (CMJ)
                   </CardTitle>
                   <CardDescription>
-                    Mäter explosiv benstyrka
+                    {t('Mäter explosiv benstyrka', 'Measures explosive leg strength')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -590,7 +596,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                     name="cmjHeight"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hopphöjd (cm)</FormLabel>
+                        <FormLabel>{t('Hopphöjd (cm)', 'Jump height (cm)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -611,18 +617,18 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                   {cmjHeight && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(cmjHeight, benchmarks.cmj)}`}>
                             {cmjHeight.toFixed(1)} cm
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(cmjHeight, benchmarks.cmj)}`}>
-                            {getBenchmarkLabel(cmjHeight, benchmarks.cmj)}
+                            {getBenchmarkLabel(locale, cmjHeight, benchmarks.cmj)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.cmj} cm
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.cmj} cm
                       </p>
                     </div>
                   )}
@@ -639,10 +645,10 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Testförhållanden, känsla, observationer..."
+                        placeholder={t('Testförhållanden, känsla, observationer...', 'Test conditions, feeling, observations...')}
                         {...field}
                       />
                     </FormControl>
@@ -654,7 +660,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara testbatteri'}
+            {submitting ? t('Sparar...', 'Saving...') : t('Spara testbatteri', 'Save test battery')}
           </Button>
         </form>
       </Form>
@@ -671,7 +677,7 @@ export function HockeyTestBatteryForm({ clients, onTestSaved }: HockeyTestBatter
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              {results.length} test sparade
+              {t(`${results.length} test sparade`, `${results.length} tests saved`)}
             </CardTitle>
           </CardHeader>
           <CardContent>
