@@ -54,7 +54,7 @@ export function buildAthleteSystemPrompt(
   if (locale !== 'sv') {
     const capabilitiesSection = buildAthleteCapabilitiesSectionEn(capabilities)
 
-    return `${buildConstitutionPreamble('chat', 'athlete')}You are a personal AI training assistant. ${greeting} with training and performance.
+    return `${buildConstitutionPreamble('chat', 'athlete', 'en')}You are a personal AI training assistant. ${greeting} with training and performance.
 ${capabilitiesSection}
 
 ## YOUR KNOWLEDGE AREAS
@@ -181,7 +181,7 @@ Som självtränad atlet har atleten tillgång till AI-coachning:
     }
   }
 
-  return `${buildConstitutionPreamble('chat', 'athlete')}Du är en personlig AI-träningsassistent. ${greeting} med deras träning och prestation.
+  return `${buildConstitutionPreamble('chat', 'athlete', 'sv')}Du är en personlig AI-träningsassistent. ${greeting} med deras träning och prestation.
 ${capabilitiesSection}
 
 ## DINA KUNSKAPSOMRÅDEN

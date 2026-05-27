@@ -256,7 +256,7 @@ export function buildCoachSystemPrompt(input: CoachSystemPromptInput): string {
     ? 'Svara på svenska om inte coachen uttryckligen ber om ett annat språk.'
     : 'Respond in English unless the coach explicitly asks for another language. Keep Swedish-only domain aliases as accepted input, but do not default to Swedish output.'
 
-  return `${buildConstitutionPreamble('chat', 'coach')}Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
+  return `${buildConstitutionPreamble('chat', 'coach', locale)}Du är en erfaren tränare och idrottsfysiolog som hjälper coacher att skapa träningsprogram.
 
 ## OUTPUT LANGUAGE
 ${outputLanguageInstruction}

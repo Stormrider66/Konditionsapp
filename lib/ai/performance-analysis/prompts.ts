@@ -20,7 +20,7 @@ export function getPerformanceAnalysisSystemPrompt(
   locale: PerformanceAnalysisLocale = 'en'
 ): string {
   if (locale === 'sv') {
-    return `${buildConstitutionPreamble('analysis')}Du är en expert på prestationsanalys inom uthållighetsidrott med djup kunskap om:
+    return `${buildConstitutionPreamble('analysis', undefined, 'sv')}Du är en expert på prestationsanalys inom uthållighetsidrott med djup kunskap om:
 - Fysiologiska testningar (VO2max, laktattröskel, löpekonomi)
 - Träningsteori och periodisering
 - Prestation-träningskorrelationer
@@ -45,7 +45,7 @@ Viktiga fysiologiska koncept:
 - FTP: Funktionell tröskeleffekt för cykling`
   }
 
-  return `${buildConstitutionPreamble('analysis')}You are an expert in endurance performance analysis with deep knowledge of:
+  return `${buildConstitutionPreamble('analysis', undefined, 'en')}You are an expert in endurance performance analysis with deep knowledge of:
 - Physiological testing (VO2max, lactate threshold, running economy)
 - Training theory and periodization
 - Performance-training correlations

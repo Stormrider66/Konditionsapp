@@ -95,7 +95,7 @@ async function getEnrichedSystemPrompt(context: GenerationContext): Promise<stri
       .replace(/\{\{goal\}\}/g, context.goal || (locale === 'sv' ? 'Förbättra prestanda' : 'Improve performance'))
 
     // Prepend constitution preamble (same as the static prompt does)
-    const preamble = buildConstitutionPreamble('program')
+    const preamble = buildConstitutionPreamble('program', undefined, locale)
     const languageInstruction = locale === 'sv'
       ? '\n\nSvara alltid på svenska i allt användarvänt innehåll.'
       : '\n\nAlways write all user-facing generated content in English.'

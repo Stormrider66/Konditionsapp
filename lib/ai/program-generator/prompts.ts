@@ -21,7 +21,7 @@ function getProgramLocale(context?: Pick<GenerationContext, 'locale'>): AppLocal
 
 export function buildProgramGeneratorSystemPrompt(locale: AppLocale = 'en'): string {
   if (locale === 'sv') {
-    return `${buildConstitutionPreamble('program')}Du är en erfaren tränare och idrottsfysiolog som skapar individualiserade träningsprogram.
+    return `${buildConstitutionPreamble('program', undefined, 'sv')}Du är en erfaren tränare och idrottsfysiolog som skapar individualiserade träningsprogram.
 
 VIKTIGA PRINCIPER:
 - Följ vetenskapligt beprövade periodiseringsmetoder
@@ -36,7 +36,7 @@ OUTPUT FORMAT:
 - Inkludera aldrig extra text utanför JSON-objektet`
   }
 
-  return `${buildConstitutionPreamble('program')}You are an experienced coach and exercise physiologist creating individualized training programs.
+  return `${buildConstitutionPreamble('program', undefined, 'en')}You are an experienced coach and exercise physiologist creating individualized training programs.
 
 IMPORTANT PRINCIPLES:
 - Follow evidence-based periodization methods

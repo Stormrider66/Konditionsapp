@@ -151,7 +151,7 @@ function buildEnglishWODPrompt(
   const candidateSection = formatSelectedCandidateSection(options?.selectedCandidate, 'en')
   const promptVariantSection = formatPromptVariantAdjustment(options?.promptVariantAdjustment, 'en')
 
-  return `${buildConstitutionPreamble('wod')}You are an experienced personal trainer and physiologist who creates individualized workouts.
+  return `${buildConstitutionPreamble('wod', undefined, 'en')}You are an experienced personal trainer and physiologist who creates individualized workouts.
 
 Your job is to generate a complete Workout of the Day based on the athlete profile, current status, and requested session details.
 
@@ -251,7 +251,7 @@ export function buildWODCandidatePrompt(
   const promptVariantSection = formatPromptVariantAdjustment(promptVariantAdjustment, locale)
   const outputLanguage = locale === 'sv' ? 'SWEDISH' : 'ENGLISH'
 
-  return `${locale === 'sv' ? SYSTEM_CONTEXT : `${buildConstitutionPreamble('wod')}You are an experienced personal trainer and physiologist.`}
+  return `${locale === 'sv' ? SYSTEM_CONTEXT : `${buildConstitutionPreamble('wod', undefined, 'en')}You are an experienced personal trainer and physiologist.`}
 
 ## TASK
 Create exactly 3 compact candidate blueprints for today's workout. Do not write the full workout yet.
@@ -651,7 +651,7 @@ function getJsonTemplateEn(workoutType: WODWorkoutType): string {
 // SYSTEM CONTEXT
 // ============================================
 
-const SYSTEM_CONTEXT = `${buildConstitutionPreamble('wod')}Du är en erfaren personlig tränare och fysiolog som skapar individuellt anpassade träningspass.
+const SYSTEM_CONTEXT = `${buildConstitutionPreamble('wod', undefined, 'sv')}Du är en erfaren personlig tränare och fysiolog som skapar individuellt anpassade träningspass.
 
 Din uppgift är att generera ett komplett träningspass (Workout of the Day) baserat på atletens profil, nuvarande tillstånd och specifikationer.
 
