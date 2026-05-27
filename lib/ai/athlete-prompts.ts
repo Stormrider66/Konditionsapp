@@ -438,8 +438,113 @@ export function getAthleteQuickPrompts(
  * Context-specific prompts based on page type
  */
 export function getContextualQuickPrompts(
-  pageType: 'dashboard' | 'workout' | 'program' | 'test' | 'checkin' | 'general'
+  pageType: 'dashboard' | 'workout' | 'program' | 'test' | 'checkin' | 'general',
+  locale: 'en' | 'sv' = 'en'
 ): typeof ATHLETE_QUICK_PROMPTS {
+  if (locale !== 'sv') {
+    switch (pageType) {
+      case 'workout':
+        return [
+          {
+            id: 'workout-purpose',
+            label: 'Workout purpose',
+            prompt: 'What is the purpose of this workout and what should I focus on?',
+          },
+          {
+            id: 'workout-intensity',
+            label: 'Right intensity',
+            prompt: 'What intensity should I hold during this workout?',
+          },
+          {
+            id: 'workout-modify',
+            label: 'Adapt workout',
+            prompt: 'I do not feel fully ready today. How can I adapt this workout?',
+          },
+          {
+            id: 'workout-nutrition',
+            label: 'Workout fuel',
+            prompt: 'What should I eat before and after this workout?',
+          },
+        ]
+
+      case 'program':
+        return [
+          {
+            id: 'program-overview',
+            label: 'Program overview',
+            prompt: 'Can you give me an overview of my training program and where I am right now?',
+          },
+          {
+            id: 'program-phase',
+            label: 'Current phase',
+            prompt: 'Which phase am I in right now and what is the focus during this period?',
+          },
+          {
+            id: 'program-upcoming',
+            label: 'Upcoming week',
+            prompt: 'What can I expect in the coming week of training?',
+          },
+          {
+            id: 'program-goal',
+            label: 'Toward the goal',
+            prompt: 'How am I tracking relative to my training goal?',
+          },
+        ]
+
+      case 'test':
+        return [
+          {
+            id: 'test-explain',
+            label: 'Explain result',
+            prompt: 'Can you explain what my test results mean in practice?',
+          },
+          {
+            id: 'test-zones',
+            label: 'Calculate zones',
+            prompt: 'Which training zones should I use based on my test?',
+          },
+          {
+            id: 'test-compare',
+            label: 'Compare tests',
+            prompt: 'How have my test values developed since the previous test?',
+          },
+          {
+            id: 'test-improve',
+            label: 'Improve values',
+            prompt: 'What can I do to improve my test values?',
+          },
+        ]
+
+      case 'checkin':
+        return [
+          {
+            id: 'readiness-interpret',
+            label: 'Interpret readiness',
+            prompt: 'What does my readiness score mean and how does it affect my training today?',
+          },
+          {
+            id: 'hrv-explain',
+            label: 'Explain HRV',
+            prompt: 'What does my HRV value say about my recovery?',
+          },
+          {
+            id: 'sleep-impact',
+            label: 'Sleep impact',
+            prompt: 'How has my recent sleep affected my ability to train?',
+          },
+          {
+            id: 'recovery-tips',
+            label: 'Recovery tips',
+            prompt: 'What can I do to improve my recovery?',
+          },
+        ]
+
+      case 'dashboard':
+      default:
+        return ATHLETE_QUICK_PROMPTS_EN
+    }
+  }
+
   switch (pageType) {
     case 'workout':
       return [
@@ -548,8 +653,42 @@ export function getContextualQuickPrompts(
  */
 export function buildPageContext(
   pageType: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  locale: 'en' | 'sv' = 'en'
 ): string {
+  if (locale !== 'sv') {
+    switch (pageType) {
+      case 'workout':
+        return `
+CURRENT WORKOUT:
+- Name: ${data.workoutName || 'Unknown'}
+- Type: ${data.workoutType || 'Unknown'}
+- Planned time: ${data.plannedDuration || 'Not specified'} min
+- Description: ${data.description || 'No description'}
+`
+
+      case 'program':
+        return `
+CURRENT PROGRAM:
+- Program: ${data.programName || 'Unknown'}
+- Current week: ${data.currentWeek || '?'}
+- Phase: ${data.phase || 'Unknown'}
+`
+
+      case 'test':
+        return `
+LATEST TEST:
+- Date: ${data.testDate || 'Unknown'}
+- Type: ${data.testType || 'Unknown'}
+- VO2max: ${data.vo2max || 'Not tested'}
+- Max HR: ${data.maxHR || 'Not tested'}
+`
+
+      default:
+        return ''
+    }
+  }
+
   switch (pageType) {
     case 'workout':
       return `
