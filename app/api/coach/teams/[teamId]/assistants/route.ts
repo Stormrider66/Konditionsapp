@@ -23,8 +23,11 @@ const addAssistantSchema = z.object({
 })
 
 export async function GET(_req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
 
     // Verify coach owns this team
@@ -32,7 +35,7 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       where: { id: teamId, userId: user.id },
     })
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'teamNotFound') }, { status: 404 })
     }
 
     const assignments = await prisma.teamCoachAssignment.findMany({
@@ -56,16 +59,18 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'unauthorized') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'failed') }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
 
     // Verify coach owns this team
@@ -74,13 +79,13 @@ export async function POST(req: NextRequest, context: RouteContext) {
       include: { user: { select: { id: true } } },
     })
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'teamNotFound') }, { status: 404 })
     }
 
     const body = await req.json()
     const parsed = addAssistantSchema.safeParse(body)
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'invalidInput'), details: parsed.error.flatten() }, { status: 400 })
     }
 
     // Find user by email
@@ -150,23 +155,41 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'unauthorized') }, { status: 401 })
     }
     console.error('Error adding assistant coach:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'failed') }, { status: 500 })
   }
 }
 
-function t(locale: AppLocale, key: 'userNotFound' | 'cannotAddSelf' | 'alreadyAdded'): string {
+function t(
+  locale: AppLocale,
+  key:
+    | 'teamNotFound'
+    | 'invalidInput'
+    | 'userNotFound'
+    | 'cannotAddSelf'
+    | 'alreadyAdded'
+    | 'unauthorized'
+    | 'failed'
+): string {
   const en = {
+    teamNotFound: 'Team not found',
+    invalidInput: 'Invalid input',
     userNotFound: 'No user with this email was found',
     cannotAddSelf: 'You cannot add yourself as an assistant',
     alreadyAdded: 'This coach has already been added to the team',
+    unauthorized: 'Unauthorized',
+    failed: 'Failed',
   }
   const sv = {
+    teamNotFound: 'Laget hittades inte',
+    invalidInput: 'Ogiltig inmatning',
     userNotFound: 'Användare med denna e-post hittades inte',
     cannotAddSelf: 'Du kan inte lägga till dig själv som assistent',
     alreadyAdded: 'Denna coach är redan tillagd i laget',
+    unauthorized: 'Obehörig',
+    failed: 'Misslyckades',
   }
   return locale === 'sv' ? sv[key] : en[key]
 }

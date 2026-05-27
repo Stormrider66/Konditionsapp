@@ -17,15 +17,19 @@ import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
+type AppLocale = 'en' | 'sv'
 
 export async function GET(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
     const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
-    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!team) return NextResponse.json({ error: t(locale, 'teamNotFound') }, { status: 404 })
 
     const filter = req.nextUrl.searchParams.get('filter') ?? 'all'
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
@@ -60,30 +64,33 @@ export async function GET(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ clients })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'unauthorized') }, { status: 401 })
     }
     logger.error('GET team members failed', {}, error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'failed') }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
     const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
-    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!team) return NextResponse.json({ error: t(locale, 'teamNotFound') }, { status: 404 })
 
     const body = await req.json().catch(() => ({}))
     const clientIds: unknown = body?.clientIds
     if (!Array.isArray(clientIds) || clientIds.length === 0) {
-      return NextResponse.json({ error: 'clientIds array required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientIdsRequired') }, { status: 400 })
     }
     const ids = clientIds.filter((v): v is string => typeof v === 'string' && v.length > 0)
     if (ids.length === 0) {
-      return NextResponse.json({ error: 'No valid client IDs' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'noValidClientIds') }, { status: 400 })
     }
 
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
@@ -105,7 +112,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const ownedIds = owned.map((c) => c.id)
 
     if (ownedIds.length === 0) {
-      return NextResponse.json({ error: 'No clients found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'noClientsFound') }, { status: 404 })
     }
 
     await prisma.client.updateMany({
@@ -128,9 +135,38 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ attached: ownedIds.length })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'unauthorized') }, { status: 401 })
     }
     logger.error('POST team members failed', {}, error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'failed') }, { status: 500 })
   }
+}
+
+function t(
+  locale: AppLocale,
+  key:
+    | 'teamNotFound'
+    | 'clientIdsRequired'
+    | 'noValidClientIds'
+    | 'noClientsFound'
+    | 'unauthorized'
+    | 'failed'
+): string {
+  const en = {
+    teamNotFound: 'Team not found',
+    clientIdsRequired: 'clientIds array required',
+    noValidClientIds: 'No valid client IDs',
+    noClientsFound: 'No clients found',
+    unauthorized: 'Unauthorized',
+    failed: 'Failed',
+  }
+  const sv = {
+    teamNotFound: 'Laget hittades inte',
+    clientIdsRequired: 'clientIds-lista krävs',
+    noValidClientIds: 'Inga giltiga klient-ID:n',
+    noClientsFound: 'Inga klienter hittades',
+    unauthorized: 'Obehörig',
+    failed: 'Misslyckades',
+  }
+  return locale === 'sv' ? sv[key] : en[key]
 }
