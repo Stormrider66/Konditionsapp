@@ -279,7 +279,7 @@ export function buildGeneralFitnessContext(athlete: AthleteData, locale: SportCo
     context += `- **${t(locale, 'Range', 'Intervall')}**: ${proteinReq.min}-${proteinReq.max}${t(locale, 'g/day', 'g/dag')}\n`;
 
     // Hydration
-    const hydration = calculateHydration(measuredWeight, activityLevel);
+    const hydration = calculateHydration(measuredWeight, activityLevel, 'MODERATE', locale);
     context += `\n### ${t(locale, 'Fluid intake', 'Vätskeintag')}\n`;
     context += `- **${t(locale, 'Daily need', 'Dagligt behov')}**: ${Math.round(hydration.withActivityML / 100) / 10} ${t(locale, 'liters', 'liter')}\n`;
 
@@ -451,4 +451,3 @@ export function buildFunctionalFitnessContext(athlete: AthleteData, locale: Spor
 
   return context;
 }
-

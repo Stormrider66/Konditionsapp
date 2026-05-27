@@ -616,7 +616,8 @@ export function getProteinRequirements(
 export function calculateHydration(
   weightKg: number,
   activityLevel: ActivityLevel,
-  climate: 'COLD' | 'MODERATE' | 'HOT' = 'MODERATE'
+  climate: 'COLD' | 'MODERATE' | 'HOT' = 'MODERATE',
+  locale: AppLocale = 'en'
 ): { baseML: number; withActivityML: number; recommendation: string } {
   // Base: ~33 ml/kg total water need × 0.80 = ~26 ml/kg drinking water
   // (roughly 20% of daily water comes from food)
@@ -646,7 +647,9 @@ export function calculateHydration(
   return {
     baseML,
     withActivityML,
-    recommendation: `Sikta på ${Math.round(withActivityML / 1000 * 10) / 10} liter dricksvatten per dag (exklusive vatten i mat), mer vid intensiv träning.`,
+    recommendation: locale === 'sv'
+      ? `Sikta på ${Math.round(withActivityML / 1000 * 10) / 10} liter dricksvatten per dag (exklusive vatten i mat), mer vid intensiv träning.`
+      : `Aim for ${Math.round(withActivityML / 1000 * 10) / 10} liters of drinking water per day (excluding water from food), more during intense training.`,
   };
 }
 
@@ -737,7 +740,7 @@ export function buildNutritionContext(
 - **Calorie balance**: ${plan.deficit > 0 ? '+' : ''}${plan.deficit} kcal/day
 - **Protein**: ${plan.macros.protein.grams}g (${plan.macros.protein.percentage}%)
 - **Carbohydrates**: ${plan.macros.carbs.grams}g (${plan.macros.carbs.percentage}%)
-- **Fett**: ${plan.macros.fat.grams}g (${plan.macros.fat.percentage}%)`;
+- **Fat**: ${plan.macros.fat.grams}g (${plan.macros.fat.percentage}%)`;
 
     if (plan.recommendations.length > 0) {
       context += locale === 'sv'
@@ -752,7 +755,7 @@ ${plan.recommendations.map(r => `- ${r}`).join('\n')}`;
     }
   }
 
-  const hydration = calculateHydration(input.weightKg, input.activityLevel);
+  const hydration = calculateHydration(input.weightKg, input.activityLevel, 'MODERATE', locale);
   context += locale === 'sv'
     ? `
 

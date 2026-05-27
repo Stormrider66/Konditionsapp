@@ -153,7 +153,7 @@ export function NutritionRecommendations({
 
   // Calculate hydration
   const hydration = clientData.weight
-    ? calculateHydration(clientData.weight, activityLevel)
+    ? calculateHydration(clientData.weight, activityLevel, 'MODERATE', locale)
     : null
 
   // Calculate weight timeline

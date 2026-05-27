@@ -1,4 +1,9 @@
-import { calculateMacros, generateNutritionPlan } from '@/lib/ai/nutrition-calculator'
+import {
+  buildNutritionContext,
+  calculateHydration,
+  calculateMacros,
+  generateNutritionPlan,
+} from '@/lib/ai/nutrition-calculator'
 
 describe('nutrition-calculator macro guardrails', () => {
   it('keeps endurance-plan protein reasonable for a 57 kg regular athlete', () => {
@@ -32,5 +37,29 @@ describe('nutrition-calculator macro guardrails', () => {
     })
 
     expect(macros.protein.grams / 57).toBeLessThanOrEqual(2.2)
+  })
+
+  it('localizes hydration recommendations', () => {
+    expect(calculateHydration(70, 'ACTIVE', 'MODERATE', 'en').recommendation).toContain('Aim for')
+    expect(calculateHydration(70, 'ACTIVE', 'MODERATE', 'sv').recommendation).toContain('Sikta på')
+  })
+
+  it('uses English macro labels in English nutrition context', () => {
+    const context = buildNutritionContext(
+      {
+        weightKg: 70,
+        heightCm: 178,
+        ageYears: 35,
+        gender: 'MALE',
+        activityLevel: 'ACTIVE',
+      },
+      undefined,
+      'MAINTAIN',
+      'RUNNING',
+      'en'
+    )
+
+    expect(context).toContain('**Fat**')
+    expect(context).not.toContain('**Fett**')
   })
 })
