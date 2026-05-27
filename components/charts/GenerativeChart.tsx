@@ -35,6 +35,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb } from 'lucide-react';
 
+type AppLocale = 'en' | 'sv';
+
 interface ChartDataPoint {
   name: string;
   value: number;
@@ -72,9 +74,14 @@ interface ChartConfig {
 interface GenerativeChartProps {
   config: ChartConfig;
   className?: string;
+  locale?: AppLocale;
 }
 
-export function GenerativeChart({ config, className }: GenerativeChartProps) {
+function copy(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
+export function GenerativeChart({ config, className, locale = 'en' }: GenerativeChartProps) {
   const {
     chartType,
     title,
@@ -302,7 +309,7 @@ export function GenerativeChart({ config, className }: GenerativeChartProps) {
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <div className="flex items-center gap-2 mb-2">
               <Lightbulb className="h-4 w-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">Insikter</span>
+              <span className="text-sm font-medium text-blue-900">{copy(locale, 'Insights', 'Insikter')}</span>
             </div>
             <ul className="text-sm text-blue-800 space-y-1">
               {insights.map((insight, i) => (
@@ -319,7 +326,7 @@ export function GenerativeChart({ config, className }: GenerativeChartProps) {
 /**
  * Loading state for generative chart
  */
-export function GenerativeChartSkeleton() {
+export function GenerativeChartSkeleton({ locale = 'en' }: { locale?: AppLocale } = {}) {
   return (
     <Card>
       <CardHeader>
@@ -328,7 +335,7 @@ export function GenerativeChartSkeleton() {
       </CardHeader>
       <CardContent>
         <div className="h-[300px] w-full bg-gray-100 rounded animate-pulse flex items-center justify-center">
-          <span className="text-gray-400">Genererar diagram...</span>
+          <span className="text-gray-400">{copy(locale, 'Generating chart...', 'Genererar diagram...')}</span>
         </div>
       </CardContent>
     </Card>

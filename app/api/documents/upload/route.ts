@@ -186,7 +186,7 @@ async function handleConfirmUpload(body: Record<string, unknown>, userId: string
     success: true,
     document,
     uploadPath,
-    message: 'Document uploaded. Use "Generera" to create embeddings.',
+    message: 'Document uploaded. Use "Generate" to create embeddings.',
   })
 }
 
@@ -242,7 +242,7 @@ async function handleUploadText(body: Record<string, unknown>, userId: string) {
   return NextResponse.json({
     success: true,
     document,
-    message: 'Document uploaded. Use "Generera" to create embeddings.',
+    message: 'Document uploaded. Use "Generate" to create embeddings.',
   })
 }
 

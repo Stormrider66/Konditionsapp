@@ -530,7 +530,7 @@ Förbered ett meddelande till en atlet, ett lag eller en filtrerad grupp i ett l
 Fråga bara om information du behöver om det är oklart.
 
 ## INSTRUKTIONER
-- ${locale === 'sv' ? 'Svara på svenska' : 'Svara på engelska om coachen inte uttryckligen ber om svenska'}
+- ${locale === 'sv' ? 'Svara på svenska' : 'Respond in English unless the coach explicitly asks for Swedish'}
 - Var konkret och ge praktiska råd baserade på vetenskaplig grund
 - När du föreslår träningsprogram, var specifik med intensiteter, volymer och frekvenser
 - Använd etablerade träningszoner och metodiker
