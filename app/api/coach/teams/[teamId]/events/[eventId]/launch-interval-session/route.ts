@@ -20,6 +20,14 @@ interface RouteContext {
   params: Promise<{ teamId: string; eventId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv'
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
+}
+
 function scheduledTimeValue(date: Date): string {
   return date.toLocaleTimeString('sv-SE', {
     hour: '2-digit',
@@ -108,14 +116,16 @@ async function buildProtocolForEvent({
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale = getRequestLocale(request)
   try {
     const user = await requireCoach()
+    locale = getRequestLocale(request, user.language)
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(request)
 
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const event = await prisma.teamEvent.findFirst({
@@ -126,7 +136,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     })
 
     if (!event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Event not found', 'Händelsen hittades inte') }, { status: 404 })
     }
 
     if (event.intervalSession?.id) {
@@ -162,9 +172,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ sessionId: session.id, created: true })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error launching interval session from team event:', error)
-    return NextResponse.json({ error: 'Failed to launch interval session' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to launch interval session', 'Kunde inte starta intervallpasset') }, { status: 500 })
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
