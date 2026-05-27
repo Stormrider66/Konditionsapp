@@ -2874,16 +2874,20 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
     }),
 
     generateTrainingProgram: tool({
-      description: 'Starta generering av ett komplett flervekkors träningsprogram åt en atlet. Programmet genereras i bakgrunden (1-10 min) med AI och sparas automatiskt. Stödjer alla sporter och metodiker (Polarized, Norwegian, Canova, Pyramidal). Kräver atletens clientId — använd listAthletes först om du inte har det.',
+      description: toolText(
+        locale,
+        'Start generation of a complete multi-week training program for an athlete. The program is generated in the background (1-10 min) with AI and saved automatically. Supports all sports and methodologies (Polarized, Norwegian, Canova, Pyramidal). Requires the athlete clientId; use listAthletes first if you do not have it.',
+        'Starta generering av ett komplett flervekkors träningsprogram åt en atlet. Programmet genereras i bakgrunden (1-10 min) med AI och sparas automatiskt. Stödjer alla sporter och metodiker (Polarized, Norwegian, Canova, Pyramidal). Kräver atletens clientId — använd listAthletes först om du inte har det.'
+      ),
       inputSchema: z.object({
-        clientId: z.string().describe('Atletens client-ID (hämta med listAthletes)'),
-        sport: z.string().describe('Primär sport. Stödjer t.ex. Running, Cycling, Swimming, HYROX, Triathlon, Football/Fotboll, Ice hockey/Ishockey, Handball/Handboll, Floorball/Innebandy, Basketball/Basket, Volleyball/Volleyboll, Tennis och Padel.'),
-        totalWeeks: z.number().min(1).max(52).describe('Programlängd i veckor'),
-        sessionsPerWeek: z.number().min(1).max(14).optional().describe('Antal pass per vecka'),
-        goal: z.string().describe('Atletens huvudmål (t.ex. "Springa ett marathon under 3:30")'),
-        goalDate: z.string().optional().describe('Måldatum i ISO-format (t.ex. "2026-06-15")'),
-        methodology: z.enum(['POLARIZED', 'NORWEGIAN', 'CANOVA', 'PYRAMIDAL', 'GENERAL']).optional().describe('Träningsmetodik'),
-        notes: z.string().optional().describe('Ytterligare önskemål eller begränsningar'),
+        clientId: z.string().describe('Athlete client ID (fetch with listAthletes).'),
+        sport: z.string().describe('Primary sport. Supports Running, Cycling, Swimming, HYROX, Triathlon, Football, Ice hockey, Handball, Floorball, Basketball, Volleyball, Tennis, Padel, and more.'),
+        totalWeeks: z.number().min(1).max(52).describe('Program length in weeks.'),
+        sessionsPerWeek: z.number().min(1).max(14).optional().describe('Number of sessions per week.'),
+        goal: z.string().describe('Athlete main goal, for example "Run a marathon under 3:30".'),
+        goalDate: z.string().optional().describe('Goal date in ISO format, for example "2026-06-15".'),
+        methodology: z.enum(['POLARIZED', 'NORWEGIAN', 'CANOVA', 'PYRAMIDAL', 'GENERAL']).optional().describe('Training methodology.'),
+        notes: z.string().optional().describe('Additional wishes or limitations.'),
       }),
       execute: async ({ clientId, sport, totalWeeks, sessionsPerWeek, goal, goalDate, methodology, notes }) => {
         try {
@@ -2901,7 +2905,11 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           if (activeSession) {
             return {
               success: false,
-              error: 'Det pågår redan en programgenerering för denna atlet. Vänta tills den är klar.',
+              error: toolText(
+                locale,
+                'A program generation is already running for this athlete. Wait until it is finished.',
+                'Det pågår redan en programgenerering för denna atlet. Vänta tills den är klar.'
+              ),
             }
           }
 
@@ -2930,7 +2938,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           })
 
           if (!clientRecord) {
-            return { success: false, error: 'Atleten hittades inte.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The athlete was not found.', 'Atleten hittades inte.'),
+            }
           }
 
           // Get coach's API keys
@@ -2939,7 +2950,11 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           if (!resolved) {
             return {
               success: false,
-              error: 'Inga AI-nycklar konfigurerade. Gå till Inställningar → AI för att lägga till API-nycklar.',
+              error: toolText(
+                locale,
+                'No AI keys are configured. Go to Settings -> AI to add API keys.',
+                'Inga AI-nycklar konfigurerade. Gå till Inställningar → AI för att lägga till API-nycklar.'
+              ),
             }
           }
 
@@ -3042,11 +3057,18 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             totalPhases,
             estimatedMinutes,
             goal,
-            message: `Programgenerering startad för ${clientRecord.name}! ${totalWeeks} veckor ${normalizedSport}, ${totalPhases} faser. Beräknad tid: ${estimatedMinutes} minuter. Programmet dyker upp automatiskt på atletens profil när det är klart.`,
+            message: toolText(
+              locale,
+              `Program generation started for ${clientRecord.name}. ${totalWeeks} weeks of ${normalizedSport}, ${totalPhases} phases. Estimated time: ${estimatedMinutes} minutes. The program will appear automatically on the athlete profile when it is ready.`,
+              `Programgenerering startad för ${clientRecord.name}! ${totalWeeks} veckor ${normalizedSport}, ${totalPhases} faser. Beräknad tid: ${estimatedMinutes} minuter. Programmet dyker upp automatiskt på atletens profil när det är klart.`
+            ),
           }
         } catch (error) {
           logger.error('Failed to start program generation via coach chat', { coachUserId }, error)
-          return { success: false, error: 'Kunde inte starta programgenereringen. Försök igen.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not start program generation. Please try again.', 'Kunde inte starta programgenereringen. Försök igen.'),
+          }
         }
       },
     }),
