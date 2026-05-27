@@ -21,18 +21,32 @@ const putSchema = z.object({
   norms: z.array(normSchema).max(200),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = getRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
 
     const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
     if (!accessibleTeam) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const saved = await prisma.hockeyNormReference.findMany({
@@ -53,7 +67,13 @@ export async function GET(
     })
   } catch (error) {
     logError('Hockey norm GET error:', error)
-    return NextResponse.json({ success: false, error: 'Failed to load hockey norms' }, { status: 500 })
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    }
+    return NextResponse.json(
+      { success: false, error: t(locale, 'Failed to load hockey norms', 'Kunde inte ladda hockeynormer') },
+      { status: 500 }
+    )
   }
 }
 
@@ -61,14 +81,17 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = getRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
 
     const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
     if (!accessibleTeam) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const body = putSchema.parse(await request.json())
@@ -116,9 +139,18 @@ export async function PUT(
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ success: false, error: 'Invalid hockey norm payload' }, { status: 400 })
+      return NextResponse.json(
+        { success: false, error: t(locale, 'Invalid hockey norm payload', 'Ogiltig hockeynormdata') },
+        { status: 400 }
+      )
+    }
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logError('Hockey norm PUT error:', error)
-    return NextResponse.json({ success: false, error: 'Failed to save hockey norms' }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: t(locale, 'Failed to save hockey norms', 'Kunde inte spara hockeynormer') },
+      { status: 500 }
+    )
   }
 }
