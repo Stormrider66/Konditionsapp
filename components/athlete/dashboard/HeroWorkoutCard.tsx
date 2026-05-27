@@ -194,9 +194,10 @@ export function HeroWorkoutCard({ workout, modification, basePath = '', onRemove
       workout.type,
       workout.intensity,
       workout.name,
-      workout.description
+      workout.description,
+      locale === 'sv' ? 'sv' : 'en'
     )
-  }, [workout])
+  }, [workout, locale])
 
   // Calculate duration and distance from segments (more accurate than stored values)
   const calculatedTotals = useMemo(() =>
