@@ -1,6 +1,6 @@
 /**
- * Swedish prompts for skiing technique video analysis
- * Supports: Classic diagonal, Skating (V1/V2/V2-alt), Double pole
+ * Prompts for skiing technique video analysis.
+ * Supports: Classic diagonal, Skating (V1/V2/V2-alt), Double pole.
  */
 
 export type SkiingTechniqueType = 'SKIING_CLASSIC' | 'SKIING_SKATING' | 'SKIING_DOUBLE_POLE';
@@ -17,7 +17,10 @@ export interface SkiingPromptContext {
   experienceLevel?: string;
   skiingSettings?: SkiingSettings;
   athleteName?: string;
+  locale?: AppLocale;
 }
+
+type AppLocale = 'en' | 'sv';
 
 // Response types for parsing AI output
 export interface SkiingPoleAnalysis {
@@ -151,20 +154,23 @@ export function buildSkiingPrompt(
   context: SkiingPromptContext
 ): string {
   const { gender, experienceLevel, skiingSettings, athleteName } = context;
+  const locale = context.locale === 'sv' ? 'sv' : 'en';
 
-  const genderPronoun = gender === 'MALE' ? 'manlig' : gender === 'FEMALE' ? 'kvinnlig' : '';
+  const genderPronoun = locale === 'sv'
+    ? gender === 'MALE' ? 'manlig' : gender === 'FEMALE' ? 'kvinnlig' : ''
+    : gender === 'MALE' ? 'male' : gender === 'FEMALE' ? 'female' : '';
   const expLevel = experienceLevel || skiingSettings?.technique || 'INTERMEDIATE';
-  const discipline = skiingSettings?.primaryDiscipline || 'distans';
-  const terrain = skiingSettings?.terrainPreference || 'varierad';
-  const athleteDesc = athleteName ? `Atlet: ${athleteName}` : '';
+  const discipline = skiingSettings?.primaryDiscipline || (locale === 'sv' ? 'distans' : 'distance');
+  const terrain = skiingSettings?.terrainPreference || (locale === 'sv' ? 'varierad' : 'varied');
+  const athleteDesc = athleteName ? `${locale === 'sv' ? 'Atlet' : 'Athlete'}: ${athleteName}` : '';
 
   switch (videoType) {
     case 'SKIING_CLASSIC':
-      return buildClassicPrompt(genderPronoun, expLevel, discipline, terrain, athleteDesc);
+      return buildClassicPrompt(genderPronoun, expLevel, discipline, terrain, athleteDesc, locale);
     case 'SKIING_SKATING':
-      return buildSkatingPrompt(genderPronoun, expLevel, discipline, athleteDesc);
+      return buildSkatingPrompt(genderPronoun, expLevel, discipline, athleteDesc, locale);
     case 'SKIING_DOUBLE_POLE':
-      return buildDoublePolePrompt(genderPronoun, expLevel, athleteDesc);
+      return buildDoublePolePrompt(genderPronoun, expLevel, athleteDesc, locale);
     default:
       throw new Error(`Unknown skiing video type: ${videoType}`);
   }
@@ -175,8 +181,101 @@ function buildClassicPrompt(
   experienceLevel: string,
   discipline: string,
   terrain: string,
-  athleteDesc: string
+  athleteDesc: string,
+  locale: AppLocale
 ): string {
+  if (locale === 'en') {
+    return `You are an expert cross-country skiing analyst specializing in classic technique.
+Analyze this video of a ${genderPronoun} skier performing diagonal stride.
+
+## IMPORTANT: ANALYZE THE FULL VIDEO
+You have access to the full video with multiple frames over time. Analyze the movement across the whole sequence, not just a single frame.
+
+## FOCUS AREAS
+
+### 1. Pole technique
+- Pole angle at plant (optimal: 70-80 degrees)
+- Pole angle at release (optimal: 10-20 degrees behind horizontal)
+- Timing relative to the kick
+- Force development through the full pole cycle
+- Symmetry between left and right arm
+
+### 2. Kick
+- Kick timing relative to center of mass
+- Full extension of the kicking leg
+- Wax pocket engagement (is the ski pressed down properly?)
+- Speed and explosiveness of the kick
+
+### 3. Weight transfer
+- Complete weight transfer to the gliding ski
+- Timing of the weight shift
+- Lateral stability during the glide phase
+
+### 4. Hip and trunk position
+- Hip height (high hips are more efficient)
+- Forward lean (optimal: 5-15 degrees)
+- Core engagement for stability
+
+### 5. Glide phase
+- Length of glide phase (longer is more efficient)
+- Balance during single-leg support
+- Efficiency of leg recovery
+
+## ATHLETE PROFILE
+${athleteDesc}
+- Experience level: ${experienceLevel}
+- Primary discipline: ${discipline}
+- Preferred terrain: ${terrain}
+
+## RESPONSE FORMAT
+Return the analysis as JSON with this structure:
+
+\`\`\`json
+{
+  "overallScore": <number 0-100>,
+  "balanceScore": <number 0-100>,
+  "timingScore": <number 0-100>,
+  "efficiencyScore": <number 0-100>,
+  "poleAnalysis": {
+    "plantAngle": <number degrees>,
+    "releaseAngle": <number degrees>,
+    "timing": "EARLY" | "ON_TIME" | "LATE",
+    "forceApplication": "GOOD" | "WEAK" | "INCONSISTENT",
+    "armSymmetry": <number 0-100>
+  },
+  "kickAnalysis": {
+    "timingScore": <number 0-100>,
+    "extension": "FULL" | "PARTIAL" | "INCOMPLETE",
+    "waxPocketEngagement": "GOOD" | "PARTIAL" | "POOR"
+  },
+  "weightTransfer": {
+    "score": <number 0-100>,
+    "timing": "EARLY" | "ON_TIME" | "LATE",
+    "lateralStability": <number 0-100>
+  },
+  "hipPosition": {
+    "score": <number 0-100>,
+    "heightConsistency": <number 0-100>,
+    "forwardLean": <number degrees>,
+    "coreEngagement": "GOOD" | "MODERATE" | "POOR"
+  },
+  "glidePhase": {
+    "duration": <number seconds estimate>,
+    "legRecovery": "EFFICIENT" | "MODERATE" | "INEFFICIENT"
+  },
+  "insights": {
+    "strengths": ["<strength 1 in English>", "<strength 2>"],
+    "weaknesses": ["<weakness 1 in English>", "<weakness 2>"],
+    "drills": [
+      { "drill": "<drill name in English>", "focus": "<focus area>", "priority": 1 },
+      { "drill": "<drill 2>", "focus": "<focus>", "priority": 2 }
+    ],
+    "eliteComparison": "<comparison to elite skiers in English>"
+  }
+}
+\`\`\``;
+  }
+
   return `Du ar en expertanalytiker for langdskidakning med specialisering pa klassisk teknik.
 Analysera denna video av en ${genderPronoun} akare som utfor diagonalgang.
 
@@ -272,8 +371,100 @@ function buildSkatingPrompt(
   genderPronoun: string,
   experienceLevel: string,
   discipline: string,
-  athleteDesc: string
+  athleteDesc: string,
+  locale: AppLocale
 ): string {
+  if (locale === 'en') {
+    return `You are an expert cross-country skiing analyst specializing in skating/free technique.
+Analyze this video of a ${genderPronoun} skier.
+
+## IMPORTANT: ANALYZE THE FULL VIDEO
+You have access to the full video with multiple frames over time. Analyze the movement across the whole sequence.
+
+## FIRST IDENTIFY WHICH SKATING VARIANT IS USED
+- **V1 (offset)**: Asymmetric, one pole push per two skate steps. Used on climbs.
+- **V2**: Symmetric, one pole push per skate step. Fastest variant on flat terrain.
+- **V2 alternate**: Alternating pole push, one side dominates while the other relaxes. Used for recovery.
+
+## FOCUS AREAS
+
+### 1. Edge angles
+- Left ski angle at push-off (optimal: 15-25 degrees)
+- Right ski angle at push-off
+- Symmetry between sides
+- Push-off angle relative to ski direction
+
+### 2. V pattern
+- Width of the V pattern (too wide = energy loss)
+- Frequency (cycles per second)
+- Consistency over time
+
+### 3. Pole technique
+- Synchronization with leg action
+- Pole angle at plant
+- Timing relative to ski push-off
+
+### 4. Hip movement
+- Lateral movement (controlled side balance)
+- Vertical movement (minimal is more efficient)
+- Core engagement
+
+### 5. Recovery
+- Leg path during recovery
+- Compact vs wide movement
+- Consistency between steps
+
+## ATHLETE PROFILE
+${athleteDesc}
+- Experience level: ${experienceLevel}
+- Primary discipline: ${discipline}
+
+## RESPONSE FORMAT
+Return the analysis as JSON with this structure:
+
+\`\`\`json
+{
+  "skatingVariant": "V1" | "V2" | "V2_ALT",
+  "overallScore": <number 0-100>,
+  "balanceScore": <number 0-100>,
+  "timingScore": <number 0-100>,
+  "efficiencyScore": <number 0-100>,
+  "edgeAnalysis": {
+    "leftAngle": <number degrees>,
+    "rightAngle": <number degrees>,
+    "symmetry": <number 0-100>,
+    "pushOffAngle": <number degrees>
+  },
+  "vPattern": {
+    "width": <number cm estimate>,
+    "frequency": <number cycles per second>,
+    "consistency": <number 0-100>
+  },
+  "poleAnalysis": {
+    "plantAngle": <number degrees>,
+    "timing": "EARLY" | "ON_TIME" | "LATE",
+    "armSymmetry": <number 0-100>
+  },
+  "hipPosition": {
+    "score": <number 0-100>,
+    "coreEngagement": "GOOD" | "MODERATE" | "POOR"
+  },
+  "recovery": {
+    "legPath": "COMPACT" | "WIDE" | "INCONSISTENT"
+  },
+  "insights": {
+    "strengths": ["<strength 1 in English>", "<strength 2>"],
+    "weaknesses": ["<weakness 1 in English>", "<weakness 2>"],
+    "drills": [
+      { "drill": "<drill name in English>", "focus": "<focus area>", "priority": 1 },
+      { "drill": "<drill 2>", "focus": "<focus>", "priority": 2 }
+    ],
+    "eliteComparison": "<comparison to elite skiers in English>"
+  }
+}
+\`\`\``;
+  }
+
   return `Du ar en expertanalytiker for langdskidakning med specialisering pa skating/fristil.
 Analysera denna video av en ${genderPronoun} akare.
 
@@ -367,8 +558,94 @@ Returnera analys som JSON med foljande struktur:
 function buildDoublePolePrompt(
   genderPronoun: string,
   experienceLevel: string,
-  athleteDesc: string
+  athleteDesc: string,
+  locale: AppLocale
 ): string {
+  if (locale === 'en') {
+    return `You are an expert cross-country skiing analyst specializing in double poling.
+Analyze this video of a ${genderPronoun} skier performing double poling.
+
+## IMPORTANT: ANALYZE THE FULL VIDEO
+You have access to the full video with multiple frames over time. Analyze the movement across the whole sequence.
+
+## BACKGROUND
+Double poling has become an increasingly important technique in modern cross-country skiing, especially after waxless skis became dominant. Efficient double-poling technique is required to be competitive at all levels.
+
+## FOCUS AREAS
+
+### 1. Trunk movement
+- Flexion range (optimal: 45-60 degrees forward lean at maximum compression)
+- Compression depth (deeper = more power, but also higher energy cost)
+- Speed of the upward phase (fast recovery = higher frequency)
+
+### 2. Pole technique
+- Pole angle at plant (optimal: 75-85 degrees)
+- Pole angle at release (optimal: behind horizontal)
+- Force development through the full movement
+
+### 3. Leg contribution
+- Do the legs contribute to propulsion? Modern technique includes leg drive.
+- Timing of leg drive relative to pole pressure
+- Ankle movement for extra power
+
+### 4. Rhythm and frequency
+- Consistency of movement over time
+- Frequency (cycles per second)
+- Balance between power and frequency
+
+### 5. Hip and trunk position
+- Hip position through the movement
+- Forward lean at the start position
+- Core engagement for stability
+
+## ATHLETE PROFILE
+${athleteDesc}
+- Experience level: ${experienceLevel}
+
+## RESPONSE FORMAT
+Return the analysis as JSON with this structure:
+
+\`\`\`json
+{
+  "overallScore": <number 0-100>,
+  "powerScore": <number 0-100>,
+  "rhythmScore": <number 0-100>,
+  "efficiencyScore": <number 0-100>,
+  "trunkAnalysis": {
+    "flexionRange": <number degrees>,
+    "compressionDepth": "SHALLOW" | "OPTIMAL" | "EXCESSIVE",
+    "returnSpeed": "FAST" | "MODERATE" | "SLOW"
+  },
+  "poleAnalysis": {
+    "plantAngle": <number degrees>,
+    "releaseAngle": <number degrees>,
+    "forceApplication": "GOOD" | "WEAK" | "INCONSISTENT"
+  },
+  "legDrive": {
+    "contribution": "SIGNIFICANT" | "MODERATE" | "MINIMAL",
+    "timing": "SYNCHRONIZED" | "EARLY" | "LATE"
+  },
+  "rhythm": {
+    "consistency": <number 0-100>,
+    "frequency": <number cycles per second>
+  },
+  "hipPosition": {
+    "score": <number 0-100>,
+    "forwardLean": <number degrees>
+  },
+  "insights": {
+    "strengths": ["<strength 1 in English>", "<strength 2>"],
+    "weaknesses": ["<weakness 1 in English>", "<weakness 2>"],
+    "drills": [
+      { "drill": "<drill name in English>", "focus": "<focus area>", "priority": 1 },
+      { "drill": "<drill 2>", "focus": "<focus>", "priority": 2 }
+    ],
+    "eliteComparison": "<comparison to elite skiers in English>"
+  }
+}
+\`\`\``;
+  }
+
   return `Du ar en expertanalytiker for langdskidakning med specialisering pa dubbelstakning.
 Analysera denna video av en ${genderPronoun} akare som utfor dubbelstakning.
 

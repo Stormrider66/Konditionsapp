@@ -127,7 +127,7 @@ export async function POST(
       if (isSkiingVideoType(analysis.videoType)) {
         return await withAiContext(
           { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_skiing' },
-          () => analyzeSkiingTechnique(id, analysis, client, modelId),
+          () => analyzeSkiingTechnique(id, analysis, client, modelId, locale),
         )
       }
       if (isHyroxVideoType(analysis.videoType)) {

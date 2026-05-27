@@ -32,7 +32,8 @@ export async function analyzeSkiingTechnique(
   id: string,
   analysis: SkiingAnalyzerInput,
   client: ReturnType<typeof createGoogleGenAIClient>,
-  modelId: string
+  modelId: string,
+  locale: 'en' | 'sv' = 'en'
 ): Promise<NextResponse> {
   const videoType = analysis.videoType as SkiingVideoType
 
@@ -55,6 +56,7 @@ export async function analyzeSkiingTechnique(
       terrainPreference?: string
       currentThresholdPace?: number | null
     } | undefined,
+    locale,
   })
 
   const fps = getSkiingFPS(videoType)
@@ -81,7 +83,9 @@ export async function analyzeSkiingTechnique(
     })
     return NextResponse.json({
       success: true,
-      warning: 'Analysis completed but structured parsing failed',
+      warning: locale === 'sv'
+        ? 'Analysen slutfördes men den strukturerade tolkningen misslyckades'
+        : 'Analysis completed but structured parsing failed',
       rawAnalysis: result.text,
     })
   }
