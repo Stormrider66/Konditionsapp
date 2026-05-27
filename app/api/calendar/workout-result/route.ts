@@ -123,7 +123,7 @@ function buildCardioDetails(segmentLogs?: Array<{
   const rows = compactRows(segmentLogs.map((segment) => row(
     `${segment.segmentIndex + 1}. ${formatSegmentType(segment.segmentType, locale)}`,
     [
-      metric('Status', segment.skipped ? t(locale, 'Skipped', 'Hoppad över') : segment.completed ? t(locale, 'Done', 'Klar') : t(locale, 'Not done', 'Ej klar')),
+      metric(t(locale, 'Status', 'Status'), segment.skipped ? t(locale, 'Skipped', 'Hoppad över') : segment.completed ? t(locale, 'Done', 'Klar') : t(locale, 'Not done', 'Ej klar')),
       metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(segment.actualDuration ?? segment.plannedDuration)),
       metric(t(locale, 'Distance', 'Distans'), formatDistanceKm(segment.actualDistance ?? segment.plannedDistance)),
       metric(t(locale, 'Pace', 'Tempo'), formatPace(segment.actualPace ?? segment.plannedPace)),
@@ -155,7 +155,7 @@ function buildStrengthDetails(setLogs: Array<{
 }>, locale: AppLocale = 'en'): DetailSection[] {
   if (setLogs.length === 0) return []
   const rows = compactRows(setLogs.map((setLog) => row(
-    `${locale === 'sv' ? setLog.exercise.nameSv || setLog.exercise.nameEn || setLog.exercise.name : setLog.exercise.nameEn || setLog.exercise.name || setLog.exercise.nameSv} · set ${setLog.setNumber}`,
+    `${locale === 'sv' ? setLog.exercise.nameSv || setLog.exercise.nameEn || setLog.exercise.name : setLog.exercise.nameEn || setLog.exercise.name || setLog.exercise.nameSv} · ${t(locale, 'set', 'set')} ${setLog.setNumber}`,
     [
       metric(t(locale, 'Load', 'Vikt'), `${setLog.weight} kg`),
       metric('Reps', setLog.repsTarget ? `${setLog.repsCompleted}/${setLog.repsTarget}` : setLog.repsCompleted),
@@ -171,13 +171,13 @@ function buildStrengthDetails(setLogs: Array<{
       metric(t(locale, 'Note', 'Notering'), setLog.notes),
     ]
   )))
-  return rows.length > 0 ? [{ title: 'Set', rows }] : []
+  return rows.length > 0 ? [{ title: t(locale, 'Sets', 'Set'), rows }] : []
 }
 
-async function assertAssignmentAccess(userId: string, athleteId: string) {
+async function assertAssignmentAccess(userId: string, athleteId: string, locale: AppLocale) {
   const allowed = await canAccessClient(userId, athleteId)
   if (!allowed) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
   }
   return null
 }
@@ -195,7 +195,7 @@ export async function GET(request: NextRequest) {
   })
 
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid workout result request' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'Invalid workout result request', 'Ogiltig förfrågan om träningsresultat') }, { status: 400 })
   }
 
   const { kind, assignmentId } = parsed.data
@@ -208,9 +208,9 @@ export async function GET(request: NextRequest) {
         athlete: { select: { id: true, name: true } },
       },
     })
-    if (!assignment) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+    if (!assignment) return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
 
-    const accessError = await assertAssignmentAccess(user.id, assignment.athleteId)
+    const accessError = await assertAssignmentAccess(user.id, assignment.athleteId, locale)
     if (accessError) return accessError
 
     const log = await prisma.cardioSessionLog.findFirst({
@@ -253,9 +253,9 @@ export async function GET(request: NextRequest) {
         },
       },
     })
-    if (!assignment) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+    if (!assignment) return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
 
-    const accessError = await assertAssignmentAccess(user.id, assignment.athleteId)
+    const accessError = await assertAssignmentAccess(user.id, assignment.athleteId, locale)
     if (accessError) return accessError
 
     const bestEstimated1RM = maxNumber(assignment.setLogs.map((setLog) => setLog.estimated1RM))
@@ -292,9 +292,9 @@ export async function GET(request: NextRequest) {
         athlete: { select: { id: true, name: true } },
       },
     })
-    if (!assignment) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+    if (!assignment) return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
 
-    const accessError = await assertAssignmentAccess(user.id, assignment.athleteId)
+    const accessError = await assertAssignmentAccess(user.id, assignment.athleteId, locale)
     if (accessError) return accessError
 
     const [log, result] = await Promise.all([
@@ -338,9 +338,9 @@ export async function GET(request: NextRequest) {
       athlete: { select: { id: true, name: true } },
     },
   })
-  if (!assignment) return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+  if (!assignment) return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
 
-  const accessError = await assertAssignmentAccess(user.id, assignment.athleteId)
+  const accessError = await assertAssignmentAccess(user.id, assignment.athleteId, locale)
   if (accessError) return accessError
 
   const result = await prisma.agilityWorkoutResult.findFirst({
