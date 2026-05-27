@@ -13,6 +13,8 @@
 import type { StrengthPhase, BiomechanicalPillar, ProgressionLevel } from '@prisma/client'
 import { STRENGTH_PHASES, type PhaseProtocol } from '../quality-programming/strength-periodization'
 
+type AppLocale = 'en' | 'sv'
+
 // Types for auto-generation
 export interface AutoGenerateParams {
   athleteId: string
@@ -28,6 +30,7 @@ export interface AutoGenerateParams {
   includeCooldown: boolean
   sport?: string | null
   riskBodyParts?: string[]
+  locale?: 'en' | 'sv'
   // Optional: Recent exercises to avoid
   recentExerciseIds?: string[]
   // Optional: 1RM data for loading calculations
@@ -73,6 +76,7 @@ const WARMUP_EXERCISES: Record<string, {
   reps: string
   restSeconds: number
   notes?: string
+  notesEn?: string
 }> = {
   'warmup-1': {
     name: 'Hip Circles',
@@ -81,6 +85,7 @@ const WARMUP_EXERCISES: Record<string, {
     reps: '10 each direction',
     restSeconds: 0,
     notes: 'Mobilisera höftleden',
+    notesEn: 'Mobilize the hip joint',
   },
   'warmup-2': {
     name: 'Leg Swings',
@@ -89,6 +94,7 @@ const WARMUP_EXERCISES: Record<string, {
     reps: '10 each leg',
     restSeconds: 0,
     notes: 'Framåt/bakåt och i sidled',
+    notesEn: 'Forward/backward and side to side',
   },
   'warmup-3': {
     name: 'Bodyweight Squats',
@@ -104,6 +110,7 @@ const WARMUP_EXERCISES: Record<string, {
     reps: '10',
     restSeconds: 30,
     notes: 'Aktivera gluteus',
+    notesEn: 'Activate the glutes',
   },
   'warmup-5': {
     name: 'Walking Lunges',
@@ -119,6 +126,7 @@ const WARMUP_EXERCISES: Record<string, {
     reps: '5',
     restSeconds: 30,
     notes: 'Aktiverar core och hamstrings',
+    notesEn: 'Activates core and hamstrings',
   },
 }
 
@@ -130,6 +138,7 @@ const COOLDOWN_EXERCISES: Record<string, {
   reps: string
   restSeconds: number
   notes?: string
+  notesEn?: string
 }> = {
   'cooldown-1': {
     name: 'Pigeon Stretch',
@@ -138,6 +147,7 @@ const COOLDOWN_EXERCISES: Record<string, {
     reps: '60s each side',
     restSeconds: 0,
     notes: 'Höftböjare och gluteus',
+    notesEn: 'Hip flexors and glutes',
   },
   'cooldown-2': {
     name: 'Hip Flexor Stretch',
@@ -174,6 +184,7 @@ const COOLDOWN_EXERCISES: Record<string, {
     reps: '60s',
     restSeconds: 0,
     notes: 'Avslappning av rygg',
+    notesEn: 'Relax the back',
   },
 }
 
@@ -187,6 +198,7 @@ const PREHAB_EXERCISES: Record<string, {
   reps: string
   restSeconds: number
   notes?: string
+  notesEn?: string
   tags: string[]
 }> = {
   'prehab-groin-1': {
@@ -196,6 +208,7 @@ const PREHAB_EXERCISES: Record<string, {
     reps: '20-30s each side',
     restSeconds: 45,
     notes: 'Ljumske/adduktor. Håll smärta max 0-3/10.',
+    notesEn: 'Groin/adductor. Keep pain at max 0-3/10.',
     tags: ['groin', 'adductor', 'hip', 'hockey'],
   },
   'prehab-hip-1': {
@@ -205,6 +218,7 @@ const PREHAB_EXERCISES: Record<string, {
     reps: '8-10',
     restSeconds: 30,
     notes: 'Säte och bäckenkontroll före tyngre benarbete.',
+    notesEn: 'Glute and pelvis control before heavier lower-body work.',
     tags: ['hip', 'glute', 'groin', 'hockey'],
   },
   'prehab-trunk-1': {
@@ -214,6 +228,7 @@ const PREHAB_EXERCISES: Record<string, {
     reps: '8 each side',
     restSeconds: 30,
     notes: 'Anti-rotation och revbenskontroll.',
+    notesEn: 'Anti-rotation and rib-cage control.',
     tags: ['trunk', 'core', 'shoulder'],
   },
   'prehab-shoulder-1': {
@@ -223,6 +238,7 @@ const PREHAB_EXERCISES: Record<string, {
     reps: '12-15',
     restSeconds: 30,
     notes: 'Rotatorkuff och skulderbladskontroll.',
+    notesEn: 'Rotator cuff and scapular control.',
     tags: ['shoulder', 'upper body', 'hockey'],
   },
   'prehab-ankle-1': {
@@ -232,6 +248,7 @@ const PREHAB_EXERCISES: Record<string, {
     reps: '20-30s each side',
     restSeconds: 30,
     notes: 'Fot/ankelstyvhet och kontroll.',
+    notesEn: 'Foot/ankle stiffness and control.',
     tags: ['ankle', 'foot', 'calf', 'hockey'],
   },
 }
@@ -293,9 +310,11 @@ export async function generateStrengthSession(
     includeCooldown,
     sport,
     riskBodyParts = [],
+    locale: localeInput,
     recentExerciseIds = [],
     oneRmData = {},
   } = params
+  const locale = resolveLocale(localeInput)
 
   const phaseProtocol = STRENGTH_PHASES[phase]
   const goalWeights = GOAL_EXERCISE_WEIGHTS[goal]
@@ -313,7 +332,7 @@ export async function generateStrengthSession(
 
   // 1. Generate warmup section
   if (includeWarmup) {
-    const warmupSection = generateWarmupSection(phase)
+    const warmupSection = generateWarmupSection(phase, locale)
     sections.push(warmupSection)
     allExercises.push(...warmupSection.exercises)
   }
@@ -328,6 +347,7 @@ export async function generateStrengthSession(
     recentExerciseIds,
     oneRmData,
     maxDuration: mainExerciseTime,
+    locale,
   })
 
   const mainSection: GeneratedSection = {
@@ -345,13 +365,14 @@ export async function generateStrengthSession(
       goal,
       sport,
       riskBodyParts,
+      locale,
     })
 
     if (prehabExercises.length > 0) {
       const prehabSection: GeneratedSection = {
         type: 'PREHAB',
         exercises: prehabExercises,
-        notes: prehabSectionNotes(goal, sport, riskBodyParts),
+        notes: prehabSectionNotes(goal, sport, riskBodyParts, locale),
         duration: 6,
       }
       sections.push(prehabSection)
@@ -366,12 +387,13 @@ export async function generateStrengthSession(
       phaseProtocol,
       athleteLevel,
       goal,
+      locale,
     })
 
     const coreSection: GeneratedSection = {
       type: 'CORE',
       exercises: coreExercises,
-      notes: 'Fokusera på kontroll och andning',
+      notes: t(locale, 'Focus on control and breathing', 'Fokusera på kontroll och andning'),
       duration: 5,
     }
     sections.push(coreSection)
@@ -380,7 +402,7 @@ export async function generateStrengthSession(
 
   // 5. Generate cooldown section
   if (includeCooldown) {
-    const cooldownSection = generateCooldownSection()
+    const cooldownSection = generateCooldownSection(locale)
     sections.push(cooldownSection)
     allExercises.push(...cooldownSection.exercises)
   }
@@ -390,8 +412,8 @@ export async function generateStrengthSession(
   const totalExercises = allExercises.length
 
   // Generate session name and description
-  const sessionName = generateSessionName(goal, phase, params.sessionsPerWeek)
-  const description = generateSessionDescription(goal, phase, athleteLevel)
+  const sessionName = generateSessionName(goal, phase, params.sessionsPerWeek, locale)
+  const description = generateSessionDescription(goal, phase, athleteLevel, locale)
 
   // Generate rationale
   const rationaleExercises = allExercises.filter((e) => e.section === 'MAIN')
@@ -407,15 +429,19 @@ export async function generateStrengthSession(
     .map(([pillar, count]) => `${count}x ${pillar}`)
     .join(', ')
 
-  const goalLabels: Record<string, string> = {
-    strength: 'maximal styrka',
-    power: 'kraft och explosivitet',
-    'injury-prevention': 'skadeförebyggande och stabilitet',
-    'running-economy': 'löpekonomi',
+  const goalLabels: Record<string, { en: string; sv: string }> = {
+    strength: { en: 'maximal strength', sv: 'maximal styrka' },
+    power: { en: 'power and explosiveness', sv: 'kraft och explosivitet' },
+    'injury-prevention': { en: 'injury prevention and stability', sv: 'skadeförebyggande och stabilitet' },
+    'running-economy': { en: 'running economy', sv: 'löpekonomi' },
   }
 
-  const prehabSummary = shouldIncludePrehab ? ' Prehab-sektion tillagd för ledkontroll, vävnadskapacitet och riskområden.' : ''
-  const rationale = `${totalExercises} övningar valda för ${goalLabels[goal] || goal}. Pillarfördelning: ${pillarSummary}. Fas: ${phase.replace(/_/g, ' ').toLowerCase()} med ${phaseProtocol.reps.min}-${phaseProtocol.reps.max} reps @ ${phaseProtocol.intensity.min}-${phaseProtocol.intensity.max}% 1RM.${prehabSummary}`
+  const prehabSummary = shouldIncludePrehab
+    ? t(locale, ' Prehab section added for joint control, tissue capacity, and risk areas.', ' Prehab-sektion tillagd för ledkontroll, vävnadskapacitet och riskområden.')
+    : ''
+  const rationale = locale === 'sv'
+    ? `${totalExercises} övningar valda för ${goalLabels[goal]?.sv || goal}. Pillarfördelning: ${pillarSummary}. Fas: ${phase.replace(/_/g, ' ').toLowerCase()} med ${phaseProtocol.reps.min}-${phaseProtocol.reps.max} reps @ ${phaseProtocol.intensity.min}-${phaseProtocol.intensity.max}% 1RM.${prehabSummary}`
+    : `${totalExercises} exercises selected for ${goalLabels[goal]?.en || goal}. Pillar distribution: ${pillarSummary || 'balanced'}. Phase: ${phase.replace(/_/g, ' ').toLowerCase()} with ${phaseProtocol.reps.min}-${phaseProtocol.reps.max} reps @ ${phaseProtocol.intensity.min}-${phaseProtocol.intensity.max}% 1RM.${prehabSummary}`
 
   return {
     name: sessionName,
@@ -433,7 +459,7 @@ export async function generateStrengthSession(
 /**
  * Generate warmup section based on phase
  */
-function generateWarmupSection(phase: StrengthPhase): GeneratedSection {
+function generateWarmupSection(phase: StrengthPhase, locale: AppLocale): GeneratedSection {
   const exercises: GeneratedExercise[] = []
 
   // Select 3-4 warmup exercises
@@ -444,11 +470,11 @@ function generateWarmupSection(phase: StrengthPhase): GeneratedSection {
     const warmup = WARMUP_EXERCISES[key]
     exercises.push({
       exerciseId: key,
-      exerciseName: warmup.nameSv,
+      exerciseName: localizedExerciseName(warmup, locale),
       sets: warmup.sets,
       reps: warmup.reps,
       restSeconds: warmup.restSeconds,
-      notes: warmup.notes,
+      notes: localizedNotes(warmup, locale),
       section: 'WARMUP',
     })
   })
@@ -456,7 +482,7 @@ function generateWarmupSection(phase: StrengthPhase): GeneratedSection {
   return {
     type: 'WARMUP',
     exercises,
-    notes: 'Öka gradvis intensiteten',
+    notes: t(locale, 'Increase intensity gradually', 'Öka gradvis intensiteten'),
     duration: 8,
   }
 }
@@ -464,7 +490,7 @@ function generateWarmupSection(phase: StrengthPhase): GeneratedSection {
 /**
  * Generate cooldown section
  */
-function generateCooldownSection(): GeneratedSection {
+function generateCooldownSection(locale: AppLocale): GeneratedSection {
   const exercises: GeneratedExercise[] = []
 
   // Select 3-4 cooldown stretches
@@ -475,11 +501,11 @@ function generateCooldownSection(): GeneratedSection {
     const cooldown = COOLDOWN_EXERCISES[key]
     exercises.push({
       exerciseId: key,
-      exerciseName: cooldown.nameSv,
+      exerciseName: localizedExerciseName(cooldown, locale),
       sets: cooldown.sets,
       reps: cooldown.reps,
       restSeconds: cooldown.restSeconds,
-      notes: cooldown.notes,
+      notes: localizedNotes(cooldown, locale),
       section: 'COOLDOWN',
     })
   })
@@ -487,7 +513,7 @@ function generateCooldownSection(): GeneratedSection {
   return {
     type: 'COOLDOWN',
     exercises,
-    notes: 'Stretcha alla stora muskelgrupper',
+    notes: t(locale, 'Stretch all major muscle groups', 'Stretcha alla stora muskelgrupper'),
     duration: 7,
   }
 }
@@ -537,8 +563,9 @@ function selectPrehabExercises(params: {
   goal: string
   sport?: string | null
   riskBodyParts?: string[]
+  locale: AppLocale
 }): GeneratedExercise[] {
-  const { exerciseLibrary, goal, sport, riskBodyParts = [] } = params
+  const { exerciseLibrary, goal, sport, riskBodyParts = [], locale } = params
   const riskParts = normalizedBodyPartSet(riskBodyParts)
   const hockey = isHockeySport(sport)
   const wantedCount = goal === 'injury-prevention' || hockey ? 3 : 2
@@ -570,11 +597,11 @@ function selectPrehabExercises(params: {
 
   const selected = scored.slice(0, wantedCount).map(({ ex }) => ({
     exerciseId: ex.id,
-    exerciseName: ex.nameSv || ex.name,
+    exerciseName: localizedLibraryName(ex, locale),
     sets: 2,
     reps: ex.biomechanicalPillar === 'ANTI_ROTATION_CORE' ? '8-12 each side' : '10-15',
     restSeconds: 45,
-    notes: 'Stabilitet/prehab: kontroll före belastning.',
+    notes: t(locale, 'Stability/prehab: control before load.', 'Stabilitet/prehab: kontroll före belastning.'),
     section: 'PREHAB' as const,
   }))
 
@@ -586,26 +613,26 @@ function selectPrehabExercises(params: {
     .slice(0, wantedCount - selected.length)
     .map(([id, ex]) => ({
       exerciseId: id,
-      exerciseName: ex.nameSv,
+      exerciseName: localizedExerciseName(ex, locale),
       sets: ex.sets,
       reps: ex.reps,
       restSeconds: ex.restSeconds,
-      notes: ex.notes,
+      notes: localizedNotes(ex, locale),
       section: 'PREHAB' as const,
     }))
 
   return [...selected, ...fallback]
 }
 
-function prehabSectionNotes(goal: string, sport?: string | null, riskBodyParts: string[] = []): string {
+function prehabSectionNotes(goal: string, sport?: string | null, riskBodyParts: string[] = [], locale: AppLocale = 'en'): string {
   const focus = riskBodyParts.length > 0
-    ? ` Fokus: ${riskBodyParts.join(', ')}.`
+    ? ` ${t(locale, 'Focus', 'Fokus')}: ${riskBodyParts.join(', ')}.`
     : isHockeySport(sport)
-      ? ' Hockeyfokus: ljumske, höft, axel och fot/ankel.'
+      ? t(locale, ' Hockey focus: groin, hip, shoulder, and foot/ankle.', ' Hockeyfokus: ljumske, höft, axel och fot/ankel.')
       : ''
   const base = goal === 'injury-prevention'
-    ? 'Skadeförebyggande kontrollblock före huvudlyften.'
-    : 'Stabilitetsblock före tyngre arbete.'
+    ? t(locale, 'Injury-prevention control block before the main lifts.', 'Skadeförebyggande kontrollblock före huvudlyften.')
+    : t(locale, 'Stability block before heavier work.', 'Stabilitetsblock före tyngre arbete.')
   return `${base}${focus}`
 }
 
@@ -621,6 +648,7 @@ async function selectMainExercises(params: {
   recentExerciseIds: string[]
   oneRmData: Record<string, number>
   maxDuration: number
+  locale: AppLocale
 }): Promise<GeneratedExercise[]> {
   const {
     exerciseLibrary,
@@ -630,7 +658,7 @@ async function selectMainExercises(params: {
     equipmentAvailable,
     recentExerciseIds,
     oneRmData,
-    maxDuration,
+    locale,
   } = params
 
   const exercises: GeneratedExercise[] = []
@@ -679,7 +707,7 @@ async function selectMainExercises(params: {
 
         exercises.push({
           exerciseId: selected.id,
-          exerciseName: selected.nameSv || selected.name,
+          exerciseName: localizedLibraryName(selected, locale),
           sets: phaseProtocol.sets.min,
           reps: phaseProtocol.reps.min,
           weight,
@@ -703,11 +731,11 @@ async function selectMainExercises(params: {
 
       exercises.push({
         exerciseId: selected.id,
-        exerciseName: selected.nameSv || selected.name,
+        exerciseName: localizedLibraryName(selected, locale),
         sets: 3,
         reps: '5-8',
         restSeconds: 90,
-        notes: 'Fokus på explosivitet',
+        notes: t(locale, 'Focus on explosiveness', 'Fokus på explosivitet'),
         section: 'MAIN',
       })
     }
@@ -724,8 +752,9 @@ function selectCoreExercises(params: {
   phaseProtocol: PhaseProtocol
   athleteLevel: string
   goal: string
+  locale: AppLocale
 }): GeneratedExercise[] {
-  const { exerciseLibrary, phaseProtocol, goal } = params
+  const { exerciseLibrary, phaseProtocol, goal, locale } = params
   const exercises: GeneratedExercise[] = []
 
   // Filter to core exercises
@@ -740,7 +769,7 @@ function selectCoreExercises(params: {
   for (const ex of selectedCores) {
     exercises.push({
       exerciseId: ex.id,
-      exerciseName: ex.nameSv || ex.name,
+      exerciseName: localizedLibraryName(ex, locale),
       sets: 2,
       reps: phaseProtocol.phase === 'POWER' ? '10-12' : '12-15',
       restSeconds: 45,
@@ -794,24 +823,25 @@ function calculateLoad(oneRm: number, phaseProtocol: PhaseProtocol): number {
 function generateSessionName(
   goal: string,
   phase: StrengthPhase,
-  sessionsPerWeek: number
+  sessionsPerWeek: number,
+  locale: AppLocale
 ): string {
-  const phaseLabels: Record<StrengthPhase, string> = {
-    ANATOMICAL_ADAPTATION: 'Grundläggande',
-    MAXIMUM_STRENGTH: 'Maxstyrka',
-    POWER: 'Explosivitet',
-    MAINTENANCE: 'Underhåll',
-    TAPER: 'Taper',
+  const phaseLabels: Record<StrengthPhase, { en: string; sv: string }> = {
+    ANATOMICAL_ADAPTATION: { en: 'Foundational', sv: 'Grundläggande' },
+    MAXIMUM_STRENGTH: { en: 'Maximum strength', sv: 'Maxstyrka' },
+    POWER: { en: 'Explosiveness', sv: 'Explosivitet' },
+    MAINTENANCE: { en: 'Maintenance', sv: 'Underhåll' },
+    TAPER: { en: 'Taper', sv: 'Taper' },
   }
 
-  const goalLabels: Record<string, string> = {
-    strength: 'Styrka',
-    power: 'Power',
-    'injury-prevention': 'Skadeförebyggande',
-    'running-economy': 'Löpekonomi',
+  const goalLabels: Record<string, { en: string; sv: string }> = {
+    strength: { en: 'Strength', sv: 'Styrka' },
+    power: { en: 'Power', sv: 'Power' },
+    'injury-prevention': { en: 'Injury prevention', sv: 'Skadeförebyggande' },
+    'running-economy': { en: 'Running economy', sv: 'Löpekonomi' },
   }
 
-  return `${phaseLabels[phase]} - ${goalLabels[goal]} (${sessionsPerWeek}x/vecka)`
+  return `${phaseLabels[phase][locale]} - ${goalLabels[goal]?.[locale] || goal} (${sessionsPerWeek}x/${t(locale, 'week', 'vecka')})`
 }
 
 /**
@@ -819,24 +849,45 @@ function generateSessionName(
  */
 function generateSessionDescription(
   goal: string,
-  phase: StrengthPhase,
-  athleteLevel: string
+  _phase: StrengthPhase,
+  athleteLevel: string,
+  locale: AppLocale
 ): string {
-  const descriptions: Record<string, string> = {
-    strength: 'Fokus på att bygga maximal styrka genom tunga lyft med längre vila.',
-    power: 'Explosiva rörelser för att konvertera styrka till kraft och hastighet.',
-    'injury-prevention': 'Balanserat program med fokus på stabilitet och unilateral styrka.',
-    'running-economy': 'Styrketräning anpassad för löpare med fokus på löpekonomi.',
+  const descriptions: Record<string, { en: string; sv: string }> = {
+    strength: { en: 'Focus on building maximal strength through heavy lifts with longer rest.', sv: 'Fokus på att bygga maximal styrka genom tunga lyft med längre vila.' },
+    power: { en: 'Explosive movements to convert strength into power and speed.', sv: 'Explosiva rörelser för att konvertera styrka till kraft och hastighet.' },
+    'injury-prevention': { en: 'Balanced program focused on stability and unilateral strength.', sv: 'Balanserat program med fokus på stabilitet och unilateral styrka.' },
+    'running-economy': { en: 'Strength training adapted for runners with a focus on running economy.', sv: 'Styrketräning anpassad för löpare med fokus på löpekonomi.' },
   }
 
   const levelNote =
     athleteLevel === 'BEGINNER'
-      ? ' Anpassat för nybörjare med fokus på teknik.'
+      ? t(locale, ' Adapted for beginners with a focus on technique.', ' Anpassat för nybörjare med fokus på teknik.')
       : athleteLevel === 'ELITE'
-      ? ' Avancerat program för elitidrottare.'
+      ? t(locale, ' Advanced program for elite athletes.', ' Avancerat program för elitidrottare.')
       : ''
 
-  return descriptions[goal] + levelNote
+  return (descriptions[goal]?.[locale] || goal) + levelNote
+}
+
+function resolveLocale(locale?: string | null): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function localizedExerciseName(exercise: { name: string; nameSv?: string }, locale: AppLocale): string {
+  return locale === 'sv' ? (exercise.nameSv || exercise.name) : exercise.name
+}
+
+function localizedLibraryName(exercise: ExerciseFromLibrary, locale: AppLocale): string {
+  return locale === 'sv' ? (exercise.nameSv || exercise.name) : exercise.name
+}
+
+function localizedNotes(item: { notes?: string; notesEn?: string }, locale: AppLocale): string | undefined {
+  return locale === 'sv' ? item.notes : item.notesEn
 }
 
 // Session focus patterns for A/B/C variation
@@ -844,19 +895,22 @@ function generateSessionDescription(
 const SESSION_FOCUS_SHIFTS: Record<number, Array<{
   label: string
   focusDescription: string
+  focusDescriptionSv: string
   goalModifier: (base: typeof GOAL_EXERCISE_WEIGHTS['strength']) => typeof GOAL_EXERCISE_WEIGHTS['strength']
 }>> = {
   1: [
     {
       label: 'A',
-      focusDescription: 'Helkropp',
+      focusDescription: 'Full body',
+      focusDescriptionSv: 'Helkropp',
       goalModifier: (base) => ({ ...base }),
     },
   ],
   2: [
     {
       label: 'A',
-      focusDescription: 'Posterior chain & höft',
+      focusDescription: 'Posterior chain & hip',
+      focusDescriptionSv: 'Posterior chain & höft',
       goalModifier: (base) => ({
         ...base,
         posteriorChain: base.posteriorChain + 1,
@@ -865,7 +919,8 @@ const SESSION_FOCUS_SHIFTS: Record<number, Array<{
     },
     {
       label: 'B',
-      focusDescription: 'Knädominant & unilateral',
+      focusDescription: 'Knee-dominant & unilateral',
+      focusDescriptionSv: 'Knädominant & unilateral',
       goalModifier: (base) => ({
         ...base,
         kneeDominance: base.kneeDominance + 1,
@@ -877,7 +932,8 @@ const SESSION_FOCUS_SHIFTS: Record<number, Array<{
   3: [
     {
       label: 'A',
-      focusDescription: 'Posterior chain & styrka',
+      focusDescription: 'Posterior chain & strength',
+      focusDescriptionSv: 'Posterior chain & styrka',
       goalModifier: (base) => ({
         ...base,
         posteriorChain: base.posteriorChain + 1,
@@ -885,7 +941,8 @@ const SESSION_FOCUS_SHIFTS: Record<number, Array<{
     },
     {
       label: 'B',
-      focusDescription: 'Knädominant & explosivitet',
+      focusDescription: 'Knee-dominant & explosiveness',
+      focusDescriptionSv: 'Knädominant & explosivitet',
       goalModifier: (base) => ({
         ...base,
         kneeDominance: base.kneeDominance + 1,
@@ -894,7 +951,8 @@ const SESSION_FOCUS_SHIFTS: Record<number, Array<{
     },
     {
       label: 'C',
-      focusDescription: 'Unilateral & stabilitet',
+      focusDescription: 'Unilateral & stability',
+      focusDescriptionSv: 'Unilateral & stabilitet',
       goalModifier: (base) => ({
         ...base,
         unilateral: base.unilateral + 1,
@@ -912,13 +970,14 @@ const SESSION_FOCUS_SHIFTS: Record<number, Array<{
 export async function generateWeeklyProgram(
   params: AutoGenerateParams,
   exerciseLibrary: ExerciseFromLibrary[],
-  calendarConstraints?: {
+  _calendarConstraints?: {
     blockedDates: string[]
     reducedDates: string[]
     startDate?: string // ISO date for the week start
   }
 ): Promise<GeneratedSession[]> {
   const sessions: GeneratedSession[] = []
+  const locale = resolveLocale(params.locale)
   const focusPatterns = SESSION_FOCUS_SHIFTS[params.sessionsPerWeek] || SESSION_FOCUS_SHIFTS[1]
   const baseGoalWeights = GOAL_EXERCISE_WEIGHTS[params.goal]
 
@@ -950,13 +1009,14 @@ export async function generateWeeklyProgram(
     GOAL_EXERCISE_WEIGHTS[params.goal] = originalWeights
 
     // Name with A/B/C label and focus description
+    const focusDescription = locale === 'sv' ? focus.focusDescriptionSv : focus.focusDescription
     session.name = session.name.replace(
-      /\(\d+x\/vecka\)/,
-      `Pass ${focus.label} — ${focus.focusDescription}`
+      /\(\d+x\/(?:week|vecka)\)/,
+      `${t(locale, 'Session', 'Pass')} ${focus.label} - ${focusDescription}`
     )
 
     // Enrich rationale with session focus
-    session.rationale = `${focus.label}: Fokus på ${focus.focusDescription.toLowerCase()}. ${session.rationale || ''}`
+    session.rationale = `${focus.label}: ${t(locale, 'Focus on', 'Fokus på')} ${focusDescription.toLowerCase()}. ${session.rationale || ''}`
 
     sessions.push(session)
   }

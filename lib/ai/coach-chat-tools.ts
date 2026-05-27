@@ -771,6 +771,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             includeCooldown,
             sport: athleteSport,
             riskBodyParts: restrictedBodyParts,
+            locale,
             recentExerciseIds,
             oneRmData,
           }

@@ -26,6 +26,7 @@ interface GenerateRequestBody {
   includeCooldown?: boolean
   mode?: 'single' | 'weekly'
   weekStartDate?: string // ISO date string
+  locale?: 'en' | 'sv'
 }
 
 export async function POST(request: NextRequest) {
@@ -47,7 +48,9 @@ export async function POST(request: NextRequest) {
       includeCooldown = true,
       mode = 'single',
       weekStartDate,
+      locale: bodyLocale,
     } = body
+    const locale = bodyLocale === 'sv' || (!bodyLocale && user.language === 'sv') ? 'sv' : 'en'
 
     // Validate required fields
     if (!goal || !phase) {
@@ -218,6 +221,7 @@ export async function POST(request: NextRequest) {
       includeCooldown,
       sport: athleteSport,
       riskBodyParts: restrictedBodyParts,
+      locale,
       recentExerciseIds,
       oneRmData,
     }

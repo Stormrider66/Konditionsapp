@@ -58,7 +58,29 @@ describe('generateStrengthSession', () => {
     const session = await generateStrengthSession(baseParams, mockExerciseLibrary)
 
     expect(session.rationale).toBeTruthy()
+    expect(session.rationale).toContain('exercises')
+    expect(session.rationale).toContain('Pillar distribution')
+  })
+
+  it('defaults generated strength content to English', async () => {
+    const params = { ...baseParams, includeWarmup: true, includePrehab: true, includeCooldown: true, riskBodyParts: ['groin'] }
+    const session = await generateStrengthSession(params, mockExerciseLibrary)
+
+    expect(session.name).toContain('Foundational')
+    expect(session.description).toContain('Focus on building maximal strength')
+    expect(session.sections.find((section) => section.type === 'WARMUP')?.notes).toBe('Increase intensity gradually')
+    expect(session.sections.find((section) => section.type === 'PREHAB')?.notes).toContain('Stability block')
+    expect(JSON.stringify(session)).not.toMatch(/[åäöÅÄÖ]|\b(Grundläggande|Styrka|övningar|Fokus på|Höft|Knä|Skadeförebyggande|Stabilitetsblock)\b/)
+  })
+
+  it('preserves Swedish generated strength content when requested', async () => {
+    const params = { ...baseParams, locale: 'sv' as const, includeWarmup: true, includePrehab: true, includeCooldown: true, riskBodyParts: ['ljumske'] }
+    const session = await generateStrengthSession(params, mockExerciseLibrary)
+
+    expect(session.name).toContain('Grundläggande')
+    expect(session.description).toContain('Fokus på att bygga maximal styrka')
     expect(session.rationale).toContain('övningar')
+    expect(session.sections.find((section) => section.type === 'WARMUP')?.notes).toBe('Öka gradvis intensiteten')
   })
 
   it('respects equipment filter', async () => {
@@ -99,7 +121,7 @@ describe('generateStrengthSession', () => {
     const prehabSection = session.sections.find((s) => s.type === 'PREHAB')
     expect(prehabSection).toBeDefined()
     expect(prehabSection!.exercises.length).toBeGreaterThan(0)
-    expect(session.rationale).toContain('Prehab-sektion')
+    expect(session.rationale).toContain('Prehab section')
   })
 
   it('targets restricted body parts in prehab selection', async () => {
@@ -136,9 +158,17 @@ describe('generateWeeklyProgram', () => {
     const params = { ...baseParams, sessionsPerWeek: 3 as const }
     const sessions = await generateWeeklyProgram(params, mockExerciseLibrary)
 
+    expect(sessions[0].name).toContain('Session A')
+    expect(sessions[1].name).toContain('Session B')
+    expect(sessions[2].name).toContain('Session C')
+  })
+
+  it('preserves Swedish weekly session labels when requested', async () => {
+    const params = { ...baseParams, locale: 'sv' as const, sessionsPerWeek: 2 as const }
+    const sessions = await generateWeeklyProgram(params, mockExerciseLibrary)
+
     expect(sessions[0].name).toContain('Pass A')
-    expect(sessions[1].name).toContain('Pass B')
-    expect(sessions[2].name).toContain('Pass C')
+    expect(sessions[0].rationale).toContain('Fokus på')
   })
 
   it('uses different exercises across sessions', async () => {
