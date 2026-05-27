@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     const scope = getRequestedBusinessScope(request)
     const businessSlug = scope.businessSlug || parsed.data.businessSlug
-    const result = await sendCoachMessageAction(user.id, parsed.data, businessSlug)
+    const result = await sendCoachMessageAction(user.id, parsed.data, businessSlug, locale)
 
     if (!result.success) {
       return NextResponse.json(result, { status: result.needsClarification ? 409 : 400 })

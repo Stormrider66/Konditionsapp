@@ -2226,14 +2226,19 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
     }),
 
     prepareCoachMessageDraft: tool({
-      description: 'Förbered ett meddelande till en atlet, ett helt lag eller en filtrerad laggrupp. Verktyget skickar aldrig direkt utan returnerar ett bekräftelsekort som coachen måste klicka på.',
+      description: locale === 'sv'
+        ? 'Förbered ett meddelande till en atlet, ett helt lag eller en filtrerad laggrupp. Verktyget skickar aldrig direkt utan returnerar ett bekräftelsekort som coachen måste klicka på.'
+        : 'Prepare a message to one athlete, a whole team, or a filtered team group. The tool never sends directly; it returns a confirmation card the coach must click.',
       inputSchema: prepareCoachMessageDraftInputSchema,
       execute: async (params) => {
         try {
-          return await buildCoachMessageAction(coachUserId, params, businessSlug)
+          return await buildCoachMessageAction(coachUserId, params, businessSlug, locale)
         } catch (error) {
           logger.error('Error in prepareCoachMessageDraft tool', { coachUserId, businessSlug }, error)
-          return { success: false, error: 'Kunde inte förbereda meddelandet.' }
+          return {
+            success: false,
+            error: locale === 'sv' ? 'Kunde inte förbereda meddelandet.' : 'Could not prepare the message.',
+          }
         }
       },
     }),

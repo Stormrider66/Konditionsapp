@@ -4,6 +4,12 @@ import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { getAccessibleTeam, getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import type { AssignmentStatus, Prisma } from '@prisma/client'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export const coachMessageTargetSchema = z.enum([
   'ALL',
   'LOW_READINESS',
@@ -13,21 +19,21 @@ export const coachMessageTargetSchema = z.enum([
 ])
 
 export const prepareCoachMessageDraftInputSchema = z.object({
-  recipientType: z.enum(['ATHLETE', 'TEAM']).describe('ATHLETE för en enskild atlet, TEAM för ett lag eller en filtrerad laggrupp'),
-  content: z.string().min(1).max(1000).describe('Meddelandet som ska skickas. Skriv på svenska om coachen inte ber om annat.'),
-  subject: z.string().max(120).optional().describe('Valfri ämnesrad'),
-  clientId: z.string().uuid().optional().describe('Atletens clientId om det redan är känt'),
-  athleteName: z.string().min(2).optional().describe('Atletens namn om clientId inte är känt'),
-  teamId: z.string().uuid().optional().describe('Lagets teamId om det redan är känt'),
-  teamName: z.string().min(2).optional().describe('Lagets namn om teamId inte är känt'),
-  teamTarget: coachMessageTargetSchema.default('ALL').describe('Vilka i laget som ska få meddelandet'),
-  clientIds: z.array(z.string().uuid()).optional().describe('Valda clientIds när teamTarget är SELECTED'),
+  recipientType: z.enum(['ATHLETE', 'TEAM']).describe('ATHLETE for one athlete, TEAM for a whole team or filtered team group.'),
+  content: z.string().min(1).max(1000).describe('Message content to send. Write in the coach chat language unless the coach asks for another language.'),
+  subject: z.string().max(120).optional().describe('Optional subject line.'),
+  clientId: z.string().uuid().optional().describe('Athlete clientId if already known.'),
+  athleteName: z.string().min(2).optional().describe('Athlete name if clientId is not known.'),
+  teamId: z.string().uuid().optional().describe('Team id if already known.'),
+  teamName: z.string().min(2).optional().describe('Team name if teamId is not known.'),
+  teamTarget: coachMessageTargetSchema.default('ALL').describe('Which team members should receive the message.'),
+  clientIds: z.array(z.string().uuid()).optional().describe('Selected clientIds when teamTarget is SELECTED.'),
 }).superRefine((value, ctx) => {
   if (value.recipientType === 'ATHLETE' && !value.clientId && !value.athleteName) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['athleteName'],
-      message: 'Ange clientId eller athleteName för en atlet.',
+      message: 'Provide clientId or athleteName for an athlete.',
     })
   }
 
@@ -35,7 +41,7 @@ export const prepareCoachMessageDraftInputSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['teamName'],
-      message: 'Ange teamId eller teamName för ett lag.',
+      message: 'Provide teamId or teamName for a team.',
     })
   }
 
@@ -43,7 +49,7 @@ export const prepareCoachMessageDraftInputSchema = z.object({
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['clientIds'],
-      message: 'Ange minst en clientId när teamTarget är SELECTED.',
+      message: 'Provide at least one clientId when teamTarget is SELECTED.',
     })
   }
 })
@@ -233,19 +239,19 @@ async function findAccessibleCoachTeam(
   }
 }
 
-function getTeamTargetLabel(target: CoachMessageTarget) {
+function getTeamTargetLabel(target: CoachMessageTarget, locale: AppLocale = 'en') {
   switch (target) {
     case 'LOW_READINESS':
-      return 'atleter med beredskap under 50'
+      return t(locale, 'athletes with readiness below 50', 'atleter med beredskap under 50')
     case 'MISSED_WORKOUTS':
-      return 'atleter med missade eller försenade pass'
+      return t(locale, 'athletes with missed or overdue workouts', 'atleter med missade eller försenade pass')
     case 'INJURED':
-      return 'atleter med aktiv skada eller monitorering'
+      return t(locale, 'athletes with active injury or monitoring', 'atleter med aktiv skada eller monitorering')
     case 'SELECTED':
-      return 'valda atleter'
+      return t(locale, 'selected athletes', 'valda atleter')
     case 'ALL':
     default:
-      return 'alla atleter'
+      return t(locale, 'all athletes', 'alla atleter')
   }
 }
 
@@ -260,7 +266,8 @@ function toPublicRecipients(recipients: ResolvedCoachMessageRecipient[]): Public
 async function resolveAthleteRecipients(
   coachUserId: string,
   input: PrepareCoachMessageDraftInput,
-  businessSlug?: string
+  businessSlug?: string,
+  locale: AppLocale = 'en'
 ): Promise<
   | { success: true; client: CoachMessageClient; recipients: ResolvedCoachMessageRecipient[] }
   | { success: false; needsClarification?: boolean; error: string; candidates?: CoachMessageCandidate[] }
@@ -284,8 +291,12 @@ async function resolveAthleteRecipients(
       needsClarification: candidates.length > 1,
       error:
         candidates.length > 1
-          ? `Jag hittade flera möjliga atleter${input.athleteName ? ` för "${input.athleteName}"` : ''}.`
-          : 'Atleten hittades inte eller ligger utanför din behörighet.',
+          ? t(
+              locale,
+              `I found several possible athletes${input.athleteName ? ` for "${input.athleteName}"` : ''}.`,
+              `Jag hittade flera möjliga atleter${input.athleteName ? ` för "${input.athleteName}"` : ''}.`
+            )
+          : t(locale, 'The athlete was not found or is outside your access.', 'Atleten hittades inte eller ligger utanför din behörighet.'),
       candidates: candidates.map((candidate) => ({
         id: candidate.id,
         name: candidate.name,
@@ -297,7 +308,11 @@ async function resolveAthleteRecipients(
   if (!client.athleteAccount?.userId) {
     return {
       success: false,
-      error: `${client.name} har inget länkat atletkonto ännu, så meddelandet kan inte skickas i appen.`,
+      error: t(
+        locale,
+        `${client.name} does not have a linked athlete account yet, so the message cannot be sent in the app.`,
+        `${client.name} har inget länkat atletkonto ännu, så meddelandet kan inte skickas i appen.`
+      ),
     }
   }
 
@@ -316,7 +331,8 @@ async function resolveAthleteRecipients(
 async function resolveTeamRecipients(
   coachUserId: string,
   input: PrepareCoachMessageDraftInput,
-  businessSlug?: string
+  businessSlug?: string,
+  locale: AppLocale = 'en'
 ): Promise<
   | { success: true; team: CoachMessageTeam; recipients: ResolvedCoachMessageRecipient[] }
   | { success: false; needsClarification?: boolean; error: string; candidates?: Array<{ id: string; name: string; sportType: string | null }> }
@@ -333,8 +349,12 @@ async function resolveTeamRecipients(
       needsClarification: candidates.length > 1,
       error:
         candidates.length > 1
-          ? `Jag hittade flera möjliga lag${input.teamName ? ` för "${input.teamName}"` : ''}.`
-          : 'Laget hittades inte eller ligger utanför din behörighet.',
+          ? t(
+              locale,
+              `I found several possible teams${input.teamName ? ` for "${input.teamName}"` : ''}.`,
+              `Jag hittade flera möjliga lag${input.teamName ? ` för "${input.teamName}"` : ''}.`
+            )
+          : t(locale, 'The team was not found or is outside your access.', 'Laget hittades inte eller ligger utanför din behörighet.'),
       candidates: candidates.map((candidate) => ({
         id: candidate.id,
         name: candidate.name,
@@ -478,7 +498,11 @@ async function resolveTeamRecipients(
   if (recipients.length === 0) {
     return {
       success: false,
-      error: `Inga atleter i ${team.name} matchade "${getTeamTargetLabel(input.teamTarget)}" och hade länkat atletkonto.`,
+      error: t(
+        locale,
+        `No athletes in ${team.name} matched "${getTeamTargetLabel(input.teamTarget, locale)}" and had a linked athlete account.`,
+        `Inga atleter i ${team.name} matchade "${getTeamTargetLabel(input.teamTarget, locale)}" och hade länkat atletkonto.`
+      ),
     }
   }
 
@@ -488,13 +512,14 @@ async function resolveTeamRecipients(
 export async function buildCoachMessageAction(
   coachUserId: string,
   input: PrepareCoachMessageDraftInput,
-  businessSlug?: string
+  businessSlug?: string,
+  locale: AppLocale = 'en'
 ): Promise<BuildCoachMessageActionResult> {
   const content = input.content.trim()
   const subject = input.subject?.trim() || null
 
   if (input.recipientType === 'ATHLETE') {
-    const resolved = await resolveAthleteRecipients(coachUserId, input, businessSlug)
+    const resolved = await resolveAthleteRecipients(coachUserId, input, businessSlug, locale)
     if (!resolved.success) return resolved
 
     const draft: CoachMessageActionDraft = {
@@ -507,8 +532,12 @@ export async function buildCoachMessageAction(
 
     const action: CoachMessageAction = {
       type: 'sendCoachMessage',
-      title: `Skicka meddelande till ${resolved.client.name}`,
-      description: 'Meddelandet skickas i appens meddelandeflöde när du bekräftar.',
+      title: t(locale, `Send message to ${resolved.client.name}`, `Skicka meddelande till ${resolved.client.name}`),
+      description: t(
+        locale,
+        'The message will be sent in the app message feed when you confirm.',
+        'Meddelandet skickas i appens meddelandeflöde när du bekräftar.'
+      ),
       recipientType: 'ATHLETE',
       targetLabel: resolved.client.name,
       recipientCount: 1,
@@ -516,7 +545,7 @@ export async function buildCoachMessageAction(
       content,
       subject,
       requiresConfirmation: true,
-      confirmLabel: 'Skicka meddelande',
+      confirmLabel: t(locale, 'Send message', 'Skicka meddelande'),
       confirmEndpoint: '/api/ai/chat/actions/coach-message',
       reviewHref: '/coach/messages',
       draft,
@@ -526,14 +555,18 @@ export async function buildCoachMessageAction(
       success: true,
       action,
       resolvedRecipients: resolved.recipients,
-      message: `Jag har förberett ett meddelande till ${resolved.client.name}. Bekräfta i kortet om det ska skickas.`,
+      message: t(
+        locale,
+        `I prepared a message to ${resolved.client.name}. Confirm in the card if it should be sent.`,
+        `Jag har förberett ett meddelande till ${resolved.client.name}. Bekräfta i kortet om det ska skickas.`
+      ),
     }
   }
 
-  const resolved = await resolveTeamRecipients(coachUserId, input, businessSlug)
+  const resolved = await resolveTeamRecipients(coachUserId, input, businessSlug, locale)
   if (!resolved.success) return resolved
 
-  const targetLabel = `${resolved.team.name}: ${getTeamTargetLabel(input.teamTarget)}`
+  const targetLabel = `${resolved.team.name}: ${getTeamTargetLabel(input.teamTarget, locale)}`
   const draft: CoachMessageActionDraft = {
     recipientType: 'TEAM',
     teamId: resolved.team.id,
@@ -545,16 +578,20 @@ export async function buildCoachMessageAction(
 
   const action: CoachMessageAction = {
     type: 'sendCoachMessage',
-    title: `Skicka lagmeddelande`,
-    description: 'Meddelandet skickas till matchade atleter först när du bekräftar.',
+    title: t(locale, 'Send team message', 'Skicka lagmeddelande'),
+    description: t(
+      locale,
+      'The message will be sent to matched athletes only after you confirm.',
+      'Meddelandet skickas till matchade atleter först när du bekräftar.'
+    ),
     recipientType: 'TEAM',
     targetLabel,
     recipientCount: resolved.recipients.length,
     recipients: toPublicRecipients(resolved.recipients),
     content,
-    subject: subject ?? `Lagmeddelande: ${resolved.team.name}`,
+    subject: subject ?? t(locale, `Team message: ${resolved.team.name}`, `Lagmeddelande: ${resolved.team.name}`),
     requiresConfirmation: true,
-    confirmLabel: `Skicka till ${resolved.recipients.length}`,
+    confirmLabel: t(locale, `Send to ${resolved.recipients.length}`, `Skicka till ${resolved.recipients.length}`),
     confirmEndpoint: '/api/ai/chat/actions/coach-message',
     reviewHref: '/coach/messages',
     draft,
@@ -564,16 +601,21 @@ export async function buildCoachMessageAction(
     success: true,
     action,
     resolvedRecipients: resolved.recipients,
-    message: `Jag har förberett ett lagmeddelande till ${resolved.recipients.length} mottagare i ${resolved.team.name}. Bekräfta i kortet om det ska skickas.`,
+    message: t(
+      locale,
+      `I prepared a team message to ${resolved.recipients.length} recipients in ${resolved.team.name}. Confirm in the card if it should be sent.`,
+      `Jag har förberett ett lagmeddelande till ${resolved.recipients.length} mottagare i ${resolved.team.name}. Bekräfta i kortet om det ska skickas.`
+    ),
   }
 }
 
 export async function sendCoachMessageAction(
   coachUserId: string,
   input: SendCoachMessageActionInput,
-  businessSlug?: string
+  businessSlug?: string,
+  locale: AppLocale = 'en'
 ): Promise<SendCoachMessageActionResult> {
-  const result = await buildCoachMessageAction(coachUserId, input.draft, businessSlug)
+  const result = await buildCoachMessageAction(coachUserId, input.draft, businessSlug, locale)
   if (!result.success) return result
 
   const uniqueRecipients = Array.from(
@@ -596,7 +638,7 @@ export async function sendCoachMessageAction(
     targetLabel: result.action.targetLabel,
     message:
       uniqueRecipients.length === 1
-        ? `Meddelandet skickades till ${uniqueRecipients[0].name}.`
-        : `Meddelandet skickades till ${uniqueRecipients.length} mottagare.`,
+        ? t(locale, `The message was sent to ${uniqueRecipients[0].name}.`, `Meddelandet skickades till ${uniqueRecipients[0].name}.`)
+        : t(locale, `The message was sent to ${uniqueRecipients.length} recipients.`, `Meddelandet skickades till ${uniqueRecipients.length} mottagare.`),
   }
 }
