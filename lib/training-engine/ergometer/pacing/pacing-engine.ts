@@ -14,6 +14,7 @@ import { ErgometerType } from '@prisma/client';
 
 export type PacingStrategy = 'EVEN' | 'NEGATIVE' | 'POSITIVE' | 'CUSTOM';
 export type RaceEffort = 'RACE' | 'TRAINING' | 'PB_ATTEMPT';
+type AppLocale = 'en' | 'sv';
 
 export interface RacePacingInput {
   criticalPower: number;      // CP in Watts
@@ -25,6 +26,7 @@ export interface RacePacingInput {
   goalEffort?: RaceEffort;
   athleteWeight?: number;     // kg
   thresholdHR?: number;       // HR at threshold (for HR targets)
+  locale?: AppLocale;
 }
 
 export interface SplitTarget {
@@ -70,21 +72,27 @@ const STRATEGY_PROFILES: Record<PacingStrategy, {
   name: string;
   nameSwedish: string;
   description: string;
+  descriptionSwedish: string;
   rationale: string;
+  rationaleSwedish: string;
   powerProfile: (splitNumber: number, totalSplits: number, basePower: number, cp: number) => number;
 }> = {
   EVEN: {
     name: 'Even Split',
     nameSwedish: 'Jamn fart',
-    description: 'Konstant effekt genom hela loppet',
-    rationale: 'Mest energieffektiv strategi. Minimerar W\'-forbrukning och ger jamn anstrangning.',
+    description: 'Constant power through the full race',
+    descriptionSwedish: 'Konstant effekt genom hela loppet',
+    rationale: 'Most energy-efficient strategy. Minimizes W\' use and keeps effort even.',
+    rationaleSwedish: 'Mest energieffektiv strategi. Minimerar W\'-forbrukning och ger jamn anstrangning.',
     powerProfile: (_, __, basePower) => basePower,
   },
   NEGATIVE: {
     name: 'Negative Split',
     nameSwedish: 'Negativ split',
-    description: 'Oka farten gradvis genom loppet',
-    rationale: 'Sparar W\' i borjan for en stark avslutning. Kraver disciplin i starten.',
+    description: 'Gradually increase speed through the race',
+    descriptionSwedish: 'Oka farten gradvis genom loppet',
+    rationale: 'Saves W\' early for a strong finish. Requires discipline at the start.',
+    rationaleSwedish: 'Sparar W\' i borjan for en stark avslutning. Kraver disciplin i starten.',
     powerProfile: (splitNumber, totalSplits, basePower, cp) => {
       // Start at 95% and build to 110% over the race
       const progress = splitNumber / totalSplits;
@@ -95,8 +103,10 @@ const STRATEGY_PROFILES: Record<PacingStrategy, {
   POSITIVE: {
     name: 'Positive Split',
     nameSwedish: 'Positiv split',
-    description: 'Snabb start som gradvis sackar',
-    rationale: 'Aggressiv strategi for kort lopp eller nar du vill pressa andra. Risk for tidig W\'-tomning.',
+    description: 'Fast start that gradually fades',
+    descriptionSwedish: 'Snabb start som gradvis sackar',
+    rationale: 'Aggressive strategy for short races or when you want to apply pressure. Risk of early W\' depletion.',
+    rationaleSwedish: 'Aggressiv strategi for kort lopp eller nar du vill pressa andra. Risk for tidig W\'-tomning.',
     powerProfile: (splitNumber, totalSplits, basePower, cp) => {
       // Start at 110% and fade to 95%
       const progress = splitNumber / totalSplits;
@@ -107,8 +117,10 @@ const STRATEGY_PROFILES: Record<PacingStrategy, {
   CUSTOM: {
     name: 'Custom',
     nameSwedish: 'Anpassad',
-    description: 'Anpassad strategi',
-    rationale: 'Anpassad strategi baserad pa tidigare erfarenhet eller specifika malfattningar.',
+    description: 'Custom strategy',
+    descriptionSwedish: 'Anpassad strategi',
+    rationale: 'Custom strategy based on previous experience or specific goals.',
+    rationaleSwedish: 'Anpassad strategi baserad pa tidigare erfarenhet eller specifika malfattningar.',
     powerProfile: (_, __, basePower) => basePower,
   },
 };
@@ -265,6 +277,7 @@ export function generateRacePacing(input: RacePacingInput): RacePacingResult {
     goalEffort = 'RACE',
     athleteWeight,
     thresholdHR,
+    locale = 'en',
   } = input;
 
   const warnings: string[] = [];
@@ -284,7 +297,10 @@ export function generateRacePacing(input: RacePacingInput): RacePacingResult {
     // Validate goal is achievable
     const estimatedWPrimeUsed = (basePower - criticalPower) * goalTime;
     if (estimatedWPrimeUsed > wPrime * 0.95) {
-      warnings.push('Maltiden kraver mer an 95% av W\' - overvag ett langsammare mal');
+      warnings.push(locale === 'sv'
+        ? 'Maltiden kraver mer an 95% av W\' - overvag ett langsammare mal'
+        : 'The goal time requires more than 95% of W\' - consider a slower goal'
+      );
     }
   } else {
     // Calculate optimal power based on strategy
@@ -354,10 +370,16 @@ export function generateRacePacing(input: RacePacingInput): RacePacingResult {
   const finishWPrime = splits[splits.length - 1].wPrimeRemaining;
 
   if (minWPrime < 5) {
-    warnings.push('W\' toms nastan helt - risk for kraftigt fartfall');
+    warnings.push(locale === 'sv'
+      ? 'W\' toms nastan helt - risk for kraftigt fartfall'
+      : 'W\' is almost fully depleted - high risk of a major pace drop'
+    );
   }
   if (minWPrime < 20 && strategy === 'POSITIVE') {
-    warnings.push('Positiv split med lag W\' - overvag jamn fart istallet');
+    warnings.push(locale === 'sv'
+      ? 'Positiv split med lag W\' - overvag jamn fart istallet'
+      : 'Positive split with low W\' - consider even pacing instead'
+    );
   }
 
   // Calculate summary stats
@@ -385,8 +407,8 @@ export function generateRacePacing(input: RacePacingInput): RacePacingResult {
     strategy: {
       name: strategyProfile.name,
       nameSwedish: strategyProfile.nameSwedish,
-      description: strategyProfile.description,
-      rationale: strategyProfile.rationale,
+      description: locale === 'sv' ? strategyProfile.descriptionSwedish : strategyProfile.description,
+      rationale: locale === 'sv' ? strategyProfile.rationaleSwedish : strategyProfile.rationale,
     },
     warnings,
     confidence,
@@ -416,7 +438,8 @@ export function recommendStrategy(
   criticalPower: number,
   wPrime: number,
   targetDistance: number,
-  experienceLevel: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE'
+  experienceLevel: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE',
+  locale: AppLocale = 'en'
 ): {
   recommended: PacingStrategy;
   rationale: string;
@@ -431,12 +454,16 @@ export function recommendStrategy(
     if (experienceLevel === 'ELITE' || experienceLevel === 'ADVANCED') {
       return {
         recommended: 'POSITIVE',
-        rationale: 'Kort lopp dar aggressiv start ger tidsfördel. Du har erfarenhet att hantera W\'-forbrukning.',
+        rationale: locale === 'sv'
+          ? 'Kort lopp dar aggressiv start ger tidsfördel. Du har erfarenhet att hantera W\'-forbrukning.'
+          : 'Short race where an aggressive start can save time. You have enough experience to manage W\' use.',
       };
     }
     return {
       recommended: 'EVEN',
-      rationale: 'Jamn fart rekommenderas for kortare lopp tills du har mer erfarenhet av pacing.',
+      rationale: locale === 'sv'
+        ? 'Jamn fart rekommenderas for kortare lopp tills du har mer erfarenhet av pacing.'
+        : 'Even pacing is recommended for shorter races until you have more pacing experience.',
     };
   }
 
@@ -445,18 +472,24 @@ export function recommendStrategy(
     if (experienceLevel === 'BEGINNER') {
       return {
         recommended: 'EVEN',
-        rationale: 'Jamn fart ar lattast att utfora och minimerar risk for fartfall.',
+        rationale: locale === 'sv'
+          ? 'Jamn fart ar lattast att utfora och minimerar risk for fartfall.'
+          : 'Even pacing is easiest to execute and minimizes the risk of fading.',
       };
     }
     return {
       recommended: 'NEGATIVE',
-      rationale: 'Negativ split ger bast resultat for medellaanga lopp - spara kraft for stark avslutning.',
+      rationale: locale === 'sv'
+        ? 'Negativ split ger bast resultat for medellaanga lopp - spara kraft for stark avslutning.'
+        : 'Negative split usually works best for medium-length races - save power for a strong finish.',
     };
   }
 
   // Long races (> 10 min) - conservative strategies
   return {
     recommended: 'NEGATIVE',
-    rationale: 'For langre lopp ar negativ split optimal - undvik att ga ut for snabbt.',
+    rationale: locale === 'sv'
+      ? 'For langre lopp ar negativ split optimal - undvik att ga ut for snabbt.'
+      : 'For longer races, a negative split is usually optimal - avoid going out too fast.',
   };
 }

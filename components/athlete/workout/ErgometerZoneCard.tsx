@@ -10,6 +10,7 @@
 import { ErgometerType } from '@prisma/client';
 import { Badge } from '@/components/ui/badge';
 import { Zap, Clock } from 'lucide-react';
+import { useLocale } from '@/i18n/client';
 
 interface ErgometerZone {
   zone: number;
@@ -69,8 +70,11 @@ export function ErgometerZoneCard({
   isActive = false,
   compact = false,
 }: ErgometerZoneCardProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
   const colors = ZONE_COLORS[zone.zone] || ZONE_COLORS[1];
   const showPace = isConcept2(ergometerType) && zone.paceMin && zone.paceMax;
+  const zoneName = locale === 'sv' ? zone.nameSwedish : zone.name;
+  const paceLabel = locale === 'sv' ? 'Tempo' : 'Pace';
 
   if (compact) {
     return (
@@ -100,7 +104,7 @@ export function ErgometerZoneCard({
             Z{zone.zone}
           </div>
           <div>
-            <p className={`font-semibold text-sm ${colors.text}`}>{zone.nameSwedish}</p>
+            <p className={`font-semibold text-sm ${colors.text}`}>{zoneName}</p>
             <p className="text-xs text-muted-foreground">{zone.percentMin}-{zone.percentMax}%</p>
           </div>
         </div>
@@ -124,7 +128,7 @@ export function ErgometerZoneCard({
       {/* Pace (Concept2 only) */}
       {showPace && (
         <div className="text-sm text-muted-foreground">
-          Tempo: {formatPace(zone.paceMax!)}-{formatPace(zone.paceMin!)} /500m
+          {paceLabel}: {formatPace(zone.paceMax!)}-{formatPace(zone.paceMin!)} /500m
         </div>
       )}
     </div>
@@ -144,12 +148,14 @@ export function ErgometerZoneStrip({
   currentZone,
   highlightedZone,
 }: ErgometerZoneStripProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
   return (
     <div className="flex gap-1">
       {zones.map((zone) => {
         const colors = ZONE_COLORS[zone.zone] || ZONE_COLORS[1];
         const isActive = currentZone === zone.zone;
         const isHighlighted = highlightedZone === zone.zone;
+        const zoneName = locale === 'sv' ? zone.nameSwedish : zone.name;
 
         return (
           <div
@@ -160,7 +166,7 @@ export function ErgometerZoneStrip({
               ${isActive ? 'ring-2 ring-offset-1 ring-black scale-105' : ''}
               ${isHighlighted ? 'ring-2 ring-primary' : ''}
             `}
-            title={`${zone.nameSwedish}: ${zone.powerMin}-${zone.powerMax}W`}
+            title={`${zoneName}: ${zone.powerMin}-${zone.powerMax}W`}
           >
             Z{zone.zone}
           </div>
@@ -183,8 +189,10 @@ export function WorkoutZoneTarget({
   ergometerType,
   targetDescription,
 }: WorkoutZoneTargetProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en';
   const colors = ZONE_COLORS[zone.zone] || ZONE_COLORS[1];
   const showPace = isConcept2(ergometerType) && zone.paceMin && zone.paceMax;
+  const zoneName = locale === 'sv' ? zone.nameSwedish : zone.name;
 
   return (
     <div className={`rounded-lg border-l-4 ${colors.border} bg-muted/30 p-3`}>
@@ -196,7 +204,7 @@ export function WorkoutZoneTarget({
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-semibold">{zone.nameSwedish}</span>
+            <span className="font-semibold">{zoneName}</span>
             <span className="text-muted-foreground text-sm">
               ({zone.percentMin}-{zone.percentMax}%)
             </span>

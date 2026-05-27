@@ -18,6 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { useLocale } from 'next-intl';
 
 interface BenchmarkResult {
   tier: 'ELITE' | 'ADVANCED' | 'INTERMEDIATE' | 'BEGINNER' | 'UNCLASSIFIED';
@@ -37,51 +38,77 @@ interface BenchmarkBadgeProps {
   benchmark: BenchmarkResult;
   compact?: boolean;
   showDetails?: boolean;
+  locale?: AppLocale;
 }
+
+type AppLocale = 'en' | 'sv';
 
 const TIER_CONFIG: Record<
   string,
-  { bg: string; text: string; border: string; icon: React.ReactNode; label: string }
+  { bg: string; text: string; border: string; icon: React.ReactNode; label: Record<AppLocale, string> }
 > = {
   ELITE: {
     bg: 'bg-purple-100',
     text: 'text-purple-800',
     border: 'border-purple-300',
     icon: <Trophy className="h-4 w-4" />,
-    label: 'Elit',
+    label: { en: 'Elite', sv: 'Elit' },
   },
   ADVANCED: {
     bg: 'bg-blue-100',
     text: 'text-blue-800',
     border: 'border-blue-300',
     icon: <TrendingUp className="h-4 w-4" />,
-    label: 'Avancerad',
+    label: { en: 'Advanced', sv: 'Avancerad' },
   },
   INTERMEDIATE: {
     bg: 'bg-green-100',
     text: 'text-green-800',
     border: 'border-green-300',
     icon: <Target className="h-4 w-4" />,
-    label: 'Mellanliggande',
+    label: { en: 'Intermediate', sv: 'Mellanliggande' },
   },
   BEGINNER: {
     bg: 'bg-gray-100',
     text: 'text-gray-800',
     border: 'border-gray-300',
     icon: <Zap className="h-4 w-4" />,
-    label: 'Nyborjare',
+    label: { en: 'Beginner', sv: 'Nyborjare' },
   },
   UNCLASSIFIED: {
     bg: 'bg-gray-50',
     text: 'text-gray-500',
     border: 'border-gray-200',
     icon: <Info className="h-4 w-4" />,
-    label: 'Oklassificerad',
+    label: { en: 'Unclassified', sv: 'Oklassificerad' },
   },
 };
 
-export function BenchmarkBadge({ benchmark, compact = false, showDetails = true }: BenchmarkBadgeProps) {
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
+function getTierLabel(tier: string, locale: AppLocale): string {
+  return TIER_CONFIG[tier]?.label[locale] || tier;
+}
+
+function getDescription(benchmark: BenchmarkResult, locale: AppLocale): string {
+  return locale === 'sv' ? benchmark.descriptionSwedish : benchmark.description;
+}
+
+function getComparedTo(value: string, locale: AppLocale): string {
+  if (locale === 'sv') return value;
+  return value
+    .replace(/^Man\b/, 'Men')
+    .replace(/^Kvinna\b/, 'Women');
+}
+
+export function BenchmarkBadge({ benchmark, compact = false, showDetails = true, locale: localeProp }: BenchmarkBadgeProps) {
+  const currentLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const resolvedLocale: AppLocale = localeProp ?? currentLocale;
   const config = TIER_CONFIG[benchmark.tier] || TIER_CONFIG.UNCLASSIFIED;
+  const tierLabel = getTierLabel(benchmark.tier, resolvedLocale);
+  const comparedTo = getComparedTo(benchmark.comparedTo, resolvedLocale);
 
   if (compact) {
     return (
@@ -90,17 +117,17 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
           <TooltipTrigger asChild>
             <Badge className={`${config.bg} ${config.text} ${config.border} border`}>
               {config.icon}
-              <span className="ml-1">{config.label}</span>
+              <span className="ml-1">{tierLabel}</span>
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
-            <p className="font-medium">{benchmark.descriptionSwedish}</p>
+            <p className="font-medium">{getDescription(benchmark, resolvedLocale)}</p>
             <p className="text-xs text-muted-foreground">
-              Topp {100 - benchmark.percentile}% jamfort med {benchmark.comparedTo}
+              {text(resolvedLocale, 'Top', 'Topp')} {100 - benchmark.percentile}% {text(resolvedLocale, 'compared with', 'jamfort med')} {comparedTo}
             </p>
             {benchmark.nextTier && (
               <p className="text-xs mt-1">
-                Till {benchmark.nextTier.tier}: {benchmark.nextTier.gap}
+                {text(resolvedLocale, 'To', 'Till')} {getTierLabel(benchmark.nextTier.tier, resolvedLocale)}: {benchmark.nextTier.gap}
               </p>
             )}
           </TooltipContent>
@@ -118,8 +145,8 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
               {config.icon}
             </div>
             <div>
-              <h4 className={`font-bold ${config.text} flex items-center gap-1.5`}>{config.label} <InfoTooltip conceptKey="benchmarkTiers" /></h4>
-              <p className="text-xs text-muted-foreground">{benchmark.comparedTo}</p>
+              <h4 className={`font-bold ${config.text} flex items-center gap-1.5`}>{tierLabel} <InfoTooltip conceptKey="benchmarkTiers" /></h4>
+              <p className="text-xs text-muted-foreground">{comparedTo}</p>
             </div>
           </div>
           <div className="text-right">
@@ -127,15 +154,15 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
               {100 - benchmark.percentile}
               <span className="text-sm font-normal">%</span>
             </p>
-            <p className="text-xs text-muted-foreground">Topp</p>
+            <p className="text-xs text-muted-foreground">{text(resolvedLocale, 'Top', 'Topp')}</p>
           </div>
         </div>
 
         {/* Percentile Progress Bar */}
         <div className="mb-3">
           <div className="flex justify-between text-xs text-muted-foreground mb-1">
-            <span>Nyborjare</span>
-            <span>Elit</span>
+            <span>{getTierLabel('BEGINNER', resolvedLocale)}</span>
+            <span>{getTierLabel('ELITE', resolvedLocale)}</span>
           </div>
           <Progress value={benchmark.percentile} className="h-2" />
         </div>
@@ -143,7 +170,7 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
         {showDetails && (
           <>
             {/* Description */}
-            <p className="text-sm text-muted-foreground mb-3">{benchmark.descriptionSwedish}</p>
+            <p className="text-sm text-muted-foreground mb-3">{getDescription(benchmark, resolvedLocale)}</p>
 
             {/* Next Tier & W/kg */}
             <div className="flex items-center justify-between text-sm">
@@ -151,7 +178,7 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
                 <div className="flex items-center gap-1">
                   <TrendingUp className="h-3 w-3 text-muted-foreground" />
                   <span className="text-muted-foreground">
-                    Till {getTierLabelSwedish(benchmark.nextTier.tier)}:
+                    {text(resolvedLocale, 'To', 'Till')} {getTierLabel(benchmark.nextTier.tier, resolvedLocale)}:
                   </span>
                   <span className="font-medium">{benchmark.nextTier.gap}</span>
                 </div>
@@ -166,7 +193,7 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
             {/* Source */}
             {benchmark.source && (
               <p className="text-xs text-muted-foreground mt-2 italic">
-                Kalla: {benchmark.source}
+                {text(resolvedLocale, 'Source', 'Kalla')}: {benchmark.source}
               </p>
             )}
           </>
@@ -176,29 +203,29 @@ export function BenchmarkBadge({ benchmark, compact = false, showDetails = true 
   );
 }
 
-function getTierLabelSwedish(tier: string): string {
-  return TIER_CONFIG[tier]?.label || tier;
-}
-
 // ==================== INLINE BADGE ====================
 
 interface InlineBenchmarkBadgeProps {
   tier: string;
   percentile?: number;
+  locale?: AppLocale;
 }
 
-export function InlineBenchmarkBadge({ tier, percentile }: InlineBenchmarkBadgeProps) {
+export function InlineBenchmarkBadge({ tier, percentile, locale: localeProp }: InlineBenchmarkBadgeProps) {
+  const currentLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const resolvedLocale: AppLocale = localeProp ?? currentLocale;
   const config = TIER_CONFIG[tier] || TIER_CONFIG.UNCLASSIFIED;
+  const tierLabel = getTierLabel(tier, resolvedLocale);
 
   return (
     <div className="inline-flex items-center gap-2">
       <Badge className={`${config.bg} ${config.text} ${config.border} border`}>
         {config.icon}
-        <span className="ml-1">{config.label}</span>
+        <span className="ml-1">{tierLabel}</span>
       </Badge>
       {percentile !== undefined && (
         <span className="text-sm text-muted-foreground">
-          Topp {100 - percentile}%
+          {text(resolvedLocale, 'Top', 'Topp')} {100 - percentile}%
         </span>
       )}
     </div>
@@ -210,10 +237,14 @@ export function InlineBenchmarkBadge({ tier, percentile }: InlineBenchmarkBadgeP
 interface TierIndicatorProps {
   tier: string;
   size?: 'sm' | 'md' | 'lg';
+  locale?: AppLocale;
 }
 
-export function TierIndicator({ tier, size = 'md' }: TierIndicatorProps) {
+export function TierIndicator({ tier, size = 'md', locale: localeProp }: TierIndicatorProps) {
+  const currentLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const resolvedLocale: AppLocale = localeProp ?? currentLocale;
   const config = TIER_CONFIG[tier] || TIER_CONFIG.UNCLASSIFIED;
+  const tierLabel = getTierLabel(tier, resolvedLocale);
 
   const sizeClasses = {
     sm: 'w-6 h-6 text-xs',
@@ -221,7 +252,7 @@ export function TierIndicator({ tier, size = 'md' }: TierIndicatorProps) {
     lg: 'w-10 h-10 text-base',
   };
 
-  const initial = config.label.charAt(0).toUpperCase();
+  const initial = tierLabel.charAt(0).toUpperCase();
 
   return (
     <TooltipProvider>
@@ -238,7 +269,7 @@ export function TierIndicator({ tier, size = 'md' }: TierIndicatorProps) {
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{config.label}</p>
+          <p>{tierLabel}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -257,6 +288,7 @@ interface BenchmarkComparisonProps {
 }
 
 export function BenchmarkComparisonBar({ currentValue, unit, benchmarks }: BenchmarkComparisonProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   // Sort benchmarks by value
   const sortedBenchmarks = [...benchmarks].sort((a, b) => a.value - b.value);
   const minValue = sortedBenchmarks[0]?.value || 0;
@@ -273,6 +305,7 @@ export function BenchmarkComparisonBar({ currentValue, unit, benchmarks }: Bench
       {sortedBenchmarks.map((benchmark) => {
         const config = TIER_CONFIG[benchmark.tier] || TIER_CONFIG.UNCLASSIFIED;
         const position = getPosition(benchmark.value);
+        const tierLabel = getTierLabel(benchmark.tier, locale);
         return (
           <div
             key={benchmark.tier}
@@ -280,7 +313,7 @@ export function BenchmarkComparisonBar({ currentValue, unit, benchmarks }: Bench
             style={{ left: `${position}%` }}
           >
             <div className={`text-xs ${config.text} font-medium`}>
-              {config.label.substring(0, 3)}
+              {tierLabel.substring(0, 3)}
             </div>
           </div>
         );

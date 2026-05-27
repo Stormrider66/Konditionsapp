@@ -41,7 +41,10 @@ export async function POST(request: NextRequest) {
       goalEffort,
       compareAll = false,
       includeRecommendation = true,
+      locale,
     } = body;
+
+    const responseLocale: 'en' | 'sv' = locale === 'sv' ? 'sv' : 'en';
 
     // Validate required fields
     if (!clientId || !ergometerType || !targetDistance) {
@@ -97,6 +100,7 @@ export async function POST(request: NextRequest) {
       goalEffort: (goalEffort || 'RACE') as RaceEffort,
       athleteWeight: client?.weight ?? undefined,
       thresholdHR: threshold.thresholdHR ?? undefined,
+      locale: responseLocale,
     };
 
     const response: Record<string, unknown> = {
@@ -150,7 +154,8 @@ export async function POST(request: NextRequest) {
         threshold.criticalPower,
         threshold.wPrime || 20000,
         targetDistance,
-        experienceLevel
+        experienceLevel,
+        responseLocale
       );
 
       response.recommendation = {

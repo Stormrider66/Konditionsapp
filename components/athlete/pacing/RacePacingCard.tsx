@@ -49,6 +49,7 @@ import {
   Battery,
   Clock,
 } from 'lucide-react';
+import { useLocale } from '@/i18n/client';
 
 interface SplitTarget {
   distance: number;
@@ -94,12 +95,14 @@ interface RacePacingCardProps {
   variant?: 'default' | 'compact' | 'glass';
 }
 
-const ERGOMETER_CONFIG: Record<ErgometerType, { label: string; icon: React.ReactNode }> = {
-  CONCEPT2_ROW: { label: 'Roddmaskin', icon: <Ship className="h-4 w-4" /> },
-  CONCEPT2_SKIERG: { label: 'SkiErg', icon: <Mountain className="h-4 w-4" /> },
-  CONCEPT2_BIKEERG: { label: 'BikeErg', icon: <Bike className="h-4 w-4" /> },
-  WATTBIKE: { label: 'Wattbike', icon: <Bike className="h-4 w-4" /> },
-  ASSAULT_BIKE: { label: 'Air Bike', icon: <Dumbbell className="h-4 w-4" /> },
+type AppLocale = 'en' | 'sv';
+
+const ERGOMETER_CONFIG: Record<ErgometerType, { label: Record<AppLocale, string>; icon: React.ReactNode }> = {
+  CONCEPT2_ROW: { label: { en: 'RowErg', sv: 'Roddmaskin' }, icon: <Ship className="h-4 w-4" /> },
+  CONCEPT2_SKIERG: { label: { en: 'SkiErg', sv: 'SkiErg' }, icon: <Mountain className="h-4 w-4" /> },
+  CONCEPT2_BIKEERG: { label: { en: 'BikeErg', sv: 'BikeErg' }, icon: <Bike className="h-4 w-4" /> },
+  WATTBIKE: { label: { en: 'Wattbike', sv: 'Wattbike' }, icon: <Bike className="h-4 w-4" /> },
+  ASSAULT_BIKE: { label: { en: 'Air Bike', sv: 'Air Bike' }, icon: <Dumbbell className="h-4 w-4" /> },
 };
 
 const DISTANCE_PRESETS = [
@@ -112,9 +115,9 @@ const DISTANCE_PRESETS = [
 ];
 
 const STRATEGY_OPTIONS = [
-  { value: 'EVEN', label: 'Jamn fart', icon: <Minus className="h-4 w-4" /> },
-  { value: 'NEGATIVE', label: 'Negativ split', icon: <TrendingUp className="h-4 w-4" /> },
-  { value: 'POSITIVE', label: 'Positiv split', icon: <TrendingDown className="h-4 w-4" /> },
+  { value: 'EVEN', label: { en: 'Even split', sv: 'Jamn fart' }, icon: <Minus className="h-4 w-4" /> },
+  { value: 'NEGATIVE', label: { en: 'Negative split', sv: 'Negativ split' }, icon: <TrendingUp className="h-4 w-4" /> },
+  { value: 'POSITIVE', label: { en: 'Positive split', sv: 'Positiv split' }, icon: <TrendingDown className="h-4 w-4" /> },
 ];
 
 const ZONE_COLORS: Record<number, string> = {
@@ -138,11 +141,17 @@ function WPrimeBar({ percent }: { percent: number }) {
   );
 }
 
+function getStrategyLabel(value: string, locale: AppLocale): string {
+  const option = STRATEGY_OPTIONS.find((item) => item.value === value);
+  return option?.label[locale] || value;
+}
+
 export function RacePacingCard({
   clientId,
   ergometerType: initialErgometerType,
   variant = 'default',
 }: RacePacingCardProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const [ergometerType, setErgometerType] = useState<ErgometerType>(
     initialErgometerType || 'CONCEPT2_ROW'
   );
@@ -182,6 +191,7 @@ export function RacePacingCard({
           strategy,
           goalTime: goalSeconds,
           includeRecommendation: true,
+          locale,
         }),
       });
 
@@ -189,9 +199,9 @@ export function RacePacingCard({
 
       if (!res.ok) {
         if (data.code === 'NO_CP_DATA') {
-          setError('Genomfor ett CP-test for att generera pacing');
+          setError(locale === 'sv' ? 'Genomfor ett CP-test for att generera pacing' : 'Complete a CP test to generate pacing');
         } else {
-          setError(data.error || 'Kunde inte generera pacing');
+          setError(data.error || (locale === 'sv' ? 'Kunde inte generera pacing' : 'Could not generate pacing'));
         }
         return;
       }
@@ -200,7 +210,7 @@ export function RacePacingCard({
       setRecommendation(data.recommendation);
     } catch (err) {
       console.error('Failed to generate pacing:', err);
-      setError('Kunde inte generera pacing');
+      setError(locale === 'sv' ? 'Kunde inte generera pacing' : 'Could not generate pacing');
     } finally {
       setIsLoading(false);
     }
@@ -219,10 +229,10 @@ export function RacePacingCard({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Flag className="h-5 w-5" />
-          Tavlingspacing
+          {locale === 'sv' ? 'Tavlingspacing' : 'Race pacing'}
         </CardTitle>
         <CardDescription>
-          Generera optimal pacing-strategi for ditt lopp
+          {locale === 'sv' ? 'Generera optimal pacing-strategi for ditt lopp' : 'Generate an optimal pacing strategy for your race'}
         </CardDescription>
       </CardHeader>
 
@@ -231,7 +241,7 @@ export function RacePacingCard({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Ergometer selector */}
           <div className="space-y-2">
-            <Label>Maskin</Label>
+            <Label>{locale === 'sv' ? 'Maskin' : 'Machine'}</Label>
             <Select
               value={ergometerType}
               onValueChange={(v) => setErgometerType(v as ErgometerType)}
@@ -244,7 +254,7 @@ export function RacePacingCard({
                   <SelectItem key={type} value={type}>
                     <div className="flex items-center gap-2">
                       {config.icon}
-                      {config.label}
+                      {config.label[locale]}
                     </div>
                   </SelectItem>
                 ))}
@@ -254,7 +264,7 @@ export function RacePacingCard({
 
           {/* Distance selector */}
           <div className="space-y-2">
-            <Label>Distans</Label>
+            <Label>{locale === 'sv' ? 'Distans' : 'Distance'}</Label>
             <Select
               value={customDistance || distance.toString()}
               onValueChange={(v) => {
@@ -275,13 +285,13 @@ export function RacePacingCard({
                     {d.label}
                   </SelectItem>
                 ))}
-                <SelectItem value="custom">Anpassad...</SelectItem>
+                <SelectItem value="custom">{locale === 'sv' ? 'Anpassad...' : 'Custom...'}</SelectItem>
               </SelectContent>
             </Select>
             {customDistance !== '' && (
               <Input
                 type="number"
-                placeholder="Distans i meter"
+                placeholder={locale === 'sv' ? 'Distans i meter' : 'Distance in meters'}
                 value={customDistance}
                 onChange={(e) => setCustomDistance(e.target.value)}
                 className="mt-2"
@@ -291,7 +301,7 @@ export function RacePacingCard({
 
           {/* Strategy selector */}
           <div className="space-y-2">
-            <Label>Strategi</Label>
+            <Label>{locale === 'sv' ? 'Strategi' : 'Strategy'}</Label>
             <Select value={strategy} onValueChange={setStrategy}>
               <SelectTrigger>
                 <SelectValue />
@@ -301,7 +311,7 @@ export function RacePacingCard({
                   <SelectItem key={s.value} value={s.value}>
                     <div className="flex items-center gap-2">
                       {s.icon}
-                      {s.label}
+                      {s.label[locale]}
                     </div>
                   </SelectItem>
                 ))}
@@ -311,7 +321,7 @@ export function RacePacingCard({
 
           {/* Goal time (optional) */}
           <div className="space-y-2">
-            <Label>Maltid (valfritt)</Label>
+            <Label>{locale === 'sv' ? 'Maltid (valfritt)' : 'Goal time (optional)'}</Label>
             <Input
               type="text"
               placeholder="6:30.0"
@@ -323,7 +333,7 @@ export function RacePacingCard({
 
         {/* Generate button */}
         <Button onClick={generatePacing} disabled={isLoading} className="w-full sm:w-auto">
-          {isLoading ? 'Genererar...' : 'Generera pacing'}
+          {isLoading ? (locale === 'sv' ? 'Genererar...' : 'Generating...') : (locale === 'sv' ? 'Generera pacing' : 'Generate pacing')}
         </Button>
 
         {/* Error display */}
@@ -336,7 +346,7 @@ export function RacePacingCard({
         {/* Recommendation */}
         {recommendation && !pacing && (
           <div className="p-4 bg-blue-50 rounded-lg">
-            <p className="font-medium text-blue-900">Rekommenderad strategi: {recommendation.recommended}</p>
+            <p className="font-medium text-blue-900">{locale === 'sv' ? 'Rekommenderad strategi' : 'Recommended strategy'}: {getStrategyLabel(recommendation.recommended, locale)}</p>
             <p className="text-sm text-blue-700 mt-1">{recommendation.rationale}</p>
           </div>
         )}
@@ -347,19 +357,19 @@ export function RacePacingCard({
             {/* Summary */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-4 bg-muted/30 rounded-lg">
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Prediktion</p>
+                <p className="text-sm text-muted-foreground">{locale === 'sv' ? 'Prediktion' : 'Prediction'}</p>
                 <p className="text-2xl font-bold font-mono">{pacing.summary.predictedTimeFormatted}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Snittempo</p>
+                <p className="text-sm text-muted-foreground">{locale === 'sv' ? 'Snittempo' : 'Average pace'}</p>
                 <p className="text-xl font-bold font-mono">{pacing.summary.avgPaceFormatted}</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Snitteffekt</p>
+                <p className="text-sm text-muted-foreground">{locale === 'sv' ? 'Snitteffekt' : 'Average power'}</p>
                 <p className="text-xl font-bold">{pacing.summary.avgPower}W</p>
               </div>
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">W&apos; vid mal</p>
+                <p className="text-sm text-muted-foreground">{locale === 'sv' ? "W' vid mal" : "W' at finish"}</p>
                 <p className="text-xl font-bold">{pacing.summary.finishWPrime}%</p>
               </div>
             </div>
@@ -368,7 +378,7 @@ export function RacePacingCard({
             <div className="flex items-start gap-3 p-3 bg-primary/5 rounded-lg">
               <Target className="h-5 w-5 text-primary mt-0.5" />
               <div>
-                <p className="font-medium">{pacing.strategy.nameSwedish}</p>
+                <p className="font-medium">{locale === 'sv' ? pacing.strategy.nameSwedish : pacing.strategy.name}</p>
                 <p className="text-sm text-muted-foreground">{pacing.strategy.rationale}</p>
               </div>
             </div>
@@ -391,11 +401,11 @@ export function RacePacingCard({
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[60px]">Split</TableHead>
-                    <TableHead>Tempo</TableHead>
-                    <TableHead className="text-center">Effekt</TableHead>
-                    <TableHead className="text-center">Zon</TableHead>
-                    <TableHead className="hidden sm:table-cell">W&apos; kvar</TableHead>
-                    <TableHead className="text-right">Tid</TableHead>
+                    <TableHead>{locale === 'sv' ? 'Tempo' : 'Pace'}</TableHead>
+                    <TableHead className="text-center">{locale === 'sv' ? 'Effekt' : 'Power'}</TableHead>
+                    <TableHead className="text-center">{locale === 'sv' ? 'Zon' : 'Zone'}</TableHead>
+                    <TableHead className="hidden sm:table-cell">{locale === 'sv' ? "W' kvar" : "W' left"}</TableHead>
+                    <TableHead className="text-right">{locale === 'sv' ? 'Tid' : 'Time'}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -434,7 +444,7 @@ export function RacePacingCard({
             <div className="p-4 bg-muted/30 rounded-lg space-y-3">
               <div className="flex items-center gap-2">
                 <Battery className="h-4 w-4" />
-                <span className="text-sm font-medium">W&apos; balans genom loppet</span>
+                <span className="text-sm font-medium">{locale === 'sv' ? "W' balans genom loppet" : "W' balance through the race"}</span>
               </div>
               <div className="flex items-end gap-1 h-16">
                 {pacing.splits.map((split) => (
@@ -456,14 +466,14 @@ export function RacePacingCard({
               </div>
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Start</span>
-                <span>Mal ({pacing.summary.finishWPrime}% kvar)</span>
+                <span>{locale === 'sv' ? 'Mal' : 'Finish'} ({pacing.summary.finishWPrime}% {locale === 'sv' ? 'kvar' : 'left'})</span>
               </div>
             </div>
 
             {/* Print button */}
             <Button variant="outline" onClick={handlePrint} className="print:hidden">
               <Printer className="h-4 w-4 mr-2" />
-              Skriv ut pacing-kort
+              {locale === 'sv' ? 'Skriv ut pacing-kort' : 'Print pacing card'}
             </Button>
           </div>
         )}

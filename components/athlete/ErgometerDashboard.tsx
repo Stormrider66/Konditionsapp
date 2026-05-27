@@ -179,7 +179,7 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
         })),
         activeZones: activeZones.map(z => ({
           zone: z.zone,
-          name: z.nameSwedish,
+          name: locale === 'sv' ? z.nameSwedish : z.name,
           powerMin: z.powerMin,
           powerMax: z.powerMax,
           percentMin: z.percentMin,
@@ -266,6 +266,7 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
   const currentThreshold = thresholds.find((t) => t.ergometerType === activeTab);
   const currentZones = activeTab ? zones[activeTab] || [] : [];
   const showPace = activeTab ? isConcept2(activeTab) : false;
+  const getZoneName = (zone: ErgometerZone) => locale === 'sv' ? zone.nameSwedish : zone.name;
 
   // Check if retest is recommended (>8 weeks old)
   const needsRetest = currentThreshold
@@ -371,7 +372,7 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
                           Z{zone.zone}
                         </div>
                         <div>
-                          <h4 className={`font-semibold ${colors.text}`}>{zone.nameSwedish}</h4>
+                          <h4 className={`font-semibold ${colors.text}`}>{getZoneName(zone)}</h4>
                           <p className="text-sm text-muted-foreground">{zone.description}</p>
                         </div>
                       </div>

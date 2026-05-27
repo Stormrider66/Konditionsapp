@@ -198,12 +198,13 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
               {copy(locale, 'Benchmark classification', 'Benchmark-klassificering')}
             </h4>
             {benchmark.tier && isFullBenchmark(benchmark) ? (
-              <BenchmarkBadge benchmark={benchmark} showDetails={true} />
+              <BenchmarkBadge benchmark={benchmark} showDetails={true} locale={locale} />
             ) : benchmark.tier ? (
               <div className="flex items-center gap-3">
                 <InlineBenchmarkBadge
                   tier={benchmark.tier}
                   percentile={benchmark.percentile}
+                  locale={locale}
                 />
                 {benchmark.comparedTo && (
                   <span className="text-sm text-muted-foreground">
