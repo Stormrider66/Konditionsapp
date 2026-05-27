@@ -75,6 +75,15 @@ function exerciseNameForLocale(exercise: ExerciseCandidate, locale: AppLocale): 
     : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
 }
 
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 async function hydrateLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale) {
   const candidates = await getExerciseCandidates()
 
@@ -104,9 +113,11 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const perf = startPerfDebug(request)
+  let locale = getRequestLocale(request)
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
     const cacheKey = packageCacheKey(user.id, teamId, locale, businessSlug)
@@ -124,7 +135,7 @@ export async function GET(
       select: { hockeyTestPackage: true },
     })
     if (!stored) {
-      return jsonWithPerfDebug(perf, { error: 'Team not found' }, { status: 404 })
+      return jsonWithPerfDebug(perf, { error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const basePackage = normalizeHockeyTestPackage(stored?.hockeyTestPackage ?? DEFAULT_HOCKEY_TEST_PACKAGE)
@@ -138,23 +149,29 @@ export async function GET(
     return jsonWithPerfDebug(perf, payload, {}, { 'x-cache': 'miss' })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return jsonWithPerfDebug(perf, { error: 'Unauthorized' }, { status: 401 })
+      return jsonWithPerfDebug(perf, { error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return jsonWithPerfDebug(perf, { error: 'Failed to load hockey test package' }, { status: 500 })
+    return jsonWithPerfDebug(
+      perf,
+      { error: t(locale, 'Failed to load hockey test package', 'Kunde inte ladda hockeytestpaketet') },
+      { status: 500 }
+    )
   }
 }
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = getRequestLocale(request)
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
     const team = await getWritableTeam(user.id, teamId, businessSlug, 'tests')
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const body = await request.json()
@@ -174,8 +191,11 @@ export async function PUT(
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed to save hockey test package' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to save hockey test package', 'Kunde inte spara hockeytestpaketet') },
+      { status: 500 }
+    )
   }
 }
