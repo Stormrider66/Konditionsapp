@@ -335,6 +335,7 @@ export async function POST(request: NextRequest) {
       alternativeTrainingSessionsPerWeek: body.alternativeTrainingSessionsPerWeek || 0,
       scheduleStrengthAfterRunning: body.scheduleStrengthAfterRunning !== undefined ? body.scheduleStrengthAfterRunning : false,
       scheduleCoreAfterRunning: body.scheduleCoreAfterRunning !== undefined ? body.scheduleCoreAfterRunning : false,
+      locale,
     }
 
     // Extract General Fitness specific params

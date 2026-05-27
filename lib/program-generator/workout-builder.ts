@@ -12,6 +12,12 @@ import {
 } from '@/types'
 import { ZonePaces, ZonePowers, getZonePace, getZonePower, getZoneHR, speedToPace, paceToSpeed } from './zone-calculator'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Calculate distance for warmup/cooldown segments
  * Uses Zone 1 pace (easy pace) for calculation
@@ -53,7 +59,8 @@ interface LongRunParams {
 export function buildLongRun(
   params: LongRunParams | number | undefined,
   zones: ZonePaces,
-  trainingZones: TrainingZone[]
+  trainingZones: TrainingZone[],
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   // Handle legacy call with just distance
   const longParams: LongRunParams = typeof params === 'number' || params === undefined
@@ -74,7 +81,7 @@ export function buildLongRun(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Lugn uppvärmning ${warmupDistance}km`,
+    description: t(locale, `Easy warm-up ${warmupDistance}km`, `Lugn uppvärmning ${warmupDistance}km`),
   })
 
   // === PROGRESSIVE LONG RUN (with MP finish) ===
@@ -97,8 +104,8 @@ export function buildLongRun(
         pace: segPaceMinKm,
         heartRate: getZoneHR(trainingZones, zone),
         description: seg.pacePercent >= 95
-          ? `MP-avslutning ${seg.distance}km @ ${seg.pacePercent}% MP`
-          : `Lugnt tempo ${seg.distance}km @ ${seg.pacePercent}% MP`,
+          ? t(locale, `MP finish ${seg.distance}km @ ${seg.pacePercent}% MP`, `MP-avslutning ${seg.distance}km @ ${seg.pacePercent}% MP`)
+          : t(locale, `Easy pace ${seg.distance}km @ ${seg.pacePercent}% MP`, `Lugnt tempo ${seg.distance}km @ ${seg.pacePercent}% MP`),
       })
     }
 
@@ -112,7 +119,7 @@ export function buildLongRun(
       zone: 1,
       pace: zones.zone1,
       heartRate: getZoneHR(trainingZones, 1),
-      description: `Lugn avslutning ${cooldownDistance}km`,
+      description: t(locale, `Easy cool-down ${cooldownDistance}km`, `Lugn avslutning ${cooldownDistance}km`),
     })
 
     const totalDuration = segments.reduce((sum, s) => sum + (s.duration || 0), 0)
@@ -122,11 +129,11 @@ export function buildLongRun(
 
     return {
       type: 'RUNNING',
-      name: 'Progressivt långpass',
+      name: t(locale, 'Progressive long run', 'Progressivt långpass'),
       intensity: 'MODERATE',
       distance: totalDistance,
       duration: totalDuration,
-      instructions: longParams.description || `Progressivt långpass ${totalDistance}km med ${mpKm}km @ maratontempo.`,
+      instructions: longParams.description || t(locale, `Progressive long run ${totalDistance}km with ${mpKm}km @ marathon pace.`, `Progressivt långpass ${totalDistance}km med ${mpKm}km @ maratontempo.`),
       segments,
     }
   }
@@ -150,8 +157,8 @@ export function buildLongRun(
       zone: 3,
       pace: `${speedToPace(fastPaceKmh)}/${speedToPace(slowPaceKmh)}`,
       heartRate: getZoneHR(trainingZones, 3),
-      description: `Växlande 1km @ ${fastPace}% MP / 1km @ ${slowPace}% MP`,
-      notes: 'Ingen paus mellan kilometer - direkt växling!',
+      description: t(locale, `Alternating 1km @ ${fastPace}% MP / 1km @ ${slowPace}% MP`, `Växlande 1km @ ${fastPace}% MP / 1km @ ${slowPace}% MP`),
+      notes: t(locale, 'No pause between kilometers - switch directly!', 'Ingen paus mellan kilometer - direkt växling!'),
     })
 
     const altCooldownDistance = calculateWarmupCooldownDistance(10, zones)
@@ -163,17 +170,17 @@ export function buildLongRun(
       zone: 1,
       pace: zones.zone1,
       heartRate: getZoneHR(trainingZones, 1),
-      description: `Lugn avslutning ${altCooldownDistance}km`,
+      description: t(locale, `Easy cool-down ${altCooldownDistance}km`, `Lugn avslutning ${altCooldownDistance}km`),
     })
 
     const altTotalDistance = calculateTotalDistanceFromSegments(segments)
     return {
       type: 'RUNNING',
-      name: 'Växlande långpass',
+      name: t(locale, 'Alternating long run', 'Växlande långpass'),
       intensity: 'THRESHOLD',
       distance: altTotalDistance,
       duration: mainDuration + 20,
-      instructions: longParams.description || `Specifikt långpass ${altTotalDistance}km med växlande tempo (1km snabb/1km lugn). Ingen paus!`,
+      instructions: longParams.description || t(locale, `Specific long run ${altTotalDistance}km with alternating pace (1km fast/1km easy). No pause!`, `Specifikt långpass ${altTotalDistance}km med växlande tempo (1km snabb/1km lugn). Ingen paus!`),
       segments,
     }
   }
@@ -191,7 +198,7 @@ export function buildLongRun(
     zone: 2,
     pace: speedToPace(basePaceKmh),
     heartRate: getZoneHR(trainingZones, 2),
-    description: `Långdistans ${distance - 2}km @ ${basePacePercent}% MP`,
+    description: t(locale, `Long run ${distance - 2}km @ ${basePacePercent}% MP`, `Långdistans ${distance - 2}km @ ${basePacePercent}% MP`),
   })
 
   const contCooldownDistance = calculateWarmupCooldownDistance(10, zones)
@@ -203,17 +210,17 @@ export function buildLongRun(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Lugn avslutning ${contCooldownDistance}km`,
+    description: t(locale, `Easy cool-down ${contCooldownDistance}km`, `Lugn avslutning ${contCooldownDistance}km`),
   })
 
   const contTotalDistance = calculateTotalDistanceFromSegments(segments)
   return {
     type: 'RUNNING',
-    name: 'Långpass',
+    name: t(locale, 'Long run', 'Långpass'),
     intensity: 'EASY',
     distance: contTotalDistance,
     duration: mainDuration + 20,
-    instructions: longParams.description || `Lugnt långpass på ${contTotalDistance} km @ ${basePacePercent}% MP. Fokusera på löpform och uthållighet.`,
+    instructions: longParams.description || t(locale, `Easy long run of ${contTotalDistance} km @ ${basePacePercent}% MP. Focus on running form and endurance.`, `Lugnt långpass på ${contTotalDistance} km @ ${basePacePercent}% MP. Fokusera på löpform och uthållighet.`),
     segments,
   }
 }
@@ -238,7 +245,8 @@ interface TempoRunParams {
 export function buildTempoRun(
   params: TempoRunParams | number,
   zones: ZonePaces,
-  trainingZones: TrainingZone[]
+  trainingZones: TrainingZone[],
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   // Handle legacy call with just duration
   const tempoParams: TempoRunParams = typeof params === 'number'
@@ -260,7 +268,7 @@ export function buildTempoRun(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Uppvärmning ${tempoWarmupDistance}km, gradvis ökande tempo`,
+    description: t(locale, `Warm-up ${tempoWarmupDistance}km, gradually increasing pace`, `Uppvärmning ${tempoWarmupDistance}km, gradvis ökande tempo`),
   })
 
   // === PROGRESSIVE TEMPO (with MP finish) ===
@@ -295,8 +303,8 @@ export function buildTempoRun(
       zone: 3,
       pace: speedToPace(progressivePaceKmh),
       heartRate: getZoneHR(trainingZones, 3),
-      description: `MP-avslutning @ ${progressivePace}% MP`,
-      notes: 'Öka till maratontempo!',
+      description: t(locale, `MP finish @ ${progressivePace}% MP`, `MP-avslutning @ ${progressivePace}% MP`),
+      notes: t(locale, 'Increase to marathon pace!', 'Öka till maratontempo!'),
     })
 
     // Cool-down
@@ -309,18 +317,18 @@ export function buildTempoRun(
       zone: 1,
       pace: zones.zone1,
       heartRate: getZoneHR(trainingZones, 1),
-      description: `Lugn nedvärmning ${progTempoCooldownDistance}km`,
+      description: t(locale, `Easy cool-down ${progTempoCooldownDistance}km`, `Lugn nedvärmning ${progTempoCooldownDistance}km`),
     })
 
     const progTempoTotalDistance = calculateTotalDistanceFromSegments(segments)
 
     return {
       type: 'RUNNING',
-      name: 'Progressivt tempo',
+      name: t(locale, 'Progressive tempo', 'Progressivt tempo'),
       intensity: 'MODERATE',
       duration: duration + 25,
       distance: progTempoTotalDistance,
-      instructions: tempoParams.description || `Progressivt tempopass ${progTempoTotalDistance}km: ${fundamentalDuration}min @ ${basePacePercent}% MP + ${tempoParams.progressiveMinutes}min @ ${progressivePace}% MP.`,
+      instructions: tempoParams.description || t(locale, `Progressive tempo session ${progTempoTotalDistance}km: ${fundamentalDuration}min @ ${basePacePercent}% MP + ${tempoParams.progressiveMinutes}min @ ${progressivePace}% MP.`, `Progressivt tempopass ${progTempoTotalDistance}km: ${fundamentalDuration}min @ ${basePacePercent}% MP + ${tempoParams.progressiveMinutes}min @ ${progressivePace}% MP.`),
       segments,
     }
   }
@@ -338,7 +346,7 @@ export function buildTempoRun(
     pace: speedToPace(tempoPaceKmh),
     heartRate: getZoneHR(trainingZones, basePacePercent >= 90 ? 3 : 2),
     description: `Tempo @ ${basePacePercent}% MP`,
-    notes: 'Håll jämnt tempo. Ska kännas kontrollerat.',
+    notes: t(locale, 'Hold an even pace. It should feel controlled.', 'Håll jämnt tempo. Ska kännas kontrollerat.'),
   })
 
   // Cool-down
@@ -351,17 +359,17 @@ export function buildTempoRun(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Lugn nedvärmning ${tempoCooldownDistance}km`,
+    description: t(locale, `Easy cool-down ${tempoCooldownDistance}km`, `Lugn nedvärmning ${tempoCooldownDistance}km`),
   })
 
   const tempoTotalDistance = calculateTotalDistanceFromSegments(segments)
   return {
     type: 'RUNNING',
-    name: basePacePercent >= 90 ? 'Tempopass' : 'Fundamental tempo',
+    name: basePacePercent >= 90 ? t(locale, 'Tempo session', 'Tempopass') : 'Fundamental tempo',
     intensity: basePacePercent >= 90 ? 'THRESHOLD' : 'MODERATE',
     duration: duration + 25,
     distance: tempoTotalDistance,
-    instructions: tempoParams.description || `Tempopass ${tempoTotalDistance}km: ${duration} minuter @ ${basePacePercent}% av maratontempo.`,
+    instructions: tempoParams.description || t(locale, `Tempo session ${tempoTotalDistance}km: ${duration} minutes @ ${basePacePercent}% of marathon pace.`, `Tempopass ${tempoTotalDistance}km: ${duration} minuter @ ${basePacePercent}% av maratontempo.`),
     segments,
   }
 }
@@ -375,7 +383,8 @@ export function buildIntervals(
   restDuration: number, // minutes
   zone: number,
   zones: ZonePaces,
-  trainingZones: TrainingZone[]
+  trainingZones: TrainingZone[],
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   const segments: CreateWorkoutSegmentDTO[] = []
 
@@ -389,7 +398,7 @@ export function buildIntervals(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Uppvärmning ${intervalWarmupDistance}km med stegringar`,
+    description: t(locale, `Warm-up ${intervalWarmupDistance}km with strides`, `Uppvärmning ${intervalWarmupDistance}km med stegringar`),
   })
 
   // Intervals
@@ -403,7 +412,7 @@ export function buildIntervals(
       pace: getZonePace(zones, zone),
       heartRate: getZoneHR(trainingZones, zone),
       reps: 1,
-      description: `Intervall ${i + 1}/${reps}`,
+      description: t(locale, `Interval ${i + 1}/${reps}`, `Intervall ${i + 1}/${reps}`),
     })
 
     // Rest interval (if not last rep)
@@ -414,7 +423,7 @@ export function buildIntervals(
         duration: restDuration,
         zone: 1,
         pace: zones.zone1,
-        description: 'Jogg-vila',
+        description: t(locale, 'Jog recovery', 'Jogg-vila'),
       })
     }
   }
@@ -429,7 +438,7 @@ export function buildIntervals(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Nedvärmning ${intervalCooldownDistance}km`,
+    description: t(locale, `Cool-down ${intervalCooldownDistance}km`, `Nedvärmning ${intervalCooldownDistance}km`),
   })
 
   const totalDuration = 20 + reps * workDuration + (reps - 1) * restDuration + 10
@@ -437,11 +446,11 @@ export function buildIntervals(
 
   return {
     type: 'RUNNING',
-    name: `Intervaller ${reps}×${workDuration}min`,
+    name: t(locale, `Intervals ${reps}×${workDuration}min`, `Intervaller ${reps}×${workDuration}min`),
     intensity: zone >= 5 ? 'INTERVAL' : 'THRESHOLD',
     duration: totalDuration,
     distance: intervalTotalDistance,
-    instructions: `Intervaller ${intervalTotalDistance}km: ${reps}×${workDuration} min i Zon ${zone} med ${restDuration} min jogg-vila.`,
+    instructions: t(locale, `Intervals ${intervalTotalDistance}km: ${reps}×${workDuration} min in Zone ${zone} with ${restDuration} min jog recovery.`, `Intervaller ${intervalTotalDistance}km: ${reps}×${workDuration} min i Zon ${zone} med ${restDuration} min jogg-vila.`),
     segments,
   }
 }
@@ -455,7 +464,8 @@ export function buildHillSprints(
   workSeconds: number,
   restMinutes: number,
   zones: ZonePaces,
-  trainingZones: TrainingZone[]
+  trainingZones: TrainingZone[],
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   const segments: CreateWorkoutSegmentDTO[] = []
 
@@ -469,7 +479,7 @@ export function buildHillSprints(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Uppvärmning ${hillWarmupDistance}km med stegringar`,
+    description: t(locale, `Warm-up ${hillWarmupDistance}km with strides`, `Uppvärmning ${hillWarmupDistance}km med stegringar`),
   })
 
   // Hill sprints - NO pace target, maximal effort
@@ -483,10 +493,10 @@ export function buildHillSprints(
       pace: undefined, // NO PACE - hill sprints are effort-based, not pace-based
       heartRate: undefined, // HR will lag during short sprints
       reps: 1,
-      description: `Backsprint ${i + 1}/${reps} (maximal ansträngning uppför backe)`,
+      description: t(locale, `Hill sprint ${i + 1}/${reps} (maximal uphill effort)`, `Backsprint ${i + 1}/${reps} (maximal ansträngning uppför backe)`),
       notes: workSeconds <= 15
-        ? 'Alaktisk kraft: Max ansträngning 8-15 sek, fokus på explosivitet'
-        : 'Neuromuskulär: Max ansträngning 30-45 sek, behåll formen',
+        ? t(locale, 'Alactic power: max effort 8-15 sec, focus on explosiveness', 'Alaktisk kraft: Max ansträngning 8-15 sek, fokus på explosivitet')
+        : t(locale, 'Neuromuscular: max effort 30-45 sec, hold form', 'Neuromuskulär: Max ansträngning 30-45 sek, behåll formen'),
     })
 
     // Rest interval (full recovery walk down)
@@ -497,8 +507,8 @@ export function buildHillSprints(
         duration: restMinutes,
         zone: 1,
         pace: undefined, // Walking recovery
-        description: 'Gå ner backen (full återhämtning)',
-        notes: 'Gå lugnt ner och återhämta fullständigt innan nästa sprint',
+        description: t(locale, 'Walk down the hill (full recovery)', 'Gå ner backen (full återhämtning)'),
+        notes: t(locale, 'Walk down calmly and recover fully before the next sprint', 'Gå lugnt ner och återhämta fullständigt innan nästa sprint'),
       })
     }
   }
@@ -513,7 +523,7 @@ export function buildHillSprints(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Nedvärmning ${hillCooldownDistance}km`,
+    description: t(locale, `Cool-down ${hillCooldownDistance}km`, `Nedvärmning ${hillCooldownDistance}km`),
   })
 
   const totalDuration = 20 + (reps * (workSeconds / 60)) + ((reps - 1) * restMinutes) + 10
@@ -521,11 +531,11 @@ export function buildHillSprints(
 
   return {
     type: 'RUNNING',
-    name: `Backsprints ${reps}×${workSeconds} sek`,
+    name: t(locale, `Hill sprints ${reps}×${workSeconds} sec`, `Backsprints ${reps}×${workSeconds} sek`),
     intensity: 'INTERVAL',
     duration: Math.round(totalDuration),
     distance: hillTotalDistance,
-    instructions: `Backsprints ${hillTotalDistance}km: ${reps}×${workSeconds} sek maximal ansträngning uppför backe med ${restMinutes} min vila.`,
+    instructions: t(locale, `Hill sprints ${hillTotalDistance}km: ${reps}×${workSeconds} sec maximal uphill effort with ${restMinutes} min recovery.`, `Backsprints ${hillTotalDistance}km: ${reps}×${workSeconds} sek maximal ansträngning uppför backe med ${restMinutes} min vila.`),
     segments,
   }
 }
@@ -542,7 +552,8 @@ export function buildCanovaIntervals(
   recoveryPacePercent: number,
   marathonPaceKmh: number, // Marathon pace in km/h
   zones: ZonePaces,
-  trainingZones: TrainingZone[]
+  trainingZones: TrainingZone[],
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   const segments: CreateWorkoutSegmentDTO[] = []
 
@@ -582,7 +593,7 @@ export function buildCanovaIntervals(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Uppvärmning ${canovaWarmupDistance}km med stegringar`,
+    description: t(locale, `Warm-up ${canovaWarmupDistance}km with strides`, `Uppvärmning ${canovaWarmupDistance}km med stegringar`),
   })
 
   // Intervals
@@ -597,11 +608,11 @@ export function buildCanovaIntervals(
       pace: workPaceMinPerKm,
       heartRate: zoneHR,
       reps: 1,
-      description: `Intervall ${i + 1}/${reps} (${workDistanceKm}km @ ${workPacePercent}% maratontempo)`,
+      description: t(locale, `Interval ${i + 1}/${reps} (${workDistanceKm}km @ ${workPacePercent}% marathon pace)`, `Intervall ${i + 1}/${reps} (${workDistanceKm}km @ ${workPacePercent}% maratontempo)`),
       notes: workPacePercent === 100
-        ? 'Håll maratontempo, inte snabbare!'
+        ? t(locale, 'Hold marathon pace, not faster!', 'Håll maratontempo, inte snabbare!')
         : workPacePercent > 100
-        ? `${workPacePercent - 100}% snabbare än maratontempo`
+        ? t(locale, `${workPacePercent - 100}% faster than marathon pace`, `${workPacePercent - 100}% snabbare än maratontempo`)
         : undefined,
     })
 
@@ -614,8 +625,8 @@ export function buildCanovaIntervals(
         distance: recoveryDistanceKm,
         zone: 2,
         pace: recoveryPaceMinPerKm,
-        description: `Aktiv vila (${recoveryDistanceKm}km @ ${recoveryPacePercent}% MP)`,
-        notes: 'AKTIV återhämtning - fortsätt springa i lugnt tempo, inte gå!',
+        description: t(locale, `Active recovery (${recoveryDistanceKm}km @ ${recoveryPacePercent}% MP)`, `Aktiv vila (${recoveryDistanceKm}km @ ${recoveryPacePercent}% MP)`),
+        notes: t(locale, 'ACTIVE recovery - keep running easy, do not walk!', 'AKTIV återhämtning - fortsätt springa i lugnt tempo, inte gå!'),
       })
     }
   }
@@ -630,7 +641,7 @@ export function buildCanovaIntervals(
     zone: 1,
     pace: zones.zone1,
     heartRate: getZoneHR(trainingZones, 1),
-    description: `Nedvärmning ${canovaCooldownDistance}km`,
+    description: t(locale, `Cool-down ${canovaCooldownDistance}km`, `Nedvärmning ${canovaCooldownDistance}km`),
   })
 
   const totalDuration = 20 + (reps * workDuration) + ((reps - 1) * recoveryDuration) + 10
@@ -638,11 +649,11 @@ export function buildCanovaIntervals(
 
   return {
     type: 'RUNNING',
-    name: `Intervaller ${reps}×${workDistanceKm}km`,
+    name: t(locale, `Intervals ${reps}×${workDistanceKm}km`, `Intervaller ${reps}×${workDistanceKm}km`),
     intensity: zone >= 4 ? 'THRESHOLD' : 'MODERATE',
     duration: totalDuration,
     distance: canovaTotalDistance,
-    instructions: `Intervaller ${canovaTotalDistance}km: ${reps}×${workDistanceKm}km @ ${workPacePercent}% MP med ${recoveryDistanceKm}km aktiv vila.`,
+    instructions: t(locale, `Intervals ${canovaTotalDistance}km: ${reps}×${workDistanceKm}km @ ${workPacePercent}% MP with ${recoveryDistanceKm}km active recovery.`, `Intervaller ${canovaTotalDistance}km: ${reps}×${workDistanceKm}km @ ${workPacePercent}% MP med ${recoveryDistanceKm}km aktiv vila.`),
     segments,
   }
 }
@@ -663,7 +674,8 @@ interface EasyRunParams {
 export function buildEasyRun(
   params: EasyRunParams | number,
   zones: ZonePaces,
-  trainingZones: TrainingZone[]
+  trainingZones: TrainingZone[],
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   // Handle legacy call with just duration
   const easyParams: EasyRunParams = typeof params === 'number'
@@ -680,11 +692,11 @@ export function buildEasyRun(
 
   return {
     type: 'RUNNING',
-    name: 'Lugnt löppass',
+    name: t(locale, 'Easy run', 'Lugnt löppass'),
     intensity: 'EASY',
     duration,
     distance, // Now includes calculated distance!
-    instructions: easyParams.description || `Lugnt återhämtningspass ${distance}km @ ${pacePercent}% MP. Fokus på återhämtning.`,
+    instructions: easyParams.description || t(locale, `Easy recovery run ${distance}km @ ${pacePercent}% MP. Focus on recovery.`, `Lugnt återhämtningspass ${distance}km @ ${pacePercent}% MP. Fokus på återhämtning.`),
     segments: [
       {
         order: 1,
@@ -694,7 +706,7 @@ export function buildEasyRun(
         zone: 2,
         pace: speedToPace(easyPaceKmh),
         heartRate: getZoneHR(trainingZones, 2),
-        description: `Lugnt löppass ${distance}km`,
+        description: t(locale, `Easy run ${distance}km`, `Lugnt löppass ${distance}km`),
       },
     ],
   }
@@ -720,13 +732,33 @@ const DEFAULT_STRENGTH_EXERCISES = {
   ],
 }
 
+const DEFAULT_STRENGTH_EXERCISES_EN = {
+  lower: [
+    { name: 'Squat', description: 'Foundational squat for leg strength. Focus on depth and control.' },
+    { name: 'Lunge', description: 'Alternating lunges for single-leg strength and balance.' },
+    { name: 'Glute bridge', description: 'Glute bridge for glutes and hamstrings.' },
+    { name: 'Calf raise', description: 'Calf raises for lower-leg strength, important for runners.' },
+  ],
+  upper: [
+    { name: 'Push-up', description: 'Push-ups for chest, shoulders, and triceps.' },
+    { name: 'Row', description: 'Rowing movement for back and biceps.' },
+  ],
+  full: [
+    { name: 'Squat', description: 'Foundational squat for leg strength.' },
+    { name: 'Lunge', description: 'Lunges for single-leg strength and balance.' },
+    { name: 'Glute bridge', description: 'Glute bridge for glutes and the posterior chain.' },
+    { name: 'Push-up', description: 'Push-ups for upper-body strength.' },
+  ],
+}
+
 /**
  * Build strength workout
  */
 export function buildStrengthWorkout(
   phase: PeriodPhase,
   focus: 'upper' | 'lower' | 'full',
-  exercises: string[] // Exercise IDs from database
+  exercises: string[], // Exercise IDs from database
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   logger.debug('Building strength workout', { phase, focus, exerciseCount: exercises.length, exercises })
 
@@ -747,7 +779,8 @@ export function buildStrengthWorkout(
   // If no exercises from database, use default exercises with descriptions
   if (exercises.length === 0) {
     logger.debug('No exercises from DB, using default exercises', { focus })
-    const defaultExercises = DEFAULT_STRENGTH_EXERCISES[focus] || DEFAULT_STRENGTH_EXERCISES.full
+    const defaultSource = locale === 'sv' ? DEFAULT_STRENGTH_EXERCISES : DEFAULT_STRENGTH_EXERCISES_EN
+    const defaultExercises = defaultSource[focus] || defaultSource.full
 
     defaultExercises.forEach((exercise, index) => {
       segments.push({
@@ -781,10 +814,14 @@ export function buildStrengthWorkout(
 
   return {
     type: 'STRENGTH',
-    name: focus === 'full' ? 'Helkroppsstyrka' : focus === 'upper' ? 'Överkroppsstyrka' : 'Benstyrka',
+    name: focus === 'full'
+      ? t(locale, 'Full-body strength', 'Helkroppsstyrka')
+      : focus === 'upper'
+        ? t(locale, 'Upper-body strength', 'Överkroppsstyrka')
+        : t(locale, 'Leg strength', 'Benstyrka'),
     intensity: phase === 'PEAK' ? 'THRESHOLD' : 'MODERATE',
     duration: estimatedDuration,
-    instructions: `${scheme.sets} set × ${scheme.reps} reps med ${scheme.rest}s vila. Fokusera på kontroll och form.`,
+    instructions: t(locale, `${scheme.sets} sets × ${scheme.reps} reps with ${scheme.rest}s rest. Focus on control and form.`, `${scheme.sets} set × ${scheme.reps} reps med ${scheme.rest}s vila. Fokusera på kontroll och form.`),
     segments,
   }
 }
@@ -797,10 +834,17 @@ const DEFAULT_CORE_EXERCISES = [
   { name: 'Bird Dog', description: 'Bird Dog - rygg och core-stabilitet på alla fyra.' },
 ]
 
+const DEFAULT_CORE_EXERCISES_EN = [
+  { name: 'Plank', description: 'Plank - foundational trunk stability. Keep the body straight.' },
+  { name: 'Side plank', description: 'Side plank for obliques and hip stability.' },
+  { name: 'Dead bug', description: 'Dead bug - controlled trunk stability with arms/legs.' },
+  { name: 'Bird dog', description: 'Bird dog - back and trunk stability on all fours.' },
+]
+
 /**
  * Build core workout
  */
-export function buildCoreWorkout(exercises: string[]): CreateWorkoutDTO {
+export function buildCoreWorkout(exercises: string[], locale: AppLocale = 'en'): CreateWorkoutDTO {
   logger.debug('Building core workout', { exerciseCount: exercises.length, exercises })
 
   const segments: CreateWorkoutSegmentDTO[] = []
@@ -809,12 +853,13 @@ export function buildCoreWorkout(exercises: string[]): CreateWorkoutDTO {
   if (exercises.length === 0) {
     logger.debug('No exercises from DB, using default core exercises')
 
-    DEFAULT_CORE_EXERCISES.forEach((exercise, index) => {
+    const defaultExercises = locale === 'sv' ? DEFAULT_CORE_EXERCISES : DEFAULT_CORE_EXERCISES_EN
+    defaultExercises.forEach((exercise, index) => {
       segments.push({
         order: index + 1,
         type: 'exercise',
         sets: 3,
-        repsCount: '45-60 sek',
+        repsCount: t(locale, '45-60 sec', '45-60 sek'),
         rest: 45,
         description: exercise.name,
         notes: exercise.description,
@@ -827,19 +872,19 @@ export function buildCoreWorkout(exercises: string[]): CreateWorkoutDTO {
         type: 'exercise',
         exerciseId,
         sets: 3,
-        repsCount: '45-60 sek', // Core exercises often time-based
+        repsCount: t(locale, '45-60 sec', '45-60 sek'), // Core exercises often time-based
         rest: 45,
-        description: `Core övning ${index + 1}`,
+        description: t(locale, `Core exercise ${index + 1}`, `Core övning ${index + 1}`),
       })
     })
   }
 
   return {
     type: 'CORE',
-    name: 'Core-träning',
+    name: t(locale, 'Core training', 'Core-träning'),
     intensity: 'MODERATE',
     duration: 30,
-    instructions: 'Core-stabilitetsövningar. 3 set av varje övning med fokus på kontroll.',
+    instructions: t(locale, 'Core stability exercises. 3 sets of each exercise with focus on control.', 'Core-stabilitetsövningar. 3 set av varje övning med fokus på kontroll.'),
     segments,
   }
 }
@@ -851,10 +896,16 @@ const DEFAULT_PLYOMETRIC_EXERCISES = [
   { name: 'Skipping', description: 'Höga knälyft med kraft, arm-swing.' },
 ]
 
+const DEFAULT_PLYOMETRIC_EXERCISES_EN = [
+  { name: 'Squat jumps', description: 'Jump from a squat position, land softly.' },
+  { name: 'Box jumps', description: 'Jump onto a box/bench, step down under control.' },
+  { name: 'Skipping', description: 'High knees with force and active arm swing.' },
+]
+
 /**
  * Build plyometric workout
  */
-export function buildPlyometricWorkout(exercises: string[]): CreateWorkoutDTO {
+export function buildPlyometricWorkout(exercises: string[], locale: AppLocale = 'en'): CreateWorkoutDTO {
   logger.debug('Building plyometric workout', { exerciseCount: exercises.length, exercises })
 
   const segments: CreateWorkoutSegmentDTO[] = []
@@ -863,7 +914,8 @@ export function buildPlyometricWorkout(exercises: string[]): CreateWorkoutDTO {
   if (exercises.length === 0) {
     logger.debug('No exercises from DB, using default plyometric exercises')
 
-    DEFAULT_PLYOMETRIC_EXERCISES.forEach((exercise, index) => {
+    const defaultExercises = locale === 'sv' ? DEFAULT_PLYOMETRIC_EXERCISES : DEFAULT_PLYOMETRIC_EXERCISES_EN
+    defaultExercises.forEach((exercise, index) => {
       segments.push({
         order: index + 1,
         type: 'exercise',
@@ -883,18 +935,18 @@ export function buildPlyometricWorkout(exercises: string[]): CreateWorkoutDTO {
         sets: 3,
         repsCount: '8-10',
         rest: 120,
-        description: `Plyometrisk övning ${index + 1}`,
-        notes: 'Maximal explosivitet, full återhämtning mellan set',
+        description: t(locale, `Plyometric exercise ${index + 1}`, `Plyometrisk övning ${index + 1}`),
+        notes: t(locale, 'Maximum explosiveness, full recovery between sets', 'Maximal explosivitet, full återhämtning mellan set'),
       })
     })
   }
 
   return {
     type: 'PLYOMETRIC',
-    name: 'Plyometri',
+    name: t(locale, 'Plyometrics', 'Plyometri'),
     intensity: 'INTERVAL',
     duration: 35,
-    instructions: 'Explosiva hopp och språng. Fokus på maximal kraft och mjuka landningar.',
+    instructions: t(locale, 'Explosive jumps and bounds. Focus on maximal power and soft landings.', 'Explosiva hopp och språng. Fokus på maximal kraft och mjuka landningar.'),
     segments,
   }
 }
@@ -902,20 +954,20 @@ export function buildPlyometricWorkout(exercises: string[]): CreateWorkoutDTO {
 /**
  * Build recovery/mobility workout
  */
-export function buildRecoveryWorkout(): CreateWorkoutDTO {
+export function buildRecoveryWorkout(locale: AppLocale = 'en'): CreateWorkoutDTO {
   return {
     type: 'RECOVERY',
-    name: 'Återhämtning',
+    name: t(locale, 'Recovery', 'Återhämtning'),
     intensity: 'RECOVERY',
     duration: 30,
-    instructions: 'Lätt rörlighet, stretching och foam rolling. Fokus på återhämtning.',
+    instructions: t(locale, 'Light mobility, stretching, and foam rolling. Focus on recovery.', 'Lätt rörlighet, stretching och foam rolling. Fokus på återhämtning.'),
     segments: [
       {
         order: 1,
         type: 'work',
         duration: 30,
-        description: 'Rörlighet och stretching',
-        notes: 'Lugn rörlighetsträning och foam rolling',
+        description: t(locale, 'Mobility and stretching', 'Rörlighet och stretching'),
+        notes: t(locale, 'Easy mobility work and foam rolling', 'Lugn rörlighetsträning och foam rolling'),
       },
     ],
   }

@@ -8,6 +8,12 @@ import { SwimmingTemplateWorkout, SwimmingTemplateWeek } from './templates/swimm
 import { TriathlonTemplateWorkout, TriathlonTemplateWeek, TriathlonDiscipline } from './templates/triathlon'
 import { HYROXTemplateWorkout, HYROXTemplateWeek, HYROXWorkoutType } from './templates/hyrox'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================================================
 // TYPE MAPPINGS
 // ============================================================================
@@ -420,7 +426,8 @@ function mapHyroxStation(station: string): string {
  */
 export function distributeWorkoutsAcrossWeek(
   workouts: CreateWorkoutDTO[],
-  daysPerWeek: number = 5
+  daysPerWeek: number = 5,
+  locale: AppLocale = 'en'
 ): { dayNumber: number; notes: string; workouts: CreateWorkoutDTO[] }[] {
   const days: { dayNumber: number; notes: string; workouts: CreateWorkoutDTO[] }[] = []
 
@@ -445,7 +452,7 @@ export function distributeWorkoutsAcrossWeek(
   // Mark rest days
   days.forEach((day, index) => {
     if (!trainingDays.includes(index + 1)) {
-      day.notes = 'Vilodag'
+      day.notes = t(locale, 'Rest day', 'Vilodag')
     }
   })
 

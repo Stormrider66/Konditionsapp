@@ -422,21 +422,21 @@ async function buildWeek(
       // Create workouts sequentially with await
       const workouts: CreateWorkoutDTO[] = []
       for (const w of dayWorkouts) {
-        const workout = await createWorkout(w.type, w.params, zones, trainingZones, phase)
+        const workout = await createWorkout(w.type, w.params, zones, trainingZones, phase, params.locale)
         workouts.push(workout)
       }
 
       days.push({
         dayNumber: dayNum,
         workouts,
-        notes: dayNum === 7 ? 'Viktig nyckelpass denna vecka' : undefined,
+        notes: dayNum === 7 ? t(params.locale, 'Important key session this week', 'Viktig nyckelpass denna vecka') : undefined,
       })
     } else {
       // Rest day
       days.push({
         dayNumber: dayNum,
         workouts: [],
-        notes: 'Vilodag',
+        notes: t(params.locale, 'Rest day', 'Vilodag'),
       })
     }
   }
@@ -458,14 +458,15 @@ async function createWorkout(
   params: any,
   zones: ZonePaces | ZonePowers,
   trainingZones: TrainingZone[],
-  phase: PeriodPhase
+  phase: PeriodPhase,
+  locale: 'en' | 'sv' = 'en'
 ): Promise<CreateWorkoutDTO> {
   switch (type) {
     case 'long':
-      return buildLongRun(params, zones as ZonePaces, trainingZones)
+      return buildLongRun(params, zones as ZonePaces, trainingZones, locale)
 
     case 'tempo':
-      return buildTempoRun(params, zones as ZonePaces, trainingZones)
+      return buildTempoRun(params, zones as ZonePaces, trainingZones, locale)
 
     case 'intervals':
       return buildIntervals(
@@ -474,7 +475,8 @@ async function createWorkout(
         params.rest,
         params.zone,
         zones as ZonePaces,
-        trainingZones
+        trainingZones,
+        locale
       )
 
     case 'hillSprints':
@@ -483,7 +485,8 @@ async function createWorkout(
         params.workSeconds,
         params.rest,
         zones as ZonePaces,
-        trainingZones
+        trainingZones,
+        locale
       )
 
     case 'canovaIntervals':
@@ -495,31 +498,36 @@ async function createWorkout(
         params.recoveryPacePercent,
         params.marathonPace,
         zones as ZonePaces,
-        trainingZones
+        trainingZones,
+        locale
       )
 
     case 'easy':
-      return buildEasyRun(params, zones as ZonePaces, trainingZones)
+      return buildEasyRun(params, zones as ZonePaces, trainingZones, locale)
 
     case 'strength':
       // Fetch actual exercise IDs from database
       const strengthExercises = await getDefaultExercises('strength', params.focus)
-      return buildStrengthWorkout(phase, params.focus, strengthExercises)
+      return buildStrengthWorkout(phase, params.focus, strengthExercises, locale)
 
     case 'core':
       const coreExercises = await getDefaultExercises('core')
-      return buildCoreWorkout(coreExercises)
+      return buildCoreWorkout(coreExercises, locale)
 
     case 'plyometric':
       const plyoExercises = await getDefaultExercises('plyometric')
-      return buildPlyometricWorkout(plyoExercises)
+      return buildPlyometricWorkout(plyoExercises, locale)
 
     case 'recovery':
-      return buildRecoveryWorkout()
+      return buildRecoveryWorkout(locale)
 
     default:
-      return buildEasyRun(30, zones as ZonePaces, trainingZones)
+      return buildEasyRun(30, zones as ZonePaces, trainingZones, locale)
   }
+}
+
+function t(locale: 'en' | 'sv' | undefined, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
