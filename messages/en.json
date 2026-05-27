@@ -14868,6 +14868,15 @@
         "lt1": "LT1 (Aerobic)",
         "lt2": "LT2 (Anaerobic)"
       },
+      "fit": {
+        "curveHidden": "curve hidden",
+        "notEnoughData": "Curve hidden"
+      },
+      "warnings": {
+        "unreliableFit": "The polynomial curve is hidden because lactate versus heart rate does not fit a reliable threshold curve. Check outlying lactate samples, decimals, and stage order.",
+        "fitFailed": "The polynomial curve is hidden because the heart-rate data could not be fitted safely. Check duplicates, outlying samples, and stage order.",
+        "notEnoughFitPoints": "The polynomial curve is hidden because at least four unique heart-rate values are required."
+      },
       "explanations": {
         "polynomialTitle": "Blue curve",
         "polynomialBody": "Polynomial fit (3rd degree) of lactate versus heart rate",

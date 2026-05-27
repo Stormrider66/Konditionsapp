@@ -15228,6 +15228,15 @@
         "lt1": "LT1 (Aerob)",
         "lt2": "LT2 (Anaerob)"
       },
+      "fit": {
+        "curveHidden": "kurva dold",
+        "notEnoughData": "Kurva dold"
+      },
+      "warnings": {
+        "unreliableFit": "Polynomkurvan visas inte eftersom laktat-vs-puls inte passar en tillförlitlig tröskelkurva. Kontrollera avvikande laktatprov, decimaler och stegordning.",
+        "fitFailed": "Polynomkurvan visas inte eftersom pulsdata inte kunde passas säkert. Kontrollera dubbletter, avvikande prov och stegordning.",
+        "notEnoughFitPoints": "Polynomkurvan visas inte eftersom minst fyra unika pulsvärden behövs."
+      },
       "explanations": {
         "polynomialTitle": "Blå kurva",
         "polynomialBody": "Polynomisk anpassning (grad 3) av laktat vs puls",

@@ -2,8 +2,13 @@
 
 import { ComposedChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Scatter, ReferenceLine } from 'recharts'
 import { TestStage } from '@/types'
-import { fitPolynomial3 } from '@/lib/training-engine/utils/polynomial-fit'
 import { useTranslations } from '@/i18n/client'
+import {
+  buildReliableLactateHeartRateFit,
+  getLactateHeartRatePoints,
+  type LactateHeartRateFitStatus,
+  type LactateHeartRatePoint,
+} from '@/lib/lactate/heart-rate-chart'
 
 interface ThresholdValue {
   heartRate: number
@@ -30,62 +35,48 @@ interface LactateHeartRateChartProps {
 export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThreshold }: LactateHeartRateChartProps) {
   const t = useTranslations('components.lactateHeartRateChart')
 
-  // Extract data points
-  const dataPoints = stages.map(stage => ({
-    heartRate: stage.heartRate,
-    lactate: stage.lactate
-  })).filter(p => p.heartRate > 0).sort((a, b) => a.heartRate - b.heartRate)
+  const dataPoints = getLactateHeartRatePoints(stages)
 
   if (dataPoints.length === 0) {
     return null
   }
 
-  // Fit polynomial curve: lactate = f(heartRate)
-  const hrValues = dataPoints.map(p => p.heartRate)
-  const lactateValues = dataPoints.map(p => p.lactate)
-  const regression = fitPolynomial3(hrValues, lactateValues)
-  const { coefficients, r2 } = regression
-  const { a, b, c, d } = coefficients
-
-  // Generate polynomial curve points
-  const minHR = Math.min(...hrValues)
-  const maxHR = Math.max(...hrValues)
-  const step = (maxHR - minHR) / 100
-
-  const polynomialCurve: { heartRate: number; lactate: number }[] = []
-  for (let hr = minHR; hr <= maxHR; hr += step) {
-    const lactate = a * Math.pow(hr, 3) + b * Math.pow(hr, 2) + c * hr + d
-    polynomialCurve.push({
-      heartRate: Number(hr.toFixed(1)),
-      lactate: Number(lactate.toFixed(2))
-    })
-  }
+  const fit = buildReliableLactateHeartRateFit(dataPoints)
+  const hasReliableFit = fit.status === 'reliable'
+  const minHR = Math.min(...dataPoints.map(p => p.heartRate))
+  const maxHR = Math.max(...dataPoints.map(p => p.heartRate))
 
   // Calculate baseline (straight line from first to last point)
   const firstPoint = dataPoints[0]
   const lastPoint = dataPoints[dataPoints.length - 1]
-  const baselineSlope = (lastPoint.lactate - firstPoint.lactate) / (lastPoint.heartRate - firstPoint.heartRate)
+  const hasBaseline = lastPoint.heartRate !== firstPoint.heartRate
+  const baselineSlope = hasBaseline
+    ? (lastPoint.lactate - firstPoint.lactate) / (lastPoint.heartRate - firstPoint.heartRate)
+    : 0
   const baselineIntercept = firstPoint.lactate - baselineSlope * firstPoint.heartRate
 
+  const domainPoints = hasReliableFit
+    ? fit.curve
+    : buildHeartRateDomainPoints(dataPoints)
+
   // Build chart data: polynomial curve + baseline (no measured points yet)
-  const chartData = polynomialCurve.map((point) => {
+  const chartData = domainPoints.map((point) => {
     const baseLactate = baselineSlope * point.heartRate + baselineIntercept
     return {
       heartRate: point.heartRate,
-      polynomial: point.lactate,
-      baseline: baseLactate,
+      polynomial: hasReliableFit ? point.lactate : null,
+      baseline: hasBaseline ? baseLactate : null,
       measuredLactate: null as number | null
     }
   })
 
   // Add each measured data point EXACTLY ONCE at its exact heart rate
   dataPoints.forEach(dp => {
-    const polyLactate = a * Math.pow(dp.heartRate, 3) + b * Math.pow(dp.heartRate, 2) + c * dp.heartRate + d
     const baseLactate = baselineSlope * dp.heartRate + baselineIntercept
     chartData.push({
       heartRate: dp.heartRate,
-      polynomial: polyLactate,
-      baseline: baseLactate,
+      polynomial: null,
+      baseline: hasBaseline ? baseLactate : null,
       measuredLactate: dp.lactate
     })
   })
@@ -107,16 +98,20 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
   // Calculate Y-domain
   const maxLactate = Math.max(
     ...dataPoints.map(p => p.lactate),
-    ...chartData.map(c => c.polynomial)
+    ...(aerobicThreshold ? [aerobicThreshold.lactate] : []),
+    ...(anaerobicThreshold ? [anaerobicThreshold.lactate] : []),
+    ...(hasReliableFit ? fit.curve.map(point => point.lactate) : [])
   )
-  const yDomain = [0, Math.ceil(maxLactate * 1.1)]
+  const yDomain = [0, Math.max(1, Math.ceil(maxLactate * 1.1))]
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h4 className="font-semibold">{t('title')}</h4>
         <span className="text-sm text-gray-600">
-          R² = {(r2 * 100).toFixed(1)}%
+          {fit.r2 !== null
+            ? `R² = ${(fit.r2 * 100).toFixed(1)}%${hasReliableFit ? '' : ` - ${t('fit.curveHidden')}`}`
+            : t('fit.notEnoughData')}
         </span>
       </div>
 
@@ -150,27 +145,31 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
           />
 
           {/* Baseline */}
-          <Line
-            type="monotone"
-            dataKey="baseline"
-            stroke="#94a3b8"
-            strokeWidth={1}
-            strokeDasharray="5 5"
-            name={t('series.baseline')}
-            dot={false}
-            isAnimationActive={false}
-          />
+          {hasBaseline && (
+            <Line
+              type="monotone"
+              dataKey="baseline"
+              stroke="#94a3b8"
+              strokeWidth={1}
+              strokeDasharray="5 5"
+              name={t('series.baseline')}
+              dot={false}
+              isAnimationActive={false}
+            />
+          )}
 
           {/* Polynomial curve */}
-          <Line
-            type="monotone"
-            dataKey="polynomial"
-            stroke="#3b82f6"
-            strokeWidth={2}
-            name={t('series.polynomial')}
-            dot={false}
-            isAnimationActive={false}
-          />
+          {hasReliableFit && (
+            <Line
+              type="monotone"
+              dataKey="polynomial"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              name={t('series.polynomial')}
+              dot={false}
+              isAnimationActive={false}
+            />
+          )}
 
           {/* Actual test data points */}
           <Line
@@ -240,11 +239,19 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
         </ComposedChart>
       </ResponsiveContainer>
 
+      {!hasReliableFit && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+          {getFitWarningText(fit.status, t)}
+        </div>
+      )}
+
       {/* Explanation */}
       <div className="text-xs text-gray-600 space-y-1">
-        <p>
-          <strong>{t('explanations.polynomialTitle')}:</strong> {t('explanations.polynomialBody')}
-        </p>
+        {hasReliableFit && (
+          <p>
+            <strong>{t('explanations.polynomialTitle')}:</strong> {t('explanations.polynomialBody')}
+          </p>
+        )}
         <p>
           <strong>{t('explanations.baselineTitle')}:</strong> {t('explanations.baselineBody')}
         </p>
@@ -266,4 +273,35 @@ export function LactateHeartRateChart({ stages, aerobicThreshold, anaerobicThres
       </div>
     </div>
   )
+}
+
+function buildHeartRateDomainPoints(dataPoints: LactateHeartRatePoint[]): LactateHeartRatePoint[] {
+  if (dataPoints.length < 2) {
+    return dataPoints
+  }
+
+  const minHeartRate = Math.min(...dataPoints.map(point => point.heartRate))
+  const maxHeartRate = Math.max(...dataPoints.map(point => point.heartRate))
+  const range = maxHeartRate - minHeartRate
+
+  if (range <= 0) {
+    return dataPoints
+  }
+
+  return Array.from({ length: 101 }, (_, index) => ({
+    heartRate: Number((minHeartRate + (range * index) / 100).toFixed(1)),
+    lactate: 0,
+  }))
+}
+
+function getFitWarningText(status: LactateHeartRateFitStatus, t: (key: string) => string): string {
+  if (status === 'not_enough_unique_heart_rates') {
+    return t('warnings.notEnoughFitPoints')
+  }
+
+  if (status === 'fit_failed') {
+    return t('warnings.fitFailed')
+  }
+
+  return t('warnings.unreliableFit')
 }
