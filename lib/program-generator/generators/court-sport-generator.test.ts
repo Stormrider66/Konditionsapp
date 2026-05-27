@@ -32,36 +32,36 @@ const sportCases: CourtSportCase[] = [
     sport: 'TEAM_HANDBALL',
     settingsKey: 'handballSettings',
     settings: { position: 'pivot', seasonPhase: 'pre_season', matchesPerWeek: 0, sessionsPerWeek: 4 },
-    expectedName: 'Handboll',
-    expectedSessionName: /Handbollsteknik|Kastkraft/,
+    expectedName: 'Handball',
+    expectedSessionName: /Handball technique|Throwing power/,
   },
   {
     sport: 'TEAM_FLOORBALL',
     settingsKey: 'floorballSettings',
     settings: { position: 'defender', seasonPhase: 'in_season', matchesPerWeek: 1, sessionsPerWeek: 4 },
-    expectedName: 'Innebandy',
-    expectedSessionName: /Klubbteknik|Bytesintervaller/,
+    expectedName: 'Floorball',
+    expectedSessionName: /Stick skills|Shift intervals/,
   },
   {
     sport: 'TEAM_VOLLEYBALL',
     settingsKey: 'volleyballSettings',
     settings: { position: 'libero', seasonPhase: 'pre_season', matchesPerWeek: 0, sessionsPerWeek: 4 },
-    expectedName: 'Volleyboll',
-    expectedSessionName: /Volleybollteknik|Approach jumps/,
+    expectedName: 'Volleyball',
+    expectedSessionName: /Volleyball technique|Approach jumps/,
   },
   {
     sport: 'TENNIS',
     settingsKey: 'tennisSettings',
     settings: { playStyle: 'aggressive_baseliner', seasonPhase: 'tournament', matchesPerWeek: 2, sessionsPerWeek: 5 },
     expectedName: 'Tennis',
-    expectedSessionName: /Tennisteknik|Matchplay/,
+    expectedSessionName: /Tennis technique|Match play/,
   },
   {
     sport: 'PADEL',
     settingsKey: 'padelSettings',
     settings: { position: 'left_side', seasonPhase: 'tournament', matchesPerWeek: 2, sessionsPerWeek: 5 },
     expectedName: 'Padel',
-    expectedSessionName: /Padelteknik|Matchplay/,
+    expectedSessionName: /Padel technique|Match play/,
   },
 ]
 
@@ -109,5 +109,19 @@ describe('generateCourtSportProgram through sport router', () => {
       source: 'court-sport-generator',
       sport: testCase.sport,
     })
+  })
+
+  it('keeps Swedish court-sport copy when locale is sv', async () => {
+    const params = {
+      ...paramsFor(sportCases[1]),
+      locale: 'sv',
+    } as SportProgramParams
+
+    const program = await generateSportProgram(params, client)
+    const workouts = program.weeks?.[0].days.flatMap((day) => day.workouts) ?? []
+    const workoutText = workouts.map((workout) => `${workout.name} ${workout.instructions}`).join(' ')
+
+    expect(program.name).toContain('Handboll')
+    expect(workoutText).toMatch(/Handbollsteknik|Kastkraft|Styrka och skadeprevention/)
   })
 })
