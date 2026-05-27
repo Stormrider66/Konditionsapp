@@ -98,8 +98,8 @@ async function getEnrichedSystemPrompt(context: GenerationContext): Promise<stri
     const preamble = buildConstitutionPreamble('program', undefined, locale)
     const languageInstruction = locale === 'sv'
       ? '\n\nSvara alltid på svenska i allt användarvänt innehåll.'
-      : '\n\nAlways write all user-facing generated content in English.'
-    return `${preamble}${prompt}${languageInstruction}`
+      : '\n\nTEMPLATE LANGUAGE NOTE: Some stored prompt-variant templates may contain Swedish headings, examples, or instructions from legacy optimization runs. Treat those as internal planning context only. Translate their meaning and write every user-facing field, workout name, phase name, explanation, and note in English.\n\nAlways write all user-facing generated content in English.'
+    return `${preamble}${languageInstruction}\n\n${prompt}${languageInstruction}`
   } catch {
     // On any error (DB down, etc.), fall back gracefully
     return buildProgramGeneratorSystemPrompt(locale)
