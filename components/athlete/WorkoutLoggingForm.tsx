@@ -541,8 +541,8 @@ export function WorkoutLoggingForm({
       }
 
       toast({
-        title: existingLog ? 'Logg uppdaterad!' : 'Pass loggat!',
-        description: 'Din träningslogg har sparats.',
+        title: existingLog ? localText(locale, 'Logg uppdaterad!', 'Log updated!') : localText(locale, 'Pass loggat!', 'Workout logged!'),
+        description: localText(locale, 'Din träningslogg har sparats.', 'Your training log has been saved.'),
       })
 
       // Refresh to revalidate dashboard data before navigation
@@ -551,7 +551,7 @@ export function WorkoutLoggingForm({
     } catch (error: any) {
       console.error('Error saving workout log:', error)
       toast({
-        title: 'Något gick fel',
+        title: localText(locale, 'Något gick fel', 'Something went wrong'),
         description: error.message,
         variant: 'destructive',
       })
@@ -613,14 +613,14 @@ export function WorkoutLoggingForm({
         {/* Workout Info */}
         <Card>
           <CardHeader>
-            <CardTitle>Pass information</CardTitle>
+            <CardTitle>{localText(locale, 'Passinformation', 'Workout information')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
               <h3 className="font-semibold mb-2">{workout.name}</h3>
               <div className="flex items-center gap-2 mb-3">
-                <Badge variant="outline">{formatWorkoutType(workout.type)}</Badge>
-                <Badge variant="outline">{formatIntensity(workout.intensity)}</Badge>
+                <Badge variant="outline">{formatWorkoutType(workout.type, locale)}</Badge>
+                <Badge variant="outline">{formatIntensity(workout.intensity, locale)}</Badge>
               </div>
               {workout.instructions && (
                 <FormattedWorkoutInstructions
@@ -634,11 +634,11 @@ export function WorkoutLoggingForm({
                   <div className="flex items-start gap-3">
                     <Utensils className="h-5 w-5 text-amber-600 dark:text-amber-300 mt-0.5" />
                     <div>
-                      <p className="font-semibold">Magträning för tävling</p>
+                      <p className="font-semibold">{localText(locale, 'Magträning för tävling', 'Race gut training')}</p>
                       <p className="mt-1">
-                        Sikta på {Math.round(workout.fuelingPrescription.targetCarbsGPerHour)} g kolhydrater/timme
+                        {localText(locale, 'Sikta på', 'Aim for')} {Math.round(workout.fuelingPrescription.targetCarbsGPerHour)} {localText(locale, 'g kolhydrater/timme', 'g carbohydrates/hour')}
                         {workout.fuelingPrescription.targetCarbsTotalG
-                          ? `, totalt cirka ${Math.round(workout.fuelingPrescription.targetCarbsTotalG)} g under passet.`
+                          ? localText(locale, `, totalt cirka ${Math.round(workout.fuelingPrescription.targetCarbsTotalG)} g under passet.`, `, about ${Math.round(workout.fuelingPrescription.targetCarbsTotalG)} g total during the session.`)
                           : '.'}
                       </p>
                       {workout.fuelingPrescription.instructionsSv && (
@@ -657,13 +657,13 @@ export function WorkoutLoggingForm({
               <div className="flex gap-4 text-sm">
                 {workout.duration && (
                   <div>
-                    <span className="text-muted-foreground">Planerad tid:</span>{' '}
+                    <span className="text-muted-foreground">{localText(locale, 'Planerad tid:', 'Planned time:')}</span>{' '}
                     <span className="font-medium">{workout.duration} min</span>
                   </div>
                 )}
                 {workout.distance && fieldConfig.distance && (
                   <div>
-                    <span className="text-muted-foreground">Planerad distans:</span>{' '}
+                    <span className="text-muted-foreground">{localText(locale, 'Planerad distans:', 'Planned distance:')}</span>{' '}
                     <span className="font-medium">{workout.distance} km</span>
                   </div>
                 )}
@@ -673,7 +673,7 @@ export function WorkoutLoggingForm({
             {/* Workout segments */}
             {workout.segments && workout.segments.length > 0 && (
               <div className="space-y-2">
-                <h4 className="font-medium text-sm">Pass-struktur:</h4>
+                <h4 className="font-medium text-sm">{localText(locale, 'Pass-struktur:', 'Workout structure:')}</h4>
                 <div className="space-y-1">
                   {workout.segments.map((segment: any) => (
                     <div
@@ -681,10 +681,10 @@ export function WorkoutLoggingForm({
                       className="flex items-center gap-2 text-sm text-muted-foreground"
                     >
                       <Badge variant="secondary" className="text-xs">
-                        {formatSegmentType(segment.type)}
+                        {formatSegmentType(segment.type, locale)}
                       </Badge>
                       <span>
-                        {segment.exercise?.nameSv || segment.exercise?.name || segment.description}
+                        {(locale === 'sv' ? segment.exercise?.nameSv : segment.exercise?.name) || segment.exercise?.name || segment.exercise?.nameSv || segment.description}
                         {segment.sets && segment.repsCount && ` (${segment.sets}×${segment.repsCount})`}
                         {segment.duration && !segment.sets && ` (${segment.duration} min)`}
                         {segment.pace && ` @ ${segment.pace}`}
@@ -703,10 +703,10 @@ export function WorkoutLoggingForm({
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-600" />
-                Tävlingsresultat
+                {localText(locale, 'Tävlingsresultat', 'Race result')}
                 {raceContext.goalType && (
                   <Badge variant="secondary" className="ml-2">
-                    {formatGoalType(raceContext.goalType)}
+                    {formatGoalType(raceContext.goalType, locale)}
                   </Badge>
                 )}
               </CardTitle>
@@ -717,10 +717,10 @@ export function WorkoutLoggingForm({
                 name="raceFinishTime"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-base font-semibold">Sluttid</FormLabel>
+                    <FormLabel className="text-base font-semibold">{localText(locale, 'Sluttid', 'Finish time')}</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="t.ex. 39:42 eller 1:45:30"
+                        placeholder={localText(locale, 't.ex. 39:42 eller 1:45:30', 'e.g. 39:42 or 1:45:30')}
                         className="h-14 text-2xl font-bold text-center"
                         {...field}
                         value={field.value || ''}
@@ -735,7 +735,7 @@ export function WorkoutLoggingForm({
               />
               {raceContext.goalRace && (
                 <p className="text-sm text-muted-foreground">
-                  Mål: {raceContext.goalRace}
+                  {localText(locale, 'Mål:', 'Goal:')} {raceContext.goalRace}
                 </p>
               )}
             </CardContent>
@@ -760,9 +760,9 @@ export function WorkoutLoggingForm({
                     />
                   </FormControl>
                   <div className="space-y-1 leading-none">
-                    <FormLabel>Jag har slutfört detta pass</FormLabel>
+                    <FormLabel>{localText(locale, 'Jag har slutfört detta pass', 'I completed this workout')}</FormLabel>
                     <FormDescription>
-                      Markera som slutfört när du har genomfört passet
+                      {localText(locale, 'Markera som slutfört när du har genomfört passet', 'Mark as completed once you have finished the workout')}
                     </FormDescription>
                   </div>
                 </FormItem>
@@ -777,10 +777,10 @@ export function WorkoutLoggingForm({
             <CardHeader>
               <CardTitle>
                 {workoutType === 'STRENGTH' || workoutType === 'CORE' || workoutType === 'PLYOMETRIC'
-                  ? 'Genomförande'
+                  ? localText(locale, 'Genomförande', 'Execution')
                   : workoutType === 'CYCLING'
-                  ? 'Prestation'
-                  : 'Genomförande'}
+                  ? localText(locale, 'Prestation', 'Performance')
+                  : localText(locale, 'Genomförande', 'Execution')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -793,7 +793,7 @@ export function WorkoutLoggingForm({
                     <FormItem>
                       <FormLabel>
                         <Clock className="inline h-4 w-4 mr-1" />
-                        Faktisk tid (minuter)
+                        {localText(locale, 'Faktisk tid (minuter)', 'Actual time (minutes)')}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -1094,7 +1094,7 @@ export function WorkoutLoggingForm({
                           <FormItem>
                             <FormLabel>
                               <Mountain className="inline h-4 w-4 mr-1" />
-                              Höjdmeter (m)
+                              {localText(locale, 'Höjdmeter (m)', 'Elevation gain (m)')}
                             </FormLabel>
                             <FormControl>
                               <Input
@@ -1129,7 +1129,7 @@ export function WorkoutLoggingForm({
                     <FormItem>
                       <FormLabel>
                         <Mountain className="inline h-4 w-4 mr-1" />
-                        Höjdmeter (m)
+                        {localText(locale, 'Höjdmeter (m)', 'Elevation gain (m)')}
                       </FormLabel>
                       <FormControl>
                         <Input
@@ -1287,7 +1287,7 @@ export function WorkoutLoggingForm({
         {/* Subjective Feedback */}
         <Card>
           <CardHeader>
-            <CardTitle>Hur kändes det?</CardTitle>
+            <CardTitle>{localText(locale, 'Hur kändes det?', 'How did it feel?')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* RPE - for most workout types */}
@@ -1300,10 +1300,10 @@ export function WorkoutLoggingForm({
                     <div className="flex justify-between items-center mb-2">
                       <FormLabel>
                         <Zap className="inline h-4 w-4 mr-1" />
-                        RPE (Upplevd ansträngning)
+                        {localText(locale, 'RPE (Upplevd ansträngning)', 'RPE (perceived effort)')}
                       </FormLabel>
                       <Badge variant="outline" className={getEffortBadgeClass(perceivedEffort || 5)}>
-                        {perceivedEffort || 5}/10 - {getEffortLabel(perceivedEffort || 5)}
+                        {perceivedEffort || 5}/10 - {getEffortLabel(perceivedEffort || 5, locale)}
                       </Badge>
                     </div>
                     <FormControl>
@@ -1317,7 +1317,7 @@ export function WorkoutLoggingForm({
                       />
                     </FormControl>
                     <FormDescription>
-                      1 = Mycket lätt, 10 = Maximalt
+                      {localText(locale, '1 = Mycket lätt, 10 = Maximalt', '1 = Very easy, 10 = Maximal')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1333,9 +1333,9 @@ export function WorkoutLoggingForm({
                 render={({ field }) => (
                   <FormItem>
                     <div className="flex justify-between items-center mb-2">
-                      <FormLabel>Svårighetsgrad</FormLabel>
+                      <FormLabel>{localText(locale, 'Svårighetsgrad', 'Difficulty')}</FormLabel>
                       <Badge variant="outline">
-                        {difficulty || 5}/10 - {getDifficultyLabel(difficulty || 5)}
+                        {difficulty || 5}/10 - {getDifficultyLabel(difficulty || 5, locale)}
                       </Badge>
                     </div>
                     <FormControl>
@@ -1349,7 +1349,7 @@ export function WorkoutLoggingForm({
                       />
                     </FormControl>
                     <FormDescription>
-                      Hur svårt var passet jämfört med förväntan?
+                      {localText(locale, 'Hur svårt var passet jämfört med förväntan?', 'How hard was the workout compared with expectations?')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1364,10 +1364,10 @@ export function WorkoutLoggingForm({
                 name="feeling"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Känsla</FormLabel>
+                    <FormLabel>{localText(locale, 'Känsla', 'Feeling')}</FormLabel>
                     <FormControl>
                       <div className="flex flex-wrap gap-2">
-                        {['Stark', 'Bra', 'Okej', 'Trött', 'Tung'].map((option) => (
+                        {getFeelingOptions(locale).map((option) => (
                           <Button
                             key={option}
                             type="button"
@@ -1390,9 +1390,9 @@ export function WorkoutLoggingForm({
             {shouldShowFuelingFeedback && (
               <div className="rounded-lg border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-500/20 dark:bg-amber-500/10">
                 <div className="mb-4">
-                  <h3 className="font-semibold text-amber-950 dark:text-amber-100">Energi under passet</h3>
+                  <h3 className="font-semibold text-amber-950 dark:text-amber-100">{localText(locale, 'Energi under passet', 'Fueling during the workout')}</h3>
                   <p className="text-sm text-amber-900/80 dark:text-amber-100/75">
-                    Logga vad du faktiskt fick i dig så kan coachen följa magträningen mot tävling.
+                    {localText(locale, 'Logga vad du faktiskt fick i dig så kan coachen följa magträningen mot tävling.', 'Log what you actually took in so your coach can track gut training toward race day.')}
                   </p>
                 </div>
                 <div className="mb-4 grid gap-3 rounded-md border border-amber-200 bg-white/70 p-3 text-sm dark:border-amber-500/20 dark:bg-slate-950/40 sm:grid-cols-3">
@@ -1402,30 +1402,30 @@ export function WorkoutLoggingForm({
                       {plannedCarbsGPerHour ? `${Math.round(plannedCarbsGPerHour)} g/h` : '-'}
                     </p>
                     {plannedCarbsTotalG && (
-                      <p className="text-xs text-muted-foreground">{Math.round(plannedCarbsTotalG)} g totalt</p>
+                      <p className="text-xs text-muted-foreground">{Math.round(plannedCarbsTotalG)} g {localText(locale, 'totalt', 'total')}</p>
                     )}
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Loggat</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{localText(locale, 'Loggat', 'Logged')}</p>
                     <p className="mt-1 font-semibold text-slate-900 dark:text-white">
                       {actualCarbsGPerHour != null ? `${Math.round(actualCarbsGPerHour)} g/h` : '-'}
                     </p>
                     {actualCarbsTotalG != null && (
-                      <p className="text-xs text-muted-foreground">{Math.round(actualCarbsTotalG)} g totalt</p>
+                      <p className="text-xs text-muted-foreground">{Math.round(actualCarbsTotalG)} g {localText(locale, 'totalt', 'total')}</p>
                     )}
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Skillnad</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{localText(locale, 'Skillnad', 'Difference')}</p>
                     <p className="mt-1 font-semibold text-slate-900 dark:text-white">
                       {carbsDelta != null ? `${carbsDelta > 0 ? '+' : ''}${carbsDelta} g` : '-'}
                     </p>
-                    <p className="text-xs text-muted-foreground">mot planerad total</p>
+                    <p className="text-xs text-muted-foreground">{localText(locale, 'mot planerad total', 'vs planned total')}</p>
                   </div>
                 </div>
                 {fuelingDurationHours && (
                   <div className="mb-4 flex flex-wrap items-center gap-2 rounded-md border border-amber-200 bg-white/70 p-3 text-xs text-slate-700 dark:border-amber-500/20 dark:bg-slate-950/40 dark:text-slate-200">
                     <span className="font-medium">
-                      Beräknar på {Math.round(fuelingDurationMinutes ?? 0)} min.
+                      {localText(locale, 'Beräknar på', 'Calculating from')} {Math.round(fuelingDurationMinutes ?? 0)} min.
                     </span>
                     <Button
                       type="button"
@@ -1434,7 +1434,7 @@ export function WorkoutLoggingForm({
                       disabled={actualCarbsGPerHour == null}
                       onClick={calculateFuelingTotalFromHourly}
                     >
-                      Räkna total från g/h
+                      {localText(locale, 'Räkna total från g/h', 'Calculate total from g/h')}
                     </Button>
                     <Button
                       type="button"
@@ -1443,12 +1443,13 @@ export function WorkoutLoggingForm({
                       disabled={actualCarbsTotalG == null}
                       onClick={calculateFuelingHourlyFromTotal}
                     >
-                      Räkna g/h från total
+                      {localText(locale, 'Räkna g/h från total', 'Calculate g/h from total')}
                     </Button>
                   </div>
                 )}
                 <FuelingProductCalculator
                   durationMinutes={fuelingDurationMinutes}
+                  locale={locale}
                   onApply={({ totalCarbs, carbsPerHour, productsUsed }) => {
                     form.setValue('actualCarbsTotalG', totalCarbs, { shouldDirty: true, shouldValidate: true })
                     form.setValue('actualCarbsGPerHour', carbsPerHour, { shouldDirty: true, shouldValidate: true })
@@ -1457,7 +1458,7 @@ export function WorkoutLoggingForm({
                 />
                 {fuelingProductsUsed && fuelingProductsUsed.length > 0 && (
                   <div className="mb-4 rounded-md border border-slate-200 bg-white/70 p-3 text-xs text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200">
-                    <p className="mb-1 font-bold uppercase tracking-widest text-muted-foreground">Produkter sparade i loggen</p>
+                    <p className="mb-1 font-bold uppercase tracking-widest text-muted-foreground">{localText(locale, 'Produkter sparade i loggen', 'Products saved in the log')}</p>
                     <p>{summarizeRaceFuelingProductItems(fuelingProductsUsed)}</p>
                   </div>
                 )}
@@ -1467,13 +1468,13 @@ export function WorkoutLoggingForm({
                     name="actualCarbsGPerHour"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Kolhydrater per timme</FormLabel>
+                        <FormLabel>{localText(locale, 'Kolhydrater per timme', 'Carbohydrates per hour')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min={0}
                             max={200}
-                            placeholder="t.ex. 75"
+                            placeholder={localText(locale, 't.ex. 75', 'e.g. 75')}
                             {...field}
                             value={field.value ?? ''}
                             onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : undefined)}
@@ -1488,13 +1489,13 @@ export function WorkoutLoggingForm({
                     name="actualCarbsTotalG"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Totalt kolhydrater</FormLabel>
+                        <FormLabel>{localText(locale, 'Totalt kolhydrater', 'Total carbohydrates')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
                             min={0}
                             max={1000}
-                            placeholder="t.ex. 120"
+                            placeholder={localText(locale, 't.ex. 120', 'e.g. 120')}
                             {...field}
                             value={field.value ?? ''}
                             onChange={(event) => field.onChange(event.target.value ? Number(event.target.value) : undefined)}
@@ -1509,7 +1510,7 @@ export function WorkoutLoggingForm({
                     name="hydrationMl"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Vätska</FormLabel>
+                        <FormLabel>{localText(locale, 'Vätska', 'Fluid')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -1554,7 +1555,7 @@ export function WorkoutLoggingForm({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex justify-between items-center">
-                          <FormLabel>Magkänsla</FormLabel>
+                          <FormLabel>{localText(locale, 'Magkänsla', 'Gut feel')}</FormLabel>
                           <Badge variant="outline">{stomachRating || 3}/5</Badge>
                         </div>
                         <FormControl>
@@ -1567,7 +1568,7 @@ export function WorkoutLoggingForm({
                             className="py-4"
                           />
                         </FormControl>
-                        <FormDescription>1 = problem, 5 = helt stabilt</FormDescription>
+                        <FormDescription>{localText(locale, '1 = problem, 5 = helt stabilt', '1 = problems, 5 = fully stable')}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1578,7 +1579,7 @@ export function WorkoutLoggingForm({
                     render={({ field }) => (
                       <FormItem>
                         <div className="flex justify-between items-center">
-                          <FormLabel>Energinivå</FormLabel>
+                          <FormLabel>{localText(locale, 'Energinivå', 'Energy level')}</FormLabel>
                           <Badge variant="outline">{energyRating || 3}/5</Badge>
                         </div>
                         <FormControl>
@@ -1641,15 +1642,15 @@ export function WorkoutLoggingForm({
             <FormField
               control={form.control}
               name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Anteckningar</FormLabel>
+                render={({ field }) => (
+                  <FormItem>
+                  <FormLabel>{localText(locale, 'Anteckningar', 'Notes')}</FormLabel>
                   <FormControl>
                     <Textarea
                       placeholder={
                         workoutType === 'STRENGTH' || workoutType === 'CORE' || workoutType === 'PLYOMETRIC'
-                          ? 'Hur gick övningarna? Några problem eller framsteg?'
-                          : 'Detaljer om passet, hur det gick, eventuella problem...'
+                          ? localText(locale, 'Hur gick övningarna? Några problem eller framsteg?', 'How did the exercises go? Any problems or progress?')
+                          : localText(locale, 'Detaljer om passet, hur det gick, eventuella problem...', 'Details about the workout, how it went, any issues...')
                       }
                       rows={3}
                       {...field}
@@ -1669,7 +1670,7 @@ export function WorkoutLoggingForm({
             <CardHeader>
               <CardTitle>
                 <Upload className="inline h-5 w-5 mr-2" />
-                Externa länkar (valfritt)
+                {localText(locale, 'Externa länkar (valfritt)', 'External links (optional)')}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1678,7 +1679,7 @@ export function WorkoutLoggingForm({
                 name="stravaUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Strava-länk</FormLabel>
+                    <FormLabel>{localText(locale, 'Strava-länk', 'Strava link')}</FormLabel>
                     <FormControl>
                       <Input
                         type="url"
@@ -1689,7 +1690,7 @@ export function WorkoutLoggingForm({
                       />
                     </FormControl>
                     <FormDescription>
-                      Länk till ditt pass på Strava
+                      {localText(locale, 'Länk till ditt pass på Strava', 'Link to your workout on Strava')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1701,18 +1702,18 @@ export function WorkoutLoggingForm({
                 name="dataFileUrl"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Datafil-länk</FormLabel>
+                    <FormLabel>{localText(locale, 'Datafil-länk', 'Data file link')}</FormLabel>
                     <FormControl>
                       <Input
                         type="url"
-                        placeholder="Länk till GPX, FIT eller TCX-fil..."
+                        placeholder={localText(locale, 'Länk till GPX, FIT eller TCX-fil...', 'Link to a GPX, FIT, or TCX file...')}
                         className="h-12"
                         {...field}
                         value={field.value || ''}
                       />
                     </FormControl>
                     <FormDescription>
-                      Länk till träningsfil (Google Drive, Dropbox, etc.)
+                      {localText(locale, 'Länk till träningsfil (Google Drive, Dropbox, etc.)', 'Link to training file (Google Drive, Dropbox, etc.)')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -1731,11 +1732,11 @@ export function WorkoutLoggingForm({
             disabled={isSubmitting}
             className="h-12"
           >
-            Avbryt
+            {localText(locale, 'Avbryt', 'Cancel')}
           </Button>
           <Button type="submit" disabled={isSubmitting} className="h-12 px-8">
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {existingLog ? 'Uppdatera logg' : 'Spara logg'}
+            {existingLog ? localText(locale, 'Uppdatera logg', 'Update log') : localText(locale, 'Spara logg', 'Save log')}
           </Button>
         </div>
       </form>
@@ -1744,78 +1745,90 @@ export function WorkoutLoggingForm({
 }
 
 // Helper functions
-function formatWorkoutType(type: string): string {
-  const types: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    STRENGTH: 'Styrka',
+function localText(locale: AppLocale, svText: string, enText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
+function formatWorkoutType(type: string, locale: AppLocale): string {
+  const labels: Record<string, { sv: string; en: string }> = {
+    RUNNING: { sv: 'Löpning', en: 'Running' },
+    CYCLING: { sv: 'Cykling', en: 'Cycling' },
+    STRENGTH: { sv: 'Styrka', en: 'Strength' },
+    CORE: { sv: 'Core', en: 'Core' },
+    PLYOMETRIC: { sv: 'Plyometri', en: 'Plyometrics' },
+    RECOVERY: { sv: 'Återhämtning', en: 'Recovery' },
+    SKIING: { sv: 'Skidåkning', en: 'Skiing' },
+    SWIMMING: { sv: 'Simning', en: 'Swimming' },
+    HYROX: { sv: 'HYROX', en: 'HYROX' },
+    OTHER: { sv: 'Annat', en: 'Other' },
+  }
+  return labels[type]?.[locale] || type
+}
+
+function formatIntensity(intensity: string, locale: AppLocale): string {
+  const labels: Record<string, { sv: string; en: string }> = {
+    RECOVERY: { sv: 'Återhämtning', en: 'Recovery' },
+    EASY: { sv: 'Lätt', en: 'Easy' },
+    MODERATE: { sv: 'Måttlig', en: 'Moderate' },
+    THRESHOLD: { sv: 'Tröskel', en: 'Threshold' },
+    INTERVAL: { sv: 'Intervall', en: 'Interval' },
+    MAX: { sv: 'Max', en: 'Max' },
+  }
+  return labels[intensity]?.[locale] || intensity
+}
+
+function formatSegmentType(type: string, locale: AppLocale): string {
+  const labels: Record<string, { sv: string; en: string } | string> = {
+    warmup: { sv: 'Uppvärmning', en: 'Warm-up' },
+    interval: { sv: 'Intervall', en: 'Interval' },
+    cooldown: { sv: 'Nedvärmning', en: 'Cool-down' },
+    work: { sv: 'Arbete', en: 'Work' },
+    rest: { sv: 'Vila', en: 'Rest' },
+    exercise: { sv: 'Övning', en: 'Exercise' },
+    WARMUP: { sv: 'Uppvärmning', en: 'Warm-up' },
+    MAIN: { sv: 'Arbete', en: 'Work' },
     CORE: 'Core',
-    PLYOMETRIC: 'Plyometri',
-    RECOVERY: 'Återhämtning',
-    SKIING: 'Skidåkning',
-    SWIMMING: 'Simning',
-    HYROX: 'HYROX',
-    OTHER: 'Annat',
+    COOLDOWN: { sv: 'Nedvärmning', en: 'Cool-down' },
   }
-  return types[type] || type
+  const label = labels[type]
+  return typeof label === 'string' ? label : label?.[locale] || type
 }
 
-function formatIntensity(intensity: string): string {
-  const intensities: Record<string, string> = {
-    RECOVERY: 'Återhämtning',
-    EASY: 'Lätt',
-    MODERATE: 'Måttlig',
-    THRESHOLD: 'Tröskel',
-    INTERVAL: 'Intervall',
-    MAX: 'Max',
-  }
-  return intensities[intensity] || intensity
+function getEffortLabel(effort: number, locale: AppLocale): string {
+  if (effort <= 2) return localText(locale, 'Mycket lätt', 'Very easy')
+  if (effort <= 4) return localText(locale, 'Lätt', 'Easy')
+  if (effort <= 6) return localText(locale, 'Måttlig', 'Moderate')
+  if (effort <= 8) return localText(locale, 'Hård', 'Hard')
+  return localText(locale, 'Maximal', 'Maximal')
 }
 
-function formatSegmentType(type: string): string {
-  const types: Record<string, string> = {
-    warmup: 'Uppvärmning',
-    interval: 'Intervall',
-    cooldown: 'Nedvärmning',
-    work: 'Arbete',
-    rest: 'Vila',
-    exercise: 'Övning',
-    WARMUP: 'Uppvärmning',
-    MAIN: 'Arbete',
-    CORE: 'Core',
-    COOLDOWN: 'Nedvärmning',
-  }
-  return types[type] || type
+function getDifficultyLabel(difficulty: number, locale: AppLocale): string {
+  if (difficulty <= 3) return localText(locale, 'Lättare än förväntat', 'Easier than expected')
+  if (difficulty <= 5) return localText(locale, 'Som förväntat', 'As expected')
+  if (difficulty <= 7) return localText(locale, 'Svårare än förväntat', 'Harder than expected')
+  return localText(locale, 'Mycket svårt', 'Very hard')
 }
 
-function getEffortLabel(effort: number): string {
-  if (effort <= 2) return 'Mycket lätt'
-  if (effort <= 4) return 'Lätt'
-  if (effort <= 6) return 'Måttlig'
-  if (effort <= 8) return 'Hård'
-  return 'Maximal'
+function getFeelingOptions(locale: AppLocale): string[] {
+  return locale === 'sv'
+    ? ['Stark', 'Bra', 'Okej', 'Trött', 'Tung']
+    : ['Strong', 'Good', 'Okay', 'Tired', 'Heavy']
 }
 
-function getDifficultyLabel(difficulty: number): string {
-  if (difficulty <= 3) return 'Lättare än förväntat'
-  if (difficulty <= 5) return 'Som förväntat'
-  if (difficulty <= 7) return 'Svårare än förväntat'
-  return 'Mycket svårt'
-}
-
-function formatGoalType(goalType: string | null | undefined): string {
-  const types: Record<string, string> = {
+function formatGoalType(goalType: string | null | undefined, locale: AppLocale): string {
+  const types: Record<string, { sv: string; en: string } | string> = {
     '5k': '5 km',
     '10k': '10 km',
     '5K': '5 km',
     '10K': '10 km',
-    'half-marathon': 'Halvmaraton',
-    marathon: 'Maraton',
-    fitness: 'Fitness',
-    cycling: 'Cykling',
-    skiing: 'Skidåkning',
+    'half-marathon': { sv: 'Halvmaraton', en: 'Half marathon' },
+    marathon: { sv: 'Maraton', en: 'Marathon' },
+    fitness: { sv: 'Fitness', en: 'Fitness' },
+    cycling: { sv: 'Cykling', en: 'Cycling' },
+    skiing: { sv: 'Skidåkning', en: 'Skiing' },
   }
-  return types[goalType || ''] || goalType || ''
+  const label = types[goalType || '']
+  return typeof label === 'string' ? label : label?.[locale] || goalType || ''
 }
 
 function buildSegmentLabel(segment: any): string {
@@ -1831,9 +1844,11 @@ function buildSegmentLabel(segment: any): string {
 
 function FuelingProductCalculator({
   durationMinutes,
+  locale,
   onApply,
 }: {
   durationMinutes: number | null
+  locale: AppLocale
   onApply: (values: { totalCarbs: number; carbsPerHour: number; productsUsed: RaceFuelingProductPlanItem[] }) => void
 }) {
   const [gelCount, setGelCount] = useState('')
@@ -1852,7 +1867,7 @@ function FuelingProductCalculator({
   const canApply = totalCarbs > 0 && carbsPerHour > 0
   const productsUsed = buildRaceFuelingProductItems([
     { label: 'Gel', count: parseProductCount(gelCount), carbsPerItemG: parseProductCount(gelCarbs) },
-    { label: 'Sportdryck', count: parseProductCount(bottleCount), carbsPerItemG: parseProductCount(bottleCarbs) },
+    { label: locale === 'sv' ? 'Sportdryck' : 'Sports drink', count: parseProductCount(bottleCount), carbsPerItemG: parseProductCount(bottleCarbs) },
     { label: 'Chews/bar', count: parseProductCount(chewCount), carbsPerItemG: parseProductCount(chewCarbs) },
   ])
 
@@ -1862,10 +1877,10 @@ function FuelingProductCalculator({
         <div>
           <p className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
             <Calculator className="h-4 w-4 text-amber-600 dark:text-amber-300" />
-            Snabbberäkna från produkter
+            {localText(locale, 'Snabbberäkna från produkter', 'Quick calculate from products')}
           </p>
           <p className="text-xs text-muted-foreground">
-            Summera det du använde och fyll loggen automatiskt.
+            {localText(locale, 'Summera det du använde och fyll loggen automatiskt.', 'Add up what you used and fill the log automatically.')}
           </p>
         </div>
         <Button
@@ -1875,7 +1890,7 @@ function FuelingProductCalculator({
           disabled={!canApply}
           onClick={() => onApply({ totalCarbs, carbsPerHour, productsUsed })}
         >
-          Använd {canApply ? `${totalCarbs} g / ${carbsPerHour} g/h` : 'värden'}
+          {localText(locale, 'Använd', 'Use')} {canApply ? `${totalCarbs} g / ${carbsPerHour} g/h` : localText(locale, 'värden', 'values')}
         </Button>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
@@ -1885,13 +1900,15 @@ function FuelingProductCalculator({
           carbs={gelCarbs}
           onCountChange={setGelCount}
           onCarbsChange={setGelCarbs}
+          locale={locale}
         />
         <ProductInputRow
-          label="Sportdryck"
+          label={localText(locale, 'Sportdryck', 'Sports drink')}
           count={bottleCount}
           carbs={bottleCarbs}
           onCountChange={setBottleCount}
           onCarbsChange={setBottleCarbs}
+          locale={locale}
         />
         <ProductInputRow
           label="Chews/bar"
@@ -1899,11 +1916,12 @@ function FuelingProductCalculator({
           carbs={chewCarbs}
           onCountChange={setChewCount}
           onCarbsChange={setChewCarbs}
+          locale={locale}
         />
       </div>
       {!durationHours && (
         <p className="mt-3 text-xs font-medium text-amber-800 dark:text-amber-100">
-          Fyll i faktisk tid först för att beräkna g/h.
+          {localText(locale, 'Fyll i faktisk tid först för att beräkna g/h.', 'Enter actual time first to calculate g/h.')}
         </p>
       )}
     </div>
@@ -1916,12 +1934,14 @@ function ProductInputRow({
   carbs,
   onCountChange,
   onCarbsChange,
+  locale,
 }: {
   label: string
   count: string
   carbs: string
   onCountChange: (value: string) => void
   onCarbsChange: (value: string) => void
+  locale: AppLocale
 }) {
   return (
     <div className="rounded-md border border-slate-200 bg-white p-3 dark:border-white/10 dark:bg-slate-950/50">
@@ -1932,7 +1952,7 @@ function ProductInputRow({
           min={0}
           step={1}
           inputMode="numeric"
-          placeholder="Antal"
+          placeholder={localText(locale, 'Antal', 'Count')}
           value={count}
           onChange={(event) => onCountChange(event.target.value)}
         />
