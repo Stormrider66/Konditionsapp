@@ -178,7 +178,12 @@ export async function resolveKnowledgeSkillsByIds(
   return { matched, missingIds }
 }
 
-export function formatKnowledgeSkillCatalog(skills: KnowledgeSkillSummary[]): string {
+type AppLocale = 'en' | 'sv'
+
+export function formatKnowledgeSkillCatalog(
+  skills: KnowledgeSkillSummary[],
+  locale: AppLocale = 'en'
+): string {
   const grouped = skills.reduce<Record<string, KnowledgeSkillSummary[]>>((acc, skill) => {
     if (!acc[skill.category]) acc[skill.category] = []
     acc[skill.category].push(skill)
@@ -187,16 +192,26 @@ export function formatKnowledgeSkillCatalog(skills: KnowledgeSkillSummary[]): st
 
   const lines = Object.entries(grouped).map(([category, categorySkills]) => {
     const skillLines = categorySkills.map((skill) => {
-      const englishName = skill.nameEn ? ` / ${skill.nameEn}` : ''
+      const englishName = skill.nameEn && skill.nameEn !== skill.name ? ` / ${skill.nameEn}` : ''
       const keywords = skill.keywords.slice(0, 5).join(', ')
       return `- ${skill.name}${englishName}${keywords ? ` (${keywords})` : ''}`
     })
     return `### ${category}\n${skillLines.join('\n')}`
   })
 
+  if (locale === 'sv') {
   return `
 ## TILLGÄNGLIGA AI-KUNSKAPSSKILLS
 Användaren frågar vilka expertkunskaper du kan använda. Lista skills grupperat och säg att användaren kan be dig använda en eller flera, till exempel: "Använd Norsk Dubbeltröskelmetod och Laktattröskeltest".
+
+${lines.join('\n\n')}
+---
+`
+  }
+
+  return `
+## AVAILABLE AI KNOWLEDGE SKILLS
+The user is asking which expert knowledge skills you can use. List the skills grouped by category and explain that the user can ask you to use one or more, for example: "Use Norwegian Double Threshold and Lactate Threshold Testing."
 
 ${lines.join('\n\n')}
 ---

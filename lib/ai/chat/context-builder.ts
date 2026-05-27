@@ -240,7 +240,7 @@ export async function buildChatContext(
 
       if (isKnowledgeSkillCatalogRequest(userContent)) {
         const skills = await listKnowledgeSkills({ accessMode: skillAccessMode })
-        skillContext = formatKnowledgeSkillCatalog(skills)
+        skillContext = formatKnowledgeSkillCatalog(skills, locale)
         if (isAthleteChat) {
           skillContext += `\n## ${t(locale, 'ATHLETE SAFETY FOR KNOWLEDGE SKILLS', 'ATLET-SÄKERHET FÖR KUNSKAPSSKILLS')}\n${getAthleteSkillSafetyNote(skillAccessMode, locale)}\n`
         }

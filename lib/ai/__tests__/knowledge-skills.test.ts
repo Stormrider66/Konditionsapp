@@ -53,7 +53,7 @@ describe('knowledge skill controls', () => {
   })
 
   it('formats skills grouped by category', () => {
-    const catalog = formatKnowledgeSkillCatalog([
+    const skills = [
       {
         id: 'skill-1',
         name: 'Norsk Dubbeltröskelmetod',
@@ -76,12 +76,19 @@ describe('knowledge skill controls', () => {
         documentIds: ['doc-2'],
         maxChunks: 4,
       },
-    ])
+    ]
+
+    const catalog = formatKnowledgeSkillCatalog(skills, 'sv')
 
     expect(catalog).toContain('### METHODOLOGY')
+    expect(catalog).toContain('TILLGÄNGLIGA AI-KUNSKAPSSKILLS')
     expect(catalog).toContain('Norsk Dubbeltröskelmetod / Norwegian Double Threshold')
     expect(catalog).toContain('### TESTING')
     expect(catalog).toContain('Laktattröskeltest / Lactate Threshold Testing')
+
+    const englishCatalog = formatKnowledgeSkillCatalog(skills, 'en')
+    expect(englishCatalog).toContain('AVAILABLE AI KNOWLEDGE SKILLS')
+    expect(englishCatalog).toContain('Use Norwegian Double Threshold and Lactate Threshold Testing')
   })
 
   it('resolves explicitly named skills by Swedish name, English name, and keyword', async () => {
