@@ -24,7 +24,11 @@ const copyWorkoutSchema = z.object({
   skipConflictCheck: z.boolean().optional().default(false),
 })
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(request: NextRequest) {
+  let appLocale = getRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -32,7 +36,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(appLocale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -40,16 +44,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(appLocale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    const appLocale = dbUser.language === 'sv' ? 'sv' : 'en'
+    appLocale = getUserLocale(dbUser.language)
 
     const body = await request.json()
     const validationResult = copyWorkoutSchema.safeParse(body)
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.issues },
+        { error: t(appLocale, 'Invalid request', 'Ogiltig förfrågan'), details: validationResult.error.issues },
         { status: 400 }
       )
     }
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(appLocale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     const program = workout.day.week.program
@@ -89,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     const hasAccess = await canAccessClient(dbUser.id, client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(appLocale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     let conflicts: Awaited<ReturnType<typeof detectWorkoutConflicts>> = []
@@ -107,9 +111,9 @@ export async function POST(request: NextRequest) {
       if (criticalConflicts.length > 0) {
         return NextResponse.json(
           {
-            error: 'Critical conflicts detected',
+            error: t(appLocale, 'Critical conflicts detected', 'Kritiska konflikter hittades'),
             conflicts: criticalConflicts,
-            message: 'Set skipConflictCheck=true to proceed anyway',
+            message: t(appLocale, 'Set skipConflictCheck=true to proceed anyway', 'Sätt skipConflictCheck=true för att fortsätta ändå'),
           },
           { status: 409 }
         )
@@ -244,6 +248,19 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     logError('Error copying workout:', error)
-    return NextResponse.json({ error: 'Failed to copy workout' }, { status: 500 })
+    return NextResponse.json({ error: t(appLocale, 'Failed to copy workout', 'Kunde inte kopiera passet') }, { status: 500 })
   }
+}
+
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
