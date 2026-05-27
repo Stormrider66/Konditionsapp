@@ -352,6 +352,7 @@ export async function POST(request: NextRequest) {
         apiKeyUserId,
         effectiveBusinessId,
         usageLoggedByMiddleware: modelResult.usageLoggedByMiddleware,
+        locale: responseLocale,
       }),
     })
 

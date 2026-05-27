@@ -17,6 +17,8 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withAiContext } from '@/lib/ai/usage-logger'
 
+type AppLocale = 'en' | 'sv'
+
 interface ExtractRequest {
   clientId: string
   messages: {
@@ -27,6 +29,8 @@ interface ExtractRequest {
 }
 
 export async function POST(request: Request) {
+  let locale: AppLocale = 'en'
+
   try {
     const supabase = await createClient()
     const {
@@ -60,6 +64,20 @@ export async function POST(request: Request) {
       select: {
         id: true,
         userId: true, // Coach's user ID
+        user: {
+          select: {
+            language: true,
+          },
+        },
+        athleteAccount: {
+          select: {
+            user: {
+              select: {
+                language: true,
+              },
+            },
+          },
+        },
       },
     })
 
@@ -69,6 +87,7 @@ export async function POST(request: Request) {
         { status: 404 }
       )
     }
+    locale = client.athleteAccount?.user?.language === 'sv' || client.user?.language === 'sv' ? 'sv' : 'en'
 
     // Get API keys from coach settings
     const apiKeys = await getResolvedAiKeys(client.userId)
@@ -87,7 +106,8 @@ export async function POST(request: Request) {
       { userId: user.id, clientId, category: 'athlete_memory_extraction' },
       () => extractMemoriesFromConversation(
         messages,
-        apiKeys
+        apiKeys,
+        locale
       )
     )
 
@@ -107,7 +127,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Memory extraction error:', error)
     return NextResponse.json(
-      { error: 'Failed to extract memories' },
+      { error: locale === 'sv' ? 'Kunde inte extrahera minnen' : 'Failed to extract memories' },
       { status: 500 }
     )
   }

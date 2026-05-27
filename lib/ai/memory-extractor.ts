@@ -10,6 +10,12 @@ import { prisma } from '@/lib/prisma'
 import { resolveModel, type AvailableKeys } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // Memory types that can be extracted
 export const MEMORY_TYPES = {
   INJURY_MENTION: 'INJURY_MENTION',
@@ -43,7 +49,8 @@ interface ConversationMessage {
  */
 export async function extractMemoriesFromConversation(
   messages: ConversationMessage[],
-  keys: AvailableKeys
+  keys: AvailableKeys,
+  locale: AppLocale = 'en'
 ): Promise<ExtractedMemory[]> {
   if (messages.length === 0) {
     return []
@@ -56,10 +63,11 @@ export async function extractMemoriesFromConversation(
 
   // Format conversation for analysis
   const conversationText = messages
-    .map((m) => `${m.role === 'user' ? 'Atlet' : 'AI'}: ${m.content}`)
+    .map((m) => `${m.role === 'user' ? t(locale, 'Athlete', 'Atlet') : 'AI'}: ${m.content}`)
     .join('\n\n')
 
-  const extractionPrompt = `Analysera följande konversation mellan en atlet och en AI-träningsassistent.
+  const extractionPrompt = locale === 'sv'
+    ? `Analysera följande konversation mellan en atlet och en AI-träningsassistent.
 Extrahera viktiga fakta som AI:n bör komma ihåg för framtida konversationer.
 
 KONVERSATION:
@@ -109,6 +117,58 @@ UTGÅNGSTID:
 - Skador: 30-90 dagar beroende på allvar
 
 Om inga minnesvärda fakta finns, returnera: {"memories": []}
+`
+    : `Analyze the following conversation between an athlete and an AI training assistant.
+Extract important facts the AI should remember for future conversations.
+
+CONVERSATION:
+${conversationText}
+
+INSTRUCTIONS:
+Identify and extract ONLY facts that are:
+1. Personal to the athlete (not general knowledge)
+2. Relevant to future training advice
+3. Worth remembering over time
+
+MEMORY TYPES to look for:
+- INJURY_MENTION: Injuries, pain, discomfort ("left knee hurts", "shoulder feels stiff")
+- GOAL_STATEMENT: Training goals ("wants to run a sub-40 10K")
+- PREFERENCE: Preferences ("prefers morning training", "does not like treadmills")
+- LIFE_EVENT: Life events ("changing jobs next month", "going on vacation")
+- FEEDBACK: Training feedback ("the pace was too hard", "felt good")
+- MILESTONE: Achievements ("ran first marathon", "new PR")
+- EQUIPMENT: Equipment ("bought a new running watch", "has gym access")
+- LIMITATION: Limitations ("cannot train evenings", "allergic to nuts")
+- PERSONAL_FACT: Personal facts ("has two children", "works shifts")
+
+RESPOND IN JSON FORMAT:
+{
+  "memories": [
+    {
+      "memoryType": "INJURY_MENTION",
+      "content": "Experiences pain in the left knee after longer runs",
+      "context": "Mentioned this while discussing this week's long run",
+      "importance": 4,
+      "expiresInDays": 30
+    }
+  ]
+}
+
+IMPORTANCE RATING (1-5):
+1 = Minor, can be forgotten soon
+2 = Somewhat important, useful to know
+3 = Moderately important, affects training advice
+4 = Important, should be remembered for a long time
+5 = Very important, critical information
+
+EXPIRATION:
+- Temporary things (pain, fatigue): 7-30 days
+- Goals and preferences: null (never)
+- Life events: 90-180 days
+- Injuries: 30-90 days depending on severity
+
+Write memory content and context in English unless the athlete's original wording is a name, event title, or exact phrase that should be preserved.
+If there are no memorable facts, return: {"memories": []}
 `
 
   try {

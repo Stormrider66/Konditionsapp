@@ -7,6 +7,8 @@ import { logAiUsage, withAiContext, type AiProviderTag } from '@/lib/ai/usage-lo
 import type { ChatRequestMessage } from './types'
 import { getMessageContent } from './message-format'
 
+type AppLocale = 'en' | 'sv'
+
 type Usage = {
   inputTokens?: number
   outputTokens?: number
@@ -23,6 +25,7 @@ export interface BuildOnFinishInput {
   apiKeyUserId: string
   effectiveBusinessId: string | null
   usageLoggedByMiddleware: boolean
+  locale?: AppLocale
 }
 
 /**
@@ -43,6 +46,7 @@ export function buildOnFinishHandler(input: BuildOnFinishInput) {
     apiKeyUserId,
     effectiveBusinessId,
     usageLoggedByMiddleware,
+    locale = 'en',
   } = input
 
   return async ({
@@ -156,7 +160,8 @@ export function buildOnFinishHandler(input: BuildOnFinishInput) {
                 },
                 () => extractMemoriesFromConversation(
                   conversationForMemory,
-                  apiKeys
+                  apiKeys,
+                  locale
                 )
               )
               if (extractedMemories.length > 0) {
