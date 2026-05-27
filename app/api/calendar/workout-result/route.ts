@@ -151,11 +151,11 @@ function buildStrengthDetails(setLogs: Array<{
   estimated1RM: number | null
   velocityZone: string | null
   notes: string | null
-  exercise: { name: string; nameSv: string | null }
+  exercise: { name: string; nameSv: string | null; nameEn: string | null }
 }>, locale: AppLocale = 'en'): DetailSection[] {
   if (setLogs.length === 0) return []
   const rows = compactRows(setLogs.map((setLog) => row(
-    `${locale === 'sv' ? setLog.exercise.nameSv || setLog.exercise.name : setLog.exercise.name} · set ${setLog.setNumber}`,
+    `${locale === 'sv' ? setLog.exercise.nameSv || setLog.exercise.nameEn || setLog.exercise.name : setLog.exercise.nameEn || setLog.exercise.name || setLog.exercise.nameSv} · set ${setLog.setNumber}`,
     [
       metric(t(locale, 'Load', 'Vikt'), `${setLog.weight} kg`),
       metric('Reps', setLog.repsTarget ? `${setLog.repsCompleted}/${setLog.repsTarget}` : setLog.repsCompleted),
@@ -249,7 +249,7 @@ export async function GET(request: NextRequest) {
         athlete: { select: { id: true, name: true } },
         setLogs: {
           orderBy: [{ completedAt: 'asc' }, { setNumber: 'asc' }],
-          include: { exercise: { select: { id: true, name: true, nameSv: true } } },
+          include: { exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } } },
         },
       },
     })

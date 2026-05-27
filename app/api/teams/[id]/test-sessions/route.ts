@@ -383,7 +383,7 @@ export async function GET(
       },
       orderBy: { date: 'desc' },
       include: {
-        exercise: { select: { name: true, nameSv: true } },
+        exercise: { select: { name: true, nameSv: true, nameEn: true } },
       },
     })
 
@@ -471,8 +471,8 @@ export async function GET(
         clientId: r.clientId,
         exerciseId: r.exerciseId,
         exerciseName: locale === 'sv'
-          ? r.exercise.nameSv || r.exercise.name || 'Övning'
-          : r.exercise.name || r.exercise.nameSv || 'Exercise',
+          ? r.exercise.nameSv || r.exercise.nameEn || r.exercise.name || 'Övning'
+          : r.exercise.nameEn || r.exercise.name || r.exercise.nameSv || 'Exercise',
         oneRepMax: r.oneRepMax,
         unit: r.unit,
         source: r.source,
