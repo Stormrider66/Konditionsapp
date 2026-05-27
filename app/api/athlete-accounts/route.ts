@@ -24,10 +24,12 @@ type AppLocale = 'en' | 'sv'
  * Only coaches can create athlete accounts
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     // Require coach authentication
     const coach = await requireCoach()
-    const locale = getUserLocale(coach.language)
+    locale = getUserLocale(coach.language)
 
     // Business members are exempt — their limit is managed at the business level
     const businessMembership = await prisma.businessMember.findFirst({
@@ -40,7 +42,7 @@ export async function POST(request: NextRequest) {
       const reachedLimit = await hasReachedAthleteLimit(coach.id)
       if (reachedLimit) {
         return NextResponse.json(
-          { error: 'You have reached your athlete limit. Please upgrade your subscription.' },
+          { error: t(locale, 'You have reached your athlete limit. Please upgrade your subscription.', 'Du har nått din atletgräns. Uppgradera din prenumeration.') },
           { status: 403 }
         )
       }
@@ -56,7 +58,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!clientId) {
       return NextResponse.json(
-        { error: 'Client ID is required' },
+        { error: t(locale, 'Client ID is required', 'Klient-ID krävs') },
         { status: 400 }
       )
     }
@@ -68,7 +70,7 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessClient(coach.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have access to this client' },
+        { error: t(locale, 'You do not have access to this client', 'Du har inte åtkomst till den här klienten') },
         { status: 403 }
       )
     }
@@ -80,14 +82,14 @@ export async function POST(request: NextRequest) {
 
     if (!client) {
       return NextResponse.json(
-        { error: 'Client not found' },
+        { error: t(locale, 'Client not found', 'Klienten hittades inte') },
         { status: 404 }
       )
     }
 
     if (client.athleteAccount) {
       return NextResponse.json(
-        { error: 'This client already has an athlete account' },
+        { error: t(locale, 'This client already has an athlete account', 'Den här klienten har redan ett atletkonto') },
         { status: 400 }
       )
     }
@@ -107,7 +109,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'This email is already in use' },
+        { error: t(locale, 'This email is already in use', 'Den här e-postadressen används redan') },
         { status: 400 }
       )
     }
@@ -174,7 +176,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Error creating athlete account', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     )
   }
@@ -193,14 +195,17 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * Get athlete account for a client
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const coach = await requireCoach()
+    locale = getUserLocale(coach.language)
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'Client ID is required' },
+        { error: t(locale, 'Client ID is required', 'Klient-ID krävs') },
         { status: 400 }
       )
     }
@@ -209,7 +214,7 @@ export async function GET(request: NextRequest) {
     const hasAccess = await canAccessClient(coach.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have access to this client' },
+        { error: t(locale, 'You do not have access to this client', 'Du har inte åtkomst till den här klienten') },
         { status: 403 }
       )
     }
@@ -234,7 +239,7 @@ export async function GET(request: NextRequest) {
 
     if (!athleteAccount) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
+        { error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
         { status: 404 }
       )
     }
@@ -243,7 +248,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching athlete account', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     )
   }
