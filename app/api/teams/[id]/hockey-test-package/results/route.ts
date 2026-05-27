@@ -22,6 +22,23 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+const copy = {
+  en: {
+    teamNotFound: 'Team not found',
+    invalidTestDate: 'Invalid test date',
+    noValidEntries: 'No valid entries',
+    unauthorized: 'Unauthorized',
+    saveFailed: 'Failed to save hockey package results',
+  },
+  sv: {
+    teamNotFound: 'Laget hittades inte',
+    invalidTestDate: 'Ogiltigt testdatum',
+    noValidEntries: 'Inga giltiga resultat',
+    unauthorized: 'Obehörig',
+    saveFailed: 'Kunde inte spara hockeypaketets resultat',
+  },
+} satisfies Record<AppLocale, Record<string, string>>
+
 function exerciseNameForLocale(
   exercise: { name: string; nameSv: string | null; nameEn: string | null },
   locale: AppLocale
@@ -97,14 +114,16 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
     const team = await getWritableTeam(user.id, teamId, businessSlug, 'tests')
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: copy[locale].teamNotFound }, { status: 404 })
     }
 
     const body = await request.json()
@@ -112,12 +131,12 @@ export async function POST(
       ? new Date(body.testDate)
       : new Date()
     if (Number.isNaN(testDate.getTime())) {
-      return NextResponse.json({ error: 'Invalid testDate' }, { status: 400 })
+      return NextResponse.json({ error: copy[locale].invalidTestDate }, { status: 400 })
     }
 
     const entries = parseEntries(body.entries)
     if (entries.length === 0) {
-      return NextResponse.json({ error: 'No valid entries' }, { status: 400 })
+      return NextResponse.json({ error: copy[locale].noValidEntries }, { status: 400 })
     }
 
     const storedTeam = await prisma.team.findUnique({
@@ -257,9 +276,9 @@ export async function POST(
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: copy[locale].unauthorized }, { status: 401 })
     }
     console.error('Hockey package result save failed:', error)
-    return NextResponse.json({ error: 'Failed to save hockey package results' }, { status: 500 })
+    return NextResponse.json({ error: copy[locale].saveFailed }, { status: 500 })
   }
 }
