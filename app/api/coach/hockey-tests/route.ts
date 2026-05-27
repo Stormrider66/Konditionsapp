@@ -307,6 +307,7 @@ export async function POST(req: NextRequest) {
     const strengthPrSync = await syncHockeyStrengthPrsFromTest({
       clientId: parsed.data.clientId,
       testDate,
+      locale,
       values: {
         backSquat1RM: parsed.data.backSquat1RM,
         powerClean1RM: parsed.data.powerClean1RM,

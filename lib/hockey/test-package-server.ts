@@ -14,6 +14,12 @@ const STRENGTH_METRICS = new Set<HockeyTestMetricKey>([
   'pullUp1RM',
 ])
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function normalizeName(value: string) {
   return value
     .toLowerCase()
@@ -78,13 +84,21 @@ export async function syncHockeyStrengthPrsFromTest(params: {
   clientId: string
   testDate: Date
   values: Partial<Record<HockeyTestMetricKey, number | null | undefined>>
+  locale?: AppLocale
 }) {
+  const locale = params.locale ?? 'en'
   const testPackage = await loadHockeyPackageForClient(params.clientId)
   if (!testPackage) {
     return {
       prCreated: 0,
       prUpdated: 0,
-      warnings: ['Atleten kunde inte hittas, så PR-historik synkades inte.'],
+      warnings: [
+        t(
+          locale,
+          'The athlete could not be found, so PR history was not synced.',
+          'Atleten kunde inte hittas, så PR-historik synkades inte.',
+        ),
+      ],
     }
   }
 
@@ -136,7 +150,11 @@ export async function syncHockeyStrengthPrsFromTest(params: {
     prCreated,
     prUpdated,
     warnings: Array.from(unlinkedStrengthItems).map((label) => (
-      `${label} saknar kopplad övning och sparades därför bara som hockeytest.`
+      t(
+        locale,
+        `${label} is missing a linked exercise and was therefore saved only as a hockey test.`,
+        `${label} saknar kopplad övning och sparades därför bara som hockeytest.`,
+      )
     )),
   }
 }
