@@ -10,6 +10,12 @@ import { resolveAthleteClientId, requireCoach, canAccessClient } from '@/lib/aut
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Calculate phase based on cycle day
  */
@@ -112,6 +118,8 @@ export async function GET(request: NextRequest) {
  * POST: Create or update daily log
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     let clientId: string;
 
@@ -119,9 +127,11 @@ export async function POST(request: NextRequest) {
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       clientId = resolved.clientId;
+      locale = resolved.user.language === 'sv' ? 'sv' : 'en'
     } else {
       // Try as coach managing a specific client
       const user = await requireCoach();
+      locale = user.language === 'sv' ? 'sv' : 'en'
       const body = await request.json();
       clientId = body.clientId;
 
@@ -227,7 +237,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for AI warnings based on patterns
-    const warnings = await detectPatterns(clientId, logDate);
+    const warnings = await detectPatterns(clientId, logDate, locale);
     if (warnings.length > 0) {
       await prisma.menstrualDailyLog.update({
         where: { id: log.id },
@@ -323,7 +333,7 @@ async function getPhaseAverages(clientId: string) {
 /**
  * Detect concerning patterns in recent logs
  */
-async function detectPatterns(clientId: string, currentDate: Date): Promise<string[]> {
+async function detectPatterns(clientId: string, currentDate: Date, locale: AppLocale): Promise<string[]> {
   const warnings: string[] = [];
 
   // Get last 7 days of logs
@@ -343,25 +353,25 @@ async function detectPatterns(clientId: string, currentDate: Date): Promise<stri
   // Check for consistently high fatigue
   const highFatigueDays = recentLogs.filter((l) => (l.fatigue || 0) >= 4).length;
   if (highFatigueDays >= 3) {
-    warnings.push('Hög trötthet de senaste dagarna - överväg extra vila');
+    warnings.push(t(locale, 'High fatigue over the last few days - consider extra rest', 'Hög trötthet de senaste dagarna - överväg extra vila'));
   }
 
   // Check for severe cramps
   const severeCrampsDays = recentLogs.filter((l) => (l.cramps || 0) >= 4).length;
   if (severeCrampsDays >= 2) {
-    warnings.push('Intensiva kramper - överväg att kontakta vårdgivare om besvären fortsätter');
+    warnings.push(t(locale, 'Severe cramps - consider contacting a healthcare provider if symptoms continue', 'Intensiva kramper - överväg att kontakta vårdgivare om besvären fortsätter'));
   }
 
   // Check for consistently low mood
   const lowMoodDays = recentLogs.filter((l) => (l.moodScore || 5) <= 2).length;
   if (lowMoodDays >= 3) {
-    warnings.push('Lågt humör under flera dagar - prioritera återhämtning och sök stöd vid behov');
+    warnings.push(t(locale, 'Low mood for several days - prioritize recovery and seek support if needed', 'Lågt humör under flera dagar - prioritera återhämtning och sök stöd vid behov'));
   }
 
   // Check for high perceived effort vs actual training
   const highEffortLogs = recentLogs.filter((l) => (l.perceivedEffort || 0) >= 8);
   if (highEffortLogs.length >= 3) {
-    warnings.push('Hög upplevd ansträngning - överväg att minska träningsbelastningen');
+    warnings.push(t(locale, 'High perceived effort - consider reducing training load', 'Hög upplevd ansträngning - överväg att minska träningsbelastningen'));
   }
 
   return warnings;
