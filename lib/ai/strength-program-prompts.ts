@@ -259,7 +259,7 @@ export function generateStrengthSessionPrompt(params: {
     const phaseContext = getStrengthPhaseContextEn(phase)
     const goalContext = getStrengthGoalContextEn(goal)
 
-    return `${buildConstitutionPreamble('program')}## TASK: CREATE STRENGTH SESSION
+    return `${buildConstitutionPreamble('program', undefined, 'en')}## TASK: CREATE STRENGTH SESSION
 
 Create a complete strength session for a runner or athlete.
 
@@ -275,7 +275,7 @@ ${phaseContext.description}
 **Parameters for this phase:**
 - Sets: ${phaseInfo.sets}
 - Reps: ${phaseInfo.reps}
-- Intensity: ${phaseInfo.intensity}
+- Intensity: ${phaseContext.intensity}
 - Rest: ${phaseContext.rest}
 - Tempo: ${phaseContext.tempo}
 
@@ -368,7 +368,7 @@ Return the session in this JSON format:
 `
   }
 
-  return `${buildConstitutionPreamble('program')}## UPPGIFT: SKAPA STYRKEPASS
+  return `${buildConstitutionPreamble('program', undefined, 'sv')}## UPPGIFT: SKAPA STYRKEPASS
 
 Du ska skapa ett komplett styrkepass för en löpare/idrottare.
 
@@ -561,7 +561,7 @@ ${logSummary}
 ### ESTIMATED 1RM: ${estimated1RM}kg
 
 ### CURRENT PHASE: ${phaseContext.name}
-- Target intensity: ${phaseInfo.intensity}
+- Target intensity: ${phaseContext.intensity}
 - Target reps: ${phaseInfo.reps}
 
 ### QUESTION:
@@ -635,6 +635,7 @@ function formatAthleteLevelEn(level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 
 function getStrengthPhaseContextEn(phase: StrengthPhase): {
   name: string
   description: string
+  intensity: string
   rest: string
   tempo: string
   focus: string[]
@@ -642,6 +643,7 @@ function getStrengthPhaseContextEn(phase: StrengthPhase): {
   const contexts: Record<StrengthPhase, {
     name: string
     description: string
+    intensity: string
     rest: string
     tempo: string
     focus: string[]
@@ -649,6 +651,7 @@ function getStrengthPhaseContextEn(phase: StrengthPhase): {
     ANATOMICAL_ADAPTATION: {
       name: 'Anatomical Adaptation',
       description: 'Build work capacity, tendon and ligament tolerance, and technical consistency.',
+      intensity: '40-60% 1RM',
       rest: '30-60 sec',
       tempo: '2-0-2-0 (controlled)',
       focus: [
@@ -661,6 +664,7 @@ function getStrengthPhaseContextEn(phase: StrengthPhase): {
     MAXIMUM_STRENGTH: {
       name: 'Maximum Strength',
       description: 'Maximize force production through neural adaptation and muscle recruitment.',
+      intensity: '80-95% 1RM',
       rest: '2-5 min',
       tempo: '3-1-1-0 (slow eccentric, explosive concentric)',
       focus: [
@@ -673,6 +677,7 @@ function getStrengthPhaseContextEn(phase: StrengthPhase): {
     POWER: {
       name: 'Power',
       description: 'Convert strength into explosive force and speed.',
+      intensity: '30-60% 1RM (speed is prioritized)',
       rest: '2-3 min',
       tempo: 'X-0-X-0 (explosive)',
       focus: [
@@ -685,6 +690,7 @@ function getStrengthPhaseContextEn(phase: StrengthPhase): {
     MAINTENANCE: {
       name: 'Maintenance',
       description: 'Maintain strength gains while endurance or sport training is prioritized.',
+      intensity: '80-85% 1RM',
       rest: '2-3 min',
       tempo: '2-0-1-0',
       focus: [
@@ -697,6 +703,7 @@ function getStrengthPhaseContextEn(phase: StrengthPhase): {
     TAPER: {
       name: 'Taper',
       description: 'Reduce fatigue while maintaining neuromuscular readiness.',
+      intensity: '80-85% 1RM',
       rest: '2-3 min',
       tempo: '2-0-1-0',
       focus: [
