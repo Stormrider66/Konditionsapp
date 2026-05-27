@@ -611,8 +611,8 @@ async function resolveResponsibleCoachIdFromAiInput({
 
   return {
     error: candidates.length > 1
-      ? `Jag hittade flera möjliga tränare för "${name}".`
-      : `Jag hittade ingen ansvarig tränare som matchar "${name}".`,
+      ? toolText(locale, `I found several possible coaches for "${name}".`, `Jag hittade flera möjliga tränare för "${name}".`)
+      : toolText(locale, `I could not find a responsible coach matching "${name}".`, `Jag hittade ingen ansvarig tränare som matchar "${name}".`),
     candidates: candidates.map((coach) => ({
       id: coach.id,
       name: coach.name,
@@ -627,18 +627,22 @@ async function resolveResponsibleCoachIdFromAiInput({
 export function createCoachChatTools(coachUserId: string, businessSlug?: string, locale: 'en' | 'sv' = 'en') {
   return {
     generateStrengthSession: tool({
-      description: 'Generera ett styrkepass automatiskt baserat på mål, fas, utrustning och atletprofil. Kan skapa enskilt pass eller veckoprogram (2-3 pass A/B/C). Passet sparas i databasen och kan sedan redigeras i Strength Studio.',
+      description: toolText(
+        locale,
+        'Generate a strength session automatically based on goal, phase, equipment, and athlete profile. Can create a single session or a weekly program (2-3 sessions A/B/C). The session is saved to the database and can then be edited in Strength Studio.',
+        'Generera ett styrkepass automatiskt baserat på mål, fas, utrustning och atletprofil. Kan skapa enskilt pass eller veckoprogram (2-3 pass A/B/C). Passet sparas i databasen och kan sedan redigeras i Strength Studio.'
+      ),
       inputSchema: z.object({
-        clientId: z.string().optional().describe('Atletens client-ID om passet ska anpassas efter en specifik atlet'),
-        goal: z.enum(['strength', 'power', 'injury-prevention', 'running-economy']).describe('Träningsmål: strength=generell styrka, power=kraft & explosivitet, injury-prevention=skadeförebyggande, running-economy=löpekonomi'),
-        phase: z.enum(['ANATOMICAL_ADAPTATION', 'MAXIMUM_STRENGTH', 'POWER', 'MAINTENANCE', 'TAPER']).describe('Träningsfas/periodisering'),
-        athleteLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).default('INTERMEDIATE').describe('Atletens nivå'),
-        sessionsPerWeek: z.enum(['1', '2', '3']).default('2').describe('Antal pass per vecka (1, 2 eller 3)'),
-        timePerSession: z.enum(['20', '30', '45', '60', '75', '90']).default('45').describe('Tid per pass i minuter'),
-        equipmentAvailable: z.array(z.string()).default(['barbell', 'dumbbell', 'bodyweight']).describe('Tillgänglig utrustning: barbell, dumbbell, kettlebell, bodyweight, cable, machine, bands, box'),
-        mode: z.enum(['single', 'weekly']).default('single').describe('single=enskilt pass, weekly=veckoprogram med A/B/C variation'),
+        clientId: z.string().optional().describe(toolText(locale, 'Athlete client ID if the session should be personalized for a specific athlete.', 'Atletens client-ID om passet ska anpassas efter en specifik atlet')),
+        goal: z.enum(['strength', 'power', 'injury-prevention', 'running-economy']).describe(toolText(locale, 'Training goal: strength=general strength, power=power and explosiveness, injury-prevention=injury prevention, running-economy=running economy.', 'Träningsmål: strength=generell styrka, power=kraft & explosivitet, injury-prevention=skadeförebyggande, running-economy=löpekonomi')),
+        phase: z.enum(['ANATOMICAL_ADAPTATION', 'MAXIMUM_STRENGTH', 'POWER', 'MAINTENANCE', 'TAPER']).describe(toolText(locale, 'Training phase/periodization.', 'Träningsfas/periodisering')),
+        athleteLevel: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ELITE']).default('INTERMEDIATE').describe(toolText(locale, 'Athlete level.', 'Atletens nivå')),
+        sessionsPerWeek: z.enum(['1', '2', '3']).default('2').describe(toolText(locale, 'Number of sessions per week (1, 2, or 3).', 'Antal pass per vecka (1, 2 eller 3)')),
+        timePerSession: z.enum(['20', '30', '45', '60', '75', '90']).default('45').describe(toolText(locale, 'Time per session in minutes.', 'Tid per pass i minuter')),
+        equipmentAvailable: z.array(z.string()).default(['barbell', 'dumbbell', 'bodyweight']).describe(toolText(locale, 'Available equipment: barbell, dumbbell, kettlebell, bodyweight, cable, machine, bands, box.', 'Tillgänglig utrustning: barbell, dumbbell, kettlebell, bodyweight, cable, machine, bands, box')),
+        mode: z.enum(['single', 'weekly']).default('single').describe(toolText(locale, 'single=single session, weekly=weekly program with A/B/C variation.', 'single=enskilt pass, weekly=veckoprogram med A/B/C variation')),
         includeWarmup: z.boolean().default(true),
-        includePrehab: z.boolean().optional().describe('Inkludera separat stabilitet/prehab-sektion. Om utelämnad aktiveras den automatiskt för hockey, skadeförebyggande mål eller aktiva riskområden.'),
+        includePrehab: z.boolean().optional().describe(toolText(locale, 'Include a separate stability/prehab section. If omitted, it is enabled automatically for hockey, injury-prevention goals, or active risk areas.', 'Inkludera separat stabilitet/prehab-sektion. Om utelämnad aktiveras den automatiskt för hockey, skadeförebyggande mål eller aktiva riskområden.')),
         includeCore: z.boolean().default(true),
         includeCooldown: z.boolean().default(true),
       }),

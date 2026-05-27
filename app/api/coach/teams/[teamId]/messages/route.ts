@@ -15,6 +15,16 @@ const sendTeamMessageSchema = z.object({
   clientIds: z.array(z.string().uuid()).optional(),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function teamMessageSubject(teamName: string, locale: AppLocale): string {
+  return locale === 'sv' ? `Lagmeddelande: ${teamName}` : `Team message: ${teamName}`
+}
+
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
@@ -42,7 +52,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
       select: {
         id: true,
         name: true,
-        athleteAccount: { select: { userId: true } },
+        athleteAccount: {
+          select: {
+            userId: true,
+            user: { select: { language: true } },
+          },
+        },
         dailyMetrics: {
           where: { date: { gte: new Date(today.getTime() - 2 * 24 * 60 * 60 * 1000) } },
           select: { readinessScore: true, date: true },
@@ -116,12 +131,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
     }
 
     await prisma.message.createMany({
-      data: receiverIds.map(receiverId => ({
-        senderId: user.id,
-        receiverId,
-        content: parsed.data.content,
-        subject: `Lagmeddelande: ${team.name}`,
-      })),
+      data: recipients.map((member) => {
+        const receiverId = member.athleteAccount!.userId
+        return {
+          senderId: user.id,
+          receiverId,
+          content: parsed.data.content,
+          subject: teamMessageSubject(team.name, resolveLocale(member.athleteAccount?.user?.language)),
+        }
+      }),
     })
 
     return NextResponse.json({

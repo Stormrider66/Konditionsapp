@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { requireAuth } from '@/lib/api/utils'
 import { canAccessProgram } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+
+type AppLocale = 'en' | 'sv'
+
+function requestLocale(request: NextRequest): AppLocale {
+  return request.headers.get('accept-language')?.toLowerCase().startsWith('sv') ? 'sv' : 'en'
+}
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string; dayId: string }> }
 ) {
   try {
+    const locale = requestLocale(request)
     const user = await requireAuth()
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -24,7 +31,7 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { type, date } = body
+    const { type } = body
 
     if (!type) {
       return NextResponse.json({ error: 'type is required' }, { status: 400 })
@@ -61,7 +68,7 @@ export async function POST(
     // Create new workout
     const workout = await prisma.workout.create({
       data: {
-        name: getDefaultWorkoutName(type),
+        name: getDefaultWorkoutName(type, locale),
         type,
         intensity: 'EASY', // Default intensity
         dayId,
@@ -87,14 +94,16 @@ export async function POST(
   }
 }
 
-function getDefaultWorkoutName(type: string): string {
-  const names: Record<string, string> = {
-    RUNNING: 'Nytt löppass',
-    STRENGTH: 'Nytt styrkepass',
-    CORE: 'Nytt core-pass',
-    CYCLING: 'Nytt cykelpass',
-    SWIMMING: 'Nytt simpass',
-    ALTERNATIVE: 'Nytt alternativt pass',
+function getDefaultWorkoutName(type: string, locale: AppLocale): string {
+  const names: Record<string, { en: string; sv: string }> = {
+    RUNNING: { en: 'New running workout', sv: 'Nytt löppass' },
+    STRENGTH: { en: 'New strength workout', sv: 'Nytt styrkepass' },
+    CORE: { en: 'New core workout', sv: 'Nytt core-pass' },
+    CYCLING: { en: 'New cycling workout', sv: 'Nytt cykelpass' },
+    SWIMMING: { en: 'New swimming workout', sv: 'Nytt simpass' },
+    ALTERNATIVE: { en: 'New alternative workout', sv: 'Nytt alternativt pass' },
   }
-  return names[type] || 'Nytt träningspass'
+  const fallback = { en: 'New training workout', sv: 'Nytt träningspass' }
+  const name = names[type] || fallback
+  return locale === 'sv' ? name.sv : name.en
 }
