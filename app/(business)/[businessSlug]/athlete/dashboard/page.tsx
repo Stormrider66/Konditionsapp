@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
-import { getTranslations } from '@/i18n/server'
+import { getLocale, getTranslations } from '@/i18n/server'
 import { SportType } from '@prisma/client'
 import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks } from 'date-fns'
 import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
@@ -84,6 +84,7 @@ interface BusinessAthleteDashboardProps {
 export default async function BusinessAthleteDashboardPage({ params }: BusinessAthleteDashboardProps) {
   const { businessSlug } = await params
   const t = await getTranslations('athletePages.dashboard')
+  const locale = (await getLocale()) === 'sv' ? 'sv' : 'en'
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
 
   // Validate business membership
@@ -703,7 +704,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
           }
           : null,
       })),
-    })) as WorkoutLogWithSetLogs[]
+    })) as WorkoutLogWithSetLogs[],
+    7,
+    locale
   )
 
   // Get readiness data

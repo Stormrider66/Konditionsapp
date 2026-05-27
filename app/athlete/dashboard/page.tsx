@@ -56,7 +56,7 @@ import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
 import { getWODUsageStats } from '@/lib/ai/wod-context-builder'
-import { getTranslations } from '@/i18n/server'
+import { getLocale, getTranslations } from '@/i18n/server'
 import {
   DashboardItem,
   DashboardAssignment,
@@ -78,6 +78,7 @@ import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recip
 export default async function AthleteDashboardPage() {
   const { user, clientId, isCoachInAthleteMode } = await requireAthleteOrCoachInAthleteMode()
   const t = await getTranslations('pages.athlete.dashboard')
+  const locale = (await getLocale()) === 'sv' ? 'sv' : 'en'
 
   // Ensure widgets that build URLs can route correctly in business-scoped setups
   const businessSlug = await getUserPrimaryBusinessSlug(user.id)
@@ -586,7 +587,9 @@ export default async function AthleteDashboardPage() {
           }
           : null,
       })),
-    })) as WorkoutLogWithSetLogs[]
+    })) as WorkoutLogWithSetLogs[],
+    7,
+    locale
   )
 
   // Get readiness data

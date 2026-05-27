@@ -11,6 +11,7 @@
  */
 
 export type FatigueLevel = 'HIGH' | 'MODERATE' | 'FRESH'
+export type FatigueLocale = 'en' | 'sv'
 
 export interface MuscularFatigueData {
   muscleGroup: string
@@ -60,6 +61,23 @@ const CARDIO_TYPES = ['RUNNING', 'CYCLING', 'SKIING', 'TRIATHLON', 'HYROX']
 
 // Default muscle groups to track
 const DEFAULT_MUSCLE_GROUPS = ['Ben & Rumpa', 'Core', 'Överkropp']
+const MUSCLE_GROUP_LABELS: Record<string, Record<FatigueLocale, string>> = {
+  'Ben & Rumpa': { en: 'Legs & glutes', sv: 'Ben & Rumpa' },
+  'Vader & Fötter': { en: 'Calves & feet', sv: 'Vader & Fötter' },
+  Core: { en: 'Core', sv: 'Core' },
+  Överkropp: { en: 'Upper body', sv: 'Överkropp' },
+  Bröst: { en: 'Chest', sv: 'Bröst' },
+  Rygg: { en: 'Back', sv: 'Rygg' },
+  Axlar: { en: 'Shoulders', sv: 'Axlar' },
+  Armar: { en: 'Arms', sv: 'Armar' },
+  Ben: { en: 'Legs', sv: 'Ben' },
+  Rumpa: { en: 'Glutes', sv: 'Rumpa' },
+  Helkropp: { en: 'Full body', sv: 'Helkropp' },
+}
+
+function localizeMuscleGroup(muscleGroup: string, locale: FatigueLocale): string {
+  return MUSCLE_GROUP_LABELS[muscleGroup]?.[locale] ?? muscleGroup
+}
 
 /**
  * Calculate time-based decay factor
@@ -156,7 +174,8 @@ function scoreToLevel(score: number): FatigueLevel {
  */
 export function calculateMuscularFatigue(
   recentLogs: WorkoutLogWithSetLogs[],
-  days: number = 7
+  days: number = 7,
+  locale: FatigueLocale = 'en'
 ): MuscularFatigueData[] {
   const now = new Date()
   const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
@@ -257,7 +276,7 @@ export function calculateMuscularFatigue(
     const normalizedScore = Math.min((data.volume / maxVolume) * 100, 100)
 
     results.push({
-      muscleGroup,
+      muscleGroup: localizeMuscleGroup(muscleGroup, locale),
       level: scoreToLevel(normalizedScore),
       lastWorked: data.lastWorked,
       volumeScore: Math.round(normalizedScore),
@@ -313,14 +332,25 @@ export function calculateRunningFatigue(
 /**
  * Get human-readable fatigue description
  */
-export function getFatigueDescription(level: FatigueLevel): string {
+export function getFatigueDescription(level: FatigueLevel, locale: FatigueLocale = 'en'): string {
+  if (locale === 'sv') {
+    switch (level) {
+      case 'HIGH':
+        return 'Hög belastning - prioritera återhämtning'
+      case 'MODERATE':
+        return 'Måttlig belastning - normal träning möjlig'
+      case 'FRESH':
+        return 'Utvilad - redo för intensiv träning'
+    }
+  }
+
   switch (level) {
     case 'HIGH':
-      return 'Hög belastning - prioritera återhämtning'
+      return 'High load - prioritize recovery'
     case 'MODERATE':
-      return 'Måttlig belastning - normal träning möjlig'
+      return 'Moderate load - normal training is possible'
     case 'FRESH':
-      return 'Utvilad - redo för intensiv träning'
+      return 'Fresh - ready for intense training'
   }
 }
 
