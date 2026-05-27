@@ -555,7 +555,26 @@ export async function generateMorningBriefing(
 /**
  * Get a rotating daily angle hint based on day of week
  */
-function getDailyAngle(dayIndex: number): string {
+function getDailyAngle(dayIndex: number, locale: BriefingLocale): string {
+  if (locale === 'en') {
+    switch (dayIndex) {
+      case 1:
+        return 'Week ahead and goals - focus on what is coming this week'
+      case 2:
+      case 3:
+      case 4:
+        return 'Training quality and progress - highlight development and good work'
+      case 5:
+        return 'Recovery and weekend preparation - focus on rest and planning'
+      case 6:
+        return 'Performance and enjoyment - emphasize the fun side of training'
+      case 0:
+        return "Weekly reflection and consistency - summarize this week's efforts"
+      default:
+        return 'Training quality and progress'
+    }
+  }
+
   switch (dayIndex) {
     case 1:
       return 'Veckan framåt & mål — fokusera på vad som väntar denna vecka'
@@ -581,75 +600,76 @@ function buildBriefingPrompt(context: BriefingContext): string {
   const locale = context.locale
   const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
   const formatDate = (date: Date) => new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+  const copy = (en: string, sv: string) => (locale === 'sv' ? sv : en)
   const sections: string[] = []
 
   // 1. Previous topics — deduplication
   if (context.previousBriefingTopics.length > 0) {
     sections.push(
-      `ÄMNEN SOM REDAN TAGITS UPP (UPPREPA INTE):\n${context.previousBriefingTopics.map((t) => `- ${t}`).join('\n')}\nDu MÅSTE hitta NYA vinklar varje dag. Nämn INTE dessa ämnen igen.`
+      `${copy('TOPICS ALREADY COVERED (DO NOT REPEAT):', 'ÄMNEN SOM REDAN TAGITS UPP (UPPREPA INTE):')}\n${context.previousBriefingTopics.map((t) => `- ${t}`).join('\n')}\n${copy('You MUST find NEW angles every day. Do NOT mention these topics again.', 'Du MÅSTE hitta NYA vinklar varje dag. Nämn INTE dessa ämnen igen.')}`
     )
   }
 
   // 2. Athlete data today
   let dataLines = ''
   if (context.readinessScore !== undefined) {
-    dataLines += `\n- Readiness-poäng: ${context.readinessScore.toFixed(1)}/10`
+    dataLines += `\n- ${copy('Readiness score', 'Readiness-poäng')}: ${context.readinessScore.toFixed(1)}/10`
   }
   if (context.sleepHours !== undefined) {
-    dataLines += `\n- Sömn: ${context.sleepHours} timmar`
+    dataLines += `\n- ${copy('Sleep', 'Sömn')}: ${context.sleepHours} ${copy('hours', 'timmar')}`
   }
   if (context.sleepQuality !== undefined) {
-    dataLines += `\n- Sömnkvalitet: ${context.sleepQuality}/10`
+    dataLines += `\n- ${copy('Sleep quality', 'Sömnkvalitet')}: ${context.sleepQuality}/10`
   }
   if (context.fatigue !== undefined) {
-    dataLines += `\n- Trötthet: ${context.fatigue}/10`
+    dataLines += `\n- ${copy('Fatigue', 'Trötthet')}: ${context.fatigue}/10`
   }
   if (context.soreness !== undefined) {
-    dataLines += `\n- Muskelömhet: ${context.soreness}/10`
+    dataLines += `\n- ${copy('Muscle soreness', 'Muskelömhet')}: ${context.soreness}/10`
   }
   if (context.hrv !== undefined) {
     dataLines += `\n- HRV: ${context.hrv} ms`
   }
   if (context.restingHR !== undefined) {
-    dataLines += `\n- Vilopuls: ${context.restingHR} bpm`
+    dataLines += `\n- ${copy('Resting heart rate', 'Vilopuls')}: ${context.restingHR} bpm`
   }
-  sections.push(`ATLETENS DATA IDAG:${dataLines || '\n- Ingen check-in-data tillgänglig'}`)
+  sections.push(`${copy("ATHLETE DATA TODAY", 'ATLETENS DATA IDAG')}:${dataLines || `\n- ${copy('No check-in data available', 'Ingen check-in-data tillgänglig')}`}`)
 
   // 3. Active warnings (Tier 1 — urgent)
   const warnings: string[] = []
   if (context.activePatternAlerts.length > 0) {
     for (const alert of context.activePatternAlerts) {
-      warnings.push(`⚠ ${alert.title}: ${alert.message} (prioritet: ${alert.priority})`)
+      warnings.push(`⚠ ${alert.title}: ${alert.message} (${copy('priority', 'prioritet')}: ${alert.priority})`)
     }
   }
   if (context.activeInjuries.length > 0) {
     for (const injury of context.activeInjuries) {
       const sideStr = injury.side ? ` (${injury.side})` : ''
-      const phaseStr = injury.phase ? `, fas: ${injury.phase}` : ''
+      const phaseStr = injury.phase ? `, ${copy('phase', 'fas')}: ${injury.phase}` : ''
       warnings.push(
-        `🩹 Skada: ${injury.bodyPart}${sideStr} — smärtnivå ${injury.painLevel}/10${phaseStr}`
+        `🩹 ${copy('Injury', 'Skada')}: ${injury.bodyPart}${sideStr} — ${copy('pain level', 'smärtnivå')} ${injury.painLevel}/10${phaseStr}`
       )
     }
   }
   if (context.latestACWR && ['DANGER', 'CRITICAL'].includes(context.latestACWR.acwrZone)) {
     warnings.push(
-      `🔴 ACWR ${context.latestACWR.acwr.toFixed(2)} — zon: ${context.latestACWR.acwrZone}, skaderisk: ${context.latestACWR.injuryRisk}`
+      `🔴 ACWR ${context.latestACWR.acwr.toFixed(2)} — ${copy('zone', 'zon')}: ${context.latestACWR.acwrZone}, ${copy('injury risk', 'skaderisk')}: ${context.latestACWR.injuryRisk}`
     )
   }
   if (warnings.length > 0) {
-    sections.push(`AKTUELLA VARNINGAR:\n${warnings.join('\n')}`)
+    sections.push(`${copy('ACTIVE WARNINGS', 'AKTUELLA VARNINGAR')}:\n${warnings.join('\n')}`)
   }
 
   // 4. Today's workout
   if (context.todaysWorkout) {
-    let workoutLines = `- Namn: ${context.todaysWorkout.name}\n- Typ: ${context.todaysWorkout.type}`
+    let workoutLines = `- ${copy('Name', 'Namn')}: ${context.todaysWorkout.name}\n- ${copy('Type', 'Typ')}: ${context.todaysWorkout.type}`
     if (context.todaysWorkout.duration) {
-      workoutLines += `\n- Längd: ${context.todaysWorkout.duration} min`
+      workoutLines += `\n- ${copy('Duration', 'Längd')}: ${context.todaysWorkout.duration} min`
     }
     if (context.todaysWorkout.description) {
-      workoutLines += `\n- Beskrivning: ${context.todaysWorkout.description}`
+      workoutLines += `\n- ${copy('Description', 'Beskrivning')}: ${context.todaysWorkout.description}`
     }
-    sections.push(`DAGENS PLANERADE TRÄNING:\n${workoutLines}`)
+    sections.push(`${copy("TODAY'S PLANNED WORKOUT", 'DAGENS PLANERADE TRÄNING')}:\n${workoutLines}`)
   }
 
   // 5. Recent workout completions
@@ -657,11 +677,11 @@ function buildBriefingPrompt(context: BriefingContext): string {
     const completionLines = context.recentWorkoutCompletions.map((w) => {
       const date = formatDate(w.completedAt)
       const details: string[] = []
-      if (w.feeling) details.push(`känsla: ${w.feeling}`)
+      if (w.feeling) details.push(`${copy('feeling', 'känsla')}: ${w.feeling}`)
       if (w.rpe) details.push(`RPE: ${w.rpe}/10`)
       return `- ${w.name} (${date})${details.length > 0 ? ' — ' + details.join(', ') : ''}`
     })
-    sections.push(`SENASTE TRÄNINGEN:\n${completionLines.join('\n')}`)
+    sections.push(`${copy('RECENT TRAINING', 'SENASTE TRÄNINGEN')}:\n${completionLines.join('\n')}`)
   }
 
   // 6. New milestones (already filtered against previous topics)
@@ -669,21 +689,21 @@ function buildBriefingPrompt(context: BriefingContext): string {
     const milestoneLines = context.recentMilestones.map(
       (m) => `- ${m.title} (${formatDate(m.createdAt)})`
     )
-    sections.push(`NYA PRESTATIONER:\n${milestoneLines.join('\n')}`)
+    sections.push(`${copy('NEW ACHIEVEMENTS', 'NYA PRESTATIONER')}:\n${milestoneLines.join('\n')}`)
   }
 
   // 7. Weekly summary (Mon/Wed/Sat only for variety)
   const dayIndex = new Date().getDay()
   if (context.currentWeeklySummary && [1, 3, 6].includes(dayIndex)) {
     const ws = context.currentWeeklySummary
-    let summaryLines = `- Antal pass: ${ws.workoutCount}\n- Total tid: ${ws.totalDuration} min`
+    let summaryLines = `- ${copy('Workout count', 'Antal pass')}: ${ws.workoutCount}\n- ${copy('Total time', 'Total tid')}: ${ws.totalDuration} min`
     if (ws.compliancePercent !== undefined) {
-      summaryLines += `\n- Följsamhet: ${ws.compliancePercent.toFixed(0)}%`
+      summaryLines += `\n- ${copy('Compliance', 'Följsamhet')}: ${ws.compliancePercent.toFixed(0)}%`
     }
     if (ws.polarizationRatio !== undefined) {
-      summaryLines += `\n- Polariseringskvot: ${ws.polarizationRatio.toFixed(2)}`
+      summaryLines += `\n- ${copy('Polarization ratio', 'Polariseringskvot')}: ${ws.polarizationRatio.toFixed(2)}`
     }
-    sections.push(`VECKANS TRÄNING:\n${summaryLines}`)
+    sections.push(`${copy("THIS WEEK'S TRAINING", 'VECKANS TRÄNING')}:\n${summaryLines}`)
   }
 
   // 8. Memories & events (trimmed)
@@ -699,14 +719,15 @@ function buildBriefingPrompt(context: BriefingContext): string {
     }
   }
   if (contextNotes.length > 0) {
-    sections.push(`VIKTIGT ATT KOMMA IHÅG:\n${contextNotes.join('\n')}`)
+    sections.push(`${copy('IMPORTANT TO REMEMBER', 'VIKTIGT ATT KOMMA IHÅG')}:\n${contextNotes.join('\n')}`)
   }
 
   // 9. Daily angle hint
-  sections.push(`DAGENS VINKEL (${context.dayOfWeek}):\n${getDailyAngle(dayIndex)}`)
+  sections.push(`${copy("TODAY'S ANGLE", 'DAGENS VINKEL')} (${context.dayOfWeek}):\n${getDailyAngle(dayIndex, locale)}`)
 
   // 10. Instructions
-  const instructions = `INSTRUKTIONER:
+  const instructions = locale === 'sv'
+    ? `INSTRUKTIONER:
 0. Svara på ${outputLanguage}. Alla fält som visas för atleten ska vara på ${outputLanguage}.
 1. Skriv en kort, personlig morgonhälsning (max 2-3 meningar)
 2. Var ALDRIG upprepande — hitta nya vinklar varje dag
@@ -743,6 +764,43 @@ QUICK ACTIONS:
 - view_program: Se träningsprogram
 
 TONALITET: Vänlig, personlig, motiverande. Som en bra tränare som bryr sig.`
+    : `INSTRUCTIONS:
+0. Respond in ${outputLanguage}. Every field shown to the athlete must be in ${outputLanguage}.
+1. Write a short, personal morning greeting (max 2-3 sentences)
+2. Never repeat yourself - find new angles every day
+3. If there are no new achievements, focus on process and progress
+4. Highlight the most important thing for today
+5. Give 1-3 concrete tips based on the data
+6. Warn if anything looks concerning (injuries, high fatigue, ACWR warning)
+7. Be encouraging but realistic
+
+RESPOND IN JSON FORMAT:
+{
+  "title": "Good morning ${context.athleteName}!",
+  "content": "Short personal briefing here...",
+  "highlights": ["Point 1", "Point 2"],
+  "alerts": [
+    {"type": "warning", "message": "Warning message if needed"},
+    {"type": "info", "message": "Information message"}
+  ],
+  "quickActions": [
+    {"label": "Log workout", "action": "log_workout"},
+    {"label": "Chat with AI", "action": "open_chat"}
+  ]
+}
+
+ALERT TYPES:
+- warning: Something that needs attention (injury, high fatigue, ACWR warning)
+- info: Neutral information
+- success: Positive items (good recovery, reached goal, new record)
+
+QUICK ACTIONS:
+- log_workout: Open workout logging
+- open_chat: Open AI chat
+- check_in: Do daily check-in
+- view_program: View training program
+
+TONE: Friendly, personal, motivating. Like a good coach who cares.`
 
   return `${locale === 'sv' ? 'Generera en personlig morgonbriefing för atleten' : 'Generate a personal morning briefing for athlete'} ${context.athleteName}.\n\n${sections.join('\n\n')}\n\n${instructions}\n`
 }
