@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
+import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { ProgramWizard } from '@/components/programs/wizard/ProgramWizard'
@@ -10,8 +11,81 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
+import {
+  localizedHockeyMetrics,
+  metricValuesForTest,
+  type HockeyTestForSummary,
+} from '@/lib/hockey/team-test-metrics'
 
 type ProgramWizardClients = Parameters<typeof ProgramWizard>[0]['clients']
+type ProgramWizardTeams = NonNullable<Parameters<typeof ProgramWizard>[0]['teams']>
+type AppLocale = 'en' | 'sv'
+
+const hockeyTestSelect = {
+  id: true,
+  clientId: true,
+  testDate: true,
+  sprint5m: true,
+  sprint10m: true,
+  sprint20m: true,
+  sprint30m: true,
+  sprint20mFly: true,
+  sprint30mFly: true,
+  agility505Left: true,
+  agility505Right: true,
+  endurance7x40: true,
+  gripStrengthLeft: true,
+  gripStrengthRight: true,
+  standingLongJump: true,
+  threeJumpLeft: true,
+  threeJumpRight: true,
+  beepTestLevel: true,
+  beepTestShuttle: true,
+  wingate30sAveragePower: true,
+  vo2Max: true,
+  lt1SpeedKmh: true,
+  lt1HeartRate: true,
+  lt1Lactate: true,
+  lt2SpeedKmh: true,
+  lt2HeartRate: true,
+  lt2Lactate: true,
+  maxLactate: true,
+  maxHeartRate: true,
+  rampTimeSeconds: true,
+  backSquat1RM: true,
+  powerClean1RM: true,
+  benchPress1RM: true,
+  pullUp1RM: true,
+  muscleLabMaxima: true,
+} satisfies Prisma.HockeyPhysicalTestSelect
+
+function toHockeyTestOption(
+  test: HockeyTestForSummary & { id: string },
+  locale: AppLocale
+) {
+  const values = metricValuesForTest(test)
+  const metrics = localizedHockeyMetrics(locale)
+    .map((metric) => {
+      const value = values[metric.key]
+      if (typeof value !== 'number' || !Number.isFinite(value)) return null
+      return {
+        key: metric.key,
+        label: metric.label,
+        unit: metric.unit,
+        value,
+        lowerIsBetter: metric.lowerIsBetter,
+      }
+    })
+    .filter((metric): metric is NonNullable<typeof metric> => Boolean(metric))
+
+  return {
+    id: test.id,
+    testDate: test.testDate,
+    label: test.testDate.toISOString(),
+    metricCount: metrics.length,
+    metrics,
+  }
+}
 
 interface PageProps {
   params: Promise<{
@@ -21,6 +95,7 @@ interface PageProps {
     source?: string
     prompt?: string
     clientId?: string
+    teamId?: string
   }>
 }
 
@@ -29,6 +104,7 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
   const query = await searchParams
   const user = await requireCoach()
   const t = await getTranslations('coach.pages.programNew')
+  const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -38,6 +114,7 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
 
   const basePath = `/${businessSlug}/coach`
   const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
+  const teamFilter = await getAccessibleTeamWhere(user.id, businessSlug)
 
   // Fetch ALL clients with their tests AND sport profiles
   const clients = await prisma.client.findMany({
@@ -63,6 +140,13 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
           vo2max: true,
         },
       },
+      hockeyPhysicalTests: {
+        orderBy: {
+          testDate: 'desc',
+        },
+        take: 5,
+        select: hockeyTestSelect,
+      },
       // Fetch sport profile for PROFILE data source
       sportProfile: {
         select: {
@@ -86,6 +170,41 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
       name: 'asc',
     },
   })
+
+  const teams = await prisma.team.findMany({
+    where: teamFilter,
+    select: {
+      id: true,
+      name: true,
+      sportType: true,
+      members: {
+        where: {
+          businessId: membership.businessId,
+        },
+        select: {
+          id: true,
+          name: true,
+          position: true,
+        },
+        orderBy: {
+          name: 'asc',
+        },
+      },
+    },
+    orderBy: {
+      name: 'asc',
+    },
+  })
+
+  const wizardClients = clients.map((client) => ({
+    id: client.id,
+    name: client.name,
+    teamId: client.teamId,
+    position: client.position,
+    tests: client.tests,
+    hockeyTests: client.hockeyPhysicalTests.map((test) => toHockeyTestOption(test, locale)),
+    sportProfile: client.sportProfile,
+  }))
 
   // No clients at all
   if (clients.length === 0) {
@@ -142,9 +261,11 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
       )}
 
       <ProgramWizard
-        clients={clients as unknown as ProgramWizardClients}
+        clients={wizardClients as unknown as ProgramWizardClients}
+        teams={teams as unknown as ProgramWizardTeams}
         basePath={basePath}
         initialClientId={query?.clientId}
+        initialTeamId={query?.teamId}
       />
     </div>
   )

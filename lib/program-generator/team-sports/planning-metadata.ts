@@ -27,7 +27,16 @@ export type TeamSportPlanningMetadata = {
     primaryGoals: string[]
     conditioningFocus: string[]
     strengthFocus: string[]
+    testEvidence?: HockeyTestPlanningMetadata
   }
+}
+
+export type HockeyTestPlanningMetadata = {
+  testId?: string
+  testDate?: string
+  availableMetrics: string[]
+  priorities: string[]
+  notes: string[]
 }
 
 export function buildFootballPlanningMetadata(
@@ -53,7 +62,8 @@ export function buildFootballPlanningMetadata(
 }
 
 export function buildHockeyPlanningMetadata(
-  planning: HockeyPlanningContext
+  planning: HockeyPlanningContext,
+  testEvidence?: HockeyTestPlanningMetadata
 ): TeamSportPlanningMetadata {
   return {
     version: 1,
@@ -75,6 +85,7 @@ export function buildHockeyPlanningMetadata(
       primaryGoals: planning.phaseTraining.primaryGoals.slice(0, 4),
       conditioningFocus: planning.profile.primaryConditioningFocus.slice(0, 4),
       strengthFocus: planning.profile.primaryStrengthFocus.slice(0, 4),
+      testEvidence,
     },
   }
 }

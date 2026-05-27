@@ -2,7 +2,12 @@ import { z } from 'zod'
 
 export const configSchema = z.object({
   clientId: z.string().min(1, 'Choose an athlete'),
+  clientIds: z.array(z.string()).optional(),
+  assignmentScope: z.enum(['INDIVIDUAL', 'TEAM', 'SELECTED']).optional(),
+  teamId: z.string().optional(),
   testId: z.string().optional(),
+  hockeyTestId: z.string().optional(),
+  hockeyTestIdsByClient: z.record(z.string()).optional(),
   durationWeeks: z.coerce.number().min(4).max(52),
   targetRaceDate: z.date().optional(),
   sessionsPerWeek: z.coerce.number().min(2).max(14),
@@ -103,10 +108,31 @@ export const configSchema = z.object({
 
 export type ConfigFormData = z.infer<typeof configSchema>
 
+export type ProgramAssignmentScope = 'INDIVIDUAL' | 'TEAM' | 'SELECTED'
+
+export interface HockeyTestMetricOption {
+  key: string
+  label: string
+  unit: string
+  value: number
+  lowerIsBetter?: boolean
+}
+
+export interface HockeyTestOption {
+  id: string
+  testDate: Date
+  label: string
+  metricCount: number
+  metrics: HockeyTestMetricOption[]
+}
+
 export interface Client {
   id: string
   name: string
+  teamId?: string | null
+  position?: string | null
   tests: { id: string; testDate: Date; testType: string }[]
+  hockeyTests?: HockeyTestOption[]
   sportProfile?: {
     hockeySettings?: Record<string, unknown> | null
     footballSettings?: Record<string, unknown> | null
@@ -117,6 +143,17 @@ export interface Client {
     tennisSettings?: Record<string, unknown> | null
     padelSettings?: Record<string, unknown> | null
   } | null
+}
+
+export interface TeamOption {
+  id: string
+  name: string
+  sportType?: import('@prisma/client').SportType | null
+  members: Array<{
+    id: string
+    name: string
+    position?: string | null
+  }>
 }
 
 // Calendar constraints API response
@@ -157,6 +194,9 @@ export interface ConfigurationFormProps {
   goal: string
   dataSource: import('../DataSourceSelector').DataSourceType
   clients: Client[]
+  teams?: TeamOption[]
+  selectedTeamId?: string
+  onTeamChange?: (teamId: string) => void
   selectedClientId?: string
   onClientChange?: (clientId: string) => void
   onSubmit: (data: ConfigFormData) => Promise<void>

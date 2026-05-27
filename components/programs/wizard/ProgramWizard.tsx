@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { SportType } from '@prisma/client'
@@ -25,6 +25,22 @@ interface Test {
   testDate: Date
   testType: string
   vo2max: number | null
+}
+
+interface HockeyTestMetric {
+  key: string
+  label: string
+  unit: string
+  value: number
+  lowerIsBetter?: boolean
+}
+
+interface HockeyTest {
+  id: string
+  testDate: Date
+  label: string
+  metricCount: number
+  metrics: HockeyTestMetric[]
 }
 
 interface SportProfile {
@@ -52,14 +68,30 @@ interface SportProfile {
 interface Client {
   id: string
   name: string
+  teamId?: string | null
+  position?: string | null
   tests: Test[]
+  hockeyTests?: HockeyTest[]
   sportProfile: SportProfile | null
+}
+
+interface TeamOption {
+  id: string
+  name: string
+  sportType?: SportType | null
+  members: Array<{
+    id: string
+    name: string
+    position?: string | null
+  }>
 }
 
 interface ProgramWizardProps {
   clients: Client[]
+  teams?: TeamOption[]
   basePath: string
   initialClientId?: string
+  initialTeamId?: string
 }
 
 type ProgramFormData = Record<string, unknown>
@@ -136,7 +168,7 @@ const getProgramPromptLabel = (sport: SportType, locale: AppLocale) => {
   }
 }
 
-export function ProgramWizard({ clients, basePath, initialClientId = '' }: ProgramWizardProps) {
+export function ProgramWizard({ clients, teams = [], basePath, initialClientId = '', initialTeamId = '' }: ProgramWizardProps) {
   const router = useRouter()
   const locale = getAppLocale(useLocale())
   const [currentStep, setCurrentStep] = useState(1)
@@ -146,7 +178,18 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
   const [selectedClientId, setSelectedClientId] = useState<string>(() =>
     clients.some((client) => client.id === initialClientId) ? initialClientId : ''
   )
+  const [selectedTeamId, setSelectedTeamId] = useState<string>(() => {
+    const clientTeamId = clients.find((client) => client.id === initialClientId)?.teamId
+    if (clientTeamId && teams.some((team) => team.id === clientTeamId)) return clientTeamId
+    if (initialTeamId && teams.some((team) => team.id === initialTeamId)) return initialTeamId
+    const onlyHockeyTeam = teams.filter((team) => team.sportType === 'TEAM_ICE_HOCKEY')
+    return onlyHockeyTeam.length === 1 ? onlyHockeyTeam[0].id : ''
+  })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const selectedTeam = useMemo(
+    () => teams.find((team) => team.id === selectedTeamId) ?? null,
+    [selectedTeamId, teams]
+  )
 
   // Calculate data source availability based on selected sport and client tests
   const getDataSources = (): DataSourceInfo[] => {
@@ -172,6 +215,34 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
       PADEL: 'RUNNING',
     }
 
+    if (selectedSport === 'TEAM_ICE_HOCKEY') {
+      const scopedClients = selectedTeam
+        ? clients.filter((client) => selectedTeam.members.some((member) => member.id === client.id))
+        : clients
+      const hockeyTestCount = scopedClients.reduce((sum, client) => sum + (client.hockeyTests?.length ?? 0), 0)
+
+      return [
+        {
+          type: 'TEST' as const,
+          available: hockeyTestCount > 0,
+          testCount: hockeyTestCount,
+          testId: scopedClients.find((client) => (client.hockeyTests?.length ?? 0) > 0)?.hockeyTests?.[0]?.id,
+        },
+        {
+          type: 'PROFILE' as const,
+          available: scopedClients.some((client) => Boolean(client.sportProfile?.hockeySettings)),
+          profileValue: scopedClients.some((client) => Boolean(client.sportProfile?.hockeySettings))
+            ? t(locale, 'Hockeyprofil', 'Hockey profile')
+            : undefined,
+          profileLabel: getProfileLabel(selectedSport, locale),
+        },
+        {
+          type: 'MANUAL' as const,
+          available: true,
+        },
+      ]
+    }
+
     const relevantTestType = testTypeMap[selectedSport]
     const clientsWithTests = clients.filter(
       (c) => c.tests.some((t) => t.testType === relevantTestType)
@@ -188,8 +259,6 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
           return c.sportProfile.swimmingSettings?.css
         case 'RUNNING':
           return c.sportProfile.runningSettings?.vdot
-        case 'TEAM_ICE_HOCKEY':
-          return c.sportProfile.hockeySettings
         case 'TEAM_FOOTBALL':
           return c.sportProfile.footballSettings
         case 'TEAM_BASKETBALL':
@@ -304,6 +373,8 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
     setSelectedSport(sport)
     setSelectedGoal(null)
     setSelectedDataSource(null)
+    const matchingTeam = teams.find((team) => team.sportType === sport)
+    if (matchingTeam) setSelectedTeamId(matchingTeam.id)
     // Auto-advance after short delay for better UX
     setTimeout(() => setCurrentStep(2), 300)
   }
@@ -342,9 +413,12 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
         throw new Error(error.message || t(locale, 'Kunde inte skapa program', 'Could not create program'))
       }
 
-      const result = await response.json() as { data: { id: string } }
-      toast.success(t(locale, 'Program skapat!', 'Program created!'))
-      router.push(`${basePath}/programs/${result.data.id}`)
+      const result = await response.json() as { data: { id: string; count?: number; programs?: Array<{ id: string }> } }
+      const count = result.data.count ?? result.data.programs?.length ?? 1
+      toast.success(count > 1
+        ? t(locale, `${count} program skapade!`, `${count} programs created!`)
+        : t(locale, 'Program skapat!', 'Program created!'))
+      router.push(count > 1 ? `${basePath}/programs` : `${basePath}/programs/${result.data.id}`)
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : null
       toast.error(message || t(locale, 'Ett fel uppstod', 'Something went wrong'))
@@ -360,11 +434,14 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
   const formClients = clients.map((c) => ({
     id: c.id,
     name: c.name,
+    teamId: c.teamId,
+    position: c.position,
     tests: c.tests.map((t) => ({
       id: t.id,
       testDate: t.testDate,
       testType: t.testType,
     })),
+    hockeyTests: c.hockeyTests ?? [],
     sportProfile: c.sportProfile
       ? {
           hockeySettings: c.sportProfile.hockeySettings ?? null,
@@ -403,6 +480,7 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
             <SportSelector
               selectedSport={selectedSport}
               onSelect={handleSportSelect}
+              teams={teams}
             />
           )}
 
@@ -430,6 +508,9 @@ export function ProgramWizard({ clients, basePath, initialClientId = '' }: Progr
               goal={selectedGoal}
               dataSource={selectedDataSource}
               clients={formClients}
+              teams={teams}
+              selectedTeamId={selectedTeamId}
+              onTeamChange={setSelectedTeamId}
               selectedClientId={selectedClientId}
               onClientChange={setSelectedClientId}
               onSubmit={handleFormSubmit}

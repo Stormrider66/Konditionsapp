@@ -43,6 +43,7 @@ export function DataSourceSelector({
 
   const testSource = getSourceInfo('TEST')
   const profileSource = getSourceInfo('PROFILE')
+  const isHockey = sport === 'TEAM_ICE_HOCKEY'
 
   const sportLabels: Record<string, { value: Record<AppLocale, string>; unit: string }> = {
     RUNNING: { value: { en: 'VDOT', sv: 'VDOT' }, unit: '' },
@@ -97,16 +98,22 @@ export function DataSourceSelector({
           >
             <FlaskConical className="w-7 h-7" />
           </div>
-          <span className="font-semibold text-lg text-slate-900 dark:text-white">{t(locale, 'Labtest', 'Lab test')}</span>
+          <span className="font-semibold text-lg text-slate-900 dark:text-white">
+            {isHockey ? t(locale, 'Hockeytester', 'Hockey tests') : t(locale, 'Labtest', 'Lab test')}
+          </span>
           <span className="text-sm text-slate-500 dark:text-slate-400 mt-1 text-center">
-            {t(locale, 'Använd befintligt konditionstest med träningszoner', 'Use an existing fitness test with training zones')}
+            {isHockey
+              ? t(locale, 'Använd is-sprint, 5-10-5, 7x40, styrka, power och aerob profil', 'Use ice sprints, 5-10-5, 7x40, strength, power, and aerobic profile')
+              : t(locale, 'Använd befintligt konditionstest med träningszoner', 'Use an existing fitness test with training zones')}
           </span>
           <div className="mt-4 flex items-center gap-2">
             {testSource.available ? (
               <>
                 <Check className="w-4 h-4 text-green-600" />
                 <Badge variant="secondary">
-                  {testSource.testCount} {t(locale, 'test tillgängliga', 'tests available')}
+                  {testSource.testCount} {isHockey
+                    ? t(locale, 'hockeytester', 'hockey tests')
+                    : t(locale, 'test tillgängliga', 'tests available')}
                 </Badge>
               </>
             ) : (

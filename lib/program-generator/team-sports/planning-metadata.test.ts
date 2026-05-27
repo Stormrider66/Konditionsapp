@@ -7,6 +7,7 @@ describe('team sport planning metadata', () => {
     const planning = buildFootballPlanningContext({
       goal: 'in-season-maintenance',
       sessionsPerWeek: 5,
+      locale: 'sv',
       footballSettings: {
         position: 'forward',
         seasonPhase: 'in_season',
@@ -40,6 +41,7 @@ describe('team sport planning metadata', () => {
     const planning = buildHockeyPlanningContext({
       goal: 'in-season-maintenance',
       sessionsPerWeek: 5,
+      locale: 'sv',
       hockeySettings: {
         position: 'defense',
         seasonPhase: 'in_season',

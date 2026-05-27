@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { SportType } from '@prisma/client'
 import { useLocale } from 'next-intl'
-import { useForm, useWatch } from 'react-hook-form'
+import { useForm, useWatch, type Resolver } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
@@ -55,6 +55,8 @@ import { getDefaultDuration, getSuggestedMethodology, type AppLocale } from './c
 import { HyroxStationTimes } from './configuration-form/HyroxStationTimes'
 import { StrengthPRs } from './configuration-form/StrengthPRs'
 import { StrengthCoreIntegration } from './configuration-form/StrengthCoreIntegration'
+import { ProgramAudienceSelector } from './configuration-form/ProgramAudienceSelector'
+import { HockeyTestEvidencePanel } from './configuration-form/HockeyTestEvidencePanel'
 import { buildTeamSportPlanningSummary, type TeamSportPlanningSummary } from '@/lib/program-generator/team-sports/explainability'
 import {
   buildCourtSportSettingsPayload,
@@ -131,6 +133,9 @@ export function ConfigurationForm({
   goal,
   dataSource,
   clients,
+  teams = [],
+  selectedTeamId,
+  onTeamChange,
   selectedClientId,
   onClientChange,
   onSubmit,
@@ -145,9 +150,14 @@ export function ConfigurationForm({
   const isHyroxSport = sport === 'HYROX'
 
   const form = useForm<ConfigFormData>({
-    resolver: zodResolver(configSchema),
+    resolver: zodResolver(configSchema) as unknown as Resolver<ConfigFormData>,
     defaultValues: {
       clientId: selectedClientId || '',
+      clientIds: selectedClientId ? [selectedClientId] : [],
+      assignmentScope: 'INDIVIDUAL',
+      teamId: selectedTeamId || '',
+      hockeyTestId: undefined,
+      hockeyTestIdsByClient: {},
       durationWeeks: getDefaultDuration(sport, goal),
       sessionsPerWeek: 4,
       methodology: 'AUTO',
@@ -201,7 +211,14 @@ export function ConfigurationForm({
   })
 
   const watchClientId = useWatch({ control: form.control, name: 'clientId' })
+  const rawWatchClientIds = useWatch({ control: form.control, name: 'clientIds' })
+  const watchClientIds = useMemo(() => rawWatchClientIds ?? [], [rawWatchClientIds])
+  const watchAssignmentScope = useWatch({ control: form.control, name: 'assignmentScope' }) ?? 'INDIVIDUAL'
+  const watchTeamId = useWatch({ control: form.control, name: 'teamId' })
+  const watchHockeyTestId = useWatch({ control: form.control, name: 'hockeyTestId' })
+  const watchHockeyTestIdsByClient = useWatch({ control: form.control, name: 'hockeyTestIdsByClient' }) ?? {}
   const selectedClient = clients.find((c) => c.id === watchClientId)
+  const selectedTeam = teams.find((team) => team.id === watchTeamId)
   const courtSportProfileSettings = useMemo(
     () => getCourtSportProfileSettings(selectedClient?.sportProfile, sport),
     [selectedClient?.sportProfile, sport]
@@ -215,6 +232,7 @@ export function ConfigurationForm({
   const needsRunningFields = sport === 'RUNNING' || sport === 'HYROX' || sport === 'TRIATHLON'
   const needsPowerMeter = sport === 'CYCLING' || sport === 'TRIATHLON'
   const isHyrox = sport === 'HYROX'
+  const isHockeyProgram = sport === 'TEAM_ICE_HOCKEY'
 
   // Calendar constraints state
   const [calendarData, setCalendarData] = useState<CalendarConstraintsResponse | null>(null)
@@ -230,6 +248,67 @@ export function ConfigurationForm({
     hockeySettings: selectedClient?.sportProfile?.hockeySettings,
     footballSettings: selectedClient?.sportProfile?.footballSettings,
   }), [goal, locale, selectedClient?.sportProfile?.footballSettings, selectedClient?.sportProfile?.hockeySettings, sport, watchSessionsPerWeek])
+
+  const selectedHockeyTest = useMemo(() => {
+    if (!selectedClient?.hockeyTests?.length) return undefined
+    return selectedClient.hockeyTests.find((test) => test.id === watchHockeyTestId) ?? selectedClient.hockeyTests[0]
+  }, [selectedClient, watchHockeyTestId])
+
+  const selectedTargetClientIds = useMemo(() => {
+    if (watchAssignmentScope === 'TEAM') {
+      return selectedTeam?.members.map((member) => member.id) ?? []
+    }
+    if (watchAssignmentScope === 'SELECTED') {
+      return watchClientIds
+    }
+    return watchClientId ? [watchClientId] : []
+  }, [selectedTeam?.members, watchAssignmentScope, watchClientId, watchClientIds])
+
+  const clientById = useMemo(() => new Map(clients.map((client) => [client.id, client])), [clients])
+
+  const latestHockeyTestIdsByClient = useMemo(() => {
+    const entries = selectedTargetClientIds
+      .map((clientId) => {
+        const latest = clientById.get(clientId)?.hockeyTests?.[0]
+        return latest ? [clientId, latest.id] as const : null
+      })
+      .filter((entry): entry is readonly [string, string] => Boolean(entry))
+    return Object.fromEntries(entries)
+  }, [clientById, selectedTargetClientIds])
+
+  useEffect(() => {
+    if (selectedTeamId && selectedTeamId !== watchTeamId) {
+      form.setValue('teamId', selectedTeamId)
+    }
+  }, [form, selectedTeamId, watchTeamId])
+
+  useEffect(() => {
+    if (!watchTeamId && teams.length > 0) {
+      form.setValue('teamId', teams[0].id)
+    }
+  }, [form, teams, watchTeamId])
+
+  useEffect(() => {
+    if (!isHockeyProgram || dataSource !== 'TEST') return
+
+    if (watchAssignmentScope === 'INDIVIDUAL') {
+      const latest = selectedClient?.hockeyTests?.[0]
+      if (latest && !watchHockeyTestId) {
+        form.setValue('hockeyTestId', latest.id, { shouldValidate: true })
+      }
+      return
+    }
+
+    form.setValue('hockeyTestIdsByClient', latestHockeyTestIdsByClient, { shouldValidate: true })
+  }, [
+    dataSource,
+    form,
+    isHockeyProgram,
+    latestHockeyTestIdsByClient,
+    selectedClient?.hockeyTests,
+    watchAssignmentScope,
+    watchHockeyTestId,
+  ])
 
   // Fetch calendar constraints when client or duration changes
   useEffect(() => {
@@ -318,6 +397,15 @@ export function ConfigurationForm({
 
   // Wrap submit to include calendar constraints
   const handleSubmit = form.handleSubmit((data) => {
+    const assignmentScope = data.assignmentScope ?? 'INDIVIDUAL'
+    const teamClientIds = selectedTeam?.members.map((member) => member.id) ?? data.clientIds ?? []
+    const targetClientIds = assignmentScope === 'TEAM'
+      ? teamClientIds
+      : assignmentScope === 'SELECTED'
+        ? data.clientIds ?? []
+        : data.clientId
+          ? [data.clientId]
+          : []
     const courtSportSettings = buildCourtSportSettingsPayload(
       sport,
       goal,
@@ -329,6 +417,16 @@ export function ConfigurationForm({
     const submissionData = {
       ...data,
       ...courtSportSettings,
+      clientId: targetClientIds[0] ?? data.clientId,
+      clientIds: targetClientIds.length > 1 ? targetClientIds : undefined,
+      assignmentScope,
+      teamId: assignmentScope !== 'INDIVIDUAL' ? data.teamId : undefined,
+      hockeyTestId: sport === 'TEAM_ICE_HOCKEY' && dataSource === 'TEST' && targetClientIds.length <= 1
+        ? data.hockeyTestId
+        : undefined,
+      hockeyTestIdsByClient: sport === 'TEAM_ICE_HOCKEY' && dataSource === 'TEST' && targetClientIds.length > 1
+        ? { ...latestHockeyTestIdsByClient, ...watchHockeyTestIdsByClient }
+        : undefined,
       calendarConstraints: calendarData?.constraints ? {
         blockedDates: calendarData.constraints.blockedDates,
         reducedDates: calendarData.constraints.reducedDates,
@@ -432,35 +530,47 @@ export function ConfigurationForm({
           </p>
         </div>
 
+        <ProgramAudienceSelector
+          form={form}
+          clients={clients}
+          teams={teams}
+          sport={sport}
+          locale={locale}
+          onTeamChange={onTeamChange}
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Client Selection */}
-          <FormField
-            control={form.control}
-            name="clientId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>{t(locale, 'Atlet *', 'Athlete *')}</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder={t(locale, 'Välj atlet', 'Choose athlete')} />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {watchAssignmentScope === 'INDIVIDUAL' && (
+            <FormField
+              control={form.control}
+              name="clientId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t(locale, 'Atlet *', 'Athlete *')}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t(locale, 'Välj atlet', 'Choose athlete')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {clients.map((client) => (
+                        <SelectItem key={client.id} value={client.id}>
+                          {client.name}
+                          {client.position ? ` · ${client.position}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           {/* Test Selection (if dataSource is TEST) */}
-          {dataSource === 'TEST' && selectedClient && (
+          {dataSource === 'TEST' && selectedClient && sport !== 'TEAM_ICE_HOCKEY' && (
             <FormField
               control={form.control}
               name="testId"
@@ -482,6 +592,37 @@ export function ConfigurationForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+
+          {dataSource === 'TEST' && selectedClient && sport === 'TEAM_ICE_HOCKEY' && watchAssignmentScope === 'INDIVIDUAL' && (
+            <FormField
+              control={form.control}
+              name="hockeyTestId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t(locale, 'Hockeytest *', 'Hockey test *')}</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t(locale, 'Välj hockeytest', 'Choose hockey test')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {(selectedClient.hockeyTests ?? []).map((test) => (
+                        <SelectItem key={test.id} value={test.id}>
+                          {format(new Date(test.testDate), 'PPP', { locale: getDateLocale(locale) })} ·{' '}
+                          {t(locale, `${test.metricCount} mätvärden`, `${test.metricCount} metrics`)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    {t(locale, 'Tar med is-sprint, 5-10-5, 7x40, styrka, power, Wingate och aerob profil när data finns.', 'Includes ice sprint, 5-10-5, 7x40, strength, power, Wingate, and aerobic profile when available.')}
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -807,6 +948,17 @@ export function ConfigurationForm({
             />
           )}
         </div>
+
+        {isHockeyProgram && dataSource === 'TEST' && (
+          <HockeyTestEvidencePanel
+            locale={locale}
+            assignmentScope={watchAssignmentScope}
+            selectedClient={selectedClient}
+            selectedTeam={selectedTeam}
+            selectedClientIds={selectedTargetClientIds}
+            selectedTest={selectedHockeyTest}
+          />
+        )}
 
         {teamSportPlanningSummary && (
           <TeamSportPlanningPanel summary={teamSportPlanningSummary} locale={locale} />
@@ -1192,7 +1344,9 @@ export function ConfigurationForm({
           </Button>
           <Button type="submit" size="lg" disabled={isSubmitting}>
             {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {t(locale, 'Generera program', 'Generate program')}
+            {selectedTargetClientIds.length > 1
+              ? t(locale, `Generera ${selectedTargetClientIds.length} program`, `Generate ${selectedTargetClientIds.length} programs`)
+              : t(locale, 'Generera program', 'Generate program')}
           </Button>
         </div>
       </form>

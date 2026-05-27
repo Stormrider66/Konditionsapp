@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { SportType } from '@prisma/client'
 import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
@@ -136,10 +137,27 @@ const sports: Sport[] = [
 interface SportSelectorProps {
   selectedSport: SportType | null
   onSelect: (sport: SportType) => void
+  teams?: Array<{
+    id: string
+    name: string
+    sportType?: SportType | null
+  }>
 }
 
-export function SportSelector({ selectedSport, onSelect }: SportSelectorProps) {
+export function SportSelector({ selectedSport, onSelect, teams = [] }: SportSelectorProps) {
   const locale = getAppLocale(useLocale())
+  const [showAllSports, setShowAllSports] = useState(false)
+  const hockeyTeam = teams.find((team) => team.sportType === 'TEAM_ICE_HOCKEY')
+  const recommendedSportIds: SportType[] = hockeyTeam
+    ? ['TEAM_ICE_HOCKEY', 'STRENGTH']
+    : []
+  const recommendedSports = recommendedSportIds
+    .map((sportId) => sports.find((sport) => sport.id === sportId))
+    .filter((sport): sport is Sport => Boolean(sport))
+  const visibleSports = hockeyTeam && !showAllSports
+    ? recommendedSports
+    : sports
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -149,8 +167,36 @@ export function SportSelector({ selectedSport, onSelect }: SportSelectorProps) {
         </p>
       </div>
 
+      {hockeyTeam && (
+        <div className="rounded-lg border bg-muted/20 p-4 text-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-medium text-slate-900 dark:text-white">
+                {t(locale, 'Hockeylag upptäckt', 'Hockey team detected')}: {hockeyTeam.name}
+              </p>
+              <p className="mt-1 text-muted-foreground">
+                {t(
+                  locale,
+                  'Guiden prioriterar hockeyprogram och styrkeblock. Hockeyspecifik kondition väljs som mål i nästa steg.',
+                  'The wizard prioritizes hockey programs and strength blocks. Hockey-specific conditioning is chosen as a goal in the next step.'
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowAllSports((value) => !value)}
+              className="w-fit rounded-md border px-3 py-2 text-sm font-medium transition-colors hover:bg-background"
+            >
+              {showAllSports
+                ? t(locale, 'Visa rekommenderade', 'Show recommended')
+                : t(locale, 'Visa alla sporter', 'Show all sports')}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {sports.map((sport) => {
+        {visibleSports.map((sport) => {
           const isSelected = selectedSport === sport.id
           return (
             // ...

@@ -181,6 +181,9 @@ export interface SportProgramParams {
 
   // Team, court and racket sports profile settings
   hockeySettings?: Record<string, unknown> | null
+  hockeyTestId?: string
+  hockeyTestDate?: Date
+  hockeyTestMetrics?: Record<string, number | null>
   footballSettings?: Record<string, unknown> | null
   basketballSettings?: Record<string, unknown> | null
   handballSettings?: Record<string, unknown> | null

@@ -62,6 +62,7 @@ export function getDefaultDuration(sport: SportType, goal: string): number {
       'off-season-build': 12,
       'pre-season-readiness': 8,
       'in-season-maintenance': 8,
+      conditioning: 8,
       'speed-power': 8,
       'injury-prevention': 10,
       'return-to-play': 6,

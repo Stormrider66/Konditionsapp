@@ -217,12 +217,14 @@ export function inferFootballSeasonPhase(goal: string): FootballSeasonPhase {
 export function inferHockeySeasonPhase(goal: string): HockeySeasonPhase {
   if (goal === 'off-season-build') return 'off_season'
   if (goal === 'pre-season-readiness') return 'pre_season'
+  if (goal === 'conditioning') return 'pre_season'
   if (goal === 'in-season-maintenance') return 'in_season'
   return 'in_season'
 }
 
 export function inferHockeyMatchesThisWeek(phase: HockeySeasonPhase, goal: string): number {
   if (goal === 'off-season-build' || phase === 'off_season') return 0
+  if (goal === 'conditioning') return 0
   if (phase === 'playoffs') return 2
   return 1
 }

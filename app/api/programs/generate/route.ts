@@ -8,18 +8,184 @@ import { canAccessClient, requireCoach, hasReachedAthleteLimit } from '@/lib/aut
 import { logger } from '@/lib/logger'
 import { Prisma, WorkoutType, WorkoutIntensity, SportType } from '@prisma/client'
 import { logDebug, logError } from '@/lib/logger-console'
-import { Client as AppClient, Test as AppTest } from '@/types'
+import { Client as AppClient, Test as AppTest, type CreateTrainingProgramDTO } from '@/types'
 import {
   getGeneralFitnessProgram,
   getProgramDescription,
   type FitnessGoal,
   type FitnessLevel,
 } from '@/lib/program-generator/templates/general-fitness'
+import { metricValuesForTest, type HockeyTestForSummary } from '@/lib/hockey/team-test-metrics'
 
 type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+const hockeyTestSelect = {
+  id: true,
+  clientId: true,
+  testDate: true,
+  sprint5m: true,
+  sprint10m: true,
+  sprint20m: true,
+  sprint30m: true,
+  sprint20mFly: true,
+  sprint30mFly: true,
+  agility505Left: true,
+  agility505Right: true,
+  endurance7x40: true,
+  gripStrengthLeft: true,
+  gripStrengthRight: true,
+  standingLongJump: true,
+  threeJumpLeft: true,
+  threeJumpRight: true,
+  beepTestLevel: true,
+  beepTestShuttle: true,
+  wingate30sAveragePower: true,
+  vo2Max: true,
+  lt1SpeedKmh: true,
+  lt1HeartRate: true,
+  lt1Lactate: true,
+  lt2SpeedKmh: true,
+  lt2HeartRate: true,
+  lt2Lactate: true,
+  maxLactate: true,
+  maxHeartRate: true,
+  rampTimeSeconds: true,
+  backSquat1RM: true,
+  powerClean1RM: true,
+  benchPress1RM: true,
+  pullUp1RM: true,
+  muscleLabMaxima: true,
+} satisfies Prisma.HockeyPhysicalTestSelect
+
+type HockeyTestRecord = HockeyTestForSummary & { id: string }
+
+async function saveGeneratedProgram(programData: CreateTrainingProgramDTO, generatedFromTest: boolean) {
+  return prisma.trainingProgram.create({
+    data: {
+      clientId: programData.clientId,
+      coachId: programData.coachId,
+      testId: programData.testId || null,
+      name: programData.name,
+      goalType: programData.goalType,
+      startDate: programData.startDate,
+      endDate: programData.endDate,
+      description: programData.notes || null,
+      generatedFromTest,
+      planningMetadata: programData.planningMetadata as Prisma.InputJsonValue | undefined,
+      weeks: {
+        create: programData.weeks?.map((week) => ({
+          weekNumber: week.weekNumber,
+          startDate: new Date(
+            programData.startDate.getTime() + (week.weekNumber - 1) * 7 * 24 * 60 * 60 * 1000
+          ),
+          endDate: new Date(
+            programData.startDate.getTime() + week.weekNumber * 7 * 24 * 60 * 60 * 1000
+          ),
+          phase: week.phase,
+          weeklyVolume: week.volume,
+          focus: week.focus,
+          days: {
+            create: week.days.map((day) => ({
+              dayNumber: day.dayNumber,
+              date: new Date(
+                programData.startDate.getTime() + (week.weekNumber - 1) * 7 * 24 * 60 * 60 * 1000 + (day.dayNumber - 1) * 24 * 60 * 60 * 1000
+              ),
+              notes: day.notes,
+              workouts: {
+                create: day.workouts.map((workout, index) => ({
+                  type: workout.type,
+                  name: workout.name,
+                  order: index + 1,
+                  intensity: workout.intensity,
+                  duration: workout.duration,
+                  distance: workout.distance,
+                  instructions: workout.instructions,
+                  segments: {
+                    create: workout.segments?.map((segment) => ({
+                      order: segment.order,
+                      type: segment.type,
+                      duration: segment.duration,
+                      distance: segment.distance,
+                      zone: segment.zone,
+                      pace: segment.pace,
+                      power: segment.power,
+                      heartRate: segment.heartRate,
+                      reps: segment.reps,
+                      sets: segment.sets,
+                      repsCount: segment.repsCount,
+                      rest: segment.rest,
+                      tempo: segment.tempo,
+                      weight: segment.weight,
+                      exerciseId: segment.exerciseId,
+                      description: segment.description,
+                      notes: segment.notes,
+                    })) || [],
+                  },
+                })),
+              },
+            })),
+          },
+        })) || [],
+      },
+    },
+    include: {
+      weeks: {
+        include: {
+          days: {
+            include: {
+              workouts: {
+                include: { segments: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+}
+
+function normalizeClientIds(body: Record<string, unknown>): string[] {
+  const ids = Array.isArray(body.clientIds)
+    ? body.clientIds.filter((id): id is string => typeof id === 'string' && id.trim().length > 0)
+    : []
+  if (typeof body.clientId === 'string' && body.clientId.trim().length > 0) {
+    ids.unshift(body.clientId)
+  }
+  return Array.from(new Set(ids))
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+async function resolveHockeyTestForClient(
+  clientId: string,
+  body: Record<string, unknown>
+): Promise<HockeyTestRecord | null> {
+  const mappedId = isRecord(body.hockeyTestIdsByClient)
+    ? body.hockeyTestIdsByClient[clientId]
+    : undefined
+  const hockeyTestId = typeof mappedId === 'string' ? mappedId : body.hockeyTestId
+
+  if (typeof hockeyTestId === 'string' && hockeyTestId.trim().length > 0) {
+    return prisma.hockeyPhysicalTest.findFirst({
+      where: {
+        id: hockeyTestId,
+        clientId,
+      },
+      select: hockeyTestSelect,
+    }) as Promise<HockeyTestRecord | null>
+  }
+
+  return prisma.hockeyPhysicalTest.findFirst({
+    where: { clientId },
+    orderBy: { testDate: 'desc' },
+    select: hockeyTestSelect,
+  }) as Promise<HockeyTestRecord | null>
 }
 
 /**
@@ -47,7 +213,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    if (!body?.clientId) {
+    const clientIds = normalizeClientIds(body)
+    if (clientIds.length === 0) {
       return NextResponse.json(
         {
           success: false,
@@ -57,8 +224,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const hasClientAccess = await canAccessClient(user.id, body.clientId)
-    if (!hasClientAccess) {
+    const accessResults = await Promise.all(clientIds.map((clientId) => canAccessClient(user.id, clientId)))
+    if (accessResults.some((hasAccess) => !hasAccess)) {
       return NextResponse.json(
         {
           success: false,
@@ -75,9 +242,8 @@ export async function POST(request: NextRequest) {
     if (body.sport && Object.values(SportType).includes(body.sport as SportType)) {
       logDebug(`[API] Using sport router for sport: ${body.sport}`)
 
-      // Fetch client
-      const client = await prisma.client.findUnique({
-        where: { id: body.clientId },
+      const clients = await prisma.client.findMany({
+        where: { id: { in: clientIds } },
         include: {
           sportProfile: {
             select: {
@@ -94,210 +260,161 @@ export async function POST(request: NextRequest) {
         },
       })
 
-      if (!client) {
+      if (clients.length !== clientIds.length) {
         return NextResponse.json(
           { success: false, error: t(locale, 'Client not found', 'Klient hittades inte') },
           { status: 404 }
         )
       }
 
-      // Fetch test if testId provided
-      let test = null
-      if (body.testId && body.testId.trim() !== '') {
-        test = await prisma.test.findUnique({
-          where: { id: body.testId },
-          include: {
-            testStages: { orderBy: { sequence: 'asc' } },
-          },
-        })
+      const clientsById = new Map(clients.map((client) => [client.id, client]))
+      const createdPrograms = []
 
-        if (test && test.userId !== user.id) {
-          return NextResponse.json(
-            { success: false, error: t(locale, 'Unauthorized access to test', 'Obehörig åtkomst till test') },
-            { status: 403 }
-          )
-        }
-      }
+      for (const clientId of clientIds) {
+        const client = clientsById.get(clientId)
+        if (!client) continue
 
-      // Build sport program params
-      const sportParams: SportProgramParams = {
-        clientId: body.clientId,
-        coachId: user.id,
-        sport: body.sport as SportType,
-        goal: body.goal || body.goalType || 'custom',
-        dataSource: (body.dataSource || 'MANUAL') as DataSourceType,
-        durationWeeks: body.durationWeeks || 12,
-        sessionsPerWeek: body.sessionsPerWeek || body.trainingDaysPerWeek || 4,
-        notes: body.notes,
-        targetRaceDate: body.targetRaceDate ? new Date(body.targetRaceDate) : undefined,
-        locale,
-        testId: body.testId,
+        const testIdsByClient = body.testIdsByClient && typeof body.testIdsByClient === 'object'
+          ? body.testIdsByClient as Record<string, string>
+          : {}
+        const testId = testIdsByClient[clientId] || (clientIds.length === 1 ? body.testId : undefined)
 
-        // Manual values
-        manualFtp: body.manualFtp || body.ftp,
-        manualCss: body.manualCss || body.css,
-        manualVdot: body.manualVdot || body.vdot,
-
-        // Sport-specific
-        methodology: body.methodology,
-        weeklyHours: body.weeklyHours,
-        bikeType: body.bikeType,
-        technique: body.technique,
-        poolLength: body.poolLength,
-
-        // Strength integration
-        includeStrength: body.includeStrength,
-        strengthSessionsPerWeek: body.strengthSessionsPerWeek,
-
-        // ===== NEW FIELDS FROM WIZARD =====
-
-        // Athlete Profile (Running/HYROX/Triathlon)
-        experienceLevel: body.experienceLevel,
-        yearsRunning: body.yearsRunning,
-        currentWeeklyVolume: body.currentWeeklyVolume,
-        longestLongRun: body.longestLongRun,
-
-        // Race Results for VDOT (pure running races only)
-        recentRaceDistance: body.recentRaceDistance,
-        recentRaceTime: body.recentRaceTime,
-
-        // Target Race Goal Time (for progressive pace calculation)
-        targetTime: body.targetTime,
-
-        // Core & Alternative Training
-        coreSessionsPerWeek: body.coreSessionsPerWeek,
-        alternativeTrainingSessionsPerWeek: body.alternativeTrainingSessionsPerWeek,
-        scheduleStrengthAfterRunning: body.scheduleStrengthAfterRunning,
-        scheduleCoreAfterRunning: body.scheduleCoreAfterRunning,
-
-        // Equipment & Monitoring
-        hasLactateMeter: body.hasLactateMeter,
-        hasHRVMonitor: body.hasHRVMonitor,
-        hasPowerMeter: body.hasPowerMeter,
-
-        // ===== HYROX Station Times =====
-        hyroxStationTimes: body.hyroxStationTimes ? parseHyroxStationTimes(body.hyroxStationTimes) : undefined,
-        hyroxDivision: body.hyroxDivision,
-        hyroxGender: body.hyroxGender,
-        hyroxBodyweight: body.hyroxBodyweight,
-
-        // ===== Strength PRs =====
-        strengthPRs: body.strengthPRs,
-
-        // General Fitness
-        fitnessGoal: body.fitnessGoal,
-        fitnessLevel: body.fitnessLevel,
-        hasGymAccess: body.hasGymAccess,
-        preferredActivities: body.preferredActivities,
-        hockeySettings: body.hockeySettings ?? client.sportProfile?.hockeySettings ?? null,
-        footballSettings: body.footballSettings ?? client.sportProfile?.footballSettings ?? null,
-        basketballSettings: body.basketballSettings ?? client.sportProfile?.basketballSettings ?? null,
-        handballSettings: body.handballSettings ?? client.sportProfile?.handballSettings ?? null,
-        floorballSettings: body.floorballSettings ?? client.sportProfile?.floorballSettings ?? null,
-        volleyballSettings: body.volleyballSettings ?? client.sportProfile?.volleyballSettings ?? null,
-        tennisSettings: body.tennisSettings ?? client.sportProfile?.tennisSettings ?? null,
-        padelSettings: body.padelSettings ?? client.sportProfile?.padelSettings ?? null,
-
-        // Calendar constraints
-        calendarConstraints: body.calendarConstraints,
-      }
-
-      // Generate program using sport router
-      const programData = await generateSportProgram(
-        sportParams,
-        client as unknown as AppClient,
-        test as unknown as AppTest | undefined
-      )
-
-      // Save to database
-      const program = await prisma.trainingProgram.create({
-        data: {
-          clientId: programData.clientId,
-          coachId: programData.coachId,
-          testId: programData.testId || null,
-          name: programData.name,
-          goalType: programData.goalType,
-          startDate: programData.startDate,
-          endDate: programData.endDate,
-          description: programData.notes || null,
-          generatedFromTest: !!programData.testId,
-          planningMetadata: programData.planningMetadata as Prisma.InputJsonValue | undefined,
-          weeks: {
-            create: programData.weeks?.map((week) => ({
-              weekNumber: week.weekNumber,
-              startDate: new Date(
-                programData.startDate.getTime() + (week.weekNumber - 1) * 7 * 24 * 60 * 60 * 1000
-              ),
-              endDate: new Date(
-                programData.startDate.getTime() + week.weekNumber * 7 * 24 * 60 * 60 * 1000
-              ),
-              phase: week.phase,
-              weeklyVolume: week.volume,
-              focus: week.focus,
-              days: {
-                create: week.days.map((day) => ({
-                  dayNumber: day.dayNumber,
-                  date: new Date(
-                    programData.startDate.getTime() + (week.weekNumber - 1) * 7 * 24 * 60 * 60 * 1000 + (day.dayNumber - 1) * 24 * 60 * 60 * 1000
-                  ),
-                  notes: day.notes,
-                  workouts: {
-                    create: day.workouts.map((workout, index) => ({
-                      type: workout.type,
-                      name: workout.name,
-                      order: index + 1,
-                      intensity: workout.intensity,
-                      duration: workout.duration,
-                      distance: workout.distance,
-                      instructions: workout.instructions,
-                      segments: {
-                        create: workout.segments?.map((segment) => ({
-                          order: segment.order,
-                          type: segment.type,
-                          duration: segment.duration,
-                          distance: segment.distance,
-                          zone: segment.zone,
-                          pace: segment.pace,
-                          power: segment.power,
-                          heartRate: segment.heartRate,
-                          reps: segment.reps,
-                          sets: segment.sets,
-                          repsCount: segment.repsCount,
-                          rest: segment.rest,
-                          tempo: segment.tempo,
-                          weight: segment.weight,
-                          exerciseId: segment.exerciseId,
-                          description: segment.description,
-                          notes: segment.notes,
-                        })) || [],
-                      },
-                    })),
-                  },
-                })),
-              },
-            })) || [],
-          },
-        },
-        include: {
-          weeks: {
+        let test = null
+        if (typeof testId === 'string' && testId.trim() !== '') {
+          test = await prisma.test.findUnique({
+            where: { id: testId },
             include: {
-              days: {
-                include: {
-                  workouts: {
-                    include: { segments: true },
-                  },
-                },
-              },
+              testStages: { orderBy: { sequence: 'asc' } },
             },
-          },
-        },
-      })
+          })
+
+          if (test && test.clientId !== clientId) {
+            return NextResponse.json(
+              { success: false, error: t(locale, 'Unauthorized access to test', 'Obehörig åtkomst till test') },
+              { status: 403 }
+            )
+          }
+        }
+
+        const hockeyTest = body.sport === 'TEAM_ICE_HOCKEY' && (body.dataSource === 'TEST' || body.hockeyTestId || body.hockeyTestIdsByClient)
+          ? await resolveHockeyTestForClient(clientId, body)
+          : null
+
+        // Build sport program params
+        const sportParams: SportProgramParams = {
+          clientId,
+          coachId: user.id,
+          sport: body.sport as SportType,
+          goal: body.goal || body.goalType || 'custom',
+          dataSource: (body.dataSource || 'MANUAL') as DataSourceType,
+          durationWeeks: body.durationWeeks || 12,
+          sessionsPerWeek: body.sessionsPerWeek || body.trainingDaysPerWeek || 4,
+          notes: body.notes,
+          targetRaceDate: body.targetRaceDate ? new Date(body.targetRaceDate) : undefined,
+          locale,
+          testId,
+
+          // Manual values
+          manualFtp: body.manualFtp || body.ftp,
+          manualCss: body.manualCss || body.css,
+          manualVdot: body.manualVdot || body.vdot,
+
+          // Sport-specific
+          methodology: body.methodology,
+          weeklyHours: body.weeklyHours,
+          bikeType: body.bikeType,
+          technique: body.technique,
+          poolLength: body.poolLength,
+
+          // Strength integration
+          includeStrength: body.includeStrength,
+          strengthSessionsPerWeek: body.strengthSessionsPerWeek,
+
+          // ===== NEW FIELDS FROM WIZARD =====
+
+          // Athlete Profile (Running/HYROX/Triathlon)
+          experienceLevel: body.experienceLevel,
+          yearsRunning: body.yearsRunning,
+          currentWeeklyVolume: body.currentWeeklyVolume,
+          longestLongRun: body.longestLongRun,
+
+          // Race Results for VDOT (pure running races only)
+          recentRaceDistance: body.recentRaceDistance,
+          recentRaceTime: body.recentRaceTime,
+
+          // Target Race Goal Time (for progressive pace calculation)
+          targetTime: body.targetTime,
+
+          // Core & Alternative Training
+          coreSessionsPerWeek: body.coreSessionsPerWeek,
+          alternativeTrainingSessionsPerWeek: body.alternativeTrainingSessionsPerWeek,
+          scheduleStrengthAfterRunning: body.scheduleStrengthAfterRunning,
+          scheduleCoreAfterRunning: body.scheduleCoreAfterRunning,
+
+          // Equipment & Monitoring
+          hasLactateMeter: body.hasLactateMeter,
+          hasHRVMonitor: body.hasHRVMonitor,
+          hasPowerMeter: body.hasPowerMeter,
+
+          // ===== HYROX Station Times =====
+          hyroxStationTimes: body.hyroxStationTimes ? parseHyroxStationTimes(body.hyroxStationTimes) : undefined,
+          hyroxDivision: body.hyroxDivision,
+          hyroxGender: body.hyroxGender,
+          hyroxBodyweight: body.hyroxBodyweight,
+
+          // ===== Strength PRs =====
+          strengthPRs: body.strengthPRs,
+
+          // General Fitness
+          fitnessGoal: body.fitnessGoal,
+          fitnessLevel: body.fitnessLevel,
+          hasGymAccess: body.hasGymAccess,
+          preferredActivities: body.preferredActivities,
+          hockeySettings: body.hockeySettings ?? client.sportProfile?.hockeySettings ?? null,
+          hockeyTestId: hockeyTest?.id,
+          hockeyTestDate: hockeyTest?.testDate,
+          hockeyTestMetrics: hockeyTest ? metricValuesForTest(hockeyTest) : undefined,
+          footballSettings: body.footballSettings ?? client.sportProfile?.footballSettings ?? null,
+          basketballSettings: body.basketballSettings ?? client.sportProfile?.basketballSettings ?? null,
+          handballSettings: body.handballSettings ?? client.sportProfile?.handballSettings ?? null,
+          floorballSettings: body.floorballSettings ?? client.sportProfile?.floorballSettings ?? null,
+          volleyballSettings: body.volleyballSettings ?? client.sportProfile?.volleyballSettings ?? null,
+          tennisSettings: body.tennisSettings ?? client.sportProfile?.tennisSettings ?? null,
+          padelSettings: body.padelSettings ?? client.sportProfile?.padelSettings ?? null,
+
+          // Calendar constraints
+          calendarConstraints: body.calendarConstraints,
+        }
+
+        const programData = await generateSportProgram(
+          sportParams,
+          client as unknown as AppClient,
+          test as unknown as AppTest | undefined
+        )
+
+        const program = await saveGeneratedProgram(programData, Boolean(programData.testId || hockeyTest?.id))
+        createdPrograms.push(program)
+      }
+
+      const firstProgram = createdPrograms[0]
 
       return NextResponse.json(
         {
           success: true,
-          data: program,
-          message: t(locale, 'Training program created', 'Träningsprogram skapat'),
+          data: createdPrograms.length === 1
+            ? firstProgram
+            : {
+                id: firstProgram?.id,
+                count: createdPrograms.length,
+                programs: createdPrograms.map((program) => ({
+                  id: program.id,
+                  name: program.name,
+                  clientId: program.clientId,
+                })),
+              },
+          message: createdPrograms.length === 1
+            ? t(locale, 'Training program created', 'Träningsprogram skapat')
+            : t(locale, 'Training programs created', 'Träningsprogram skapade'),
         },
         { status: 201 }
       )

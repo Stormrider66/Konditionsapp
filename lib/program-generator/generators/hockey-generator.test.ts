@@ -91,4 +91,31 @@ describe('generateHockeyProgram', () => {
       },
     })
   })
+
+  it('carries hockey physical test evidence into notes and metadata', async () => {
+    const program = await generateHockeyProgram(params({
+      dataSource: 'TEST',
+      hockeyTestId: 'hockey-test-1',
+      hockeyTestDate: new Date('2026-05-01T00:00:00.000Z'),
+      hockeyTestMetrics: {
+        sprint10m: 1.78,
+        agilityBest: 4.52,
+        endurance7x40Drop: 9.2,
+        backSquat1RM: 155,
+        lt2SpeedKmh: 15.2,
+      },
+    }), client)
+
+    expect(program.notes).toContain('Hockey test evidence')
+    expect(program.notes).toContain('7x40 drop is elevated')
+    expect(program.planningMetadata).toMatchObject({
+      hockey: {
+        testEvidence: {
+          testId: 'hockey-test-1',
+          availableMetrics: expect.arrayContaining(['sprint10m', 'agilityBest', 'endurance7x40Drop', 'backSquat1RM', 'lt2SpeedKmh']),
+          priorities: expect.arrayContaining(['repeated-sprint durability']),
+        },
+      },
+    })
+  })
 })
