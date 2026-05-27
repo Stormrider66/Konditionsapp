@@ -9,7 +9,6 @@
 import { prisma } from '@/lib/prisma'
 import type {
   VoiceWorkoutIntent,
-  VoiceWorkoutType,
   GeneratedWorkoutData,
   CardioSessionData,
   CardioSegmentData,
@@ -21,7 +20,13 @@ import type {
   VoiceWorkoutPreview,
 } from '@/types/voice-workout'
 import { buildWODContext } from './wod-context-builder'
-import { checkWODGuardrails, generateGuardrailConstraints } from './wod-guardrails'
+import { checkWODGuardrails } from './wod-guardrails'
+
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // MAIN GENERATOR
@@ -32,17 +37,18 @@ import { checkWODGuardrails, generateGuardrailConstraints } from './wod-guardrai
  */
 export async function generateWorkoutFromIntent(
   intent: VoiceWorkoutIntent,
-  coachId: string
+  coachId: string,
+  locale: AppLocale = 'en'
 ): Promise<GeneratedWorkoutData> {
   const workoutType = intent.workout.type
 
   switch (workoutType) {
     case 'CARDIO':
-      return generateCardioWorkout(intent)
+      return generateCardioWorkout(intent, locale)
     case 'STRENGTH':
-      return generateStrengthWorkout(intent, coachId)
+      return generateStrengthWorkout(intent, coachId, locale)
     case 'HYBRID':
-      return generateHybridWorkout(intent, coachId)
+      return generateHybridWorkout(intent, coachId, locale)
     default:
       throw new Error(`Unknown workout type: ${workoutType}`)
   }
@@ -54,16 +60,18 @@ export async function generateWorkoutFromIntent(
 export async function buildVoiceWorkoutPreview(
   sessionId: string,
   intent: VoiceWorkoutIntent,
-  coachId: string
+  coachId: string,
+  locale: AppLocale = 'en'
 ): Promise<VoiceWorkoutPreview> {
   // Generate the workout
-  const generatedWorkout = await generateWorkoutFromIntent(intent, coachId)
+  const generatedWorkout = await generateWorkoutFromIntent(intent, coachId, locale)
 
   // Get target info (athletes)
   const targetInfo = await getTargetAthleteInfo(
     intent.target.type,
     intent.target.resolvedId,
-    coachId
+    coachId,
+    locale
   )
 
   // Get guardrail warnings for each athlete
@@ -97,7 +105,7 @@ export async function buildVoiceWorkoutPreview(
   }
 
   // Build calendar preview
-  const workoutName = generatedWorkout.name || intent.workout.name || 'Träningspass'
+  const workoutName = generatedWorkout.name || intent.workout.name || t(locale, 'Workout', 'Träningspass')
   const calendarPreview = {
     title: workoutName,
     date: intent.schedule.resolvedDate || '',
@@ -107,13 +115,13 @@ export async function buildVoiceWorkoutPreview(
   // Determine if we can save
   const issues: string[] = []
   if (!intent.target.resolvedId) {
-    issues.push('Ingen mottagare vald - välj atlet eller lag')
+    issues.push(t(locale, 'No recipient selected - choose athlete or team', 'Ingen mottagare vald - välj atlet eller lag'))
   }
   if (!intent.schedule.resolvedDate) {
-    issues.push('Inget datum valt')
+    issues.push(t(locale, 'No date selected', 'Inget datum valt'))
   }
   if (targetInfo.athletes.length === 0) {
-    issues.push('Inga atleter att tilldela')
+    issues.push(t(locale, 'No athletes to assign', 'Inga atleter att tilldela'))
   }
 
   return {
@@ -132,7 +140,7 @@ export async function buildVoiceWorkoutPreview(
 // CARDIO WORKOUT GENERATOR
 // ============================================
 
-function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData {
+function generateCardioWorkout(intent: VoiceWorkoutIntent, locale: AppLocale): GeneratedWorkoutData {
   const structure = intent.workout.structure
   const subtype = intent.workout.subtype?.toLowerCase() || ''
 
@@ -146,7 +154,7 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
           type: 'warmup',
           duration: (item.duration || 10) * 60, // Convert to seconds
           zone: 1,
-          notes: item.description || 'Lätt jogg, dynamisk stretching',
+          notes: item.description || t(locale, 'Easy jog, dynamic stretching', 'Lätt jogg, dynamisk stretching'),
         })
         break
 
@@ -170,14 +178,14 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
             type: 'interval',
             duration: intervalDuration * 60,
             zone: item.zone || 4,
-            notes: `Intervall ${i + 1}/${intervalReps}`,
+            notes: t(locale, `Interval ${i + 1}/${intervalReps}`, `Intervall ${i + 1}/${intervalReps}`),
           })
           if (i < intervalReps - 1) {
             segments.push({
               type: 'recovery',
               duration: restDuration,
               zone: 1,
-              notes: 'Aktiv vila',
+              notes: t(locale, 'Active recovery', 'Aktiv vila'),
             })
           }
         }
@@ -188,7 +196,7 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
           type: 'cooldown',
           duration: (item.duration || 10) * 60,
           zone: 1,
-          notes: item.description || 'Nedvarvning, stretching',
+          notes: item.description || t(locale, 'Cooldown, stretching', 'Nedvarvning, stretching'),
         })
         break
 
@@ -197,7 +205,7 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
           type: 'recovery',
           duration: item.rest || 180,
           zone: 1,
-          notes: item.description || 'Vila',
+          notes: item.description || t(locale, 'Rest', 'Vila'),
         })
         break
     }
@@ -209,7 +217,7 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
       type: 'warmup',
       duration: 600, // 10 min
       zone: 1,
-      notes: 'Lätt jogg, dynamisk stretching',
+      notes: t(locale, 'Easy jog, dynamic stretching', 'Lätt jogg, dynamisk stretching'),
     })
   }
 
@@ -218,7 +226,7 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
       type: 'cooldown',
       duration: 600, // 10 min
       zone: 1,
-      notes: 'Nedvarvning, stretching',
+      notes: t(locale, 'Cooldown, stretching', 'Nedvarvning, stretching'),
     })
   }
 
@@ -231,7 +239,7 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
       : 2
 
   // Generate name
-  const name = intent.workout.name || generateCardioName(subtype, intent.workout.structure)
+  const name = intent.workout.name || generateCardioName(subtype, intent.workout.structure, locale)
 
   const cardioData: CardioSessionData = {
     name,
@@ -251,27 +259,27 @@ function generateCardioWorkout(intent: VoiceWorkoutIntent): GeneratedWorkoutData
   }
 }
 
-function generateCardioName(subtype: string, structure: VoiceWorkoutIntent['workout']['structure']): string {
+function generateCardioName(subtype: string, structure: VoiceWorkoutIntent['workout']['structure'], locale: AppLocale): string {
   // Find main intervals
   const interval = structure.find((s) => s.type === 'interval')
 
   if (interval && interval.reps && interval.duration) {
-    return `${interval.reps}x${interval.duration} Intervaller`
+    return t(locale, `${interval.reps}x${interval.duration} intervals`, `${interval.reps}x${interval.duration} Intervaller`)
   }
 
   if (subtype.includes('tempo')) {
-    return 'Tempopass'
+    return t(locale, 'Tempo workout', 'Tempopass')
   }
 
   if (subtype.includes('long') || subtype.includes('lång')) {
-    return 'Långpass'
+    return t(locale, 'Long run', 'Långpass')
   }
 
   if (subtype.includes('recovery') || subtype.includes('återhämtning')) {
-    return 'Återhämtningspass'
+    return t(locale, 'Recovery workout', 'Återhämtningspass')
   }
 
-  return 'Löppass'
+  return t(locale, 'Running workout', 'Löppass')
 }
 
 // ============================================
@@ -280,7 +288,8 @@ function generateCardioName(subtype: string, structure: VoiceWorkoutIntent['work
 
 async function generateStrengthWorkout(
   intent: VoiceWorkoutIntent,
-  coachId: string
+  coachId: string,
+  locale: AppLocale
 ): Promise<GeneratedWorkoutData> {
   const structure = intent.workout.structure
   const subtype = intent.workout.subtype?.toLowerCase() || ''
@@ -298,7 +307,7 @@ async function generateStrengthWorkout(
 
       const exercise: StrengthExerciseData = {
         exerciseId: matchedExercise?.id,
-        exerciseName: matchedExercise?.nameSv || item.exerciseName,
+        exerciseName: matchedExercise ? exerciseDisplayName(matchedExercise, locale) : item.exerciseName,
         sets: item.sets || 3,
         reps: item.repsCount || '10',
         restSeconds: item.rest || 90,
@@ -322,12 +331,12 @@ async function generateStrengthWorkout(
   // Add default structure if empty
   if (exercises.length === 0) {
     // Generate based on subtype
-    const defaultExercises = await getDefaultStrengthExercises(subtype, coachId)
+    const defaultExercises = await getDefaultStrengthExercises(subtype, coachId, locale)
     exercises.push(...defaultExercises)
   }
 
   // Generate name
-  const name = intent.workout.name || generateStrengthName(subtype)
+  const name = intent.workout.name || generateStrengthName(subtype, locale)
 
   const strengthData: StrengthSessionData = {
     name,
@@ -351,10 +360,8 @@ async function generateStrengthWorkout(
 
 async function matchExercise(
   exerciseName: string,
-  coachId: string
+  _coachId: string
 ): Promise<{ id: string; name: string; nameSv: string | null; category: string } | null> {
-  const normalized = exerciseName.toLowerCase().trim()
-
   // First, try exact match on nameSv or name
   let exercise = await prisma.exercise.findFirst({
     where: {
@@ -382,9 +389,14 @@ async function matchExercise(
   return exercise
 }
 
+function exerciseDisplayName(exercise: { name: string; nameSv: string | null }, locale: AppLocale): string {
+  return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name
+}
+
 async function getDefaultStrengthExercises(
   subtype: string,
-  coachId: string
+  coachId: string,
+  locale: AppLocale
 ): Promise<StrengthExerciseData[]> {
   const isUpperBody = subtype.includes('överkropp') || subtype.includes('upper')
   const isLowerBody = subtype.includes('underkropp') || subtype.includes('lower') || subtype.includes('ben')
@@ -404,9 +416,9 @@ async function getDefaultStrengthExercises(
     take: 5,
   })
 
-  return exercises.map((ex, i) => ({
+  return exercises.map((ex) => ({
     exerciseId: ex.id,
-    exerciseName: ex.nameSv || ex.name,
+    exerciseName: exerciseDisplayName(ex, locale),
     sets: 3,
     reps: '10',
     restSeconds: 90,
@@ -414,23 +426,23 @@ async function getDefaultStrengthExercises(
   }))
 }
 
-function generateStrengthName(subtype: string): string {
+function generateStrengthName(subtype: string, locale: AppLocale): string {
   if (subtype.includes('överkropp') || subtype.includes('upper')) {
-    return 'Överkroppspass'
+    return t(locale, 'Upper-body session', 'Överkroppspass')
   }
   if (subtype.includes('underkropp') || subtype.includes('lower') || subtype.includes('ben')) {
-    return 'Underkroppspass'
+    return t(locale, 'Lower-body session', 'Underkroppspass')
   }
   if (subtype.includes('helkropp') || subtype.includes('full')) {
-    return 'Helkroppspass'
+    return t(locale, 'Full-body session', 'Helkroppspass')
   }
   if (subtype.includes('rygg') || subtype.includes('back')) {
-    return 'Ryggpass'
+    return t(locale, 'Back session', 'Ryggpass')
   }
   if (subtype.includes('press')) {
-    return 'Presspass'
+    return t(locale, 'Press session', 'Presspass')
   }
-  return 'Styrkepass'
+  return t(locale, 'Strength session', 'Styrkepass')
 }
 
 // ============================================
@@ -439,7 +451,8 @@ function generateStrengthName(subtype: string): string {
 
 async function generateHybridWorkout(
   intent: VoiceWorkoutIntent,
-  coachId: string
+  coachId: string,
+  locale: AppLocale
 ): Promise<GeneratedWorkoutData> {
   const structure = intent.workout.structure
   const subtype = intent.workout.subtype?.toUpperCase() || 'AMRAP'
@@ -454,7 +467,7 @@ async function generateHybridWorkout(
 
       movements.push({
         exerciseId: matchedExercise?.id,
-        name: matchedExercise?.nameSv || item.exerciseName,
+        name: matchedExercise ? exerciseDisplayName(matchedExercise, locale) : item.exerciseName,
         reps: item.repsCount || '10',
         sequence: sequence++,
         notes: item.description,
@@ -518,7 +531,8 @@ function generateHybridName(format: string, duration?: number): string {
 async function getTargetAthleteInfo(
   targetType: 'ATHLETE' | 'TEAM',
   targetId: string | undefined,
-  coachId: string
+  coachId: string,
+  locale: AppLocale
 ): Promise<{ type: 'ATHLETE' | 'TEAM'; athletes: AthleteAssignmentInfo[] }> {
   if (!targetId) {
     return { type: targetType, athletes: [] }
@@ -551,7 +565,7 @@ async function getTargetAthleteInfo(
 
     // Get warnings for each athlete (ACWR, injuries)
     for (const athlete of athletes) {
-      const warnings = await getAthleteWarnings(athlete.id)
+      const warnings = await getAthleteWarnings(athlete.id, locale)
       if (warnings.length > 0) {
         athlete.warnings = warnings
       }
@@ -569,7 +583,7 @@ async function getTargetAthleteInfo(
       return { type: 'ATHLETE', athletes: [] }
     }
 
-    const warnings = await getAthleteWarnings(client.id)
+    const warnings = await getAthleteWarnings(client.id, locale)
 
     return {
       type: 'ATHLETE',
@@ -585,7 +599,7 @@ async function getTargetAthleteInfo(
   }
 }
 
-async function getAthleteWarnings(clientId: string): Promise<string[]> {
+async function getAthleteWarnings(clientId: string, locale: AppLocale): Promise<string[]> {
   const warnings: string[] = []
 
   // Check for active injuries
@@ -596,7 +610,7 @@ async function getAthleteWarnings(clientId: string): Promise<string[]> {
 
   for (const injury of injuries) {
     if (injury.painLevel && injury.painLevel >= 5) {
-      warnings.push(`Aktiv skada: ${injury.painLocation} (${injury.painLevel}/10)`)
+      warnings.push(t(locale, `Active injury: ${injury.painLocation} (${injury.painLevel}/10)`, `Aktiv skada: ${injury.painLocation} (${injury.painLevel}/10)`))
     }
   }
 
@@ -609,9 +623,9 @@ async function getAthleteWarnings(clientId: string): Promise<string[]> {
 
   if (latestAcwr) {
     if (latestAcwr.acwrZone === 'CRITICAL' || latestAcwr.acwrZone === 'DANGER') {
-      warnings.push(`Hög ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'}) - ${latestAcwr.acwrZone}`)
+      warnings.push(t(locale, `High ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'}) - ${latestAcwr.acwrZone}`, `Hög ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'}) - ${latestAcwr.acwrZone}`))
     } else if (latestAcwr.acwrZone === 'CAUTION') {
-      warnings.push(`Förhöjd ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'})`)
+      warnings.push(t(locale, `Elevated ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'})`, `Förhöjd ACWR (${latestAcwr.acwr?.toFixed(2) || 'N/A'})`))
     }
   }
 
@@ -625,7 +639,7 @@ async function getAthleteWarnings(clientId: string): Promise<string[]> {
   })
 
   if (restrictions) {
-    warnings.push('Aktiva träningsrestriktioner')
+    warnings.push(t(locale, 'Active training restrictions', 'Aktiva träningsrestriktioner'))
   }
 
   return warnings

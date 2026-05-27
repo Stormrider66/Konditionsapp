@@ -22,9 +22,18 @@ type RouteContext = {
   params: Promise<{ id: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id } = await context.params
 
     const rateLimited = await rateLimitJsonResponse('voice-workout:get', user.id, {
@@ -43,12 +52,12 @@ export async function GET(request: NextRequest, context: RouteContext) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     // Verify ownership
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Get signed URL for audio playback
@@ -69,7 +78,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         preview = await buildVoiceWorkoutPreview(
           session.id,
           session.parsedIntent as unknown as VoiceWorkoutIntent,
-          user.id
+          user.id,
+          locale
         )
       } catch (err) {
         logger.error('Failed to build preview', { sessionId: session.id }, err)
@@ -87,18 +97,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
     logger.error('Voice workout get error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
-    return NextResponse.json({ error: 'Failed to fetch session' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch session', 'Kunde inte hämta sessionen') }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const supabase = createAdminSupabaseClient()
 
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id } = await context.params
 
     const rateLimited = await rateLimitJsonResponse('voice-workout:delete', user.id, {
@@ -113,18 +126,18 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     // Verify ownership
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Don't allow deleting confirmed sessions with created workouts
     if (session.status === 'CONFIRMED') {
       return NextResponse.json(
-        { error: 'Cannot delete confirmed sessions. Delete the workout instead.' },
+        { error: t(locale, 'Cannot delete confirmed sessions. Delete the workout instead.', 'Bekräftade sessioner kan inte raderas. Radera passet istället.') },
         { status: 400 }
       )
     }
@@ -149,16 +162,19 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     logger.error('Voice workout delete error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
-    return NextResponse.json({ error: 'Failed to delete session' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to delete session', 'Kunde inte radera sessionen') }, { status: 500 })
   }
 }
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id } = await context.params
 
     const rateLimited = await rateLimitJsonResponse('voice-workout:update', user.id, {
@@ -173,7 +189,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const parsed = voiceWorkoutUpdateIntentSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid request data', 'Ogiltig förfrågningsdata'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -184,18 +200,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     // Verify ownership
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Only allow updates to PARSED sessions
     if (session.status !== 'PARSED') {
       return NextResponse.json(
-        { error: 'Can only update sessions with PARSED status' },
+        { error: t(locale, 'Can only update sessions with PARSED status', 'Endast sessioner med status PARSED kan uppdateras') },
         { status: 400 }
       )
     }
@@ -232,7 +248,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     })
 
     // Rebuild preview
-    const preview = await buildVoiceWorkoutPreview(id, updatedIntent, user.id)
+    const preview = await buildVoiceWorkoutPreview(id, updatedIntent, user.id, locale)
 
     return NextResponse.json({
       success: true,
@@ -242,9 +258,9 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     logger.error('Voice workout update error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
-    return NextResponse.json({ error: 'Failed to update session' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update session', 'Kunde inte uppdatera sessionen') }, { status: 500 })
   }
 }

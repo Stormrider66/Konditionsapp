@@ -18,8 +18,14 @@ import { deepMerge } from '@/lib/utils'
 import type { VoiceWorkoutIntent, GeneratedWorkoutData } from '@/types/voice-workout'
 import { generateWorkoutFromIntent } from '@/lib/ai/voice-workout-generator'
 
+type AppLocale = 'en' | 'sv'
+
 type RouteContext = {
   params: Promise<{ id: string }>
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function syncWorkoutDisplayFields(workoutData: GeneratedWorkoutData): GeneratedWorkoutData {
@@ -60,9 +66,11 @@ function syncWorkoutDisplayFields(workoutData: GeneratedWorkoutData): GeneratedW
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: 'en' | 'sv' = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id } = await context.params
 
     const rateLimited = await rateLimitJsonResponse('voice-workout:confirm', user.id, {
@@ -77,7 +85,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const parsed = voiceWorkoutConfirmSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid request data', 'Ogiltig förfrågningsdata'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -97,25 +105,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     // Verify ownership
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Only allow confirming PARSED sessions
     if (session.status !== 'PARSED') {
       return NextResponse.json(
-        { error: 'Can only confirm sessions with PARSED status' },
+        { error: t(locale, 'Can only confirm sessions with PARSED status', 'Endast sessioner med status PARSED kan bekräftas') },
         { status: 400 }
       )
     }
 
     if (!session.parsedIntent) {
       return NextResponse.json(
-        { error: 'No parsed intent found. Please re-upload audio.' },
+        { error: t(locale, 'No parsed intent found. Please re-upload audio.', 'Ingen tolkad intent hittades. Ladda upp ljudet igen.') },
         { status: 400 }
       )
     }
@@ -124,7 +132,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const workoutType = session.workoutType || intent.workout.type
 
     // Generate workout data (allows overrides from confirm request)
-    let workoutData = await generateWorkoutFromIntent(intent, user.id)
+    let workoutData = await generateWorkoutFromIntent(intent, user.id, locale)
 
     // Apply any workout modifications from the request
     if (parsed.data.workout) {
@@ -144,7 +152,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       })
 
       if (!team || team.userId !== user.id) {
-        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
       }
 
       athleteIds.push(...team.members.map((m) => m.id))
@@ -156,19 +164,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
       })
 
       if (!client) {
-        return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Athlete not found', 'Atleten hittades inte') }, { status: 404 })
       }
 
       const hasAccess = await canAccessClient(user.id, client.id)
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Athlete not found', 'Atleten hittades inte') }, { status: 404 })
       }
 
       athleteIds.push(client.id)
     }
 
     if (athleteIds.length === 0) {
-      return NextResponse.json({ error: 'No athletes to assign' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No athletes to assign', 'Inga atleter att tilldela') }, { status: 400 })
     }
 
     const assignedDate = new Date(assignment.assignedDate)
@@ -407,15 +415,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
     logger.error('Voice workout confirm error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
       {
-        error: 'Failed to confirm workout',
+        error: t(locale, 'Failed to confirm workout', 'Kunde inte bekräfta passet'),
         details:
           process.env.NODE_ENV !== 'production'
-            ? (error instanceof Error ? error.message : 'Unknown error')
+            ? (error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel'))
             : undefined,
       },
       { status: 500 }

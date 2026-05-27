@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
       )
 
       // Build preview for coach review
-      const preview = await buildVoiceWorkoutPreview(session.id, intent, user.id)
+      const preview = await buildVoiceWorkoutPreview(session.id, intent, user.id, locale)
 
       const processingTime = Date.now() - startTime
 
