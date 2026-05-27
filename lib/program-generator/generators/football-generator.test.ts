@@ -25,19 +25,20 @@ function params(overrides: Partial<SportProgramParams> = {}): SportProgramParams
 }
 
 describe('generateFootballProgram', () => {
-  it('creates a match-week plan for an in-season midfielder', async () => {
+  it('creates an English match-week plan for an in-season midfielder by default', async () => {
     const program = await generateFootballProgram(params(), client)
 
     expect(program.weeks).toHaveLength(8)
-    expect(program.name).toContain('Fotboll')
+    expect(program.name).toContain('Football')
 
     const firstWeek = program.weeks?.[0]
     const workouts = firstWeek?.days.flatMap((day) => day.workouts) ?? []
 
-    expect(workouts.some((workout) => workout.name.includes('MD+1'))).toBe(true)
-    expect(workouts.some((workout) => workout.name.includes('MD-1'))).toBe(true)
+    expect(workouts.some((workout) => workout.name === 'MD+1 recovery')).toBe(true)
+    expect(workouts.some((workout) => workout.name === 'MD-1 activation')).toBe(true)
     expect(workouts.some((workout) => workout.name === 'Match')).toBe(true)
     expect(workouts.some((workout) => workout.instructions?.includes('FIFA 11+'))).toBe(true)
+    expect(JSON.stringify(program)).not.toMatch(/[åäöÅÄÖ]|\b(Fotbollsspecifik|Vilodag|Skadeprevention|återhämtning|uppvärmning)\b/)
     expect(program.planningMetadata).toMatchObject({
       sport: 'TEAM_FOOTBALL',
       position: 'midfielder',
@@ -49,7 +50,19 @@ describe('generateFootballProgram', () => {
     })
   })
 
-  it('reduces hard conditioning when GPS sprint load is high', async () => {
+  it('preserves Swedish football program output when requested', async () => {
+    const program = await generateFootballProgram(params({ locale: 'sv' }), client)
+
+    expect(program.name).toContain('Fotboll')
+
+    const workouts = program.weeks?.[0].days.flatMap((day) => day.workouts) ?? []
+
+    expect(workouts.some((workout) => workout.name === 'MD+1 återhämtning')).toBe(true)
+    expect(workouts.some((workout) => workout.name === 'Fotbollsspecifik kondition')).toBe(true)
+    expect(program.notes).toContain('Programmet följer matchveckans rytm')
+  })
+
+  it('reduces hard conditioning when GPS sprint load is high in English', async () => {
     const program = await generateFootballProgram(params({
       footballSettings: {
         position: 'forward',
@@ -64,10 +77,10 @@ describe('generateFootballProgram', () => {
 
     const conditioning = program.weeks?.[0].days
       .flatMap((day) => day.workouts)
-      .find((workout) => workout.name === 'Fotbollsspecifik kondition')
+      .find((workout) => workout.name === 'Football-specific conditioning')
 
     expect(conditioning?.duration).toBeLessThan(55)
-    expect(program.notes).toContain('GPS-belastning är hög')
+    expect(program.notes).toContain('GPS load is high')
     expect(program.planningMetadata).toMatchObject({
       sport: 'TEAM_FOOTBALL',
       position: 'forward',

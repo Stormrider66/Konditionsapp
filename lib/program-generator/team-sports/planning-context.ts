@@ -48,6 +48,8 @@ export type TeamSportLoadGuidance = {
   notes: string[]
 }
 
+type AppLocale = 'en' | 'sv'
+
 export type FootballPlanningContext = {
   settings: FootballProgramSettings
   position: FootballPosition
@@ -77,7 +79,9 @@ export function buildFootballPlanningContext(input: {
   goal: string
   sessionsPerWeek?: number
   footballSettings?: unknown
+  locale?: AppLocale
 }): FootballPlanningContext {
+  const locale = input.locale === 'sv' ? 'sv' : 'en'
   const settings = normalizeFootballSettings(input.footballSettings)
   const position = settings.position || 'midfielder'
   const phase = settings.seasonPhase || inferFootballSeasonPhase(input.goal)
@@ -90,10 +94,10 @@ export function buildFootballPlanningContext(input: {
     phase,
     matchesPerWeek,
     sessionsPerWeek,
-    profile: getFootballPositionRecommendations(position, 'sv'),
-    phaseTraining: getFootballSeasonPhaseTraining(phase, 'sv'),
-    prevention: getFootballInjuryPreventionExercises(position, 'sv'),
-    loadGuidance: getFootballLoadGuidance(settings, position),
+    profile: getFootballPositionRecommendations(position, locale),
+    phaseTraining: getFootballSeasonPhaseTraining(phase, locale),
+    prevention: getFootballInjuryPreventionExercises(position, locale),
+    loadGuidance: getFootballLoadGuidance(settings, position, locale),
   }
 }
 
@@ -132,7 +136,8 @@ export function normalizeHockeySettings(value: unknown): HockeyProgramSettings {
 
 export function getFootballLoadGuidance(
   settings: FootballProgramSettings,
-  position: FootballPosition
+  position: FootballPosition,
+  locale: AppLocale = 'en'
 ): TeamSportLoadGuidance {
   const notes: string[] = []
   let intensityMultiplier = 1
@@ -144,22 +149,22 @@ export function getFootballLoadGuidance(
       sprintDistanceM: Math.round(settings.avgSprintDistanceM),
       accelerations: 0,
       decelerations: 0,
-    }, 'sv')
+    }, locale)
 
     if (status.overall === 'very_high') {
       intensityMultiplier = Math.min(intensityMultiplier, 0.75)
-      notes.push('GPS-belastning är mycket hög: reducera sprint-/HI-volym och prioritera återhämtning.')
+      notes.push(t(locale, 'GPS load is very high: reduce sprint/HI volume and prioritize recovery.', 'GPS-belastning är mycket hög: reducera sprint-/HI-volym och prioritera återhämtning.'))
     } else if (status.overall === 'high') {
       intensityMultiplier = Math.min(intensityMultiplier, 0.85)
-      notes.push('GPS-belastning är hög: håll nästa intensiva pass kortare och undvik extra sprintvolym.')
+      notes.push(t(locale, 'GPS load is high: keep the next intensive session shorter and avoid extra sprint volume.', 'GPS-belastning är hög: håll nästa intensiva pass kortare och undvik extra sprintvolym.'))
     } else if (status.overall === 'low') {
       intensityMultiplier = Math.max(intensityMultiplier, 1.05)
-      notes.push('GPS-belastning är låg: kontrollerad extra konditions-/hastighetsexponering är rimlig.')
+      notes.push(t(locale, 'GPS load is low: controlled extra conditioning/speed exposure is reasonable.', 'GPS-belastning är låg: kontrollerad extra konditions-/hastighetsexponering är rimlig.'))
     }
   }
 
   if (settings.recentWeeklyLoads && settings.recentWeeklyLoads.length >= 4) {
-    const acwr = calculateACWR(settings.recentWeeklyLoads, 'sv')
+    const acwr = calculateACWR(settings.recentWeeklyLoads, locale)
     if (acwr.zone === 'danger') {
       intensityMultiplier = Math.min(intensityMultiplier, 0.65)
       notes.push(`ACWR ${acwr.ratio}: ${acwr.recommendation}`)
@@ -170,6 +175,10 @@ export function getFootballLoadGuidance(
   }
 
   return { intensityMultiplier, notes }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 export function getHockeyLoadGuidance(
