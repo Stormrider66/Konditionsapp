@@ -12,6 +12,17 @@ import { z } from 'zod';
 import { calculateLoadVelocityProfile } from '@/lib/integrations/vbt';
 import { logError } from '@/lib/logger-console'
 
+type AppLocale = 'en' | 'sv'
+
+function exerciseNameForLocale(
+  exercise: { name: string; nameSv: string | null; nameEn: string | null },
+  locale: AppLocale
+) {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
+}
+
 // GET query schema
 const getQuerySchema = z.object({
   clientId: z.string().uuid(),
@@ -31,6 +42,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const { searchParams } = new URL(request.url);
     const params = {
@@ -61,7 +73,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         exercise: {
-          select: { id: true, name: true, nameSv: true },
+          select: { id: true, name: true, nameSv: true, nameEn: true },
         },
       },
       orderBy: { updatedAt: 'desc' },
@@ -70,7 +82,7 @@ export async function GET(request: NextRequest) {
     const formattedProfiles = profiles.map((p) => ({
       id: p.id,
       exerciseId: p.exerciseId,
-      exerciseName: p.exercise.nameSv || p.exercise.name,
+      exerciseName: exerciseNameForLocale(p.exercise, locale),
       isValid: p.isValid,
       dataPointCount: p.dataPointCount,
       e1RM_0_2: p.e1RM_0_2 ? Math.round(p.e1RM_0_2 * 10) / 10 : null,
@@ -106,6 +118,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await request.json();
     const validationResult = postBodySchema.safeParse(body);
@@ -126,7 +139,7 @@ export async function POST(request: NextRequest) {
     // Get exercise info
     const exercise = await prisma.exercise.findUnique({
       where: { id: exerciseId },
-      select: { id: true, name: true, nameSv: true },
+      select: { id: true, name: true, nameSv: true, nameEn: true },
     });
 
     if (!exercise) {
@@ -205,7 +218,7 @@ export async function POST(request: NextRequest) {
 
     const profile = calculateLoadVelocityProfile(
       dataPoints,
-      exercise.nameSv || exercise.name
+      exerciseNameForLocale(exercise, locale)
     );
 
     // Get most recent measurement date
@@ -270,7 +283,7 @@ export async function POST(request: NextRequest) {
       profile: {
         id: savedProfile.id,
         exerciseId,
-        exerciseName: exercise.nameSv || exercise.name,
+        exerciseName: exerciseNameForLocale(exercise, locale),
         isValid: profile.isValid,
         dataPointCount: profile.dataPoints.length,
         e1RM_0_2: profile.e1RM_0_2 ? Math.round(profile.e1RM_0_2 * 10) / 10 : null,

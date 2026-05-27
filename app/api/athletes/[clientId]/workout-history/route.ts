@@ -15,12 +15,25 @@ interface RouteContext {
   params: Promise<{ clientId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function exerciseNameForLocale(
+  exercise: { name: string; nameSv: string | null; nameEn: string | null } | null,
+  locale: AppLocale
+) {
+  if (!exercise) return 'Unknown'
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Unknown'
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
 
     const { clientId } = await context.params
     const searchParams = request.nextUrl.searchParams
@@ -82,6 +95,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
                 id: true,
                 name: true,
                 nameSv: true,
+                nameEn: true,
               },
             },
           },
@@ -108,7 +122,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
       }>()
 
       for (const setLog of log.setLogs) {
-        const exerciseName = setLog.exercise?.nameSv || setLog.exercise?.name || 'Unknown'
+        const exerciseName = exerciseNameForLocale(setLog.exercise, locale)
         const existing = exerciseMap.get(setLog.exerciseId)
         if (existing) {
           existing.setsCompleted++

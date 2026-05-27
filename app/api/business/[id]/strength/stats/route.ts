@@ -8,9 +8,22 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function exerciseNameForLocale(
+  exercise: { name: string; nameSv: string | null; nameEn: string | null } | null,
+  locale: AppLocale
+) {
+  if (!exercise) return 'Unknown'
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Unknown'
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const user = await requireAuth()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: businessId } = await params
 
     await requireBusinessMembership(user.id, businessId)
@@ -126,14 +139,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         date: { gte: weekStart, lte: weekEnd },
       },
       include: {
-        exercise: { select: { name: true, nameSv: true } },
+        exercise: { select: { name: true, nameSv: true, nameEn: true } },
       },
     }) : []
 
     // Group PRs by exercise
     const prsByExercise: Record<string, number> = {}
     for (const pr of prsThisWeek) {
-      const exerciseName = pr.exercise?.nameSv || pr.exercise?.name || 'Unknown'
+      const exerciseName = exerciseNameForLocale(pr.exercise, locale)
       prsByExercise[exerciseName] = (prsByExercise[exerciseName] || 0) + 1
     }
 
