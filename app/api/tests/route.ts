@@ -11,6 +11,30 @@ import { generateVisualReport } from '@/lib/ai/visual-reports'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { getBusinessMembership } from '@/lib/coach/team-access'
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function localizeValidationDetails<T extends Array<{ message: string }>>(
+  details: T,
+  locale: AppLocale
+): T {
+  const messageMap = new Map<string, string>([
+    ['Minst 3 steg krävs', t(locale, 'At least 3 stages are required', 'Minst 3 steg krävs')],
+  ])
+
+  return details.map((detail) => ({
+    ...detail,
+    message: messageMap.get(detail.message) ?? detail.message,
+  })) as T
+}
+
 // GET /api/tests - Hämta alla tester för inloggad användare (med optional clientId filter)
 export async function GET(request: NextRequest) {
   try {
@@ -127,6 +151,7 @@ export async function POST(request: NextRequest) {
         { status: 403 }
       )
     }
+    const locale = resolveLocale(user.language)
 
     const body = await request.json()
 
@@ -136,15 +161,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
-          details: validation.error.errors,
+          error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
+          details: localizeValidationDetails(validation.error.errors, locale),
         },
         { status: 400 }
       )
     }
 
     const data: CreateTestApiData = validation.data
-    const locale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(request)
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
     const lactateDrops = detectLactateDecreases(data.stages)
