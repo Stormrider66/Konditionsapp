@@ -20,12 +20,24 @@ const updateAnalysisSchema = z.object({
   sourceContext: z.record(z.unknown()).optional(),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language?: string | null): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:get', user.id, {
@@ -53,7 +65,7 @@ export async function GET(
 
     if (!analysis) {
       return NextResponse.json(
-        { error: 'Analysis not found' },
+        { error: t(locale, 'Analysis not found', 'Analysen hittades inte') },
         { status: 404 }
       );
     }
@@ -77,11 +89,11 @@ export async function GET(
     logger.error('Get analysis error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get analysis' },
+      { error: t(locale, 'Failed to get analysis', 'Kunde inte hämta analysen') },
       { status: 500 }
     );
   }
@@ -91,8 +103,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:update', user.id, {
@@ -105,7 +119,7 @@ export async function PATCH(
     const parsed = updateAnalysisSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Validation error', details: parsed.error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: parsed.error.errors },
         { status: 400 }
       )
     }
@@ -117,7 +131,7 @@ export async function PATCH(
 
     if (!analysis) {
       return NextResponse.json(
-        { error: 'Analysis not found' },
+        { error: t(locale, 'Analysis not found', 'Analysen hittades inte') },
         { status: 404 }
       );
     }
@@ -150,11 +164,11 @@ export async function PATCH(
     logger.error('Update analysis error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to update analysis' },
+      { error: t(locale, 'Failed to update analysis', 'Kunde inte uppdatera analysen') },
       { status: 500 }
     );
   }
@@ -164,8 +178,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:delete', user.id, {
@@ -180,7 +196,7 @@ export async function DELETE(
 
     if (!analysis) {
       return NextResponse.json(
-        { error: 'Analysis not found' },
+        { error: t(locale, 'Analysis not found', 'Analysen hittades inte') },
         { status: 404 }
       );
     }
@@ -208,17 +224,17 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Analysis deleted',
+      message: t(locale, 'Analysis deleted', 'Analysen raderades'),
     });
   } catch (error) {
     logger.error('Delete analysis error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete analysis' },
+      { error: t(locale, 'Failed to delete analysis', 'Kunde inte radera analysen') },
       { status: 500 }
     );
   }
