@@ -37,7 +37,7 @@ import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { cn } from '@/lib/utils'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
-import { ATHLETE_QUICK_PROMPTS, MemoryContext } from '@/lib/ai/athlete-prompts'
+import { getAthleteQuickPrompts, MemoryContext } from '@/lib/ai/athlete-prompts'
 import {
   MENTAL_PREP_CHAT_EVENT,
   buildMentalPrepMessage,
@@ -143,6 +143,7 @@ export function AthleteFloatingChat({
 }: AthleteFloatingChatProps) {
   const t = useTranslations('components.athleteFloatingChat')
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const quickPrompts = getAthleteQuickPrompts(undefined, locale)
   const { toast } = useToast()
   const basePath = useBasePath()
   const {
@@ -1962,7 +1963,7 @@ export function AthleteFloatingChat({
             )}
             {/* Quick prompts */}
             <div className="flex flex-wrap gap-2 justify-center max-w-[320px]">
-              {ATHLETE_QUICK_PROMPTS.slice(0, 4).map((prompt) => (
+              {quickPrompts.slice(0, 4).map((prompt) => (
                 <Button
                   key={prompt.id}
                   variant="outline"

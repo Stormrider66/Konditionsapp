@@ -320,6 +320,12 @@ const PROGRAM_GENERATION_PROMPT = {
   prompt: 'Jag vill skapa ett nytt träningsprogram. Kan du hjälpa mig baserat på mina mål och tillgänglighet?',
 }
 
+const PROGRAM_GENERATION_PROMPT_EN = {
+  id: 'create-program',
+  label: 'Create training program',
+  prompt: 'I want to create a new training program. Can you help me based on my goals and availability?',
+}
+
 /**
  * Quick prompt suggestions for athlete chat
  * These appear as clickable chips in the chat UI
@@ -367,16 +373,62 @@ export const ATHLETE_QUICK_PROMPTS = [
   },
 ]
 
+export const ATHLETE_QUICK_PROMPTS_EN = [
+  {
+    id: 'explain-workout',
+    label: "Explain today's workout",
+    prompt: "Can you explain the purpose of today's workout and what I should focus on?",
+  },
+  {
+    id: 'recovery-status',
+    label: 'How am I doing?',
+    prompt: 'Based on my latest data, how does my recovery look? Am I ready for hard training?',
+  },
+  {
+    id: 'test-explain',
+    label: 'Explain test',
+    prompt: 'Can you explain what my latest test results mean and how I can use them in my training?',
+  },
+  {
+    id: 'zone-training',
+    label: 'Training zones',
+    prompt: 'Which heart-rate zones should I train in today and why?',
+  },
+  {
+    id: 'nutrition-tip',
+    label: 'Fuel for workout',
+    prompt: "What should I eat before and after today's training?",
+  },
+  {
+    id: 'motivation',
+    label: 'Motivation',
+    prompt: 'I feel a bit unmotivated. Can you give me some perspective on my training?',
+  },
+  {
+    id: 'injury-advice',
+    label: 'Pain/injury',
+    prompt: 'I have some pain. Should I train as usual or adapt something?',
+  },
+  {
+    id: 'progress-review',
+    label: 'My progress',
+    prompt: 'How has my progress looked recently based on my training data?',
+  },
+] satisfies typeof ATHLETE_QUICK_PROMPTS
+
 /**
  * Get quick prompts with program generation option for self-coached athletes
  */
-export function getAthleteQuickPrompts(capabilities?: AthleteCapabilities) {
-  const prompts = [...ATHLETE_QUICK_PROMPTS]
+export function getAthleteQuickPrompts(
+  capabilities?: AthleteCapabilities,
+  locale: 'en' | 'sv' = 'en'
+) {
+  const prompts = locale === 'sv' ? [...ATHLETE_QUICK_PROMPTS] : [...ATHLETE_QUICK_PROMPTS_EN]
 
   // Add program generation prompt for self-coached athletes with subscription
   if (capabilities?.isSelfCoached && capabilities?.canGenerateProgram) {
     // Add at the beginning for visibility
-    prompts.unshift(PROGRAM_GENERATION_PROMPT)
+    prompts.unshift(locale === 'sv' ? PROGRAM_GENERATION_PROMPT : PROGRAM_GENERATION_PROMPT_EN)
   }
 
   return prompts
