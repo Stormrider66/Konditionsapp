@@ -67,21 +67,24 @@ function addWeeks(date: Date, weeks: number) {
 }
 
 export async function GET(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
     const businessScope = await resolveWorkoutBusinessScope(user.id, req)
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 })
     }
 
     // Verify staff can access this team in the requested business.
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
     const previewRole = await getStaffRolePreview(user.id)
     const calendarPermissions = await getTeamCalendarPermissionProfile(user.id, teamId, scope.businessSlug, {
@@ -129,10 +132,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error listing team events:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch team events', 'Kunde inte hämta laghändelser') }, { status: 500 })
   }
 }
 
@@ -150,7 +153,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -291,7 +294,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error creating team event:', error)
     return NextResponse.json({ error: t(locale, 'Could not save the event to the database', 'Kunde inte spara händelsen i databasen') }, { status: 500 })
