@@ -12,12 +12,16 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = getUserLocale(resolved.user?.language)
 
     const q = (request.nextUrl.searchParams.get('q') ?? '').trim().toLowerCase()
     if (q.length < 2) {
@@ -97,6 +101,14 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ foods: [...prefix, ...contains] })
   } catch (error) {
     logger.error('Food search failed', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

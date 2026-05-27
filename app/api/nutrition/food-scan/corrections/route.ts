@@ -18,6 +18,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { classifyCorrection, type DiffableItem } from '@/lib/nutrition/classify-correction'
 
 const MAX_ITEMS_PER_SIDE = 50
+type AppLocale = 'en' | 'sv'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -38,12 +39,14 @@ const bodySchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, user } = resolved
+    locale = getUserLocale(user?.language)
 
     // Match the rate-limit shape used by /api/ai/food-scan — cheaper endpoint
     // so a slightly higher ceiling is fine.
@@ -87,14 +90,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, recorded: true, correction: row })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid data', details: error.errors }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'Invalid data', 'Ogiltiga data'), details: error.errors },
+        { status: 400 }
+      )
     }
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Food scan correction capture failed', {}, error as Error)
     // Deliberately succeed silently so the user-facing save flow isn't blocked
     // by any correction-capture issue. The meal is already saved by this point.
     return NextResponse.json({ success: true, recorded: false })
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
