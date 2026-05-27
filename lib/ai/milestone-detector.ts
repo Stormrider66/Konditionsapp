@@ -39,8 +39,20 @@ export interface MilestoneDetectionOptions {
   executionBudgetMs?: number
 }
 
+type AppLocale = 'en' | 'sv'
+
 type AthleteCandidate = {
   id: string
+  locale: AppLocale
+}
+
+type RawAthleteCandidate = {
+  id: string
+  athleteAccount: {
+    user: {
+      language: string | null
+    }
+  } | null
 }
 
 type MilestoneDetectionOutcome =
@@ -51,6 +63,10 @@ const DEFAULT_BATCH_LIMIT = 120
 const DEFAULT_PAGE_SIZE = 200
 const DEFAULT_CONCURRENCY = 6
 const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
 
 async function calculateConsistencyStreak(clientId: string): Promise<number> {
   const sixtyDaysAgo = new Date()
@@ -116,7 +132,7 @@ async function getTotalWorkoutCount(clientId: string): Promise<number> {
   return strengthCount + cardioCount + hybridCount + programCount
 }
 
-async function checkForPersonalRecords(clientId: string): Promise<DetectedMilestone[]> {
+async function checkForPersonalRecords(clientId: string, locale: AppLocale): Promise<DetectedMilestone[]> {
   const milestones: DetectedMilestone[] = []
 
   const recentSetLogs = await prisma.setLog.findMany({
@@ -173,7 +189,7 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
 
       milestones.push({
         type: 'PERSONAL_RECORD',
-        title: `Nytt PR: ${recent.exerciseName}!`,
+        title: locale === 'sv' ? `Nytt PR: ${recent.exerciseName}!` : `New PR: ${recent.exerciseName}!`,
         description: `${recent.weight} kg x ${recent.reps} reps`,
         value: recent.weight,
         unit: 'kg',
@@ -188,16 +204,16 @@ async function checkForPersonalRecords(clientId: string): Promise<DetectedMilest
   return milestones
 }
 
-function checkWorkoutCountMilestone(count: number): DetectedMilestone | null {
+function checkWorkoutCountMilestone(count: number, locale: AppLocale): DetectedMilestone | null {
   const milestones = [
-    { count: 1, title: 'Första träningen!', level: 'BRONZE' as const },
-    { count: 10, title: '10 träningar!', level: 'BRONZE' as const },
-    { count: 25, title: '25 träningar!', level: 'SILVER' as const },
-    { count: 50, title: '50 träningar!', level: 'SILVER' as const },
-    { count: 100, title: '100 träningar!', level: 'GOLD' as const },
-    { count: 200, title: '200 träningar!', level: 'GOLD' as const },
-    { count: 365, title: '365 träningar!', level: 'PLATINUM' as const },
-    { count: 500, title: '500 träningar!', level: 'PLATINUM' as const },
+    { count: 1, title: { en: 'First workout!', sv: 'Första träningen!' }, level: 'BRONZE' as const },
+    { count: 10, title: { en: '10 workouts!', sv: '10 träningar!' }, level: 'BRONZE' as const },
+    { count: 25, title: { en: '25 workouts!', sv: '25 träningar!' }, level: 'SILVER' as const },
+    { count: 50, title: { en: '50 workouts!', sv: '50 träningar!' }, level: 'SILVER' as const },
+    { count: 100, title: { en: '100 workouts!', sv: '100 träningar!' }, level: 'GOLD' as const },
+    { count: 200, title: { en: '200 workouts!', sv: '200 träningar!' }, level: 'GOLD' as const },
+    { count: 365, title: { en: '365 workouts!', sv: '365 träningar!' }, level: 'PLATINUM' as const },
+    { count: 500, title: { en: '500 workouts!', sv: '500 träningar!' }, level: 'PLATINUM' as const },
   ]
 
   const milestone = milestones.find((m) => m.count === count)
@@ -205,24 +221,24 @@ function checkWorkoutCountMilestone(count: number): DetectedMilestone | null {
 
   return {
     type: 'WORKOUT_COUNT',
-    title: milestone.title,
-    description: `Du har genomfört ${count} träningspass!`,
+    title: milestone.title[locale],
+    description: locale === 'sv' ? `Du har genomfört ${count} träningspass!` : `You have completed ${count} workouts!`,
     value: count,
-    unit: 'träningar',
+    unit: locale === 'sv' ? 'träningar' : 'workouts',
     icon: 'award',
     celebrationLevel: milestone.level,
   }
 }
 
-function checkStreakMilestone(streak: number): DetectedMilestone | null {
+function checkStreakMilestone(streak: number, locale: AppLocale): DetectedMilestone | null {
   const milestones = [
-    { days: 3, title: '3 dagar i rad!', level: 'BRONZE' as const },
-    { days: 7, title: 'En hel vecka!', level: 'SILVER' as const },
-    { days: 14, title: '2 veckor i rad!', level: 'SILVER' as const },
-    { days: 21, title: '3 veckor i rad!', level: 'GOLD' as const },
-    { days: 30, title: 'En hel månad!', level: 'GOLD' as const },
-    { days: 60, title: '60 dagar i rad!', level: 'PLATINUM' as const },
-    { days: 100, title: '100 dagar!', level: 'PLATINUM' as const },
+    { days: 3, title: { en: '3 days in a row!', sv: '3 dagar i rad!' }, level: 'BRONZE' as const },
+    { days: 7, title: { en: 'A full week!', sv: 'En hel vecka!' }, level: 'SILVER' as const },
+    { days: 14, title: { en: '2 weeks in a row!', sv: '2 veckor i rad!' }, level: 'SILVER' as const },
+    { days: 21, title: { en: '3 weeks in a row!', sv: '3 veckor i rad!' }, level: 'GOLD' as const },
+    { days: 30, title: { en: 'A full month!', sv: 'En hel månad!' }, level: 'GOLD' as const },
+    { days: 60, title: { en: '60 days in a row!', sv: '60 dagar i rad!' }, level: 'PLATINUM' as const },
+    { days: 100, title: { en: '100 days!', sv: '100 dagar!' }, level: 'PLATINUM' as const },
   ]
 
   const milestone = milestones.find((m) => m.days === streak)
@@ -230,16 +246,16 @@ function checkStreakMilestone(streak: number): DetectedMilestone | null {
 
   return {
     type: 'CONSISTENCY_STREAK',
-    title: milestone.title,
-    description: `Du har checkat in ${streak} dagar i rad!`,
+    title: milestone.title[locale],
+    description: locale === 'sv' ? `Du har checkat in ${streak} dagar i rad!` : `You have checked in ${streak} days in a row!`,
     value: streak,
-    unit: 'dagar',
+    unit: locale === 'sv' ? 'dagar' : 'days',
     icon: 'flame',
     celebrationLevel: milestone.level,
   }
 }
 
-async function checkTrainingAnniversary(clientId: string): Promise<DetectedMilestone | null> {
+async function checkTrainingAnniversary(clientId: string, locale: AppLocale): Promise<DetectedMilestone | null> {
   const firstWorkout = await prisma.strengthSessionAssignment.findFirst({
     where: { athleteId: clientId, status: 'COMPLETED' },
     orderBy: { completedAt: 'asc' },
@@ -253,11 +269,11 @@ async function checkTrainingAnniversary(clientId: string): Promise<DetectedMiles
   const daysSinceStart = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
 
   const anniversaries = [
-    { days: 30, title: '1 månad av träning!', level: 'BRONZE' as const },
-    { days: 90, title: '3 månader av träning!', level: 'SILVER' as const },
-    { days: 180, title: '6 månader av träning!', level: 'GOLD' as const },
-    { days: 365, title: '1 år av träning!', level: 'PLATINUM' as const },
-    { days: 730, title: '2 år av träning!', level: 'PLATINUM' as const },
+    { days: 30, title: { en: '1 month of training!', sv: '1 månad av träning!' }, level: 'BRONZE' as const },
+    { days: 90, title: { en: '3 months of training!', sv: '3 månader av träning!' }, level: 'SILVER' as const },
+    { days: 180, title: { en: '6 months of training!', sv: '6 månader av träning!' }, level: 'GOLD' as const },
+    { days: 365, title: { en: '1 year of training!', sv: '1 år av träning!' }, level: 'PLATINUM' as const },
+    { days: 730, title: { en: '2 years of training!', sv: '2 år av träning!' }, level: 'PLATINUM' as const },
   ]
 
   const anniversary = anniversaries.find((a) => a.days === daysSinceStart)
@@ -265,16 +281,18 @@ async function checkTrainingAnniversary(clientId: string): Promise<DetectedMiles
 
   return {
     type: 'TRAINING_ANNIVERSARY',
-    title: anniversary.title,
-    description: `Grattis! Du började träna för ${daysSinceStart} dagar sedan.`,
+    title: anniversary.title[locale],
+    description: locale === 'sv'
+      ? `Grattis! Du började träna för ${daysSinceStart} dagar sedan.`
+      : `Congratulations! You started training ${daysSinceStart} days ago.`,
     value: daysSinceStart,
-    unit: 'dagar',
+    unit: locale === 'sv' ? 'dagar' : 'days',
     icon: 'cake',
     celebrationLevel: anniversary.level,
   }
 }
 
-async function checkProgramCompletions(clientId: string): Promise<DetectedMilestone[]> {
+async function checkProgramCompletions(clientId: string, locale: AppLocale): Promise<DetectedMilestone[]> {
   const milestones: DetectedMilestone[] = []
   const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
 
@@ -323,10 +341,12 @@ async function checkProgramCompletions(clientId: string): Promise<DetectedMilest
     if (lastCompletion && lastCompletion >= oneDayAgo) {
       milestones.push({
         type: 'PROGRAM_COMPLETED',
-        title: `Program slutfört: ${program.name}!`,
-        description: `Du har genomfört alla ${allWorkouts.length} pass i ${program.name}!`,
+        title: locale === 'sv' ? `Program slutfört: ${program.name}!` : `Program completed: ${program.name}!`,
+        description: locale === 'sv'
+          ? `Du har genomfört alla ${allWorkouts.length} pass i ${program.name}!`
+          : `You have completed all ${allWorkouts.length} workouts in ${program.name}!`,
         value: allWorkouts.length,
-        unit: 'pass',
+        unit: locale === 'sv' ? 'pass' : 'workouts',
         icon: 'trophy',
         celebrationLevel: 'GOLD',
       })
@@ -336,24 +356,24 @@ async function checkProgramCompletions(clientId: string): Promise<DetectedMilest
   return milestones
 }
 
-export async function detectMilestones(clientId: string): Promise<DetectedMilestone[]> {
+export async function detectMilestones(clientId: string, locale: AppLocale = 'en'): Promise<DetectedMilestone[]> {
   const milestones: DetectedMilestone[] = []
 
-  const prs = await checkForPersonalRecords(clientId)
+  const prs = await checkForPersonalRecords(clientId, locale)
   milestones.push(...prs)
 
   const streak = await calculateConsistencyStreak(clientId)
-  const streakMilestone = checkStreakMilestone(streak)
+  const streakMilestone = checkStreakMilestone(streak, locale)
   if (streakMilestone) milestones.push(streakMilestone)
 
   const workoutCount = await getTotalWorkoutCount(clientId)
-  const countMilestone = checkWorkoutCountMilestone(workoutCount)
+  const countMilestone = checkWorkoutCountMilestone(workoutCount, locale)
   if (countMilestone) milestones.push(countMilestone)
 
-  const anniversary = await checkTrainingAnniversary(clientId)
+  const anniversary = await checkTrainingAnniversary(clientId, locale)
   if (anniversary) milestones.push(anniversary)
 
-  const programCompletions = await checkProgramCompletions(clientId)
+  const programCompletions = await checkProgramCompletions(clientId, locale)
   milestones.push(...programCompletions)
 
   return milestones
@@ -426,7 +446,7 @@ async function processAthleteMilestones(
   athlete: AthleteCandidate
 ): Promise<MilestoneDetectionOutcome> {
   try {
-    const milestones = await detectMilestones(athlete.id)
+    const milestones = await detectMilestones(athlete.id, athlete.locale)
 
     let notificationsCreated = 0
     for (const milestone of milestones) {
@@ -449,7 +469,7 @@ async function processAthleteMilestones(
                 clientName: client.name,
                 businessId: client.businessId,
                 coachUserId: client.userId,
-                exerciseName: milestone.title?.replace('Nytt PR: ', '').replace('!', '') || undefined,
+                exerciseName: milestone.title?.replace(/^Nytt PR: |^New PR: /, '').replace('!', '') || undefined,
                 value: milestone.value,
                 unit: milestone.unit,
                 previousValue: milestone.previousBest,
@@ -517,7 +537,7 @@ export async function processAllAthleteMilestones(
         break
       }
 
-      const athletes: AthleteCandidate[] = await prisma.client.findMany({
+      const athletes: RawAthleteCandidate[] = await prisma.client.findMany({
         where: { athleteAccount: { isNot: null } },
         ...(cursor
           ? {
@@ -527,7 +547,14 @@ export async function processAllAthleteMilestones(
           : {}),
         take: pageSize,
         orderBy: { id: 'asc' },
-        select: { id: true },
+        select: {
+          id: true,
+          athleteAccount: {
+            select: {
+              user: { select: { language: true } },
+            },
+          },
+        },
       })
 
       if (athletes.length === 0) {
@@ -542,7 +569,12 @@ export async function processAllAthleteMilestones(
       if (athletes.length > remainingCapacity) {
         results.hasMore = true
       }
-      const athletesToProcess = athletes.slice(0, remainingCapacity)
+      const athletesToProcess: AthleteCandidate[] = athletes
+        .slice(0, remainingCapacity)
+        .map((athlete) => ({
+          id: athlete.id,
+          locale: resolveLocale(athlete.athleteAccount?.user?.language),
+        }))
 
       for (let i = 0; i < athletesToProcess.length; i += concurrency) {
         if (Date.now() - startTime >= executionBudgetMs) {
