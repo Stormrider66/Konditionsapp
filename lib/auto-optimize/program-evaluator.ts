@@ -8,7 +8,7 @@
 import type { SportType } from '@prisma/client'
 import type { ParsedProgram, ParsedPhase } from '@/lib/ai/program-parser'
 import { validateProgramCompleteness } from '@/lib/ai/program-parser'
-import { METHODOLOGIES, SPORT_PROMPTS } from '@/lib/ai/program-prompts'
+import { METHODOLOGIES, getSportPrompt } from '@/lib/ai/program-prompts'
 import type {
   EvaluationResult,
   EvaluationContext,
@@ -402,7 +402,7 @@ function scoreSportSpecificCorrectness(
     return scoreGymSportSpecific(program, context, combinedText)
   }
 
-  const sportPrompt = SPORT_PROMPTS[context.sport]
+  const sportPrompt = getSportPrompt(context.sport, 'en')
   if (!sportPrompt) {
     details.push(`No sport prompt defined for ${context.sport}`)
     return { score: 70, weight: DEFAULT_WEIGHTS.sportSpecificCorrectness, details }

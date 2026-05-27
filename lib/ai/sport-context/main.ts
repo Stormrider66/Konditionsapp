@@ -1,5 +1,5 @@
 import type { AthleteData } from './types'
-import { SPORT_PROMPTS } from '../program-prompts'
+import { getSportPrompt } from '../program-prompts'
 import { buildReadinessContext } from './readiness'
 import { buildVideoAnalysisContext } from './video-analysis'
 import {
@@ -34,7 +34,7 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
   }
 
   // Get sport-specific prompt info
-  const sportPrompt = SPORT_PROMPTS[primarySport];
+  const sportPrompt = getSportPrompt(primarySport, locale);
 
   let context = `\n${sportPrompt.systemContext}\n`;
   context += `\n${sportPrompt.zoneGuidance}\n`;

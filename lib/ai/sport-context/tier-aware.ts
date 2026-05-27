@@ -1,6 +1,6 @@
 import type { AthleteSubscriptionTier } from '@prisma/client'
 import type { AthleteData } from './types'
-import { SPORT_PROMPTS } from '../program-prompts'
+import { getSportPrompt } from '../program-prompts'
 import { buildBasicProfileContext, buildTestContext } from './basic'
 import { buildStravaContext, buildGarminContext } from './integrations'
 import { buildReadinessContext } from './readiness'
@@ -104,7 +104,7 @@ export function buildTierAwareContext(
   // Sport-specific context
   const primarySport = athlete.sportProfile?.primarySport;
   if (primarySport) {
-    const sportPrompt = SPORT_PROMPTS[primarySport];
+    const sportPrompt = getSportPrompt(primarySport, locale);
     context += `\n${sportPrompt.systemContext}\n`;
 
     // Add sport-specific data based on tier

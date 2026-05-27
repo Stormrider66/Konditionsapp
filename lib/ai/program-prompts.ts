@@ -52,13 +52,17 @@ export const METHODOLOGIES = {
   }
 } as const;
 
-// Sport-specific prompt sections
-export const SPORT_PROMPTS: Record<SportType, {
+type SportPromptLocale = 'en' | 'sv';
+
+type SportPromptSection = {
   systemContext: string;
   zoneGuidance: string;
   sessionTypes: string[];
   periodizationNotes: string;
-}> = {
+};
+
+// Sport-specific prompt sections
+export const SPORT_PROMPTS: Record<SportType, SportPromptSection> = {
   RUNNING: {
     systemContext: `Du skapar löpprogram för uthållighetsidrottare.
 
@@ -662,6 +666,598 @@ NYCKELPRINCIPER FÖR KOST:
   }
 };
 
+export const SPORT_PROMPTS_EN: Record<SportType, SportPromptSection> = {
+  RUNNING: {
+    systemContext: `You create running programs for endurance athletes.
+
+KEY PRINCIPLES FOR RUNNING:
+- Training zones based on lactate threshold or VDOT
+- Progressive overload with a maximum 10% weekly increase
+- Recovery is as important as workload
+- Varied terrain and surfaces for injury prevention
+- Strength training twice per week for runners`,
+    zoneGuidance: `RUNNING ZONES (based on lactate test or VDOT):
+- Zone 1 (Recovery): <75% maxHR, easy jog, conversational pace
+- Zone 2 (Aerobic base): 75-85% maxHR, base training
+- Zone 3 (Tempo): 85-90% maxHR, comfortably hard
+- Zone 4 (Threshold/LT2): 90-95% maxHR, race pace for longer distances
+- Zone 5 (VO2max): 95-100% maxHR, 3-5 minute intervals`,
+    sessionTypes: [
+      'Long run (90-150 min, Zone 1-2)',
+      'Tempo run (20-40 min in Zone 3)',
+      'Threshold intervals (4-6 x 5-8 min in Zone 4)',
+      'VO2max intervals (5-8 x 3-4 min in Zone 5)',
+      'Fartlek (varied intensity)',
+      'Hill intervals (short and explosive)',
+      'Recovery run (30-45 min, Zone 1)',
+    ],
+    periodizationNotes: `RUNNING PERIODIZATION:
+- Base phase (8-12 weeks): Build aerobic capacity, 80% Zone 1-2
+- Build phase (6-8 weeks): Introduce tempo and threshold-developing sessions
+- Race-specific phase (4-6 weeks): Race-pace work and specific intervals
+- Taper (1-3 weeks): Reduce volume 40-60%, maintain intensity
+- Recovery (1-2 weeks): Easy training only after racing`,
+  },
+  CYCLING: {
+    systemContext: `You create cycling programs based on FTP (Functional Threshold Power).
+
+KEY PRINCIPLES FOR CYCLING:
+- FTP is central for all zone calculations
+- Watts per kilogram matters for climbing performance
+- Cadence variation drives different adaptations
+- Balance indoor and outdoor work
+- Aerodynamics matter for time-trial training`,
+    zoneGuidance: `CYCLING ZONES (based on FTP):
+- Zone 1 (Recovery): <55% FTP
+- Zone 2 (Endurance): 56-75% FTP
+- Zone 3 (Tempo): 76-90% FTP
+- Zone 4 (Threshold): 91-105% FTP
+- Zone 5 (VO2max): 106-120% FTP
+- Zone 6 (Anaerobic capacity): >120% FTP
+- Zone 7 (Neuromuscular): Max-effort sprints`,
+    sessionTypes: [
+      'Endurance ride (2-4 hours, Zone 2)',
+      'Sweet spot (2 x 20 min, 88-93% FTP)',
+      'Threshold intervals (3-4 x 10-15 min, 95-105% FTP)',
+      'VO2max intervals (5-6 x 3-5 min, 106-120% FTP)',
+      'Over-unders (alternating 95% and 105% FTP)',
+      'Sprint intervals (8-12 x 20-30 sec)',
+      'Climbing repeat (10-20 min climb in Zone 4)',
+    ],
+    periodizationNotes: `CYCLING PERIODIZATION:
+- Base phase: Volume focus, Zone 2, technique drills
+- Build phase: Sweet spot and threshold work
+- Race-specific phase: Race simulations and VO2max work
+- Taper: Reduce volume, keep short intense efforts
+- Off-season: Cross-training, strength, mobility`,
+  },
+  SWIMMING: {
+    systemContext: `You create swim programs based on CSS (Critical Swim Speed).
+
+KEY PRINCIPLES FOR SWIMMING:
+- CSS is the threshold pace for swimming
+- Technique is decisive for efficiency
+- Include drill work in every session
+- Vary strokes for balance
+- Dryland training complements water training`,
+    zoneGuidance: `SWIM ZONES (based on CSS):
+- CSS-6 (Recovery): CSS + 12-15 sec/100m
+- CSS-5 (Endurance): CSS + 8-12 sec/100m
+- CSS-4 (Tempo): CSS + 4-8 sec/100m
+- CSS-3 (Threshold): CSS pace
+- CSS-2 (VO2max): CSS - 3-5 sec/100m
+- CSS-1 (Sprint): All-out, max effort`,
+    sessionTypes: [
+      'Endurance swim (2500-4000m, CSS-5/6)',
+      'Threshold set (10 x 100m at CSS pace)',
+      'VO2max set (5 x 200m, CSS-2)',
+      'Sprint training (20 x 25m, full speed)',
+      'Technique/drill session (efficiency focus)',
+      'Pull/paddles session (upper-body strength)',
+      'Kick set (leg work and conditioning)',
+    ],
+    periodizationNotes: `SWIMMING PERIODIZATION:
+- Base phase: Technique, volume, aerobic foundation
+- Build phase: Gradually increased intensity, race-pace introduction
+- Race-specific phase: Distance-specific training, starts, turns
+- Taper: Short, intense training and rest before competition`,
+  },
+  TRIATHLON: {
+    systemContext: `You create triathlon programs that balance three disciplines.
+
+KEY PRINCIPLES FOR TRIATHLON:
+- Balance swim, bike, and run
+- Brick sessions train bike-to-run transitions
+- Prioritize the weakest discipline
+- Avoid overtraining: three sports create more total stress
+- Race-specific training is important`,
+    zoneGuidance: `TRIATHLON TRAINING ZONES:
+- Use discipline-specific zones (CSS, FTP, VDOT)
+- Brick sessions train transitions
+- Focus on race pace for the target distance
+- Olympic distance: More intensity
+- Ironman distance: More endurance and nutrition`,
+    sessionTypes: [
+      'Brick session (bike-to-run)',
+      'Open-water swim when possible',
+      'Race-pace swim, bike, and run work',
+      'Combined strength sessions',
+      'Transition practice (T1/T2)',
+      'Long bike with run off the bike',
+      'Technique-focused sessions across all three sports',
+    ],
+    periodizationNotes: `TRIATHLON PERIODIZATION:
+- Off-season: Strength, technique, base endurance
+- Base phase: Gradually build volume in all three disciplines
+- Build phase: Introduce brick sessions and intensity
+- Race-specific phase: Race pace, transitions, mental preparation
+- Taper: 2-3 weeks depending on race distance`,
+  },
+  HYROX: {
+    systemContext: `You create HYROX programs that combine running and functional stations.
+
+KEY PRINCIPLES FOR HYROX:
+- 8 x 1 km running plus 8 functional stations
+- Balance running fitness and station strength
+- Transition efficiency is decisive
+- Race-pace training matters
+- Grip endurance is critical in the later stations`,
+    zoneGuidance: `HYROX TRAINING FOCUS:
+- Running: Race pace around 85% maxHR
+- Stations: Efficient pace, not maximal output
+- Transitions: Fast recovery between efforts
+- Pacing: Even tempo through the full race`,
+    sessionTypes: [
+      'HYROX simulation (all stations)',
+      'Station-specific training',
+      '8 x 1 km intervals at race pace',
+      'Sled/SkiErg/RowErg conditioning',
+      'Grip endurance (farmers walks, dead hangs)',
+      'Wall ball plus burpee broad jump combo',
+      'Run-station-run brick sessions',
+    ],
+    periodizationNotes: `HYROX PERIODIZATION:
+- Base phase: Aerobic running capacity plus foundational strength
+- Build phase: Station-specific strength and endurance
+- Race-specific phase: Race simulations and pacing strategy
+- Taper: Reduce volume, maintain station familiarity
+- Station priority: Sled Push, Wall Balls, Rowing often limit performance`,
+  },
+  SKIING: {
+    systemContext: `You create cross-country skiing programs for classic and skate skiing.
+
+KEY PRINCIPLES FOR CROSS-COUNTRY SKIING:
+- Technique is decisive for efficiency
+- Double poling is a major power source
+- Adapt training to terrain
+- Use roller skiing during the dryland season
+- Upper-body and core strength are critical`,
+    zoneGuidance: `SKIING ZONES:
+- Zone 1-2: Easy skiing, technique focus
+- Zone 3: Distance intervals
+- Zone 4: Threshold intervals
+- Zone 5: Sprint intervals
+- Technique sessions: Isolated movement skills`,
+    sessionTypes: [
+      'Distance session (classic or skate)',
+      'Double-poling intervals',
+      'Sprint training (short intervals)',
+      'Technique drills (isolated skills)',
+      'Roller-ski session (dryland)',
+      'Forest run with poles',
+      'Hill running (specific strength)',
+    ],
+    periodizationNotes: `SKIING PERIODIZATION:
+- Spring: Recovery and foundational strength
+- Summer: Roller skiing, running, cycling
+- Autumn: Snow camp and intensification
+- Winter: Competition season
+- Double poling: Year-round priority`,
+  },
+  GENERAL_FITNESS: {
+    systemContext: `You create general conditioning and health programs with integrated nutrition planning.
+
+KEY PRINCIPLES FOR GENERAL FITNESS:
+- Balance strength and conditioning
+- Sustainable lifestyle is the focus
+- Progressive overload
+- Mobility and movement quality
+- Adapt to the athlete's life situation
+
+NUTRITION PRINCIPLES:
+- Energy balance drives weight change
+- Protein: 1.6-2.2 g/kg for muscle gain, 1.2-1.6 g/kg for weight loss
+- 7700 kcal roughly equals 1 kg body weight in theory
+- Limit weight loss to 0.5-1 kg per week for sustainability
+- Bioimpedance measurement gives better precision than BMI alone`,
+    zoneGuidance: `GENERAL TRAINING:
+- Easy: Can speak comfortably
+- Moderate: Can speak but with effort
+- Intense: Difficult to speak
+- Strength: RPE 6-8 for hypertrophy
+- HIIT: Short bursts with recovery
+
+NUTRITION RECOMMENDATIONS:
+- Weight loss: TDEE minus 300-500 kcal with high protein
+- Muscle gain: TDEE plus 200-400 kcal with high protein
+- Maintenance: Balanced intake around TDEE
+- Timing: Protein at each meal (20-40 g)`,
+    sessionTypes: [
+      'Conditioning session (30-45 min, easy to moderate)',
+      'Strength training (full body or split)',
+      'HIIT session (20-30 min)',
+      'Mobility session (yoga/stretching)',
+      'Active recovery (walking or easy swim)',
+      'Circuit training (strength plus conditioning)',
+      'Sport activity (chosen sport for variety)',
+    ],
+    periodizationNotes: `GENERAL FITNESS PROGRESSION:
+- Weeks 1-4: Establish habits, basic technique, nutrition logging
+- Weeks 5-8: Gradually increase volume, adjust calories
+- Weeks 9-12: Introduce intensity, optimize macros
+- Maintenance phase: Maintain with variation
+- Deload: Every 4-6 weeks, reduce load`,
+  },
+  STRENGTH: {
+    systemContext: `You create strength-training programs focused on periodization and progression.
+
+KEY PRINCIPLES FOR STRENGTH TRAINING:
+- Five-phase periodization: Anatomical Adaptation, Max Strength, Power, Maintenance, Taper
+- Estimate 1RM without max testing (Epley/Brzycki)
+- Two-for-two progression: 2+ extra reps in 2 sessions means increase load 5-10%
+- Deload every 4-6 weeks with 40-50% volume reduction
+- Exercise library should maintain biomechanical balance`,
+    zoneGuidance: `STRENGTH ZONES (based on 1RM):
+- Anatomical Adaptation: 60-70% 1RM, 12-15 reps, 2-3 sets
+- Hypertrophy: 70-80% 1RM, 8-12 reps, 3-4 sets
+- Max Strength: 80-90% 1RM, 4-6 reps, 4-5 sets
+- Power: 50-70% 1RM, 3-5 explosive reps, 3-5 sets
+- Maintenance: 70-85% 1RM, 6-8 reps, 2-3 sets`,
+    sessionTypes: [
+      'Full-body session (3x/week for beginners)',
+      'Upper/lower split (4x/week)',
+      'Push/pull/legs split (6x/week for advanced athletes)',
+      'Plyometric training (60-300 contacts)',
+      'Core stability (plank, Pallof press, dead bug)',
+      'Unilateral work (Bulgarian split squat, lunges)',
+      'Deload session (reduce volume 40-50%)',
+    ],
+    periodizationNotes: `STRENGTH PERIODIZATION (Bompa & Haff):
+- Anatomical Adaptation phase (4-6 weeks): Basic technique and adaptation
+- Max Strength phase (6-8 weeks): Progressive overload
+- Power phase (3-4 weeks): Explosiveness and specific force
+- Maintenance phase (4-24 weeks): Maintain strength during competition season
+- Taper phase (1-2 weeks): Reduce volume before competition
+
+BIOMECHANICAL BALANCE:
+- Posterior chain (RDL, Nordic hamstring)
+- Knee dominance (squat variations)
+- Unilateral work (lunges, step-ups)
+- Foot/ankle (calf raises)
+- Core stability
+- Upper body push/pull`,
+  },
+  FUNCTIONAL_FITNESS: {
+    systemContext: `You create functional fitness programs with CrossFit-style training.
+
+KEY PRINCIPLES FOR FUNCTIONAL FITNESS:
+- Constantly varied, functional movement, performed at high intensity
+- Mix gymnastics, Olympic lifting, and metabolic conditioning
+- Periodize skills and strength
+- Balance push/pull and upper/lower body work
+- Technique before load, especially in Olympic lifts
+- Benchmark workouts track progress`,
+    zoneGuidance: `TRAINING FOCUS:
+- Strength: Foundational lifts (squat, deadlift, press)
+- Olympic lifts: Clean, snatch, jerk
+- Gymnastics: Pull-ups, muscle-ups, HSPU, toes-to-bar
+- Metabolic conditioning: WODs and intervals
+- Skills: Double-unders, rope climbs, handstands
+
+INTENSITY:
+- Strength sessions: 70-90% 1RM, 3-5 reps
+- WODs: Scaled to maintain high intensity
+- Skills: Technical focus, not time pressure`,
+    sessionTypes: [
+      'WOD (For Time, AMRAP, EMOM)',
+      'Strength session (Back Squat, Deadlift, Press)',
+      'Olympic lifting session (Clean, Snatch, Jerk)',
+      'Gymnastics skills (pull-ups, HSPU, muscle-ups)',
+      'Metabolic conditioning (Assault Bike, Row, SkiErg)',
+      'Benchmark workout (Fran, Grace, Murph)',
+      'Active recovery (mobility, easy cardio)',
+    ],
+    periodizationNotes: `FUNCTIONAL FITNESS PERIODIZATION:
+- Weeks 1-4: Basic technique, volume build
+- Weeks 5-8: Progressive strength increase, skill development
+- Weeks 9-12: Intensification and benchmark testing
+- Deload every 4-5 weeks
+- Skills: Practice daily before WOD
+- Olympic lifts: Technique focus 2-3x/week`,
+  },
+  TEAM_FOOTBALL: {
+    systemContext: `You create training programs for football players.
+
+KEY PRINCIPLES FOR FOOTBALL:
+- Match-day periodization (MD+/MD-)
+- Explosiveness and sprint capacity
+- Aerobic and anaerobic endurance
+- Hamstring injury prevention
+- Integrate technical training with conditioning`,
+    zoneGuidance: `FOOTBALL INTENSITY ZONES:
+- Recovery: <70% maxHR, active recovery
+- Aerobic base: 70-80% maxHR, longer sessions
+- Tempo: 80-88% maxHR, game patterns
+- High intensity: 88-95% maxHR, match-like actions
+- Sprint: >95% maxHR, explosive actions`,
+    sessionTypes: [
+      'Tactical training (game patterns with the ball)',
+      'Conditioning session (small-sided games 4v4-8v8)',
+      'Sprint training (10-40 m intervals)',
+      'Strength training (explosiveness focus)',
+      'Recovery session (easy jog/pool)',
+      'Technical training (ball control)',
+      'Match preparation (tactical walkthrough)',
+    ],
+    periodizationNotes: `FOOTBALL PERIODIZATION:
+- Pre-season (4-6 weeks): Build aerobic base and strength
+- Competition season: Match-day based weekly planning
+- MD-3/MD-4: High-intensity sessions
+- MD-2: Reduced volume, tactics
+- MD-1: Light activation
+- MD+1: Active recovery
+- Breaks: Maintenance training`,
+  },
+  TEAM_ICE_HOCKEY: {
+    systemContext: `You create training programs for ice hockey players.
+
+KEY PRINCIPLES FOR ICE HOCKEY:
+- Interval-based sport with 40-60 second shifts
+- Explosive power and acceleration
+- Recovery between shifts
+- Injury prevention for hips and groin
+- Balance on-ice and off-ice work`,
+    zoneGuidance: `ICE HOCKEY INTENSITY ZONES:
+- Recovery: Easy skating, <70% maxHR
+- Aerobic base: 70-80% maxHR, longer intervals
+- Threshold level: 80-90% maxHR, 30-60 sec work
+- Anaerobic: 90-95% maxHR, shift simulations
+- Max: >95% maxHR, explosive bursts`,
+    sessionTypes: [
+      'On-ice intervals (30/30 sec work/rest)',
+      'Off-ice conditioning (bike, running)',
+      'Explosive strength (power cleans, box jumps)',
+      'Skating-specific strength (lateral work)',
+      'Recovery (pool, stretching)',
+      'Technical training (stickhandling)',
+      'Game situations (power play, penalty kill)',
+    ],
+    periodizationNotes: `ICE HOCKEY PERIODIZATION:
+- Off-season: Aerobic base, strength, mobility
+- Pre-season: Sport-specific conditioning and explosiveness
+- In-season: Maintenance and match focus
+- Game day: Activation and tactics
+- Playoff: Reduced volume, high intensity`,
+  },
+  TEAM_HANDBALL: {
+    systemContext: `You create training programs for handball players.
+
+KEY PRINCIPLES FOR HANDBALL:
+- Intermittent high-intensity sport
+- Throwing and jumping power
+- Rapid changes of direction
+- Shoulder and knee prevention
+- Tactical game understanding`,
+    zoneGuidance: `HANDBALL INTENSITY ZONES:
+- Recovery: <70% maxHR, easy activity
+- Aerobic: 70-80% maxHR, endurance training
+- Tempo: 80-88% maxHR, game forms
+- High-intensity play: 88-95% maxHR, intense actions
+- Max: >95% maxHR, sprints and jumps`,
+    sessionTypes: [
+      'Game forms (6v6, 5v5)',
+      'Conditioning training (intervals)',
+      'Strength training (upper body, throwing)',
+      'Jump training (plyometrics)',
+      'Technical training (shooting, passing)',
+      'Tactical session (defense, attack)',
+      'Recovery session (easy activity)',
+    ],
+    periodizationNotes: `HANDBALL PERIODIZATION:
+- Pre-season: Build conditioning and strength
+- Build phase: Sport-specific training
+- Competition season: Match-based planning
+- Match week: Reduce volume toward match day
+- Recovery: Active rest after matches`,
+  },
+  TEAM_FLOORBALL: {
+    systemContext: `You create training programs for floorball players.
+
+KEY PRINCIPLES FOR FLOORBALL:
+- Interval sport with fast shifts
+- Sprint capacity and acceleration
+- Low body mass and high explosiveness
+- Hip and back mobility
+- Stick and ball technique`,
+    zoneGuidance: `FLOORBALL INTENSITY ZONES:
+- Recovery: <70% maxHR, easy running
+- Aerobic base: 70-80% maxHR, basic conditioning
+- Tempo: 80-88% maxHR, game forms
+- High intensity: 88-95% maxHR, match-like actions
+- Sprint: >95% maxHR, explosive shifts`,
+    sessionTypes: [
+      'Game training (varied formations)',
+      'Interval running (20-40 sec)',
+      'Strength training (leg explosiveness)',
+      'Technical session (ball control, shooting)',
+      'Speed training (reaction, acceleration)',
+      'Tactical training (positions)',
+      'Recovery (stretching, pool)',
+    ],
+    periodizationNotes: `FLOORBALL PERIODIZATION:
+- Summer training: Aerobic base and strength
+- Pre-season: Sport-specific conditioning
+- Season: Match-adapted training
+- Match week: Reduce volume toward match day
+- Recovery: Rest and maintenance`,
+  },
+  TEAM_BASKETBALL: {
+    systemContext: `You create training programs for basketball players.
+
+KEY PRINCIPLES FOR BASKETBALL:
+- Explosive vertical jump and sprint power
+- Rapid changes of direction and lateral movement
+- Aerobic and anaerobic endurance
+- Hand coordination and shooting technique
+- Ankle and knee injury prevention`,
+    zoneGuidance: `BASKETBALL INTENSITY ZONES:
+- Recovery: <70% maxHR, easy activity
+- Aerobic base: 70-80% maxHR, basic conditioning
+- Tempo: 80-88% maxHR, play drills
+- High intensity: 88-95% maxHR, intense drills
+- Max: >95% maxHR, sprints and jumps`,
+    sessionTypes: [
+      'Game training (5v5, 3v3)',
+      'Shooting practice (varied positions)',
+      'Agility and lateral movement',
+      'Vertical jump training (plyometrics)',
+      'Strength training (legs, core)',
+      'Conditioning intervals (suicides, court sprints)',
+      'Recovery (stretching, foam rolling)',
+    ],
+    periodizationNotes: `BASKETBALL PERIODIZATION:
+- Off-season: Strength, explosiveness, technique
+- Pre-season: Build game fitness
+- In-season: Match focus and maintenance
+- Match week: Reduce volume toward match day
+- Playoff: High intensity, optimal recovery`,
+  },
+  TEAM_VOLLEYBALL: {
+    systemContext: `You create training programs for volleyball players.
+
+KEY PRINCIPLES FOR VOLLEYBALL:
+- Explosive vertical power for jumps and blocks
+- Fast reaction ability
+- Shoulder and scapular strength for hitting
+- Landing technique for knee protection
+- Lateral movement and footwork`,
+    zoneGuidance: `VOLLEYBALL INTENSITY ZONES:
+- Recovery: <70% maxHR, easy activity
+- Aerobic base: 70-80% maxHR, general conditioning
+- Tempo: 80-88% maxHR, technical drills
+- High intensity: 88-95% maxHR, intense drills
+- Max: >95% maxHR, explosive jumps and hits`,
+    sessionTypes: [
+      'Game training (6v6, rotation)',
+      'Serve and receive practice',
+      'Block training and net play',
+      'Plyometric jump training',
+      'Strength training (shoulders, legs, core)',
+      'Agility and reaction drills',
+      'Recovery (stretching, shoulder mobility)',
+    ],
+    periodizationNotes: `VOLLEYBALL PERIODIZATION:
+- Off-season: Foundational strength and explosiveness
+- Pre-season: Technical polish and game form
+- In-season: Match preparation and maintenance
+- Match week: Tactics and light activation
+- Recovery: Rest after intense periods`,
+  },
+  TENNIS: {
+    systemContext: `You create training programs for tennis players.
+
+KEY PRINCIPLES FOR TENNIS:
+- Explosive movement and fast changes of direction
+- Shoulder and elbow prevention
+- Core stability for rotation
+- Aerobic and anaerobic endurance
+- Mental endurance for long matches`,
+    zoneGuidance: `TENNIS INTENSITY ZONES:
+- Recovery: <70% maxHR, easy activity
+- Aerobic base: 70-80% maxHR, basic conditioning
+- Tempo: 80-88% maxHR, rallies and drills
+- High intensity: 88-95% maxHR, intense points
+- Max: >95% maxHR, explosive sprints`,
+    sessionTypes: [
+      'Technical training (strokes, serve)',
+      'Match training and tactics',
+      'Footwork and movement drills',
+      'Interval training (on-court drills)',
+      'Strength training (rotation exercises)',
+      'Conditioning training (running, cycling)',
+      'Recovery (stretching, shoulder mobility)',
+    ],
+    periodizationNotes: `TENNIS PERIODIZATION:
+- Off-season: Strength, conditioning base, technical development
+- Pre-season: Competition preparation and match toughness
+- In-season: Tournament periodization and maintenance
+- Between tournaments: Recovery and specific training
+- Taper: Reduce volume before important tournaments`,
+  },
+  PADEL: {
+    systemContext: `You create training programs for padel players.
+
+KEY PRINCIPLES FOR PADEL:
+- Explosive lateral movements and changes of direction
+- Reaction speed and anticipation
+- Shoulder and elbow prevention
+- Endurance for long matches
+- Wall play and positioning`,
+    zoneGuidance: `PADEL INTENSITY ZONES:
+- Recovery: <70% maxHR, easy activity
+- Aerobic base: 70-80% maxHR, basic conditioning
+- Tempo: 80-88% maxHR, rallies and point play
+- High intensity: 88-95% maxHR, intense exchanges
+- Max: >95% maxHR, explosive reactions`,
+    sessionTypes: [
+      'Technical training (strokes, volleys, wall play)',
+      'Match training and tactics',
+      'Footwork and lateral movement',
+      'Reaction training',
+      'Strength training (core, legs, shoulders)',
+      'Conditioning intervals',
+      'Recovery (stretching, mobility)',
+    ],
+    periodizationNotes: `PADEL PERIODIZATION:
+- Off-season: Strength, mobility, technical development
+- Pre-season: Build game fitness and match toughness
+- In-season: Match focus and maintenance training
+- Between tournaments: Recovery and specific training
+- Important tournaments: Taper and mental preparation`,
+  },
+  NUTRITION: {
+    systemContext: `You provide nutrition advice and nutrition coaching.
+
+KEY PRINCIPLES FOR NUTRITION:
+- Energy balance adapted to the goal (weight loss, weight gain, maintenance)
+- Macro distribution based on activity level and goal
+- Meal timing and frequency
+- Micronutrients and dietary fiber
+- Sustainable eating habits over extreme diets`,
+    zoneGuidance: `NUTRITION GUIDELINES:
+- Protein: 1.6-2.2 g/kg body weight depending on goal
+- Carbohydrates: Adapt to activity level
+- Fat: 0.8-1.2 g/kg body weight minimum
+- Fiber: 25-35 g per day
+- Fluids: 30-40 ml/kg body weight`,
+    sessionTypes: [
+      'Meal planning',
+      'Macro tracking',
+      'Nutrition analysis',
+      'Cooking and meal prep',
+    ],
+    periodizationNotes: `NUTRITION PERIODIZATION:
+- Weight loss: Moderate calorie deficit (300-500 kcal/day)
+- Weight gain: Surplus with protein focus
+- Maintenance: Balanced energy intake
+- Body recomposition: High protein with cycled energy intake`,
+  },
+};
+
+export function getSportPrompt(sport: SportType, locale: SportPromptLocale = 'en'): SportPromptSection {
+  return locale === 'sv' ? SPORT_PROMPTS[sport] : SPORT_PROMPTS_EN[sport];
+}
+
 /**
  * Calendar constraints for program generation
  */
@@ -689,7 +1285,7 @@ export function generateProgramPrompt(
   goalDescription?: string,
   calendarConstraints?: CalendarConstraints
 ): string {
-  const sportInfo = SPORT_PROMPTS[sport];
+  const sportInfo = getSportPrompt(sport, 'en');
   const methodInfo = methodology ? METHODOLOGIES[methodology] : null;
 
   let prompt = `## TASK: CREATE TRAINING PROGRAM
@@ -815,7 +1411,7 @@ export function quickWorkoutPrompt(
   intensity: 'easy' | 'moderate' | 'hard',
   constraints?: string
 ): string {
-  const sportInfo = SPORT_PROMPTS[sport];
+  const sportInfo = getSportPrompt(sport, 'en');
 
   return `## QUICK WORKOUT: ${sport}
 
@@ -1017,7 +1613,7 @@ export function calendarAwareWorkoutPrompt(
     daysSinceIllness?: number;
   }
 ): string {
-  const sportInfo = SPORT_PROMPTS[sport];
+  const sportInfo = getSportPrompt(sport, 'en');
 
   if (calendarContext.isBlocked) {
     return `## REST DAY: ${targetDate}
