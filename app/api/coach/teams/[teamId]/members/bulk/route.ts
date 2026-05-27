@@ -64,20 +64,22 @@ type RosterRowResult =
   | { status: 'error'; name: string; reason: string }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
     const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
-    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!team) return NextResponse.json({ error: t(locale, 'teamNotFound') }, { status: 404 })
 
     const raw = await req.json().catch(() => null)
     const parsed = bodySchema.safeParse(raw)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid body', details: parsed.error.errors },
+        { error: t(locale, 'invalidBody'), details: parsed.error.errors },
         { status: 400 }
       )
     }
@@ -197,16 +199,37 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ summary, results })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'unauthorized') }, { status: 401 })
     }
     logger.error('Bulk create team members failed', {}, error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'failed') }, { status: 500 })
   }
 }
 
-function t(locale: AppLocale, key: 'athleteLimitReached' | 'emailAlreadyUsed' | 'duplicateEmail' | 'databaseError' | 'unknownError', value?: string): string {
+function t(
+  locale: AppLocale,
+  key:
+    | 'teamNotFound'
+    | 'invalidBody'
+    | 'unauthorized'
+    | 'failed'
+    | 'athleteLimitReached'
+    | 'emailAlreadyUsed'
+    | 'duplicateEmail'
+    | 'databaseError'
+    | 'unknownError',
+  value?: string
+): string {
   if (locale === 'sv') {
     switch (key) {
+      case 'teamNotFound':
+        return 'Laget hittades inte'
+      case 'invalidBody':
+        return 'Ogiltigt innehåll'
+      case 'unauthorized':
+        return 'Obehörig'
+      case 'failed':
+        return 'Misslyckades'
       case 'athleteLimitReached':
         return 'Atletgränsen är nådd'
       case 'emailAlreadyUsed':
@@ -221,6 +244,14 @@ function t(locale: AppLocale, key: 'athleteLimitReached' | 'emailAlreadyUsed' | 
   }
 
   switch (key) {
+    case 'teamNotFound':
+      return 'Team not found'
+    case 'invalidBody':
+      return 'Invalid body'
+    case 'unauthorized':
+      return 'Unauthorized'
+    case 'failed':
+      return 'Failed'
     case 'athleteLimitReached':
       return 'Athlete limit reached'
     case 'emailAlreadyUsed':
