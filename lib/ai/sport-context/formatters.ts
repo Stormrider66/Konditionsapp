@@ -7,18 +7,18 @@ export function formatSecondsToTime(seconds: number): string {
 }
 
 /**
- * Translate activity level to Swedish
+ * Translate activity level for AI context.
  */
-export function translateActivityLevel(level: ActivityLevel): string {
-  const translations: Record<ActivityLevel, string> = {
-    SEDENTARY: 'Stillasittande',
-    LIGHT: 'Lätt aktivitet (1-3 dagar/vecka)',
-    MODERATE: 'Måttlig aktivitet (3-5 dagar/vecka)',
-    ACTIVE: 'Aktiv (6-7 dagar/vecka)',
-    VERY_ACTIVE: 'Mycket aktiv (hård träning + fysiskt arbete)',
-    ATHLETE: 'Elitidrottare (2+ pass/dag)',
+export function translateActivityLevel(level: ActivityLevel, locale: 'en' | 'sv' = 'en'): string {
+  const translations: Record<ActivityLevel, { en: string; sv: string }> = {
+    SEDENTARY: { en: 'Sedentary', sv: 'Stillasittande' },
+    LIGHT: { en: 'Light activity (1-3 days/week)', sv: 'Lätt aktivitet (1-3 dagar/vecka)' },
+    MODERATE: { en: 'Moderate activity (3-5 days/week)', sv: 'Måttlig aktivitet (3-5 dagar/vecka)' },
+    ACTIVE: { en: 'Active (6-7 days/week)', sv: 'Aktiv (6-7 dagar/vecka)' },
+    VERY_ACTIVE: { en: 'Very active (hard training + physical work)', sv: 'Mycket aktiv (hård träning + fysiskt arbete)' },
+    ATHLETE: { en: 'Elite athlete (2+ sessions/day)', sv: 'Elitidrottare (2+ pass/dag)' },
   };
-  return translations[level] || level;
+  return translations[level]?.[locale] || level;
 }
 
 /**

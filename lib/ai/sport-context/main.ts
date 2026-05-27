@@ -45,7 +45,7 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
       context += buildRunningContext(athlete, locale);
       break;
     case 'HYROX':
-      context += buildHyroxContext(athlete);
+      context += buildHyroxContext(athlete, locale);
       break;
     case 'CYCLING':
       context += buildCyclingContext(athlete);
@@ -63,14 +63,14 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
       context += buildSkiingContext(athlete);
       break;
     case 'GENERAL_FITNESS':
-      context += buildGeneralFitnessContext(athlete);
+      context += buildGeneralFitnessContext(athlete, locale);
       break;
     case 'FUNCTIONAL_FITNESS':
-      context += buildFunctionalFitnessContext(athlete);
+      context += buildFunctionalFitnessContext(athlete, locale);
       break;
     case 'STRENGTH':
       // Strength uses general fitness context + strength experience
-      context += buildGeneralFitnessContext(athlete);
+      context += buildGeneralFitnessContext(athlete, locale);
       if (athlete.sportProfile?.strengthExperience) {
         context += `\n- **${locale === 'sv' ? 'Styrketräningserfarenhet' : 'Strength training experience'}**: ${athlete.sportProfile.strengthExperience}\n`;
       }
