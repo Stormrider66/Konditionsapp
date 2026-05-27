@@ -29,6 +29,7 @@ export function buildTeamSportPlanningSummary(input: {
       goal: input.goal,
       sessionsPerWeek: input.sessionsPerWeek,
       footballSettings: input.footballSettings,
+      locale,
     })
 
     return {
@@ -59,6 +60,7 @@ export function buildTeamSportPlanningSummary(input: {
       goal: input.goal,
       sessionsPerWeek: input.sessionsPerWeek,
       hockeySettings: input.hockeySettings,
+      locale,
     })
 
     return {

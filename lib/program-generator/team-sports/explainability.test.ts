@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildTeamSportPlanningSummary } from './explainability'
 
 describe('buildTeamSportPlanningSummary', () => {
-  it('explains football assumptions and load reductions', () => {
+  it('explains Swedish football assumptions and load reductions', () => {
     const summary = buildTeamSportPlanningSummary({
       sport: 'TEAM_FOOTBALL',
       goal: 'in-season-maintenance',
@@ -24,7 +24,7 @@ describe('buildTeamSportPlanningSummary', () => {
     expect(summary?.prevention.length).toBeGreaterThan(0)
   })
 
-  it('explains hockey match load and default position fallback', () => {
+  it('explains English hockey match load and default position fallback', () => {
     const summary = buildTeamSportPlanningSummary({
       sport: 'TEAM_ICE_HOCKEY',
       goal: 'in-season-maintenance',
@@ -40,6 +40,7 @@ describe('buildTeamSportPlanningSummary', () => {
     expect(summary?.title).toContain('Hockey')
     expect(summary?.assumptions).toContainEqual({ label: 'Position', value: 'Center' })
     expect(summary?.assumptions).toContainEqual({ label: 'Games this week', value: '2' })
-    expect(summary?.loadGuidance.join(' ')).toContain('Hög istid/bytesbelastning')
+    expect(summary?.loadGuidance.join(' ')).toContain('High ice-time/shift load')
+    expect(JSON.stringify(summary)).not.toMatch(/[åäöÅÄÖ]|\b(Hög|istid|bytesbelastning|återhämtning)\b/)
   })
 })

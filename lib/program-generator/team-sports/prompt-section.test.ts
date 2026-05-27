@@ -41,7 +41,9 @@ describe('buildTeamSportPromptSection', () => {
     expect(section).toContain('ICE HOCKEY CONTEXT')
     expect(section).toContain('Games this week: 2')
     expect(section).toContain('Load guidance')
+    expect(section).toContain('High ice-time/shift load')
     expect(section).toContain('avoid hard off-ice conditioning')
+    expect(section).not.toMatch(/[åäöÅÄÖ]|\b(Hög|istid|bytesbelastning|återhämtning)\b/)
   })
 
   it('adds court and racket sport profile guidance', () => {

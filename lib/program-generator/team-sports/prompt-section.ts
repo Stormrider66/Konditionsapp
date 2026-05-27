@@ -107,6 +107,7 @@ export function buildTeamSportPromptSection(input: TeamSportPromptInput): string
       goal,
       sessionsPerWeek: input.sessionsPerWeek,
       hockeySettings: input.hockeySettings,
+      locale,
     })
     return formatHockeySection(planning, input.hockeySettings, locale, variant)
   }
@@ -126,6 +127,7 @@ export function buildTeamSportPromptSection(input: TeamSportPromptInput): string
       goal,
       sessionsPerWeek: input.sessionsPerWeek,
       footballSettings: input.footballSettings,
+      locale,
     })
     return formatFootballSection(planning, input.footballSettings, locale, variant)
   }
