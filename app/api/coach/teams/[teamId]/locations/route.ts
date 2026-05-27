@@ -11,20 +11,26 @@ interface RouteContext {
 }
 type AppLocale = 'en' | 'sv'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const createLocationSchema = z.object({
   name: z.string().min(1).max(120),
 })
 
 export async function GET(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const membership = scope.businessSlug
@@ -91,22 +97,25 @@ export async function GET(req: NextRequest, context: RouteContext) {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error listing team calendar locations:', error)
-    return NextResponse.json({ error: 'Failed to fetch locations' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch locations', 'Kunde inte hämta platser') }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const membership = scope.businessSlug
@@ -117,12 +126,12 @@ export async function POST(req: NextRequest, context: RouteContext) {
       })
 
     if (!membership) {
-      return NextResponse.json({ error: 'Business membership not found' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Business membership not found', 'Verksamhetsmedlemskap hittades inte') }, { status: 403 })
     }
 
     const parsed = createLocationSchema.safeParse(await req.json())
     if (!parsed.success) {
-      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: parsed.error.flatten() }, { status: 400 })
     }
 
     const name = parsed.data.name.trim()
@@ -179,9 +188,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
     }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error creating team calendar location:', error)
-    return NextResponse.json({ error: 'Failed to create location' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create location', 'Kunde inte skapa plats') }, { status: 500 })
   }
 }

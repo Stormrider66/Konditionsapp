@@ -17,30 +17,38 @@ import { z } from 'zod'
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const workoutTypeSchema = z.enum(['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY'])
 
 export async function GET(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
     const businessScope = await resolveWorkoutBusinessScope(user.id, req)
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 })
     }
 
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const { searchParams } = new URL(req.url)
     const parsedType = workoutTypeSchema.safeParse(searchParams.get('type') || 'STRENGTH')
     if (!parsedType.success) {
-      return NextResponse.json({ error: 'Invalid workout type' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid workout type', 'Ogiltig passtyp') }, { status: 400 })
     }
 
     const search = searchParams.get('search')?.trim()
@@ -91,9 +99,9 @@ export async function GET(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ workouts })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error loading team event workout options:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to load workout options', 'Kunde inte hämta passalternativ') }, { status: 500 })
   }
 }
