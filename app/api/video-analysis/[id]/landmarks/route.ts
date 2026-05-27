@@ -70,12 +70,24 @@ const MAX_LANDMARKS_PAYLOAD_BYTES = 10 * 1024 * 1024 // 10MB
 const MAX_FRAMES = 10_000
 const MAX_LANDMARKS_PER_FRAME = 60
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language?: string | null): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:landmarks:patch', user.id, {
@@ -88,7 +100,7 @@ export async function PATCH(
     if (contentLength) {
       const bytes = Number(contentLength)
       if (Number.isFinite(bytes) && bytes > MAX_LANDMARKS_PAYLOAD_BYTES) {
-        return NextResponse.json({ error: 'Payload too large' }, { status: 413 })
+        return NextResponse.json({ error: t(locale, 'Payload too large', 'För stor datamängd') }, { status: 413 })
       }
     }
 
@@ -107,10 +119,16 @@ export async function PATCH(
     };
 
     if (frames.length > MAX_FRAMES) {
-      return NextResponse.json({ error: `Too many frames (max ${MAX_FRAMES})` }, { status: 413 })
+      return NextResponse.json(
+        { error: t(locale, `Too many frames (max ${MAX_FRAMES})`, `För många bildrutor (max ${MAX_FRAMES})`) },
+        { status: 413 }
+      )
     }
     if (frames.some((f) => f.landmarks.length > MAX_LANDMARKS_PER_FRAME)) {
-      return NextResponse.json({ error: `Too many landmarks per frame (max ${MAX_LANDMARKS_PER_FRAME})` }, { status: 413 })
+      return NextResponse.json(
+        { error: t(locale, `Too many landmarks per frame (max ${MAX_LANDMARKS_PER_FRAME})`, `För många landmärken per bildruta (max ${MAX_LANDMARKS_PER_FRAME})`) },
+        { status: 413 }
+      )
     }
 
     // Verify ownership
@@ -120,7 +138,7 @@ export async function PATCH(
 
     if (!analysis) {
       return NextResponse.json(
-        { error: 'Analysis not found' },
+        { error: t(locale, 'Analysis not found', 'Analysen hittades inte') },
         { status: 404 }
       );
     }
@@ -176,23 +194,23 @@ export async function PATCH(
         '\n\n--- Gemini AI Pose Analysis ---',
         `Score: ${aiPoseAnalysis.score || 'N/A'}/100`,
         '',
-        'Tolkning:',
+        t(locale, 'Interpretation:', 'Tolkning:'),
         aiPoseAnalysis.interpretation,
         '',
         ...(aiPoseAnalysis.technicalFeedback.length > 0 ? [
-          'Teknisk feedback:',
+          t(locale, 'Technical feedback:', 'Teknisk feedback:'),
           ...aiPoseAnalysis.technicalFeedback.map((fb, i) =>
             `${i + 1}. ${fb.area}: ${fb.observation} - ${fb.suggestion}`
           ),
           '',
         ] : []),
         ...(aiPoseAnalysis.patterns.length > 0 ? [
-          'Identifierade mönster:',
+          t(locale, 'Identified patterns:', 'Identifierade mönster:'),
           ...aiPoseAnalysis.patterns.map(p => `• ${p.pattern}: ${p.significance}`),
           '',
         ] : []),
         ...(aiPoseAnalysis.recommendations.length > 0 ? [
-          'Rekommendationer:',
+          t(locale, 'Recommendations:', 'Rekommendationer:'),
           ...aiPoseAnalysis.recommendations.map(r =>
             `${r.priority}. ${r.title}: ${r.description}`
           ),
@@ -212,7 +230,7 @@ export async function PATCH(
           ] : []),
           '',
         ] : []),
-        'Sammanfattning:',
+        t(locale, 'Summary:', 'Sammanfattning:'),
         aiPoseAnalysis.overallAssessment,
       ].join('\n');
 
@@ -262,17 +280,17 @@ export async function PATCH(
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid data format', details: error.errors },
+        { error: t(locale, 'Invalid data format', 'Ogiltigt dataformat'), details: error.errors },
         { status: 400 }
       );
     }
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to save landmarks' },
+      { error: t(locale, 'Failed to save landmarks', 'Kunde inte spara landmärken') },
       { status: 500 }
     );
   }
@@ -282,8 +300,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const { id } = await params;
 
     const analysis = await prisma.videoAnalysis.findFirst({
@@ -296,14 +316,14 @@ export async function GET(
 
     if (!analysis) {
       return NextResponse.json(
-        { error: 'Analysis not found' },
+        { error: t(locale, 'Analysis not found', 'Analysen hittades inte') },
         { status: 404 }
       );
     }
 
     if (!analysis.landmarksData) {
       return NextResponse.json(
-        { error: 'No landmarks data available' },
+        { error: t(locale, 'No landmarks data available', 'Ingen landmärkesdata tillgänglig') },
         { status: 404 }
       );
     }
@@ -380,18 +400,18 @@ export async function GET(
     }
 
     return NextResponse.json(
-      { error: 'Invalid landmarks data format' },
+      { error: t(locale, 'Invalid landmarks data format', 'Ogiltigt format för landmärkesdata') },
       { status: 500 }
     );
   } catch (error) {
     logger.error('Get landmarks error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get landmarks' },
+      { error: t(locale, 'Failed to get landmarks', 'Kunde inte hämta landmärken') },
       { status: 500 }
     );
   }
