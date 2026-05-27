@@ -20,6 +20,15 @@ import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 
 type ProgramType = 'MAIN' | 'COMPLEMENTARY';
 type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE';
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface SaveProgramRequest {
   aiOutput?: string;
@@ -34,6 +43,7 @@ interface SaveProgramRequest {
 }
 
 export async function POST(request: NextRequest) {
+  let responseLocale: AppLocale = 'en'
   try {
     // Dual auth: try coach first, then athlete
     let coachUserId: string;
@@ -43,6 +53,7 @@ export async function POST(request: NextRequest) {
     try {
       const user = await requireCoach();
       coachUserId = user.id;
+      responseLocale = resolveLocale(user.language)
     } catch {
       // Fallback: try athlete auth
       const resolved = await resolveAthleteClientId();
@@ -54,6 +65,7 @@ export async function POST(request: NextRequest) {
       }
       isAthleteAuth = true;
       athleteClientId = resolved.clientId;
+      responseLocale = resolveLocale(resolved.user.language)
 
       // Get the coach user ID from the client record
       const clientRecord = await prisma.client.findUnique({
@@ -323,7 +335,7 @@ export async function POST(request: NextRequest) {
           programData: parsedProgramToInfographicData(parsedProgram),
           coachId: coachUserId,
           clientId,
-          locale: request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en',
+          locale: responseLocale,
         }).catch((err) => {
           logger.warn('Background infographic generation failed', { programId: savedProgram.id }, err)
         })
@@ -369,12 +381,17 @@ export async function POST(request: NextRequest) {
         });
 
         if (athleteAccount?.user?.email) {
+          const athleteLocale = resolveLocale(athleteAccount.user.language)
           // Create an in-app message notification
           await prisma.message.create({
             data: {
               senderId: coachUserId,
               receiverId: athleteAccount.userId,
-              content: `Ett nytt träningsprogram har publicerats: "${savedProgram.name}". Gå till din dashboard för att se det.`,
+              content: t(
+                athleteLocale,
+                `A new training program has been published: "${savedProgram.name}". Go to your dashboard to view it.`,
+                `Ett nytt träningsprogram har publicerats: "${savedProgram.name}". Gå till din dashboard för att se det.`,
+              ),
               isRead: false,
             },
           });
@@ -391,9 +408,11 @@ export async function POST(request: NextRequest) {
       program: programWithDetails,
       warnings: validation.warnings,
       notificationSent,
-      message: `Program "${savedProgram.name}" saved successfully with ${weeksData.length} weeks${
-        notificationSent ? ' och atlet har meddelats' : ''
-      }`,
+      message: t(
+        responseLocale,
+        `Program "${savedProgram.name}" saved successfully with ${weeksData.length} weeks${notificationSent ? ' and the athlete has been notified' : ''}.`,
+        `Programmet "${savedProgram.name}" sparades med ${weeksData.length} veckor${notificationSent ? ' och atleten har meddelats' : ''}.`,
+      ),
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
