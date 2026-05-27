@@ -1,8 +1,8 @@
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
-  TEAM_EVENT_CONTENT_OWNER_LABELS,
-  TEAM_EVENT_CONTENT_STATUS_LABELS,
-  TEAM_EVENT_TYPE_LABELS,
+  TEAM_EVENT_CONTENT_OWNER_LABELS_SV,
+  TEAM_EVENT_CONTENT_STATUS_LABELS_SV,
+  TEAM_EVENT_TYPE_LABELS_SV,
   isTeamEventType,
   type TeamEventContentOwner,
   type TeamEventContentStatus,
@@ -146,12 +146,12 @@ function formatTime(date: Date, locale: AppLocale): string {
 }
 
 function eventTypeLabel(type: string, locale: AppLocale): string {
-  if (isTeamEventType(type)) return locale === 'sv' ? TEAM_EVENT_TYPE_LABELS[type] : TEAM_EVENT_TYPE_LABELS_EN[type]
+  if (isTeamEventType(type)) return locale === 'sv' ? TEAM_EVENT_TYPE_LABELS_SV[type] : TEAM_EVENT_TYPE_LABELS_EN[type]
   return type || (locale === 'sv' ? 'Övrigt' : 'Other')
 }
 
 function contentStatusLabel(status: string, locale: AppLocale): string {
-  const labels = locale === 'sv' ? TEAM_EVENT_CONTENT_STATUS_LABELS : TEAM_EVENT_CONTENT_STATUS_LABELS_EN
+  const labels = locale === 'sv' ? TEAM_EVENT_CONTENT_STATUS_LABELS_SV : TEAM_EVENT_CONTENT_STATUS_LABELS_EN
   if (labels[status as TeamEventContentStatus]) {
     return labels[status as TeamEventContentStatus]
   }
@@ -160,7 +160,7 @@ function contentStatusLabel(status: string, locale: AppLocale): string {
 
 function contentOwnerLabel(owner: string | null, locale: AppLocale): string | null {
   if (!owner) return null
-  const labels = locale === 'sv' ? TEAM_EVENT_CONTENT_OWNER_LABELS : TEAM_EVENT_CONTENT_OWNER_LABELS_EN
+  const labels = locale === 'sv' ? TEAM_EVENT_CONTENT_OWNER_LABELS_SV : TEAM_EVENT_CONTENT_OWNER_LABELS_EN
   if (labels[owner as TeamEventContentOwner]) {
     return labels[owner as TeamEventContentOwner]
   }
