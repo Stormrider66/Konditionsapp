@@ -11,8 +11,24 @@ const forgotPasswordSchema = z.object({
   email: z.string().email(),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv'
+  if (userLanguage === 'en') return 'en'
+
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
+  return acceptLanguage.startsWith('sv') ? 'sv' : 'en'
+}
+
 // POST /api/auth/forgot-password
 export async function POST(request: NextRequest) {
+  let locale = getRequestLocale(request)
+
   try {
     // Rate limit: 3 requests per 15 minutes per IP
     const ip = getRequestIp(request)
@@ -27,7 +43,7 @@ export async function POST(request: NextRequest) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Ange en giltig e-postadress' },
+        { error: t(locale, 'Enter a valid email address', 'Ange en giltig e-postadress') },
         { status: 400 }
       )
     }
@@ -40,13 +56,14 @@ export async function POST(request: NextRequest) {
     // Look up user for name personalization (optional)
     const user = await prisma.user.findUnique({
       where: { email },
-      select: { name: true },
+      select: { name: true, language: true },
     })
 
     if (!user) {
       // User doesn't exist — return success anyway (no enumeration)
       return successResponse()
     }
+    locale = getRequestLocale(request, user.language)
 
     // Generate recovery link via Supabase Admin
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
@@ -68,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send via Resend
-    await sendPasswordResetEmail(email, resetUrl, user.name || undefined).catch((err) => {
+    await sendPasswordResetEmail(email, resetUrl, user.name || undefined, undefined, locale).catch((err) => {
       logger.error('Forgot password: email send failed', { email }, err)
     })
 
