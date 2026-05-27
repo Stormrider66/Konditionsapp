@@ -18,6 +18,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 
+type AppLocale = 'en' | 'sv'
+
 interface RecentTestEntry {
   id: string
   date: string
@@ -58,15 +60,19 @@ function formatHockeySummary(test: {
   beepTestLevel: number | null
   beepTestShuttle: number | null
   wingate30sAveragePower: number | null
-}): string | null {
+}, locale: AppLocale): string | null {
   const parts: string[] = []
   const muscleLabWkg = numberFromJson(test.muscleLabMaxima, 'maxAveragePowerPerBodyMass')
   const agilityBest = bestOf([test.agility505Left, test.agility505Right], true)
 
   if (muscleLabWkg != null) parts.push(`MuscleLab ${muscleLabWkg.toFixed(1)} W/kg`)
-  if (test.backSquat1RM != null) parts.push(`Knäböj ${test.backSquat1RM.toFixed(0)} kg`)
+  if (test.backSquat1RM != null) {
+    parts.push(`${locale === 'sv' ? 'Knäböj' : 'Back squat'} ${test.backSquat1RM.toFixed(0)} kg`)
+  }
   if (test.powerClean1RM != null) parts.push(`PC ${test.powerClean1RM.toFixed(0)} kg`)
-  if (test.benchPress1RM != null) parts.push(`Bänk ${test.benchPress1RM.toFixed(0)} kg`)
+  if (test.benchPress1RM != null) {
+    parts.push(`${locale === 'sv' ? 'Bänk' : 'Bench press'} ${test.benchPress1RM.toFixed(0)} kg`)
+  }
   if (test.standingLongJump != null) parts.push(`SLJ ${test.standingLongJump.toFixed(0)} cm`)
   if (test.sprint5m != null) parts.push(`5m ${test.sprint5m.toFixed(2)} s`)
   if (test.sprint10m != null) parts.push(`10m ${test.sprint10m.toFixed(2)} s`)
@@ -86,6 +92,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: clientId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
@@ -166,8 +173,8 @@ export async function GET(
         id: h.id,
         date: h.testDate.toISOString(),
         kind: 'HOCKEY_PHYSICAL',
-        label: 'Hockey fysprov',
-        summary: formatHockeySummary(h),
+        label: locale === 'sv' ? 'Hockey fysprov' : 'Hockey physical test',
+        summary: formatHockeySummary(h, locale),
       })
     }
 
