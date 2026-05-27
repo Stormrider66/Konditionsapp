@@ -129,7 +129,7 @@ export async function POST(
       if (isHyroxVideoType(analysis.videoType)) {
         return await withAiContext(
           { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_hyrox' },
-          () => analyzeHyroxStation(id, analysis, client, modelId),
+          () => analyzeHyroxStation(id, analysis, client, modelId, locale),
         )
       }
       return await withAiContext(

@@ -1,7 +1,7 @@
 /**
  * HYROX Station Analysis Prompts
  *
- * Swedish-language prompts for AI video analysis of HYROX stations.
+ * Prompts for AI video analysis of HYROX stations.
  * Supports all 8 HYROX stations with station-specific technical cues.
  */
 
@@ -15,6 +15,8 @@ export type HyroxStationType =
   | 'FARMERS_CARRY'
   | 'SANDBAG_LUNGE'
   | 'WALL_BALLS';
+
+type AppLocale = 'en' | 'sv';
 
 export const HYROX_STATION_LABELS: Record<HyroxStationType, string> = {
   SKIERG: 'SkiErg',
@@ -38,7 +40,7 @@ export function getHyroxFPS(): number {
 }
 
 // Base system prompt for HYROX analysis
-const HYROX_BASE_SYSTEM_PROMPT = `Du är en expert HYROX-coach och rörelsanalytiker. Analysera denna video av en HYROX-station och ge detaljerad feedback på svenska.
+const HYROX_BASE_SYSTEM_PROMPT_SV = `Du är en expert HYROX-coach och rörelsanalytiker. Analysera denna video av en HYROX-station och ge detaljerad feedback på svenska.
 
 VIKTIGT:
 - Svara ENDAST med ett JSON-objekt, ingen annan text
@@ -48,8 +50,18 @@ VIKTIGT:
 - Ge konkreta, genomförbara förbättringsförslag
 - Relatera till HYROX-tävlingskontext och hur tekniken påverkar totaltiden`;
 
+const HYROX_BASE_SYSTEM_PROMPT_EN = `You are an expert HYROX coach and movement analyst. Analyze this HYROX station video and give detailed feedback in English.
+
+IMPORTANT:
+- Respond ONLY with a JSON object, no other text
+- All user-facing string values must be in English
+- Scores must be integers between 0-100
+- Identify specific strengths and weaknesses
+- Give concrete, actionable improvement suggestions
+- Relate the feedback to HYROX race context and how technique affects total time`;
+
 // Station-specific prompts
-const SKIERG_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const SKIERG_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: SkiErg (1000m)
 Analysera SkiErg-tekniken med fokus på:
@@ -92,7 +104,7 @@ Svara med följande JSON-struktur:
   }
 }`;
 
-const SLED_PUSH_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const SLED_PUSH_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: Sled Push (50m)
 Analysera Sled Push-tekniken med fokus på:
@@ -134,7 +146,7 @@ Svara med följande JSON-struktur:
   }
 }`;
 
-const SLED_PULL_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const SLED_PULL_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: Sled Pull (50m)
 Analysera Sled Pull-tekniken med fokus på:
@@ -175,7 +187,7 @@ Svara med följande JSON-struktur:
   }
 }`;
 
-const BURPEE_BROAD_JUMP_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const BURPEE_BROAD_JUMP_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: Burpee Broad Jump (80 reps, 8x10m segments)
 Analysera Burpee Broad Jump-tekniken med fokus på:
@@ -217,7 +229,7 @@ Svara med följande JSON-struktur:
   }
 }`;
 
-const ROWING_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const ROWING_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: Rodd (1000m)
 Analysera roddtekniken med fokus på:
@@ -260,7 +272,7 @@ Svara med följande JSON-struktur:
   }
 }`;
 
-const FARMERS_CARRY_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const FARMERS_CARRY_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: Farmers Carry (200m)
 Analysera Farmers Carry-tekniken med fokus på:
@@ -302,7 +314,7 @@ Svara med följande JSON-struktur:
   }
 }`;
 
-const SANDBAG_LUNGE_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const SANDBAG_LUNGE_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: Sandbag Lunge (100m)
 Analysera Sandbag Lunge-tekniken med fokus på:
@@ -344,7 +356,7 @@ Svara med följande JSON-struktur:
   }
 }`;
 
-const WALL_BALLS_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT}
+const WALL_BALLS_PROMPT = `${HYROX_BASE_SYSTEM_PROMPT_SV}
 
 STATION: Wall Balls (100 reps för kvinnor, 75 reps för män - baserat på tävlingsklass)
 Analysera Wall Balls-tekniken med fokus på:
@@ -408,31 +420,47 @@ export function buildHyroxPrompt(
     stationTimes?: Record<string, number>;
     weakStations?: string[];
     strongStations?: string[];
-  }
+  },
+  locale: AppLocale = 'en'
 ): string {
   let prompt = STATION_PROMPTS[stationType];
+  if (locale === 'en') {
+    prompt = prompt.replace(HYROX_BASE_SYSTEM_PROMPT_SV, HYROX_BASE_SYSTEM_PROMPT_EN);
+  }
 
   // Add athlete context if available
   if (athleteContext) {
-    let context = '\n\nATLETKONTEXT:';
+    let context = locale === 'sv' ? '\n\nATLETKONTEXT:' : '\n\nATHLETE CONTEXT:';
 
     if (athleteContext.hyroxCategory) {
-      context += `\n- Tävlingsklass: ${athleteContext.hyroxCategory}`;
+      context += locale === 'sv'
+        ? `\n- Tävlingsklass: ${athleteContext.hyroxCategory}`
+        : `\n- Race category: ${athleteContext.hyroxCategory}`;
     }
 
     if (athleteContext.weakStations?.includes(stationType)) {
-      context += '\n- OBS: Detta är en av atletens SVAGA stationer - prioritera förbättringsförslag';
+      context += locale === 'sv'
+        ? '\n- OBS: Detta är en av atletens SVAGA stationer - prioritera förbättringsförslag'
+        : '\n- NOTE: This is one of the athlete\'s WEAK stations - prioritize improvement suggestions';
     }
 
     if (athleteContext.strongStations?.includes(stationType)) {
-      context += '\n- Detta är en av atletens STARKA stationer - fokusera på finslipning';
+      context += locale === 'sv'
+        ? '\n- Detta är en av atletens STARKA stationer - fokusera på finslipning'
+        : '\n- This is one of the athlete\'s STRONG stations - focus on fine-tuning';
     }
 
     if (athleteContext.stationTimes?.[stationType]) {
-      context += `\n- Tidigare bästa tid: ${athleteContext.stationTimes[stationType]} sekunder`;
+      context += locale === 'sv'
+        ? `\n- Tidigare bästa tid: ${athleteContext.stationTimes[stationType]} sekunder`
+        : `\n- Previous best time: ${athleteContext.stationTimes[stationType]} seconds`;
     }
 
     prompt += context;
+  }
+
+  if (locale === 'en') {
+    prompt += '\n\nLANGUAGE REQUIREMENT: The technical checklist above may contain Swedish labels, but every generated JSON string value shown to users must be written in English.';
   }
 
   return prompt;

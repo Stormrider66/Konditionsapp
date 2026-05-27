@@ -23,6 +23,12 @@ export interface HyroxAnalyzerInput {
   athlete: { id: string; name: string; gender: string | null } | null
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Analyzer for HYROX station videos — all 8 stations with the
  * station-specific field set.
@@ -31,7 +37,8 @@ export async function analyzeHyroxStation(
   id: string,
   analysis: HyroxAnalyzerInput,
   client: ReturnType<typeof createGoogleGenAIClient>,
-  modelId: string
+  modelId: string,
+  locale: AppLocale = 'en'
 ): Promise<NextResponse> {
   const fullAnalysis = await prisma.videoAnalysis.findUnique({
     where: { id },
@@ -39,7 +46,7 @@ export async function analyzeHyroxStation(
   })
 
   if (!fullAnalysis) {
-    return NextResponse.json({ error: 'Analysis not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Analysis not found', 'Analysen hittades inte') }, { status: 404 })
   }
 
   const stationType = (fullAnalysis.hyroxStation || 'SKIERG') as HyroxStationType
@@ -53,7 +60,7 @@ export async function analyzeHyroxStation(
       }
     : undefined
 
-  const prompt = buildHyroxPrompt(stationType, athleteContext)
+  const prompt = buildHyroxPrompt(stationType, athleteContext, locale)
   const fps = getHyroxFPS()
   const videoMetadata: VideoMetadata = { fps }
 
@@ -81,7 +88,7 @@ export async function analyzeHyroxStation(
     })
     return NextResponse.json({
       success: true,
-      warning: 'Could not parse structured response',
+      warning: t(locale, 'Could not parse structured response', 'Kunde inte tolka strukturerat svar'),
       rawAnalysis: result.text,
     })
   }
