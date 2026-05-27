@@ -22,6 +22,15 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function exerciseNameForLocale(
+  exercise: { name: string; nameSv: string | null; nameEn: string | null },
+  locale: AppLocale
+) {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
+}
+
 const INTEGER_METRICS = new Set(['lt1HeartRate', 'lt2HeartRate', 'maxHeartRate', 'rampTimeSeconds'])
 
 function normalizeName(value: string) {
@@ -33,9 +42,9 @@ function normalizeName(value: string) {
     .trim()
 }
 
-async function hydrateLinkedExercises(pkg: HockeyTestPackage) {
+async function hydrateLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale) {
   const exercises = await prisma.exercise.findMany({
-    select: { id: true, name: true, nameSv: true },
+    select: { id: true, name: true, nameSv: true, nameEn: true },
   })
   const candidates = exercises.map((exercise) => ({
     ...exercise,
@@ -56,7 +65,7 @@ async function hydrateLinkedExercises(pkg: HockeyTestPackage) {
         ? {
             ...item,
             linkedExerciseId: match.id,
-            linkedExerciseName: match.nameSv || match.name,
+            linkedExerciseName: exerciseNameForLocale(match, locale),
           }
         : item
     }),
@@ -124,7 +133,8 @@ export async function POST(
 
     const memberIds = new Set(storedTeam.members.map((member) => member.id))
     const testPackage = await hydrateLinkedExercises(
-      normalizeHockeyTestPackage(storedTeam.hockeyTestPackage ?? DEFAULT_HOCKEY_TEST_PACKAGE)
+      normalizeHockeyTestPackage(storedTeam.hockeyTestPackage ?? DEFAULT_HOCKEY_TEST_PACKAGE),
+      locale
     )
     const itemsById = new Map(testPackage.items.filter((item) => item.enabled).map((item) => [item.id, item]))
 
@@ -210,7 +220,7 @@ export async function POST(
             oneRepMax: value,
             source: 'TESTED',
             unit: item.unit.toUpperCase() || 'KG',
-            notes: `Hockeytest: ${item.label}`,
+            notes: `${t(locale, 'Hockey test', 'Hockeytest')}: ${item.label}`,
           },
           create: {
             clientId,
@@ -219,7 +229,7 @@ export async function POST(
             oneRepMax: value,
             source: 'TESTED',
             unit: item.unit.toUpperCase() || 'KG',
-            notes: `Hockeytest: ${item.label}`,
+            notes: `${t(locale, 'Hockey test', 'Hockeytest')}: ${item.label}`,
           },
           select: { createdAt: true },
         })
