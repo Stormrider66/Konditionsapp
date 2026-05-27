@@ -79,7 +79,7 @@ export const RunningGaitAnalysisSchema = z.object({
   coachingCues: z.object({
     immediateCorrection: z
       .string()
-      .describe('Primary cue to give athlete immediately (in Swedish)'),
+      .describe('Primary cue to give athlete immediately in the requested output language'),
     drillRecommendation: z
       .string()
       .describe('Specific drill to address main issue'),
@@ -95,7 +95,7 @@ export const RunningGaitAnalysisSchema = z.object({
     .describe('Overall form score (0-100)'),
   summary: z
     .string()
-    .describe('Summary of analysis in Swedish'),
+    .describe('Summary of analysis in the requested output language'),
 });
 
 export type RunningGaitAnalysisResult = z.infer<typeof RunningGaitAnalysisSchema>;
@@ -495,7 +495,7 @@ export const CoachToolDefinitions = {
       athleteId: z.string().describe('ID of the athlete'),
       alertType: z.enum(['OVERTRAINING', 'INJURY_RISK', 'LOW_READINESS', 'PLATEAU', 'MILESTONE']),
       urgency: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-      message: z.string().describe('Alert message in Swedish'),
+      message: z.string().describe('Alert message in the requested output language'),
       recommendedAction: z.string().describe('What the coach should consider doing'),
     }),
   },
@@ -520,7 +520,7 @@ export const CoachToolDefinitions = {
     parameters: z.object({
       athleteId: z.string().describe('ID of the athlete'),
       messageType: z.enum(['CHECK_IN', 'MOTIVATION', 'REMINDER', 'FEEDBACK']),
-      message: z.string().describe('Message content in Swedish'),
+      message: z.string().describe('Message content in the requested output language'),
       scheduledFor: z.string().optional().describe('When to send (ISO date string)'),
       priority: z.enum(['LOW', 'NORMAL', 'HIGH']),
     }),

@@ -23,7 +23,7 @@ export const modifyWorkoutTool = tool({
       'SKIP',
       'POSTPONE',
     ]).describe('Type of modification to apply'),
-    reason: z.string().describe('Reason for the modification in Swedish'),
+    reason: z.string().describe('Reason for the modification in the conversation language'),
     newIntensityPercent: z.number().min(0).max(100).optional().describe('New intensity as percentage of original'),
     newVolumePercent: z.number().min(0).max(100).optional().describe('New volume as percentage of original'),
     alternativeExercise: z.string().optional().describe('Alternative exercise name if swapping'),
@@ -43,7 +43,7 @@ export const modifyWorkoutTool = tool({
         createdAt: new Date().toISOString(),
         status: 'PENDING_APPROVAL',
       },
-      message: `Föreslagen ändring: ${modificationType}. ${reason}`,
+      message: `Suggested modification: ${modificationType}. ${reason}`,
     };
   },
 });
@@ -66,8 +66,8 @@ export const createAlertTool = tool({
       'RECOVERY_ISSUE',
     ]).describe('Type of alert'),
     urgency: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).describe('Urgency level'),
-    title: z.string().describe('Short alert title in Swedish'),
-    message: z.string().describe('Detailed alert message in Swedish'),
+    title: z.string().describe('Short alert title in the conversation language'),
+    message: z.string().describe('Detailed alert message in the conversation language'),
     recommendedAction: z.string().describe('What the coach should consider doing'),
     dataPoints: z.array(z.object({
       metric: z.string(),
@@ -90,7 +90,7 @@ export const createAlertTool = tool({
         dataPoints,
         createdAt: new Date().toISOString(),
       },
-      message: `Varning skapad: ${title}`,
+      message: `Alert created: ${title}`,
     };
   },
 });
@@ -107,7 +107,7 @@ export const suggestProgressionTool = tool({
     currentValue: z.number().describe('Current training value'),
     suggestedValue: z.number().describe('Suggested new value'),
     unit: z.string().describe('Unit of measurement (e.g., "min/km", "kg", "km/week")'),
-    rationale: z.string().describe('Explanation for the progression in Swedish'),
+    rationale: z.string().describe('Explanation for the progression in the conversation language'),
     confidence: z.number().min(0).max(1).describe('Confidence in the suggestion (0-1)'),
     basedOn: z.array(z.string()).describe('Data sources used for this suggestion'),
   }),
@@ -128,7 +128,7 @@ export const suggestProgressionTool = tool({
         basedOn,
         createdAt: new Date().toISOString(),
       },
-      message: `Progression föreslagen: ${progressionType} ${currentValue}${unit} → ${suggestedValue}${unit} (${percentChange}%)`,
+      message: `Progression suggested: ${progressionType} ${currentValue}${unit} → ${suggestedValue}${unit} (${percentChange}%)`,
     };
   },
 });
@@ -174,7 +174,7 @@ export const calculateZonesTool = tool({
         calculatedZones: zones,
         calculatedAt: new Date().toISOString(),
       },
-      message: `${zoneSystem} zoner beräknade baserat på ${baseMetric}: ${baseValue}${baseUnit}`,
+      message: `${zoneSystem} zones calculated from ${baseMetric}: ${baseValue}${baseUnit}`,
     };
   },
 });
@@ -191,13 +191,15 @@ export const searchKnowledgeTool = tool({
     documentTypes: z.array(z.enum(['PDF', 'METHODOLOGY', 'STUDY', 'PROTOCOL'])).optional().describe('Filter by document type'),
   }),
   execute: async ({ query, maxResults, documentTypes }) => {
-    // This would integrate with the RAG system
-    // For now, return a placeholder that indicates the search was performed
+    // This would integrate with the RAG system. For now, return a placeholder
+    // that echoes the search settings so tool-call renderers stay informative.
     return {
       success: true,
       query,
+      maxResults,
+      documentTypes,
       results: [],
-      message: `Sökte kunskapsdatabasen för: "${query}"`,
+      message: `Searched the knowledge base for: "${query}"`,
       note: 'Knowledge base search integration pending',
     };
   },
