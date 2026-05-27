@@ -578,7 +578,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     ['Quality flags', `${qualityWarnings.length}`, 'athletes to verify'],
   ], y)
 
-  const actions = buildHockeyActionItems(data)
+  const actions = buildHockeyActionItems(data, { locale })
   if (actions.length > 0) {
     y = sectionTitle(pdf, 'Coach action plan', y)
     y = actionPlan(pdf, actions, y)

@@ -552,6 +552,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
         teamId,
         teamName,
         ...hockey,
+        locale,
       })
       toast.success(t(locale, 'Team report exported', 'Lagrapport exporterad'))
     } catch (error) {
@@ -655,8 +656,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     .sort((a, b) => (b.delta ?? -Infinity) - (a.delta ?? -Infinity))
     .slice(0, 8) ?? []
   const hockeyActionItems: HockeyActionItem[] = useMemo(
-    () => hockey ? buildHockeyActionItems(hockey, { basePath }) : [],
-    [basePath, hockey]
+    () => hockey ? buildHockeyActionItems(hockey, { basePath, locale }) : [],
+    [basePath, hockey, locale]
   )
   const iceSpeedGapRows = buildIceSpeedGapRows(hockeyAthletes)
   const aerobicLeaders = useMemo(
