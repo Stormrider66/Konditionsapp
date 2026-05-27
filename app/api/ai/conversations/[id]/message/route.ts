@@ -408,7 +408,7 @@ When you suggest training programs, be specific with intensities, volumes, and f
     logger.error('Send message error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(

@@ -12,13 +12,22 @@ import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // GET - Get conversation with messages
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:get', user.id, {
       limit: 60,
@@ -49,7 +58,7 @@ export async function GET(
 
     if (!conversation) {
       return NextResponse.json(
-        { error: 'Conversation not found' },
+        { error: t(locale, 'Conversation not found', 'Konversationen hittades inte') },
         { status: 404 }
       )
     }
@@ -63,11 +72,11 @@ export async function GET(
     logger.error('Get conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to get conversation' },
+      { error: t(locale, 'Failed to get conversation', 'Kunde inte hämta konversation') },
       { status: 500 }
     )
   }
@@ -78,8 +87,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:update', user.id, {
       limit: 30,
@@ -102,7 +114,7 @@ export async function PUT(
 
     if (!existing) {
       return NextResponse.json(
-        { error: 'Conversation not found' },
+        { error: t(locale, 'Conversation not found', 'Konversationen hittades inte') },
         { status: 404 }
       )
     }
@@ -126,11 +138,11 @@ export async function PUT(
     logger.error('Update conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to update conversation' },
+      { error: t(locale, 'Failed to update conversation', 'Kunde inte uppdatera konversation') },
       { status: 500 }
     )
   }
@@ -141,8 +153,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:delete', user.id, {
       limit: 20,
@@ -162,7 +177,7 @@ export async function DELETE(
 
     if (!existing) {
       return NextResponse.json(
-        { error: 'Conversation not found' },
+        { error: t(locale, 'Conversation not found', 'Konversationen hittades inte') },
         { status: 404 }
       )
     }
@@ -174,17 +189,17 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Conversation deleted',
+      message: t(locale, 'Conversation deleted', 'Konversationen raderades'),
     })
   } catch (error) {
     logger.error('Delete conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete conversation' },
+      { error: t(locale, 'Failed to delete conversation', 'Kunde inte radera konversation') },
       { status: 500 }
     )
   }

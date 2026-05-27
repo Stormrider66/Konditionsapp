@@ -22,10 +22,24 @@ interface CreateConversationRequest {
   title?: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function requestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
+  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en'
+}
+
 // GET - List conversations
 export async function GET(request: NextRequest) {
+  let locale = requestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:list', user.id, {
       limit: 60,
@@ -78,11 +92,11 @@ export async function GET(request: NextRequest) {
     logger.error('List conversations error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to list conversations' },
+      { error: t(locale, 'Failed to list conversations', 'Kunde inte hämta konversationer') },
       { status: 500 }
     )
   }
@@ -90,6 +104,8 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new conversation
 export async function POST(request: NextRequest) {
+  let locale = requestLocale(request)
+
   try {
     const body: CreateConversationRequest = await request.json()
     const {
@@ -104,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     if (!modelUsed) {
       return NextResponse.json(
-        { error: 'modelUsed is required' },
+        { error: t(locale, 'modelUsed is required', 'modelUsed krävs') },
         { status: 400 }
       )
     }
@@ -123,6 +139,7 @@ export async function POST(request: NextRequest) {
     // Try athlete path first (handles ATHLETE role + COACH in athlete mode)
     const athleteResolved = await resolveAthleteClientId()
     if (athleteResolved) {
+      locale = athleteResolved.user.language === 'sv' ? 'sv' : 'en'
       userId = athleteResolved.user.id
       // For athletes, the coachId is the coach who owns the client record
       const clientRecord = await prisma.client.findUnique({
@@ -133,6 +150,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Fall back to coach auth
       const user = await requireCoach()
+      locale = user.language === 'sv' ? 'sv' : 'en'
       userId = user.id
       coachId = user.id
     }
@@ -148,7 +166,7 @@ export async function POST(request: NextRequest) {
       const hasAccess = await canAccessClient(coachId, athleteId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'Athlete not found or not accessible' },
+          { error: t(locale, 'Athlete not found or not accessible', 'Atleten hittades inte eller är inte tillgänglig') },
           { status: 404 }
         )
       }
@@ -165,7 +183,7 @@ export async function POST(request: NextRequest) {
 
       if (docs.length !== contextDocuments.length) {
         return NextResponse.json(
-          { error: 'One or more documents not found or not accessible' },
+          { error: t(locale, 'One or more documents were not found or are not accessible', 'Ett eller flera dokument hittades inte eller är inte tillgängliga') },
           { status: 404 }
         )
       }
@@ -204,11 +222,11 @@ export async function POST(request: NextRequest) {
     logger.error('Create conversation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to create conversation' },
+      { error: t(locale, 'Failed to create conversation', 'Kunde inte skapa konversation') },
       { status: 500 }
     )
   }
