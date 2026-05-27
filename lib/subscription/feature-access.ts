@@ -174,9 +174,16 @@ export async function getAthleteSubscriptionWithRepairs(
  * Check if an athlete (client) has access to a specific feature
  * This checks the AthleteSubscription model
  */
+type SubscriptionLocale = 'en' | 'sv'
+
+function subscriptionText(locale: SubscriptionLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function checkAthleteFeatureAccess(
   clientId: string,
-  feature: AthleteFeature
+  feature: AthleteFeature,
+  locale: SubscriptionLocale = 'en'
 ): Promise<FeatureAccessResult> {
   let subscription = await getAthleteSubscriptionWithRepairs(clientId)
 
@@ -194,7 +201,7 @@ export async function checkAthleteFeatureAccess(
       console.warn('Failed to auto-create athlete subscription:', error)
       return {
         allowed: false,
-        reason: 'No subscription found. Please subscribe to access this feature.',
+        reason: subscriptionText(locale, 'No subscription found. Please subscribe to access this feature.', 'Ingen prenumeration hittades. Prenumerera för att använda den här funktionen.'),
         code: 'NO_SUBSCRIPTION',
         upgradeUrl: '/athlete/subscription',
       }
@@ -204,7 +211,7 @@ export async function checkAthleteFeatureAccess(
   if (!subscription) {
     return {
       allowed: false,
-      reason: 'No subscription found. Please subscribe to access this feature.',
+      reason: subscriptionText(locale, 'No subscription found. Please subscribe to access this feature.', 'Ingen prenumeration hittades. Prenumerera för att använda den här funktionen.'),
       code: 'NO_SUBSCRIPTION',
       upgradeUrl: '/athlete/subscription',
     }
@@ -214,7 +221,7 @@ export async function checkAthleteFeatureAccess(
   if (subscription.status === 'EXPIRED') {
     return {
       allowed: false,
-      reason: 'Your subscription has expired. Please renew to continue using this feature.',
+      reason: subscriptionText(locale, 'Your subscription has expired. Please renew to continue using this feature.', 'Din prenumeration har löpt ut. Förnya för att fortsätta använda den här funktionen.'),
       code: 'SUBSCRIPTION_EXPIRED',
       upgradeUrl: '/athlete/subscription',
     }
@@ -223,7 +230,7 @@ export async function checkAthleteFeatureAccess(
   if (subscription.status === 'CANCELLED') {
     return {
       allowed: false,
-      reason: 'Your subscription has been cancelled. Please resubscribe to access this feature.',
+      reason: subscriptionText(locale, 'Your subscription has been cancelled. Please resubscribe to access this feature.', 'Din prenumeration har avslutats. Prenumerera igen för att använda den här funktionen.'),
       code: 'SUBSCRIPTION_EXPIRED',
       upgradeUrl: '/athlete/subscription',
     }
@@ -234,7 +241,7 @@ export async function checkAthleteFeatureAccess(
     if (subscription.trialEndsAt && subscription.trialEndsAt < new Date()) {
       return {
         allowed: false,
-        reason: 'Your trial period has ended. Please upgrade to continue using this feature.',
+        reason: subscriptionText(locale, 'Your trial period has ended. Please upgrade to continue using this feature.', 'Din provperiod har löpt ut. Uppgradera för att fortsätta använda den här funktionen.'),
         code: 'TRIAL_EXPIRED',
         upgradeUrl: '/athlete/subscription',
       }
@@ -247,7 +254,7 @@ export async function checkAthleteFeatureAccess(
       if (!subscription.aiChatEnabled) {
         return {
           allowed: false,
-          reason: 'AI chat is not included in your subscription tier.',
+          reason: subscriptionText(locale, 'AI chat is not included in your subscription tier.', 'AI-chatt ingår inte i din prenumerationsnivå.'),
           code: 'FEATURE_DISABLED',
           upgradeUrl: '/athlete/subscription',
         }
@@ -258,7 +265,7 @@ export async function checkAthleteFeatureAccess(
       if (limit !== -1 && subscription.aiChatMessagesUsed >= limit) {
         return {
           allowed: false,
-          reason: `You have reached your monthly AI chat limit (${limit} messages).`,
+          reason: subscriptionText(locale, `You have reached your monthly AI chat limit (${limit} messages).`, `Du har nått din månatliga AI-chattgräns (${limit} meddelanden).`),
           code: 'LIMIT_REACHED',
           upgradeUrl: '/athlete/subscription',
           currentUsage: subscription.aiChatMessagesUsed,
@@ -277,7 +284,7 @@ export async function checkAthleteFeatureAccess(
       if (!subscription.videoAnalysisEnabled) {
         return {
           allowed: false,
-          reason: 'Video analysis requires a Pro subscription.',
+          reason: subscriptionText(locale, 'Video analysis requires a Pro subscription.', 'Videoanalys kräver en Pro-prenumeration.'),
           code: 'FEATURE_DISABLED',
           upgradeUrl: '/athlete/subscription',
         }
@@ -289,7 +296,7 @@ export async function checkAthleteFeatureAccess(
       if (!subscription.stravaEnabled) {
         return {
           allowed: false,
-          reason: 'Strava sync requires a Standard or Pro subscription.',
+          reason: subscriptionText(locale, 'Strava sync requires a Standard or Pro subscription.', 'Strava-synk kräver en Standard- eller Pro-prenumeration.'),
           code: 'FEATURE_DISABLED',
           upgradeUrl: '/athlete/subscription',
         }
@@ -301,7 +308,7 @@ export async function checkAthleteFeatureAccess(
       if (!subscription.garminEnabled) {
         return {
           allowed: false,
-          reason: 'Garmin sync requires a Standard or Pro subscription.',
+          reason: subscriptionText(locale, 'Garmin sync requires a Standard or Pro subscription.', 'Garmin-synk kräver en Standard- eller Pro-prenumeration.'),
           code: 'FEATURE_DISABLED',
           upgradeUrl: '/athlete/subscription',
         }
@@ -320,7 +327,7 @@ export async function checkAthleteFeatureAccess(
 
       return {
         allowed: false,
-        reason: `Denna funktion kräver en uppgraderad prenumeration.`,
+        reason: subscriptionText(locale, 'This feature requires an upgraded subscription.', 'Denna funktion kräver en uppgraderad prenumeration.'),
         code: 'FEATURE_DISABLED',
         upgradeUrl: '/athlete/subscription',
       }

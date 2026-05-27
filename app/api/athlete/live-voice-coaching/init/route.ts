@@ -50,9 +50,7 @@ export async function POST(request: Request) {
     if (rateLimited) return rateLimited
 
     // Feature check (PRO/ELITE only)
-    const denied = await requireFeatureAccess(clientId, 'live_voice_coaching', {
-      featureLabel: 'AI-Röstcoach (Live)',
-    })
+    const denied = await requireFeatureAccess(clientId, 'live_voice_coaching')
     if (denied) return denied
 
     const allowanceDenied = await requireAiAllowance(clientId, {

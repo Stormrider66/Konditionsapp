@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 
 export type CoachFeature = 'program_generation' | 'advanced_intelligence' | 'nutrition_planning' | 'lactate_ocr' | 'smart_test_import'
+type AppLocale = 'en' | 'sv'
 
 const COACH_FEATURE_TIERS: Record<CoachFeature, Set<string>> = {
   program_generation: new Set(['BASIC', 'PRO', 'ENTERPRISE']),
@@ -17,17 +18,52 @@ const COACH_FEATURE_TIERS: Record<CoachFeature, Set<string>> = {
   smart_test_import: new Set(['BASIC', 'PRO', 'ENTERPRISE']),
 }
 
-const FEATURE_LABELS: Record<string, string> = {
-  advanced_intelligence: 'Avancerad Intelligens',
-  program_generation: 'Programgenerering',
-  coach_requests: 'Coachanslutning',
-  self_service_templates: 'Självbetjänade mallar',
-  nutrition_planning: 'Nutritionsplanering',
-  concept2: 'Concept2-integration',
-  lactate_ocr: 'Laktat-OCR',
-  smart_test_import: 'Smart Testimport',
-  strava: 'Strava-sync',
-  garmin: 'Garmin-sync',
+const FEATURE_LABELS: Record<string, Record<AppLocale, string>> = {
+  advanced_intelligence: { en: 'Advanced Intelligence', sv: 'Avancerad Intelligens' },
+  program_generation: { en: 'Program generation', sv: 'Programgenerering' },
+  coach_requests: { en: 'Coach connection', sv: 'Coachanslutning' },
+  self_service_templates: { en: 'Self-service templates', sv: 'Självbetjänade mallar' },
+  nutrition_planning: { en: 'Nutrition planning', sv: 'Nutritionsplanering' },
+  concept2: { en: 'Concept2 integration', sv: 'Concept2-integration' },
+  lactate_ocr: { en: 'Lactate OCR', sv: 'Laktat-OCR' },
+  smart_test_import: { en: 'Smart test import', sv: 'Smart Testimport' },
+  strava: { en: 'Strava sync', sv: 'Strava-sync' },
+  garmin: { en: 'Garmin sync', sv: 'Garmin-sync' },
+  live_voice_coaching: { en: 'AI voice coach (Live)', sv: 'AI-röstcoach (Live)' },
+}
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function featureLabel(feature: string, locale: AppLocale, override?: string): string {
+  return override || FEATURE_LABELS[feature]?.[locale] || feature
+}
+
+async function getAthleteLocale(clientId: string): Promise<AppLocale> {
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: {
+      athleteAccount: {
+        select: {
+          user: { select: { language: true } },
+        },
+      },
+    },
+  })
+  return resolveLocale(client?.athleteAccount?.user?.language)
+}
+
+async function getUserLocale(userId: string): Promise<AppLocale> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return resolveLocale(user?.language)
 }
 
 async function getCoachSubscriptionUpgradeUrl(userId: string): Promise<string> {
@@ -53,7 +89,8 @@ export async function requireFeatureAccess(
     return null
   }
 
-  const result = await checkAthleteFeatureAccess(clientId, feature)
+  const locale = await getAthleteLocale(clientId)
+  const result = await checkAthleteFeatureAccess(clientId, feature, locale)
 
   if (result.allowed) return null
 
@@ -65,10 +102,10 @@ export async function requireFeatureAccess(
     upgradeUrl: result.upgradeUrl || '/athlete/subscription',
   })
 
-  const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
+  const label = featureLabel(feature, locale, options?.featureLabel)
   return NextResponse.json(
     {
-      error: result.reason || `${label} kräver en uppgraderad prenumeration.`,
+      error: result.reason || t(locale, `${label} requires an upgraded subscription.`, `${label} kräver en uppgraderad prenumeration.`),
       code: result.code || 'FEATURE_DISABLED',
       feature,
       upgradeUrl: result.upgradeUrl || '/athlete/subscription',
@@ -109,6 +146,7 @@ export async function requireCoachFeatureAccess(
 ): Promise<NextResponse | null> {
   // Platform admins bypass subscription enforcement entirely.
   if (await isPlatformAdmin(userId)) return null
+  const locale = await getUserLocale(userId)
 
   const subscription = await prisma.subscription.findUnique({
     where: { userId },
@@ -116,18 +154,19 @@ export async function requireCoachFeatureAccess(
 
   // No subscription → deny
   if (!subscription) {
-    const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
+    const label = featureLabel(feature, locale, options?.featureLabel)
     const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
+    const reason = t(locale, `${label} requires a subscription.`, `${label} kräver en prenumeration.`)
     logger.warn('Coach feature access denied', {
       code: 'NO_SUBSCRIPTION',
       feature,
-      reason: `${label} kräver en prenumeration.`,
+      reason,
       upgradeUrl,
       userId,
     })
     return NextResponse.json(
       {
-        error: `${label} kräver en prenumeration.`,
+        error: reason,
         code: 'NO_SUBSCRIPTION' as const,
         feature,
         upgradeUrl,
@@ -143,16 +182,21 @@ export async function requireCoachFeatureAccess(
     }
     // Trial expired
     const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
+    const reason = t(
+      locale,
+      'Your trial period has ended. Upgrade to continue using this feature.',
+      'Din provperiod har löpt ut. Uppgradera för att fortsätta använda denna funktion.'
+    )
     logger.warn('Coach feature access denied', {
       code: 'TRIAL_EXPIRED',
       feature,
-      reason: 'Din provperiod har löpt ut. Uppgradera för att fortsätta använda denna funktion.',
+      reason,
       upgradeUrl,
       userId,
     })
     return NextResponse.json(
       {
-        error: 'Din provperiod har löpt ut. Uppgradera för att fortsätta använda denna funktion.',
+        error: reason,
         code: 'TRIAL_EXPIRED' as const,
         feature,
         upgradeUrl,
@@ -164,16 +208,17 @@ export async function requireCoachFeatureAccess(
   // Expired / cancelled
   if (subscription.status === 'EXPIRED' || subscription.status === 'CANCELLED') {
     const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
+    const reason = t(locale, 'Your subscription has expired. Renew to continue.', 'Din prenumeration har löpt ut. Förnya för att fortsätta.')
     logger.warn('Coach feature access denied', {
       code: 'SUBSCRIPTION_EXPIRED',
       feature,
-      reason: 'Din prenumeration har löpt ut. Förnya för att fortsätta.',
+      reason,
       upgradeUrl,
       userId,
     })
     return NextResponse.json(
       {
-        error: 'Din prenumeration har löpt ut. Förnya för att fortsätta.',
+        error: reason,
         code: 'SUBSCRIPTION_EXPIRED' as const,
         feature,
         upgradeUrl,
@@ -185,18 +230,19 @@ export async function requireCoachFeatureAccess(
   // Active subscription → check tier
   const allowedTiers = COACH_FEATURE_TIERS[feature]
   if (!allowedTiers.has(subscription.tier)) {
-    const label = options?.featureLabel || FEATURE_LABELS[feature] || feature
+    const label = featureLabel(feature, locale, options?.featureLabel)
     const upgradeUrl = await getCoachSubscriptionUpgradeUrl(userId)
+    const reason = t(locale, `${label} requires a higher subscription tier.`, `${label} kräver en högre prenumerationsnivå.`)
     logger.warn('Coach feature access denied', {
       code: 'FEATURE_DISABLED',
       feature,
-      reason: `${label} kräver en högre prenumerationsnivå.`,
+      reason,
       upgradeUrl,
       userId,
     })
     return NextResponse.json(
       {
-        error: `${label} kräver en högre prenumerationsnivå.`,
+        error: reason,
         code: 'FEATURE_DISABLED' as const,
         feature,
         upgradeUrl,

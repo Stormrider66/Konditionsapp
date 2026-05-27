@@ -76,9 +76,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const featureDenied = await requireFeatureAccess(clientId, 'program_generation', {
-      featureLabel: 'AI-programgenerering',
-    })
+    const featureDenied = await requireFeatureAccess(clientId, 'program_generation')
     if (featureDenied) {
       return featureDenied
     }
