@@ -65,7 +65,12 @@ export async function POST(
       where: { id },
       include: {
         client: {
-          select: { id: true, name: true, userId: true },
+          select: {
+            id: true,
+            name: true,
+            userId: true,
+            user: { select: { language: true } },
+          },
         },
       },
     });
@@ -86,6 +91,7 @@ export async function POST(
         return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
       }
     }
+    locale = resolveLocale(audioJournal.client.user?.language)
 
     const allowanceDenied = await requireAiAllowance(audioJournal.clientId)
     if (allowanceDenied) return allowanceDenied
@@ -424,4 +430,8 @@ Do not guess values that were not mentioned.`
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
 }
