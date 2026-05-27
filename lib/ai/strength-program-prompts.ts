@@ -367,8 +367,10 @@ Returnera passet i följande JSON-format:
  */
 export function modifyStrengthSessionPrompt(
   currentSession: string,
-  modification: string
+  modification: string,
+  locale: 'en' | 'sv' = 'en'
 ): string {
+  if (locale === 'sv') {
   return `## UPPGIFT: MODIFIERA STYRKEPASS
 
 ### NUVARANDE PASS:
@@ -386,6 +388,27 @@ ${modification}
 
 ### OUTPUT FORMAT:
 Returnera det modifierade passet i samma JSON-format som ovan, plus en kort förklaring av ändringarna.
+`
+  }
+
+  return `## TASK: MODIFY STRENGTH SESSION
+
+### CURRENT SESSION:
+${currentSession}
+
+### REQUESTED CHANGE:
+${modification}
+
+### INSTRUCTIONS:
+1. Preserve the session's overall structure and goal
+2. Make the requested change
+3. Ensure biomechanical balance is maintained
+4. Adjust rest and volume if needed
+5. Briefly explain why you made the changes
+6. Write all user-facing names, descriptions, notes, and explanations in English
+
+### OUTPUT FORMAT:
+Return the modified session in the same JSON format as above, plus a short explanation of the changes.
 `
 }
 

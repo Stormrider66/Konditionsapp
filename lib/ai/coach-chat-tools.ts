@@ -2733,10 +2733,14 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
     }),
 
     modifyStrengthSession: tool({
-      description: 'Modifiera ett befintligt styrkepass med AI. Kan byta ut övningar, justera volym/intensitet, anpassa för skador, göra lättare/svårare etc. Kräver sessionId.',
+      description: toolText(
+        locale,
+        'Modify an existing strength session with AI. Can replace exercises, adjust volume/intensity, adapt for injuries, make it easier/harder, etc. Requires sessionId.',
+        'Modifiera ett befintligt styrkepass med AI. Kan byta ut övningar, justera volym/intensitet, anpassa för skador, göra lättare/svårare etc. Kräver sessionId.'
+      ),
       inputSchema: z.object({
-        sessionId: z.string().describe('Styrkepassets ID'),
-        modification: z.string().describe('Vad ska ändras (t.ex. "byt ut knäböj mot benspress", "gör passet lättare", "ta bort alla hoppövningar")'),
+        sessionId: z.string().describe('Strength session ID.'),
+        modification: z.string().describe('What should change, for example "replace squats with leg press", "make the session easier", or "remove all jumping exercises".'),
       }),
       execute: async ({ sessionId, modification }) => {
         try {
@@ -2758,11 +2762,17 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           })
 
           if (!session) {
-            return { success: false, error: 'Passet hittades inte.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The session was not found.', 'Passet hittades inte.'),
+            }
           }
 
           if (session.coachId !== coachUserId) {
-            return { success: false, error: 'Du har inte tillgång till detta pass.' }
+            return {
+              success: false,
+              error: toolText(locale, 'You do not have access to this session.', 'Du har inte tillgång till detta pass.'),
+            }
           }
 
           // Build the AI prompt
@@ -2777,13 +2787,16 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             cooldownData: session.cooldownData,
           }, null, 2)
 
-          const prompt = modifyStrengthSessionPrompt(sessionJson, modification)
+          const prompt = modifyStrengthSessionPrompt(sessionJson, modification, locale)
 
           // Get AI model
           const apiKeys = await getResolvedAiKeys(coachUserId)
           const resolved = resolveModel(apiKeys, 'balanced')
           if (!resolved) {
-            return { success: false, error: 'Inga AI-nycklar konfigurerade.' }
+            return {
+              success: false,
+              error: toolText(locale, 'No AI keys are configured.', 'Inga AI-nycklar konfigurerade.'),
+            }
           }
 
           // Create model instance
@@ -2802,7 +2815,9 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           // Call AI
           const result = await generateText({
             model: aiModel,
-            system: 'Du är en expert på styrketräning. Returnera ALLTID ett giltigt JSON-objekt i ett ```json``` kodblock.',
+            system: locale === 'sv'
+              ? 'Du är en expert på styrketräning. Returnera ALLTID ett giltigt JSON-objekt i ett ```json``` kodblock.'
+              : 'You are an expert in strength training. ALWAYS return a valid JSON object in a ```json``` code block. Write every user-facing string in English.',
             prompt,
             maxOutputTokens: 4096,
           })
@@ -2812,7 +2827,7 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           if (!jsonMatch?.[1]) {
             return {
               success: false,
-              error: 'AI kunde inte generera ett giltigt modifierat pass.',
+              error: toolText(locale, 'AI could not generate a valid modified session.', 'AI kunde inte generera ett giltigt modifierat pass.'),
               aiResponse: result.text.slice(0, 500),
             }
           }
@@ -2834,7 +2849,7 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           })
 
           // Extract explanation from AI response (text after JSON block)
-          const explanation = result.text.split('```').pop()?.trim() || 'Passet har uppdaterats.'
+          const explanation = result.text.split('```').pop()?.trim() || toolText(locale, 'The session has been updated.', 'Passet har uppdaterats.')
 
           return {
             success: true,
@@ -2842,11 +2857,18 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             name: modified.name || session.name,
             modification,
             explanation,
-            message: `Passet "${modified.name || session.name}" har modifierats: ${modification}`,
+            message: toolText(
+              locale,
+              `The session "${modified.name || session.name}" was modified: ${modification}`,
+              `Passet "${modified.name || session.name}" har modifierats: ${modification}`
+            ),
           }
         } catch (error) {
           logger.error('Error in modifyStrengthSession tool', {}, error)
-          return { success: false, error: 'Kunde inte modifiera passet.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not modify the session.', 'Kunde inte modifiera passet.'),
+          }
         }
       },
     }),
