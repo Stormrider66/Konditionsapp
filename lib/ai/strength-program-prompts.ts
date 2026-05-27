@@ -8,6 +8,8 @@
 import type { StrengthPhase } from '@prisma/client'
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
+type AppLocale = 'en' | 'sv'
+
 // Strength phase descriptions for AI context
 export const STRENGTH_PHASE_CONTEXT: Record<StrengthPhase, {
   name: string
@@ -235,6 +237,7 @@ export function generateStrengthSessionPrompt(params: {
   includeCore: boolean
   includeCooldown: boolean
   athleteContext?: string
+  locale?: AppLocale
 }): string {
   const {
     phase,
@@ -246,10 +249,124 @@ export function generateStrengthSessionPrompt(params: {
     includeCore,
     includeCooldown,
     athleteContext,
+    locale = 'en',
   } = params
 
   const phaseInfo = STRENGTH_PHASE_CONTEXT[phase]
   const goalInfo = STRENGTH_GOAL_CONTEXT[goal] || STRENGTH_GOAL_CONTEXT.strength
+
+  if (locale !== 'sv') {
+    const phaseContext = getStrengthPhaseContextEn(phase)
+    const goalContext = getStrengthGoalContextEn(goal)
+
+    return `${buildConstitutionPreamble('program')}## TASK: CREATE STRENGTH SESSION
+
+Create a complete strength session for a runner or athlete.
+
+### ATHLETE PROFILE
+- Level: ${formatAthleteLevelEn(athleteLevel)}
+- Available time: ${timeAvailable} minutes
+- Available equipment: ${equipmentAvailable.join(', ')}
+${athleteContext ? `- Additional context: ${athleteContext}` : ''}
+
+### TRAINING PHASE: ${phaseContext.name}
+${phaseContext.description}
+
+**Parameters for this phase:**
+- Sets: ${phaseInfo.sets}
+- Reps: ${phaseInfo.reps}
+- Intensity: ${phaseInfo.intensity}
+- Rest: ${phaseContext.rest}
+- Tempo: ${phaseContext.tempo}
+
+**Focus areas:**
+${phaseContext.focus.map((f) => `- ${f}`).join('\n')}
+
+### GOAL: ${goalContext.name}
+${goalContext.description}
+
+**Exercise emphasis:**
+${goalContext.exerciseEmphasis.map((e) => `- ${e}`).join('\n')}
+
+**Example exercises:**
+${goalContext.sampleExercises.map((e) => `- ${e}`).join('\n')}
+
+### BIOMECHANICAL BALANCE
+Include exercises from these categories:
+${getBiomechanicalPillarsEn().map((info) => `- ${info.name}: ${info.description}`).join('\n')}
+
+### SECTIONS TO INCLUDE
+${includeWarmup ? '- WARM-UP (8-10 min): Dynamic mobility and activation' : ''}
+- MAIN SET: Strength exercises following the phase parameters
+${includeCore ? '- CORE (5-7 min): Stabilization exercises' : ''}
+${includeCooldown ? '- COOLDOWN (5-7 min): Static stretching and easy mobility' : ''}
+
+### OUTPUT FORMAT
+
+Return the session in this JSON format:
+
+\`\`\`json
+{
+  "name": "Session name in English",
+  "description": "Short English session description",
+  "phase": "${phase}",
+  "estimatedDuration": ${timeAvailable},
+  "sections": [
+    {
+      "type": "WARMUP",
+      "exercises": [
+        {
+          "exerciseName": "Exercise name in English",
+          "sets": 1,
+          "reps": "10",
+          "restSeconds": 0,
+          "notes": "Instructions in English"
+        }
+      ],
+      "notes": "Section instructions in English",
+      "duration": 8
+    },
+    {
+      "type": "MAIN",
+      "exercises": [
+        {
+          "exerciseName": "Exercise name in English",
+          "sets": 3,
+          "reps": 8,
+          "weight": null,
+          "restSeconds": 90,
+          "tempo": "3-0-1-0",
+          "notes": "Instructions in English"
+        }
+      ]
+    },
+    {
+      "type": "CORE",
+      "exercises": [],
+      "notes": "Focus on control",
+      "duration": 5
+    },
+    {
+      "type": "COOLDOWN",
+      "exercises": [],
+      "notes": "Stretch the major muscle groups",
+      "duration": 7
+    }
+  ],
+  "totalExercises": 8,
+  "totalSets": 18,
+  "coachNotes": "General coach notes in English"
+}
+\`\`\`
+
+### IMPORTANT PRINCIPLES
+1. Choose exercises that match the athlete's level and available equipment
+2. Follow the phase parameters for sets, reps, and rest
+3. Ensure biomechanical balance (posterior chain, knee dominance, unilateral work, core)
+4. Prioritize safety and correct technique
+5. Write all user-facing names, descriptions, notes, and instructions in English
+`
+  }
 
   return `${buildConstitutionPreamble('program')}## UPPGIFT: SKAPA STYRKEPASS
 
@@ -421,14 +538,54 @@ export function progressionRecommendationPrompt(params: {
   recentLogs: Array<{ weight: number; reps: number; date: string }>
   estimated1RM: number
   phase: StrengthPhase
+  locale?: AppLocale
 }): string {
-  const { exerciseName, recentLogs, estimated1RM, phase } = params
+  const { exerciseName, recentLogs, estimated1RM, phase, locale = 'en' } = params
   const phaseInfo = STRENGTH_PHASE_CONTEXT[phase]
 
   const logSummary = recentLogs
     .slice(0, 5)
     .map((log) => `- ${log.date}: ${log.weight}kg × ${log.reps} reps`)
     .join('\n')
+
+  if (locale !== 'sv') {
+    const phaseContext = getStrengthPhaseContextEn(phase)
+
+    return `## TASK: PROGRESSION RECOMMENDATION
+
+### EXERCISE: ${exerciseName}
+
+### RECENT LOGS:
+${logSummary}
+
+### ESTIMATED 1RM: ${estimated1RM}kg
+
+### CURRENT PHASE: ${phaseContext.name}
+- Target intensity: ${phaseInfo.intensity}
+- Target reps: ${phaseInfo.reps}
+
+### QUESTION:
+Based on the athlete's logs and current phase, recommend:
+1. Weight and reps for the next session
+2. Whether the athlete should increase load using the 2-for-2 rule
+3. Whether a deload is needed after 3+ weeks without progression
+4. General tips for continued progression
+
+### OUTPUT FORMAT:
+\`\`\`json
+{
+  "recommendedWeight": 72.5,
+  "recommendedReps": 8,
+  "recommendedSets": 3,
+  "progressionStatus": "READY_TO_INCREASE" | "MAINTAIN" | "DELOAD_RECOMMENDED",
+  "reasoning": "Explanation in English",
+  "tips": ["Tip 1", "Tip 2"]
+}
+\`\`\`
+
+Write all user-facing content in English.
+`
+  }
 
   return `## UPPGIFT: PROGRESSIONSREKOMMENDATION
 
@@ -462,6 +619,208 @@ Baserat på atletens loggar och nuvarande fas, ge en rekommendation för:
 }
 \`\`\`
 `
+}
+
+function formatAthleteLevelEn(level: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE'): string {
+  const labels = {
+    BEGINNER: 'Beginner',
+    INTERMEDIATE: 'Intermediate',
+    ADVANCED: 'Advanced',
+    ELITE: 'Elite',
+  } satisfies Record<typeof level, string>
+
+  return labels[level]
+}
+
+function getStrengthPhaseContextEn(phase: StrengthPhase): {
+  name: string
+  description: string
+  rest: string
+  tempo: string
+  focus: string[]
+} {
+  const contexts: Record<StrengthPhase, {
+    name: string
+    description: string
+    rest: string
+    tempo: string
+    focus: string[]
+  }> = {
+    ANATOMICAL_ADAPTATION: {
+      name: 'Anatomical Adaptation',
+      description: 'Build work capacity, tendon and ligament tolerance, and technical consistency.',
+      rest: '30-60 sec',
+      tempo: '2-0-2-0 (controlled)',
+      focus: [
+        'High volume, low intensity',
+        'Perfect technique',
+        'Progressive tendon loading',
+        'Foundation for later phases',
+      ],
+    },
+    MAXIMUM_STRENGTH: {
+      name: 'Maximum Strength',
+      description: 'Maximize force production through neural adaptation and muscle recruitment.',
+      rest: '2-5 min',
+      tempo: '3-1-1-0 (slow eccentric, explosive concentric)',
+      focus: [
+        'Low reps, high intensity',
+        'Full rest between sets',
+        'Emphasize major lifts such as squats, deadlifts, and Romanian deadlifts',
+        'Limit hypertrophy fatigue with controlled volume',
+      ],
+    },
+    POWER: {
+      name: 'Power',
+      description: 'Convert strength into explosive force and speed.',
+      rest: '2-3 min',
+      tempo: 'X-0-X-0 (explosive)',
+      focus: [
+        'Speed is the priority, not load',
+        'Reduce load if movement speed drops by more than 10%',
+        'Include plyometric work when appropriate',
+        'Use explosive intent on every rep',
+      ],
+    },
+    MAINTENANCE: {
+      name: 'Maintenance',
+      description: 'Maintain strength gains while endurance or sport training is prioritized.',
+      rest: '2-3 min',
+      tempo: '2-0-1-0',
+      focus: [
+        'Minimal volume to reduce fatigue',
+        'Maintain intensity to preserve neural adaptations',
+        'One session per week is enough for many athletes',
+        'Schedule 48+ hours before key workouts when possible',
+      ],
+    },
+    TAPER: {
+      name: 'Taper',
+      description: 'Reduce fatigue while maintaining neuromuscular readiness.',
+      rest: '2-3 min',
+      tempo: '2-0-1-0',
+      focus: [
+        'Reduce volume by roughly 41-60% from maintenance',
+        'Maintain intensity with familiar loads',
+        'Stop heavy strength work 7-10 days before the target event',
+        'Prioritize recovery completely',
+      ],
+    },
+  }
+
+  return contexts[phase]
+}
+
+function getStrengthGoalContextEn(goal: string): {
+  name: string
+  description: string
+  exerciseEmphasis: string[]
+  sampleExercises: string[]
+} {
+  const contexts: Record<string, {
+    name: string
+    description: string
+    exerciseEmphasis: string[]
+    sampleExercises: string[]
+  }> = {
+    strength: {
+      name: 'General Strength',
+      description: 'Build total-body strength with an emphasis on major movement patterns.',
+      exerciseEmphasis: [
+        'Posterior-chain hip-dominant movements',
+        'Knee-dominant movements',
+        'Core stability',
+      ],
+      sampleExercises: [
+        'Squat',
+        'Deadlift',
+        'Romanian deadlift',
+        'Bulgarian split squat',
+        'Hip thrust',
+      ],
+    },
+    power: {
+      name: 'Power Development',
+      description: 'Develop explosive strength and speed.',
+      exerciseEmphasis: [
+        'Plyometric exercises',
+        'Olympic-lift variations',
+        'Explosive movements',
+      ],
+      sampleExercises: [
+        'Box jumps',
+        'Power clean',
+        'Jump squats',
+        'Medicine ball throws',
+        'Depth jumps',
+      ],
+    },
+    'injury-prevention': {
+      name: 'Injury Prevention',
+      description: 'Balanced training to reduce injury risk.',
+      exerciseEmphasis: [
+        'Unilateral exercises to address asymmetry',
+        'Core stability',
+        'Foot and ankle strength',
+        'Hamstring strength such as Nordic curls',
+      ],
+      sampleExercises: [
+        'Single-leg Romanian deadlift',
+        'Nordic hamstring curl',
+        'Copenhagen adductor',
+        'Pallof press',
+        'Eccentric calf raise',
+      ],
+    },
+    'running-economy': {
+      name: 'Running Economy',
+      description: 'Strength training that improves running efficiency.',
+      exerciseEmphasis: [
+        'Posterior-chain force production',
+        'Unilateral strength',
+        'Plyometrics for stiffness and elastic return',
+        'Core stability',
+      ],
+      sampleExercises: [
+        'Step-ups',
+        'Single-leg squat',
+        'Calf raises',
+        'Pogos',
+        'Plank',
+      ],
+    },
+  }
+
+  return contexts[goal] || contexts.strength
+}
+
+function getBiomechanicalPillarsEn(): Array<{ name: string; description: string }> {
+  return [
+    {
+      name: 'Posterior Chain',
+      description: 'Hamstrings, glutes, and lower back; critical for running power and injury prevention.',
+    },
+    {
+      name: 'Knee Dominance',
+      description: 'Quadriceps and knee stability; important for hills, deceleration, and shock absorption.',
+    },
+    {
+      name: 'Unilateral',
+      description: 'Single-leg work for balance, asymmetry correction, and sport transfer.',
+    },
+    {
+      name: 'Anti-Rotation Core',
+      description: 'Core stability that resists rotation and supports efficient movement.',
+    },
+    {
+      name: 'Foot/Ankle',
+      description: 'Calf and intrinsic-foot strength for shock absorption and propulsion.',
+    },
+    {
+      name: 'Upper Body',
+      description: 'Posture, arm drive, and trunk support.',
+    },
+  ]
 }
 
 export const strengthPrompts = {
