@@ -59,7 +59,7 @@ export async function GET(
     const modelType = url.searchParams.get('modelType')
 
     if (modelType === 'PLS') {
-      const model = await loadLatestPLSModel(teamId)
+      const model = await loadLatestPLSModel(teamId, locale)
       return NextResponse.json({
         success: true,
         data: model,
@@ -67,7 +67,7 @@ export async function GET(
     }
 
     // Default: PCA
-    const model = await loadLatestModel(teamId)
+    const model = await loadLatestModel(teamId, locale)
 
     if (!model) {
       return NextResponse.json({

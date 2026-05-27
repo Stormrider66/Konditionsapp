@@ -3,6 +3,14 @@ import type { PCAModelResult, PLSModelResult } from './types'
 import type { SportType, Prisma } from '@prisma/client'
 import { MVA_VARIABLE_REGISTRY } from './variable-registry'
 
+type AppLocale = 'en' | 'sv'
+
+function localizedVariableName(variableId: string, fallback: string, locale: AppLocale) {
+  const variable = MVA_VARIABLE_REGISTRY.find((v) => v.id === variableId)
+  if (!variable) return fallback
+  return locale === 'sv' ? variable.nameSv : variable.name
+}
+
 interface SaveModelParams {
   teamId: string
   coachId: string
@@ -145,7 +153,7 @@ export async function savePLSModel({
 /**
  * Load the latest PCA model for a team and reconstruct it for display.
  */
-export async function loadLatestModel(teamId: string) {
+export async function loadLatestModel(teamId: string, locale: AppLocale = 'en') {
   const model = await prisma.mVAModel.findFirst({
     where: { teamId, modelType: 'PCA', status: 'COMPLETED' },
     orderBy: { createdAt: 'desc' },
@@ -194,7 +202,9 @@ export async function loadLatestModel(teamId: string) {
     loadings: modelData.loadings,
     eigenvalues: modelData.eigenvalues,
     variableIds: modelData.variableIds,
-    variableNames: modelData.variableNames,
+    variableNames: modelData.variableIds.map((variableId, index) =>
+      localizedVariableName(variableId, modelData.variableNames[index] ?? variableId, locale)
+    ),
     variableCategories,
     t2Limit95: modelData.t2Limit95,
     t2Limit99: modelData.t2Limit99,
@@ -204,13 +214,17 @@ export async function loadLatestModel(teamId: string) {
     nXVariables: model.nXVariables,
     athleteScores: model.athleteScores.map((s) => ({
       clientId: s.athleteId,
-      clientName: nameMap.get(s.athleteId) ?? 'Okänd',
+      clientName: nameMap.get(s.athleteId) ?? (locale === 'sv' ? 'Okänd' : 'Unknown'),
       scores: s.scores,
       hotellingT2: s.hotellingT2,
       dmodx: s.dmodx,
       isOutlierT2: s.isOutlierT2,
       isOutlierDModX: s.isOutlierDModX,
-      topContributors: s.topContributors as { variableId: string; variableName: string; contribution: number; direction: string }[] | null,
+      topContributors: (s.topContributors as { variableId: string; variableName: string; contribution: number; direction: string }[] | null)
+        ?.map((contributor) => ({
+          ...contributor,
+          variableName: localizedVariableName(contributor.variableId, contributor.variableName, locale),
+        })) ?? null,
     })),
   }
 }
@@ -218,7 +232,7 @@ export async function loadLatestModel(teamId: string) {
 /**
  * Load the latest PLS model for a team and reconstruct it for display.
  */
-export async function loadLatestPLSModel(teamId: string) {
+export async function loadLatestPLSModel(teamId: string, locale: AppLocale = 'en') {
   const model = await prisma.mVAModel.findFirst({
     where: { teamId, modelType: 'PLS', status: 'COMPLETED' },
     orderBy: { createdAt: 'desc' },
@@ -271,16 +285,21 @@ export async function loadLatestPLSModel(teamId: string) {
     r2Y: modelData.r2Y,
     q2: modelData.q2,
     r2X: modelData.r2X,
-    vipScores: modelData.vipScores,
+    vipScores: modelData.vipScores.map((score) => ({
+      ...score,
+      variableName: localizedVariableName(score.variableId, score.variableName, locale),
+    })),
     yVariableId: modelData.yVariableId,
-    yVariableName: modelData.yVariableName,
+    yVariableName: localizedVariableName(modelData.yVariableId, modelData.yVariableName, locale),
     yObserved: modelData.yObserved,
     yPredicted: modelData.yPredicted,
     aiInsight: modelData.aiInsight,
     xVariableIds: modelData.xVariableIds,
-    xVariableNames: modelData.xVariableNames,
+    xVariableNames: modelData.xVariableIds.map((variableId, index) =>
+      localizedVariableName(variableId, modelData.xVariableNames[index] ?? variableId, locale)
+    ),
     variableCategories,
     config: model.config,
-    athleteNames: model.athleteScores.map((s) => nameMap.get(s.athleteId) ?? 'Okänd'),
+    athleteNames: model.athleteScores.map((s) => nameMap.get(s.athleteId) ?? (locale === 'sv' ? 'Okänd' : 'Unknown')),
   }
 }

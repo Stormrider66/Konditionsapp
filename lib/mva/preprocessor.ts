@@ -1,6 +1,12 @@
 import type { AthleteDataBundle, PreprocessedData, PreprocessingConfig } from './types'
 import { MVA_VARIABLE_REGISTRY } from './variable-registry'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Preprocess athlete data into a centered + scaled matrix suitable for PCA.
  *
@@ -14,7 +20,8 @@ import { MVA_VARIABLE_REGISTRY } from './variable-registry'
 export function preprocessData(
   bundles: AthleteDataBundle[],
   config: PreprocessingConfig,
-  selectedVariableIds?: string[]
+  selectedVariableIds?: string[],
+  locale: AppLocale = 'en'
 ): PreprocessedData {
   const variables = selectedVariableIds
     ? MVA_VARIABLE_REGISTRY.filter((v) => selectedVariableIds.includes(v.id))
@@ -41,8 +48,12 @@ export function preprocessData(
     if (coverage < config.minVariableCoverage) {
       excludedVariables.push({
         variableId: v.id,
-        name: v.nameSv,
-        reason: `Täckning ${Math.round(coverage * 100)}% < ${Math.round(config.minVariableCoverage * 100)}%`,
+        name: locale === 'sv' ? v.nameSv : v.name,
+        reason: t(
+          locale,
+          `Coverage ${Math.round(coverage * 100)}% < ${Math.round(config.minVariableCoverage * 100)}%`,
+          `Täckning ${Math.round(coverage * 100)}% < ${Math.round(config.minVariableCoverage * 100)}%`,
+        ),
       })
       return false
     }
@@ -65,7 +76,11 @@ export function preprocessData(
       excludedAthletes.push({
         clientId: bundle.clientId,
         name: bundle.clientName,
-        reason: `Datatäckning ${Math.round(coverage * 100)}% < ${Math.round(config.minAthleteCoverage * 100)}%`,
+        reason: t(
+          locale,
+          `Data coverage ${Math.round(coverage * 100)}% < ${Math.round(config.minAthleteCoverage * 100)}%`,
+          `Datatäckning ${Math.round(coverage * 100)}% < ${Math.round(config.minAthleteCoverage * 100)}%`,
+        ),
       })
       return false
     }
@@ -147,7 +162,7 @@ export function preprocessData(
     athleteIds: includedAthleteIndices.map((i) => bundles[i].clientId),
     athleteNames: includedAthleteIndices.map((i) => bundles[i].clientName),
     variableIds: includedVarIndices.map((i) => variables[i].id),
-    variableNames: includedVarIndices.map((i) => variables[i].nameSv),
+    variableNames: includedVarIndices.map((i) => locale === 'sv' ? variables[i].nameSv : variables[i].name),
     means,
     stds,
     excludedAthletes,

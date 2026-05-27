@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { ArrowLeft, Lock } from 'lucide-react'
-import { getTranslations } from '@/i18n/server'
+import { getLocale, getTranslations } from '@/i18n/server'
 
 interface AnalysisPageProps {
   params: Promise<{
@@ -23,6 +23,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
   const { businessSlug, teamId } = await params
   const user = await requireCoach()
   const t = await getTranslations('coach.pages.teamMultivariate')
+  const locale = (await getLocale()) === 'sv' ? 'sv' : 'en'
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) {
@@ -70,8 +71,8 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
 
   // Load latest models
   const [latestModel, latestPLSModel] = await Promise.all([
-    loadLatestModel(teamId),
-    loadLatestPLSModel(teamId),
+    loadLatestModel(teamId, locale),
+    loadLatestPLSModel(teamId, locale),
   ])
 
   return (

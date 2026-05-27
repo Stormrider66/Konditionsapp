@@ -68,7 +68,7 @@ export async function analyzeTeam({
 
   // 2. Preprocess: filter, impute, center, scale
   const config = DEFAULT_PREPROCESSING_CONFIG
-  const preprocessed = preprocessData(bundles, config, selectedVariableIds)
+  const preprocessed = preprocessData(bundles, config, selectedVariableIds, locale)
 
   if (preprocessed.athleteIds.length < MIN_ATHLETES) {
     throw new Error(
@@ -141,7 +141,7 @@ export async function analyzeTeamPLS({
 
   // 3. Preprocess: filter, impute, center, scale
   const config = DEFAULT_PREPROCESSING_CONFIG
-  const preprocessed = preprocessData(bundles, config, effectiveSelection)
+  const preprocessed = preprocessData(bundles, config, effectiveSelection, locale)
 
   if (preprocessed.athleteIds.length < MIN_ATHLETES) {
     throw new Error(
