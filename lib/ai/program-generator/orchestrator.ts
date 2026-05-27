@@ -68,6 +68,10 @@ interface ProgramGenerationAiMeta {
 async function getEnrichedSystemPrompt(context: GenerationContext): Promise<string> {
   const locale = context.locale === 'sv' ? 'sv' : 'en'
 
+  if (locale === 'en') {
+    return buildProgramGeneratorSystemPrompt(locale)
+  }
+
   try {
     const variant = await getActiveVariant('full_program')
     if (!variant?.promptTemplate) {
