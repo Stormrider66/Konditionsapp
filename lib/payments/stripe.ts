@@ -15,7 +15,7 @@ import { calculateAndRecordRevenueShare } from '@/lib/coach/revenue-share';
 import { sendPaymentFailedEmail } from '@/lib/email';
 import { logger } from '@/lib/logger';
 import { getAiTopUpExpiresAt, getOrCreateAiAllowanceAccount, roundSek } from '@/lib/ai/billing/allowance';
-import { getAiTopUpPack } from '@/lib/ai/billing/top-up-packs';
+import { getAiTopUpPack, getAiTopUpPackDescription } from '@/lib/ai/billing/top-up-packs';
 
 // Lazy initialize Stripe client to avoid build-time errors
 let _stripe: Stripe | null = null;
@@ -244,7 +244,8 @@ export async function createAiTopUpCheckoutSession(
   clientId: string,
   packId: string,
   successUrl: string,
-  cancelUrl: string
+  cancelUrl: string,
+  locale: 'en' | 'sv' = 'en',
 ): Promise<string> {
   const pack = getAiTopUpPack(packId);
   if (!pack) {
@@ -264,8 +265,8 @@ export async function createAiTopUpCheckoutSession(
         price_data: {
           currency: 'sek',
           product_data: {
-            name: `${pack.name} krediter`,
-            description: pack.description,
+            name: locale === 'sv' ? `${pack.name} krediter` : `${pack.name} credits`,
+            description: getAiTopUpPackDescription(pack, locale),
           },
           unit_amount: Math.round(amountPaidSek * 100),
         },

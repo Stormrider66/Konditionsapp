@@ -9,6 +9,8 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { createAiTopUpCheckoutSession } from '@/lib/payments/stripe'
 
+type AppLocale = 'en' | 'sv'
+
 const topUpCheckoutSchema = z.object({
   packId: z.string().min(1),
   returnPath: z.string()
@@ -18,16 +20,19 @@ const topUpCheckoutSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { user, clientId } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json(
-        { error: 'Billing is not enabled yet', code: 'BILLING_DISABLED' },
+        { error: t(locale, 'Billing is not enabled yet', 'Betalning är inte aktiverat ännu'), code: 'BILLING_DISABLED' },
         { status: 503 },
       )
     }
@@ -52,6 +57,7 @@ export async function POST(request: NextRequest) {
       packId,
       successUrl.toString(),
       cancelUrl.toString(),
+      locale,
     )
 
     return NextResponse.json({
@@ -64,14 +70,18 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: t(locale, 'Invalid request data', 'Ogiltig förfrågningsdata'), details: error.errors },
         { status: 400 },
       )
     }
 
     return NextResponse.json(
-      { error: 'Failed to create AI credit checkout' },
+      { error: t(locale, 'Failed to create AI credit checkout', 'Kunde inte skapa betalning för AI-krediter') },
       { status: 500 },
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
