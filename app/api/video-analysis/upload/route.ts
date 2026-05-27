@@ -37,9 +37,21 @@ const ALLOWED_ANALYSIS_TYPES = [
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language?: string | null): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const rateLimited = await rateLimitJsonResponse('video:upload', user.id, {
       limit: 10,
       windowSeconds: 60,
@@ -50,23 +62,23 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === 'get-upload-url') {
-      return handleGetUploadUrl(body, user.id);
+      return handleGetUploadUrl(body, user.id, locale);
     }
 
     if (action === 'confirm-upload') {
-      return handleConfirmUpload(body, user.id);
+      return handleConfirmUpload(body, user.id, locale);
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ error: t(locale, 'Invalid action', 'Ogiltig åtgärd') }, { status: 400 });
   } catch (error) {
     logger.error('Video upload error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to process request' },
+      { error: t(locale, 'Failed to process request', 'Kunde inte behandla förfrågan') },
       { status: 500 }
     );
   }
@@ -74,7 +86,8 @@ export async function POST(request: NextRequest) {
 
 async function handleGetUploadUrl(
   body: Record<string, unknown>,
-  userId: string
+  userId: string,
+  locale: AppLocale
 ) {
   const { fileName, fileType, fileSize, videoType, cameraAngle, athleteId } = body as {
     fileName?: string
@@ -87,35 +100,35 @@ async function handleGetUploadUrl(
 
   if (!fileName || !fileType || !fileSize || !videoType) {
     return NextResponse.json(
-      { error: 'Missing required fields: fileName, fileType, fileSize, videoType' },
+      { error: t(locale, 'Missing required fields: fileName, fileType, fileSize, videoType', 'Obligatoriska fält saknas: fileName, fileType, fileSize, videoType') },
       { status: 400 }
     );
   }
 
   if (!ALLOWED_VIDEO_TYPES.includes(fileType)) {
     return NextResponse.json(
-      { error: 'Invalid file type. Allowed: MP4, MOV, WebM, AVI' },
+      { error: t(locale, 'Invalid file type. Allowed: MP4, MOV, WebM, AVI', 'Ogiltig filtyp. Tillåtna: MP4, MOV, WebM, AVI') },
       { status: 400 }
     );
   }
 
   if (fileSize > MAX_FILE_SIZE) {
     return NextResponse.json(
-      { error: 'File too large. Maximum size: 100MB' },
+      { error: t(locale, 'File too large. Maximum size: 100MB', 'Filen är för stor. Maxstorlek: 100MB') },
       { status: 400 }
     );
   }
 
   if (!ALLOWED_ANALYSIS_TYPES.includes(videoType)) {
     return NextResponse.json(
-      { error: 'Invalid video type' },
+      { error: t(locale, 'Invalid video type', 'Ogiltig videotyp') },
       { status: 400 }
     );
   }
 
   if (cameraAngle && !['FRONT', 'SIDE', 'BACK'].includes(cameraAngle)) {
     return NextResponse.json(
-      { error: 'Invalid camera angle. Allowed: FRONT, SIDE, BACK' },
+      { error: t(locale, 'Invalid camera angle. Allowed: FRONT, SIDE, BACK', 'Ogiltig kameravinkel. Tillåtna: FRONT, SIDE, BACK') },
       { status: 400 }
     );
   }
@@ -123,7 +136,7 @@ async function handleGetUploadUrl(
   if (athleteId) {
     const hasAccess = await canAccessClient(userId, athleteId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Athlete not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Athlete not found', 'Atleten hittades inte') }, { status: 404 });
     }
   }
 
@@ -145,7 +158,8 @@ async function handleGetUploadUrl(
 
 async function handleConfirmUpload(
   body: Record<string, unknown>,
-  userId: string
+  userId: string,
+  locale: AppLocale
 ) {
   const { uploadPath, videoType, cameraAngle, athleteId, exerciseId, hyroxStation, sourceContext } = body as {
     uploadPath?: string
@@ -159,21 +173,21 @@ async function handleConfirmUpload(
 
   if (!uploadPath || !videoType) {
     return NextResponse.json(
-      { error: 'Missing required fields: uploadPath, videoType' },
+      { error: t(locale, 'Missing required fields: uploadPath, videoType', 'Obligatoriska fält saknas: uploadPath, videoType') },
       { status: 400 }
     );
   }
 
   if (!ALLOWED_ANALYSIS_TYPES.includes(videoType)) {
     return NextResponse.json(
-      { error: 'Invalid video type' },
+      { error: t(locale, 'Invalid video type', 'Ogiltig videotyp') },
       { status: 400 }
     );
   }
 
   // Verify the file belongs to this user (path starts with userId)
   if (!uploadPath.startsWith(`${userId}/`)) {
-    return NextResponse.json({ error: 'Invalid upload path' }, { status: 403 });
+    return NextResponse.json({ error: t(locale, 'Invalid upload path', 'Ogiltig uppladdningssökväg') }, { status: 403 });
   }
 
   const sanitizedSourceContext = sourceContext
