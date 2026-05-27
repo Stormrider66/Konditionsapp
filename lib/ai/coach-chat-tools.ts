@@ -1938,23 +1938,27 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
     }),
 
     planTeamWorkoutInCalendar: tool({
-      description: 'Planera ett befintligt studio-pass i lagkalendern och länka det till eventet. Stödjer STRENGTH, CARDIO, HYBRID och AGILITY, flera veckor, ansvarig tränare och contentOwner=self för "eget ansvar". Använd bara när coachen tydligt har bett dig planera/skapa kalenderhändelsen eller efter att du fått bekräftelse.',
+      description: toolText(
+        locale,
+        'Plan an existing studio session in the team calendar and link it to the event. Supports STRENGTH, CARDIO, HYBRID, and AGILITY, multiple weeks, responsible coach, and contentOwner=self for own responsibility. Use only when the coach clearly asked you to plan/create the calendar event or after confirmation.',
+        'Planera ett befintligt studio-pass i lagkalendern och länka det till eventet. Stödjer STRENGTH, CARDIO, HYBRID och AGILITY, flera veckor, ansvarig tränare och contentOwner=self för "eget ansvar". Använd bara när coachen tydligt har bett dig planera/skapa kalenderhändelsen eller efter att du fått bekräftelse.'
+      ),
       inputSchema: z.object({
-        teamId: z.string().optional().describe('Lagets id om känt'),
-        teamName: z.string().optional().describe('Lagets namn om id saknas'),
-        workoutType: z.enum(TEAM_WORKOUT_TYPES).describe('Typ av studio-pass som ska länkas'),
-        workoutId: z.string().describe('ID för passet i rätt studio'),
-        workoutName: z.string().optional().describe('Passnamn om känt'),
-        title: z.string().optional().describe('Titel i lagkalendern. Standard är workoutName.'),
-        description: z.string().optional().describe('Plan/instruktioner i kalenderhändelsen'),
-        date: z.string().describe('Startdatum som ISO-datum, t.ex. 2026-05-29'),
-        startTime: z.string().optional().describe('Starttid HH:mm, t.ex. 17:00'),
-        endTime: z.string().optional().describe('Sluttid HH:mm, t.ex. 18:00'),
+        teamId: z.string().optional().describe('Team id if known.'),
+        teamName: z.string().optional().describe('Team name if id is missing.'),
+        workoutType: z.enum(TEAM_WORKOUT_TYPES).describe('Type of studio session to link.'),
+        workoutId: z.string().describe('ID of the session in the correct studio.'),
+        workoutName: z.string().optional().describe('Session name if known.'),
+        title: z.string().optional().describe('Title in the team calendar. Defaults to workoutName.'),
+        description: z.string().optional().describe('Plan/instructions in the calendar event.'),
+        date: z.string().describe('Start date as ISO date, for example 2026-05-29.'),
+        startTime: z.string().optional().describe('Start time HH:mm, for example 17:00.'),
+        endTime: z.string().optional().describe('End time HH:mm, for example 18:00.'),
         allDay: z.boolean().default(false),
         location: z.string().optional(),
-        weeks: z.number().int().min(1).max(52).default(1).describe('Antal veckor/pass att skapa med veckointervall'),
-        responsibleCoachId: z.string().optional().nullable().describe('Ansvarig coach userId. Lämna tomt för eget ansvar/ingen ansvarig.'),
-        responsibleCoachName: z.string().optional().nullable().describe('Ansvarig coach namn om id saknas. Använd "eget ansvar" för ingen coach.'),
+        weeks: z.number().int().min(1).max(52).default(1).describe('Number of weeks/events to create at weekly intervals.'),
+        responsibleCoachId: z.string().optional().nullable().describe('Responsible coach userId. Leave empty for own responsibility/no responsible coach.'),
+        responsibleCoachName: z.string().optional().nullable().describe('Responsible coach name if id is missing. Use "own responsibility" for no coach.'),
         contentOwner: z.enum(TEAM_EVENT_CONTENT_OWNERS_FOR_AI).default('physical_trainer'),
         contentStatus: z.enum(TEAM_EVENT_CONTENT_STATUSES_FOR_AI).default('CONTENT_READY'),
       }),
@@ -1962,7 +1966,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
         try {
           const businessId = await resolveCoachToolBusinessId(coachUserId, businessSlug)
           if (businessId === null) {
-            return { success: false, error: 'Verksamheten kunde inte verifieras för den här coachen.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The business could not be verified for this coach.', 'Verksamheten kunde inte verifieras för den här coachen.'),
+            }
           }
 
           const { team, candidates } = await findAccessibleCoachTeam(coachUserId, {
@@ -1977,8 +1984,12 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
               needsClarification: candidates.length > 1,
               error:
                 candidates.length > 1
-                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
-                  : 'Jag behöver veta vilket lag jag ska planera passet för.',
+                  ? toolText(
+                      locale,
+                      `I found several possible teams${teamName ? ` for "${teamName}"` : ''}.`,
+                      `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                    )
+                  : toolText(locale, 'I need to know which team to plan the session for.', 'Jag behöver veta vilket lag jag ska planera passet för.'),
               candidates: candidates.map((candidate) => ({
                 id: candidate.id,
                 name: candidate.name,
@@ -1990,12 +2001,18 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           const eventType = eventTypeForTeamWorkoutType(workoutType)
           const writableTeam = await getTeamCalendarWritableTeam(coachUserId, team.id, businessSlug, eventType, 'create')
           if (!writableTeam) {
-            return { success: false, error: 'Din roll kan inte planera den här passtypen för laget.' }
+            return {
+              success: false,
+              error: toolText(locale, 'Your role cannot plan this session type for the team.', 'Din roll kan inte planera den här passtypen för laget.'),
+            }
           }
 
           const linkedWorkoutName = workoutName || await getCoachToolLinkedWorkoutName(coachUserId, workoutType, workoutId, businessId)
           if (!linkedWorkoutName) {
-            return { success: false, error: 'Det kopplade passet hittades inte eller saknar behörighet.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The linked session was not found or is outside your access.', 'Det kopplade passet hittades inte eller saknar behörighet.'),
+            }
           }
 
           const resolvedResponsibleCoach = await resolveResponsibleCoachIdFromAiInput({
@@ -2023,13 +2040,19 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             businessSlug,
           })
           if (!canUseResponsibleCoach) {
-            return { success: false, error: 'Vald tränare kan inte tilldelas det här laget.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The selected coach cannot be assigned to this team.', 'Vald tränare kan inte tilldelas det här laget.'),
+            }
           }
 
           const startDate = buildCoachToolEventDate(date, startTime, allDay)
           const endDate = endTime && !allDay ? buildCoachToolEventDate(date, endTime, false) : null
           if (endDate && endDate <= startDate) {
-            return { success: false, error: 'Sluttid måste vara efter starttid.' }
+            return {
+              success: false,
+              error: toolText(locale, 'End time must be after start time.', 'Sluttid måste vara efter starttid.'),
+            }
           }
 
           const recurrenceCount = weeks ?? 1
@@ -2130,8 +2153,16 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
               endDate: event.endDate?.toISOString() ?? null,
             })),
             message: events.length > 1
-              ? `Jag planerade "${linkedWorkoutName}" för ${team.name} i ${events.length} veckor.`
-              : `Jag planerade "${linkedWorkoutName}" för ${team.name} i lagkalendern.`,
+              ? toolText(
+                  locale,
+                  `I planned "${linkedWorkoutName}" for ${team.name} across ${events.length} weeks.`,
+                  `Jag planerade "${linkedWorkoutName}" för ${team.name} i ${events.length} veckor.`
+                )
+              : toolText(
+                  locale,
+                  `I planned "${linkedWorkoutName}" for ${team.name} in the team calendar.`,
+                  `Jag planerade "${linkedWorkoutName}" för ${team.name} i lagkalendern.`
+                ),
           }
         } catch (error) {
           logger.error('Error in planTeamWorkoutInCalendar tool', {
@@ -2143,7 +2174,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             workoutId,
             date,
           }, error)
-          return { success: false, error: 'Kunde inte planera passet i lagkalendern just nu.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not plan the session in the team calendar right now.', 'Kunde inte planera passet i lagkalendern just nu.'),
+          }
         }
       },
     }),
