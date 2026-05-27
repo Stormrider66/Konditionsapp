@@ -113,19 +113,19 @@ export function buildTierAwareContext(
         context += buildRunningContext(athlete, locale);
         break;
       case 'CYCLING':
-        context += buildCyclingContext(athlete);
+        context += buildCyclingContext(athlete, locale);
         break;
       case 'SWIMMING':
-        context += buildSwimmingContext(athlete);
+        context += buildSwimmingContext(athlete, locale);
         break;
       case 'TRIATHLON':
-        context += buildTriathlonContext(athlete);
+        context += buildTriathlonContext(athlete, locale);
         break;
       case 'HYROX':
         context += buildHyroxContext(athlete, locale);
         break;
       case 'SKIING':
-        context += buildSkiingContext(athlete);
+        context += buildSkiingContext(athlete, locale);
         break;
       case 'GENERAL_FITNESS':
         context += buildGeneralFitnessContext(athlete, locale);

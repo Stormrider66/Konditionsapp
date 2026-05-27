@@ -48,19 +48,19 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
       context += buildHyroxContext(athlete, locale);
       break;
     case 'CYCLING':
-      context += buildCyclingContext(athlete);
+      context += buildCyclingContext(athlete, locale);
       break;
     case 'SWIMMING':
-      context += buildSwimmingContext(athlete);
+      context += buildSwimmingContext(athlete, locale);
       break;
     case 'TRIATHLON':
-      context += buildTriathlonContext(athlete);
-      context += buildSwimmingContext(athlete); // Include swim data
-      context += buildCyclingContext(athlete); // Include cycling data
+      context += buildTriathlonContext(athlete, locale);
+      context += buildSwimmingContext(athlete, locale); // Include swim data
+      context += buildCyclingContext(athlete, locale); // Include cycling data
       context += buildRunningContext(athlete, locale); // Include running data
       break;
     case 'SKIING':
-      context += buildSkiingContext(athlete);
+      context += buildSkiingContext(athlete, locale);
       break;
     case 'GENERAL_FITNESS':
       context += buildGeneralFitnessContext(athlete, locale);
