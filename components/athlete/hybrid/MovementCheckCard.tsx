@@ -25,7 +25,6 @@ interface MovementCheckCardProps {
 
 export function MovementCheckCard({
   name,
-  nameSv,
   reps,
   calories,
   distance,
@@ -54,7 +53,7 @@ export function MovementCheckCard({
           <div className="flex items-center gap-2">
             <Dumbbell className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <span className={cn('font-medium truncate', completed && 'line-through')}>
-              {nameSv || name}
+              {name}
             </span>
           </div>
 

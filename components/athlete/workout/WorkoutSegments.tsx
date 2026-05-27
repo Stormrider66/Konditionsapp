@@ -21,6 +21,8 @@ import {
 import { ClipboardList, Clock, Zap, Activity, Info } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
 
+type AppLocale = 'en' | 'sv';
+
 interface WorkoutSegment {
   id: string;
   type: string;
@@ -32,7 +34,9 @@ interface WorkoutSegment {
   repsCount?: string | null;
   rest?: number | null;
   exercise?: {
+    name?: string | null;
     nameSv?: string | null;
+    nameEn?: string | null;
   } | null;
 }
 
@@ -42,6 +46,7 @@ interface WorkoutSegmentsProps {
   clientId: string;
   workoutName?: string;
   variant?: 'default' | 'glass';
+  locale?: AppLocale;
 }
 
 export function WorkoutSegments({
@@ -50,6 +55,7 @@ export function WorkoutSegments({
   clientId,
   workoutName,
   variant = 'default',
+  locale = 'en',
 }: WorkoutSegmentsProps) {
   const t = useTranslations('components.workoutSegments');
   const isGlass = variant === 'glass';
@@ -81,6 +87,13 @@ export function WorkoutSegments({
     return type.toLowerCase() === 'interval' || type === 'INTERVAL';
   }
 
+  function exerciseDisplayName(segment: WorkoutSegment): string | null {
+    if (!segment.exercise) return null;
+    return locale === 'sv'
+      ? segment.exercise.nameSv || segment.exercise.name || segment.exercise.nameEn || null
+      : segment.exercise.nameEn || segment.exercise.name || segment.exercise.nameSv || null;
+  }
+
   if (isGlass) {
     return (
       <GlassCard className="border-white/20 bg-white/50 dark:border-white/5 dark:bg-white/5 transition-colors">
@@ -98,6 +111,7 @@ export function WorkoutSegments({
                 intervalCounter++;
               }
               const currentIntervalNumber = isInterval ? intervalCounter : 0;
+              const exerciseName = exerciseDisplayName(segment);
 
               return (
                 <div
@@ -112,9 +126,9 @@ export function WorkoutSegments({
                       <Badge className="bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-white/10 dark:hover:bg-white/20 dark:text-white border-0 font-bold px-2.5 py-0.5 rounded-lg text-[10px] uppercase tracking-wider transition-colors">
                         {formatSegmentType(segment.type)}
                       </Badge>
-                      {segment.exercise?.nameSv && (
+                      {exerciseName && (
                         <span className="font-black text-slate-900 dark:text-white text-sm uppercase tracking-tight transition-colors">
-                          {segment.exercise.nameSv}
+                          {exerciseName}
                         </span>
                       )}
                       {isInterval && (
@@ -208,6 +222,7 @@ export function WorkoutSegments({
               intervalCounter++;
             }
             const currentIntervalNumber = isInterval ? intervalCounter : 0;
+            const exerciseName = exerciseDisplayName(segment);
 
             return (
               <div
@@ -229,12 +244,12 @@ export function WorkoutSegments({
                     <Badge variant="secondary" className="text-xs">
                       {formatSegmentType(segment.type)}
                     </Badge>
-                    {segment.exercise?.nameSv && (
+                    {exerciseName && (
                       <span
                         className="font-medium"
                         style={{ color: theme.colors.textPrimary }}
                       >
-                        {segment.exercise.nameSv}
+                        {exerciseName}
                       </span>
                     )}
                     {isInterval && (

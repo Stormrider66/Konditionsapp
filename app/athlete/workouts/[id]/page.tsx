@@ -311,6 +311,7 @@ export default async function WorkoutDetailPage({ params }: WorkoutDetailPagePro
             clientId={clientId}
             workoutName={workout.name}
             variant="glass"
+            locale={locale === 'sv' ? 'sv' : 'en'}
           />
         </div>
       )}

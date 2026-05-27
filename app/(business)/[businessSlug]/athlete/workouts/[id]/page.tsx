@@ -244,6 +244,7 @@ export default async function BusinessWorkoutDetailPage({ params }: BusinessWork
             clientId={clientId}
             workoutName={workout.name}
             variant="glass"
+            locale={locale === 'sv' ? 'sv' : 'en'}
           />
         </div>
       )}
