@@ -130,6 +130,7 @@ export async function POST(request: NextRequest) {
         sessionsPerWeek: body.sessionsPerWeek || body.trainingDaysPerWeek || 4,
         notes: body.notes,
         targetRaceDate: body.targetRaceDate ? new Date(body.targetRaceDate) : undefined,
+        locale,
         testId: body.testId,
 
         // Manual values

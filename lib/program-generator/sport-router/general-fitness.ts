@@ -31,6 +31,7 @@ export function generateGeneralFitnessProgram(
 
   const programDesc = getProgramDescription(fitnessGoal)
   const durationWeeks = fitnessWeeks.length
+  const locale = params.locale === 'sv' ? 'sv' : 'en'
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, durationWeeks)
@@ -39,11 +40,11 @@ export function generateGeneralFitnessProgram(
     clientId: params.clientId,
     coachId: params.coachId,
     testId: undefined,
-    name: `${programDesc.titleSv} - ${client.name}`,
+    name: `${locale === 'sv' ? programDesc.titleSv : programDesc.title} - ${client.name}`,
     goalType: 'fitness',
     startDate,
     endDate,
-    notes: params.notes || programDesc.descriptionSv,
+    notes: params.notes || (locale === 'sv' ? programDesc.descriptionSv : programDesc.description),
     weeks: fitnessWeeks.map((week, weekIndex) => ({
       weekNumber: week.week,
       startDate: new Date(startDate.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000),

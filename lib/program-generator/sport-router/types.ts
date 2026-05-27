@@ -98,6 +98,7 @@ export interface SportProgramParams {
   sessionsPerWeek: number
   notes?: string
   targetRaceDate?: Date
+  locale?: 'en' | 'sv'
 
   // Test-based
   testId?: string
