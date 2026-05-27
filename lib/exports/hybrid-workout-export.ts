@@ -135,10 +135,10 @@ export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData):
     { width: 15 },
   ]
 
-  // Row 1: HYBRID PASS header
+  // Row 1: Hybrid workout header
   infoSheet.mergeCells('A1:C1')
   const headerCell = infoSheet.getCell('A1')
-  headerCell.value = 'HYBRID PASS'
+  headerCell.value = t(locale, 'HYBRIDPASS', 'HYBRID SESSION')
   headerCell.font = { bold: true, size: 16, color: { argb: colors.white } }
   headerCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.headerDark } }
   headerCell.alignment = { vertical: 'middle', horizontal: 'left' }
