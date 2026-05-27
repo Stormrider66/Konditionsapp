@@ -40,9 +40,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocale } from '@/i18n/client'
 
-const padelTestSchema = z.object({
-  clientId: z.string().min(1, 'Valj en klient'),
-  testDate: z.string().min(1, 'Valj testdatum'),
+type AppLocale = 'en' | 'sv'
+
+const createPadelTestSchema = (locale: AppLocale) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   playerType: z.enum(['right_side', 'left_side', 'all_round']),
   // Serve Speed
   serveSpeed: z.number().min(50).max(200).optional(),
@@ -55,7 +57,7 @@ const padelTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type PadelTestFormData = z.infer<typeof padelTestSchema>
+type PadelTestFormData = z.infer<ReturnType<typeof createPadelTestSchema>>
 
 interface Client {
   id: string
@@ -69,10 +71,10 @@ interface PadelTestBatteryFormProps {
   onTestSaved?: (tests: any[]) => void
 }
 
-const PLAYER_TYPE_LABELS: Record<string, string> = {
-  right_side: 'Hogersida (Drive)',
-  left_side: 'Vanstersida (Reves)',
-  all_round: 'Allround',
+const PLAYER_TYPE_LABELS: Record<string, Record<AppLocale, string>> = {
+  right_side: { sv: 'Högersida (drive)', en: 'Right side (drive)' },
+  left_side: { sv: 'Vänstersida (backhand)', en: 'Left side (backhand)' },
+  all_round: { sv: 'Allround', en: 'All-round' },
 }
 
 // Player type-specific benchmarks (elite level)
@@ -90,16 +92,21 @@ function getBenchmarkClass(actual: number | undefined, target: number, lowerIsBe
   return actual >= target ? 'text-green-600' : 'text-orange-500'
 }
 
-function getBenchmarkLabel(actual: number | undefined, target: number, lowerIsBetter = false): string {
+function getPlayerTypeLabel(playerType: string, locale: AppLocale): string {
+  return PLAYER_TYPE_LABELS[playerType]?.[locale] ?? playerType
+}
+
+function getBenchmarkLabel(locale: AppLocale, actual: number | undefined, target: number, lowerIsBetter = false): string {
   if (!actual) return '-'
   const percentage = lowerIsBetter
     ? Math.round((target / actual) * 100)
     : Math.round((actual / target) * 100)
-  return `${percentage}% av elit`
+  return locale === 'sv' ? `${percentage}% av elit` : `${percentage}% of elite`
 }
 
 export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryFormProps) {
-  const locale = useLocale()
+  const rawLocale = useLocale()
+  const locale: AppLocale = rawLocale === 'sv' ? 'sv' : 'en'
   const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [submitting, setSubmitting] = useState(false)
   const [results, setResults] = useState<any[]>([])
@@ -107,14 +114,13 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
   const [activeTab, setActiveTab] = useState('serve')
 
   const form = useForm<PadelTestFormData>({
-    resolver: zodResolver(padelTestSchema),
+    resolver: zodResolver(createPadelTestSchema(locale)),
     defaultValues: {
       testDate: new Date().toISOString().split('T')[0],
       playerType: 'all_round',
     },
   })
 
-  const selectedClient = clients.find((c) => c.id === form.watch('clientId'))
   const playerType = form.watch('playerType')
   const benchmarks = PLAYER_TYPE_BENCHMARKS[playerType] || PLAYER_TYPE_BENCHMARKS.all_round
 
@@ -131,7 +137,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(t('Klient hittades inte', 'Client not found'))
 
       const savedTests: any[] = []
 
@@ -232,14 +238,14 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
       }
 
       if (savedTests.length === 0) {
-        throw new Error('Inga testresultat att spara. Fyll i minst ett test.')
+        throw new Error(t('Inga testresultat att spara. Fyll i minst ett test.', 'No test results to save. Fill in at least one test.'))
       }
 
       setResults(savedTests)
       onTestSaved?.(savedTests)
     } catch (err) {
       console.error('Failed to save padel tests:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('Ett fel uppstod', 'Something went wrong'))
     } finally {
       setSubmitting(false)
     }
@@ -251,12 +257,12 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-purple-500" />
-            Padel - Testbatteri
+            {t('Padel - Testbatteri', 'Padel - Test battery')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lagg till klienter for att kunna registrera test.
+            {t('Inga klienter hittades. Lägg till klienter för att kunna registrera test.', 'No clients found. Add clients before registering tests.')}
           </p>
         </CardContent>
       </Card>
@@ -271,10 +277,10 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-purple-500" />
-                Padel - Testbatteri
+                {t('Padel - Testbatteri', 'Padel - Test battery')}
               </CardTitle>
               <CardDescription>
-                Fysiska tester for padelspelare: Serve Speed, T-Test, CMJ, 5-10-5 Lateral Speed
+                {t('Fysiska tester för padelspelare: Serve Speed, T-Test, CMJ, 5-10-5 Lateral Speed', 'Physical tests for padel players: Serve Speed, T-Test, CMJ, 5-10-5 Lateral Speed')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -284,11 +290,11 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{t('Klient', 'Client')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Valj klient" />
+                            <SelectValue placeholder={t('Välj klient', 'Select client')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -323,7 +329,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                   name="playerType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Spelartyp</FormLabel>
+                      <FormLabel>{t('Spelartyp', 'Player type')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -333,13 +339,13 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                         <SelectContent>
                           {Object.entries(PLAYER_TYPE_LABELS).map(([value, label]) => (
                             <SelectItem key={value} value={value}>
-                              {label}
+                              {label[locale]}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Jamfors mot elitreferensvarden for {PLAYER_TYPE_LABELS[playerType]}
+                        {t('Jämförs mot elitreferensvärden för', 'Compared with elite reference values for')} {getPlayerTypeLabel(playerType, locale)}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -378,7 +384,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     Serve Speed (Power)
                   </CardTitle>
                   <CardDescription>
-                    Mater serveeffekt och kraftutveckling
+                    {t('Mäter serveeffekt och kraftutveckling', 'Measures serve power and force development')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -387,7 +393,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     name="serveSpeed"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hastighet (km/h)</FormLabel>
+                        <FormLabel>{t('Hastighet (km/h)', 'Speed (km/h)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -408,18 +414,18 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                   {serveSpeed && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(serveSpeed, benchmarks.serveSpeed)}`}>
                             {serveSpeed} km/h
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(serveSpeed, benchmarks.serveSpeed)}`}>
-                            {getBenchmarkLabel(serveSpeed, benchmarks.serveSpeed)}
+                            {getBenchmarkLabel(locale, serveSpeed, benchmarks.serveSpeed)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.serveSpeed} km/h
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.serveSpeed} km/h
                       </p>
                     </div>
                   )}
@@ -435,7 +441,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     T-Test Agility (Lateral Movement)
                   </CardTitle>
                   <CardDescription>
-                    Mater lateral rorlighet och riktningsandringsformaga
+                    {t('Mäter lateral rörlighet och riktningsändringsförmåga', 'Measures lateral movement and change-of-direction ability')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -444,7 +450,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     name="tTest"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -465,18 +471,18 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                   {tTest && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(tTest, benchmarks.tTest, true)}`}>
                             {tTest.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(tTest, benchmarks.tTest, true)}`}>
-                            {getBenchmarkLabel(tTest, benchmarks.tTest, true)}
+                            {getBenchmarkLabel(locale, tTest, benchmarks.tTest, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.tTest.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.tTest.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -492,7 +498,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     CMJ / Vertical Jump (Explosive Power)
                   </CardTitle>
                   <CardDescription>
-                    Mater explosiv benstyrka for smashes och overheadslag
+                    {t('Mäter explosiv benstyrka för smashes och overheadslag', 'Measures explosive leg strength for smashes and overhead shots')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -501,7 +507,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     name="cmjHeight"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hopphojd (cm)</FormLabel>
+                        <FormLabel>{t('Hopphöjd (cm)', 'Jump height (cm)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -522,18 +528,18 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                   {cmjHeight && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(cmjHeight, benchmarks.cmj)}`}>
                             {cmjHeight.toFixed(1)} cm
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(cmjHeight, benchmarks.cmj)}`}>
-                            {getBenchmarkLabel(cmjHeight, benchmarks.cmj)}
+                            {getBenchmarkLabel(locale, cmjHeight, benchmarks.cmj)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.cmj} cm
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.cmj} cm
                       </p>
                     </div>
                   )}
@@ -549,7 +555,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     5-10-5 Lateral Speed Test
                   </CardTitle>
                   <CardDescription>
-                    Mater lateral snabbhet och reaktionsformaga
+                    {t('Mäter lateral snabbhet och reaktionsförmåga', 'Measures lateral speed and reaction ability')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -558,7 +564,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                     name="lateralSpeed"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -579,18 +585,18 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                   {lateralSpeed && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(lateralSpeed, benchmarks.lateralSpeed, true)}`}>
                             {lateralSpeed.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(lateralSpeed, benchmarks.lateralSpeed, true)}`}>
-                            {getBenchmarkLabel(lateralSpeed, benchmarks.lateralSpeed, true)}
+                            {getBenchmarkLabel(locale, lateralSpeed, benchmarks.lateralSpeed, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.lateralSpeed.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.lateralSpeed.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -607,10 +613,10 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Testforhallanden, kansla, observationer..."
+                        placeholder={t('Testförhållanden, känsla, observationer...', 'Test conditions, feeling, observations...')}
                         {...field}
                       />
                     </FormControl>
@@ -622,7 +628,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara testbatteri'}
+            {submitting ? t('Sparar...', 'Saving...') : t('Spara testbatteri', 'Save test battery')}
           </Button>
         </form>
       </Form>
@@ -639,7 +645,7 @@ export function PadelTestBatteryForm({ clients, onTestSaved }: PadelTestBatteryF
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              {results.length} test sparade
+              {t(`${results.length} test sparade`, `${results.length} tests saved`)}
             </CardTitle>
           </CardHeader>
           <CardContent>

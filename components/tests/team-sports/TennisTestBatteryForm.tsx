@@ -40,9 +40,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocale } from '@/i18n/client'
 
-const tennisTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+type AppLocale = 'en' | 'sv'
+
+const createTennisTestSchema = (locale: AppLocale) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   playerType: z.enum(['baseline', 'serve_volley', 'all_court']),
   // Serve Speed
   serveSpeed: z.number().min(80).max(260).optional(),
@@ -56,7 +58,7 @@ const tennisTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type TennisTestFormData = z.infer<typeof tennisTestSchema>
+type TennisTestFormData = z.infer<ReturnType<typeof createTennisTestSchema>>
 
 interface Client {
   id: string
@@ -70,10 +72,10 @@ interface TennisTestBatteryFormProps {
   onTestSaved?: (tests: any[]) => void
 }
 
-const PLAYER_TYPE_LABELS: Record<string, string> = {
-  baseline: 'Baselinjespelare',
-  serve_volley: 'Serve-volley',
-  all_court: 'Allround',
+const PLAYER_TYPE_LABELS: Record<string, Record<AppLocale, string>> = {
+  baseline: { sv: 'Baselinjespelare', en: 'Baseline player' },
+  serve_volley: { sv: 'Serve-volley', en: 'Serve-and-volley' },
+  all_court: { sv: 'Allround', en: 'All-court' },
 }
 
 // Player type-specific benchmarks (elite level)
@@ -91,16 +93,21 @@ function getBenchmarkClass(actual: number | undefined, target: number, lowerIsBe
   return actual >= target ? 'text-green-600' : 'text-orange-500'
 }
 
-function getBenchmarkLabel(actual: number | undefined, target: number, lowerIsBetter = false): string {
+function getPlayerTypeLabel(playerType: string, locale: AppLocale): string {
+  return PLAYER_TYPE_LABELS[playerType]?.[locale] ?? playerType
+}
+
+function getBenchmarkLabel(locale: AppLocale, actual: number | undefined, target: number, lowerIsBetter = false): string {
   if (!actual) return '-'
   const percentage = lowerIsBetter
     ? Math.round((target / actual) * 100)
     : Math.round((actual / target) * 100)
-  return `${percentage}% av elit`
+  return locale === 'sv' ? `${percentage}% av elit` : `${percentage}% of elite`
 }
 
 export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatteryFormProps) {
-  const locale = useLocale()
+  const rawLocale = useLocale()
+  const locale: AppLocale = rawLocale === 'sv' ? 'sv' : 'en'
   const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [submitting, setSubmitting] = useState(false)
   const [results, setResults] = useState<any[]>([])
@@ -108,14 +115,13 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
   const [activeTab, setActiveTab] = useState('serve')
 
   const form = useForm<TennisTestFormData>({
-    resolver: zodResolver(tennisTestSchema),
+    resolver: zodResolver(createTennisTestSchema(locale)),
     defaultValues: {
       testDate: new Date().toISOString().split('T')[0],
       playerType: 'all_court',
     },
   })
 
-  const selectedClient = clients.find((c) => c.id === form.watch('clientId'))
   const playerType = form.watch('playerType')
   const benchmarks = PLAYER_TYPE_BENCHMARKS[playerType] || PLAYER_TYPE_BENCHMARKS.all_court
 
@@ -132,7 +138,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(t('Klient hittades inte', 'Client not found'))
 
       const savedTests: any[] = []
 
@@ -234,14 +240,14 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
       }
 
       if (savedTests.length === 0) {
-        throw new Error('Inga testresultat att spara. Fyll i minst ett test.')
+        throw new Error(t('Inga testresultat att spara. Fyll i minst ett test.', 'No test results to save. Fill in at least one test.'))
       }
 
       setResults(savedTests)
       onTestSaved?.(savedTests)
     } catch (err) {
       console.error('Failed to save tennis tests:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('Ett fel uppstod', 'Something went wrong'))
     } finally {
       setSubmitting(false)
     }
@@ -253,12 +259,12 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-green-500" />
-            Tennis - Testbatteri
+            {t('Tennis - Testbatteri', 'Tennis - Test battery')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {t('Inga klienter hittades. Lägg till klienter för att kunna registrera test.', 'No clients found. Add clients before registering tests.')}
           </p>
         </CardContent>
       </Card>
@@ -273,10 +279,10 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-green-500" />
-                Tennis - Testbatteri
+                {t('Tennis - Testbatteri', 'Tennis - Test battery')}
               </CardTitle>
               <CardDescription>
-                Fysiska tester för tennisspelare: Serve Speed, Pro Agility 5-10-5, 20m Sprint, Yo-Yo IR1
+                {t('Fysiska tester för tennisspelare: Serve Speed, Pro Agility 5-10-5, 20m Sprint, Yo-Yo IR1', 'Physical tests for tennis players: Serve Speed, Pro Agility 5-10-5, 20m Sprint, Yo-Yo IR1')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -286,11 +292,11 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{t('Klient', 'Client')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={t('Välj klient', 'Select client')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -325,7 +331,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                   name="playerType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Spelartyp</FormLabel>
+                      <FormLabel>{t('Spelartyp', 'Player type')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -335,13 +341,13 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                         <SelectContent>
                           {Object.entries(PLAYER_TYPE_LABELS).map(([value, label]) => (
                             <SelectItem key={value} value={value}>
-                              {label}
+                              {label[locale]}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Jämförs mot elitreferensvärden för {PLAYER_TYPE_LABELS[playerType]}
+                        {t('Jämförs mot elitreferensvärden för', 'Compared with elite reference values for')} {getPlayerTypeLabel(playerType, locale)}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -380,7 +386,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                     Serve Speed
                   </CardTitle>
                   <CardDescription>
-                    Mäter kraftutveckling i serven - sportspecifik power
+                    {t('Mäter kraftutveckling i serven - sportspecifik power', 'Measures serve power development - sport-specific power')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -389,7 +395,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                     name="serveSpeed"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hastighet (km/h)</FormLabel>
+                        <FormLabel>{t('Hastighet (km/h)', 'Speed (km/h)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -410,18 +416,18 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                   {serveSpeed && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(serveSpeed, benchmarks.serveSpeed)}`}>
                             {serveSpeed} km/h
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(serveSpeed, benchmarks.serveSpeed)}`}>
-                            {getBenchmarkLabel(serveSpeed, benchmarks.serveSpeed)}
+                            {getBenchmarkLabel(locale, serveSpeed, benchmarks.serveSpeed)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.serveSpeed} km/h
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.serveSpeed} km/h
                       </p>
                     </div>
                   )}
@@ -437,7 +443,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                     Pro Agility 5-10-5 Test
                   </CardTitle>
                   <CardDescription>
-                    Mäter rörlighet och riktningsändringar - banrörelse
+                    {t('Mäter rörlighet och riktningsändringar - banrörelse', 'Measures agility and changes of direction - court movement')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -446,7 +452,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                     name="proAgility"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -470,18 +476,18 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                   {proAgility && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(proAgility, benchmarks.proAgility, true)}`}>
                             {proAgility.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(proAgility, benchmarks.proAgility, true)}`}>
-                            {getBenchmarkLabel(proAgility, benchmarks.proAgility, true)}
+                            {getBenchmarkLabel(locale, proAgility, benchmarks.proAgility, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.proAgility.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.proAgility.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -497,7 +503,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                     20 meter Sprint
                   </CardTitle>
                   <CardDescription>
-                    Mäter linjär sprintsnabbhet
+                    {t('Mäter linjär sprintsnabbhet', 'Measures linear sprint speed')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -506,7 +512,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                     name="sprint20m"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -527,18 +533,18 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                   {sprint20m && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(sprint20m, benchmarks.sprint20m, true)}`}>
                             {sprint20m.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(sprint20m, benchmarks.sprint20m, true)}`}>
-                            {getBenchmarkLabel(sprint20m, benchmarks.sprint20m, true)}
+                            {getBenchmarkLabel(locale, sprint20m, benchmarks.sprint20m, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.sprint20m.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.sprint20m.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -554,7 +560,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                     Yo-Yo Intermittent Recovery Test (IR1)
                   </CardTitle>
                   <CardDescription>
-                    Mäter aerob kapacitet och återhämtningsförmåga
+                    {t('Mäter aerob kapacitet och återhämtningsförmåga', 'Measures aerobic capacity and recovery ability')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -564,7 +570,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                       name="yoyoLevel"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Nivå</FormLabel>
+                          <FormLabel>{t('Nivå', 'Level')}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -609,18 +615,18 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                   {yoyoLevel && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(yoyoLevel, benchmarks.yoyoIR1)}`}>
                             {yoyoLevel.toFixed(1)}
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(yoyoLevel, benchmarks.yoyoIR1)}`}>
-                            {getBenchmarkLabel(yoyoLevel, benchmarks.yoyoIR1)}
+                            {getBenchmarkLabel(locale, yoyoLevel, benchmarks.yoyoIR1)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {PLAYER_TYPE_LABELS[playerType]}: {benchmarks.yoyoIR1.toFixed(1)}
+                        {t('Elitkrav för', 'Elite target for')} {getPlayerTypeLabel(playerType, locale)}: {benchmarks.yoyoIR1.toFixed(1)}
                       </p>
                     </div>
                   )}
@@ -637,10 +643,10 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Testförhållanden, känsla, observationer..."
+                        placeholder={t('Testförhållanden, känsla, observationer...', 'Test conditions, feeling, observations...')}
                         {...field}
                       />
                     </FormControl>
@@ -652,7 +658,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara testbatteri'}
+            {submitting ? t('Sparar...', 'Saving...') : t('Spara testbatteri', 'Save test battery')}
           </Button>
         </form>
       </Form>
@@ -669,7 +675,7 @@ export function TennisTestBatteryForm({ clients, onTestSaved }: TennisTestBatter
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              {results.length} test sparade
+              {t(`${results.length} test sparade`, `${results.length} tests saved`)}
             </CardTitle>
           </CardHeader>
           <CardContent>
