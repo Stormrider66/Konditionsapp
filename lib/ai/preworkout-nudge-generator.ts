@@ -38,6 +38,13 @@ interface NudgeContext {
   readiness: AthleteReadiness
   timeUntilWorkout: number // minutes
   recentMemories?: string[]
+  locale: AppLocale
+}
+
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
@@ -271,34 +278,37 @@ async function getAthleteReadiness(clientId: string): Promise<AthleteReadiness> 
  * Build the prompt for generating a pre-workout nudge
  */
 function buildNudgePrompt(context: NudgeContext): string {
-  const { athleteName, workout, readiness, timeUntilWorkout, recentMemories } = context
+  const { athleteName, workout, readiness, timeUntilWorkout, recentMemories, locale } = context
 
   let readinessSection = ''
   if (readiness.readinessScore !== undefined) {
-    readinessSection += `\n- Readiness-poäng: ${readiness.readinessScore.toFixed(1)}/10`
+    readinessSection += `\n- ${t(locale, 'Readiness score', 'Readiness-poäng')}: ${readiness.readinessScore.toFixed(1)}/10`
   }
   if (readiness.sleepHours !== undefined) {
-    readinessSection += `\n- Sömn: ${readiness.sleepHours} timmar`
+    readinessSection += `\n- ${t(locale, 'Sleep', 'Sömn')}: ${readiness.sleepHours} ${t(locale, 'hours', 'timmar')}`
   }
   if (readiness.fatigue !== undefined) {
-    readinessSection += `\n- Trötthet: ${readiness.fatigue}/10`
+    readinessSection += `\n- ${t(locale, 'Fatigue', 'Trötthet')}: ${readiness.fatigue}/10`
   }
   if (readiness.soreness !== undefined) {
-    readinessSection += `\n- Muskelömhet: ${readiness.soreness}/10`
+    readinessSection += `\n- ${t(locale, 'Muscle soreness', 'Muskelömhet')}: ${readiness.soreness}/10`
   }
 
   let memorySection = ''
   if (recentMemories && recentMemories.length > 0) {
-    memorySection = `\nVIKTIGT ATT TA HÄNSYN TILL:\n${recentMemories.map((m) => `- ${m}`).join('\n')}`
+    memorySection = `\n${t(locale, 'IMPORTANT CONTEXT TO CONSIDER', 'VIKTIGT ATT TA HÄNSYN TILL')}:\n${recentMemories.map((m) => `- ${m}`).join('\n')}`
   }
 
   const hoursUntil = Math.floor(timeUntilWorkout / 60)
   const minutesUntil = timeUntilWorkout % 60
   const timeString = hoursUntil > 0
-    ? `${hoursUntil} timme${hoursUntil > 1 ? 'r' : ''} och ${minutesUntil} minuter`
-    : `${minutesUntil} minuter`
+    ? locale === 'sv'
+      ? `${hoursUntil} timme${hoursUntil > 1 ? 'r' : ''} och ${minutesUntil} minuter`
+      : `${hoursUntil} hour${hoursUntil === 1 ? '' : 's'} and ${minutesUntil} minutes`
+    : `${minutesUntil} ${t(locale, 'minutes', 'minuter')}`
 
-  return `Generera en kort, motiverande pre-workout påminnelse för atleten ${athleteName}.
+  if (locale === 'sv') {
+    return `Generera en kort, motiverande pre-workout påminnelse för atleten ${athleteName}.
 
 KOMMANDE TRÄNING:
 - Pass: ${workout.name}
@@ -326,6 +336,36 @@ SVARA I JSON-FORMAT (ENDAST JSON, inget annat):
 }
 
 TONALITET: Energisk, stöttande, fokuserad.`
+  }
+
+  return `Generate a short, motivating pre-workout reminder for athlete ${athleteName}.
+
+UPCOMING WORKOUT:
+- Workout: ${workout.name}
+- Type: ${workout.workoutType || 'Training'}
+- Time remaining: ${timeString}
+${workout.duration ? `- Duration: ~${workout.duration} minutes` : ''}
+${workout.intensity ? `- Intensity: ${workout.intensity}` : ''}
+${workout.description ? `- Description: ${workout.description}` : ''}
+
+ATHLETE STATUS:${readinessSection || '\n- No check-in data available'}
+${memorySection}
+
+INSTRUCTIONS:
+1. Write a short, personal reminder (max 2-3 sentences)
+2. Give 1-2 preparation tips based on workout type and athlete status
+3. If readiness is low (<6), suggest adaptations
+4. Be encouraging but realistic
+
+RESPOND IN JSON FORMAT ONLY:
+{
+  "title": "Short headline here",
+  "message": "Personal reminder here...",
+  "tips": ["Tip 1", "Tip 2"],
+  "suggestedAdjustment": null or "Suggested adaptation if readiness is low"
+}
+
+TONE: Energetic, supportive, focused.`
 }
 
 /**
@@ -346,6 +386,7 @@ export async function generatePreWorkoutNudge(
     where: { id: clientId },
     select: {
       name: true,
+      user: { select: { language: true } },
       conversationMemories: {
         where: {
           OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
@@ -358,6 +399,7 @@ export async function generatePreWorkoutNudge(
   })
 
   if (!client) return null
+  const locale: AppLocale = client.user?.language === 'sv' ? 'sv' : 'en'
 
   // Get readiness
   const readiness = await getAthleteReadiness(clientId)
@@ -374,6 +416,7 @@ export async function generatePreWorkoutNudge(
     readiness,
     timeUntilWorkout,
     recentMemories: client.conversationMemories.map((m) => m.content),
+    locale,
   }
 
   // Build prompt
@@ -432,6 +475,8 @@ export async function createPreWorkoutNudge(
     return null // Already sent
   }
 
+  const locale = await getClientLocale(clientId)
+
   // Generate the nudge content
   const nudgeContent = await generatePreWorkoutNudge(clientId, coachUserId, workout)
 
@@ -459,7 +504,7 @@ export async function createPreWorkoutNudge(
       message: nudgeContent.message,
       icon: 'dumbbell',
       actionUrl: `/athlete/workouts/${workout.id}`,
-      actionLabel: 'Visa träning',
+      actionLabel: t(locale, 'View workout', 'Visa träning'),
       contextData,
       triggeredBy: workout.id,
       triggerReason: `Upcoming ${workout.type} workout: ${workout.name}`,
@@ -469,6 +514,15 @@ export async function createPreWorkoutNudge(
   })
 
   return notification.id
+}
+
+async function getClientLocale(clientId: string): Promise<AppLocale> {
+  const client = await prisma.client.findUnique({
+    where: { id: clientId },
+    select: { user: { select: { language: true } } },
+  })
+
+  return client?.user?.language === 'sv' ? 'sv' : 'en'
 }
 
 /**

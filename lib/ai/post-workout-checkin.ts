@@ -54,11 +54,16 @@ type CompletedWorkoutPage = {
 }
 
 type ProcessWorkoutOutcome = 'created' | 'skipped' | 'error'
+type AppLocale = 'en' | 'sv'
 
 const DEFAULT_BATCH_LIMIT = 120
 const DEFAULT_PAGE_SIZE = 200
 const DEFAULT_CONCURRENCY = 6
 const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 function nextPhase(phase: CompletedWorkoutPhase): CompletedWorkoutScanState {
   if (phase === 'strength') return { phase: 'cardio', cursor: null }
@@ -277,13 +282,15 @@ async function hasExistingCheckIn(workoutId: string): Promise<boolean> {
 
 function buildCheckInPrompt(
   athleteName: string,
-  workout: CompletedWorkout
+  workout: CompletedWorkout,
+  locale: AppLocale
 ): string {
   const timeSinceCompletion = Math.floor(
     (Date.now() - workout.completedAt.getTime()) / (60 * 1000)
   )
 
-  return `Generera en kort, personlig post-workout check-in för atleten ${athleteName}.
+  if (locale === 'sv') {
+    return `Generera en kort, personlig post-workout check-in för atleten ${athleteName}.
 
 GENOMFÖRT TRÄNINGSPASS:
 - Pass: ${workout.name}
@@ -310,19 +317,49 @@ SVARA I JSON-FORMAT (ENDAST JSON, inget annat):
 }
 
 TONALITET: Uppmuntrande, intresserad, stöttande.`
+  }
+
+  return `Generate a short, personal post-workout check-in for athlete ${athleteName}.
+
+COMPLETED WORKOUT:
+- Workout: ${workout.name}
+- Type: ${workout.workoutType || workout.type}
+${workout.duration ? `- Duration: ${workout.duration} minutes` : ''}
+- Completed: ${timeSinceCompletion} minutes ago
+
+INSTRUCTIONS:
+1. Write a short congratulations or encouragement (1 sentence)
+2. Ask 2-3 short questions about how the workout felt
+3. Ask about pain or discomfort
+4. Give a short recovery tip adapted to the workout type
+
+RESPOND IN JSON FORMAT ONLY:
+{
+  "title": "Short headline (max 5 words)",
+  "greeting": "Congratulations or encouragement here...",
+  "questions": [
+    "Question 1?",
+    "Question 2?",
+    "Question 3?"
+  ],
+  "recoveryTip": "Recovery tip here..."
+}
+
+TONE: Encouraging, curious, supportive.`
 }
 
 export async function generateCheckInPrompt(
   coachUserId: string,
   athleteName: string,
-  workout: CompletedWorkout
+  workout: CompletedWorkout,
+  locale: AppLocale = 'en'
 ): Promise<{
   title: string
   greeting: string
   questions: string[]
   recoveryTip: string
 } | null> {
-  const prompt = buildCheckInPrompt(athleteName, workout)
+  const prompt = buildCheckInPrompt(athleteName, workout, locale)
 
   try {
     const response = await generateAIResponse(coachUserId, prompt, {
@@ -363,19 +400,25 @@ export async function createPostWorkoutCheckIn(
 
   const client = await prisma.client.findUnique({
     where: { id: workout.athleteId },
-    select: { name: true },
+    select: { name: true, user: { select: { language: true } } },
   })
 
   if (!client) return null
+  const locale: AppLocale = client.user?.language === 'sv' ? 'sv' : 'en'
 
   const checkInPrompt = await generateCheckInPrompt(
     workout.coachUserId,
     client.name.split(' ')[0],
-    workout
+    workout,
+    locale
   )
 
-  const title = checkInPrompt?.title || `Hur gick ${workout.name}?`
-  const message = checkInPrompt?.greeting || `Bra jobbat med ${workout.name}! Hur känns kroppen?`
+  const title = checkInPrompt?.title || t(locale, `How did ${workout.name} go?`, `Hur gick ${workout.name}?`)
+  const message = checkInPrompt?.greeting || t(
+    locale,
+    `Great work on ${workout.name}! How does your body feel?`,
+    `Bra jobbat med ${workout.name}! Hur känns kroppen?`
+  )
 
   const contextData = {
     workoutId: workout.id,
@@ -384,11 +427,15 @@ export async function createPostWorkoutCheckIn(
     completedAt: workout.completedAt.toISOString(),
     duration: workout.duration,
     questions: checkInPrompt?.questions || [
-      'Hur kändes passet överlag?',
-      'Hade du tillräckligt med energi?',
-      'Känner du någon smärta eller obehag?',
+      t(locale, 'How did the workout feel overall?', 'Hur kändes passet överlag?'),
+      t(locale, 'Did you have enough energy?', 'Hade du tillräckligt med energi?'),
+      t(locale, 'Do you feel any pain or discomfort?', 'Känner du någon smärta eller obehag?'),
     ],
-    recoveryTip: checkInPrompt?.recoveryTip || 'Kom ihåg att dricka vatten och stretcha!',
+    recoveryTip: checkInPrompt?.recoveryTip || t(
+      locale,
+      'Remember to drink water and do a short cooldown or mobility reset.',
+      'Kom ihåg att dricka vatten och stretcha!'
+    ),
   }
 
   const notification = await prisma.aINotification.create({
@@ -400,7 +447,7 @@ export async function createPostWorkoutCheckIn(
       message,
       icon: 'clipboard-check',
       actionUrl: `/athlete/feedback/${workout.id}`,
-      actionLabel: 'Ge feedback',
+      actionLabel: t(locale, 'Give feedback', 'Ge feedback'),
       contextData,
       triggeredBy: workout.id,
       triggerReason: `Completed workout: ${workout.name}`,
