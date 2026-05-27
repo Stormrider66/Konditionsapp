@@ -7,7 +7,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { isSMSConfigured, sendBulkSMS, normalizePhoneNumber } from '@/lib/sms'
+import { isSMSConfigured, sendBulkSMS } from '@/lib/sms'
 
 interface BroadcastOptions {
   postId: string
@@ -20,6 +20,24 @@ interface BroadcastOptions {
   notifyInApp: boolean
   notifyEmail: boolean
   notifySMS: boolean
+}
+
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function defaultBroadcastTitle(type: string, locale: AppLocale): string {
+  if (type === 'ANNOUNCEMENT') {
+    return locale === 'sv' ? 'Nytt meddelande' : 'New message'
+  }
+
+  return locale === 'sv' ? 'Communityuppdatering' : 'Community update'
+}
+
+function broadcastTitle(title: string | null | undefined, type: string, locale: AppLocale): string {
+  return title || defaultBroadcastTitle(type, locale)
 }
 
 /**
@@ -44,15 +62,6 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<{ sent: 
 
   if (teamId) {
     // Team-scoped: notify athletes in this team
-    const teamMembers = await prisma.client.findMany({
-      where: {
-        teamId,
-        userId: { not: undefined },
-      },
-      select: { userId: true },
-    })
-
-    // Also get the team members' user accounts via athleteAccount
     const athleteAccounts = await prisma.athleteAccount.findMany({
       where: {
         client: { teamId },
@@ -80,6 +89,12 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<{ sent: 
     return { sent: 0 }
   }
 
+  const targetUsers = await prisma.user.findMany({
+    where: { id: { in: targetUserIds } },
+    select: { id: true, email: true, name: true, language: true },
+  })
+  const targetUserById = new Map(targetUsers.map((user) => [user.id, user]))
+
   let sent = 0
 
   // Create in-app notifications
@@ -87,13 +102,16 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<{ sent: 
     const truncatedMessage = message.length > 200 ? message.slice(0, 200) + '...' : message
 
     await prisma.broadcastNotification.createMany({
-      data: targetUserIds.map((userId) => ({
-        userId,
-        postId,
-        title: `${authorName}: ${title || type}`,
-        message: truncatedMessage,
-        type,
-      })),
+      data: targetUserIds.map((userId) => {
+        const locale = resolveLocale(targetUserById.get(userId)?.language)
+        return {
+          userId,
+          postId,
+          title: `${authorName}: ${broadcastTitle(title, type, locale)}`,
+          message: truncatedMessage,
+          type,
+        }
+      }),
       skipDuplicates: true,
     })
 
@@ -111,39 +129,44 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<{ sent: 
       } else {
         const resend = new Resend(resendKey)
 
-        // Get email addresses
-        const users = await prisma.user.findMany({
-          where: { id: { in: targetUserIds } },
-          select: { email: true, name: true },
-        })
+        const emailsByLocale = targetUsers.reduce<Record<AppLocale, string[]>>((acc, user) => {
+          if (user.email) {
+            acc[resolveLocale(user.language)].push(user.email)
+          }
+          return acc
+        }, { en: [], sv: [] })
 
-        const validEmails = users.filter((u) => u.email).map((u) => u.email!)
-
-        if (validEmails.length > 0) {
+        if (emailsByLocale.en.length + emailsByLocale.sv.length > 0) {
           // Send batch email (Resend supports batch)
           // Use BCC for privacy
           const batchSize = 50
-          for (let i = 0; i < validEmails.length; i += batchSize) {
-            const batch = validEmails.slice(i, i + batchSize)
-            await resend.emails.send({
-              from: 'Trainomics <noreply@trainomics.app>',
-              to: 'noreply@trainomics.app',
-              bcc: batch,
-              subject: `${authorName}: ${title || message.slice(0, 50)}`,
-              html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #1a1a1a;">${title || type}</h2>
-                  <p style="color: #333; font-size: 16px; line-height: 1.5;">${message}</p>
-                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-                  <p style="color: #888; font-size: 12px;">
-                    Skickat av ${authorName} via Trainomics
-                  </p>
-                </div>
-              `,
-            })
+          for (const locale of ['en', 'sv'] as const) {
+            const validEmails = emailsByLocale[locale]
+            const localizedTitle = broadcastTitle(title, type, locale)
+            const footer = locale === 'sv' ? `Skickat av ${authorName} via Trainomics` : `Sent by ${authorName} via Trainomics`
+
+            for (let i = 0; i < validEmails.length; i += batchSize) {
+              const batch = validEmails.slice(i, i + batchSize)
+              await resend.emails.send({
+                from: 'Trainomics <noreply@trainomics.app>',
+                to: 'noreply@trainomics.app',
+                bcc: batch,
+                subject: `${authorName}: ${localizedTitle || message.slice(0, 50)}`,
+                html: `
+                  <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #1a1a1a;">${localizedTitle}</h2>
+                    <p style="color: #333; font-size: 16px; line-height: 1.5;">${message}</p>
+                    <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+                    <p style="color: #888; font-size: 12px;">
+                      ${footer}
+                    </p>
+                  </div>
+                `,
+              })
+            }
           }
 
-          logger.info('Sent email broadcast', { postId, count: validEmails.length })
+          logger.info('Sent email broadcast', { postId, count: emailsByLocale.en.length + emailsByLocale.sv.length })
         }
       }
     } catch (err) {
@@ -162,15 +185,25 @@ export async function sendBroadcast(options: BroadcastOptions): Promise<{ sent: 
             userId: { in: targetUserIds },
           },
         },
-        select: { phone: true },
+        select: {
+          phone: true,
+          athleteAccount: {
+            select: {
+              user: { select: { language: true } },
+            },
+          },
+        },
       })
 
       const smsRecipients = clientsWithPhone
         .filter((c) => c.phone)
-        .map((c) => ({
-          phone: c.phone!,
-          body: `${authorName}: ${title || type}\n\n${message.slice(0, 160)}`,
-        }))
+        .map((c) => {
+          const locale = resolveLocale(c.athleteAccount?.user?.language)
+          return {
+            phone: c.phone!,
+            body: `${authorName}: ${broadcastTitle(title, type, locale)}\n\n${message.slice(0, 160)}`,
+          }
+        })
 
       if (smsRecipients.length > 0) {
         const result = await sendBulkSMS(smsRecipients)

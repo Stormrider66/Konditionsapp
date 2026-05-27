@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
         businessId: membership.businessId,
         teamId: body.teamId || null,
         authorName: post.author.name || 'Coach',
-        title: body.type === 'ANNOUNCEMENT' ? 'Nytt meddelande' : '',
+        title: '',
         message: body.content,
         type: body.type || 'GENERAL',
         notifyInApp,
