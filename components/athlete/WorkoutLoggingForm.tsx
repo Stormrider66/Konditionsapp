@@ -515,7 +515,7 @@ export function WorkoutLoggingForm({
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Misslyckades med att spara logg')
+        throw new Error(result.error || localText(locale, 'Misslyckades med att spara logg', 'Failed to save log'))
       }
 
       // Check for program completion or race workout celebration

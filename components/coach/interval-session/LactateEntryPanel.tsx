@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { toast } from 'sonner'
 import type { IntervalParticipantData } from '@/lib/interval-session/types'
+import { useLocale } from '@/i18n/client'
 
 interface LactateEntryPanelProps {
   sessionId: string
@@ -22,8 +23,10 @@ export function LactateEntryPanel({
   participants,
   currentInterval,
 }: LactateEntryPanelProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [values, setValues] = useState<Record<string, { lactate: string; hr: string }>>({})
   const [saved, setSaved] = useState<Set<string>>(new Set())
+  const text = (sv: string, en: string) => (locale === 'sv' ? sv : en)
 
   const handleSave = async (clientId: string) => {
     const val = values[clientId]
@@ -31,7 +34,7 @@ export function LactateEntryPanel({
 
     const lactate = parseFloat(val.lactate)
     if (isNaN(lactate) || lactate < 0 || lactate > 30) {
-      toast.error('Ogiltigt laktatvarde (0-30)')
+      toast.error(text('Ogiltigt laktatvärde (0-30)', 'Invalid lactate value (0-30)'))
       return
     }
 
@@ -52,9 +55,9 @@ export function LactateEntryPanel({
       if (!res.ok) throw new Error()
 
       setSaved((prev) => new Set(prev).add(clientId))
-      toast.success('Laktat sparat')
+      toast.success(text('Laktat sparat', 'Lactate saved'))
     } catch {
-      toast.error('Kunde inte spara laktat')
+      toast.error(text('Kunde inte spara laktat', 'Could not save lactate'))
     }
   }
 
@@ -62,7 +65,7 @@ export function LactateEntryPanel({
     <GlassCard glow="emerald" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
       <GlassCardContent className="p-4">
         <h3 className="font-semibold text-slate-900 dark:text-white mb-3">
-          Laktat efter intervall {currentInterval}
+          {text(`Laktat efter intervall ${currentInterval}`, `Lactate after interval ${currentInterval}`)}
         </h3>
         <div className="space-y-3">
           {participants.map((p) => {
@@ -103,7 +106,7 @@ export function LactateEntryPanel({
                 <Input
                   type="number"
                   inputMode="numeric"
-                  placeholder="Puls"
+                  placeholder={text('Puls', 'HR')}
                   className="w-20 h-8 text-sm bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
                   defaultValue={existing?.heartRate?.toString() ?? ''}
                   onChange={(e) =>
@@ -125,7 +128,7 @@ export function LactateEntryPanel({
                   {isSaved ? (
                     <Check className="h-4 w-4 text-emerald-500 font-bold" />
                   ) : (
-                    'Spara'
+                    text('Spara', 'Save')
                   )}
                 </Button>
               </div>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Watch, Check, Loader2 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 interface PushStrengthToGarminButtonProps {
   sessionId: string
@@ -18,8 +19,10 @@ export function PushStrengthToGarminButton({
   scheduleDate,
   size = 'sm',
 }: PushStrengthToGarminButtonProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [loading, setLoading] = useState(false)
   const [pushed, setPushed] = useState(false)
+  const text = (sv: string, en: string) => (locale === 'sv' ? sv : en)
 
   const handlePush = async () => {
     setLoading(true)
@@ -33,16 +36,16 @@ export function PushStrengthToGarminButton({
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || 'Kunde inte skicka till Garmin')
+        toast.error(data.error || text('Kunde inte skicka till Garmin', 'Could not send to Garmin'))
         return
       }
 
       setPushed(true)
-      toast.success('Skickat till Garmin', {
+      toast.success(text('Skickat till Garmin', 'Sent to Garmin'), {
         description: data.message,
       })
     } catch {
-      toast.error('Kunde inte skicka till Garmin')
+      toast.error(text('Kunde inte skicka till Garmin', 'Could not send to Garmin'))
     } finally {
       setLoading(false)
     }

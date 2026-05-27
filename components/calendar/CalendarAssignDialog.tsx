@@ -186,7 +186,9 @@ export function CalendarAssignDialog({
           : []
 
       if (targetDates.length === 0) {
-        toast.error('Kunde inte tilldela', { description: 'Ogiltigt datum.' })
+        toast.error(appLocale === 'sv' ? 'Kunde inte tilldela' : 'Could not assign', {
+          description: appLocale === 'sv' ? 'Ogiltigt datum.' : 'Invalid date.',
+        })
         return
       }
 
