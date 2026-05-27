@@ -40,7 +40,7 @@ export async function GET(
     if (resolved) {
       locale = resolved.user.language === 'sv' ? 'sv' : 'en'
       if (resolved.clientId !== clientId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
       }
       actorUserId = resolved.user.id;
     } else {
@@ -50,7 +50,7 @@ export async function GET(
       actorUserId = user.id;
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+        return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 });
       }
     }
 
@@ -65,7 +65,7 @@ export async function GET(
     });
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 });
     }
 
     // Get cycle history (last 6 cycles)
@@ -130,7 +130,7 @@ export async function GET(
             : null,
           phasePatterns,
           recentLogs: allLogs.slice(-14), // Last 14 logs
-        });
+        }, locale);
 
         const result = await withAiContext(
           { userId: actorUserId, clientId, category: 'menstrual_cycle_insights' },
@@ -179,17 +179,17 @@ export async function GET(
       currentCycle: currentPhaseInfo,
       phasePatterns,
       aiInsights,
-      trainingRecommendations: aiInsights?.trainingRecommendations || getDefaultRecommendations(currentPhaseInfo?.phase),
+      trainingRecommendations: aiInsights?.trainingRecommendations || getDefaultRecommendations(currentPhaseInfo?.phase, locale),
     });
   } catch (error) {
     logError('Cycle insights error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to generate insights' },
+      { error: t(locale, 'Failed to generate insights', 'Kunde inte generera insikter') },
       { status: 500 }
     );
   }
@@ -286,7 +286,33 @@ interface InsightsInput {
   recentLogs: Log[];
 }
 
-function buildInsightsPrompt(data: InsightsInput): string {
+function buildInsightsPrompt(data: InsightsInput, locale: AppLocale): string {
+  if (locale === 'en') {
+    return `You are an expert in female exercise physiology and the impact of the menstrual cycle on training.
+
+Analyze the following data for a female athlete:
+
+## Cycle statistics
+- Number of cycles recorded: ${data.cycleCount}
+- Average cycle length: ${data.avgCycleLength ? `${Math.round(data.avgCycleLength)} days` : 'Not enough data'}
+- Current cycle day: ${data.currentCycle ? data.currentCycle.day : 'No active cycle'}
+- Current phase: ${data.currentCycle?.phase || 'Unknown'}
+
+## Phase patterns (averages on a 1-5 scale)
+${JSON.stringify(data.phasePatterns, null, 2)}
+
+## Recent logs (14 days)
+${data.recentLogs.map((l) => `Phase: ${l.phase}, Fatigue: ${l.fatigue}, Mood: ${l.moodScore}, Cramps: ${l.cramps}, RPE: ${l.perceivedEffort}`).join('\n')}
+
+Based on this data, provide:
+1. Current phase and day within the phase
+2. Training recommendations with intensity and volume modifiers (0.5-1.2)
+3. Training focus areas
+4. Personalized insights based on patterns
+
+Respond in English.`;
+  }
+
   return `Du är en expert på kvinnlig idrottsfysiologi och menstruationscykelns påverkan på träning.
 
 Analysera följande data för en kvinnlig idrottare:
@@ -312,7 +338,7 @@ Baserat på denna data, ge:
 Svara på svenska.`;
 }
 
-function getDefaultRecommendations(phase?: Phase | null) {
+function getDefaultRecommendations(phase?: Phase | null, locale: AppLocale = 'en') {
   const defaults: Record<Phase, {
     intensityModifier: number;
     volumeModifier: number;
@@ -321,22 +347,22 @@ function getDefaultRecommendations(phase?: Phase | null) {
     MENSTRUAL: {
       intensityModifier: 0.85,
       volumeModifier: 0.80,
-      focusAreas: ['Återhämtning', 'Lätt aerob träning', 'Mobilitet'],
+      focusAreas: locale === 'sv' ? ['Återhämtning', 'Lätt aerob träning', 'Mobilitet'] : ['Recovery', 'Easy aerobic training', 'Mobility'],
     },
     FOLLICULAR: {
       intensityModifier: 1.0,
       volumeModifier: 1.0,
-      focusAreas: ['Styrketräning', 'Intervalldagar', 'Teknisk träning'],
+      focusAreas: locale === 'sv' ? ['Styrketräning', 'Intervalldagar', 'Teknisk träning'] : ['Strength training', 'Interval days', 'Technical training'],
     },
     OVULATORY: {
       intensityModifier: 1.1,
       volumeModifier: 1.05,
-      focusAreas: ['Maximal intensitet', 'Tävling', 'Explosiv träning'],
+      focusAreas: locale === 'sv' ? ['Maximal intensitet', 'Tävling', 'Explosiv träning'] : ['Maximum intensity', 'Competition', 'Explosive training'],
     },
     LUTEAL: {
       intensityModifier: 0.90,
       volumeModifier: 0.85,
-      focusAreas: ['Uthållighetsträning', 'Teknikfokus', 'Måttlig intensitet'],
+      focusAreas: locale === 'sv' ? ['Uthållighetsträning', 'Teknikfokus', 'Måttlig intensitet'] : ['Endurance training', 'Technique focus', 'Moderate intensity'],
     },
   };
 
