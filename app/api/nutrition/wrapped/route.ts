@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t('errors.unauthorized') }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -28,11 +28,11 @@ export async function GET(request: NextRequest) {
     const month = searchParams.get('month') ? parseInt(searchParams.get('month')!, 10) : undefined
 
     if (periodType !== 'MONTHLY' && periodType !== 'YEARLY') {
-      return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
+      return NextResponse.json({ error: t('errors.invalidType') }, { status: 400 })
     }
 
     if (periodType === 'MONTHLY' && !month) {
-      return NextResponse.json({ error: 'Month required for MONTHLY type' }, { status: 400 })
+      return NextResponse.json({ error: t('errors.monthRequired') }, { status: 400 })
     }
 
     // Try to find pre-computed wrapped
@@ -90,6 +90,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logger.error('Error fetching nutrition wrapped', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t('errors.internal') }, { status: 500 })
   }
 }

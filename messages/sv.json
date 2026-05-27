@@ -18336,7 +18336,13 @@
         }
       },
       "wrapped": {
-        "noDataForPeriod": "Ingen kostdata för denna period"
+        "noDataForPeriod": "Ingen kostdata för denna period",
+        "errors": {
+          "unauthorized": "Obehörig",
+          "invalidType": "Ogiltig typ",
+          "monthRequired": "Månad krävs för månadssammanfattningar",
+          "internal": "Internt serverfel"
+        }
       }
     }
   },

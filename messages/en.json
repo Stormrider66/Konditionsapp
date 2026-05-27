@@ -18345,7 +18345,13 @@
         }
       },
       "wrapped": {
-        "noDataForPeriod": "No nutrition data for this period"
+        "noDataForPeriod": "No nutrition data for this period",
+        "errors": {
+          "unauthorized": "Unauthorized",
+          "invalidType": "Invalid type",
+          "monthRequired": "Month is required for monthly summaries",
+          "internal": "Internal server error"
+        }
       }
     }
   },
