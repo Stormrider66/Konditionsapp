@@ -25,16 +25,19 @@ type ExerciseCandidate = {
   id: string
   name: string
   nameSv: string | null
+  nameEn: string | null
   names: string[]
 }
+
+type AppLocale = 'en' | 'sv'
 
 let exerciseCandidateCache: { expiresAt: number; candidates: ExerciseCandidate[] } | null = null
 const EXERCISE_CANDIDATE_TTL_MS = 10 * 60 * 1000
 const PACKAGE_RESPONSE_TTL_MS = 5 * 60 * 1000
 const packageResponseCache = new Map<string, { expiresAt: number; payload: unknown }>()
 
-function packageCacheKey(userId: string, teamId: string, businessSlug?: string) {
-  return `${userId}:${businessSlug ?? ''}:${teamId}`
+function packageCacheKey(userId: string, teamId: string, locale: AppLocale, businessSlug?: string) {
+  return `${userId}:${businessSlug ?? ''}:${teamId}:${locale}`
 }
 
 function clearPackageCacheForTeam(teamId: string) {
@@ -52,7 +55,7 @@ async function getExerciseCandidates() {
   }
 
   const exercises = await prisma.exercise.findMany({
-    select: { id: true, name: true, nameSv: true },
+    select: { id: true, name: true, nameSv: true, nameEn: true },
   })
   const candidates = exercises.map((exercise) => ({
     ...exercise,
@@ -66,7 +69,13 @@ async function getExerciseCandidates() {
   return candidates
 }
 
-async function hydrateLinkedExercises(pkg: HockeyTestPackage) {
+function exerciseNameForLocale(exercise: ExerciseCandidate, locale: AppLocale): string {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
+}
+
+async function hydrateLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale) {
   const candidates = await getExerciseCandidates()
 
   const items = pkg.items.map((item): HockeyTestPackageItem => {
@@ -82,7 +91,7 @@ async function hydrateLinkedExercises(pkg: HockeyTestPackage) {
       ? {
           ...item,
           linkedExerciseId: match.id,
-          linkedExerciseName: match.nameSv || match.name,
+          linkedExerciseName: exerciseNameForLocale(match, locale),
         }
       : item
   })
@@ -97,9 +106,10 @@ export async function GET(
   const perf = startPerfDebug(request)
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
-    const cacheKey = packageCacheKey(user.id, teamId, businessSlug)
+    const cacheKey = packageCacheKey(user.id, teamId, locale, businessSlug)
     const cached = packageResponseCache.get(cacheKey)
     if (cached && cached.expiresAt > Date.now()) {
       return jsonWithPerfDebug(perf, cached.payload, {}, { 'x-cache': 'hit' })
@@ -118,7 +128,7 @@ export async function GET(
     }
 
     const basePackage = normalizeHockeyTestPackage(stored?.hockeyTestPackage ?? DEFAULT_HOCKEY_TEST_PACKAGE)
-    const testPackage = await hydrateLinkedExercises(basePackage)
+    const testPackage = await hydrateLinkedExercises(basePackage, locale)
     const payload = { success: true, package: testPackage }
     packageResponseCache.set(cacheKey, {
       expiresAt: Date.now() + PACKAGE_RESPONSE_TTL_MS,
@@ -139,6 +149,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
     const team = await getWritableTeam(user.id, teamId, businessSlug, 'tests')
@@ -159,7 +170,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      package: await hydrateLinkedExercises(normalizeHockeyTestPackage(updated.hockeyTestPackage)),
+      package: await hydrateLinkedExercises(normalizeHockeyTestPackage(updated.hockeyTestPackage), locale),
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {

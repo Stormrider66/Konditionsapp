@@ -20,6 +20,15 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function exerciseNameForLocale(
+  exercise: { name: string; nameSv: string | null; nameEn: string | null },
+  locale: AppLocale
+): string {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
+}
+
 function normalizeName(value: string) {
   return value
     .toLowerCase()
@@ -29,9 +38,9 @@ function normalizeName(value: string) {
     .trim()
 }
 
-export async function hydrateHockeyPackageLinkedExercises(pkg: HockeyTestPackage) {
+export async function hydrateHockeyPackageLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale = 'en') {
   const exercises = await prisma.exercise.findMany({
-    select: { id: true, name: true, nameSv: true },
+    select: { id: true, name: true, nameSv: true, nameEn: true },
   })
   const candidates = exercises.map((exercise) => ({
     ...exercise,
@@ -52,14 +61,14 @@ export async function hydrateHockeyPackageLinkedExercises(pkg: HockeyTestPackage
         ? {
             ...item,
             linkedExerciseId: match.id,
-            linkedExerciseName: match.nameSv || match.name,
+            linkedExerciseName: exerciseNameForLocale(match, locale),
           }
         : item
     }),
   }
 }
 
-export async function loadHockeyPackageForClient(clientId: string) {
+export async function loadHockeyPackageForClient(clientId: string, locale: AppLocale = 'en') {
   const client = await prisma.client.findUnique({
     where: { id: clientId },
     select: {
@@ -77,7 +86,7 @@ export async function loadHockeyPackageForClient(clientId: string) {
     ?? client.business?.hockeyTestPackage
     ?? DEFAULT_HOCKEY_TEST_PACKAGE
 
-  return hydrateHockeyPackageLinkedExercises(normalizeHockeyTestPackage(rawPackage))
+  return hydrateHockeyPackageLinkedExercises(normalizeHockeyTestPackage(rawPackage), locale)
 }
 
 export async function syncHockeyStrengthPrsFromTest(params: {
@@ -87,7 +96,7 @@ export async function syncHockeyStrengthPrsFromTest(params: {
   locale?: AppLocale
 }) {
   const locale = params.locale ?? 'en'
-  const testPackage = await loadHockeyPackageForClient(params.clientId)
+  const testPackage = await loadHockeyPackageForClient(params.clientId, locale)
   if (!testPackage) {
     return {
       prCreated: 0,
@@ -128,7 +137,7 @@ export async function syncHockeyStrengthPrsFromTest(params: {
         oneRepMax: value,
         source: 'TESTED',
         unit: item.unit.toUpperCase() || 'KG',
-        notes: `Hockeytest: ${item.label}`,
+            notes: `${t(locale, 'Hockey test', 'Hockeytest')}: ${item.label}`,
       },
       create: {
         clientId: params.clientId,
@@ -137,7 +146,7 @@ export async function syncHockeyStrengthPrsFromTest(params: {
         oneRepMax: value,
         source: 'TESTED',
         unit: item.unit.toUpperCase() || 'KG',
-        notes: `Hockeytest: ${item.label}`,
+            notes: `${t(locale, 'Hockey test', 'Hockeytest')}: ${item.label}`,
       },
       select: { createdAt: true },
     })
