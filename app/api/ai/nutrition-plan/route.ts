@@ -42,13 +42,14 @@ function t(locale: AppLocale, en: string, sv: string) {
  * Generate AI-powered personalized nutrition plan
  */
 export async function POST(req: NextRequest) {
+  let responseLocale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(responseLocale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    responseLocale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:nutrition-plan', user.id, {
       limit: 5,
@@ -71,15 +72,21 @@ export async function POST(req: NextRequest) {
     // Validate required data
     if (!clientId || !clientData) {
       return NextResponse.json(
-        { error: 'Missing required fields: clientId, clientData' },
+        { error: t(responseLocale, 'Missing required fields: clientId, clientData', 'Obligatoriska fält saknas: clientId, clientData') },
         { status: 400 }
       )
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(responseLocale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
     }
+
+    const clientLocale = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { user: { select: { language: true } } },
+    })
+    const contentLocale = resolveLocale(clientLocale?.user?.language ?? user.language)
 
     // Subscription gate
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
@@ -96,7 +103,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error: t(
-            locale,
+            responseLocale,
             'API key is missing. Configure at least one AI API key in settings.',
             'API-nyckel saknas. Konfigurera minst en AI API-nyckel i inställningarna.',
           ),
@@ -163,7 +170,7 @@ export async function POST(req: NextRequest) {
       } : undefined,
       goal as CaloricGoal,
       clientData.sport,
-      locale,
+      contentLocale,
     )
 
     // Build prompt for AI
@@ -177,7 +184,7 @@ export async function POST(req: NextRequest) {
       activityLevel,
       sport: clientData.sport,
       wellnessData, // Gap 6: Include wellness data
-      locale,
+      locale: contentLocale,
     })
 
     // Call AI
@@ -193,7 +200,7 @@ export async function POST(req: NextRequest) {
     const aiContent = aiResponse.text || ''
 
     // Parse AI response into structured plan
-    const nutritionPlanResult = parseAINutritionPlan(aiContent, locale)
+    const nutritionPlanResult = parseAINutritionPlan(aiContent, contentLocale)
 
     // Save to database (optional - for history)
     // Could save to a NutritionPlan model if needed
@@ -214,7 +221,7 @@ export async function POST(req: NextRequest) {
     logger.error('Error generating nutrition plan', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(responseLocale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
