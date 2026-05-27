@@ -1611,22 +1611,29 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
     }),
 
     createComplementaryStrengthSession: tool({
-      description: 'Skapa och spara ett nytt styrkepass som kompletterar ett befintligt styrkepass. Använd efter getTeamPlannedWorkout när coachen vill ha ett andra pass senare i veckan som stödjer eller balanserar det första. Verktyget läser källpasset, undviker onödig övningsdubbling och sparar resultatet i Strength Studio.',
+      description: toolText(
+        locale,
+        'Create and save a new strength session that complements an existing strength session. Use after getTeamPlannedWorkout when the coach wants a second session later in the week that supports or balances the first. The tool reads the source session, avoids unnecessary exercise duplication, and saves the result in Strength Studio.',
+        'Skapa och spara ett nytt styrkepass som kompletterar ett befintligt styrkepass. Använd efter getTeamPlannedWorkout när coachen vill ha ett andra pass senare i veckan som stödjer eller balanserar det första. Verktyget läser källpasset, undviker onödig övningsdubbling och sparar resultatet i Strength Studio.'
+      ),
       inputSchema: z.object({
-        sourceSessionId: z.string().optional().describe('ID för befintligt StrengthSession om känt'),
-        sourceTeamEventId: z.string().optional().describe('ID för lagkalenderhändelse med kopplat styrkepass'),
-        teamId: z.string().optional().describe('Lagets id för kontext/behörighet om känt'),
-        teamName: z.string().optional().describe('Lagets namn om id saknas'),
-        targetDay: z.string().optional().describe('Planerad dag för det nya passet, t.ex. fredag eller 2026-05-29'),
-        focus: z.string().optional().describe('Önskad kompletterande riktning, t.ex. posterior chain, unilateral, prehab, power'),
-        estimatedDuration: z.number().int().min(15).max(120).optional().describe('Önskad längd i minuter. Standard följer källpasset eller 45 min.'),
-        equipmentAvailable: z.array(z.string()).optional().describe('Tillgänglig utrustning, t.ex. barbell, dumbbell, bands, bodyweight'),
+        sourceSessionId: z.string().optional().describe('ID for an existing StrengthSession if known.'),
+        sourceTeamEventId: z.string().optional().describe('ID for a team calendar event with a linked strength session.'),
+        teamId: z.string().optional().describe('Team id for context/access if known.'),
+        teamName: z.string().optional().describe('Team name if id is missing.'),
+        targetDay: z.string().optional().describe('Planned day for the new session, for example Friday or 2026-05-29.'),
+        focus: z.string().optional().describe('Desired complementary direction, for example posterior chain, unilateral, prehab, or power.'),
+        estimatedDuration: z.number().int().min(15).max(120).optional().describe('Desired duration in minutes. Defaults to the source session or 45 minutes.'),
+        equipmentAvailable: z.array(z.string()).optional().describe('Available equipment, for example barbell, dumbbell, bands, or bodyweight.'),
       }),
       execute: async ({ sourceSessionId, sourceTeamEventId, teamId, teamName, targetDay, focus, estimatedDuration, equipmentAvailable }) => {
         try {
           const businessId = await resolveCoachToolBusinessId(coachUserId, businessSlug)
           if (businessId === null) {
-            return { success: false, error: 'Verksamheten kunde inte verifieras för den här coachen.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The business could not be verified for this coach.', 'Verksamheten kunde inte verifieras för den här coachen.'),
+            }
           }
 
           let sourceEvent: {
@@ -1652,11 +1659,24 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
                 team: { select: { id: true, name: true, sportType: true } },
               },
             })
-            if (!event) return { success: false, error: 'Källhändelsen hittades inte.' }
+            if (!event) {
+              return {
+                success: false,
+                error: toolText(locale, 'The source event was not found.', 'Källhändelsen hittades inte.'),
+              }
+            }
             const accessibleTeam = await getAccessibleTeam(coachUserId, event.teamId, businessSlug)
-            if (!accessibleTeam) return { success: false, error: 'Du har inte behörighet till lagets kalender.' }
+            if (!accessibleTeam) {
+              return {
+                success: false,
+                error: toolText(locale, 'You do not have access to the team calendar.', 'Du har inte behörighet till lagets kalender.'),
+              }
+            }
             if (event.linkedWorkoutType !== 'STRENGTH' || !event.linkedWorkoutId) {
-              return { success: false, error: 'Källhändelsen har inget kopplat styrkepass.' }
+              return {
+                success: false,
+                error: toolText(locale, 'The source event does not have a linked strength session.', 'Källhändelsen har inget kopplat styrkepass.'),
+              }
             }
             sourceEvent = event
             sourceSessionId = event.linkedWorkoutId
@@ -1670,8 +1690,12 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
                 success: false,
                 needsClarification: resolved.candidates.length > 1,
                 error: resolved.candidates.length > 1
-                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
-                  : 'Jag behöver veta vilket lag passet gäller.',
+                  ? toolText(
+                      locale,
+                      `I found several possible teams${teamName ? ` for "${teamName}"` : ''}.`,
+                      `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                    )
+                  : toolText(locale, 'I need to know which team the session is for.', 'Jag behöver veta vilket lag passet gäller.'),
                 candidates: resolved.candidates.map((candidate) => ({
                   id: candidate.id,
                   name: candidate.name,
@@ -1683,7 +1707,10 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
           }
 
           if (!sourceSessionId) {
-            return { success: false, error: 'Jag behöver ett befintligt styrkepass eller en kalenderhändelse att utgå från.' }
+            return {
+              success: false,
+              error: toolText(locale, 'I need an existing strength session or calendar event to start from.', 'Jag behöver ett befintligt styrkepass eller en kalenderhändelse att utgå från.'),
+            }
           }
 
           const sourceSession = await prisma.strengthSession.findFirst({
@@ -1705,7 +1732,10 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
           })
 
           if (!sourceSession) {
-            return { success: false, error: 'Källpasset hittades inte eller saknar behörighet.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The source session was not found or is outside your access.', 'Källpasset hittades inte eller saknar behörighet.'),
+            }
           }
 
           const exerciseLibrary = await prisma.exercise.findMany({
@@ -1727,7 +1757,10 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
           const apiKeys = await getResolvedAiKeys(coachUserId)
           const resolved = resolveModel(apiKeys, 'balanced')
           if (!resolved) {
-            return { success: false, error: 'Inga AI-nycklar konfigurerade.' }
+            return {
+              success: false,
+              error: toolText(locale, 'No AI keys are configured.', 'Inga AI-nycklar konfigurerade.'),
+            }
           }
 
           let aiModel: LanguageModel
@@ -1766,7 +1799,7 @@ Rules:
 - For hockey teams, balance posterior chain, unilateral strength, trunk/anti-rotation, adductors/groin, hip stability, deceleration and shoulder robustness.
 - Keep volume realistic for team planning.
 - Use exerciseId from the library when a suitable match exists.
-- Language: Swedish names/descriptions unless the source is clearly English.
+- Language: ${locale === 'sv' ? 'Write all user-facing names, descriptions, rationale, notes, and section text in Swedish.' : 'Write all user-facing names, descriptions, rationale, notes, and section text in English. Exercise library entries may contain Swedish aliases; use them only for matching unless an exercise has no English equivalent.'}
 
 Team context:
 ${JSON.stringify(teamContext ?? null, null, 2)}
@@ -1814,7 +1847,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             exerciseLibrary
           )
           if (mainSection.exercises.length === 0) {
-            return { success: false, error: 'AI kunde inte skapa ett komplett huvudpass.' }
+            return {
+              success: false,
+              error: toolText(locale, 'AI could not create a complete main session.', 'AI kunde inte skapa ett komplett huvudpass.'),
+            }
           }
 
           const warmupSection = normalizeStrengthSection(sectionValue('warmup'), exerciseLibrary)
@@ -1835,10 +1871,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             data: {
               name: typeof generated.name === 'string' && generated.name.trim()
                 ? generated.name.trim()
-                : `Kompletterande pass - ${sourceSession.name}`,
+                : toolText(locale, `Complementary session - ${sourceSession.name}`, `Kompletterande pass - ${sourceSession.name}`),
               description: typeof generated.description === 'string'
                 ? generated.description
-                : `Kompletterande styrkepass baserat på ${sourceSession.name}.`,
+                : toolText(locale, `Complementary strength session based on ${sourceSession.name}.`, `Kompletterande styrkepass baserat på ${sourceSession.name}.`),
               phase,
               estimatedDuration: duration,
               exercises: mainSection.exercises as Prisma.InputJsonValue,
@@ -1878,7 +1914,11 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             estimatedDuration: duration,
             rationale: typeof generated.rationale === 'string' ? generated.rationale : null,
             mainExercises: mainSection.exercises.map((exercise) => `${exercise.exerciseName} (${exercise.sets}x${exercise.reps})`),
-            message: `Jag skapade "${saved.name}" som ett kompletterande styrkepass i Strength Studio.`,
+            message: toolText(
+              locale,
+              `I created "${saved.name}" as a complementary strength session in Strength Studio.`,
+              `Jag skapade "${saved.name}" som ett kompletterande styrkepass i Strength Studio.`
+            ),
           }
         } catch (error) {
           logger.error('Error in createComplementaryStrengthSession tool', {
@@ -1889,7 +1929,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             teamId,
             teamName,
           }, error)
-          return { success: false, error: 'Kunde inte skapa ett kompletterande styrkepass just nu.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not create a complementary strength session right now.', 'Kunde inte skapa ett kompletterande styrkepass just nu.'),
+          }
         }
       },
     }),
