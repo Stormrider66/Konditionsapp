@@ -2,6 +2,7 @@ import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 import { applyBoneInAdjustment } from '@/lib/nutrition/bone-in-adjustment'
 
 type BaseFoodItem = FoodPhotoAnalysisResult['items'][number]
+type AppLocale = 'en' | 'sv'
 
 export type EditableFoodItem = BaseFoodItem & {
   nutrientDensity: NutrientDensity
@@ -74,9 +75,10 @@ export function parsePortionGramsFromText(text: string): number | null {
 }
 
 export function createEditableFoodItem(
-  item: FoodPhotoAnalysisResult['items'][number]
+  item: FoodPhotoAnalysisResult['items'][number],
+  locale: AppLocale = 'en'
 ): EditableFoodItem {
-  const adjustedItem = applyBoneInAdjustment(item)
+  const adjustedItem = applyBoneInAdjustment(item, locale)
   const grams = adjustedItem.estimatedGrams
 
   return {

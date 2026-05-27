@@ -26,7 +26,7 @@ describe('bone-in nutrition adjustment', () => {
     })
   })
 
-  it('scales macros to the edible portion while keeping gross grams', () => {
+  it('scales macros to the edible portion while keeping gross grams in English by default', () => {
     const adjusted = applyBoneInAdjustment(makeItem())
 
     expect(adjusted.estimatedGrams).toBe(300)
@@ -34,6 +34,12 @@ describe('bone-in nutrition adjustment', () => {
     expect(adjusted.calories).toBe(419.3)
     expect(adjusted.fatGrams).toBe(23.4)
     expect(adjusted.saturatedFatGrams).toBe(5.9)
+    expect(adjusted.portionDescription).toBe('300 g med ben (about 195 g edible after bone)')
+  })
+
+  it('preserves Swedish edible portion wording when requested', () => {
+    const adjusted = applyBoneInAdjustment(makeItem(), 'sv')
+
     expect(adjusted.portionDescription).toBe('300 g med ben (ca 195 g ätbart efter ben)')
   })
 
@@ -46,7 +52,8 @@ describe('bone-in nutrition adjustment', () => {
         calories: 416,
         proteinGrams: 40,
         fatGrams: 26,
-      })
+      }),
+      'sv'
     )
 
     expect(adjusted.estimatedGrams).toBe(200)
@@ -67,7 +74,7 @@ describe('bone-in nutrition adjustment', () => {
 
   it('does not apply the same adjustment twice when description already says edible', () => {
     const item = makeItem({
-      portionDescription: '300 g med ben (ca 195 g ätbart efter ben)',
+      portionDescription: '300 g with bone (about 195 g edible after bone)',
       proteinGrams: 52.7,
     })
 

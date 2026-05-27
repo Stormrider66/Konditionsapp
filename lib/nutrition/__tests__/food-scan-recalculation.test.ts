@@ -97,4 +97,36 @@ describe('food scan recalculation', () => {
     expect(parsePortionGramsFromText('1 hel sats')).toBeNull()
     expect(parsePortionGramsFromText('ett glas')).toBeNull()
   })
+
+  it('uses English bone-in edible portion text by default', () => {
+    const chicken = createEditableFoodItem({
+      name: 'Chicken drumstick with bone',
+      category: 'PROTEIN',
+      estimatedGrams: 300,
+      portionDescription: '300 g with bone',
+      calories: 645,
+      proteinGrams: 81,
+      carbsGrams: 0,
+      fatGrams: 36,
+      fiberGrams: 0,
+    })
+
+    expect(chicken.portionDescription).toBe('300 g with bone (about 195 g edible after bone)')
+  })
+
+  it('preserves Swedish bone-in edible portion text when requested', () => {
+    const chicken = createEditableFoodItem({
+      name: 'Kycklingklubbor',
+      category: 'PROTEIN',
+      estimatedGrams: 300,
+      portionDescription: '300 g med ben',
+      calories: 645,
+      proteinGrams: 81,
+      carbsGrams: 0,
+      fatGrams: 36,
+      fiberGrams: 0,
+    }, 'sv')
+
+    expect(chicken.portionDescription).toBe('300 g med ben (ca 195 g ätbart efter ben)')
+  })
 })

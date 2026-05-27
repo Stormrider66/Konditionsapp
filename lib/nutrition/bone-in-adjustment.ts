@@ -15,6 +15,8 @@ type BoneAdjustableItem = {
   complexCarbsGrams?: number
 }
 
+type AppLocale = 'en' | 'sv'
+
 export type BoneInAdjustment = {
   edibleFraction: number
   edibleGrams: number
@@ -67,7 +69,8 @@ export function detectBoneInAdjustment(item: BoneAdjustableItem): BoneInAdjustme
   if (!Number.isFinite(grams) || grams <= 0) return null
 
   const text = `${item.name} ${item.portionDescription ?? ''}`
-  if (BONELESS_RE.test(text) || text.toLowerCase().includes('ätbart')) return null
+  const normalizedText = text.toLowerCase()
+  if (BONELESS_RE.test(text) || normalizedText.includes('ätbart') || normalizedText.includes('edible')) return null
 
   for (const rule of BONE_IN_RULES) {
     if (rule.pattern.test(text)) {
@@ -90,17 +93,24 @@ export function detectBoneInAdjustment(item: BoneAdjustableItem): BoneInAdjustme
   return null
 }
 
-export function applyBoneInAdjustment<T extends BoneAdjustableItem>(item: T): T {
+export function applyBoneInAdjustment<T extends BoneAdjustableItem>(item: T, locale: AppLocale = 'en'): T {
   const adjustment = detectBoneInAdjustment(item)
   if (!adjustment) return item
 
   const scale = adjustment.edibleFraction
-  const portionDescription = item.portionDescription?.trim() || `${round1(item.estimatedGrams)} g med ben`
-  const edibleNote = `ca ${adjustment.edibleGrams} g ätbart efter ben`
+  const portionDescription = item.portionDescription?.trim() || (
+    locale === 'sv'
+      ? `${round1(item.estimatedGrams)} g med ben`
+      : `${round1(item.estimatedGrams)} g with bone`
+  )
+  const portionDescriptionLower = portionDescription.toLowerCase()
+  const edibleNote = locale === 'sv'
+    ? `ca ${adjustment.edibleGrams} g ätbart efter ben`
+    : `about ${adjustment.edibleGrams} g edible after bone`
 
   return {
     ...item,
-    portionDescription: portionDescription.toLowerCase().includes('ätbart')
+    portionDescription: portionDescriptionLower.includes('ätbart') || portionDescriptionLower.includes('edible')
       ? portionDescription
       : `${portionDescription} (${edibleNote})`,
     calories: round1(item.calories * scale),

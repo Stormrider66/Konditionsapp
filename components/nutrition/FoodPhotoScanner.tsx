@@ -221,6 +221,7 @@ export function FoodPhotoScanner({
 }: FoodPhotoScannerProps) {
   const t = useTranslations('components.foodPhotoScanner')
   const locale = useLocale()
+  const foodScanLocale = locale === 'sv' ? 'sv' : 'en'
   const router = useRouter()
   const fileInputId = useId()
   const cameraInputId = useId()
@@ -534,7 +535,7 @@ export function FoodPhotoScanner({
         typeof result.confidence === 'number' ? result.confidence : null
       refinedRef.current = false
 
-      setItems(result.items.map(createEditableFoodItem))
+      setItems(result.items.map((item) => createEditableFoodItem(item, foodScanLocale)))
       setMealDescription(result.mealDescription)
       setConfidence(result.confidence)
       if (result.suggestedMealType && !defaultMealType) {
@@ -892,7 +893,7 @@ export function FoodPhotoScanner({
         }
 
         if (data.enhancedMode != null) setEnhancedMode(data.enhancedMode)
-        setItems(result.items.map(createEditableFoodItem))
+        setItems(result.items.map((item) => createEditableFoodItem(item, foodScanLocale)))
         setMealDescription(result.mealDescription)
         setConfidence(result.confidence)
         setNotes(result.notes?.join('\n') ?? '')
