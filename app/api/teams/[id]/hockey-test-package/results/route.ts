@@ -22,6 +22,11 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
+}
+
 const copy = {
   en: {
     teamNotFound: 'Team not found',
@@ -114,7 +119,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale = getRequestLocale(request)
 
   try {
     const user = await requireCoach()
@@ -147,7 +152,7 @@ export async function POST(
       },
     })
     if (!storedTeam) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: copy[locale].teamNotFound }, { status: 404 })
     }
 
     const memberIds = new Set(storedTeam.members.map((member) => member.id))
