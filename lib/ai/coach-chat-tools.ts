@@ -872,9 +872,13 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
     }),
 
     listAthletes: tool({
-      description: 'Lista coachens atleter för att kunna välja en atlet att generera styrkepass för.',
+      description: toolText(
+        locale,
+        'List the coach athletes so one can be selected for strength-session generation.',
+        'Lista coachens atleter för att kunna välja en atlet att generera styrkepass för.'
+      ),
       inputSchema: z.object({
-        search: z.string().optional().describe('Sök efter namn'),
+        search: z.string().optional().describe('Search by name.'),
       }),
       execute: async ({ search }) => {
         try {
@@ -892,16 +896,23 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             athletes: clients.map((c) => ({ id: c.id, name: c.name })),
           }
         } catch {
-          return { success: false, error: 'Kunde inte hämta atleter.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not fetch athletes.', 'Kunde inte hämta atleter.'),
+          }
         }
       },
     }),
 
     findAthleteByName: tool({
-      description: 'Sök efter en atlet som coachen har behörighet till. Använd när coachen nämner en atlet vid namn och du behöver clientId innan du hämtar data eller skapar något.',
+      description: toolText(
+        locale,
+        'Search for an athlete the coach can access. Use when the coach mentions an athlete by name and you need the clientId before fetching data or creating something.',
+        'Sök efter en atlet som coachen har behörighet till. Använd när coachen nämner en atlet vid namn och du behöver clientId innan du hämtar data eller skapar något.'
+      ),
       inputSchema: z.object({
-        name: z.string().min(2).describe('Namnet eller del av namnet att söka efter'),
-        limit: z.number().int().min(1).max(10).default(5).describe('Max antal träffar att returnera'),
+        name: z.string().min(2).describe('Name or part of the name to search for.'),
+        limit: z.number().int().min(1).max(10).default(5).describe('Maximum number of matches to return.'),
       }),
       execute: async ({ name, limit }) => {
         try {
@@ -918,23 +929,34 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             })),
             message:
               clients.length === 0
-                ? `Jag hittade ingen tillgänglig atlet som matchar "${name}".`
+                ? toolText(locale, `I found no accessible athlete matching "${name}".`, `Jag hittade ingen tillgänglig atlet som matchar "${name}".`)
                 : clients.length === 1
-                  ? `Jag hittade ${clients[0].name}.`
-                  : `Jag hittade ${clients.length} möjliga atleter. Be coachen välja rätt clientId om namnet är otydligt.`,
+                  ? toolText(locale, `I found ${clients[0].name}.`, `Jag hittade ${clients[0].name}.`)
+                  : toolText(
+                      locale,
+                      `I found ${clients.length} possible athletes. Ask the coach to choose the right clientId if the name is ambiguous.`,
+                      `Jag hittade ${clients.length} möjliga atleter. Be coachen välja rätt clientId om namnet är otydligt.`
+                    ),
           }
         } catch (error) {
           logger.error('Error in findAthleteByName tool', { coachUserId, name }, error)
-          return { success: false, error: 'Kunde inte söka efter atleten.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not search for the athlete.', 'Kunde inte söka efter atleten.'),
+          }
         }
       },
     }),
 
     getLatestCompletedWorkout: tool({
-      description: 'Hämta den senaste genomförda träningsaktiviteten för en specifik atlet. Kan ta clientId direkt eller söka med athleteName. Täcker programloggar, ad-hoc-pass, Garmin, styrka, kondition, hybrid, agility och AI-genererade WODs.',
+      description: toolText(
+        locale,
+        'Fetch the latest completed training activity for a specific athlete. Can take clientId directly or search by athleteName. Covers program logs, ad-hoc workouts, Garmin, strength, cardio, hybrid, agility, and AI-generated WODs.',
+        'Hämta den senaste genomförda träningsaktiviteten för en specifik atlet. Kan ta clientId direkt eller söka med athleteName. Täcker programloggar, ad-hoc-pass, Garmin, styrka, kondition, hybrid, agility och AI-genererade WODs.'
+      ),
       inputSchema: z.object({
-        clientId: z.string().optional().describe('Atletens clientId om det redan är känt'),
-        athleteName: z.string().optional().describe('Atletens namn om clientId inte är känt'),
+        clientId: z.string().optional().describe('Athlete clientId if already known.'),
+        athleteName: z.string().optional().describe('Athlete name if clientId is not known.'),
       }),
       execute: async ({ clientId, athleteName }) => {
         try {
@@ -946,7 +968,7 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             if (!client) {
               return {
                 success: false,
-                error: 'Atleten hittades inte eller ligger utanför din behörighet.',
+                error: toolText(locale, 'The athlete was not found or is outside your access.', 'Atleten hittades inte eller ligger utanför din behörighet.'),
               }
             }
           } else if (athleteName) {
@@ -964,8 +986,8 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
                 needsClarification: candidates.length > 1,
                 error:
                   candidates.length === 0
-                    ? `Jag hittade ingen tillgänglig atlet som matchar "${athleteName}".`
-                    : `Jag hittade flera möjliga atleter som matchar "${athleteName}".`,
+                    ? toolText(locale, `I found no accessible athlete matching "${athleteName}".`, `Jag hittade ingen tillgänglig atlet som matchar "${athleteName}".`)
+                    : toolText(locale, `I found several possible athletes matching "${athleteName}".`, `Jag hittade flera möjliga atleter som matchar "${athleteName}".`),
                 candidates: candidates.map((candidate) => ({
                   id: candidate.id,
                   name: candidate.name,
@@ -974,7 +996,10 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               }
             }
           } else {
-            return { success: false, error: 'Ange clientId eller athleteName.' }
+            return {
+              success: false,
+              error: toolText(locale, 'Provide clientId or athleteName.', 'Ange clientId eller athleteName.'),
+            }
           }
 
           const athleteUserId = client.athleteAccount?.userId
@@ -982,7 +1007,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             return {
               success: false,
               athlete: { id: client.id, name: client.name },
-              error: 'Atleten har inget länkat atletkonto ännu, så genomförda pass kan inte hämtas från historiken.',
+              error: toolText(
+                locale,
+                'The athlete does not have a linked athlete account yet, so completed workouts cannot be fetched from history.',
+                'Atleten har inget länkat atletkonto ännu, så genomförda pass kan inte hämtas från historiken.'
+              ),
             }
           }
 
@@ -1257,7 +1286,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               success: true,
               athlete: { id: client.id, name: client.name, team: client.team?.name ?? null },
               latestWorkout: null,
-              message: `${client.name} har inga genomförda pass i den tillgängliga historiken.`,
+              message: toolText(
+                locale,
+                `${client.name} has no completed workouts in the available history.`,
+                `${client.name} har inga genomförda pass i den tillgängliga historiken.`
+              ),
             }
           }
 
@@ -1269,22 +1302,33 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               completedAt: latestWorkout.date?.toISOString(),
             },
             checkedSources: completedItems.length,
-            message: `${client.name}s senaste genomförda pass är "${latestWorkout.name}" (${latestWorkout.type}) från ${latestWorkout.date?.toISOString().slice(0, 10)}.`,
+            message: toolText(
+              locale,
+              `${client.name}'s latest completed workout is "${latestWorkout.name}" (${latestWorkout.type}) from ${latestWorkout.date?.toISOString().slice(0, 10)}.`,
+              `${client.name}s senaste genomförda pass är "${latestWorkout.name}" (${latestWorkout.type}) från ${latestWorkout.date?.toISOString().slice(0, 10)}.`
+            ),
           }
         } catch (error) {
           logger.error('Error in getLatestCompletedWorkout tool', { coachUserId, clientId, athleteName }, error)
-          return { success: false, error: 'Kunde inte hämta senaste genomförda pass.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not fetch the latest completed workout.', 'Kunde inte hämta senaste genomförda pass.'),
+          }
         }
       },
     }),
 
     getTeamCalendarBriefing: tool({
-      description: 'Hämta en AI-läsbar brief för ett lags kalender: saknat fysinnehåll, klara pass att tilldela, saknade isplaner, veckobelastning och konkreta nästa steg. Använd när coachen frågar om lagkalendern, hockeyveckan, planeringsläget, fys-pass som behöver innehåll eller belastningsrisker.',
+      description: toolText(
+        locale,
+        'Fetch an AI-readable brief for a team calendar: missing physical content, ready sessions to assign, missing ice plans, weekly load, and concrete next steps. Use when the coach asks about the team calendar, hockey week, planning status, physical sessions needing content, or load risks.',
+        'Hämta en AI-läsbar brief för ett lags kalender: saknat fysinnehåll, klara pass att tilldela, saknade isplaner, veckobelastning och konkreta nästa steg. Använd när coachen frågar om lagkalendern, hockeyveckan, planeringsläget, fys-pass som behöver innehåll eller belastningsrisker.'
+      ),
       inputSchema: z.object({
-        teamId: z.string().optional().describe('Lagets id om känt'),
-        teamName: z.string().optional().describe('Lagets namn om id saknas'),
-        from: z.string().optional().describe('Startdatum som ISO-datum, t.ex. 2026-05-18. Standard är måndag i aktuell vecka.'),
-        to: z.string().optional().describe('Slutdatum som ISO-datum, t.ex. 2026-05-24. Standard är söndag i aktuell vecka.'),
+        teamId: z.string().optional().describe('Team id if known.'),
+        teamName: z.string().optional().describe('Team name if id is missing.'),
+        from: z.string().optional().describe('Start date as ISO date, for example 2026-05-18. Defaults to Monday in the current week.'),
+        to: z.string().optional().describe('End date as ISO date, for example 2026-05-24. Defaults to Sunday in the current week.'),
       }),
       execute: async ({ teamId, teamName, from, to }) => {
         try {
@@ -1300,8 +1344,12 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               needsClarification: candidates.length > 1,
               error:
                 candidates.length > 1
-                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
-                  : 'Jag behöver veta vilket lag jag ska läsa kalendern för.',
+                  ? toolText(
+                      locale,
+                      `I found several possible teams${teamName ? ` for "${teamName}"` : ''}.`,
+                      `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                    )
+                  : toolText(locale, 'I need to know which team calendar to read.', 'Jag behöver veta vilket lag jag ska läsa kalendern för.'),
               candidates: candidates.map((candidate) => ({
                 id: candidate.id,
                 name: candidate.name,
@@ -1390,26 +1438,36 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             from,
             to,
           }, error)
-          return { success: false, error: 'Kunde inte läsa lagkalendern just nu.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not read the team calendar right now.', 'Kunde inte läsa lagkalendern just nu.'),
+          }
         }
       },
     }),
 
     getTeamPlannedWorkout: tool({
-      description: 'Läs en specifik planerad lagkalenderhändelse och dess kopplade studio-pass. Använd före du skapar ett kompletterande pass, t.ex. "kolla Piteås styrka på måndag". Returnerar eventet, kandidater om flera matchar och full linked workout-data för STRENGTH, CARDIO, HYBRID eller AGILITY när passet är kopplat.',
+      description: toolText(
+        locale,
+        'Read a specific planned team-calendar event and its linked studio session. Use before creating a complementary session, for example "check Pitea strength on Monday". Returns the event, candidates if several match, and full linked workout data for STRENGTH, CARDIO, HYBRID, or AGILITY when linked.',
+        'Läs en specifik planerad lagkalenderhändelse och dess kopplade studio-pass. Använd före du skapar ett kompletterande pass, t.ex. "kolla Piteås styrka på måndag". Returnerar eventet, kandidater om flera matchar och full linked workout-data för STRENGTH, CARDIO, HYBRID eller AGILITY när passet är kopplat.'
+      ),
       inputSchema: z.object({
-        teamId: z.string().optional().describe('Lagets id om känt'),
-        teamName: z.string().optional().describe('Lagets namn om id saknas'),
-        eventId: z.string().optional().describe('Kalenderhändelsens id om känt'),
-        date: z.string().optional().describe('Datum som ISO-datum, t.ex. 2026-05-25. Om eventId saknas bör datum anges.'),
-        workoutType: z.enum(TEAM_WORKOUT_TYPES).optional().describe('Filtrera på kopplad passtyp eller eventtyp'),
-        titleIncludes: z.string().optional().describe('Valfri textsökning i eventtitel om flera pass finns samma dag'),
+        teamId: z.string().optional().describe('Team id if known.'),
+        teamName: z.string().optional().describe('Team name if id is missing.'),
+        eventId: z.string().optional().describe('Calendar event id if known.'),
+        date: z.string().optional().describe('Date as ISO date, for example 2026-05-25. If eventId is missing, date should usually be provided.'),
+        workoutType: z.enum(TEAM_WORKOUT_TYPES).optional().describe('Filter by linked workout type or event type.'),
+        titleIncludes: z.string().optional().describe('Optional text search in the event title when several sessions exist on the same day.'),
       }),
       execute: async ({ teamId, teamName, eventId, date, workoutType, titleIncludes }) => {
         try {
           const businessId = await resolveCoachToolBusinessId(coachUserId, businessSlug)
           if (businessId === null) {
-            return { success: false, error: 'Verksamheten kunde inte verifieras för den här coachen.' }
+            return {
+              success: false,
+              error: toolText(locale, 'The business could not be verified for this coach.', 'Verksamheten kunde inte verifieras för den här coachen.'),
+            }
           }
 
           const { team, candidates } = await findAccessibleCoachTeam(coachUserId, {
@@ -1424,8 +1482,12 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               needsClarification: candidates.length > 1,
               error:
                 candidates.length > 1
-                  ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
-                  : 'Jag behöver veta vilket lag jag ska läsa kalendern för.',
+                  ? toolText(
+                      locale,
+                      `I found several possible teams${teamName ? ` for "${teamName}"` : ''}.`,
+                      `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                    )
+                  : toolText(locale, 'I need to know which team calendar to read.', 'Jag behöver veta vilket lag jag ska läsa kalendern för.'),
               candidates: candidates.map((candidate) => ({
                 id: candidate.id,
                 name: candidate.name,
@@ -1469,7 +1531,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               success: true,
               team,
               events: [],
-              message: `Jag hittade inget planerat pass för ${team.name}${date ? ` ${date}` : ''}.`,
+              message: toolText(
+                locale,
+                `I found no planned session for ${team.name}${date ? ` ${date}` : ''}.`,
+                `Jag hittade inget planerat pass för ${team.name}${date ? ` ${date}` : ''}.`
+              ),
             }
           }
 
@@ -1478,7 +1544,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
               success: false,
               needsClarification: true,
               team,
-              error: `Jag hittade ${events.length} möjliga pass för ${team.name}. Välj vilket jag ska använda.`,
+              error: toolText(
+                locale,
+                `I found ${events.length} possible sessions for ${team.name}. Choose which one I should use.`,
+                `Jag hittade ${events.length} möjliga pass för ${team.name}. Välj vilket jag ska använda.`
+              ),
               candidates: events.map((event) => ({
                 id: event.id,
                 name: `${event.title} · ${compactWorkoutDate(event.startDate, locale)}`,
@@ -1505,10 +1575,22 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             },
             linkedWorkout,
             message: linkedWorkout
-              ? `Jag hittade "${event.title}" och läste det kopplade passet "${event.linkedWorkoutName ?? 'utan namn'}".`
+              ? toolText(
+                  locale,
+                  `I found "${event.title}" and read the linked session "${event.linkedWorkoutName ?? 'unnamed'}".`,
+                  `Jag hittade "${event.title}" och läste det kopplade passet "${event.linkedWorkoutName ?? 'utan namn'}".`
+                )
               : event.linkedWorkoutId
-                ? `Jag hittade "${event.title}", men kunde inte läsa det kopplade passet med nuvarande behörighet.`
-                : `Jag hittade "${event.title}", men eventet har inget kopplat studio-pass ännu.`,
+                ? toolText(
+                    locale,
+                    `I found "${event.title}", but could not read the linked session with the current access.`,
+                    `Jag hittade "${event.title}", men kunde inte läsa det kopplade passet med nuvarande behörighet.`
+                  )
+                : toolText(
+                    locale,
+                    `I found "${event.title}", but the event does not have a linked studio session yet.`,
+                    `Jag hittade "${event.title}", men eventet har inget kopplat studio-pass ännu.`
+                  ),
           }
         } catch (error) {
           logger.error('Error in getTeamPlannedWorkout tool', {
@@ -1520,7 +1602,10 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             date,
             workoutType,
           }, error)
-          return { success: false, error: 'Kunde inte läsa det planerade lagpasset just nu.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not read the planned team session right now.', 'Kunde inte läsa det planerade lagpasset just nu.'),
+          }
         }
       },
     }),
