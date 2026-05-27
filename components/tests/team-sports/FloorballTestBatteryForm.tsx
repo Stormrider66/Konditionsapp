@@ -40,9 +40,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocale } from '@/i18n/client'
 
-const floorballTestSchema = z.object({
-  clientId: z.string().min(1, 'Valj en klient'),
-  testDate: z.string().min(1, 'Valj testdatum'),
+type AppLocale = 'en' | 'sv'
+
+const createFloorballTestSchema = (locale: AppLocale) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   position: z.enum(['goalkeeper', 'defender', 'center', 'forward']),
   // Yo-Yo IR1
   yoyoLevel: z.number().min(5).max(23).optional(),
@@ -56,7 +58,7 @@ const floorballTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type FloorballTestFormData = z.infer<typeof floorballTestSchema>
+type FloorballTestFormData = z.infer<ReturnType<typeof createFloorballTestSchema>>
 
 interface Client {
   id: string
@@ -70,11 +72,11 @@ interface FloorballTestBatteryFormProps {
   onTestSaved?: (tests: any[]) => void
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  goalkeeper: 'Malvakt',
-  defender: 'Back',
-  center: 'Center',
-  forward: 'Forward',
+const POSITION_LABELS: Record<string, Record<AppLocale, string>> = {
+  goalkeeper: { sv: 'Målvakt', en: 'Goalkeeper' },
+  defender: { sv: 'Back', en: 'Defender' },
+  center: { sv: 'Center', en: 'Center' },
+  forward: { sv: 'Forward', en: 'Forward' },
 }
 
 // Position-specific benchmarks (elite level)
@@ -93,16 +95,21 @@ function getBenchmarkClass(actual: number | undefined, target: number, lowerIsBe
   return actual >= target ? 'text-green-600' : 'text-orange-500'
 }
 
-function getBenchmarkLabel(actual: number | undefined, target: number, lowerIsBetter = false): string {
+function getPositionLabel(position: string, locale: AppLocale): string {
+  return POSITION_LABELS[position]?.[locale] ?? position
+}
+
+function getBenchmarkLabel(locale: AppLocale, actual: number | undefined, target: number, lowerIsBetter = false): string {
   if (!actual) return '-'
   const percentage = lowerIsBetter
     ? Math.round((target / actual) * 100)
     : Math.round((actual / target) * 100)
-  return `${percentage}% av elit`
+  return locale === 'sv' ? `${percentage}% av elit` : `${percentage}% of elite`
 }
 
 export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTestBatteryFormProps) {
-  const locale = useLocale()
+  const rawLocale = useLocale()
+  const locale: AppLocale = rawLocale === 'sv' ? 'sv' : 'en'
   const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [submitting, setSubmitting] = useState(false)
   const [results, setResults] = useState<any[]>([])
@@ -110,7 +117,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
   const [activeTab, setActiveTab] = useState('yoyo')
 
   const form = useForm<FloorballTestFormData>({
-    resolver: zodResolver(floorballTestSchema),
+    resolver: zodResolver(createFloorballTestSchema(locale)),
     defaultValues: {
       testDate: new Date().toISOString().split('T')[0],
       position: 'center',
@@ -133,7 +140,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(t('Klient hittades inte', 'Client not found'))
 
       const savedTests: any[] = []
 
@@ -230,19 +237,19 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
         })
         if (jumpResponse.ok) {
           const result = await jumpResponse.json()
-          savedTests.push({ ...result.data, type: 'Langdhopp' })
+          savedTests.push({ ...result.data, type: t('Längdhopp', 'Standing Long Jump') })
         }
       }
 
       if (savedTests.length === 0) {
-        throw new Error('Inga testresultat att spara. Fyll i minst ett test.')
+        throw new Error(t('Inga testresultat att spara. Fyll i minst ett test.', 'No test results to save. Fill in at least one test.'))
       }
 
       setResults(savedTests)
       onTestSaved?.(savedTests)
     } catch (err) {
       console.error('Failed to save floorball tests:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('Ett fel uppstod', 'Something went wrong'))
     } finally {
       setSubmitting(false)
     }
@@ -254,12 +261,12 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-blue-500" />
-            Innebandy - Testbatteri
+            {t('Innebandy - Testbatteri', 'Floorball - Test battery')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lagg till klienter for att kunna registrera test.
+            {t('Inga klienter hittades. Lägg till klienter för att kunna registrera test.', 'No clients found. Add clients before registering tests.')}
           </p>
         </CardContent>
       </Card>
@@ -274,10 +281,10 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-blue-500" />
-                Innebandy - Testbatteri
+                {t('Innebandy - Testbatteri', 'Floorball - Test battery')}
               </CardTitle>
               <CardDescription>
-                Fysiska tester for innebandyspelare: Yo-Yo IR1, Sprint 20m, 5-10-5 Agility, Langdhopp
+                {t('Fysiska tester för innebandyspelare: Yo-Yo IR1, Sprint 20m, 5-10-5 Agility, Längdhopp', 'Physical tests for floorball players: Yo-Yo IR1, Sprint 20m, 5-10-5 Agility, Standing Long Jump')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -287,11 +294,11 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{t('Klient', 'Client')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Valj klient" />
+                            <SelectValue placeholder={t('Välj klient', 'Select client')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -336,13 +343,13 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                         <SelectContent>
                           {Object.entries(POSITION_LABELS).map(([value, label]) => (
                             <SelectItem key={value} value={value}>
-                              {label}
+                              {label[locale]}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Jamfors mot elitreferensvarden for {POSITION_LABELS[position]}
+                        {t('Jämförs mot elitreferensvärden för', 'Compared with elite reference values for')} {getPositionLabel(position, locale)}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -369,7 +376,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
               </TabsTrigger>
               <TabsTrigger value="jump" className="flex items-center gap-1">
                 <Zap className="h-4 w-4" />
-                <span className="hidden sm:inline">Hopp</span>
+                <span className="hidden sm:inline">{t('Hopp', 'Jump')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -381,7 +388,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                     Yo-Yo Intermittent Recovery Test (IR1)
                   </CardTitle>
                   <CardDescription>
-                    Mater aerob kapacitet och aterhamtningsformaga
+                    {t('Mäter aerob kapacitet och återhämtningsförmåga', 'Measures aerobic capacity and recovery ability')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -391,7 +398,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                       name="yoyoLevel"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Niva</FormLabel>
+                          <FormLabel>{t('Nivå', 'Level')}</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
@@ -436,18 +443,18 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                   {yoyoLevel && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(yoyoLevel, benchmarks.yoyoIR1)}`}>
                             {yoyoLevel.toFixed(1)}
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(yoyoLevel, benchmarks.yoyoIR1)}`}>
-                            {getBenchmarkLabel(yoyoLevel, benchmarks.yoyoIR1)}
+                            {getBenchmarkLabel(locale, yoyoLevel, benchmarks.yoyoIR1)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {POSITION_LABELS[position]}: {benchmarks.yoyoIR1.toFixed(1)}
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.yoyoIR1.toFixed(1)}
                       </p>
                     </div>
                   )}
@@ -463,7 +470,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                     20 meter Sprint
                   </CardTitle>
                   <CardDescription>
-                    Mater maximal sprintsnabbhet
+                    {t('Mäter maximal sprintsnabbhet', 'Measures maximum sprint speed')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -472,7 +479,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                     name="sprint20m"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -493,18 +500,18 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                   {sprint20m && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(sprint20m, benchmarks.sprint20m, true)}`}>
                             {sprint20m.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(sprint20m, benchmarks.sprint20m, true)}`}>
-                            {getBenchmarkLabel(sprint20m, benchmarks.sprint20m, true)}
+                            {getBenchmarkLabel(locale, sprint20m, benchmarks.sprint20m, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {POSITION_LABELS[position]}: {benchmarks.sprint20m.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.sprint20m.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -520,7 +527,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                     5-10-5 Agility Test
                   </CardTitle>
                   <CardDescription>
-                    Mater riktningsforandringsformaga och snabbhet
+                    {t('Mäter riktningsförändringsförmåga och snabbhet', 'Measures change-of-direction ability and speed')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -529,7 +536,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                     name="agility"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -543,7 +550,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                           />
                         </FormControl>
                         <FormDescription>
-                          Sprint 5 yard, vand och spring 10 yard, vand och spring 5 yard
+                          {t('Sprint 5 yards, vänd och spring 10 yards, vänd och spring 5 yards', 'Sprint 5 yards, turn and run 10 yards, turn and run 5 yards')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -553,18 +560,18 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                   {agility && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(agility, benchmarks.agility, true)}`}>
                             {agility.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(agility, benchmarks.agility, true)}`}>
-                            {getBenchmarkLabel(agility, benchmarks.agility, true)}
+                            {getBenchmarkLabel(locale, agility, benchmarks.agility, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {POSITION_LABELS[position]}: {benchmarks.agility.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.agility.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -577,10 +584,10 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Zap className="h-5 w-5 text-purple-500" />
-                    Staende langdhopp
+                    {t('Stående längdhopp', 'Standing Long Jump')}
                   </CardTitle>
                   <CardDescription>
-                    Mater horisontell explosiv kraft
+                    {t('Mäter horisontell explosiv kraft', 'Measures horizontal explosive power')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -589,7 +596,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                     name="longJump"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hopplangd (cm)</FormLabel>
+                        <FormLabel>{t('Hopplängd (cm)', 'Jump distance (cm)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -610,18 +617,18 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                   {longJump && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(longJump, benchmarks.longJump)}`}>
                             {longJump.toFixed(0)} cm
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(longJump, benchmarks.longJump)}`}>
-                            {getBenchmarkLabel(longJump, benchmarks.longJump)}
+                            {getBenchmarkLabel(locale, longJump, benchmarks.longJump)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav for {POSITION_LABELS[position]}: {benchmarks.longJump} cm
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.longJump} cm
                       </p>
                     </div>
                   )}
@@ -638,10 +645,10 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Testforhallanden, kansla, observationer..."
+                        placeholder={t('Testförhållanden, känsla, observationer...', 'Test conditions, feeling, observations...')}
                         {...field}
                       />
                     </FormControl>
@@ -653,7 +660,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara testbatteri'}
+            {submitting ? t('Sparar...', 'Saving...') : t('Spara testbatteri', 'Save test battery')}
           </Button>
         </form>
       </Form>
@@ -670,7 +677,7 @@ export function FloorballTestBatteryForm({ clients, onTestSaved }: FloorballTest
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              {results.length} test sparade
+              {t(`${results.length} test sparade`, `${results.length} tests saved`)}
             </CardTitle>
           </CardHeader>
           <CardContent>
