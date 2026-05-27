@@ -57,7 +57,7 @@ export async function POST(
     const analysis = await prisma.videoAnalysis.findFirst({
       where: { id, coachId: user.id },
       include: {
-        athlete: { select: { id: true, name: true, gender: true } },
+        athlete: { select: { id: true, name: true, gender: true, user: { select: { language: true } } } },
         exercise: {
           select: {
             id: true,
@@ -75,6 +75,10 @@ export async function POST(
     if (!analysis) {
       return NextResponse.json({ error: t(locale, 'Analysis not found', 'Analysen hittades inte') }, { status: 404 })
     }
+
+    locale = analysis.athlete
+      ? analysis.athlete.user.language === 'sv' ? 'sv' : 'en'
+      : locale
 
     if (analysis.athleteId) {
       const allowanceDenied = await requireAiAllowance(analysis.athleteId, {

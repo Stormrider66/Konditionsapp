@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
+import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import {
@@ -82,7 +83,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    let locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const body: AnalyzePoseDataRequest = await request.json()
     const { clientId, videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle, powerEstimate } = body
 
@@ -94,6 +95,12 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         )
       }
+
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { user: { select: { language: true } } },
+      })
+      locale = client?.user.language === 'sv' ? 'sv' : 'en'
 
       const allowanceDenied = await requireAiAllowance(clientId, {
         minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.richAnalysis,

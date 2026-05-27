@@ -23,7 +23,7 @@ export const HYROX_STATION_LABELS: Record<HyroxStationType, string> = {
   SLED_PUSH: 'Sled Push',
   SLED_PULL: 'Sled Pull',
   BURPEE_BROAD_JUMP: 'Burpee Broad Jump',
-  ROWING: 'Rodd',
+  ROWING: 'Rowing',
   FARMERS_CARRY: 'Farmers Carry',
   SANDBAG_LUNGE: 'Sandbag Lunge',
   WALL_BALLS: 'Wall Balls',
@@ -410,6 +410,151 @@ const STATION_PROMPTS: Record<HyroxStationType, string> = {
   WALL_BALLS: WALL_BALLS_PROMPT,
 };
 
+const STATION_GUIDANCE_EN: Record<HyroxStationType, string> = {
+  SKIERG: `STATION: SkiErg (1000m)
+Analyze SkiErg technique with focus on:
+
+1. PULL PHASE
+- Pull length and arm extension at the start
+- Hip-hinge depth
+- Leg contribution to power production
+- Coordination between arms and body
+
+2. RECOVERY PHASE
+- Arm recovery speed
+- Maintained back tension
+- Preparation for the next pull
+
+3. HYROX STRATEGY
+- Sustainable pacing for 1000m
+- Energy management after the run
+- Signs of fatigue`,
+  SLED_PUSH: `STATION: Sled Push (50m)
+Analyze Sled Push technique with focus on:
+
+1. BODY POSITION
+- Body angle (ideal 45-60 degrees)
+- Arm lockout against the sled
+- Head position and gaze direction
+
+2. DRIVE PHASE
+- Stride length and frequency
+- Force direction through the sled
+- Foot placement and push-off
+
+3. HYROX STRATEGY
+- Sustainable pace versus explosiveness
+- Recovery from the preceding run
+- Mental focus across the 50m distance`,
+  SLED_PULL: `STATION: Sled Pull (50m)
+Analyze Sled Pull technique with focus on:
+
+1. PULLING TECHNIQUE
+- Hip-driven versus arm-dominant pulling
+- Rope path and consistency
+- Force through each pull
+
+2. ANCHORING
+- Stability in the standing position
+- Leg work as resistance
+- Trunk stability during the pull
+
+3. HAND TRANSFER
+- Grip-switch efficiency
+- Minimizing pauses
+- Pulling rhythm`,
+  BURPEE_BROAD_JUMP: `STATION: Burpee Broad Jump (80 reps, 8x10m segments)
+Analyze Burpee Broad Jump technique with focus on:
+
+1. BURPEE COMPONENT
+- Descent and floor contact
+- Chest position on the floor
+- Getting up efficiently
+
+2. JUMP COMPONENT
+- Push-off power and height
+- Jump distance and consistency
+- Landing mechanics
+
+3. TRANSITION SPEED
+- Time between burpee and jump
+- Flow through the movement
+- Energy conservation`,
+  ROWING: `STATION: Rowing (1000m)
+Analyze rowing technique with focus on:
+
+1. DRIVE PHASE
+- Sequence: legs -> trunk -> arms
+- Power production through the legs
+- Layback angle and timing
+
+2. CATCH POSITION
+- Compression during recovery
+- Arm and wrist position
+- Vertical shins at the catch
+
+3. STROKE EFFICIENCY
+- Stroke rate versus power production
+- Smooth power curve
+- Recovery-phase speed`,
+  FARMERS_CARRY: `STATION: Farmers Carry (200m)
+Analyze Farmers Carry technique with focus on:
+
+1. POSTURE
+- Shoulder position (packed versus elevated)
+- Trunk control and upright posture
+- Head position
+
+2. WALKING TECHNIQUE
+- Step pattern and cadence
+- Hip movement and stability
+- Minimizing side-to-side motion
+
+3. GRIP MANAGEMENT
+- Grip fatigue across the distance
+- Kettlebell control
+- Breathing under load`,
+  SANDBAG_LUNGE: `STATION: Sandbag Lunge (100m)
+Analyze Sandbag Lunge technique with focus on:
+
+1. SANDBAG POSITION
+- Placement on shoulders/chest
+- Stability during movement
+- Repositioning under fatigue
+
+2. LUNGE TECHNIQUE
+- Step length and knee tracking
+- Rear-knee contact with the floor
+- Rising phase
+
+3. BALANCE AND CONTROL
+- Trunk position and forward lean
+- Lateral wobble
+- Tempo and rhythm`,
+  WALL_BALLS: `STATION: Wall Balls (100 reps for women, 75 reps for men - based on race category)
+Analyze Wall Balls technique with focus on:
+
+1. SQUAT COMPONENT
+- Squat depth (parallel or below)
+- Knee tracking over toes
+- Rising power
+
+2. THROWING TECHNIQUE
+- Hip-driven versus arm-driven throw
+- Ball path to target
+- Full arm extension
+
+3. CATCH POSITION
+- Ball catch position
+- Transition into the next rep
+- Rhythm and consistency`,
+};
+
+function getJsonSchemaFromPrompt(prompt: string): string {
+  const schemaStart = prompt.indexOf('{\n')
+  return schemaStart === -1 ? '' : prompt.slice(schemaStart)
+}
+
 /**
  * Build the HYROX station analysis prompt
  */
@@ -425,7 +570,12 @@ export function buildHyroxPrompt(
 ): string {
   let prompt = STATION_PROMPTS[stationType];
   if (locale === 'en') {
-    prompt = prompt.replace(HYROX_BASE_SYSTEM_PROMPT_SV, HYROX_BASE_SYSTEM_PROMPT_EN);
+    prompt = `${HYROX_BASE_SYSTEM_PROMPT_EN}
+
+${STATION_GUIDANCE_EN[stationType]}
+
+Respond with the following JSON structure:
+${getJsonSchemaFromPrompt(STATION_PROMPTS[stationType])}`;
   }
 
   // Add athlete context if available
@@ -457,10 +607,6 @@ export function buildHyroxPrompt(
     }
 
     prompt += context;
-  }
-
-  if (locale === 'en') {
-    prompt += '\n\nLANGUAGE REQUIREMENT: The technical checklist above may contain Swedish labels, but every generated JSON string value shown to users must be written in English.';
   }
 
   return prompt;
