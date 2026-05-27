@@ -84,9 +84,18 @@ export async function POST(req: NextRequest) {
 
     const clientLocale = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { user: { select: { language: true } } },
+      select: {
+        user: { select: { language: true } },
+        athleteAccount: {
+          select: {
+            user: {
+              select: { language: true },
+            },
+          },
+        },
+      },
     })
-    const contentLocale = resolveLocale(clientLocale?.user?.language ?? user.language)
+    const contentLocale = resolveLocale(clientLocale?.athleteAccount?.user?.language ?? clientLocale?.user?.language ?? user.language)
 
     // Subscription gate
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
