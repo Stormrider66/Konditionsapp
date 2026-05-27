@@ -58,6 +58,10 @@ const CARDIO_TOOL_SPORTS = [
 const TEAM_WORKOUT_TYPES = ['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY'] as const
 const TEAM_EVENT_CONTENT_OWNERS_FOR_AI = ['coach', 'physical_trainer', 'physio', 'shared', 'self'] as const
 const TEAM_EVENT_CONTENT_STATUSES_FOR_AI = ['PLANNED', 'NEEDS_CONTENT', 'CONTENT_READY', 'ASSIGNED'] as const
+
+function toolText(locale: 'en' | 'sv', en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 const VALID_STRENGTH_PHASES = [
   'ANATOMICAL_ADAPTATION',
   'MAXIMUM_STRENGTH',
@@ -239,28 +243,28 @@ async function findAccessibleCoachTeam(
   }
 }
 
-function getStaticCoachNavigation(destination: CoachNavigationDestination) {
+function getStaticCoachNavigation(destination: CoachNavigationDestination, locale: 'en' | 'sv') {
   const routes: Partial<Record<CoachNavigationDestination, { href: string; label: string; description: string }>> = {
-    dashboard: { href: '/coach/dashboard', label: 'Öppna dashboard', description: 'Coachens huvudöversikt' },
-    calendar: { href: '/coach/calendar', label: 'Öppna kalender', description: 'Planerade pass, tester och händelser' },
-    athletes: { href: '/coach/clients', label: 'Öppna atleter', description: 'Atletlista och snabb statusöversikt' },
-    programs: { href: '/coach/programs', label: 'Öppna program', description: 'Träningsprogram och programöversikt' },
-    programBuilder: { href: '/coach/programs/new', label: 'Skapa program', description: 'Starta nytt träningsprogram' },
-    aiStudio: { href: '/coach/ai-studio', label: 'Öppna AI Studio', description: 'AI-assisterad programgenerering' },
-    strength: { href: '/coach/strength', label: 'Öppna Strength Studio', description: 'Styrkepass och progression' },
-    cardio: { href: '/coach/cardio', label: 'Öppna Cardio Studio', description: 'Konditionspass och intervaller' },
-    hybrid: { href: '/coach/hybrid-studio', label: 'Öppna Hybrid Studio', description: 'HYROX och funktionella pass' },
-    agility: { href: '/coach/agility-studio', label: 'Öppna Agility Studio', description: 'Agilitypass och timing gates' },
-    monitoring: { href: '/coach/monitoring', label: 'Öppna monitorering', description: 'Beredskap, HRV och belastning' },
-    liveHr: { href: '/coach/live-hr', label: 'Öppna Live HR', description: 'Realtidsövervakning av puls' },
-    testOverview: { href: '/coach/test-overview', label: 'Öppna testöversikt', description: 'Senaste tester och teststatus' },
-    newTest: { href: '/coach/test', label: 'Skapa nytt test', description: 'Ny testinmatning' },
-    videoAnalysis: { href: '/coach/video-analysis', label: 'Öppna videoanalys', description: 'Rörelse- och teknikvideo' },
-    messages: { href: '/coach/messages', label: 'Öppna meddelanden', description: 'Coachens konversationer' },
-    teams: { href: '/coach/teams', label: 'Öppna lag', description: 'Lagöversikt' },
-    settings: { href: '/coach/settings', label: 'Öppna inställningar', description: 'Coach- och verksamhetsinställningar' },
-    documents: { href: '/coach/documents', label: 'Öppna dokument', description: 'Kunskapsdokument för AI/RAG' },
-    analytics: { href: '/coach/analytics', label: 'Öppna analys', description: 'Övergripande analysvyer' },
+    dashboard: { href: '/coach/dashboard', label: toolText(locale, 'Open dashboard', 'Öppna dashboard'), description: toolText(locale, 'Coach overview', 'Coachens huvudöversikt') },
+    calendar: { href: '/coach/calendar', label: toolText(locale, 'Open calendar', 'Öppna kalender'), description: toolText(locale, 'Planned sessions, tests, and events', 'Planerade pass, tester och händelser') },
+    athletes: { href: '/coach/clients', label: toolText(locale, 'Open athletes', 'Öppna atleter'), description: toolText(locale, 'Athlete list and quick status overview', 'Atletlista och snabb statusöversikt') },
+    programs: { href: '/coach/programs', label: toolText(locale, 'Open programs', 'Öppna program'), description: toolText(locale, 'Training programs and program overview', 'Träningsprogram och programöversikt') },
+    programBuilder: { href: '/coach/programs/new', label: toolText(locale, 'Create program', 'Skapa program'), description: toolText(locale, 'Start a new training program', 'Starta nytt träningsprogram') },
+    aiStudio: { href: '/coach/ai-studio', label: toolText(locale, 'Open AI Studio', 'Öppna AI Studio'), description: toolText(locale, 'AI-assisted program generation', 'AI-assisterad programgenerering') },
+    strength: { href: '/coach/strength', label: toolText(locale, 'Open Strength Studio', 'Öppna Strength Studio'), description: toolText(locale, 'Strength sessions and progression', 'Styrkepass och progression') },
+    cardio: { href: '/coach/cardio', label: toolText(locale, 'Open Cardio Studio', 'Öppna Cardio Studio'), description: toolText(locale, 'Cardio sessions and intervals', 'Konditionspass och intervaller') },
+    hybrid: { href: '/coach/hybrid-studio', label: toolText(locale, 'Open Hybrid Studio', 'Öppna Hybrid Studio'), description: toolText(locale, 'HYROX and functional sessions', 'HYROX och funktionella pass') },
+    agility: { href: '/coach/agility-studio', label: toolText(locale, 'Open Agility Studio', 'Öppna Agility Studio'), description: toolText(locale, 'Agility sessions and timing gates', 'Agilitypass och timing gates') },
+    monitoring: { href: '/coach/monitoring', label: toolText(locale, 'Open monitoring', 'Öppna monitorering'), description: toolText(locale, 'Readiness, HRV, and load', 'Beredskap, HRV och belastning') },
+    liveHr: { href: '/coach/live-hr', label: toolText(locale, 'Open Live HR', 'Öppna Live HR'), description: toolText(locale, 'Real-time heart-rate monitoring', 'Realtidsövervakning av puls') },
+    testOverview: { href: '/coach/test-overview', label: toolText(locale, 'Open test overview', 'Öppna testöversikt'), description: toolText(locale, 'Latest tests and test status', 'Senaste tester och teststatus') },
+    newTest: { href: '/coach/test', label: toolText(locale, 'Create new test', 'Skapa nytt test'), description: toolText(locale, 'New test entry', 'Ny testinmatning') },
+    videoAnalysis: { href: '/coach/video-analysis', label: toolText(locale, 'Open video analysis', 'Öppna videoanalys'), description: toolText(locale, 'Movement and technique video', 'Rörelse- och teknikvideo') },
+    messages: { href: '/coach/messages', label: toolText(locale, 'Open messages', 'Öppna meddelanden'), description: toolText(locale, 'Coach conversations', 'Coachens konversationer') },
+    teams: { href: '/coach/teams', label: toolText(locale, 'Open teams', 'Öppna lag'), description: toolText(locale, 'Team overview', 'Lagöversikt') },
+    settings: { href: '/coach/settings', label: toolText(locale, 'Open settings', 'Öppna inställningar'), description: toolText(locale, 'Coach and business settings', 'Coach- och verksamhetsinställningar') },
+    documents: { href: '/coach/documents', label: toolText(locale, 'Open documents', 'Öppna dokument'), description: toolText(locale, 'Knowledge documents for AI/RAG', 'Kunskapsdokument för AI/RAG') },
+    analytics: { href: '/coach/analytics', label: toolText(locale, 'Open analytics', 'Öppna analys'), description: toolText(locale, 'Overall analytics views', 'Övergripande analysvyer') },
   }
   return routes[destination] ?? null
 }
@@ -2017,7 +2021,9 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
     }),
 
     suggestCoachNavigation: tool({
-      description: 'Skapa en säker navigeringsåtgärd till rätt coach-sida. Använd när coachen ber dig öppna, visa, gå till eller ta dem till en sida, atletvy eller lagvy. Verktyget klickar inte själv, utan returnerar en app-länk som chatten kan visa som knapp.',
+      description: locale === 'sv'
+        ? 'Skapa en säker navigeringsåtgärd till rätt coach-sida. Använd när coachen ber dig öppna, visa, gå till eller ta dem till en sida, atletvy eller lagvy. Verktyget klickar inte själv, utan returnerar en app-länk som chatten kan visa som knapp.'
+        : 'Create a safe navigation action to the right coach page. Use when the coach asks to open, show, go to, or take them to a page, athlete view, or team view. The tool does not click by itself; it returns an app link the chat can show as a button.',
       inputSchema: z.object({
         destination: z.enum([
           'dashboard',
@@ -2048,11 +2054,11 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           'teamDashboard',
           'teamCalendar',
           'teamTests',
-        ]).describe('Målsidan coachen vill till'),
-        clientId: z.string().optional().describe('Atletens clientId om känd'),
-        athleteName: z.string().optional().describe('Atletens namn om destinationen är atletrelaterad'),
-        teamId: z.string().optional().describe('Lagets id om känd'),
-        teamName: z.string().optional().describe('Lagets namn om destinationen är lagrelaterad'),
+        ]).describe('Target coach page.'),
+        clientId: z.string().optional().describe('Athlete clientId if known.'),
+        athleteName: z.string().optional().describe('Athlete name if the destination is athlete-related.'),
+        teamId: z.string().optional().describe('Team id if known.'),
+        teamName: z.string().optional().describe('Team name if the destination is team-related.'),
       }),
       execute: async ({ destination, clientId, athleteName, teamId, teamName }) => {
         try {
@@ -2089,8 +2095,12 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
                 needsClarification: candidates.length > 1,
                 error:
                   candidates.length > 1
-                    ? `Jag hittade flera möjliga atleter${athleteName ? ` för "${athleteName}"` : ''}.`
-                    : 'Jag behöver en atlet för att skapa den navigeringen.',
+                    ? toolText(
+                        locale,
+                        `I found several possible athletes${athleteName ? ` for "${athleteName}"` : ''}.`,
+                        `Jag hittade flera möjliga atleter${athleteName ? ` för "${athleteName}"` : ''}.`
+                      )
+                    : toolText(locale, 'I need an athlete to create that navigation.', 'Jag behöver en atlet för att skapa den navigeringen.'),
                 candidates: candidates.map((candidate) => ({
                   id: candidate.id,
                   name: candidate.name,
@@ -2102,28 +2112,28 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             const athleteRoutes: Record<string, { href: string; label: string; description: string }> = {
               athleteProfile: {
                 href: `/coach/clients/${client.id}`,
-                label: `Öppna ${client.name}`,
-                description: 'Atletens coachprofil',
+                label: toolText(locale, `Open ${client.name}`, `Öppna ${client.name}`),
+                description: toolText(locale, 'Athlete coach profile', 'Atletens coachprofil'),
               },
               athleteLogs: {
                 href: `/coach/athletes/${client.id}/logs`,
-                label: `Öppna ${client.name}s träningslogg`,
-                description: 'Genomförda och ej genomförda pass',
+                label: toolText(locale, `Open ${client.name}'s training log`, `Öppna ${client.name}s träningslogg`),
+                description: toolText(locale, 'Completed and incomplete sessions', 'Genomförda och ej genomförda pass'),
               },
               athleteCalendar: {
                 href: `/coach/athletes/${client.id}/calendar`,
-                label: `Öppna ${client.name}s kalender`,
-                description: 'Atletens planerade kalender',
+                label: toolText(locale, `Open ${client.name}'s calendar`, `Öppna ${client.name}s kalender`),
+                description: toolText(locale, 'Athlete planned calendar', 'Atletens planerade kalender'),
               },
               athleteFueling: {
                 href: `/coach/clients/${client.id}/fueling`,
-                label: `Öppna ${client.name}s fueling`,
-                description: 'Energi- och vätskeplanering',
+                label: toolText(locale, `Open ${client.name}'s fueling`, `Öppna ${client.name}s fueling`),
+                description: toolText(locale, 'Energy and hydration planning', 'Energi- och vätskeplanering'),
               },
               athleteEdit: {
                 href: `/coach/clients/${client.id}/edit`,
-                label: `Redigera ${client.name}`,
-                description: 'Atletens profilinställningar',
+                label: toolText(locale, `Edit ${client.name}`, `Redigera ${client.name}`),
+                description: toolText(locale, 'Athlete profile settings', 'Atletens profilinställningar'),
               },
             }
             const navigation = athleteRoutes[destination]
@@ -2136,7 +2146,11 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
                 entityId: client.id,
                 entityName: client.name,
               },
-              message: `Jag har förberett en genväg till ${navigation.description.toLowerCase()} för ${client.name}.`,
+              message: toolText(
+                locale,
+                `I prepared a shortcut to ${navigation.description.toLowerCase()} for ${client.name}.`,
+                `Jag har förberett en genväg till ${navigation.description.toLowerCase()} för ${client.name}.`
+              ),
             }
           }
 
@@ -2153,8 +2167,12 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
                 needsClarification: candidates.length > 1,
                 error:
                   candidates.length > 1
-                    ? `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
-                    : 'Jag behöver ett lag för att skapa den navigeringen.',
+                    ? toolText(
+                        locale,
+                        `I found several possible teams${teamName ? ` for "${teamName}"` : ''}.`,
+                        `Jag hittade flera möjliga lag${teamName ? ` för "${teamName}"` : ''}.`
+                      )
+                    : toolText(locale, 'I need a team to create that navigation.', 'Jag behöver ett lag för att skapa den navigeringen.'),
                 candidates: candidates.map((candidate) => ({
                   id: candidate.id,
                   name: candidate.name,
@@ -2166,18 +2184,18 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             const teamRoutes: Record<string, { href: string; label: string; description: string }> = {
               teamDashboard: {
                 href: `/coach/teams/${team.id}`,
-                label: `Öppna ${team.name}`,
-                description: 'Lagdashboard',
+                label: toolText(locale, `Open ${team.name}`, `Öppna ${team.name}`),
+                description: toolText(locale, 'Team dashboard', 'Lagdashboard'),
               },
               teamCalendar: {
                 href: `/coach/teams/${team.id}/calendar`,
-                label: `Öppna ${team.name}s kalender`,
-                description: 'Lagets kalender',
+                label: toolText(locale, `Open ${team.name}'s calendar`, `Öppna ${team.name}s kalender`),
+                description: toolText(locale, 'Team calendar', 'Lagets kalender'),
               },
               teamTests: {
                 href: `/coach/teams/${team.id}/tests`,
-                label: `Öppna ${team.name}s tester`,
-                description: 'Lagets testvy',
+                label: toolText(locale, `Open ${team.name}'s tests`, `Öppna ${team.name}s tester`),
+                description: toolText(locale, 'Team test view', 'Lagets testvy'),
               },
             }
             const navigation = teamRoutes[destination]
@@ -2190,13 +2208,20 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
                 entityId: team.id,
                 entityName: team.name,
               },
-              message: `Jag har förberett en genväg till ${navigation.description.toLowerCase()} för ${team.name}.`,
+              message: toolText(
+                locale,
+                `I prepared a shortcut to ${navigation.description.toLowerCase()} for ${team.name}.`,
+                `Jag har förberett en genväg till ${navigation.description.toLowerCase()} för ${team.name}.`
+              ),
             }
           }
 
-          const navigation = getStaticCoachNavigation(destination)
+          const navigation = getStaticCoachNavigation(destination, locale)
           if (!navigation) {
-            return { success: false, error: 'Den destinationen stöds inte ännu.' }
+            return {
+              success: false,
+              error: toolText(locale, 'That destination is not supported yet.', 'Den destinationen stöds inte ännu.'),
+            }
           }
 
           return {
@@ -2208,7 +2233,7 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
               entityId: null,
               entityName: null,
             },
-            message: `Jag har förberett en genväg: ${navigation.label}.`,
+            message: toolText(locale, `I prepared a shortcut: ${navigation.label}.`, `Jag har förberett en genväg: ${navigation.label}.`),
           }
         } catch (error) {
           logger.error('Error in suggestCoachNavigation tool', {
@@ -2220,7 +2245,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             teamId,
             teamName,
           }, error)
-          return { success: false, error: 'Kunde inte skapa navigeringen.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not create the navigation.', 'Kunde inte skapa navigeringen.'),
+          }
         }
       },
     }),
