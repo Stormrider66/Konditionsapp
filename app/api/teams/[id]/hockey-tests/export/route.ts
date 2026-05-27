@@ -26,6 +26,16 @@ import {
 
 const DEFAULT_DAYS = 365
 const SIMCA_EXPORT_VERSION = 'hockey-simca-v2'
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const COLUMNS = [
   'simca_export_version',
@@ -577,8 +587,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = getRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const daysParam = Number(request.nextUrl.searchParams.get('days') ?? DEFAULT_DAYS)
     const presetId = exportPresetFromParam(request.nextUrl.searchParams.get('preset'))
@@ -590,7 +603,7 @@ export async function GET(
 
     const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
     if (!accessibleTeam) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const team = await prisma.team.findFirst({
@@ -611,7 +624,7 @@ export async function GET(
       },
     })
 
-    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!team) return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
 
     if (manifestOnly) {
       return NextResponse.json({
@@ -964,6 +977,12 @@ export async function GET(
     })
   } catch (error) {
     logError('Hockey SIMCA export error:', error)
-    return NextResponse.json({ error: 'Failed to export hockey tests' }, { status: 500 })
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    }
+    return NextResponse.json(
+      { error: t(locale, 'Failed to export hockey tests', 'Kunde inte exportera hockeytester') },
+      { status: 500 }
+    )
   }
 }
