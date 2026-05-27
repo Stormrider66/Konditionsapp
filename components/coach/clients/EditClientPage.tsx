@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
+import { createClientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -132,6 +132,7 @@ const COPY: Record<AppLocale, {
 export default function EditClientPage() {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
+  const formSchema = useMemo(() => createClientSchema(locale), [locale])
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
@@ -153,7 +154,7 @@ export default function EditClientPage() {
     reset,
     formState: { errors },
   } = useForm<ClientFormData>({
-    resolver: zodResolver(clientSchema),
+    resolver: zodResolver(formSchema),
   })
 
   const gender = watch('gender')

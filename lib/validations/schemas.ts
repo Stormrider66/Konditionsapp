@@ -2,6 +2,12 @@
 import { z } from 'zod'
 export { detectLactateDecreases } from '@/lib/lactate/data-quality'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // Helper to convert NaN to undefined for optional number fields
 const optionalNumber = (min: number, max: number) =>
   z
@@ -11,34 +17,38 @@ const optionalNumber = (min: number, max: number) =>
     )
 
 // Klient-validering
-export const clientSchema = z.object({
-  name: z.string().min(2, 'Namnet måste vara minst 2 tecken').max(100),
-  email: z.string().email('Ogiltig e-postadress').optional().or(z.literal('')),
-  phone: z.string().optional(),
-  gender: z.enum(['MALE', 'FEMALE']),
-  birthDate: z.string().refine(
-    (date) => {
-      const age = new Date().getFullYear() - new Date(date).getFullYear()
-      return age >= 10 && age <= 100
-    },
-    { message: 'Ålder måste vara mellan 10 och 100 år' }
-  ),
-  height: z.number().min(100, 'Längd måste vara minst 100 cm').max(250),
-  weight: z.number().min(30, 'Vikt måste vara minst 30 kg').max(300),
-  notes: z.string().optional(),
-  teamId: z.string().optional().or(z.literal('')),
-  jerseyNumber: z
-    .union([z.number(), z.nan(), z.undefined()])
-    .transform((v): number | undefined =>
-      typeof v === 'number' && !isNaN(v) ? v : undefined
-    )
-    .refine((v) => v === undefined || (Number.isInteger(v) && v >= 0 && v <= 999), {
-      message: 'Tröjnummer måste vara mellan 0 och 999',
-    }),
-  position: z.string().max(40).optional().or(z.literal('')),
-  photoUrl: z.string().url().max(2048).optional().or(z.literal('')),
-  athleteTier: z.enum(['FREE', 'STANDARD', 'PRO', 'ELITE']).optional(),
-})
+export function createClientSchema(locale: AppLocale = 'en') {
+  return z.object({
+    name: z.string().min(2, t(locale, 'Name must be at least 2 characters', 'Namnet måste vara minst 2 tecken')).max(100),
+    email: z.string().email(t(locale, 'Invalid email address', 'Ogiltig e-postadress')).optional().or(z.literal('')),
+    phone: z.string().optional(),
+    gender: z.enum(['MALE', 'FEMALE']),
+    birthDate: z.string().refine(
+      (date) => {
+        const age = new Date().getFullYear() - new Date(date).getFullYear()
+        return age >= 10 && age <= 100
+      },
+      { message: t(locale, 'Age must be between 10 and 100 years', 'Ålder måste vara mellan 10 och 100 år') }
+    ),
+    height: z.number().min(100, t(locale, 'Height must be at least 100 cm', 'Längd måste vara minst 100 cm')).max(250),
+    weight: z.number().min(30, t(locale, 'Weight must be at least 30 kg', 'Vikt måste vara minst 30 kg')).max(300),
+    notes: z.string().optional(),
+    teamId: z.string().optional().or(z.literal('')),
+    jerseyNumber: z
+      .union([z.number(), z.nan(), z.undefined()])
+      .transform((v): number | undefined =>
+        typeof v === 'number' && !isNaN(v) ? v : undefined
+      )
+      .refine((v) => v === undefined || (Number.isInteger(v) && v >= 0 && v <= 999), {
+        message: t(locale, 'Jersey number must be between 0 and 999', 'Tröjnummer måste vara mellan 0 och 999'),
+      }),
+    position: z.string().max(40).optional().or(z.literal('')),
+    photoUrl: z.string().url().max(2048).optional().or(z.literal('')),
+    athleteTier: z.enum(['FREE', 'STANDARD', 'PRO', 'ELITE']).optional(),
+  })
+}
+
+export const clientSchema = createClientSchema('sv')
 
 // Test-stage validering (form version with separate minutes/seconds)
 export const testStageSchema = z.object({

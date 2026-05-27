@@ -1,11 +1,11 @@
 // app/(business)/[businessSlug]/coach/clients/new/page.tsx
 'use client'
 
-import { useCallback, useState, useEffect } from 'react'
+import { useCallback, useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
+import { createClientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -21,7 +21,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface TeamOption {
   id: string
@@ -42,6 +42,8 @@ export default function BusinessNewClientPage() {
   const [teamsLoading, setTeamsLoading] = useState(true)
   const { toast } = useToast()
   const t = useTranslations('coach.pages.clientNew')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const formSchema = useMemo(() => createClientSchema(locale), [locale])
 
   const fetchTeams = useCallback(async () => {
     try {
@@ -70,7 +72,7 @@ export default function BusinessNewClientPage() {
     watch,
     formState: { errors },
   } = useForm<ClientFormData>({
-    resolver: zodResolver(clientSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       gender: 'MALE',
       teamId: prefilledTeamId,
