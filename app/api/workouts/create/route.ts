@@ -4,9 +4,20 @@ import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { addDays } from 'date-fns'
 import { logger } from '@/lib/logger'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language?: string | null): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
+    const locale = getUserLocale(user.language)
     const body = await request.json()
     
     const { 
@@ -22,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (!programId || !date) {
       return NextResponse.json(
-        { error: 'Program ID and Date are required' },
+        { error: t(locale, 'Program ID and date are required', 'Program-ID och datum krävs') },
         { status: 400 }
       )
     }
@@ -43,7 +54,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!program) {
-      return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Program not found', 'Program hittades inte') }, { status: 404 })
     }
 
     const createdWorkouts = []
@@ -146,7 +157,7 @@ export async function POST(request: NextRequest) {
                   // 1. Add the Interval
                   repeatedSegments.push({
                     ...baseSegment,
-                    notes: s.notes ? `${s.notes} (${r + 1}/${s.repeats})` : `Intervall ${r + 1}/${s.repeats}`
+                    notes: s.notes ? `${s.notes} (${r + 1}/${s.repeats})` : t(locale, `Interval ${r + 1}/${s.repeats}`, `Intervall ${r + 1}/${s.repeats}`)
                   })
                   
                   // 2. Add Rest (RECOVERY) if configured
@@ -157,7 +168,7 @@ export async function POST(request: NextRequest) {
                           type: 'RECOVERY',
                           duration: Number(s.restDuration),
                           zone: 1, // Usually Zone 1 for recovery
-                          notes: 'Vila',
+                          notes: t(locale, 'Rest', 'Vila'),
                           order: 0, // Will be re-indexed
                           exerciseId: null,
                           sets: null,
@@ -192,5 +203,4 @@ export async function POST(request: NextRequest) {
     return handleApiError(error)
   }
 }
-
 

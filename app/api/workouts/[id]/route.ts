@@ -4,17 +4,28 @@ import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { getClientZones } from '@/lib/api/zones'
 import { canAccessWorkout } from '@/lib/auth-utils'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language?: string | null): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const locale = getUserLocale(user.language)
     const { id } = await params
 
     const hasAccess = await canAccessWorkout(user.id, id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const workout = await prisma.workout.findUnique({
@@ -44,7 +55,7 @@ export async function GET(
 
     if (!workout) {
       return NextResponse.json(
-        { error: 'Workout not found' },
+        { error: t(locale, 'Workout not found', 'Passet hittades inte') },
         { status: 404 }
       )
     }
@@ -67,6 +78,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
+    const locale = getUserLocale(user.language)
     const { id } = await params
     const body = await request.json()
     
@@ -74,7 +86,7 @@ export async function PUT(
 
     const hasAccess = await canAccessWorkout(user.id, id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Verify workout exists
@@ -83,7 +95,7 @@ export async function PUT(
     })
 
     if (!existingWorkout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     // Transaction to update workout and replace segments
@@ -169,7 +181,7 @@ export async function PUT(
                   // 1. Add Interval
                   repeatedSegments.push({
                     ...baseSegment,
-                    notes: s.notes ? `${s.notes} (${r + 1}/${s.repeats})` : `Intervall ${r + 1}/${s.repeats}`
+                    notes: s.notes ? `${s.notes} (${r + 1}/${s.repeats})` : t(locale, `Interval ${r + 1}/${s.repeats}`, `Intervall ${r + 1}/${s.repeats}`)
                   })
 
                   // 2. Add Rest (RECOVERY)
@@ -183,7 +195,7 @@ export async function PUT(
                           pace: null,
                           heartRate: null,
                           power: null,
-                          notes: 'Vila',
+                          notes: t(locale, 'Rest', 'Vila'),
                           description: null,
                           order: 0,
                           exerciseId: null,
@@ -220,11 +232,12 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth()
+    const locale = getUserLocale(user.language)
     const { id } = await params
 
     const hasAccess = await canAccessWorkout(user.id, id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const existingWorkout = await prisma.workout.findUnique({
@@ -233,7 +246,7 @@ export async function DELETE(
     })
 
     if (!existingWorkout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     await prisma.workout.delete({
