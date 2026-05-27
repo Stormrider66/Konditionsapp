@@ -95,17 +95,17 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
 
   // Add readiness context if available
   if (athlete.dailyCheckIns && athlete.dailyCheckIns.length > 0) {
-    context += buildReadinessContext(athlete.dailyCheckIns);
+    context += buildReadinessContext(athlete.dailyCheckIns, locale);
   }
 
   // Add training load / ACWR context if available (NEW)
   if (athlete.trainingLoad) {
-    context += buildTrainingLoadContextForCoach(athlete.trainingLoad);
+    context += buildTrainingLoadContextForCoach(athlete.trainingLoad, locale);
   }
 
   // Add compliance rate if available (NEW)
   if (athlete.complianceRate !== undefined) {
-    context += buildComplianceContextForCoach(athlete.complianceRate);
+    context += buildComplianceContextForCoach(athlete.complianceRate, locale);
   }
 
   // Add strength training context if available (NEW)
@@ -115,7 +115,7 @@ export function buildSportSpecificContext(athlete: AthleteData, locale: 'en' | '
 
   // Add athlete self-description if available (NEW)
   if (athlete.athleteProfile) {
-    context += buildAthleteProfileContextForCoach(athlete.athleteProfile, athlete.sportProfile ?? undefined);
+    context += buildAthleteProfileContextForCoach(athlete.athleteProfile, athlete.sportProfile ?? undefined, locale);
   }
 
   // Add coach notes if available (NEW)

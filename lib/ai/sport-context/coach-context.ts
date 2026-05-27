@@ -1,7 +1,6 @@
 import type {
   AthleteProfileData,
   CoachNoteData,
-  SportProfile,
   StrengthSessionData,
   TrainingLoadData,
 } from './types'
@@ -12,66 +11,75 @@ function dateLocale(locale: SportContextLocale): string {
   return locale === 'sv' ? 'sv-SE' : 'en-US'
 }
 
+function t(locale: SportContextLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ==================== NEW CONTEXT BUILDERS ====================
 
-export function buildTrainingLoadContextForCoach(load: TrainingLoadData): string {
-  let context = `\n### Träningsbelastning (ACWR)\n`;
+export function buildTrainingLoadContextForCoach(
+  load: TrainingLoadData,
+  locale: SportContextLocale = 'en'
+): string {
+  let context = `\n### ${t(locale, 'Training load (ACWR)', 'Träningsbelastning (ACWR)')}\n`;
 
   if (load.acuteLoad !== null) {
-    context += `- **Akut belastning (7d)**: ${load.acuteLoad.toFixed(0)}\n`;
+    context += `- **${t(locale, 'Acute load (7d)', 'Akut belastning (7d)')}**: ${load.acuteLoad.toFixed(0)}\n`;
   }
   if (load.chronicLoad !== null) {
-    context += `- **Kronisk belastning (28d)**: ${load.chronicLoad.toFixed(0)}\n`;
+    context += `- **${t(locale, 'Chronic load (28d)', 'Kronisk belastning (28d)')}**: ${load.chronicLoad.toFixed(0)}\n`;
   }
   if (load.acwr !== null) {
-    context += `- **ACWR-kvot**: ${load.acwr.toFixed(2)}\n`;
+    context += `- **${t(locale, 'ACWR ratio', 'ACWR-kvot')}**: ${load.acwr.toFixed(2)}\n`;
 
     // Add guidance
     if (load.acwr < 0.8) {
-      context += `- **Status**: Undertränad/återhämtning\n`;
+      context += `- **${t(locale, 'Status', 'Status')}**: ${t(locale, 'Detraining/recovery', 'Undertränad/återhämtning')}\n`;
     } else if (load.acwr <= 1.3) {
-      context += `- **Status**: Optimal belastning\n`;
+      context += `- **${t(locale, 'Status', 'Status')}**: ${t(locale, 'Optimal load', 'Optimal belastning')}\n`;
     } else if (load.acwr <= 1.5) {
-      context += `- **Status**: Förhöjd risk - var försiktig\n`;
+      context += `- **${t(locale, 'Status', 'Status')}**: ${t(locale, 'Elevated risk - be careful', 'Förhöjd risk - var försiktig')}\n`;
     } else {
-      context += `- **Status**: Kritiskt hög - rekommendera vila\n`;
+      context += `- **${t(locale, 'Status', 'Status')}**: ${t(locale, 'Critically high - recommend rest', 'Kritiskt hög - rekommendera vila')}\n`;
     }
   }
   if (load.acwrZone) {
-    const zoneMap: Record<string, string> = {
-      DETRAINING: 'Avträning',
-      OPTIMAL: 'Optimal',
-      CAUTION: 'Varning',
-      DANGER: 'Fara',
-      CRITICAL: 'Kritisk',
+    const zoneMap: Record<string, { en: string; sv: string }> = {
+      DETRAINING: { en: 'Detraining', sv: 'Avträning' },
+      OPTIMAL: { en: 'Optimal', sv: 'Optimal' },
+      CAUTION: { en: 'Caution', sv: 'Varning' },
+      DANGER: { en: 'Danger', sv: 'Fara' },
+      CRITICAL: { en: 'Critical', sv: 'Kritisk' },
     };
-    context += `- **Belastningszon**: ${zoneMap[load.acwrZone] || load.acwrZone}\n`;
+    const zone = zoneMap[load.acwrZone];
+    context += `- **${t(locale, 'Load zone', 'Belastningszon')}**: ${zone ? zone[locale] : load.acwrZone}\n`;
   }
   if (load.injuryRisk) {
-    const riskMap: Record<string, string> = {
-      LOW: 'Låg',
-      MODERATE: 'Måttlig',
-      HIGH: 'Hög',
-      VERY_HIGH: 'Mycket hög',
+    const riskMap: Record<string, { en: string; sv: string }> = {
+      LOW: { en: 'Low', sv: 'Låg' },
+      MODERATE: { en: 'Moderate', sv: 'Måttlig' },
+      HIGH: { en: 'High', sv: 'Hög' },
+      VERY_HIGH: { en: 'Very high', sv: 'Mycket hög' },
     };
-    context += `- **Skaderisk**: ${riskMap[load.injuryRisk] || load.injuryRisk}\n`;
+    const risk = riskMap[load.injuryRisk];
+    context += `- **${t(locale, 'Injury risk', 'Skaderisk')}**: ${risk ? risk[locale] : load.injuryRisk}\n`;
   }
 
   return context;
 }
 
-export function buildComplianceContextForCoach(rate: number): string {
-  let context = `\n### Träningsefterlevnad (30 dagar)\n`;
-  context += `- **Efterlevnadsgrad**: ${rate.toFixed(0)}%\n`;
+export function buildComplianceContextForCoach(rate: number, locale: SportContextLocale = 'en'): string {
+  let context = `\n### ${t(locale, 'Training compliance (30 days)', 'Träningsefterlevnad (30 dagar)')}\n`;
+  context += `- **${t(locale, 'Compliance rate', 'Efterlevnadsgrad')}**: ${rate.toFixed(0)}%\n`;
 
   if (rate >= 90) {
-    context += `- **Bedömning**: Utmärkt - följer programmet mycket väl\n`;
+    context += `- **${t(locale, 'Assessment', 'Bedömning')}**: ${t(locale, 'Excellent - follows the program very well', 'Utmärkt - följer programmet mycket väl')}\n`;
   } else if (rate >= 70) {
-    context += `- **Bedömning**: Bra - följer programmet i stort\n`;
+    context += `- **${t(locale, 'Assessment', 'Bedömning')}**: ${t(locale, 'Good - generally follows the program', 'Bra - följer programmet i stort')}\n`;
   } else if (rate >= 50) {
-    context += `- **Bedömning**: Måttlig - missar en del pass, överväg anpassning\n`;
+    context += `- **${t(locale, 'Assessment', 'Bedömning')}**: ${t(locale, 'Moderate - misses some sessions, consider adjusting', 'Måttlig - missar en del pass, överväg anpassning')}\n`;
   } else {
-    context += `- **Bedömning**: Låg - svårt att följa programmet, diskutera med atleten\n`;
+    context += `- **${t(locale, 'Assessment', 'Bedömning')}**: ${t(locale, 'Low - hard to follow the program, discuss with the athlete', 'Låg - svårt att följa programmet, diskutera med atleten')}\n`;
   }
 
   return context;
@@ -81,27 +89,27 @@ export function buildStrengthContextForCoach(
   sessions: StrengthSessionData[],
   locale: SportContextLocale = 'en'
 ): string {
-  let context = `\n### Styrketräning (senaste)\n`;
+  let context = `\n### ${t(locale, 'Strength training (latest)', 'Styrketräning (senaste)')}\n`;
 
-  const phaseMap: Record<string, string> = {
-    ANATOMICAL_ADAPTATION: 'Anatomisk anpassning',
-    MAX_STRENGTH: 'Maxstyrka',
-    POWER: 'Power',
-    STRENGTH_ENDURANCE: 'Styrkeuthållighet',
-    MAINTENANCE: 'Underhåll',
+  const phaseMap: Record<string, { en: string; sv: string }> = {
+    ANATOMICAL_ADAPTATION: { en: 'Anatomical adaptation', sv: 'Anatomisk anpassning' },
+    MAX_STRENGTH: { en: 'Max strength', sv: 'Maxstyrka' },
+    POWER: { en: 'Power', sv: 'Power' },
+    STRENGTH_ENDURANCE: { en: 'Strength endurance', sv: 'Styrkeuthållighet' },
+    MAINTENANCE: { en: 'Maintenance', sv: 'Underhåll' },
   };
 
   for (const session of sessions.slice(0, 3)) {
     const date = new Date(session.assignedDate).toLocaleDateString(dateLocale(locale));
-    const phase = phaseMap[session.phase] || session.phase;
+    const phase = phaseMap[session.phase]?.[locale] || session.phase;
     context += `- **${session.name}** (${date}) - ${phase}\n`;
 
     if (session.exercises && Array.isArray(session.exercises)) {
       const exerciseNames = session.exercises
         .slice(0, 4)
-        .map(e => e.exerciseName || 'Övning')
+        .map(e => e.exerciseName || t(locale, 'Exercise', 'Övning'))
         .join(', ');
-      context += `  Övningar: ${exerciseNames}${session.exercises.length > 4 ? '...' : ''}\n`;
+      context += `  ${t(locale, 'Exercises', 'Övningar')}: ${exerciseNames}${session.exercises.length > 4 ? '...' : ''}\n`;
     }
   }
 
@@ -111,15 +119,16 @@ export function buildStrengthContextForCoach(
 export function buildAthleteProfileContextForCoach(
   profile: AthleteProfileData,
   sportProfile?: { runningSettings: unknown; equipment?: unknown; preferredSessionLength?: number | null } | null,
+  locale: SportContextLocale = 'en'
 ): string {
   const fields = [
-    { key: 'trainingBackground' as const, label: 'Träningsbakgrund' },
-    { key: 'longTermAmbitions' as const, label: 'Långsiktiga mål' },
-    { key: 'seasonalFocus' as const, label: 'Säsongsfokus' },
-    { key: 'personalMotivations' as const, label: 'Motivation' },
-    { key: 'trainingPreferences' as const, label: 'Preferenser' },
-    { key: 'constraints' as const, label: 'Begränsningar' },
-    { key: 'dietaryNotes' as const, label: 'Kost' },
+    { key: 'trainingBackground' as const, label: t(locale, 'Training background', 'Träningsbakgrund') },
+    { key: 'longTermAmbitions' as const, label: t(locale, 'Long-term ambitions', 'Långsiktiga mål') },
+    { key: 'seasonalFocus' as const, label: t(locale, 'Season focus', 'Säsongsfokus') },
+    { key: 'personalMotivations' as const, label: t(locale, 'Motivation', 'Motivation') },
+    { key: 'trainingPreferences' as const, label: t(locale, 'Preferences', 'Preferenser') },
+    { key: 'constraints' as const, label: t(locale, 'Constraints', 'Begränsningar') },
+    { key: 'dietaryNotes' as const, label: t(locale, 'Nutrition', 'Kost') },
   ];
 
   const filledFields = fields.filter(f => profile[f.key]);
@@ -131,7 +140,7 @@ export function buildAthleteProfileContextForCoach(
     return '';
   }
 
-  let context = `\n### Atletens egna reflektioner\n`;
+  let context = `\n### ${t(locale, "Athlete's own reflections", 'Atletens egna reflektioner')}\n`;
 
   for (const field of filledFields) {
     // Truncate long fields for coach context
@@ -150,43 +159,43 @@ export function buildAthleteProfileContextForCoach(
 
   const workoutTypes = settings.preferredWorkoutTypes as string[] | undefined;
   if (workoutTypes?.length) {
-    context += `- **Föredragna passtyper**: ${workoutTypes.join(', ')}\n`;
+    context += `- **${t(locale, 'Preferred session types', 'Föredragna passtyper')}**: ${workoutTypes.join(', ')}\n`;
   }
   const favExercises = truncate(settings.favoriteExercises);
   if (favExercises) {
-    context += `- **Favoritövningar**: ${favExercises}\n`;
+    context += `- **${t(locale, 'Favorite exercises', 'Favoritövningar')}**: ${favExercises}\n`;
   }
   if (equipmentObj) {
     const available = Object.entries(equipmentObj).filter(([, v]) => v).map(([k]) => k);
     if (available.length > 0) {
-      context += `- **Utrustning**: ${available.join(', ')}\n`;
+      context += `- **${t(locale, 'Equipment', 'Utrustning')}**: ${available.join(', ')}\n`;
     }
   }
   const weak = truncate(settings.weakPoints);
   if (weak) {
-    context += `- **Svagheter**: ${weak}\n`;
+    context += `- **${t(locale, 'Weak points', 'Svagheter')}**: ${weak}\n`;
   }
   const strong = truncate(settings.strongPoints);
   if (strong) {
-    context += `- **Styrkor**: ${strong}\n`;
+    context += `- **${t(locale, 'Strengths', 'Styrkor')}**: ${strong}\n`;
   }
   const injuries = truncate(settings.injuriesLimitations);
   if (injuries) {
-    context += `- **Skador/begränsningar**: ${injuries}\n`;
+    context += `- **${t(locale, 'Injuries/limitations', 'Skador/begränsningar')}**: ${injuries}\n`;
   }
   const avoid = truncate(settings.areasToAvoid);
   if (avoid) {
-    context += `- **Undvik**: ${avoid}\n`;
+    context += `- **${t(locale, 'Avoid', 'Undvik')}**: ${avoid}\n`;
   }
   if (settings.workoutVarietyPreference) {
-    context += `- **Variationspreferens**: ${settings.workoutVarietyPreference}\n`;
+    context += `- **${t(locale, 'Variety preference', 'Variationspreferens')}**: ${settings.workoutVarietyPreference}\n`;
   }
   if (settings.feedbackStyle) {
-    context += `- **Feedbackstil**: ${settings.feedbackStyle}\n`;
+    context += `- **${t(locale, 'Feedback style', 'Feedbackstil')}**: ${settings.feedbackStyle}\n`;
   }
   const notes = truncate(settings.additionalNotes);
   if (notes) {
-    context += `- **Övriga anteckningar**: ${notes}\n`;
+    context += `- **${t(locale, 'Additional notes', 'Övriga anteckningar')}**: ${notes}\n`;
   }
 
   return context;
@@ -195,7 +204,7 @@ export function buildAthleteProfileContextForCoach(
 export function buildCoachNotesContext(notes: CoachNoteData[], locale: SportContextLocale = 'en'): string {
   if (notes.length === 0) return '';
 
-  let context = `\n### Tidigare anteckningar\n`;
+  let context = `\n### ${t(locale, 'Previous notes', 'Tidigare anteckningar')}\n`;
 
   for (const note of notes.slice(0, 5)) {
     const date = new Date(note.createdAt).toLocaleDateString(dateLocale(locale));

@@ -154,7 +154,7 @@ export function buildTierAwareContext(
 
   // Readiness data (for STANDARD and PRO)
   if (config.includeAdvancedMetrics && athlete.dailyCheckIns && athlete.dailyCheckIns.length > 0) {
-    context += buildReadinessContext(athlete.dailyCheckIns);
+    context += buildReadinessContext(athlete.dailyCheckIns, locale);
   }
 
   // Integration data (PRO tier only - with full depth, STANDARD gets summary)
@@ -193,7 +193,10 @@ export function buildTierAwareContext(
 
   // Truncate if needed for STANDARD tier
   if (config.maxContextLength > 0 && context.length > config.maxContextLength) {
-    context = context.substring(0, config.maxContextLength) + '\n\n[Kontext trunkerad - uppgradera till Pro för fullständig AI-analys]';
+    const truncationNotice = locale === 'sv'
+      ? '[Kontext trunkerad - uppgradera till Pro för fullständig AI-analys]'
+      : '[Context truncated - upgrade to Pro for full AI analysis]';
+    context = context.substring(0, config.maxContextLength) + `\n\n${truncationNotice}`;
   }
 
   return context;
