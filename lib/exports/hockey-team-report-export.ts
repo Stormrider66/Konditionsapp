@@ -138,6 +138,10 @@ function getReportLocale(locale?: string): ReportLocale {
   return locale === 'sv' ? 'sv' : 'en'
 }
 
+function copy(locale: ReportLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const CORE_METRICS = [
   'muscleLabWkg',
   'backSquat1RM',
@@ -270,7 +274,7 @@ function bandPriority(band: HockeyBenchmarkBand): number {
   return 4
 }
 
-function drawTrend(pdf: jsPDF, metric: HockeyHistoryMetric, y: number): number {
+function drawTrend(pdf: jsPDF, metric: HockeyHistoryMetric, y: number, locale: ReportLocale): number {
   const series = metric.teamTrend.filter((point): point is { date: string; average: number; count: number } => point.average != null)
   if (series.length < 2) return y
   y = addPageIfNeeded(pdf, y, 50)
@@ -287,7 +291,7 @@ function drawTrend(pdf: jsPDF, metric: HockeyHistoryMetric, y: number): number {
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(9)
   pdf.setTextColor(30, 30, 30)
-  pdf.text(`${metric.label} lagtrend`, x, y)
+  pdf.text(`${metric.label} ${copy(locale, 'team trend', 'lagtrend')}`, x, y)
   pdf.setDrawColor(226, 232, 240)
   pdf.rect(x, chartY, width, height)
   pdf.setDrawColor(8, 145, 178)
@@ -306,7 +310,7 @@ function drawTrend(pdf: jsPDF, metric: HockeyHistoryMetric, y: number): number {
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(7)
   pdf.setTextColor(105, 105, 105)
-  pdf.text(`${series[0].date} till ${series[series.length - 1].date}`, x + 2, chartY + height + 5)
+  pdf.text(`${series[0].date} ${copy(locale, 'to', 'till')} ${series[series.length - 1].date}`, x + 2, chartY + height + 5)
   pdf.text(`${formatMetricValue(min, metric.unit)}-${formatMetricValue(max, metric.unit)}`, PAGE_WIDTH - MARGIN - 42, chartY + height + 5)
 
   return chartY + height + 10
@@ -361,22 +365,28 @@ function actionPlan(pdf: jsPDF, actions: HockeyActionItem[], y: number): number 
   return y + 2
 }
 
-function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): number {
+function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number, locale: ReportLocale): number {
   const rows = buildTeamIceSpeedProfileRows(
     data.athletes.filter((athlete) => athlete.latestTestDate),
   )
   if (rows.length === 0) return y
 
-  y = sectionTitle(pdf, 'Ice speed profile', y)
+  y = sectionTitle(pdf, copy(locale, 'Ice speed profile', 'Isfartsprofil'), y)
   y = table(
     pdf,
-    ['Stint', 'Snabbast', 'Fart', 'Lagfart', 'Gap'],
+    [
+      'Stint',
+      copy(locale, 'Fastest', 'Snabbast'),
+      copy(locale, 'Speed', 'Fart'),
+      copy(locale, 'Team speed', 'Lagfart'),
+      'Gap',
+    ],
     rows.map((row) => [
       `${row.label} (${row.coverage})`,
       `${row.leaderName} ${row.timeS.toFixed(2)} s`,
       formatSpeed(row.speedKmh),
       formatSpeed(row.averageSpeedKmh),
-      `${formatDistance(row.medianGapM)} med · ${formatDistance(row.maxGapM)} max`,
+      `${formatDistance(row.medianGapM)} ${copy(locale, 'median', 'med')} · ${formatDistance(row.maxGapM)} max`,
     ]),
     y,
     { fontSize: 6.8 },
@@ -391,7 +401,11 @@ function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): num
     pdf.setFontSize(8)
     pdf.setTextColor(105, 105, 105)
     pdf.text(
-      `Largest distance spread: ${biggestGap.label}, ${formatDistance(biggestGap.maxGapM)} behind leader (${biggestGap.maxGapAthleteName ?? '-'})`,
+      copy(
+        locale,
+        `Largest distance spread: ${biggestGap.label}, ${formatDistance(biggestGap.maxGapM)} behind leader (${biggestGap.maxGapAthleteName ?? '-'})`,
+        `Störst distansspridning: ${biggestGap.label}, ${formatDistance(biggestGap.maxGapM)} bakom ledaren (${biggestGap.maxGapAthleteName ?? '-'})`
+      ),
       MARGIN,
       y,
     )
@@ -401,7 +415,7 @@ function iceSpeedProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): num
   return y + 2
 }
 
-function aerobicProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): number {
+function aerobicProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number, locale: ReportLocale): number {
   const metricKeys = ['vo2Max', 'lt2SpeedKmh', 'maxLactate', 'rampTimeSeconds']
   const rows = metricKeys
     .map((key) => {
@@ -418,8 +432,19 @@ function aerobicProfile(pdf: jsPDF, data: HockeyTeamReportData, y: number): numb
     .filter((row): row is string[] => row != null)
 
   if (rows.length === 0) return y
-  y = sectionTitle(pdf, 'Aerobic profile', y)
-  return table(pdf, ['Metric', 'Leader', 'Value', 'Team avg'], rows, y, { fontSize: 7 })
+  y = sectionTitle(pdf, copy(locale, 'Aerobic profile', 'Aerob profil'), y)
+  return table(
+    pdf,
+    [
+      copy(locale, 'Metric', 'Mätvärde'),
+      copy(locale, 'Leader', 'Ledare'),
+      copy(locale, 'Value', 'Värde'),
+      copy(locale, 'Team avg', 'Lagsnitt'),
+    ],
+    rows,
+    y,
+    { fontSize: 7 }
+  )
 }
 
 function pathwayChange(value: number | null | undefined, unit: string): string {
@@ -428,17 +453,17 @@ function pathwayChange(value: number | null | undefined, unit: string): string {
   return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
-function developmentPathway(pdf: jsPDF, data: HockeyTeamReportData, y: number): number {
+function developmentPathway(pdf: jsPDF, data: HockeyTeamReportData, y: number, locale: ReportLocale): number {
   const pathway = data.pathway
   if (!pathway || pathway.seasonSummaries.length === 0) return y
 
-  y = sectionTitle(pdf, 'Development pathway', y)
+  y = sectionTitle(pdf, copy(locale, 'Development pathway', 'Utvecklingsväg'), y)
   y = summaryCards(
     pdf,
     ['J18', 'J20', 'A-team', 'Unknown'].map((level) => [
       level,
       `${pathway.latestLevelCounts[level] ?? 0}`,
-      'current level',
+      copy(locale, 'current level', 'nuvarande nivå'),
     ]),
     y,
   )
@@ -447,7 +472,7 @@ function developmentPathway(pdf: jsPDF, data: HockeyTeamReportData, y: number): 
   if (pathwayMetric) {
     y = table(
       pdf,
-      ['Season', 'Players', 'Tests', pathwayMetric.label],
+      [copy(locale, 'Season', 'Säsong'), copy(locale, 'Players', 'Spelare'), 'Tests', pathwayMetric.label],
       pathway.seasonSummaries.slice(-6).map((season) => [
         season.season,
         `${season.athleteCount}`,
@@ -462,7 +487,7 @@ function developmentPathway(pdf: jsPDF, data: HockeyTeamReportData, y: number): 
   if (pathway.promoted.length > 0) {
     y = table(
       pdf,
-      ['Promoted player', 'Level', 'Seasons', 'Tests'],
+      [copy(locale, 'Promoted player', 'Uppflyttad spelare'), 'Level', copy(locale, 'Seasons', 'Säsonger'), 'Tests'],
       pathway.promoted.slice(0, 8).map((athlete) => [
         athlete.name,
         athlete.currentLevel,
@@ -539,7 +564,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   pdf.setTextColor(255, 255, 255)
   pdf.setFont('helvetica', 'bold')
   pdf.setFontSize(18)
-  pdf.text('Hockey team report', MARGIN, 16)
+  pdf.text(copy(locale, 'Hockey team report', 'Hockey lagrapport'), MARGIN, 16)
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
   pdf.text(`${data.teamName} · ${new Date().toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 24)
@@ -571,25 +596,25 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     .filter((entry) => entry.warnings.length > 0)
 
   y = summaryCards(pdf, [
-    ['Athletes tested', `${testedAthletes}/${data.athletes.length}`],
-    ['Hockey tests', `${data.testCount}`],
-    ['Metrics tracked', `${data.metrics.length}`],
-    ['Watchlist', `${priorityItems.length}`, 'priority/watch flags'],
-    ['Quality flags', `${qualityWarnings.length}`, 'athletes to verify'],
+    [copy(locale, 'Athletes tested', 'Testade spelare'), `${testedAthletes}/${data.athletes.length}`],
+    [copy(locale, 'Hockey tests', 'Hockeytester'), `${data.testCount}`],
+    [copy(locale, 'Metrics tracked', 'Mätvärden'), `${data.metrics.length}`],
+    [copy(locale, 'Watchlist', 'Bevakningslista'), `${priorityItems.length}`, copy(locale, 'priority/watch flags', 'prioritet/bevakning')],
+    [copy(locale, 'Quality flags', 'Kvalitetsflaggor'), `${qualityWarnings.length}`, copy(locale, 'athletes to verify', 'spelare att verifiera')],
   ], y)
 
   const actions = buildHockeyActionItems(data, { locale })
   if (actions.length > 0) {
-    y = sectionTitle(pdf, 'Coach action plan', y)
+    y = sectionTitle(pdf, copy(locale, 'Coach action plan', 'Coachens åtgärdsplan'), y)
     y = actionPlan(pdf, actions, y)
   }
 
-  y = developmentPathway(pdf, data, y)
+  y = developmentPathway(pdf, data, y, locale)
 
-  y = sectionTitle(pdf, 'Leaders', y)
+  y = sectionTitle(pdf, copy(locale, 'Leaders', 'Ledare'), y)
   y = table(
     pdf,
-    ['Metric', 'Leader', 'Value', 'Team avg'],
+    [copy(locale, 'Metric', 'Mätvärde'), copy(locale, 'Leader', 'Ledare'), copy(locale, 'Value', 'Värde'), copy(locale, 'Team avg', 'Lagsnitt')],
     data.leaders
       .filter((leader) => leader.leader)
       .slice(0, 12)
@@ -602,10 +627,10 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     y,
   )
 
-  y = iceSpeedProfile(pdf, data, y)
-  y = aerobicProfile(pdf, data, y)
+  y = iceSpeedProfile(pdf, data, y, locale)
+  y = aerobicProfile(pdf, data, y, locale)
 
-  y = sectionTitle(pdf, 'Position coverage', y)
+  y = sectionTitle(pdf, copy(locale, 'Position coverage', 'Positionstäckning'), y)
   y = summaryCards(
     pdf,
     data.positions.map((position) => [
@@ -617,15 +642,15 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   )
 
   if (priorityItems.length > 0) {
-    y = sectionTitle(pdf, 'Priority and follow-up', y)
+    y = sectionTitle(pdf, copy(locale, 'Priority and follow-up', 'Prioritet och uppföljning'), y)
     y = table(
       pdf,
-      ['Athlete', 'Metric', 'Value', 'Band', 'Pos rank'],
+      [copy(locale, 'Athlete', 'Spelare'), copy(locale, 'Metric', 'Mätvärde'), copy(locale, 'Value', 'Värde'), 'Band', copy(locale, 'Pos rank', 'Positionsrank')],
       priorityItems.slice(0, 16).map((item) => [
         item.athlete.name,
         item.metric.label,
         formatMetricValue(item.value, item.metric.unit),
-        item.benchmark.band === 'priority' ? 'Priority' : 'Follow up',
+        item.benchmark.band === 'priority' ? copy(locale, 'Priority', 'Prioritet') : copy(locale, 'Follow up', 'Följ upp'),
         item.benchmark.positionRank && item.benchmark.positionCoverage > 1
           ? `${item.benchmark.positionRank}/${item.benchmark.positionCoverage}`
           : '-',
@@ -635,10 +660,10 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   }
 
   if (qualityWarnings.length > 0) {
-    y = sectionTitle(pdf, 'Test quality checks', y)
+    y = sectionTitle(pdf, copy(locale, 'Test quality checks', 'Testkvalitet'), y)
     y = table(
       pdf,
-      ['Athlete', 'Flags', 'First signal'],
+      [copy(locale, 'Athlete', 'Spelare'), copy(locale, 'Flags', 'Flaggor'), copy(locale, 'First signal', 'Första signal')],
       qualityWarnings.slice(0, 12).map((entry) => [
         entry.athlete.name,
         `${entry.warnings.length}`,
@@ -652,11 +677,11 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
   const trendMetric = data.history.find((metric) => metric.key === 'muscleLabWkg' && metric.teamTrend.length > 1)
     ?? data.history.find((metric) => metric.teamTrend.length > 1)
   if (trendMetric) {
-    y = sectionTitle(pdf, 'Team trend', y)
-    y = drawTrend(pdf, trendMetric, y)
+    y = sectionTitle(pdf, copy(locale, 'Team trend', 'Lagtrend'), y)
+    y = drawTrend(pdf, trendMetric, y, locale)
   }
 
-  y = sectionTitle(pdf, 'Athlete matrix', y)
+  y = sectionTitle(pdf, copy(locale, 'Athlete matrix', 'Spelarmatris'), y)
   const coreMetrics = CORE_METRICS
     .map((key) => metricByKey(data, key))
     .filter((metric): metric is HockeyMetric => Boolean(metric))
@@ -689,7 +714,7 @@ export function generateHockeyTeamReportPDF(data: HockeyTeamReportData): Blob {
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(8)
     pdf.setTextColor(140, 140, 140)
-    pdf.text(`Generated ${new Date().toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 286)
+    pdf.text(`${copy(locale, 'Generated', 'Genererad')} ${new Date().toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US')}`, MARGIN, 286)
     pdf.text(`Trainomics · ${page}/${pageCount}`, PAGE_WIDTH - MARGIN - 30, 286)
   }
 
