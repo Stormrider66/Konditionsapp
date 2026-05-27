@@ -9,21 +9,6 @@ import { z } from 'zod';
 import { validateRequest, successResponse, handleApiError, requireAuth } from '@/lib/api/utils';
 import { assessPainAndRecommend } from '@/lib/training-engine/injury-management/pain-assessment';
 import { generateReturnProtocol } from '@/lib/training-engine/injury-management/return-protocols';
-
-// Local helper function to assess ACWR risk from a single value
-function checkACWRRisk(acwr: number): { zone: string; injuryRisk: string; recommendation: string } {
-  if (acwr < 0.8) {
-    return { zone: 'DETRAINING', injuryRisk: 'LOW', recommendation: 'Gradual load increase recommended (5-10% weekly)' };
-  } else if (acwr <= 1.3) {
-    return { zone: 'OPTIMAL', injuryRisk: 'LOW', recommendation: 'Continue current progression' };
-  } else if (acwr <= 1.5) {
-    return { zone: 'CAUTION', injuryRisk: 'MODERATE', recommendation: 'Maintain current load, do not increase' };
-  } else if (acwr <= 2.0) {
-    return { zone: 'DANGER', injuryRisk: 'HIGH', recommendation: 'Reduce load 20-30%' };
-  } else {
-    return { zone: 'CRITICAL', injuryRisk: 'VERY_HIGH', recommendation: 'Reduce load 40-50% or complete rest' };
-  }
-}
 import { getRehabProtocol } from '@/lib/training-engine/injury-management/rehab-protocols';
 import {
   processInjuryDetection,
@@ -31,6 +16,53 @@ import {
 } from '@/lib/training-engine/integration/injury-management';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+
+type AppLocale = 'en' | 'sv';
+
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv';
+  const header = request.headers.get('accept-language')?.toLowerCase() ?? '';
+  return header.startsWith('sv') || header.includes('sv-') ? 'sv' : 'en';
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
+// Local helper function to assess ACWR risk from a single value
+function checkACWRRisk(acwr: number, locale: AppLocale): { zone: string; injuryRisk: string; recommendation: string } {
+  if (acwr < 0.8) {
+    return {
+      zone: 'DETRAINING',
+      injuryRisk: 'LOW',
+      recommendation: t(locale, 'Gradual load increase recommended (5-10% weekly)', 'Gradvis belastningsökning rekommenderas (5-10% per vecka)'),
+    };
+  } else if (acwr <= 1.3) {
+    return {
+      zone: 'OPTIMAL',
+      injuryRisk: 'LOW',
+      recommendation: t(locale, 'Continue current progression', 'Fortsätt med nuvarande progression'),
+    };
+  } else if (acwr <= 1.5) {
+    return {
+      zone: 'CAUTION',
+      injuryRisk: 'MODERATE',
+      recommendation: t(locale, 'Maintain current load, do not increase', 'Behåll nuvarande belastning, öka inte'),
+    };
+  } else if (acwr <= 2.0) {
+    return {
+      zone: 'DANGER',
+      injuryRisk: 'HIGH',
+      recommendation: t(locale, 'Reduce load 20-30%', 'Minska belastningen med 20-30%'),
+    };
+  } else {
+    return {
+      zone: 'CRITICAL',
+      injuryRisk: 'VERY_HIGH',
+      recommendation: t(locale, 'Reduce load 40-50% or complete rest', 'Minska belastningen med 40-50% eller vila helt'),
+    };
+  }
+}
 
 const requestSchema = z.object({
   athleteId: z.string(),
@@ -58,6 +90,7 @@ type InjuryAssessmentRequest = z.infer<typeof requestSchema>;
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
+    const locale = getRequestLocale(request, user.language);
 
     const validation = await validateRequest(request, requestSchema);
     if (!validation.success) return validation.response;
@@ -90,7 +123,7 @@ export async function POST(request: NextRequest) {
     // Check ACWR risk if available
     let acwrRisk = null;
     if (currentACWR) {
-      acwrRisk = checkACWRRisk(currentACWR);
+      acwrRisk = checkACWRRisk(currentACWR, locale);
     }
 
     // Get rehab protocol for specific injury
@@ -136,7 +169,7 @@ export async function POST(request: NextRequest) {
         phase: painLevel > 7 ? 'ACUTE' : painLevel > 4 ? 'SUBACUTE' : 'CHRONIC',
         recommendedProtocol: JSON.parse(JSON.stringify(recommendedProtocol)),
         estimatedTimeOff: painDecision.estimatedTimeOff,
-        notes: buildAssessmentNotes(functionalLimitations, previousTreatment),
+        notes: buildAssessmentNotes(functionalLimitations, previousTreatment, locale),
       }
     });
 
@@ -176,58 +209,58 @@ export async function POST(request: NextRequest) {
         nextPhase: returnProtocol[0]?.phase ?? null,
         phases: returnProtocol
       },
-      recommendations: generateInjuryRecommendations(painDecision, severity, injuryType),
+      recommendations: generateInjuryRecommendations(painDecision, severity, injuryType, locale),
       cascade,
-    }, 'Injury assessed successfully', 201);
+    }, t(locale, 'Injury assessed successfully', 'Skadebedömningen är klar'), 201);
   } catch (error) {
     return handleApiError(error);
   }
 }
 
-function generateInjuryRecommendations(painDecision: any, severity: string, injuryType: string): string[] {
+function generateInjuryRecommendations(painDecision: any, severity: string, injuryType: string, locale: AppLocale): string[] {
   const recs: string[] = [];
 
   switch (painDecision.decision) {
     case 'STOP_IMMEDIATELY':
     case 'MEDICAL_EVALUATION':
-      recs.push('🛑 Stop training immediately');
-      recs.push('Schedule medical evaluation');
+      recs.push(t(locale, '🛑 Stop training immediately', '🛑 Avbryt träningen omedelbart'));
+      recs.push(t(locale, 'Schedule medical evaluation', 'Boka medicinsk bedömning'));
       break;
     case 'REST_2_3_DAYS':
     case 'REST_1_DAY':
-      recs.push('⚠️ Rest recommended before resuming activity');
-      recs.push('Introduce cross-training alternatives if pain-free');
+      recs.push(t(locale, '⚠️ Rest recommended before resuming activity', '⚠️ Vila rekommenderas innan aktivitet återupptas'));
+      recs.push(t(locale, 'Introduce cross-training alternatives if pain-free', 'Lägg in smärtfria alternativträningsformer'));
       break;
     case 'MODIFY':
-      recs.push('⚠️ Modify training - reduce intensity and volume');
-      recs.push('Monitor pain closely - stop if it increases');
+      recs.push(t(locale, '⚠️ Modify training - reduce intensity and volume', '⚠️ Modifiera träningen - minska intensitet och volym'));
+      recs.push(t(locale, 'Monitor pain closely - stop if it increases', 'Följ smärtan noggrant - avbryt om den ökar'));
       break;
     default:
-      recs.push('Continue with caution and monitor symptoms daily');
+      recs.push(t(locale, 'Continue with caution and monitor symptoms daily', 'Fortsätt försiktigt och följ symtom dagligen'));
       break;
   }
 
   if (severity === 'SEVERE') {
-    recs.push('Severe injury - expect 6-12 weeks for full recovery');
-    recs.push('Consider medical imaging to rule out stress fracture');
+    recs.push(t(locale, 'Severe injury - expect 6-12 weeks for full recovery', 'Allvarlig skada - räkna med 6-12 veckor till full återhämtning'));
+    recs.push(t(locale, 'Consider medical imaging to rule out stress fracture', 'Överväg bilddiagnostik för att utesluta stressfraktur'));
   } else if (severity === 'MODERATE') {
-    recs.push('Moderate injury - expect 3-6 weeks for recovery');
-    recs.push('Begin rehab exercises immediately');
+    recs.push(t(locale, 'Moderate injury - expect 3-6 weeks for recovery', 'Måttlig skada - räkna med 3-6 veckor till återhämtning'));
+    recs.push(t(locale, 'Begin rehab exercises immediately', 'Påbörja rehabövningar direkt'));
   } else {
-    recs.push('Mild injury - continue modified training with monitoring');
-    recs.push('Address underlying biomechanical issues');
+    recs.push(t(locale, 'Mild injury - continue modified training with monitoring', 'Mild skada - fortsätt modifierad träning med uppföljning'));
+    recs.push(t(locale, 'Address underlying biomechanical issues', 'Åtgärda bakomliggande biomekaniska faktorer'));
   }
 
   // Injury-specific recommendations
   switch (injuryType) {
     case 'PLANTAR_FASCIITIS':
-      recs.push('Ice bottle rolls, calf stretching, night splints');
+      recs.push(t(locale, 'Ice bottle rolls, calf stretching, night splints', 'Rulla med isflaska, stretcha vaderna och överväg nattskena'));
       break;
     case 'ACHILLES_TENDINOPATHY':
-      recs.push('Eccentric heel drops crucial for recovery');
+      recs.push(t(locale, 'Eccentric heel drops are crucial for recovery', 'Excentriska hällyft är centrala för återhämtning'));
       break;
     case 'IT_BAND_SYNDROME':
-      recs.push('Hip strengthening (glute med) is key');
+      recs.push(t(locale, 'Hip strengthening (glute med) is key', 'Höftstyrka (gluteus medius) är nyckeln'));
       break;
   }
 
@@ -290,13 +323,13 @@ function deriveFunctionalImpact(painLevel: number): 'NONE' | 'MILD' | 'MODERATE'
   return 'NONE';
 }
 
-function buildAssessmentNotes(limitations?: string[], treatments?: string[]) {
+function buildAssessmentNotes(limitations?: string[], treatments?: string[], locale: AppLocale = 'en') {
   const notes: string[] = [];
   if (limitations?.length) {
-    notes.push(`Functional limitations: ${limitations.join(', ')}`);
+    notes.push(`${t(locale, 'Functional limitations', 'Funktionsbegränsningar')}: ${limitations.join(', ')}`);
   }
   if (treatments?.length) {
-    notes.push(`Previous treatments: ${treatments.join(', ')}`);
+    notes.push(`${t(locale, 'Previous treatments', 'Tidigare behandlingar')}: ${treatments.join(', ')}`);
   }
   return notes.join(' | ') || null;
 }
