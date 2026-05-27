@@ -71,7 +71,7 @@ export function EmailReportButton({
         description: t('toast.generatingDescription'),
       })
 
-      const pdfBase64 = await generatePDFAsBase64(reportData)
+      const pdfBase64 = await generatePDFAsBase64(reportData, { locale })
 
       // Send email
       toast({

@@ -8,6 +8,11 @@ export interface PDFGenerationOptions {
   filename?: string
   quality?: number // 0-1, default 0.95
   scale?: number // default 2 for high quality
+  locale?: 'en' | 'sv'
+}
+
+function pdfText(locale: 'en' | 'sv' | undefined, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
@@ -139,10 +144,10 @@ export async function generatePDFFromElement(
 
   // Lägg till metadata
   pdf.setProperties({
-    title: `Konditionstest - ${reportData.client.name}`,
-    subject: 'Konditionstestrapport',
+    title: `${pdfText(options.locale, 'Fitness Test', 'Konditionstest')} - ${reportData.client.name}`,
+    subject: pdfText(options.locale, 'Fitness test report', 'Konditionstestrapport'),
     author: reportData.organization,
-    keywords: 'konditionstest, vo2max, träningszoner',
+    keywords: pdfText(options.locale, 'fitness test, vo2max, training zones', 'konditionstest, vo2max, träningszoner'),
     creator: reportData.organization,
   })
 
@@ -154,7 +159,7 @@ export async function generatePDFFromElement(
  * Genererar ett smart filnamn baserat på rapport-data
  * Format: Konditionstest_NamnNamnsson_2025-09-02.pdf
  */
-export function generatePDFFilename(reportData: ReportData): string {
+export function generatePDFFilename(reportData: ReportData, locale: 'en' | 'sv' = 'en'): string {
   // Ersätt mellanslag med understreck och ta bort specialtecken
   const clientName = reportData.client.name
     .replace(/\s+/g, '')
@@ -163,7 +168,8 @@ export function generatePDFFilename(reportData: ReportData): string {
 
   const testDate = format(reportData.test.testDate, 'yyyy-MM-dd')
 
-  return `Konditionstest_${clientName}_${testDate}.pdf`
+  const prefix = locale === 'sv' ? 'Konditionstest' : 'FitnessTest'
+  return `${prefix}_${clientName}_${testDate}.pdf`
 }
 
 /**
@@ -192,14 +198,16 @@ export async function generateAndDownloadPDF(
   const reportElement = document.querySelector('[data-pdf-content]') as HTMLElement
 
   if (!reportElement) {
-    throw new Error('Kunde inte hitta rapport-element att exportera')
+    throw new Error(
+      pdfText(options?.locale, 'Could not find the report element to export', 'Kunde inte hitta rapport-element att exportera')
+    )
   }
 
   // Generera PDF
   const pdfBlob = await generatePDFFromElement(reportElement, reportData, options)
 
   // Generera filnamn
-  const filename = options?.filename || generatePDFFilename(reportData)
+  const filename = options?.filename || generatePDFFilename(reportData, options?.locale)
 
   // Ladda ner
   downloadPDF(pdfBlob, filename)
@@ -216,7 +224,9 @@ export async function generatePDFAsBase64(
   const reportElement = document.querySelector('[data-pdf-content]') as HTMLElement
 
   if (!reportElement) {
-    throw new Error('Kunde inte hitta rapport-element att exportera')
+    throw new Error(
+      pdfText(options?.locale, 'Could not find the report element to export', 'Kunde inte hitta rapport-element att exportera')
+    )
   }
 
   // Generera PDF

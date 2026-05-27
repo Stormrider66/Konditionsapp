@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { ReportData } from '@/types'
 import { generateAndDownloadPDF } from '@/lib/pdf-generator'
 import { Download, Loader2 } from 'lucide-react'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface PDFExportButtonProps {
   reportData: ReportData
@@ -20,6 +20,7 @@ export function PDFExportButton({
   className = '',
 }: PDFExportButtonProps) {
   const t = useTranslations('reports.pdf')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState<string>('')
@@ -36,7 +37,7 @@ export function PDFExportButton({
       setProgress(t('progress.generatingPdf'))
 
       // Generera och ladda ner PDF
-      await generateAndDownloadPDF(reportData)
+      await generateAndDownloadPDF(reportData, { locale })
 
       setProgress(t('progress.done'))
 
