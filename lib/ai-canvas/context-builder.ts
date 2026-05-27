@@ -162,7 +162,11 @@ export async function buildCanvasContextSummary({
   })
 
   if (!clientWhere) {
-    return 'Selected canvas context could not be loaded because the selected athlete or team was not accessible.'
+    return t(
+      locale,
+      'Selected canvas context could not be loaded because the selected athlete or team was not accessible.',
+      'Vald canvaskontext kunde inte läsas in eftersom vald atlet eller valt lag inte var tillgängligt.'
+    )
   }
 
   const clients = await prisma.client.findMany({
@@ -179,12 +183,16 @@ export async function buildCanvasContextSummary({
   })
 
   if (clients.length === 0) {
-    return 'Selected canvas context did not match any accessible athletes.'
+    return t(
+      locale,
+      'Selected canvas context did not match any accessible athletes.',
+      'Vald canvaskontext matchade inga tillgängliga atleter.'
+    )
   }
 
   const clientIds = clients.map((client) => client.id)
   const lines: string[] = [
-    'Selected canvas context with live read-only data:',
+    t(locale, 'Selected canvas context with live read-only data:', 'Vald canvaskontext med live-data i skrivskyddat läge:'),
     selection.scope === 'athlete'
       ? `${t(locale, 'Focus: Athlete', 'Fokus: Atlet')} - ${clients[0].name}${clients[0].sportProfile?.primarySport ? ` (${clients[0].sportProfile.primarySport})` : ''}`
       : `${t(locale, 'Focus: Team', 'Fokus: Lag')} - ${clients[0].team?.name ?? t(locale, 'selected team', 'valt lag')} (${clients.length} ${t(locale, 'athletes', 'atleter')})`,

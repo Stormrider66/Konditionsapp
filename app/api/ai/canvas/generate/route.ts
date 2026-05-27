@@ -293,21 +293,33 @@ export async function POST(request: NextRequest) {
           `Template: ${templateId}`,
           `Template guidance: ${TEMPLATE_GUIDANCE[templateId]}`,
           '',
-          resolvedContextSummary ? `Selected canvas context:\n${resolvedContextSummary}\n` : '',
+          resolvedContextSummary ? `${t(locale, 'Selected canvas context:', 'Vald canvaskontext:')}\n${resolvedContextSummary}\n` : '',
           liveContextSummary
-            ? 'Important: this context includes live read-only platform data. Use the numbers carefully and say when data is missing.'
+            ? t(
+                locale,
+                'Important: this context includes live read-only platform data. Use the numbers carefully and say when data is missing.',
+                'Viktigt: den här kontexten innehåller live-data från plattformen i skrivskyddat läge. Använd siffrorna varsamt och säg när data saknas.'
+              )
             : contextSummary
-              ? 'Important: this context identifies what the coach selected. It does not include live metrics yet.'
+              ? t(
+                  locale,
+                  'Important: this context identifies what the coach selected. It does not include live metrics yet.',
+                  'Viktigt: den här kontexten beskriver vad coachen valde. Den innehåller ännu inga live-mätvärden.'
+                )
               : '',
-          skillContext ? `Relevant expert knowledge:\n${skillContext}\n` : '',
+          skillContext ? `${t(locale, 'Relevant expert knowledge:', 'Relevant expertkunskap:')}\n${skillContext}\n` : '',
           skillContext
-            ? 'Important: the expert knowledge is supporting reference material. Use it when relevant, but do not pretend it contains live athlete data.'
+            ? t(
+                locale,
+                'Important: the expert knowledge is supporting reference material. Use it when relevant, but do not pretend it contains live athlete data.',
+                'Viktigt: expertkunskapen är stödjande referensmaterial. Använd den när den är relevant, men påstå inte att den innehåller live-data om atleter.'
+              )
             : '',
           '',
-          'Coach request:',
+          t(locale, 'Coach request:', 'Coachens fråga:'),
           prompt,
           '',
-          'Create blocks that are ready to render in the canvas.',
+          t(locale, 'Create blocks that are ready to render in the canvas.', 'Skapa block som är redo att renderas i canvasen.'),
         ].join('\n'),
         ...generationTuning(resolved.modelId, { temperature: 0.2 }),
       }),
