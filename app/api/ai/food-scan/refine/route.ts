@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
     locale = user.language === 'sv' ? 'sv' : 'en'
@@ -316,7 +316,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (!keyContext) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
+        { status: 400 }
+      )
     }
 
     // Refinement can include image context and should stay on Gemini.
@@ -435,7 +438,7 @@ export async function POST(request: NextRequest) {
     )
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Surface a more helpful message when possible

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
     locale = user.language === 'sv' ? 'sv' : 'en'
@@ -93,7 +93,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (!keyContext) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
+        { status: 400 }
+      )
     }
 
     // Audio transcription is powered by Gemini for this flow.
@@ -126,7 +129,7 @@ export async function POST(request: NextRequest) {
         createText(
           t(
             locale,
-            'Transcribe this short audio recording to English text. The recording is about food and nutrition; the user is correcting or adding information about a meal. Return ONLY the transcribed text, nothing else.',
+            'Transcribe this short audio recording to clean text. The recording is about food and nutrition; the user is correcting or adding information about a meal. Keep the same language the user speaks and preserve food names, quantities, and units exactly where possible. Return ONLY the transcribed text, nothing else.',
             'Transkribera denna korta ljudinspelning till svensk text. Inspelningen handlar om mat och näring - användaren korrigerar eller lägger till information om en måltid. Returnera BARA den transkriberade texten, inget annat.'
           )
         ),
@@ -142,7 +145,7 @@ export async function POST(request: NextRequest) {
     logger.error('Food scan transcribe error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
