@@ -43,6 +43,56 @@ describe('non-running fallback generators', () => {
     expect(program.weeks?.[0].days.flatMap((day) => day.workouts).some((workout) => workout.type === 'CYCLING')).toBe(true)
   })
 
+  it('creates custom cycling fallback content in English by default', async () => {
+    const program = await generateCyclingProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'custom',
+      durationWeeks: 4,
+      sessionsPerWeek: 4,
+      ftp: 260,
+      locale: 'en',
+    }, client)
+
+    expectRealProgram(program, 'CYCLING', 4)
+    expect(JSON.stringify(program)).not.toMatch(swedishUserVisiblePattern)
+    expect(program.name).toContain('Cycling program')
+    expect(program.notes).toContain('Custom cycling program')
+  })
+
+  it('keeps custom cycling fallback content Swedish for Swedish users', async () => {
+    const program = await generateCyclingProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'custom',
+      durationWeeks: 4,
+      sessionsPerWeek: 4,
+      ftp: 260,
+      locale: 'sv',
+    }, client)
+
+    expectRealProgram(program, 'CYCLING', 4)
+    expect(program.name).toContain('Cykelprogram')
+    expect(program.notes).toContain('Anpassat cykelprogram')
+  })
+
+  it('localizes cycling template programs for English users', async () => {
+    const program = await generateCyclingProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'base-builder',
+      durationWeeks: 4,
+      sessionsPerWeek: 3,
+      weeklyHours: 8,
+      locale: 'en',
+    }, client)
+
+    expectRealProgram(program, 'CYCLING', 3)
+    expect(JSON.stringify(program)).not.toMatch(swedishUserVisiblePattern)
+    expect(program.name).toContain('Base Builder')
+    expect(program.weeks?.[0].focus).toContain('Basic aerobic development')
+  })
+
   it('creates useful custom skiing programs', async () => {
     const program = await generateSkiingProgram({
       clientId: 'client-1',
