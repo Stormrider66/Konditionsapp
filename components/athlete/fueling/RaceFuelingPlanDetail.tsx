@@ -1401,15 +1401,15 @@ function localizeRecommendation(
     case 'NO_DATA':
       return { label: 'No clear recommendation yet', action: 'Log carbohydrates, gut feel, and energy after the next long session.', reason: 'The recommendation needs at least one fueling log.', product }
     case 'REDUCE':
-      return { label: 'Back off next session', action: nextTarget ? `Next long session: aim for ${nextTarget} g/h and spread intake more evenly.` : recommendation.actionSv, reason: 'Gut response was low, so the target should be stabilized before increasing again.', product }
+      return { label: 'Back off next session', action: nextTarget ? `Next long session: aim for ${nextTarget} g/h and spread intake more evenly.` : 'Next long session: reduce intake slightly and spread it more evenly.', reason: 'Gut response was low, so the target should be stabilized before increasing again.', product }
     case 'HOLD':
-      return { label: recommendation.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level', action: nextTarget ? `Next long session: repeat ${nextTarget} g/h before increasing.` : recommendation.actionSv, reason: 'Gut response was acceptable but not stable enough for a clear progression.', product }
+      return { label: recommendation.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level', action: nextTarget ? `Next long session: repeat ${nextTarget} g/h before increasing.` : 'Next long session: repeat the current target before increasing.', reason: 'Gut response was acceptable but not stable enough for a clear progression.', product }
     case 'RACE_READY':
-      return { label: 'Ready for race target', action: nextTarget ? `Keep the race target at ${nextTarget} g/h and repeat with race products.` : recommendation.actionSv, reason: 'Multiple sessions show stable gut feel and energy close to target intake.', product }
+      return { label: 'Ready for race target', action: nextTarget ? `Keep the race target at ${nextTarget} g/h and repeat with race products.` : 'Keep the race target and repeat with race products.', reason: 'Multiple sessions show stable gut feel and energy close to target intake.', product }
     case 'PROGRESS':
-      return { label: 'Increase carefully', action: nextTarget ? `Next long session: test ${nextTarget} g/h if the session is race-like.` : recommendation.actionSv, reason: 'The latest log shows stable gut feel and energy.', product }
+      return { label: 'Increase carefully', action: nextTarget ? `Next long session: test ${nextTarget} g/h if the session is race-like.` : 'Next long session: test a small increase if the session is race-like.', reason: 'The latest log shows stable gut feel and energy.', product }
     case 'ON_TRACK':
     default:
-      return { label: 'Follow up', action: nextTarget ? `Next long session: continue with ${nextTarget} g/h and log the response.` : recommendation.actionSv, reason: 'There is data, but not a clear enough signal to increase or reduce.', product }
+      return { label: 'Follow up', action: nextTarget ? `Next long session: continue with ${nextTarget} g/h and log the response.` : 'Next long session: continue with the current target and log the response.', reason: 'There is data, but not a clear enough signal to increase or reduce.', product }
   }
 }
