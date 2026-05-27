@@ -36,9 +36,10 @@ export async function analyzeGeneric(
   id: string,
   analysis: FullAnalysis,
   client: ReturnType<typeof createGoogleGenAIClient>,
-  modelId: string
+  modelId: string,
+  locale: 'en' | 'sv' = 'en'
 ): Promise<NextResponse> {
-  const prompt = buildAnalysisPrompt(analysis)
+  const prompt = buildAnalysisPrompt(analysis, locale)
 
   const fps = analysis.videoType === 'STRENGTH' ? VIDEO_FPS.STRENGTH : VIDEO_FPS.DEFAULT
   const videoMetadata: VideoMetadata = { fps }

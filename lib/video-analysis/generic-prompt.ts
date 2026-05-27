@@ -13,18 +13,69 @@ export type GenericPromptAnalysis = {
   } | null
 }
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * Build the prompt for analysis types that don't have a specialised
  * analyzer (STRENGTH, RUNNING_GAIT fallback, default).
  */
-export function buildAnalysisPrompt(analysis: GenericPromptAnalysis): string {
-  const athleteName = analysis.athlete?.name || 'atleten'
-  const gender = analysis.athlete?.gender === 'MALE'
-    ? 'han'
-    : analysis.athlete?.gender === 'FEMALE' ? 'hon' : 'de'
+export function buildAnalysisPrompt(analysis: GenericPromptAnalysis, locale: AppLocale = 'en'): string {
+  const athleteName = analysis.athlete?.name || (locale === 'sv' ? 'atleten' : 'the athlete')
+  const gender = locale === 'sv'
+    ? analysis.athlete?.gender === 'MALE'
+      ? 'han'
+      : analysis.athlete?.gender === 'FEMALE' ? 'hon' : 'de'
+    : analysis.athlete?.gender === 'MALE'
+      ? 'he'
+      : analysis.athlete?.gender === 'FEMALE' ? 'she' : 'they'
 
   if (analysis.videoType === 'STRENGTH' && analysis.exercise) {
     const exercise = analysis.exercise
+    if (locale === 'en') {
+      return `You are an experienced strength coach and biomechanics expert. Analyze this video of ${athleteName} performing "${exercise.name}".
+
+## EXERCISE INFORMATION
+- **Name**: ${exercise.name}
+- **Description**: ${exercise.description || 'Not provided'}
+- **Muscle group**: ${exercise.muscleGroup || 'Not provided'}
+- **Biomechanical category**: ${exercise.biomechanicalPillar || 'Not provided'}
+${exercise.instructions ? `\n## INSTRUCTIONS\n${exercise.instructions}` : ''}
+
+## YOUR TASK
+Analyze the video carefully and provide a professional technical assessment. Respond in English using this JSON format:
+
+\`\`\`json
+{
+  "formScore": <0-100>,
+  "issues": [
+    {
+      "issue": "<short description>",
+      "severity": "LOW|MEDIUM|HIGH",
+      "timestamp": "<approximate time in the video if possible>",
+      "description": "<detailed explanation>"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": <1-5, where 1 is highest>,
+      "recommendation": "<what ${gender} should do>",
+      "explanation": "<why this matters>"
+    }
+  ],
+  "overallAssessment": "<summary assessment of the technique>",
+  "strengths": ["<things done well>"],
+  "areasForImprovement": ["<areas that need improvement>"]
+}
+\`\`\`
+
+Be specific and constructive. Focus on:
+1. Joint positions and movement patterns
+2. Core and trunk stability
+3. Tempo and control
+4. Load distribution
+5. Symmetry between right and left sides`
+    }
+
     return `Du är en erfaren styrketränare och biomekaniexpert. Analysera denna video av ${athleteName} som utför övningen "${exercise.nameSv || exercise.name}".
 
 ## ÖVNINGSINFORMATION
@@ -70,6 +121,50 @@ Var specifik och konstruktiv. Fokusera på:
   }
 
   if (analysis.videoType === 'RUNNING_GAIT') {
+    if (locale === 'en') {
+      return `You are an experienced running coach and biomechanics expert. Analyze this running video of ${athleteName}.
+
+## YOUR TASK
+Analyze running technique and movement patterns carefully. Respond in English using this JSON format:
+
+\`\`\`json
+{
+  "formScore": <0-100>,
+  "issues": [
+    {
+      "issue": "<short description>",
+      "severity": "LOW|MEDIUM|HIGH",
+      "timestamp": "<approximate time if possible>",
+      "description": "<detailed explanation>"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": <1-5>,
+      "recommendation": "<what ${gender} should do>",
+      "explanation": "<why this matters>"
+    }
+  ],
+  "overallAssessment": "<summary assessment>",
+  "strengths": ["<things done well>"],
+  "areasForImprovement": ["<areas that need improvement>"]
+}
+\`\`\`
+
+Analyze these aspects:
+1. **Foot strike**: heel, midfoot, or forefoot landing
+2. **Cadence**: estimated step frequency
+3. **Stride length**: proportional to cadence
+4. **Arm action**: swing pattern and position
+5. **Trunk posture**: lean and stability
+6. **Hip extension**: full extension at toe-off
+7. **Vertical oscillation**: up-and-down movement
+8. **Knee lift**: height and timing
+9. **Symmetry**: right/left differences
+
+Identify potential injury risks and inefficiencies.`
+    }
+
     return `Du är en erfaren löpcoach och biomekaniexpert. Analysera denna löpvideo av ${athleteName}.
 
 ## DIN UPPGIFT
@@ -114,6 +209,44 @@ Identifiera potentiella skaderisker och ineffektiviteter.`
   }
 
   // Default/Sport-specific analysis
+  if (locale === 'en') {
+    return `You are an experienced sports coach and movement expert. Analyze this video of ${athleteName}.
+
+## YOUR TASK
+Analyze the movement and technique carefully. Respond in English using this JSON format:
+
+\`\`\`json
+{
+  "formScore": <0-100>,
+  "issues": [
+    {
+      "issue": "<short description>",
+      "severity": "LOW|MEDIUM|HIGH",
+      "timestamp": "<approximate time if possible>",
+      "description": "<detailed explanation>"
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": <1-5>,
+      "recommendation": "<what ${gender} should do>",
+      "explanation": "<why this matters>"
+    }
+  ],
+  "overallAssessment": "<summary assessment>",
+  "strengths": ["<things done well>"],
+  "areasForImprovement": ["<areas that need improvement>"]
+}
+\`\`\`
+
+Analyze:
+1. Movement pattern and technique
+2. Posture and stability
+3. Coordination and timing
+4. Movement efficiency
+5. Potential improvement areas`
+  }
+
   return `Du är en erfaren idrottscoach och rörelsexpert. Analysera denna video av ${athleteName}.
 
 ## DIN UPPGIFT

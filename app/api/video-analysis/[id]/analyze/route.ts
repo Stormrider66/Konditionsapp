@@ -31,13 +31,21 @@ import { analyzeRunningGait } from '@/lib/video-analysis/analyzers/running-gait'
 
 // Video analysis can take a while (Gemini).
 export const maxDuration = 300
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id } = await params
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:run', user.id, {
@@ -65,7 +73,7 @@ export async function POST(
     })
 
     if (!analysis) {
-      return NextResponse.json({ error: 'Analysis not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Analysis not found', 'Analysen hittades inte') }, { status: 404 })
     }
 
     if (analysis.athleteId) {
@@ -82,7 +90,7 @@ export async function POST(
 
     if (!apiKeys?.googleKeyEncrypted) {
       return NextResponse.json(
-        { error: 'Google API key not configured. Please add your API key in settings.' },
+        { error: t(locale, 'Google API key not configured. Please add your API key in settings.', 'Google API-nyckel är inte konfigurerad. Lägg till din API-nyckel i inställningarna.') },
         { status: 400 }
       )
     }
@@ -126,7 +134,7 @@ export async function POST(
       }
       return await withAiContext(
         { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_generic' },
-        () => analyzeGeneric(id, analysis, client, modelId),
+        () => analyzeGeneric(id, analysis, client, modelId, locale),
       )
     } catch (aiError) {
       logger.error('AI analysis error', { id }, aiError)
@@ -142,7 +150,7 @@ export async function POST(
       const isProd = process.env.NODE_ENV === 'production'
       return NextResponse.json(
         {
-          error: 'AI analysis failed',
+          error: t(locale, 'AI analysis failed', 'AI-analysen misslyckades'),
           details: isProd
             ? undefined
             : aiError instanceof Error
@@ -156,9 +164,9 @@ export async function POST(
     logger.error('Video analysis error', { id: (await params).id }, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
-    return NextResponse.json({ error: 'Failed to analyze video' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to analyze video', 'Kunde inte analysera videon') }, { status: 500 })
   }
 }
