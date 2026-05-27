@@ -171,7 +171,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
     if (!storedProductPlan) return
 
     const gel = storedProductPlan.items.find((item) => item.label === 'Gel')
-    const bottle = storedProductPlan.items.find((item) => item.label === 'Flaskor sportdryck')
+    const bottle = storedProductPlan.items.find((item) => ['Flaskor sportdryck', 'Sports drink bottles'].includes(item.label))
     const chew = storedProductPlan.items.find((item) => item.label === 'Chews / bars')
 
     queueMicrotask(() => {
@@ -1092,7 +1092,7 @@ function buildProductPlan(input: ProductPlanInput, locale: AppLocale): ProductPl
   const difference = targetCarbs != null ? totalCarbs - targetCarbs : null
   const items = [
     productPlanItem('Gel', gelCount, gelCarbs),
-    productPlanItem('Flaskor sportdryck', bottleCount, bottleCarbs),
+    productPlanItem(text(locale, 'Flaskor sportdryck', 'Sports drink bottles'), bottleCount, bottleCarbs),
     productPlanItem('Chews / bars', chewCount, chewCarbs),
   ]
   const marginLabel = difference == null
