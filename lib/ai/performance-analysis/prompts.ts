@@ -119,9 +119,9 @@ ${hasTrainingData ? `
 ${formatTrainingContext(trainingContext!, locale)}
 ` : ''}
 
-### Instruktioner för analys
+### ${isSv ? 'Instruktioner för analys' : 'Analysis instructions'}
 
-Ge en djupgående analys som inkluderar:
+${isSv ? `Ge en djupgående analys som inkluderar:
 
 1. **Sammanfattning** (2-3 meningar)
    - Övergripande bedömning av testresultatet
@@ -144,43 +144,67 @@ Ge en djupgående analys som inkluderar:
 6. **Träningsrekommendationer** (3-5 prioriterade)
    - Konkreta åtgärder för att optimera träningen
    - Inkludera kategori (VOLYM, INTENSITET, ÅTERHÄMTNING, TEKNIK, STYRKA, KOST)
-   - Förklara varför och hur varje rekommendation ska implementeras
+   - Förklara varför och hur varje rekommendation ska implementeras`
+    : `Provide an in-depth analysis that includes:
 
-Svara i JSON-format enligt denna struktur:
+1. **Summary** (2-3 sentences)
+   - Overall assessment of the test result
+
+2. **Key findings** (3-5 bullets)
+   - Identify the most important insights from the test
+   - Categorize each finding (IMPROVEMENT, DECLINE, STRENGTH, WEAKNESS, INSIGHT, WARNING)
+
+3. **Strengths**
+   - List 2-3 clear strengths based on the test data
+
+4. **Development areas**
+   - List 2-3 areas with improvement potential
+
+5. **Predictions**
+   - Potential race times based on VO2max/thresholds
+   - Forecasted development with continued training
+   - Estimated time to the next performance level
+
+6. **Training recommendations** (3-5 prioritized)
+   - Concrete actions to optimize training
+   - Include category (VOLUME, INTENSITY, RECOVERY, TECHNIQUE, STRENGTH, NUTRITION)
+   - Explain why and how each recommendation should be implemented`}
+
+${isSv ? 'Svara i JSON-format enligt denna struktur:' : 'Respond in JSON using this structure:'}
 \`\`\`json
 {
-  "narrative": "Huvudanalystext...",
-  "executiveSummary": "Kort sammanfattning...",
+  "narrative": "${isSv ? 'Huvudanalystext...' : 'Main analysis text...'}",
+  "executiveSummary": "${isSv ? 'Kort sammanfattning...' : 'Brief summary...'}",
   "keyFindings": [
     {
       "category": "IMPROVEMENT|DECLINE|STRENGTH|WEAKNESS|INSIGHT|WARNING",
-      "title": "Kort titel",
-      "description": "Detaljerad beskrivning",
+      "title": "${isSv ? 'Kort titel' : 'Short title'}",
+      "description": "${isSv ? 'Detaljerad beskrivning' : 'Detailed description'}",
       "metric": "VO2max|LT1|LT2|etc",
       "significance": "HIGH|MEDIUM|LOW"
     }
   ],
-  "strengths": ["Styrka 1", "Styrka 2"],
-  "developmentAreas": ["Område 1", "Område 2"],
+  "strengths": ["${isSv ? 'Styrka 1' : 'Strength 1'}", "${isSv ? 'Styrka 2' : 'Strength 2'}"],
+  "developmentAreas": ["${isSv ? 'Område 1' : 'Area 1'}", "${isSv ? 'Område 2' : 'Area 2'}"],
   "predictions": [
     {
       "type": "RACE_TIME|THRESHOLD|VO2MAX|FITNESS_PEAK",
-      "title": "Prediktionstitel",
-      "prediction": "Konkret prediktion",
+      "title": "${isSv ? 'Prediktionstitel' : 'Prediction title'}",
+      "prediction": "${isSv ? 'Konkret prediktion' : 'Concrete prediction'}",
       "confidence": 0.8,
-      "basis": "Vad prediktionen baseras på",
-      "timeframe": "När detta kan uppnås"
+      "basis": "${isSv ? 'Vad prediktionen baseras på' : 'What the prediction is based on'}",
+      "timeframe": "${isSv ? 'När detta kan uppnås' : 'When this can be achieved'}"
     }
   ],
   "recommendations": [
     {
       "priority": 1,
       "category": "VOLUME|INTENSITY|RECOVERY|TECHNIQUE|STRENGTH|NUTRITION",
-      "title": "Rekommendationstitel",
-      "description": "Beskrivning",
-      "rationale": "Varför denna rekommendation",
-      "implementation": "Hur implementera",
-      "expectedOutcome": "Förväntad effekt"
+      "title": "${isSv ? 'Rekommendationstitel' : 'Recommendation title'}",
+      "description": "${isSv ? 'Beskrivning' : 'Description'}",
+      "rationale": "${isSv ? 'Varför denna rekommendation' : 'Why this recommendation matters'}",
+      "implementation": "${isSv ? 'Hur implementera' : 'How to implement'}",
+      "expectedOutcome": "${isSv ? 'Förväntad effekt' : 'Expected outcome'}"
     }
   ]
 }
@@ -231,9 +255,9 @@ ${trainingBetween ? `
 ${formatTrainingContext(trainingBetween, locale)}
 ` : ''}
 
-### Instruktioner för jämförelseanalys
+### ${isSv ? 'Instruktioner för jämförelseanalys' : 'Comparison analysis instructions'}
 
-Analysera förändringarna mellan testerna och identifiera:
+${isSv ? `Analysera förändringarna mellan testerna och identifiera:
 
 1. **Sammanfattning** (2-3 meningar)
    - Övergripande bedömning av utvecklingen
@@ -251,13 +275,32 @@ Analysera förändringarna mellan testerna och identifiera:
    - Identifiera oförklarad variation
 
 5. **Rekommendationer**
-   - Baserat på utvecklingen, vad bör prioriteras härnäst
+   - Baserat på utvecklingen, vad bör prioriteras härnäst`
+    : `Analyze changes between the tests and identify:
 
-Svara i JSON-format enligt denna struktur:
+1. **Summary** (2-3 sentences)
+   - Overall assessment of development
+
+2. **Key findings** (3-5 bullets)
+   - Which parameters improved/declined the most
+   - Statistical and practical significance of the changes
+
+3. **Delta analysis**
+   - Calculate absolute and percentage changes for each parameter
+   - Classify trend: IMPROVED, DECLINED, STABLE
+
+4. **Correlation analysis** (if training data exists)
+   - Which training factors likely contributed to the changes
+   - Identify unexplained variation
+
+5. **Recommendations**
+   - Based on the development, what should be prioritized next`}
+
+${isSv ? 'Svara i JSON-format enligt denna struktur:' : 'Respond in JSON using this structure:'}
 \`\`\`json
 {
-  "narrative": "Jämförelseanalystext...",
-  "executiveSummary": "Kort sammanfattning...",
+  "narrative": "${isSv ? 'Jämförelseanalystext...' : 'Comparison analysis text...'}",
+  "executiveSummary": "${isSv ? 'Kort sammanfattning...' : 'Brief summary...'}",
   "keyFindings": [...],
   "strengths": [...],
   "developmentAreas": [...],
@@ -274,21 +317,21 @@ Svara i JSON-format enligt denna struktur:
     "trainingBetweenTests": {
       "weeks": X,
       "totalSessions": X,
-      "avgWeeklyVolume": "X km/vecka",
+      "avgWeeklyVolume": "${isSv ? 'X km/vecka' : 'X km/week'}",
       "dominantTrainingType": "...",
-      "zoneDistributionSummary": "80/20 polariserad etc."
+      "zoneDistributionSummary": "${isSv ? '80/20 polariserad etc.' : '80/20 polarized, etc.'}"
     }
   },
   "correlationAnalysis": {
     "likelyContributors": [
       {
-        "factor": "Ökad Z2-volym",
+        "factor": "${isSv ? 'Ökad Z2-volym' : 'Increased Z2 volume'}",
         "impact": "POSITIVE|NEGATIVE|NEUTRAL",
         "confidence": 0.8,
         "explanation": "..."
       }
     ],
-    "unexplainedVariance": "Om något inte kan förklaras"
+    "unexplainedVariance": "${isSv ? 'Om något inte kan förklaras' : 'Anything that cannot be explained'}"
   },
   "predictions": [...],
   "recommendations": [...]
@@ -342,9 +385,9 @@ ${overallTraining ? `
 ${formatTrainingContext(overallTraining, locale)}
 ` : ''}
 
-### Instruktioner för trendanalys
+### ${isSv ? 'Instruktioner för trendanalys' : 'Trend analysis instructions'}
 
-Analysera den långsiktiga utvecklingen och identifiera:
+${isSv ? `Analysera den långsiktiga utvecklingen och identifiera:
 
 1. **Sammanfattning** (2-3 meningar)
    - Övergripande bild av atletens utveckling
@@ -366,13 +409,36 @@ Analysera den långsiktiga utvecklingen och identifiera:
    - Konfidensnivå för varje projektion
 
 5. **Rekommendationer**
-   - Strategiska råd för långsiktig utveckling
+   - Strategiska råd för långsiktig utveckling`
+    : `Analyze the long-term development and identify:
 
-Svara i JSON-format enligt denna struktur:
+1. **Summary** (2-3 sentences)
+   - Overall picture of the athlete's development
+
+2. **Trend statistics for each parameter**
+   - First and latest value
+   - Min, max, average
+   - Standard deviation
+   - Rate of change per month
+   - Trend: IMPROVING, STABLE, DECLINING
+   - R² (how linear the trend is)
+
+3. **Key findings** (3-5 bullets)
+   - Most important observations in the development
+   - Any plateaus or breakthroughs
+
+4. **Projections**
+   - Based on current trend, where the athlete may be in 3/6/12 months
+   - Confidence level for each projection
+
+5. **Recommendations**
+   - Strategic advice for long-term development`}
+
+${isSv ? 'Svara i JSON-format enligt denna struktur:' : 'Respond in JSON using this structure:'}
 \`\`\`json
 {
-  "narrative": "Trendanalystext...",
-  "executiveSummary": "Kort sammanfattning...",
+  "narrative": "${isSv ? 'Trendanalystext...' : 'Trend analysis text...'}",
+  "executiveSummary": "${isSv ? 'Kort sammanfattning...' : 'Brief summary...'}",
   "keyFindings": [...],
   "strengths": [...],
   "developmentAreas": [...],
@@ -404,7 +470,7 @@ Svara i JSON-format enligt denna struktur:
       "projectedValue": Y,
       "projectionDate": "2024-06-01",
       "confidence": 0.7,
-      "methodology": "Linjär extrapolering baserad på X datapunkter"
+      "methodology": "${isSv ? 'Linjär extrapolering baserad på X datapunkter' : 'Linear extrapolation based on X data points'}"
     }
   ],
   "predictions": [...],
@@ -451,9 +517,9 @@ Period ${i + 1} (${tp.weekCount} ${isSv ? 'veckor' : 'weeks'}):
 - ${isSv ? 'Styrkepass' : 'Strength sessions'}: ${tp.strengthSessions}
 `).join('')}
 
-### Instruktioner för korrelationsanalys
+### ${isSv ? 'Instruktioner för korrelationsanalys' : 'Correlation analysis instructions'}
 
-Analysera sambandet mellan träning och prestation:
+${isSv ? `Analysera sambandet mellan träning och prestation:
 
 1. **Korrelationer**
    - Identifiera starka (>0.7), måttliga (0.3-0.7) och svaga (<0.3) samband
@@ -466,9 +532,23 @@ Analysera sambandet mellan träning och prestation:
    - Rekommenderad zonfördelning
 
 3. **Rekommendationer**
-   - Optimera träningssammansättningen baserat på korrelationerna
+   - Optimera träningssammansättningen baserat på korrelationerna`
+    : `Analyze the relationship between training and performance:
 
-Svara i JSON-format:
+1. **Correlations**
+   - Identify strong (>0.7), moderate (0.3-0.7), and weak (<0.3) relationships
+   - Training factors: Z2 volume, interval frequency, strength training, rest, etc.
+   - Performance parameters: VO2max, thresholds, economy
+
+2. **Effectiveness insights**
+   - Which training gives the best results for this athlete
+   - Which training does not appear to produce the desired effect
+   - Recommended zone distribution
+
+3. **Recommendations**
+   - Optimize training composition based on the correlations`}
+
+${isSv ? 'Svara i JSON-format:' : 'Respond in JSON:'}
 \`\`\`json
 {
   "narrative": "...",
@@ -476,7 +556,7 @@ Svara i JSON-format:
   "keyFindings": [...],
   "correlations": [
     {
-      "trainingFactor": "Zon 2-volym",
+      "trainingFactor": "${isSv ? 'Zon 2-volym' : 'Zone 2 volume'}",
       "performanceMetric": "VO2max",
       "correlationStrength": 0.75,
       "significance": "SIGNIFICANT|MODERATE|WEAK|NONE",
@@ -494,7 +574,7 @@ Svara i JSON-format:
       "zone4": 10,
       "zone5": 5
     },
-    "methodology": "Baserat på X tester över Y månader"
+    "methodology": "${isSv ? 'Baserat på X tester över Y månader' : 'Based on X tests over Y months'}"
   },
   "recommendations": [...]
 }
