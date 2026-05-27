@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { buildCorrectionHints } from './build-correction-hints'
 
 const WEEKDAY_LABEL_SV = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fredag', 'lördag'] as const
+const WEEKDAY_LABEL_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] as const
 
 const MEAL_TYPE_LABEL_SV: Record<string, string> = {
   BREAKFAST: 'frukost',
@@ -14,16 +15,31 @@ const MEAL_TYPE_LABEL_SV: Record<string, string> = {
   EVENING_SNACK: 'kvällsmellanmål',
 }
 
+const MEAL_TYPE_LABEL_EN: Record<string, string> = {
+  BREAKFAST: 'breakfast',
+  MORNING_SNACK: 'morning snack',
+  LUNCH: 'lunch',
+  AFTERNOON_SNACK: 'afternoon snack',
+  PRE_WORKOUT: 'pre-workout',
+  POST_WORKOUT: 'post-workout',
+  DINNER: 'dinner',
+  EVENING_SNACK: 'evening snack',
+}
+
+type AppLocale = 'en' | 'sv'
+
 export interface MemoryContextOptions {
   clientId: string
   /** How many days of meal history to consider. Default: 60. */
   lookbackDays?: number
   /** Minimum times a food must appear to be included as a "frequent". Default: 3. */
   minOccurrences?: number
+  /** Prompt language. Default: English. */
+  locale?: AppLocale
 }
 
 export interface MemoryContextResult {
-  /** Swedish prompt-ready text block. Empty string if user has too little history. */
+  /** Prompt-ready text block. Empty string if user has too little history. */
   text: string
   /** Counts for debugging / telemetry. */
   stats: {
@@ -36,14 +52,16 @@ export interface MemoryContextResult {
 }
 
 /**
- * Build a compact Swedish context string from a user's recent meals.
+ * Build a compact context string from a user's recent meals.
  * Surfaces top foods, top meal descriptions, and day-of-week/mealtime patterns.
  * Returns empty text if there's too little data to be useful (< 10 meals).
  */
 export async function buildFoodMemoryContext(
   options: MemoryContextOptions,
 ): Promise<MemoryContextResult> {
-  const { clientId, lookbackDays = 60, minOccurrences = 3 } = options
+  const { clientId, lookbackDays = 60, minOccurrences = 3, locale = 'en' } = options
+  const weekdayLabels = locale === 'sv' ? WEEKDAY_LABEL_SV : WEEKDAY_LABEL_EN
+  const mealTypeLabels = locale === 'sv' ? MEAL_TYPE_LABEL_SV : MEAL_TYPE_LABEL_EN
 
   const since = new Date()
   since.setDate(since.getDate() - lookbackDays)
@@ -83,7 +101,7 @@ export async function buildFoodMemoryContext(
     }),
   ])
 
-  const correctionHints = buildCorrectionHints(corrections)
+  const correctionHints = buildCorrectionHints(corrections, { locale })
 
   // If we have neither enough meals nor any correction hints, bail early —
   // no useful context to inject.
@@ -174,7 +192,9 @@ export async function buildFoodMemoryContext(
     const [name, count] = top
     if (count < 3 || count / totals < 0.5) continue
     strongSignals.push(
-      `${WEEKDAY_LABEL_SV[Number(weekdayStr)]} ${MEAL_TYPE_LABEL_SV[mealType] ?? mealType}: ${name} (${count}/${totals} ggr)`,
+      locale === 'sv'
+        ? `${weekdayLabels[Number(weekdayStr)]} ${mealTypeLabels[mealType] ?? mealType}: ${name} (${count}/${totals} ggr)`
+        : `${weekdayLabels[Number(weekdayStr)]} ${mealTypeLabels[mealType] ?? mealType}: ${name} (${count}/${totals} times)`,
     )
     if (strongSignals.length >= 5) break
   }
@@ -202,35 +222,51 @@ export async function buildFoodMemoryContext(
     lines.push(correctionHints)
     lines.push('')
   }
-  lines.push('ANVÄNDARENS MATHISTORIK (de senaste ' + lookbackDays + ' dagarna — ledtråd, inte facit):')
+  lines.push(
+    locale === 'sv'
+      ? 'ANVÄNDARENS MATHISTORIK (de senaste ' + lookbackDays + ' dagarna — ledtråd, inte facit):'
+      : "USER'S MEAL HISTORY (last " + lookbackDays + ' days - clue, not ground truth):'
+  )
 
   if (frequentFoods.length > 0) {
-    lines.push('Vanliga livsmedel per måltidstyp:')
+    lines.push(locale === 'sv' ? 'Vanliga livsmedel per måltidstyp:' : 'Common foods by meal type:')
     for (const f of frequentFoods.slice(0, 12)) {
       const medianGrams = median(f.grams)
       const portion = mostCommon(f.portionDescriptions)
-      const portionHint = portion ? `, typiskt "${portion}"` : ''
+      const portionHint = portion
+        ? locale === 'sv'
+          ? `, typiskt "${portion}"`
+          : `, typically "${portion}"`
+        : ''
       lines.push(
-        `- ${MEAL_TYPE_LABEL_SV[f.mealType] ?? f.mealType}: ${f.name} (~${Math.round(medianGrams)}g${portionHint}, ${f.count} ggr)`,
+        locale === 'sv'
+          ? `- ${mealTypeLabels[f.mealType] ?? f.mealType}: ${f.name} (~${Math.round(medianGrams)}g${portionHint}, ${f.count} ggr)`
+          : `- ${mealTypeLabels[f.mealType] ?? f.mealType}: ${f.name} (~${Math.round(medianGrams)}g${portionHint}, ${f.count} times)`,
       )
     }
   }
 
   if (frequentMeals.length > 0) {
-    lines.push('Vanliga måltider:')
+    lines.push(locale === 'sv' ? 'Vanliga måltider:' : 'Common meals:')
     for (const m of frequentMeals) {
-      lines.push(`- ${MEAL_TYPE_LABEL_SV[m.mealType] ?? m.mealType}: ${m.description} (${m.count} ggr)`)
+      lines.push(
+        locale === 'sv'
+          ? `- ${mealTypeLabels[m.mealType] ?? m.mealType}: ${m.description} (${m.count} ggr)`
+          : `- ${mealTypeLabels[m.mealType] ?? m.mealType}: ${m.description} (${m.count} times)`
+      )
     }
   }
 
   if (strongSignals.length > 0) {
-    lines.push('Starka veckodagsmönster:')
+    lines.push(locale === 'sv' ? 'Starka veckodagsmönster:' : 'Strong weekday patterns:')
     for (const s of strongSignals) lines.push(`- ${s}`)
   }
 
   lines.push('')
   lines.push(
-    'VIKTIGT: Historiken är en ledtråd, inte facit. Om bilden tydligt visar något annat — lita på bilden, inte på historiken.',
+    locale === 'sv'
+      ? 'VIKTIGT: Historiken är en ledtråd, inte facit. Om bilden tydligt visar något annat — lita på bilden, inte på historiken.'
+      : 'IMPORTANT: The history is a clue, not ground truth. If the image clearly shows something else, trust the image instead of the history.',
   )
 
   return {

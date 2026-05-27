@@ -30,7 +30,7 @@ describe('buildCorrectionHints', () => {
       row({ aiItemsJson: [item('Pasta', 150)], finalItemsJson: [item('Risoni', 150)] }),
       row({ aiItemsJson: [item('Pasta', 180)], finalItemsJson: [item('Risoni', 180)] }),
     ]
-    const hint = buildCorrectionHints(rows)!
+    const hint = buildCorrectionHints(rows, { locale: 'sv' })!
     expect(hint).toContain('"Pasta" korrigeras ofta till "Risoni" (3 ggr)')
   })
 
@@ -40,7 +40,7 @@ describe('buildCorrectionHints', () => {
       row({ aiItemsJson: [item('Kyckling', 130)], finalItemsJson: [item('Kyckling', 180)] }),
       row({ aiItemsJson: [item('Kyckling', 160)], finalItemsJson: [item('Kyckling', 210)] }),
     ]
-    const hint = buildCorrectionHints(rows)!
+    const hint = buildCorrectionHints(rows, { locale: 'sv' })!
     expect(hint).toMatch(/Kyckling.*underskatta.*\+50g/)
   })
 
@@ -49,7 +49,7 @@ describe('buildCorrectionHints', () => {
       row({ aiItemsJson: [item('Smör', 30)], finalItemsJson: [item('Smör', 10)] }),
       row({ aiItemsJson: [item('Smör', 25)], finalItemsJson: [item('Smör', 10)] }),
     ]
-    const hint = buildCorrectionHints(rows)!
+    const hint = buildCorrectionHints(rows, { locale: 'sv' })!
     expect(hint).toMatch(/Smör.*överskatta/)
   })
 
@@ -74,7 +74,7 @@ describe('buildCorrectionHints', () => {
         finalItemsJson: [item('Pasta', 180), item('Smör', 12), item('Olja', 5)],
       }),
     ]
-    const hint = buildCorrectionHints(rows)!
+    const hint = buildCorrectionHints(rows, { locale: 'sv' })!
     expect(hint).toContain('lägger ofta till: Smör')
     expect(hint).toContain('lägger ofta till: Olja')
   })
@@ -90,7 +90,7 @@ describe('buildCorrectionHints', () => {
         finalItemsJson: [item('Kyckling', 160)],
       }),
     ]
-    const hint = buildCorrectionHints(rows)!
+    const hint = buildCorrectionHints(rows, { locale: 'sv' })!
     expect(hint).toContain('tar ofta bort: Sås')
     expect(hint).toContain('tar ofta bort: Dressing')
   })
@@ -100,7 +100,7 @@ describe('buildCorrectionHints', () => {
       row({ aiItemsJson: [item('Pasta', 200)], finalItemsJson: [item('Risoni', 200)] }),
       row({ aiItemsJson: [item('Pasta', 150)], finalItemsJson: [item('Risoni', 150)] }),
     ]
-    const hint = buildCorrectionHints(rows)!
+    const hint = buildCorrectionHints(rows, { locale: 'sv' })!
     expect(hint).toContain('"Pasta" korrigeras ofta till "Risoni"')
     expect(hint).not.toContain('lägger ofta till')
     expect(hint).not.toContain('tar ofta bort')
@@ -120,7 +120,7 @@ describe('buildCorrectionHints', () => {
         wentThroughRefine: false,
       }),
     ]
-    const hint = buildCorrectionHints(rows)!
+    const hint = buildCorrectionHints(rows, { locale: 'sv' })!
     expect(hint).toContain('"Pasta" korrigeras ofta till "Risoni" (3 ggr)')
   })
 
@@ -137,7 +137,18 @@ describe('buildCorrectionHints', () => {
     const rows = [
       row({ aiItemsJson: [item('Pasta', 200)], finalItemsJson: [item('Risoni', 200)] }),
     ]
-    expect(buildCorrectionHints(rows, { minOccurrences: 1 })).toContain('"Pasta" korrigeras ofta till "Risoni"')
+    expect(buildCorrectionHints(rows, { minOccurrences: 1, locale: 'sv' })).toContain('"Pasta" korrigeras ofta till "Risoni"')
     expect(buildCorrectionHints(rows, { minOccurrences: 2 })).toBeNull()
+  })
+
+  it('emits English hints by default', () => {
+    const rows = [
+      row({ aiItemsJson: [item('Pasta', 200)], finalItemsJson: [item('Risoni', 200)] }),
+      row({ aiItemsJson: [item('Pasta', 150)], finalItemsJson: [item('Risoni', 150)] }),
+    ]
+
+    const hint = buildCorrectionHints(rows)!
+    expect(hint).toContain('PREVIOUS CORRECTIONS')
+    expect(hint).toContain('"Pasta" is often corrected to "Risoni" (2 times)')
   })
 })

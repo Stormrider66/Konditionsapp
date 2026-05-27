@@ -1,5 +1,5 @@
 /**
- * Turn a batch of FoodScanCorrection rows into a short Swedish prompt block
+ * Turn a batch of FoodScanCorrection rows into a short prompt block
  * that tells Gemini "these are the kinds of mistakes you've made on this
  * user before." Deliberately lighter-weight than a full retrieval system —
  * we just aggregate correction history and emit a handful of high-signal
@@ -27,16 +27,18 @@ export interface CorrectionHintsOptions {
   minOccurrences?: number
   /** Max lines in each sub-section (name swaps / grams bias / added / removed). Default: 3. */
   maxLinesPerSection?: number
+  /** Prompt language. Default: English. */
+  locale?: 'en' | 'sv'
 }
 
 /**
- * @returns a Swedish prompt block, or null if there's nothing informative to emit.
+ * @returns a prompt block, or null if there's nothing informative to emit.
  */
 export function buildCorrectionHints(
   rows: CorrectionInputRow[],
   options: CorrectionHintsOptions = {},
 ): string | null {
-  const { minOccurrences = 2, maxLinesPerSection = 3 } = options
+  const { minOccurrences = 2, maxLinesPerSection = 3, locale = 'en' } = options
   if (rows.length === 0) return null
 
   const nameSwaps = new Map<string, { from: string; to: string; count: number }>()
@@ -103,7 +105,11 @@ export function buildCorrectionHints(
     .filter((s) => s.count >= minOccurrences)
     .sort((a, b) => b.count - a.count)
     .slice(0, maxLinesPerSection)
-    .map((s) => `- "${s.from}" korrigeras ofta till "${s.to}" (${s.count} ggr)`)
+    .map((s) =>
+      locale === 'sv'
+        ? `- "${s.from}" korrigeras ofta till "${s.to}" (${s.count} ggr)`
+        : `- "${s.from}" is often corrected to "${s.to}" (${s.count} times)`
+    )
 
   const biasLines = Array.from(gramsBias.values())
     .filter((g) => g.deltas.length >= minOccurrences)
@@ -116,28 +122,44 @@ export function buildCorrectionHints(
     .slice(0, maxLinesPerSection)
     .map((g) => {
       const sign = g.avg > 0 ? '+' : ''
-      const direction = g.avg > 0 ? 'underskatta' : 'överskatta'
-      return `- ${g.name}: tenderar att ${direction} portionen (snitt ${sign}${Math.round(g.avg)}g, ${g.count} rättelser)`
+      if (locale === 'sv') {
+        const direction = g.avg > 0 ? 'underskatta' : 'överskatta'
+        return `- ${g.name}: tenderar att ${direction} portionen (snitt ${sign}${Math.round(g.avg)}g, ${g.count} rättelser)`
+      }
+      const direction = g.avg > 0 ? 'underestimate' : 'overestimate'
+      return `- ${g.name}: tends to ${direction} the portion (average ${sign}${Math.round(g.avg)}g, ${g.count} corrections)`
     })
 
   const addedLines = Array.from(addedTotals.values())
     .filter((a) => a.count >= minOccurrences)
     .sort((a, b) => b.count - a.count)
     .slice(0, maxLinesPerSection)
-    .map((a) => `- Användaren lägger ofta till: ${a.name} (${a.count} ggr)`)
+    .map((a) =>
+      locale === 'sv'
+        ? `- Användaren lägger ofta till: ${a.name} (${a.count} ggr)`
+        : `- The user often adds: ${a.name} (${a.count} times)`
+    )
 
   const removedLines = Array.from(removedTotals.values())
     .filter((r) => r.count >= minOccurrences)
     .sort((a, b) => b.count - a.count)
     .slice(0, maxLinesPerSection)
-    .map((r) => `- Användaren tar ofta bort: ${r.name} (${r.count} ggr)`)
+    .map((r) =>
+      locale === 'sv'
+        ? `- Användaren tar ofta bort: ${r.name} (${r.count} ggr)`
+        : `- The user often removes: ${r.name} (${r.count} times)`
+    )
 
   const anyLines =
     swapLines.length > 0 || biasLines.length > 0 || addedLines.length > 0 || removedLines.length > 0
   if (!anyLines) return null
 
   const lines: string[] = []
-  lines.push('TIDIGARE RÄTTELSER (starkare signal än frekvensmönster nedan — här har AI:n faktiskt haft fel):')
+  lines.push(
+    locale === 'sv'
+      ? 'TIDIGARE RÄTTELSER (starkare signal än frekvensmönster nedan — här har AI:n faktiskt haft fel):'
+      : 'PREVIOUS CORRECTIONS (stronger signal than frequency patterns below because the AI was actually wrong here):'
+  )
   for (const l of swapLines) lines.push(l)
   for (const l of biasLines) lines.push(l)
   for (const l of addedLines) lines.push(l)

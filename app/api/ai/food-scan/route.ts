@@ -339,7 +339,7 @@ export async function POST(request: NextRequest) {
       finalResult.confidence < MEMORY_CONFIDENCE_THRESHOLD
 
     if (shouldRetryWithMemory) {
-      const memory = await buildFoodMemoryContext({ clientId })
+      const memory = await buildFoodMemoryContext({ clientId, locale })
       memoryMealsConsidered = memory.stats.mealsConsidered
       memoryCorrectionsConsidered = memory.stats.correctionsConsidered
       memoryCorrectionHintsIncluded = memory.stats.correctionHintsIncluded
