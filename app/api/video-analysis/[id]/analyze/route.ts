@@ -117,7 +117,7 @@ export async function POST(
       if (analysis.videoType === 'RUNNING_GAIT') {
         return await withAiContext(
           { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_running_gait' },
-          () => analyzeRunningGait(id, analysis, client, modelId),
+          () => analyzeRunningGait(id, analysis, client, modelId, locale),
         )
       }
       if (isSkiingVideoType(analysis.videoType)) {

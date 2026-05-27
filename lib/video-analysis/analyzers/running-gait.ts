@@ -80,8 +80,134 @@ interface VideoAnalysisRecommendation {
 
 type GroundContactTimeLabel = NonNullable<NonNullable<RunningGaitResult['biometrics']>['groundContactTime']>
 type VerticalOscillationLabel = NonNullable<NonNullable<RunningGaitResult['biometrics']>['verticalOscillation']>
+type AppLocale = 'en' | 'sv'
 
-function buildRunningGaitPrompt(athleteName: string, gender: string): string {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function buildRunningGaitPrompt(athleteName: string, gender: string, locale: AppLocale): string {
+  if (locale === 'en') {
+    return `You are an experienced running biomechanist and exercise physiologist. Analyze this running video carefully.
+
+## IMPORTANT: ANALYZE THE FULL VIDEO
+You have access to the FULL video with multiple frames over time. Analyze movement across the full sequence, not just a single frame. Look at:
+- How movement changes through the video
+- Consistency in running technique over time
+- Patterns that repeat on each step
+- Count actual steps to estimate cadence
+
+## ATHLETE INFORMATION
+- **Name**: ${athleteName}
+- **Pronouns**: ${gender}
+
+## QUALITY GATE - DO THIS FIRST
+Before assigning any running-technique score, determine whether the video is actually analyzable as running.
+
+The video is only analyzable if:
+- The person is clearly running, not sitting, standing still, walking, or only moving the camera
+- At least three continuous running steps/gait cycles are visible
+- Enough of the body is visible to assess running technique
+
+If the video is NOT analyzable as running:
+- Set "analysisValidity.isAnalyzableRunning": false
+- Set "overallScore": null and "efficiency.score": null
+- Do not guess cadence, foot strike, ground contact time, or running economy
+- Add one HIGH issue explaining the problem, for example "No running detected"
+- Write a short English summary saying the video needs to be recorded again
+- Do NOT give a normal score such as 60-80 just because image quality is acceptable
+
+## ANALYZE THESE ASPECTS (based on the full video sequence)
+
+### 1. BIOMETRICS
+Estimate from video analysis:
+- **Cadence** (steps/minute) - count steps and extrapolate per minute (typically 160-190 for trained runners)
+- **Ground contact time** - classify as SHORT (<200ms), NORMAL (200-260ms), or LONG (>260ms)
+- **Vertical oscillation** - classify as MINIMAL, MODERATE, or EXCESSIVE
+- **Stride length** - classify as SHORT, OPTIMAL, or OVERSTRIDING relative to runner height and speed
+- **Foot strike** - identify HEEL, MIDFOOT, or FOREFOOT
+
+### 2. ASYMMETRY ANALYSIS
+Compare left and right sides:
+- Overall asymmetry percentage (>10% is concerning)
+- List significant differences
+
+### 3. INJURY RISK ASSESSMENT
+- Give a risk score 0-10 (0=low risk, 10=high risk)
+- Identify compensation patterns
+- Assess posterior chain engagement (glutes, hamstrings)
+
+### 4. RUNNING EFFICIENCY
+- Rating: EXCELLENT/GOOD/MODERATE/POOR
+- Score 0-100
+- List energy leaks
+
+### 5. COACHING (IN ENGLISH)
+- **Immediate correction**: Most important cue to give the athlete now
+- **Drill recommendation**: Specific drill to address the main problem
+- **Strength priorities**: Muscle groups to focus on in strength training
+
+### 6. SUMMARY
+- Overall score 0-100
+- Summary in English
+
+RESPOND IN THIS JSON FORMAT:
+
+\`\`\`json
+{
+  "analysisValidity": {
+    "isAnalyzableRunning": <boolean>,
+    "reason": "<short reason in English, or null if valid>",
+    "confidence": <number 0-100>,
+    "detectedActivity": "RUNNING|WALKING|SITTING|STANDING|NO_PERSON|OTHER",
+    "visibleBody": "FULL|PARTIAL|NONE",
+    "runningCyclesObserved": <number>
+  },
+  "biometrics": {
+    "estimatedCadence": <number or null>,
+    "groundContactTime": "SHORT|NORMAL|LONG|null",
+    "verticalOscillation": "MINIMAL|MODERATE|EXCESSIVE|null",
+    "strideLength": "SHORT|OPTIMAL|OVERSTRIDING|null",
+    "footStrike": "HEEL|MIDFOOT|FOREFOOT|null"
+  },
+  "asymmetry": {
+    "overallPercent": <number 0-100 or null>,
+    "significantDifferences": ["<list of differences>"]
+  },
+  "injuryRiskAnalysis": {
+    "riskScore": <number 0-10 or null>,
+    "posteriorChainEngagement": <boolean or null>,
+    "detectedCompensations": [
+      {
+        "issue": "<name>",
+        "severity": "LOW|MEDIUM|HIGH",
+        "observation": "<what you see>",
+        "timestamp": "<approx time>"
+      }
+    ]
+  },
+  "efficiency": {
+    "rating": "EXCELLENT|GOOD|MODERATE|POOR|null",
+    "score": <number 0-100 or null>,
+    "energyLeakages": [
+      {
+        "type": "<type>",
+        "description": "<description>",
+        "impact": "LOW|MEDIUM|HIGH"
+      }
+    ]
+  },
+  "coachingCues": {
+    "immediateCorrection": "<most important cue in English, or null>",
+    "drillRecommendation": "<specific drill name, or null>",
+    "strengthFocus": ["<muscle groups to strengthen>"]
+  },
+  "overallScore": <number 0-100 or null>,
+  "summary": "<English summary>"
+}
+\`\`\``
+  }
+
   return `Du är en erfaren löpbiomekaniker och idrottsfysiolog. Analysera denna löpvideo noggrant.
 
 ## VIKTIGT: ANALYSERA HELA VIDEON
@@ -202,8 +328,12 @@ SVARA I FÖLJANDE JSON-FORMAT:
 \`\`\``
 }
 
-function createInvalidGaitResult(rawText: string, reason?: string): RunningGaitResult {
-  const summary = reason || 'Videon kan inte bedömas som löpteknik eftersom tydlig löpning inte kunde verifieras.'
+function createInvalidGaitResult(rawText: string, reason?: string, locale: AppLocale = 'en'): RunningGaitResult {
+  const summary = reason || t(
+    locale,
+    'The video cannot be assessed as running technique because clear running could not be verified.',
+    'Videon kan inte bedömas som löpteknik eftersom tydlig löpning inte kunde verifieras.'
+  )
 
   return {
     analysisValidity: {
@@ -221,7 +351,7 @@ function createInvalidGaitResult(rawText: string, reason?: string): RunningGaitR
       posteriorChainEngagement: null,
       detectedCompensations: [
         {
-          issue: 'Ogiltigt löpklipp',
+          issue: t(locale, 'Invalid running clip', 'Ogiltigt löpklipp'),
           severity: 'HIGH',
           observation: summary,
           timestamp: '00:00',
@@ -230,12 +360,16 @@ function createInvalidGaitResult(rawText: string, reason?: string): RunningGaitR
     },
     efficiency: { rating: null, score: null, energyLeakages: [] },
     coachingCues: {
-      immediateCorrection: 'Spela in en ny video där atleten springer och hela kroppen syns.',
+      immediateCorrection: t(
+        locale,
+        'Record a new video where the athlete is running and the full body is visible.',
+        'Spela in en ny video där atleten springer och hela kroppen syns.'
+      ),
       drillRecommendation: null,
       strengthFocus: [],
     },
     overallScore: null,
-    summary: rawText ? `${summary}\n\nAI-svar: ${rawText.substring(0, 300)}` : summary,
+    summary: rawText ? `${summary}\n\n${t(locale, 'AI response', 'AI-svar')}: ${rawText.substring(0, 300)}` : summary,
   }
 }
 
@@ -281,25 +415,42 @@ function getVerticalOscillation(value: VerticalOscillationLabel | null | undefin
 
 function getInvalidRunningVideoReason(
   gaitResult: RunningGaitResult,
-  issues: VideoAnalysisIssue[]
+  issues: VideoAnalysisIssue[],
+  locale: AppLocale = 'en'
 ): string | null {
   const validity = gaitResult.analysisValidity
 
   if (validity?.isAnalyzableRunning === false) {
-    return validity.reason || 'Videon visar inte tillräckligt tydlig löpning för en löpteknisk analys.'
+    return validity.reason || t(
+      locale,
+      'The video does not show clear enough running for a running-technique analysis.',
+      'Videon visar inte tillräckligt tydlig löpning för en löpteknisk analys.'
+    )
   }
 
   const detectedActivity = validity?.detectedActivity?.toUpperCase()
   if (detectedActivity && ['SITTING', 'STANDING', 'NO_PERSON', 'OTHER'].includes(detectedActivity)) {
-    return `Videon verkar visa ${detectedActivity.toLowerCase()} i stället för löpning. Spela in en ny video med tydlig löpning.`
+    return t(
+      locale,
+      `The video appears to show ${detectedActivity.toLowerCase()} instead of running. Record a new video with clear running.`,
+      `Videon verkar visa ${detectedActivity.toLowerCase()} i stället för löpning. Spela in en ny video med tydlig löpning.`
+    )
   }
 
   if (detectedActivity === 'WALKING') {
-    return 'Videon verkar visa gång i stället för löpning. Spela in en ny video med tydlig löpning.'
+    return t(
+      locale,
+      'The video appears to show walking instead of running. Record a new video with clear running.',
+      'Videon verkar visa gång i stället för löpning. Spela in en ny video med tydlig löpning.'
+    )
   }
 
   if (typeof validity?.runningCyclesObserved === 'number' && validity.runningCyclesObserved < 3) {
-    return 'För få löpsteg syns i videon för en stabil löpteknisk analys.'
+    return t(
+      locale,
+      'Too few running steps are visible for a stable running-technique analysis.',
+      'För få löpsteg syns i videon för en stabil löpteknisk analys.'
+    )
   }
 
   const issueText = [
@@ -326,7 +477,11 @@ function getInvalidRunningVideoReason(
   ]
 
   if (invalidPatterns.some((pattern) => pattern.test(issueText))) {
-    return 'Videon visar inte aktiv löpning. Den sparas, men får ingen löpteknisk poäng.'
+    return t(
+      locale,
+      'The video does not show active running. It will be saved, but it will not receive a running-technique score.',
+      'Videon visar inte aktiv löpning. Den sparas, men får ingen löpteknisk poäng.'
+    )
   }
 
   return null
@@ -341,14 +496,19 @@ export async function analyzeRunningGait(
   id: string,
   analysis: RunningGaitAnalyzerInput,
   client: ReturnType<typeof createGoogleGenAIClient>,
-  modelId: string
+  modelId: string,
+  locale: AppLocale = 'en'
 ): Promise<NextResponse> {
-  const athleteName = analysis.athlete?.name || 'atleten'
-  const gender = analysis.athlete?.gender === 'MALE'
-    ? 'han'
-    : analysis.athlete?.gender === 'FEMALE' ? 'hon' : 'de'
+  const athleteName = analysis.athlete?.name || t(locale, 'the athlete', 'atleten')
+  const gender = locale === 'sv'
+    ? analysis.athlete?.gender === 'MALE'
+      ? 'han'
+      : analysis.athlete?.gender === 'FEMALE' ? 'hon' : 'de'
+    : analysis.athlete?.gender === 'MALE'
+      ? 'he/him'
+      : analysis.athlete?.gender === 'FEMALE' ? 'she/her' : 'they/them'
 
-  const prompt = buildRunningGaitPrompt(athleteName, gender)
+  const prompt = buildRunningGaitPrompt(athleteName, gender, locale)
 
   try {
     const videoMetadata: VideoMetadata = { fps: VIDEO_FPS.RUNNING_GAIT }
@@ -387,20 +547,25 @@ export async function analyzeRunningGait(
       )
       gaitResult = createInvalidGaitResult(
         result.text,
-        'AI-svaret kunde inte tolkas säkert som en strukturerad löpanalys, därför sätts ingen poäng.'
+        t(
+          locale,
+          'The AI response could not be safely parsed as a structured running analysis, so no score is assigned.',
+          'AI-svaret kunde inte tolkas säkert som en strukturerad löpanalys, därför sätts ingen poäng.'
+        ),
+        locale
       )
     }
 
     const issues: VideoAnalysisIssue[] = (gaitResult.injuryRiskAnalysis?.detectedCompensations || []).map(
       (comp) => ({
-        issue: comp.issue || 'Observation',
+        issue: comp.issue || t(locale, 'Observation', 'Observation'),
         severity: normalizeSeverity(comp.severity),
         timestamp: comp.timestamp,
-        description: comp.observation || comp.issue || 'Observation från videoanalysen',
+        description: comp.observation || comp.issue || t(locale, 'Observation from the video analysis', 'Observation från videoanalysen'),
       })
     )
 
-    const invalidReason = getInvalidRunningVideoReason(gaitResult, issues)
+    const invalidReason = getInvalidRunningVideoReason(gaitResult, issues, locale)
     const isInvalidRunningVideo = Boolean(invalidReason)
     const formScore = isInvalidRunningVideo ? null : normalizeScore(gaitResult.overallScore)
     const riskScore = isInvalidRunningVideo ? null : normalizeRiskScore(gaitResult.injuryRiskAnalysis?.riskScore)
@@ -417,9 +582,9 @@ export async function analyzeRunningGait(
         summary: invalidReason,
       }
 
-      if (!issues.some((issue) => issue.issue === 'Ogiltigt löpklipp')) {
+      if (!issues.some((issue) => issue.issue === t(locale, 'Invalid running clip', 'Ogiltigt löpklipp'))) {
         issues.unshift({
-          issue: 'Ogiltigt löpklipp',
+          issue: t(locale, 'Invalid running clip', 'Ogiltigt löpklipp'),
           severity: 'HIGH',
           timestamp: '00:00',
           description: invalidReason,
@@ -430,8 +595,12 @@ export async function analyzeRunningGait(
     let recommendations: VideoAnalysisRecommendation[] = (gaitResult.coachingCues?.strengthFocus || []).map(
       (muscle: string, idx: number) => ({
         priority: idx + 1,
-        recommendation: `Stärk ${muscle}`,
-        explanation: `Baserat på löpanalys för förbättrad löpekonomi`,
+        recommendation: t(locale, `Strengthen ${muscle}`, `Stärk ${muscle}`),
+        explanation: t(
+          locale,
+          'Based on the running analysis for improved running economy',
+          'Baserat på löpanalys för förbättrad löpekonomi'
+        ),
       })
     )
 
@@ -439,8 +608,12 @@ export async function analyzeRunningGait(
       recommendations = [
         {
           priority: 1,
-          recommendation: 'Spela in ny löpvideo',
-          explanation: 'Atleten bör springa i minst 8-10 sekunder med hela kroppen synlig och kameran stabil.',
+          recommendation: t(locale, 'Record a new running video', 'Spela in ny löpvideo'),
+          explanation: t(
+            locale,
+            'The athlete should run for at least 8-10 seconds with the full body visible and the camera stable.',
+            'Atleten bör springa i minst 8-10 sekunder med hela kroppen synlig och kameran stabil.'
+          ),
         },
       ]
     }
@@ -449,15 +622,15 @@ export async function analyzeRunningGait(
       recommendations.unshift({
         priority: 0,
         recommendation: gaitResult.coachingCues.immediateCorrection,
-        explanation: `Primär korrigeringscue`,
+        explanation: t(locale, 'Primary correction cue', 'Primär korrigeringscue'),
       })
     }
 
     if (!isInvalidRunningVideo && gaitResult.coachingCues?.drillRecommendation) {
       recommendations.push({
         priority: recommendations.length,
-        recommendation: `Utför: ${gaitResult.coachingCues.drillRecommendation}`,
-        explanation: `Drill för att förbättra löpteknik`,
+        recommendation: t(locale, `Perform: ${gaitResult.coachingCues.drillRecommendation}`, `Utför: ${gaitResult.coachingCues.drillRecommendation}`),
+        explanation: t(locale, 'Drill to improve running technique', 'Drill för att förbättra löpteknik'),
       })
     }
 
@@ -528,10 +701,10 @@ export async function analyzeRunningGait(
         overallAssessment: gaitResult.summary,
         strengths: [
           !isInvalidRunningVideo && gaitResult.injuryRiskAnalysis?.posteriorChainEngagement
-            ? 'God aktivering av bakre kedjan'
+            ? t(locale, 'Good posterior chain activation', 'God aktivering av bakre kedjan')
             : null,
           !isInvalidRunningVideo && (gaitResult.efficiency?.rating === 'EXCELLENT' || gaitResult.efficiency?.rating === 'GOOD')
-            ? 'Effektiv löpteknik'
+            ? t(locale, 'Efficient running technique', 'Effektiv löpteknik')
             : null,
         ].filter(Boolean),
         areasForImprovement: [
