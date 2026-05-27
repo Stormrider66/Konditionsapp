@@ -26,7 +26,7 @@ type AssignmentKind = 'strength' | 'cardio' | 'hybrid' | 'agility'
 type AppLocale = 'en' | 'sv'
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale = getRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -42,16 +42,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    locale = getUserLocale(dbUser.language)
+    locale = getRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const validationResult = dragScheduledWorkoutSchema.safeParse(body)
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.issues },
+        { error: t(locale, 'Invalid request', 'Ogiltig begäran'), details: validationResult.error.issues },
         { status: 400 }
       )
     }
@@ -146,26 +146,26 @@ export async function POST(request: NextRequest) {
     })
 
     if (!event) {
-      return NextResponse.json({ error: 'Scheduled workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Scheduled workout not found', 'Det schemalagda passet hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, event.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     if (event.type !== 'SCHEDULED_WORKOUT' || event.isReadOnly) {
-      return NextResponse.json({ error: 'This calendar item cannot be moved' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'This calendar item cannot be moved', 'Den här kalenderposten kan inte flyttas') }, { status: 400 })
     }
 
     const assignment = getLinkedAssignment(event)
     if (!assignment) {
-      return NextResponse.json({ error: 'No linked workout assignment found' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No linked workout assignment found', 'Ingen kopplad passtilldelning hittades') }, { status: 400 })
     }
 
     if (isCompletedAssignment(assignment.record)) {
       return NextResponse.json(
-        { error: 'Completed workouts cannot be moved or copied' },
+        { error: t(locale, 'Completed workouts cannot be moved or copied', 'Genomförda pass kan inte flyttas eller kopieras') },
         { status: 400 }
       )
     }
@@ -173,7 +173,7 @@ export async function POST(request: NextRequest) {
     const isSameDay =
       event.startDate.toISOString().slice(0, 10) === targetDate.toISOString().slice(0, 10)
     if (action === 'move' && isSameDay) {
-      return NextResponse.json({ error: 'Target date is the same as current date' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Target date is the same as current date', 'Måldatumet är samma som nuvarande datum') }, { status: 400 })
     }
 
     const result =
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
 
     logError('Error dragging scheduled workout:', error)
     return NextResponse.json(
-      { error: 'Failed to update scheduled workout' },
+      { error: t(locale, 'Failed to update scheduled workout', 'Kunde inte uppdatera det schemalagda passet') },
       { status: 500 }
     )
   }
@@ -528,8 +528,10 @@ function serializeDraggedEvent(event: {
   }
 }
 
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
+function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
+  if (userLanguage === 'sv') return 'sv'
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
 }
 
 function formatDateForLocale(date: Date, locale: AppLocale): string {
