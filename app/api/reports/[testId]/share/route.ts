@@ -11,6 +11,12 @@ import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { logError } from '@/lib/logger-console'
 
+type AppLocale = 'en' | 'sv';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 /**
  * Generate a cryptographically secure random token
  */
@@ -22,8 +28,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ testId: string }> }
 ) {
+  let locale: AppLocale = 'en';
+
   try {
     const user = await requireCoach();
+    locale = user.language === 'sv' ? 'sv' : 'en';
     const { testId } = await params;
 
     // Parse request body
@@ -49,7 +58,7 @@ export async function POST(
 
     if (!test) {
       return NextResponse.json(
-        { error: 'Test not found' },
+        { error: t(locale, 'Test not found', 'Testet hittades inte') },
         { status: 404 }
       );
     }
@@ -91,11 +100,11 @@ export async function POST(
     logError('Generate public link error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to generate public link' },
+      { error: t(locale, 'Failed to generate public link', 'Kunde inte skapa publik länk') },
       { status: 500 }
     );
   }
@@ -105,8 +114,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ testId: string }> }
 ) {
+  let locale: AppLocale = 'en';
+
   try {
     const user = await requireCoach();
+    locale = user.language === 'sv' ? 'sv' : 'en';
     const { testId } = await params;
 
     // Verify test exists and user owns it
@@ -119,7 +131,7 @@ export async function DELETE(
 
     if (!test) {
       return NextResponse.json(
-        { error: 'Test not found' },
+        { error: t(locale, 'Test not found', 'Testet hittades inte') },
         { status: 404 }
       );
     }
@@ -135,17 +147,17 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Public link revoked',
+      message: t(locale, 'Public link revoked', 'Publik länk återkallades'),
     });
   } catch (error) {
     logError('Revoke public link error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to revoke public link' },
+      { error: t(locale, 'Failed to revoke public link', 'Kunde inte återkalla publik länk') },
       { status: 500 }
     );
   }
@@ -155,8 +167,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ testId: string }> }
 ) {
+  let locale: AppLocale = 'en';
+
   try {
     const user = await requireCoach();
+    locale = user.language === 'sv' ? 'sv' : 'en';
     const { testId } = await params;
 
     // Verify test exists and user owns it
@@ -173,7 +188,7 @@ export async function GET(
 
     if (!test) {
       return NextResponse.json(
-        { error: 'Test not found' },
+        { error: t(locale, 'Test not found', 'Testet hittades inte') },
         { status: 404 }
       );
     }
@@ -199,11 +214,11 @@ export async function GET(
     logError('Get public link error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get public link status' },
+      { error: t(locale, 'Failed to get public link status', 'Kunde inte hämta status för publik länk') },
       { status: 500 }
     );
   }

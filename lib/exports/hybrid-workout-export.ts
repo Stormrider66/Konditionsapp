@@ -217,8 +217,8 @@ export async function generateHybridWorkoutExcel(data: HybridWorkoutExportData):
   separatorCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colors.headerDark } }
   infoSheet.getRow(currentRow).height = 6
 
-  // ============ PASS SHEET ============
-  const passSheet = workbook.addWorksheet('Pass')
+  // ============ SESSION SHEET ============
+  const passSheet = workbook.addWorksheet(t(locale, 'Pass', 'Session'))
   passSheet.columns = [
     { width: 30 },
     { width: 25 },
