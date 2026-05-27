@@ -178,6 +178,13 @@ const AVAILABLE_SEGMENTS = [
   { id: 'seg11', name: 'Plyometri', type: 'PLYOMETRIC', defaultDuration: 8, defaultZone: '1' },
 ]
 
+function getSegmentTemplateName(segment: (typeof AVAILABLE_SEGMENTS)[number], locale: AppLocale): string {
+  if (locale === 'sv') return segment.name
+  if (segment.type === 'PREHAB') return 'Stability / Prehab'
+  if (segment.type === 'PLYOMETRIC') return 'Plyometrics'
+  return segment.name
+}
+
 function secondsToMinutes(seconds?: number) {
   return seconds ? Number((seconds / 60).toFixed(1)) : undefined
 }
@@ -677,7 +684,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
           zone: '1',
           duration: step.restAfter,
           distanceUnit: 'km',
-          notes: 'Vila mellan rundor',
+          notes: text(locale, 'Vila mellan rundor', 'Rest between rounds'),
         })
       }
     }
@@ -951,20 +958,20 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
             <div className="flex justify-between items-start gap-4">
               <div className="flex-1 space-y-4">
                 <div className="space-y-2">
-                  <Label>Passnamn</Label>
+                  <Label>{text(locale, 'Passnamn', 'Session name')}</Label>
                   <Input
                     value={sessionName}
                     onChange={(e) => setSessionName(e.target.value)}
                     className="text-lg font-semibold"
-                    placeholder="Ge passet ett namn..."
+                    placeholder={text(locale, 'Ge passet ett namn...', 'Give the session a name...')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Beskrivning (valfritt)</Label>
+                  <Label>{text(locale, 'Beskrivning (valfritt)', 'Description (optional)')}</Label>
                   <Textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Beskriv passets syfte eller anteckningar..."
+                    placeholder={text(locale, 'Beskriv passets syfte eller anteckningar...', 'Describe the session purpose or notes...')}
                     rows={2}
                   />
                 </div>
@@ -1029,6 +1036,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                           <SortableRepeatGroupItem
                             key={segment.id}
                             group={segment}
+                            locale={locale}
                             onRemove={() => removeSegment(segment.id)}
                             onUpdateGroup={updateRepeatGroup}
                             onUpdateStep={updateChildStep}
@@ -1040,6 +1048,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                           <SortableExerciseBlockItem
                             key={segment.id}
                             block={segment}
+                            locale={locale}
                             availableExercises={availableExercises}
                             onRemove={() => removeSegment(segment.id)}
                             onUpdateBlock={updateExerciseBlock}
@@ -1051,6 +1060,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                           <SortableSegmentItem
                             key={segment.id}
                             segment={segment}
+                            locale={locale}
                             onRemove={() => removeSegment(segment.id)}
                             onUpdate={updateSegment}
                             onCalculate={calculateSegment}
@@ -1068,12 +1078,12 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                             return <div className="bg-card border-2 border-indigo-400 rounded-md p-3 shadow-lg"><Badge className="bg-indigo-500 text-white">Repeat Group x{seg.repeats}</Badge></div>
                           }
                           if (isExerciseBlock(seg)) {
-                            const label = seg.type === 'PREHAB' ? 'Stabilitet / Prehab' : seg.type === 'PLYOMETRIC' ? 'Plyometri' : 'Core'
+                            const label = seg.type === 'PREHAB' ? text(locale, 'Stabilitet / Prehab', 'Stability / Prehab') : seg.type === 'PLYOMETRIC' ? text(locale, 'Plyometri', 'Plyometrics') : 'Core'
                             const borderClass = seg.type === 'PREHAB' ? 'border-teal-400' : seg.type === 'PLYOMETRIC' ? 'border-amber-400' : 'border-purple-400'
                             const badgeClass = seg.type === 'PREHAB' ? 'bg-teal-500' : seg.type === 'PLYOMETRIC' ? 'bg-amber-500' : 'bg-purple-500'
                             return <div className={`bg-card border-2 ${borderClass} rounded-md p-3 shadow-lg`}><Badge className={`${badgeClass} text-white`}>{label}</Badge></div>
                           }
-                          return <SortableSegmentItem segment={seg} onRemove={() => {}} onUpdate={() => {}} onCalculate={() => {}} isOverlay />
+                            return <SortableSegmentItem segment={seg} locale={locale} onRemove={() => {}} onUpdate={() => {}} onCalculate={() => {}} isOverlay />
                         })()}
                       </div>
                     ) : null}
@@ -1091,7 +1101,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Sparkles className="h-4 w-4 text-primary" />
-              Hockeymallar
+              {text(locale, 'Hockeymallar', 'Hockey templates')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -1114,7 +1124,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Lägg till segment</CardTitle>
+            <CardTitle className="text-sm font-medium">{text(locale, 'Lägg till segment', 'Add segment')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {AVAILABLE_SEGMENTS.map(seg => (
@@ -1125,7 +1135,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                 onClick={() => addSegment(seg.id)}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                {seg.name}
+                {getSegmentTemplateName(seg, locale)}
               </Button>
             ))}
             <Button
@@ -1134,18 +1144,18 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
               onClick={() => setPatternDialogOpen(true)}
             >
               <Plus className="mr-2 h-4 w-4" />
-              Mönsterblock (stege/triplet/anpassad)
+              {text(locale, 'Mönsterblock (stege/triplet/anpassad)', 'Pattern block (ladder/triplet/custom)')}
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Sammanfattning</CardTitle>
+            <CardTitle className="text-sm font-medium">{text(locale, 'Sammanfattning', 'Summary')}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total tid:</span>
+              <span className="text-muted-foreground">{text(locale, 'Total tid:', 'Total time:')}</span>
               <span className="font-medium">
                 {segments.reduce((acc, s) => {
                   if (isRepeatGroup(s)) {
@@ -1162,7 +1172,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Total distans:</span>
+              <span className="text-muted-foreground">{text(locale, 'Total distans:', 'Total distance:')}</span>
               <span className="font-medium">
                 {segments.reduce((acc, s) => {
                   if (isRepeatGroup(s)) {
@@ -1176,7 +1186,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
               </span>
             </div>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Snittzon:</span>
+              <span className="text-muted-foreground">{text(locale, 'Snittzon:', 'Average zone:')}</span>
               <span className="font-medium">
                 Z{Math.round(segments.reduce((acc, s) => acc + (!isRepeatGroup(s) && !isExerciseBlock(s) ? parseInt(s.zone || '0') : 0), 0) / (segments.filter(s => !isRepeatGroup(s) && !isExerciseBlock(s)).length || 1))}
               </span>
@@ -1190,17 +1200,17 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                 {isSaving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Sparar...
+                    {text(locale, 'Sparar...', 'Saving...')}
                   </>
                 ) : (
-                  initialData ? 'Uppdatera pass' : 'Spara pass'
+                  initialData ? text(locale, 'Uppdatera pass', 'Update session') : text(locale, 'Spara pass', 'Save session')
                 )}
               </Button>
               {initialData?.id && (
                 <PrintWorkoutButton
                   kind="cardio"
                   workoutId={initialData.id}
-                  label="Skriv ut"
+                  label={text(locale, 'Skriv ut', 'Print')}
                   className="shrink-0"
                 />
               )}
@@ -1227,12 +1237,14 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
 
 function SortableSegmentItem({
   segment,
+  locale,
   onRemove,
   onUpdate,
   onCalculate,
   isOverlay = false
 }: {
   segment: CardioFlatSegment
+  locale: AppLocale
   onRemove: () => void
   onUpdate: (id: string, field: keyof CardioFlatSegment, value: any) => void
   onCalculate: (id: string, field: keyof CardioFlatSegment) => void
@@ -1268,7 +1280,7 @@ function SortableSegmentItem({
             {segment.type === 'INTERVAL' && (
                  <div className="flex items-center gap-4 ml-2">
                     <div className="flex items-center gap-1">
-                        <Label className="text-xs text-muted-foreground">Upprepa:</Label>
+                        <Label className="text-xs text-muted-foreground">{text(locale, 'Upprepa:', 'Repeat:')}</Label>
                         <Input 
                             type="number" 
                             min={1}
@@ -1276,10 +1288,10 @@ function SortableSegmentItem({
                             value={segment.repeats || 1}
                             onChange={(e) => onUpdate(segment.id, 'repeats', parseInt(e.target.value) || 1)}
                         />
-                        <span className="text-xs text-muted-foreground">ggr</span>
+                        <span className="text-xs text-muted-foreground">{text(locale, 'ggr', 'x')}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                        <Label className="text-xs text-muted-foreground">Vila:</Label>
+                        <Label className="text-xs text-muted-foreground">{text(locale, 'Vila:', 'Rest:')}</Label>
                         <Input 
                             type="number"
                             min={0}
@@ -1301,13 +1313,13 @@ function SortableSegmentItem({
 
         <div className="grid grid-cols-4 gap-2">
           <div className="col-span-4">
-            <Label className="text-xs text-muted-foreground">Utrustning</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Utrustning', 'Equipment')}</Label>
             <Select
               value={segment.equipment || ''}
               onValueChange={(v) => onUpdate(segment.id, 'equipment', v)}
             >
               <SelectTrigger className="h-7 text-sm">
-                <SelectValue placeholder="Välj utrustning..." />
+                <SelectValue placeholder={text(locale, 'Välj utrustning...', 'Select equipment...')} />
               </SelectTrigger>
               <SelectContent>
                 {EQUIPMENT_OPTIONS.map(opt => (
@@ -1317,7 +1329,7 @@ function SortableSegmentItem({
             </Select>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Tid (min)</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Tid (min)', 'Time (min)')}</Label>
             <div className="flex items-center">
               <Timer className="h-3 w-3 mr-1 text-muted-foreground" />
               <Input
@@ -1331,7 +1343,7 @@ function SortableSegmentItem({
             </div>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Distans</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Distans', 'Distance')}</Label>
             <div className="flex items-center gap-1">
               <div className="relative flex-1">
                 <Footprints className="absolute left-2 top-1.5 h-3 w-3 text-muted-foreground" />
@@ -1361,7 +1373,7 @@ function SortableSegmentItem({
             </div>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Kalorier</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Kalorier', 'Calories')}</Label>
             <div className="flex items-center">
               <Activity className="h-3 w-3 mr-1 text-muted-foreground" />
               <Input
@@ -1374,7 +1386,7 @@ function SortableSegmentItem({
             </div>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Tempo (min/km)</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Tempo (min/km)', 'Pace (min/km)')}</Label>
             <div className="flex items-center">
               <Gauge className="h-3 w-3 mr-1 text-muted-foreground" />
               <Input
@@ -1387,7 +1399,7 @@ function SortableSegmentItem({
             </div>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">Puls (bpm/zon)</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Puls (bpm/zon)', 'Heart rate (bpm/zone)')}</Label>
             <div className="flex items-center">
               <Heart className="h-3 w-3 mr-1 text-muted-foreground" />
               <Input 
@@ -1399,7 +1411,7 @@ function SortableSegmentItem({
             </div>
           </div>
            <div>
-            <Label className="text-xs text-muted-foreground">Zon (1-5)</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Zon (1-5)', 'Zone (1-5)')}</Label>
             <div className="flex items-center">
               <Activity className="h-3 w-3 mr-1 text-muted-foreground" />
               <Select 
@@ -1425,6 +1437,7 @@ function SortableSegmentItem({
 
 function SortableExerciseBlockItem({
   block,
+  locale,
   availableExercises,
   onRemove,
   onUpdateBlock,
@@ -1433,6 +1446,7 @@ function SortableExerciseBlockItem({
   onRemoveExercise,
 }: {
   block: CardioExerciseBlock
+  locale: AppLocale
   availableExercises: LibraryExercise[]
   onRemove: () => void
   onUpdateBlock: (blockId: string, field: 'duration' | 'notes', value: number | string) => void
@@ -1450,7 +1464,7 @@ function SortableExerciseBlockItem({
   const isPrehab = block.type === 'PREHAB'
   const isPlyometric = block.type === 'PLYOMETRIC'
   const Icon = isPrehab ? ShieldCheck : isPlyometric ? Zap : Target
-  const label = isPrehab ? 'Stabilitet / Prehab' : isPlyometric ? 'Plyometri' : 'Core'
+  const label = isPrehab ? text(locale, 'Stabilitet / Prehab', 'Stability / Prehab') : isPlyometric ? text(locale, 'Plyometri', 'Plyometrics') : 'Core'
   const colorClasses = isPrehab
     ? { border: 'border-teal-300', badge: 'bg-teal-500' }
     : isPlyometric
@@ -1473,7 +1487,7 @@ function SortableExerciseBlockItem({
           {label}
         </Badge>
         <div className="ml-auto flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">Tid</Label>
+          <Label className="text-xs text-muted-foreground">{text(locale, 'Tid', 'Time')}</Label>
           <Input
             type="number"
             min={0}
@@ -1493,13 +1507,25 @@ function SortableExerciseBlockItem({
         value={block.notes || ''}
         onChange={(e) => onUpdateBlock(block.id, 'notes', e.target.value)}
         className="min-h-[64px] text-sm"
-        placeholder={isPrehab ? 'Syfte, riskområde eller coachnotering...' : isPlyometric ? 'Syfte, intensitet eller coachnotering...' : 'Syfte eller coachnotering...'}
+        placeholder={
+          isPrehab
+            ? text(locale, 'Syfte, riskområde eller coachnotering...', 'Purpose, risk area, or coach note...')
+            : isPlyometric
+              ? text(locale, 'Syfte, intensitet eller coachnotering...', 'Purpose, intensity, or coach note...')
+              : text(locale, 'Syfte eller coachnotering...', 'Purpose or coach note...')
+        }
       />
 
       <div className="flex gap-2">
         <Select onValueChange={(exerciseId) => onAddExercise(block.id, exerciseId)}>
           <SelectTrigger className="h-8 text-sm">
-            <SelectValue placeholder={isPrehab ? 'Lägg till prehabövning...' : isPlyometric ? 'Lägg till plyometrisk övning...' : 'Lägg till coreövning...'} />
+            <SelectValue placeholder={
+              isPrehab
+                ? text(locale, 'Lägg till prehabövning...', 'Add prehab exercise...')
+                : isPlyometric
+                  ? text(locale, 'Lägg till plyometrisk övning...', 'Add plyometric exercise...')
+                  : text(locale, 'Lägg till coreövning...', 'Add core exercise...')
+            } />
           </SelectTrigger>
           <SelectContent>
             {filteredExercises.map((exercise) => (
@@ -1538,7 +1564,7 @@ function SortableExerciseBlockItem({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Reps/tid</Label>
+                  <Label className="text-xs text-muted-foreground">{text(locale, 'Reps/tid', 'Reps/time')}</Label>
                   <Input
                     className="h-7 text-sm"
                     value={exercise.reps}
@@ -1546,7 +1572,7 @@ function SortableExerciseBlockItem({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Vila (s)</Label>
+                  <Label className="text-xs text-muted-foreground">{text(locale, 'Vila (s)', 'Rest (s)')}</Label>
                   <Input
                     type="number"
                     min={0}
@@ -1556,12 +1582,12 @@ function SortableExerciseBlockItem({
                   />
                 </div>
                 <div>
-                  <Label className="text-xs text-muted-foreground">Notering</Label>
+                  <Label className="text-xs text-muted-foreground">{text(locale, 'Notering', 'Note')}</Label>
                   <Input
                     className="h-7 text-sm"
                     value={exercise.notes || ''}
                     onChange={(e) => onUpdateExercise(block.id, exercise.id, 'notes', e.target.value)}
-                    placeholder="valfritt"
+                    placeholder={text(locale, 'valfritt', 'optional')}
                   />
                 </div>
               </div>
@@ -1570,7 +1596,7 @@ function SortableExerciseBlockItem({
         </div>
       ) : (
         <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-          Lägg till övningar som hör till konditionspasset.
+          {text(locale, 'Lägg till övningar som hör till konditionspasset.', 'Add exercises that belong to the cardio session.')}
         </div>
       )}
     </div>
@@ -1579,6 +1605,7 @@ function SortableExerciseBlockItem({
 
 function SortableRepeatGroupItem({
   group,
+  locale,
   onRemove,
   onUpdateGroup,
   onUpdateStep,
@@ -1587,6 +1614,7 @@ function SortableRepeatGroupItem({
   onAddRestAfter,
 }: {
   group: CardioRepeatGroup
+  locale: AppLocale
   onRemove: () => void
   onUpdateGroup: (groupId: string, field: 'repeats' | 'restBetweenRounds', value: number) => void
   onUpdateStep: (groupId: string, stepId: string, field: string, value: any) => void
@@ -1606,10 +1634,10 @@ function SortableRepeatGroupItem({
         </div>
         <Badge className="bg-indigo-500 text-white shrink-0">
           <Repeat className="h-3 w-3 mr-1" />
-          REPEAT GROUP
+          {text(locale, 'UPPREPNINGSGRUPP', 'REPEAT GROUP')}
         </Badge>
         <div className="flex items-center gap-1">
-          <Label className="text-xs text-muted-foreground">Rundor:</Label>
+          <Label className="text-xs text-muted-foreground">{text(locale, 'Rundor:', 'Rounds:')}</Label>
           <Input
             type="number"
             min={1}
@@ -1619,7 +1647,7 @@ function SortableRepeatGroupItem({
           />
         </div>
         <div className="flex items-center gap-1">
-          <Label className="text-xs text-muted-foreground">Vila mellan rundor:</Label>
+          <Label className="text-xs text-muted-foreground">{text(locale, 'Vila mellan rundor:', 'Rest between rounds:')}</Label>
           <Input
             type="number"
             min={0}
@@ -1650,6 +1678,7 @@ function SortableRepeatGroupItem({
             onRemove={() => onRemoveStep(group.id, step.id)}
             onAddRestAfter={() => onAddRestAfter(group.id, step.id)}
             canRemove={group.steps.length > 1}
+            locale={locale}
           />
         ))}
         <Button
@@ -1659,7 +1688,7 @@ function SortableRepeatGroupItem({
           onClick={() => onAddStep(group.id)}
         >
           <Plus className="h-3 w-3 mr-1" />
-          Lägg till steg
+          {text(locale, 'Lägg till steg', 'Add step')}
         </Button>
       </div>
     </div>
@@ -1670,6 +1699,7 @@ function ChildStepRow({
   step,
   stepIndex,
   groupId,
+  locale,
   onUpdate,
   onRemove,
   onAddRestAfter,
@@ -1678,6 +1708,7 @@ function ChildStepRow({
   step: CardioChildStep
   stepIndex: number
   groupId: string
+  locale: AppLocale
   onUpdate: (groupId: string, stepId: string, field: string, value: any) => void
   onRemove: () => void
   onAddRestAfter: () => void
@@ -1694,9 +1725,9 @@ function ChildStepRow({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="INTERVAL">Intervall</SelectItem>
+            <SelectItem value="INTERVAL">{text(locale, 'Intervall', 'Interval')}</SelectItem>
             <SelectItem value="STEADY">Steady</SelectItem>
-            <SelectItem value="REST">Vila</SelectItem>
+            <SelectItem value="REST">{text(locale, 'Vila', 'Rest')}</SelectItem>
             <SelectItem value="RECOVERY">Recovery</SelectItem>
           </SelectContent>
         </Select>
@@ -1729,14 +1760,14 @@ function ChildStepRow({
             <div className="flex items-center gap-1">
               <Select value={step.targetType || 'none'} onValueChange={(v) => onUpdate(groupId, step.id, 'targetType', v)}>
                 <SelectTrigger className="h-6 w-24 text-xs">
-                  <SelectValue placeholder="Mål..." />
+                  <SelectValue placeholder={text(locale, 'Mål...', 'Target...')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Inget mål</SelectItem>
+                  <SelectItem value="none">{text(locale, 'Inget mål', 'No target')}</SelectItem>
                   <SelectItem value="power">Watt</SelectItem>
                   <SelectItem value="cadence">RPM</SelectItem>
-                  <SelectItem value="pace">Tempo</SelectItem>
-                  <SelectItem value="hr">Puls</SelectItem>
+                  <SelectItem value="pace">{text(locale, 'Tempo', 'Pace')}</SelectItem>
+                  <SelectItem value="hr">{text(locale, 'Puls', 'Heart rate')}</SelectItem>
                 </SelectContent>
               </Select>
               {step.targetType && step.targetType !== 'none' && (
@@ -1754,7 +1785,7 @@ function ChildStepRow({
               onValueChange={(v) => onUpdate(groupId, step.id, 'equipment', v)}
             >
               <SelectTrigger className="h-6 w-32 text-xs">
-                <SelectValue placeholder="Utrustning..." />
+                <SelectValue placeholder={text(locale, 'Utrustning...', 'Equipment...')} />
               </SelectTrigger>
               <SelectContent>
                 {EQUIPMENT_OPTIONS.map(opt => (
@@ -1767,8 +1798,8 @@ function ChildStepRow({
 
         <div className="ml-auto flex items-center gap-1">
           {!isRest && (
-            <Button variant="ghost" size="sm" onClick={onAddRestAfter} className="h-5 px-1 text-xs text-muted-foreground" title="Lägg till vila efter">
-              +Vila
+            <Button variant="ghost" size="sm" onClick={onAddRestAfter} className="h-5 px-1 text-xs text-muted-foreground" title={text(locale, 'Lägg till vila efter', 'Add rest after')}>
+              {text(locale, '+Vila', '+Rest')}
             </Button>
           )}
           {canRemove && (
