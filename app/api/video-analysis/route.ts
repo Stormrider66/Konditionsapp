@@ -16,6 +16,8 @@ import { logger } from '@/lib/logger'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 
+type AppLocale = 'en' | 'sv'
+
 type PoseDataSummary = {
   hasPoseData: boolean
   frameCount: number | null
@@ -25,6 +27,14 @@ type PoseDataSummary = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function getUserLocale(language?: string | null): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function getPoseDataSummary(landmarksData: unknown, aiPoseAnalysis: unknown): PoseDataSummary | null {
@@ -62,8 +72,10 @@ const createAnalysisSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const rateLimited = await rateLimitJsonResponse('video:analysis:create', user.id, {
       limit: 10,
       windowSeconds: 60,
@@ -77,7 +89,7 @@ export async function POST(request: NextRequest) {
     const storagePath = normalizeStoragePath('video-analysis', validated.videoUrl)
     if (!storagePath) {
       return NextResponse.json(
-        { error: 'Invalid video URL. Please upload the video to Supabase Storage.' },
+        { error: t(locale, 'Invalid video URL. Please upload the video to Supabase Storage.', 'Ogiltig video-URL. Ladda upp videon till Supabase Storage.') },
         { status: 400 }
       )
     }
@@ -85,7 +97,7 @@ export async function POST(request: NextRequest) {
     // Enforce per-coach namespace to prevent cross-tenant reads in private buckets.
     if (!storagePath.startsWith(`${user.id}/`)) {
       return NextResponse.json(
-        { error: 'Invalid video path' },
+        { error: t(locale, 'Invalid video path', 'Ogiltig videosökväg') },
         { status: 403 }
       )
     }
@@ -95,7 +107,7 @@ export async function POST(request: NextRequest) {
       const access = await canAccessAthlete(user.id, validated.athleteId);
       if (!access.allowed) {
         return NextResponse.json(
-          { error: 'Forbidden' },
+          { error: t(locale, 'Forbidden', 'Åtkomst nekad') },
           { status: 403 }
         );
       }
@@ -105,7 +117,7 @@ export async function POST(request: NextRequest) {
       if (!featureAccess.allowed) {
         return NextResponse.json(
           {
-            error: featureAccess.reason || 'Video analysis requires a Pro subscription',
+            error: featureAccess.reason || t(locale, 'Video analysis requires a Pro subscription', 'Videoanalys kräver en Pro-prenumeration'),
             code: featureAccess.code || 'SUBSCRIPTION_REQUIRED',
             upgradeUrl: featureAccess.upgradeUrl || '/athlete/subscription',
           },
@@ -121,7 +133,7 @@ export async function POST(request: NextRequest) {
       });
       if (!exercise) {
         return NextResponse.json(
-          { error: 'Exercise not found' },
+          { error: t(locale, 'Exercise not found', 'Övningen hittades inte') },
           { status: 404 }
         );
       }
@@ -155,25 +167,27 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       );
     }
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to create video analysis' },
+      { error: t(locale, 'Failed to create video analysis', 'Kunde inte skapa videoanalys') },
       { status: 500 }
     );
   }
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach();
+    locale = getUserLocale(user.language)
     const rateLimited = await rateLimitJsonResponse('video:analysis:list', user.id, {
       limit: 60,
       windowSeconds: 60,
@@ -190,7 +204,7 @@ export async function GET(request: NextRequest) {
     if (athleteId) {
       const access = await canAccessAthlete(user.id, athleteId);
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 });
       }
     }
 
@@ -236,11 +250,11 @@ export async function GET(request: NextRequest) {
     logger.error('Video analysis list error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to list video analyses' },
+      { error: t(locale, 'Failed to list video analyses', 'Kunde inte hämta videoanalyser') },
       { status: 500 }
     );
   }
