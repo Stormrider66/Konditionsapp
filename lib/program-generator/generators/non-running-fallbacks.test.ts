@@ -151,6 +151,37 @@ describe('non-running fallback generators', () => {
     expect(program.weeks?.[0].days.flatMap((day) => day.workouts).every((workout) => workout.segments.length > 0)).toBe(true)
   })
 
+  it('creates strength program content in English by default', async () => {
+    const program = await generateStrengthProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'general',
+      durationWeeks: 6,
+      sessionsPerWeek: 3,
+      locale: 'en',
+    }, client)
+
+    expectRealProgram(program, 'STRENGTH', 3)
+    expect(JSON.stringify(program)).not.toMatch(swedishUserVisiblePattern)
+    expect(program.name).toContain('General strength')
+    expect(program.weeks?.[0].focus).toContain('Build foundational strength')
+  })
+
+  it('keeps strength program content Swedish for Swedish users', async () => {
+    const program = await generateStrengthProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'general',
+      durationWeeks: 6,
+      sessionsPerWeek: 3,
+      locale: 'sv',
+    }, client)
+
+    expectRealProgram(program, 'STRENGTH', 3)
+    expect(program.name).toContain('Allmän styrka')
+    expect(program.weeks?.[0].focus).toContain('Bygg grundstyrka')
+  })
+
   it('creates useful custom HYROX programs', () => {
     const startDate = getProgramStartDate()
     const program = createEmptyHyroxProgram({
