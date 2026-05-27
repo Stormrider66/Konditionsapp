@@ -19,12 +19,24 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 
+type AppLocale = 'en' | 'sv'
+
+function exerciseNameForLocale(
+  exercise: { name: string; nameSv: string | null; nameEn: string | null },
+  locale: AppLocale
+) {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: clientId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
@@ -40,7 +52,7 @@ export async function GET(
       orderBy: { date: 'desc' },
       include: {
         exercise: {
-          select: { id: true, name: true, nameSv: true, category: true },
+          select: { id: true, name: true, nameSv: true, nameEn: true, category: true },
         },
       },
     })
@@ -65,7 +77,7 @@ export async function GET(
       pending.push({
         id: row.id,
         exerciseId: row.exerciseId,
-        exerciseName: row.exercise.nameSv || row.exercise.name,
+        exerciseName: exerciseNameForLocale(row.exercise, locale),
         oneRepMax: row.oneRepMax,
         unit: row.unit,
         date: row.date.toISOString(),

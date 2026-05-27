@@ -38,6 +38,7 @@ type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL' | '
 type AppLocale = 'en' | 'sv'
 type ScoreTone = 'good' | 'watch' | 'risk' | 'neutral'
 type MetricCategory = 'hockey' | 'strength'
+type LocalizedExerciseName = { name: string; nameSv: string | null; nameEn: string | null }
 
 interface MemberSummary {
   clientId: string
@@ -279,7 +280,7 @@ export async function GET(
         where: { clientId: { in: memberIds } },
         orderBy: { date: 'desc' },
         include: {
-          exercise: { select: { id: true, name: true, nameSv: true } },
+          exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } },
         },
       }),
       prisma.hockeyPhysicalTest.findMany({
@@ -414,6 +415,7 @@ export async function GET(
       oneRepMaxRows,
       norms: hockeyNormReferences,
       teamLevel,
+      locale,
     })
     const flatMetrics = metricGroups.flatMap((group) => group.metrics)
     const goalReadiness = buildGoalReadiness(flatMetrics, teamLevel)
@@ -450,8 +452,8 @@ export async function GET(
       locale,
     })
 
-    const recentPRs = buildRecentPRs(oneRepMaxRows, prsByClient, memberNameById, since)
-    const pendingPRs = buildPendingPRs(oneRepMaxRows, memberNameById)
+    const recentPRs = buildRecentPRs(oneRepMaxRows, prsByClient, memberNameById, since, locale)
+    const pendingPRs = buildPendingPRs(oneRepMaxRows, memberNameById, locale)
     const evaluationScores = buildEvaluationScores({
       locale,
       members,
@@ -502,6 +504,7 @@ function buildMetricGroups({
   oneRepMaxRows,
   norms,
   teamLevel,
+  locale,
 }: {
   members: Array<{ id: string; name: string; weight: number; position: string | null }>
   hockeyTests: HockeyTestForSummary[]
@@ -511,16 +514,17 @@ function buildMetricGroups({
     oneRepMax: number
     unit: string
     date: Date
-    exercise: { id: string; name: string; nameSv: string | null }
+    exercise: { id: string } & LocalizedExerciseName
   }>
   norms: HockeyNormReferenceConfig[]
   teamLevel: string
+  locale: AppLocale
 }): MetricGroup[] {
   const hockeyMetrics = buildHockeyMetricRows(members, hockeyTests, norms, teamLevel)
-  const strengthMetrics = buildStrengthMetricRows(members, oneRepMaxRows)
+  const strengthMetrics = buildStrengthMetricRows(members, oneRepMaxRows, locale)
   return [
-    { id: 'hockey' as const, label: 'Tester', metrics: hockeyMetrics },
-    { id: 'strength' as const, label: 'Styrke-PRs', metrics: strengthMetrics },
+    { id: 'hockey' as const, label: t(locale, 'Tests', 'Tester'), metrics: hockeyMetrics },
+    { id: 'strength' as const, label: t(locale, 'Strength PRs', 'Styrke-PRs'), metrics: strengthMetrics },
   ].filter((group) => group.metrics.length > 0)
 }
 
@@ -572,8 +576,9 @@ function buildStrengthMetricRows(
     oneRepMax: number
     unit: string
     date: Date
-    exercise: { id: string; name: string; nameSv: string | null }
-  }>
+    exercise: { id: string } & LocalizedExerciseName
+  }>,
+  locale: AppLocale
 ): AdaptiveMetricRow[] {
   const exerciseIds = Array.from(new Set(oneRepMaxRows.map((row) => row.exerciseId)))
   return exerciseIds
@@ -582,7 +587,7 @@ function buildStrengthMetricRows(
       if (!sample) return null
       const metric: HockeyMetric = {
         key: `strength:${exerciseId}`,
-        label: sample.exercise.nameSv || sample.exercise.name,
+        label: exerciseNameForLocale(sample.exercise, locale),
         unit: sample.unit || 'KG',
       }
       const valuesByAthlete = new Map<string, Array<{ date: Date; value: number }>>()
@@ -603,7 +608,7 @@ function buildStrengthMetricRows(
       })
     })
     .filter((metric): metric is AdaptiveMetricRow => Boolean(metric && metric.coverage > 0))
-    .sort((a, b) => b.coverage - a.coverage || a.label.localeCompare(b.label, 'sv'))
+    .sort((a, b) => b.coverage - a.coverage || a.label.localeCompare(b.label, locale === 'sv' ? 'sv' : 'en'))
 }
 
 function buildMetricRow({
@@ -947,11 +952,12 @@ function buildRecentPRs(
     date: Date
     source: string
     unit: string
-    exercise: { name: string; nameSv: string | null }
+    exercise: LocalizedExerciseName
   }>,
   prsByClient: Map<string, typeof oneRepMaxRows>,
   memberNameById: Map<string, string>,
-  since: Date
+  since: Date,
+  locale: AppLocale
 ): RecentPR[] {
   const recentPRs: RecentPR[] = []
   for (const pr of oneRepMaxRows) {
@@ -964,7 +970,7 @@ function buildRecentPRs(
       id: pr.id,
       clientId: pr.clientId,
       clientName: memberNameById.get(pr.clientId) ?? '',
-      exerciseName: pr.exercise.nameSv || pr.exercise.name,
+      exerciseName: exerciseNameForLocale(pr.exercise, locale),
       oneRepMax: pr.oneRepMax,
       previousMax: previous?.oneRepMax ?? null,
       date: pr.date.toISOString(),
@@ -984,9 +990,10 @@ function buildPendingPRs(
     date: Date
     source: string
     unit: string
-    exercise: { name: string; nameSv: string | null }
+    exercise: LocalizedExerciseName
   }>,
-  memberNameById: Map<string, string>
+  memberNameById: Map<string, string>,
+  locale: AppLocale
 ): PendingPR[] {
   const pendingPRs: PendingPR[] = []
   const seenPair = new Set<string>()
@@ -1000,7 +1007,7 @@ function buildPendingPRs(
       clientId: pr.clientId,
       clientName: memberNameById.get(pr.clientId) ?? '',
       exerciseId: pr.exerciseId,
-      exerciseName: pr.exercise.nameSv || pr.exercise.name,
+      exerciseName: exerciseNameForLocale(pr.exercise, locale),
       oneRepMax: pr.oneRepMax,
       date: pr.date.toISOString(),
       unit: pr.unit,
@@ -1114,6 +1121,12 @@ function startOfDay(date: Date): Date {
 
 function getUserLocale(language: string | null | undefined): AppLocale {
   return language === 'sv' ? 'sv' : 'en'
+}
+
+function exerciseNameForLocale(exercise: LocalizedExerciseName, locale: AppLocale): string {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

@@ -3,6 +3,17 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 
+type AppLocale = 'en' | 'sv'
+
+function exerciseNameForLocale(
+  exercise: { name: string; nameSv: string | null; nameEn: string | null },
+  locale: AppLocale
+) {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
+}
+
 // Epley formula for 1RM estimation
 function calculateEstimated1RM(weight: number, reps: number): number {
   if (reps === 1) return weight
@@ -37,6 +48,7 @@ export async function POST(
       )
     }
     const { clientId } = resolved
+    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     const body = await request.json()
     const {
@@ -115,7 +127,7 @@ export async function POST(
       },
       include: {
         exercise: {
-          select: { id: true, name: true, nameSv: true },
+          select: { id: true, name: true, nameSv: true, nameEn: true },
         },
       },
     })
@@ -147,7 +159,10 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: {
-        setLog,
+        setLog: {
+          ...setLog,
+          exerciseName: exerciseNameForLocale(setLog.exercise, locale),
+        },
         estimated1RM,
         velocityZone,
         progress: {
@@ -185,6 +200,7 @@ export async function GET(
       )
     }
     const { clientId } = resolved
+    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
 
     // Verify assignment exists
     const assignment = await prisma.strengthSessionAssignment.findUnique({
@@ -214,7 +230,7 @@ export async function GET(
       where: { assignmentId },
       include: {
         exercise: {
-          select: { id: true, name: true, nameSv: true },
+          select: { id: true, name: true, nameSv: true, nameEn: true },
         },
       },
       orderBy: [{ exerciseId: 'asc' }, { setNumber: 'asc' }],
@@ -225,7 +241,7 @@ export async function GET(
       if (!acc[log.exerciseId]) {
         acc[log.exerciseId] = {
           exerciseId: log.exerciseId,
-          exerciseName: log.exercise.nameSv || log.exercise.name,
+          exerciseName: exerciseNameForLocale(log.exercise, locale),
           sets: [],
         }
       }
