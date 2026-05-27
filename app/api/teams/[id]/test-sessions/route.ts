@@ -47,6 +47,7 @@ import {
   round,
   standardDeviation,
   type HockeyBenchmarkBand,
+  type HockeyMetric,
   type HockeyMetricValues,
   type HockeyTestForSummary,
 } from '@/lib/hockey/team-test-metrics'
@@ -71,6 +72,7 @@ interface TestSession {
   rows: PRRow[]
 }
 
+type AppLocale = 'en' | 'sv'
 type HockeyMetricRanks = Record<string, { rank: number; percentile: number } | null>
 type HockeyMetricBenchmarks = Record<string, {
   zScore: number | null
@@ -146,25 +148,65 @@ function developmentLevel(age: number | null, teamName?: string | null, hockeySe
   return 'A-team'
 }
 
-function normalizeHockeyPosition(position: string | null | undefined): { key: string; label: string } {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+const HOCKEY_METRIC_LABELS_EN: Record<string, string> = {
+  backSquat1RM: 'Back squat',
+  benchPress1RM: 'Bench press',
+  gripMax: 'Grip max',
+  standingLongJump: 'Standing long jump',
+  threeJumpBest: 'Best triple jump',
+  beepScore: 'Beep test',
+  lt1SpeedKmh: 'LT1 speed',
+  lt1HeartRate: 'LT1 heart rate',
+  lt1Lactate: 'LT1 lactate',
+  lt2SpeedKmh: 'LT2 speed',
+  lt2HeartRate: 'LT2 heart rate',
+  lt2Lactate: 'LT2 lactate',
+  maxLactate: 'Max lactate',
+  maxHeartRate: 'Max heart rate',
+  rampTimeSeconds: 'Ramp time',
+  agilityBest: 'Best 5-10-5',
+  endurance7x40Best: 'Best 7x40',
+  endurance7x40Average: '7x40 average',
+  endurance7x40AverageKmh: '7x40 average speed',
+  endurance7x40Drop: '7x40 drop',
+}
+
+function localizeHockeyMetric(metric: HockeyMetric, locale: AppLocale): HockeyMetric {
+  if (locale === 'sv') return metric
+  return {
+    ...metric,
+    label: HOCKEY_METRIC_LABELS_EN[metric.key] ?? metric.label,
+    unit: metric.unit === 'nivå' ? 'level' : metric.unit,
+  }
+}
+
+function localizedHockeyMetrics(locale: AppLocale): HockeyMetric[] {
+  return HOCKEY_METRICS.map((metric) => localizeHockeyMetric(metric, locale))
+}
+
+function normalizeHockeyPosition(position: string | null | undefined, locale: AppLocale): { key: string; label: string } {
   const raw = (position ?? '').trim().toLowerCase()
-  if (!raw) return { key: 'unknown', label: 'Position saknas' }
+  if (!raw) return { key: 'unknown', label: t(locale, 'Position missing', 'Position saknas') }
   if (['g', 'goalie', 'goalkeeper', 'målvakt', 'malvakt'].some((needle) => raw.includes(needle))) {
-    return { key: 'G', label: 'Målvakt' }
+    return { key: 'G', label: t(locale, 'Goalie', 'Målvakt') }
   }
   if (['d', 'defense', 'defence', 'defender', 'back'].some((needle) => raw === needle || raw.includes(needle))) {
-    return { key: 'D', label: 'Back' }
+    return { key: 'D', label: t(locale, 'Defense', 'Back') }
   }
   if (['c', 'center', 'centre', 'centerforward'].some((needle) => raw === needle || raw.includes(needle))) {
     return { key: 'C', label: 'Center' }
   }
   if (['w', 'wing', 'winger', 'forward', 'fwd', 'lw', 'rw'].some((needle) => raw === needle || raw.includes(needle))) {
-    return { key: 'W', label: 'Forward/ving' }
+    return { key: 'W', label: t(locale, 'Forward/wing', 'Forward/ving') }
   }
-  return { key: raw.toUpperCase().slice(0, 12), label: position ?? 'Övrig' }
+  return { key: raw.toUpperCase().slice(0, 12), label: position ?? t(locale, 'Other', 'Övrig') }
 }
 
-function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPathwayTest[], teamName: string) {
+function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPathwayTest[], teamName: string, locale: AppLocale) {
   const testsByAthlete = new Map<string, HockeyPathwayTest[]>()
   for (const test of tests) {
     const existing = testsByAthlete.get(test.clientId) ?? []
@@ -277,7 +319,7 @@ function buildHockeyPathway(teamMembers: TeamMemberForPathway[], tests: HockeyPa
     .slice(0, 6)
 
   return {
-    metrics: HOCKEY_METRICS.filter((metric) => PATHWAY_METRIC_KEYS.includes(metric.key as (typeof PATHWAY_METRIC_KEYS)[number])),
+    metrics: localizedHockeyMetrics(locale).filter((metric) => PATHWAY_METRIC_KEYS.includes(metric.key as (typeof PATHWAY_METRIC_KEYS)[number])),
     seasonSummaries,
     athletes,
     latestLevelCounts,
@@ -290,14 +332,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: teamId } = await params
     const businessSlug = request.nextUrl.searchParams.get('businessSlug') ?? undefined
 
     const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
     if (!accessibleTeam) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const team = await prisma.team.findFirst({
@@ -318,7 +363,7 @@ export async function GET(
       },
     })
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const memberIds = team.members.map((m) => m.id)
@@ -425,7 +470,9 @@ export async function GET(
         id: r.id,
         clientId: r.clientId,
         exerciseId: r.exerciseId,
-        exerciseName: r.exercise.nameSv || r.exercise.name,
+        exerciseName: locale === 'sv'
+          ? r.exercise.nameSv || r.exercise.name || 'Övning'
+          : r.exercise.name || r.exercise.nameSv || 'Exercise',
         oneRepMax: r.oneRepMax,
         unit: r.unit,
         source: r.source,
@@ -462,7 +509,7 @@ export async function GET(
       return {
         id: member.id,
         name: member.name,
-        position: normalizeHockeyPosition(member.position),
+        position: normalizeHockeyPosition(member.position, locale),
         latestTestDate: latest?.testDate.toISOString().slice(0, 10) ?? null,
         aerobicAutoLinked: latest?.aerobicAutoLinked === true,
         aerobicAutoLinkSource: latest?.aerobicAutoLinkSource ?? null,
@@ -595,14 +642,14 @@ export async function GET(
       }
 
       return {
-        ...metric,
+        ...localizeHockeyMetric(metric, locale),
         coverage: values.length,
         average: avg,
         leader: values[0] ?? null,
       }
     })
 
-    const pathway = buildHockeyPathway(team.members, hockeyTests, team.name)
+    const pathway = buildHockeyPathway(team.members, hockeyTests, team.name, locale)
     const pathwayLevelByAthlete = new Map(pathway.athletes.map((athlete) => [athlete.id, athlete.currentLevel]))
     const memberById = new Map(team.members.map((member) => [member.id, member]))
 
@@ -626,7 +673,7 @@ export async function GET(
         return map
       }, new Map<string, { key: string; label: string; athleteCount: number }>())
         .values()
-    ).sort((a, b) => a.label.localeCompare(b.label, 'sv'))
+    ).sort((a, b) => a.label.localeCompare(b.label, locale === 'sv' ? 'sv' : 'en'))
 
     const hockeyTestsByAthlete = new Map<string, typeof hockeyTests>()
     for (const test of hockeyTests) {
@@ -687,7 +734,7 @@ export async function GET(
       })
 
       return {
-        ...metric,
+        ...localizeHockeyMetric(metric, locale),
         teamTrend,
         athletes,
       }
@@ -700,7 +747,7 @@ export async function GET(
         teamName: team.name,
         sessions,
         hockey: {
-          metrics: HOCKEY_METRICS,
+          metrics: localizedHockeyMetrics(locale),
           athletes: hockeyAthletes,
           leaders: hockeyLeaders,
           history: hockeyHistory,
@@ -714,7 +761,7 @@ export async function GET(
   } catch (error) {
     logError('Team test-sessions error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch test sessions' },
+      { error: t(locale, 'Failed to fetch test sessions', 'Kunde inte hämta testpass') },
       { status: 500 }
     )
   }
