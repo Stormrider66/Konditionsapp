@@ -21,6 +21,10 @@ const MAX_FRAMES = 5000
 const MAX_LANDMARKS_PER_FRAME = 60
 type AppLocale = 'en' | 'sv'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 interface JointAngle {
   name: string
   angle: number
@@ -60,11 +64,13 @@ interface AnalyzePoseDataRequest {
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('video:pose-analysis', user.id, {
       limit: 10,
@@ -77,13 +83,12 @@ export async function POST(request: NextRequest) {
       const bytes = Number(contentLength)
       if (Number.isFinite(bytes) && bytes > MAX_POSE_PAYLOAD_BYTES) {
         return NextResponse.json(
-          { error: 'Payload too large' },
+          { error: t(locale, 'Payload too large', 'För stor datamängd') },
           { status: 413 }
         )
       }
     }
 
-    let locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const body: AnalyzePoseDataRequest = await request.json()
     const { clientId, videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle, powerEstimate } = body
 
@@ -91,7 +96,7 @@ export async function POST(request: NextRequest) {
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'Client not found or access denied' },
+          { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
           { status: 404 }
         )
       }
@@ -110,20 +115,20 @@ export async function POST(request: NextRequest) {
 
     if (Array.isArray(frames) && frames.length > MAX_FRAMES) {
       return NextResponse.json(
-        { error: `Too many frames (max ${MAX_FRAMES})` },
+        { error: t(locale, `Too many frames (max ${MAX_FRAMES})`, `För många bildrutor (max ${MAX_FRAMES})`) },
         { status: 413 }
       )
     }
     if (Array.isArray(frames) && frames.some((f) => Array.isArray(f.landmarks) && f.landmarks.length > MAX_LANDMARKS_PER_FRAME)) {
       return NextResponse.json(
-        { error: `Too many landmarks per frame (max ${MAX_LANDMARKS_PER_FRAME})` },
+        { error: t(locale, `Too many landmarks per frame (max ${MAX_LANDMARKS_PER_FRAME})`, `För många landmärken per bildruta (max ${MAX_LANDMARKS_PER_FRAME})`) },
         { status: 413 }
       )
     }
 
     if (!angles || angles.length === 0) {
       return NextResponse.json(
-        { error: 'No pose data provided' },
+        { error: t(locale, 'No pose data provided', 'Ingen posedata angiven') },
         { status: 400 }
       )
     }
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     if (!googleKey) {
       return NextResponse.json(
-        { error: 'Google API key not configured. Go to Settings to add your API key.' },
+        { error: t(locale, 'Google API key not configured. Go to Settings to add your API key.', 'Google API-nyckel är inte konfigurerad. Gå till inställningar för att lägga till din API-nyckel.') },
         { status: 400 }
       )
     }
@@ -239,7 +244,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Pose data analysis error', {}, error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Analysis failed' },
+      { error: t(locale, 'Analysis failed', 'Analysen misslyckades') },
       { status: 500 }
     )
   }
