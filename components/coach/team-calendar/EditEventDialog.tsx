@@ -608,11 +608,8 @@ export function EditEventDialog({
   }
 
   const addPracticeBlock = () => {
-    const block = newPracticeBlock()
-    const nextBlocks = [
-      ...practiceBlocks,
-      locale === 'sv' ? block : { ...block, title: 'New block' },
-    ]
+    const block = newPracticeBlock(locale)
+    const nextBlocks = [...practiceBlocks, block]
     setPracticeBlocks(nextBlocks)
     setDescription(practiceBlocksToDescription(nextBlocks, locale))
   }

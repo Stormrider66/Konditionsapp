@@ -30,7 +30,7 @@ function blockId() {
     : `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-export function blockSummary(block: PracticeBlock, locale: PracticePlanLocale = 'sv') {
+export function blockSummary(block: PracticeBlock, locale: PracticePlanLocale = 'en') {
   const lines = [`${block.duration} min | ${block.title}`]
   if (block.focus) lines.push(`${text(locale, 'Fokus', 'Focus')}: ${block.focus}`)
   if (block.groups) lines.push(`${text(locale, 'Grupp', 'Group')}: ${block.groups}`)
@@ -45,7 +45,7 @@ export function blockSummary(block: PracticeBlock, locale: PracticePlanLocale = 
   return lines.join('\n')
 }
 
-export function practiceBlocksToDescription(blocks: PracticeBlock[], locale: PracticePlanLocale = 'sv') {
+export function practiceBlocksToDescription(blocks: PracticeBlock[], locale: PracticePlanLocale = 'en') {
   return blocks.map((block) => blockSummary(block, locale)).join('\n\n')
 }
 
@@ -82,10 +82,10 @@ export function withPracticePlanningDefaults(block: PracticeBlock): PracticeBloc
   }
 }
 
-export function newPracticeBlock(): PracticeBlock {
+export function newPracticeBlock(locale: PracticePlanLocale = 'en'): PracticeBlock {
   return withPracticePlanningDefaults(makePracticeBlock({
     type: 'technical',
-    title: 'Nytt block',
+    title: text(locale, 'Nytt block', 'New block'),
     duration: 10,
     focus: '',
     description: '',
@@ -100,7 +100,7 @@ export function newPracticeBlock(): PracticeBlock {
   }))
 }
 
-export function icePracticeTemplate(kind: PracticeTemplateKind, locale: PracticePlanLocale = 'sv'): PracticeBlock[] {
+export function icePracticeTemplate(kind: PracticeTemplateKind, locale: PracticePlanLocale = 'en'): PracticeBlock[] {
   if (locale === 'en') {
     if (kind === 'skills') {
       return [

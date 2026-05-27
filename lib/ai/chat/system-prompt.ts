@@ -47,6 +47,188 @@ export interface CoachSystemPromptInput {
   hasAthleteConsent?: boolean
 }
 
+function buildProgramGenerationInstructions(
+  locale: AppLocale,
+  webSearchEnabled: boolean,
+  hasCalendarContext: boolean
+): string {
+  if (locale === 'sv') {
+    return `## PROGRAMGENERERING - VIKTIGT!
+När coachen ber dig skapa ett träningsprogram MÅSTE du inkludera programmet i JSON-format i ett kodblock.
+Detta gör att en "Publicera"-knapp visas så coachen kan spara programmet direkt till atletens profil.
+
+Använd EXAKT detta JSON-format i ett \`\`\`json kodblock:
+
+\`\`\`json
+{
+  "name": "Programnamn",
+  "description": "Kort beskrivning av programmet",
+  "totalWeeks": 12,
+  "methodology": "POLARIZED",
+  "weeklySchedule": {
+    "sessionsPerWeek": 5,
+    "restDays": [0, 3]
+  },
+  "phases": [
+    {
+      "name": "Basperiod",
+      "weeks": "1-4",
+      "focus": "Aerob bas och teknik",
+      "weeklyTemplate": {
+        "monday": { "type": "REST", "description": "Vila" },
+        "tuesday": {
+          "type": "RUNNING",
+          "name": "Grundträning",
+          "duration": 60,
+          "zone": "2",
+          "description": "Lugn löpning i Zon 2",
+          "intensity": "easy"
+        },
+        "wednesday": {
+          "type": "STRENGTH",
+          "name": "Styrka",
+          "duration": 45,
+          "description": "Grundläggande styrkepass",
+          "intensity": "moderate"
+        },
+        "thursday": { "type": "REST", "description": "Vila" },
+        "friday": {
+          "type": "RUNNING",
+          "name": "Intervaller",
+          "duration": 50,
+          "zone": "4",
+          "description": "6x4 min i Z4 med 2 min vila",
+          "intensity": "hard"
+        },
+        "saturday": {
+          "type": "RUNNING",
+          "name": "Långpass",
+          "duration": 90,
+          "zone": "2",
+          "description": "Lugnt långpass",
+          "intensity": "easy"
+        },
+        "sunday": { "type": "REST", "description": "Vila" }
+      },
+      "keyWorkouts": ["Tröskelintervaller", "Långpass"],
+      "volumeGuidance": "Gradvis ökning av volym med 10% per vecka"
+    }
+  ],
+  "notes": "Generella kommentarer om programmet"
+}
+\`\`\`
+
+Giltiga type-värden: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
+Giltiga intensity-värden: easy, moderate, hard, threshold, interval, recovery, race_pace
+
+### TOKENOPTIMERING FÖR STORA PROGRAM (8+ veckor)
+- Skriv FÖRST en kort sammanfattning/diskussion UTANFÖR JSON-blocket
+- Skriv sedan JSON-blocket KOMPAKT: minimera whitespace, skriv vilopass som {"type":"REST","description":"Vila"}
+- Håll workout-beskrivningar korta och koncisa (max 200 tecken per description)
+- Om faser har IDENTISKA weeklyTemplates, skriv ändå ut varje fas separat (parsern kräver det)
+- PRIORITERA att JSON:en blir KOMPLETT framför detaljerade beskrivningar — ett komplett program med korta beskrivningar är MYCKET bättre än ett halvfärdigt program med långa beskrivningar
+- Du MÅSTE avsluta JSON-blocket med \`\`\` — om du når tokensgränsen innan du avslutat, har programmet misslyckats
+
+Efter att du genererat JSON-programmet, informera coachen att de kan klicka på "Publicera"-knappen som visas för att spara programmet till atletens kalender.
+${webSearchEnabled ? '- Du kan referera till aktuell forskning och trender inom träningsvetenskap' : ''}
+${hasCalendarContext ? `
+## KALENDERMEDVETEN PLANERING
+- RESPEKTERA alltid atletens kalenderblockeringar (semester, resor, arbete)
+- PLACERA ALDRIG träningspass på blockerade dagar
+- ANPASSA intensitet under höghöjdsläger enligt fas (akut, anpassning, optimal)
+- PLANERA gradvis återgång efter sjukdom - prioritera hälsa över "hinna ikapp"
+- FLYTTA nyckelpass (intervaller, långpass) till fullt tillgängliga dagar
+- INFORMERA om hur kalenderbegränsningar påverkar programmet` : ''}`
+  }
+
+  return `## PROGRAM GENERATION - IMPORTANT
+When the coach asks you to create a training program, you MUST include the program as JSON inside a code block.
+This makes the "Publish" button appear so the coach can save the program directly to the athlete profile.
+
+Use EXACTLY this JSON format inside a \`\`\`json code block. All user-facing string values in the JSON must be English unless the coach explicitly asks for another language:
+
+\`\`\`json
+{
+  "name": "Program name",
+  "description": "Short description of the program",
+  "totalWeeks": 12,
+  "methodology": "POLARIZED",
+  "weeklySchedule": {
+    "sessionsPerWeek": 5,
+    "restDays": [0, 3]
+  },
+  "phases": [
+    {
+      "name": "Base phase",
+      "weeks": "1-4",
+      "focus": "Aerobic base and technique",
+      "weeklyTemplate": {
+        "monday": { "type": "REST", "description": "Rest" },
+        "tuesday": {
+          "type": "RUNNING",
+          "name": "Base run",
+          "duration": 60,
+          "zone": "2",
+          "description": "Easy Zone 2 run",
+          "intensity": "easy"
+        },
+        "wednesday": {
+          "type": "STRENGTH",
+          "name": "Strength",
+          "duration": 45,
+          "description": "Foundational strength session",
+          "intensity": "moderate"
+        },
+        "thursday": { "type": "REST", "description": "Rest" },
+        "friday": {
+          "type": "RUNNING",
+          "name": "Intervals",
+          "duration": 50,
+          "zone": "4",
+          "description": "6x4 min in Z4 with 2 min recovery",
+          "intensity": "hard"
+        },
+        "saturday": {
+          "type": "RUNNING",
+          "name": "Long run",
+          "duration": 90,
+          "zone": "2",
+          "description": "Easy long run",
+          "intensity": "easy"
+        },
+        "sunday": { "type": "REST", "description": "Rest" }
+      },
+      "keyWorkouts": ["Threshold intervals", "Long run"],
+      "volumeGuidance": "Gradually increase volume by about 10% per week"
+    }
+  ],
+  "notes": "General notes about the program"
+}
+\`\`\`
+
+Valid type values: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
+Valid intensity values: easy, moderate, hard, threshold, interval, recovery, race_pace
+
+### TOKEN OPTIMIZATION FOR LARGE PROGRAMS (8+ weeks)
+- Write a short summary/discussion OUTSIDE the JSON block FIRST
+- Then write the JSON block COMPACTLY: minimize whitespace and write rest sessions as {"type":"REST","description":"Rest"}
+- Keep workout descriptions short and concise (max 200 characters per description)
+- If phases have IDENTICAL weeklyTemplates, still write each phase separately because the parser requires it
+- PRIORITIZE complete JSON over detailed prose; a complete program with short descriptions is much better than a partial program with long descriptions
+- You MUST close the JSON block with \`\`\`; if you hit the token limit before closing it, the program has failed
+
+After generating the JSON program, tell the coach they can click the visible "Publish" button to save it to the athlete calendar.
+${webSearchEnabled ? '- You may refer to current research and trends in training science' : ''}
+${hasCalendarContext ? `
+## CALENDAR-AWARE PLANNING
+- Always respect the athlete's calendar blocks (vacation, travel, work)
+- NEVER place workouts on blocked days
+- Adjust intensity during altitude camps by phase (acute, adaptation, optimal)
+- Plan a gradual return after illness; prioritize health over "catching up"
+- Move key sessions (intervals, long runs) to fully available days
+- Explain how calendar constraints affect the program` : ''}`
+}
+
 /**
  * Build the coach-mode system prompt. This is the large Swedish prompt
  * that teaches the model about Strength/Cardio/Hybrid studios, tool
@@ -357,92 +539,7 @@ Fråga bara om information du behöver om det är oklart.
 - Vid hög asymmetri eller skaderisk, inkludera preventiva övningar och styrketräning
 - **VIKTIGT: ANVÄND BEFINTLIG ATLETDATA** — Nedan i kontexten finns atletens profil, testresultat, tröskelvärden, träningszoner, skadehistorik, ACWR, Strava-data med mera. Fråga INTE om information som redan finns i kontexten (t.ex. ålder, vikt, längd, maxpuls, VO2max, trösklar, träningszoner). Använd dessa data direkt. Fråga bara om information som SAKNAS i kontexten.
 
-## PROGRAMGENERERING - VIKTIGT!
-När coachen ber dig skapa ett träningsprogram MÅSTE du inkludera programmet i JSON-format i ett kodblock.
-Detta gör att en "Publicera"-knapp visas så coachen kan spara programmet direkt till atletens profil.
-
-Använd EXAKT detta JSON-format i ett \`\`\`json kodblock:
-
-\`\`\`json
-{
-  "name": "Programnamn",
-  "description": "Kort beskrivning av programmet",
-  "totalWeeks": 12,
-  "methodology": "POLARIZED",
-  "weeklySchedule": {
-    "sessionsPerWeek": 5,
-    "restDays": [0, 3]
-  },
-  "phases": [
-    {
-      "name": "Basperiod",
-      "weeks": "1-4",
-      "focus": "Aerob bas och teknik",
-      "weeklyTemplate": {
-        "monday": { "type": "REST", "description": "Vila" },
-        "tuesday": {
-          "type": "RUNNING",
-          "name": "Grundträning",
-          "duration": 60,
-          "zone": "2",
-          "description": "Lugn löpning i Zon 2",
-          "intensity": "easy"
-        },
-        "wednesday": {
-          "type": "STRENGTH",
-          "name": "Styrka",
-          "duration": 45,
-          "description": "Grundläggande styrkepass",
-          "intensity": "moderate"
-        },
-        "thursday": { "type": "REST", "description": "Vila" },
-        "friday": {
-          "type": "RUNNING",
-          "name": "Intervaller",
-          "duration": 50,
-          "zone": "4",
-          "description": "6x4 min i Z4 med 2 min vila",
-          "intensity": "hard"
-        },
-        "saturday": {
-          "type": "RUNNING",
-          "name": "Långpass",
-          "duration": 90,
-          "zone": "2",
-          "description": "Lugnt långpass",
-          "intensity": "easy"
-        },
-        "sunday": { "type": "REST", "description": "Vila" }
-      },
-      "keyWorkouts": ["Tröskelintervaller", "Långpass"],
-      "volumeGuidance": "Gradvis ökning av volym med 10% per vecka"
-    }
-  ],
-  "notes": "Generella kommentarer om programmet"
-}
-\`\`\`
-
-Giltiga type-värden: REST, RUNNING, CYCLING, SWIMMING, STRENGTH, CROSS_TRAINING, HYROX, SKIING, CORE, RECOVERY
-Giltiga intensity-värden: easy, moderate, hard, threshold, interval, recovery, race_pace
-
-### TOKENOPTIMERING FÖR STORA PROGRAM (8+ veckor)
-- Skriv FÖRST en kort sammanfattning/diskussion UTANFÖR JSON-blocket
-- Skriv sedan JSON-blocket KOMPAKT: minimera whitespace, skriv vilopass som {"type":"REST","description":"Vila"}
-- Håll workout-beskrivningar korta och koncisa (max 200 tecken per description)
-- Om faser har IDENTISKA weeklyTemplates, skriv ändå ut varje fas separat (parsern kräver det)
-- PRIORITERA att JSON:en blir KOMPLETT framför detaljerade beskrivningar — ett komplett program med korta beskrivningar är MYCKET bättre än ett halvfärdigt program med långa beskrivningar
-- Du MÅSTE avsluta JSON-blocket med \`\`\` — om du når tokensgränsen innan du avslutat, har programmet misslyckats
-
-Efter att du genererat JSON-programmet, informera coachen att de kan klicka på "Publicera"-knappen som visas för att spara programmet till atletens kalender.
-${webSearchEnabled ? '- Du kan referera till aktuell forskning och trender inom träningsvetenskap' : ''}
-${calendarContext ? `
-## KALENDERMEDVETEN PLANERING
-- RESPEKTERA alltid atletens kalenderblockeringar (semester, resor, arbete)
-- PLACERA ALDRIG träningspass på blockerade dagar
-- ANPASSA intensitet under höghöjdsläger enligt fas (akut, anpassning, optimal)
-- PLANERA gradvis återgång efter sjukdom - prioritera hälsa över "hinna ikapp"
-- FLYTTA nyckelpass (intervaller, långpass) till fullt tillgängliga dagar
-- INFORMERA om hur kalenderbegränsningar påverkar programmet` : ''}
+${buildProgramGenerationInstructions(locale, webSearchEnabled, Boolean(calendarContext))}
 
 ${staffPermissions ? `
 ## ${promptText(locale, 'YOUR ROLE', 'DIN ROLL')}
