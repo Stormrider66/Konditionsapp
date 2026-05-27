@@ -40,9 +40,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useLocale } from '@/i18n/client'
 
-const volleyballTestSchema = z.object({
-  clientId: z.string().min(1, 'Välj en klient'),
-  testDate: z.string().min(1, 'Välj testdatum'),
+type AppLocale = 'en' | 'sv'
+
+const createVolleyballTestSchema = (locale: AppLocale) => z.object({
+  clientId: z.string().min(1, locale === 'sv' ? 'Välj en klient' : 'Select a client'),
+  testDate: z.string().min(1, locale === 'sv' ? 'Välj testdatum' : 'Select a test date'),
   position: z.enum(['setter', 'outside_hitter', 'middle_blocker', 'opposite', 'libero']),
   // Spike Jump (reach height in cm)
   spikeJump: z.number().min(200).max(400).optional(),
@@ -55,7 +57,7 @@ const volleyballTestSchema = z.object({
   notes: z.string().optional(),
 })
 
-type VolleyballTestFormData = z.infer<typeof volleyballTestSchema>
+type VolleyballTestFormData = z.infer<ReturnType<typeof createVolleyballTestSchema>>
 
 interface Client {
   id: string
@@ -69,12 +71,12 @@ interface VolleyballTestBatteryFormProps {
   onTestSaved?: (tests: any[]) => void
 }
 
-const POSITION_LABELS: Record<string, string> = {
-  setter: 'Passare',
-  outside_hitter: 'Kantspiker',
-  middle_blocker: 'Centerblockare',
-  opposite: 'Diagonal',
-  libero: 'Libero',
+const POSITION_LABELS: Record<string, Record<AppLocale, string>> = {
+  setter: { sv: 'Passare', en: 'Setter' },
+  outside_hitter: { sv: 'Kantspiker', en: 'Outside hitter' },
+  middle_blocker: { sv: 'Centerblockare', en: 'Middle blocker' },
+  opposite: { sv: 'Diagonal', en: 'Opposite' },
+  libero: { sv: 'Libero', en: 'Libero' },
 }
 
 // Position-specific benchmarks (elite level)
@@ -94,16 +96,21 @@ function getBenchmarkClass(actual: number | undefined, target: number, lowerIsBe
   return actual >= target ? 'text-green-600' : 'text-orange-500'
 }
 
-function getBenchmarkLabel(actual: number | undefined, target: number, lowerIsBetter = false): string {
+function getPositionLabel(position: string, locale: AppLocale): string {
+  return POSITION_LABELS[position]?.[locale] ?? position
+}
+
+function getBenchmarkLabel(locale: AppLocale, actual: number | undefined, target: number, lowerIsBetter = false): string {
   if (!actual) return '-'
   const percentage = lowerIsBetter
     ? Math.round((target / actual) * 100)
     : Math.round((actual / target) * 100)
-  return `${percentage}% av elit`
+  return locale === 'sv' ? `${percentage}% av elit` : `${percentage}% of elite`
 }
 
 export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTestBatteryFormProps) {
-  const locale = useLocale()
+  const rawLocale = useLocale()
+  const locale: AppLocale = rawLocale === 'sv' ? 'sv' : 'en'
   const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [submitting, setSubmitting] = useState(false)
   const [results, setResults] = useState<any[]>([])
@@ -111,14 +118,13 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
   const [activeTab, setActiveTab] = useState('spike')
 
   const form = useForm<VolleyballTestFormData>({
-    resolver: zodResolver(volleyballTestSchema),
+    resolver: zodResolver(createVolleyballTestSchema(locale)),
     defaultValues: {
       testDate: new Date().toISOString().split('T')[0],
       position: 'outside_hitter',
     },
   })
 
-  const selectedClient = clients.find((c) => c.id === form.watch('clientId'))
   const position = form.watch('position')
   const benchmarks = POSITION_BENCHMARKS[position] || POSITION_BENCHMARKS.outside_hitter
 
@@ -135,7 +141,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
 
     try {
       const client = clients.find((c) => c.id === data.clientId)
-      if (!client) throw new Error('Klient hittades inte')
+      if (!client) throw new Error(t('Klient hittades inte', 'Client not found'))
 
       const savedTests: any[] = []
 
@@ -239,14 +245,14 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
       }
 
       if (savedTests.length === 0) {
-        throw new Error('Inga testresultat att spara. Fyll i minst ett test.')
+        throw new Error(t('Inga testresultat att spara. Fyll i minst ett test.', 'No test results to save. Fill in at least one test.'))
       }
 
       setResults(savedTests)
       onTestSaved?.(savedTests)
     } catch (err) {
       console.error('Failed to save volleyball tests:', err)
-      setError(err instanceof Error ? err.message : 'Ett fel uppstod')
+      setError(err instanceof Error ? err.message : t('Ett fel uppstod', 'Something went wrong'))
     } finally {
       setSubmitting(false)
     }
@@ -258,12 +264,12 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-yellow-500" />
-            Volleyboll - Testbatteri
+            {t('Volleyboll - Testbatteri', 'Volleyball - Test battery')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            Inga klienter hittades. Lägg till klienter för att kunna registrera test.
+            {t('Inga klienter hittades. Lägg till klienter för att kunna registrera test.', 'No clients found. Add clients before registering tests.')}
           </p>
         </CardContent>
       </Card>
@@ -278,10 +284,10 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-yellow-500" />
-                Volleyboll - Testbatteri
+                {t('Volleyboll - Testbatteri', 'Volleyball - Test battery')}
               </CardTitle>
               <CardDescription>
-                Fysiska tester för volleybollspelare: Spike Jump, Block Jump, T-Test, CMJ
+                {t('Fysiska tester för volleybollspelare: Spike Jump, Block Jump, T-Test, CMJ', 'Physical tests for volleyball players: Spike Jump, Block Jump, T-Test, CMJ')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -291,11 +297,11 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                   name="clientId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Klient</FormLabel>
+                      <FormLabel>{t('Klient', 'Client')}</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Välj klient" />
+                            <SelectValue placeholder={t('Välj klient', 'Select client')} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -340,13 +346,13 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                         <SelectContent>
                           {Object.entries(POSITION_LABELS).map(([value, label]) => (
                             <SelectItem key={value} value={value}>
-                              {label}
+                              {label[locale]}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <FormDescription>
-                        Jämförs mot elitreferensvärden för {POSITION_LABELS[position]}
+                        {t('Jämförs mot elitreferensvärden för', 'Compared with elite reference values for')} {getPositionLabel(position, locale)}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -385,7 +391,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     Spike Jump / Attack Jump
                   </CardTitle>
                   <CardDescription>
-                    Maximal räckhöjd vid anfall med ansats. Mäter explosiv hoppkraft och teknik.
+                    {t('Maximal räckhöjd vid anfall med ansats. Mäter explosiv hoppkraft och teknik.', 'Maximum attack reach with approach. Measures explosive jump power and technique.')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -394,7 +400,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     name="spikeJump"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Räckhöjd (cm)</FormLabel>
+                        <FormLabel>{t('Räckhöjd (cm)', 'Reach height (cm)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -408,7 +414,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                           />
                         </FormControl>
                         <FormDescription>
-                          Mäts som maximal höjd handen når vid anfall
+                          {t('Mäts som maximal höjd handen når vid anfall', 'Measured as the maximum height the hand reaches during attack')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -418,18 +424,18 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                   {spikeJump && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(spikeJump, benchmarks.spikeJump)}`}>
                             {spikeJump} cm
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(spikeJump, benchmarks.spikeJump)}`}>
-                            {getBenchmarkLabel(spikeJump, benchmarks.spikeJump)}
+                            {getBenchmarkLabel(locale, spikeJump, benchmarks.spikeJump)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.spikeJump} cm
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.spikeJump} cm
                       </p>
                     </div>
                   )}
@@ -445,7 +451,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     Block Jump
                   </CardTitle>
                   <CardDescription>
-                    Maximal räckhöjd vid block från stående position. Mäter statisk hoppkraft.
+                    {t('Maximal räckhöjd vid block från stående position. Mäter statisk hoppkraft.', 'Maximum block reach from a standing position. Measures static jump power.')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -454,7 +460,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     name="blockJump"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Räckhöjd (cm)</FormLabel>
+                        <FormLabel>{t('Räckhöjd (cm)', 'Reach height (cm)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -468,7 +474,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                           />
                         </FormControl>
                         <FormDescription>
-                          Mäts som maximal höjd händerna når vid block utan ansats
+                          {t('Mäts som maximal höjd händerna når vid block utan ansats', 'Measured as the maximum height the hands reach during a block without approach')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -478,18 +484,18 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                   {blockJump && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(blockJump, benchmarks.blockJump)}`}>
                             {blockJump} cm
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(blockJump, benchmarks.blockJump)}`}>
-                            {getBenchmarkLabel(blockJump, benchmarks.blockJump)}
+                            {getBenchmarkLabel(locale, blockJump, benchmarks.blockJump)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.blockJump} cm
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.blockJump} cm
                       </p>
                     </div>
                   )}
@@ -505,7 +511,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     T-Test Agility
                   </CardTitle>
                   <CardDescription>
-                    Mäter snabbhet och riktningsförändringar på plan. Viktigt för spelrörlighet.
+                    {t('Mäter snabbhet och riktningsförändringar på plan. Viktigt för spelrörlighet.', 'Measures speed and changes of direction on court. Important for game movement.')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -514,7 +520,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     name="tTest"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Tid (sekunder)</FormLabel>
+                        <FormLabel>{t('Tid (sekunder)', 'Time (seconds)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -528,7 +534,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                           />
                         </FormControl>
                         <FormDescription>
-                          Standard T-bana med sidosteg och backpedaling
+                          {t('Standard T-bana med sidosteg och backpedaling', 'Standard T-course with side shuffles and backpedaling')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -538,18 +544,18 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                   {tTest && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(tTest, benchmarks.tTest, true)}`}>
                             {tTest.toFixed(2)} s
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(tTest, benchmarks.tTest, true)}`}>
-                            {getBenchmarkLabel(tTest, benchmarks.tTest, true)}
+                            {getBenchmarkLabel(locale, tTest, benchmarks.tTest, true)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.tTest.toFixed(2)} s
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.tTest.toFixed(2)} s
                       </p>
                     </div>
                   )}
@@ -565,7 +571,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     Counter Movement Jump (CMJ)
                   </CardTitle>
                   <CardDescription>
-                    Generell vertikal hoppkapacitet utan ansats. Mäter explosiv benstyrka.
+                    {t('Generell vertikal hoppkapacitet utan ansats. Mäter explosiv benstyrka.', 'General vertical jump capacity without approach. Measures explosive leg strength.')}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -574,7 +580,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                     name="cmjHeight"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Hopphöjd (cm)</FormLabel>
+                        <FormLabel>{t('Hopphöjd (cm)', 'Jump height (cm)')}</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -588,7 +594,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                           />
                         </FormControl>
                         <FormDescription>
-                          Ren hopphöjd mätt från marken
+                          {t('Ren hopphöjd mätt från marken', 'Pure jump height measured from the ground')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -598,18 +604,18 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                   {cmjHeight && (
                     <div className="p-3 bg-muted/50 rounded-lg">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm text-muted-foreground">Resultat:</span>
+                        <span className="text-sm text-muted-foreground">{t('Resultat:', 'Result:')}</span>
                         <div className="text-right">
                           <span className={`text-xl font-bold ${getBenchmarkClass(cmjHeight, benchmarks.cmj)}`}>
                             {cmjHeight.toFixed(1)} cm
                           </span>
                           <p className={`text-xs ${getBenchmarkClass(cmjHeight, benchmarks.cmj)}`}>
-                            {getBenchmarkLabel(cmjHeight, benchmarks.cmj)}
+                            {getBenchmarkLabel(locale, cmjHeight, benchmarks.cmj)}
                           </p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Elitkrav för {POSITION_LABELS[position]}: {benchmarks.cmj} cm
+                        {t('Elitkrav för', 'Elite target for')} {getPositionLabel(position, locale)}: {benchmarks.cmj} cm
                       </p>
                     </div>
                   )}
@@ -626,10 +632,10 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Anteckningar</FormLabel>
+                    <FormLabel>{t('Anteckningar', 'Notes')}</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Testförhållanden, känsla, observationer..."
+                        placeholder={t('Testförhållanden, känsla, observationer...', 'Test conditions, feeling, observations...')}
                         {...field}
                       />
                     </FormControl>
@@ -641,7 +647,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
           </Card>
 
           <Button type="submit" disabled={submitting} className="w-full">
-            {submitting ? 'Sparar...' : 'Spara testbatteri'}
+            {submitting ? t('Sparar...', 'Saving...') : t('Spara testbatteri', 'Save test battery')}
           </Button>
         </form>
       </Form>
@@ -658,7 +664,7 @@ export function VolleyballTestBatteryForm({ clients, onTestSaved }: VolleyballTe
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
               <CheckCircle className="h-5 w-5" />
-              {results.length} test sparade
+              {t(`${results.length} test sparade`, `${results.length} tests saved`)}
             </CardTitle>
           </CardHeader>
           <CardContent>
