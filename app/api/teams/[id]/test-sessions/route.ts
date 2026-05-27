@@ -39,6 +39,8 @@ import {
   averageMetric,
   benchmarkBand,
   improvementDelta,
+  localizedHockeyMetrics,
+  localizeHockeyMetric,
   mean,
   metricValuesForTest,
   normComparableValue,
@@ -150,42 +152,6 @@ function developmentLevel(age: number | null, teamName?: string | null, hockeySe
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
-}
-
-const HOCKEY_METRIC_LABELS_EN: Record<string, string> = {
-  backSquat1RM: 'Back squat',
-  benchPress1RM: 'Bench press',
-  gripMax: 'Grip max',
-  standingLongJump: 'Standing long jump',
-  threeJumpBest: 'Best triple jump',
-  beepScore: 'Beep test',
-  lt1SpeedKmh: 'LT1 speed',
-  lt1HeartRate: 'LT1 heart rate',
-  lt1Lactate: 'LT1 lactate',
-  lt2SpeedKmh: 'LT2 speed',
-  lt2HeartRate: 'LT2 heart rate',
-  lt2Lactate: 'LT2 lactate',
-  maxLactate: 'Max lactate',
-  maxHeartRate: 'Max heart rate',
-  rampTimeSeconds: 'Ramp time',
-  agilityBest: 'Best 5-10-5',
-  endurance7x40Best: 'Best 7x40',
-  endurance7x40Average: '7x40 average',
-  endurance7x40AverageKmh: '7x40 average speed',
-  endurance7x40Drop: '7x40 drop',
-}
-
-function localizeHockeyMetric(metric: HockeyMetric, locale: AppLocale): HockeyMetric {
-  if (locale === 'sv') return metric
-  return {
-    ...metric,
-    label: HOCKEY_METRIC_LABELS_EN[metric.key] ?? metric.label,
-    unit: metric.unit === 'nivå' ? 'level' : metric.unit,
-  }
-}
-
-function localizedHockeyMetrics(locale: AppLocale): HockeyMetric[] {
-  return HOCKEY_METRICS.map((metric) => localizeHockeyMetric(metric, locale))
 }
 
 function normalizeHockeyPosition(position: string | null | undefined, locale: AppLocale): { key: string; label: string } {

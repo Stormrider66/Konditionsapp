@@ -22,6 +22,7 @@ import {
 import {
   HOCKEY_METRICS,
   improvementDelta,
+  localizeHockeyMetric,
   metricValuesForTest,
   normComparableValue,
   percentileFromRank,
@@ -520,7 +521,7 @@ function buildMetricGroups({
   teamLevel: string
   locale: AppLocale
 }): MetricGroup[] {
-  const hockeyMetrics = buildHockeyMetricRows(members, hockeyTests, norms, teamLevel)
+  const hockeyMetrics = buildHockeyMetricRows(members, hockeyTests, norms, teamLevel, locale)
   const strengthMetrics = buildStrengthMetricRows(members, oneRepMaxRows, locale)
   return [
     { id: 'hockey' as const, label: t(locale, 'Tests', 'Tester'), metrics: hockeyMetrics },
@@ -532,7 +533,8 @@ function buildHockeyMetricRows(
   members: Array<{ id: string; name: string; weight: number; position: string | null }>,
   tests: HockeyTestForSummary[],
   norms: HockeyNormReferenceConfig[],
-  teamLevel: string
+  teamLevel: string,
+  locale: AppLocale
 ): AdaptiveMetricRow[] {
   const testsByAthlete = new Map<string, HockeyTestForSummary[]>()
   for (const test of tests) {
@@ -545,26 +547,35 @@ function buildHockeyMetricRows(
   }
 
   return HOCKEY_METRICS
-    .map((metric) => buildMetricRow({
-      metric,
-      category: 'hockey',
-      members,
-      valuesByAthlete: new Map(members.map((member) => {
-        const values = (testsByAthlete.get(member.id) ?? [])
-          .map((test) => ({
-            date: test.testDate,
-            value: metricValuesForTest(test)[metric.key],
-          }))
-          .filter((row): row is { date: Date; value: number } => row.value != null)
-        return [member.id, values]
-      })),
-      normResolver: (member) => findHockeyNormReference(
-        norms,
-        teamLevel,
-        member.position ?? 'All',
-        metric.key
-      ),
-    }))
+    .map((metric) => {
+      const row = buildMetricRow({
+        metric,
+        category: 'hockey',
+        members,
+        valuesByAthlete: new Map(members.map((member) => {
+          const values = (testsByAthlete.get(member.id) ?? [])
+            .map((test) => ({
+              date: test.testDate,
+              value: metricValuesForTest(test)[metric.key],
+            }))
+            .filter((row): row is { date: Date; value: number } => row.value != null)
+          return [member.id, values]
+        })),
+        normResolver: (member) => findHockeyNormReference(
+          norms,
+          teamLevel,
+          member.position ?? 'All',
+          metric.key
+        ),
+      })
+      if (!row) return null
+      const localizedMetric = localizeHockeyMetric(metric, locale)
+      return {
+        ...row,
+        label: localizedMetric.label,
+        unit: localizedMetric.unit,
+      }
+    })
     .filter((metric): metric is AdaptiveMetricRow => Boolean(metric && metric.coverage > 0))
 }
 
