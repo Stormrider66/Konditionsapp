@@ -7,7 +7,11 @@
 
 import { logger } from '@/lib/logger'
 import { buildTrendContext } from './context-builder'
-import { generateTrendAnalysisPrompt, PERFORMANCE_ANALYSIS_SYSTEM_PROMPT } from './prompts'
+import {
+  generateTrendAnalysisPrompt,
+  getPerformanceAnalysisSystemPrompt,
+  type PerformanceAnalysisLocale,
+} from './prompts'
 import {
   TrendAnalysisResult,
   TrendDataPoint,
@@ -28,6 +32,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 interface TrendAnalysisOptions {
   months?: number
   metrics?: ('vo2max' | 'lt1' | 'lt2' | 'economy' | 'maxHR')[]
+  locale?: PerformanceAnalysisLocale
   /** User ID to get API keys from settings */
   userId?: string
 }
@@ -39,7 +44,7 @@ export async function analyzeTrends(
   clientId: string,
   options: TrendAnalysisOptions = {}
 ): Promise<TrendAnalysisResult | null> {
-  const { months = 12, userId } = options
+  const { months = 12, locale = 'en', userId } = options
 
   try {
     // Build trend context
@@ -61,7 +66,8 @@ export async function analyzeTrends(
     const prompt = generateTrendAnalysisPrompt(
       context.tests,
       context.athlete,
-      context.overallTraining
+      context.overallTraining,
+      locale
     )
 
     // Get API key from user settings or fall back to environment variable
@@ -86,7 +92,7 @@ export async function analyzeTrends(
 
     // Call Gemini
     const startTime = Date.now()
-    const fullPrompt = `${PERFORMANCE_ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`
+    const fullPrompt = `${getPerformanceAnalysisSystemPrompt(locale)}\n\n${prompt}`
     const response = await generateContent(
       client,
       model,

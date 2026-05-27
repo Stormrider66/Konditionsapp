@@ -22,6 +22,7 @@ const requestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)
@@ -95,6 +96,7 @@ export async function POST(req: NextRequest) {
       { userId: user.id, clientId, category: 'performance_analysis' },
       () => compareTests(currentTestId, previousTestId, {
         includeTrainingCorrelation,
+        locale,
         userId: user.id,
       }),
     )

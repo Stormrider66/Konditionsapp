@@ -5,10 +5,13 @@
  */
 
 import { generateText } from 'ai'
-import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { buildTrendContext, buildTrainingContext } from './context-builder'
-import { generateTrainingCorrelationPrompt, PERFORMANCE_ANALYSIS_SYSTEM_PROMPT } from './prompts'
+import {
+  generateTrainingCorrelationPrompt,
+  getPerformanceAnalysisSystemPrompt,
+  type PerformanceAnalysisLocale,
+} from './prompts'
 import {
   TrainingCorrelationResult,
   TrainingContextForAnalysis,
@@ -21,6 +24,7 @@ import { createModelInstance } from '@/lib/ai/create-model'
 
 interface CorrelationOptions {
   lookbackMonths?: number
+  locale?: PerformanceAnalysisLocale
 }
 
 /**
@@ -31,7 +35,7 @@ export async function analyzeTrainingCorrelation(
   keys: AvailableKeys,
   options: CorrelationOptions = {}
 ): Promise<TrainingCorrelationResult | null> {
-  const { lookbackMonths = 12 } = options
+  const { lookbackMonths = 12, locale = 'en' } = options
 
   try {
     // Build trend context for test data
@@ -54,7 +58,7 @@ export async function analyzeTrainingCorrelation(
     }
 
     // Calculate actual correlations
-    const correlations = calculateCorrelations(context.tests, trainingPeriods)
+    const correlations = calculateCorrelations(context.tests, trainingPeriods, locale)
 
     // Determine data quality
     const dataQuality =
@@ -68,7 +72,8 @@ export async function analyzeTrainingCorrelation(
     const prompt = generateTrainingCorrelationPrompt(
       context.tests,
       trainingPeriods,
-      context.athlete
+      context.athlete,
+      locale
     )
 
     // Resolve best available model
@@ -82,7 +87,7 @@ export async function analyzeTrainingCorrelation(
     const startTime = Date.now()
     const response = await generateText({
       model: createModelInstance(resolved),
-      system: PERFORMANCE_ANALYSIS_SYSTEM_PROMPT,
+      system: getPerformanceAnalysisSystemPrompt(locale),
       prompt,
       maxOutputTokens: 4000,
     })
@@ -119,7 +124,9 @@ export async function analyzeTrainingCorrelation(
         mostEffectiveTraining: [],
         leastEffectiveTraining: [],
         recommendedDistribution: { zone1: 10, zone2: 70, zone3: 5, zone4: 10, zone5: 5 },
-        methodology: `Baserat på ${context.tests.length} tester över ${lookbackMonths} månader`,
+        methodology: locale === 'sv'
+          ? `Baserat på ${context.tests.length} tester över ${lookbackMonths} månader`
+          : `Based on ${context.tests.length} tests over ${lookbackMonths} months`,
       },
       tokensUsed: (response.usage?.inputTokens ?? 0) + (response.usage?.outputTokens ?? 0),
       modelUsed: resolved.modelId,
@@ -164,7 +171,8 @@ async function buildTrainingPeriodsForTests(
  */
 function calculateCorrelations(
   tests: { vo2max: number | null; anaerobicThreshold: { intensity: number } | null }[],
-  trainingPeriods: TrainingContextForAnalysis[]
+  trainingPeriods: TrainingContextForAnalysis[],
+  locale: PerformanceAnalysisLocale
 ): TrainingCorrelationResult['correlations'] {
   const correlations: TrainingCorrelationResult['correlations'] = []
 
@@ -209,25 +217,25 @@ function calculateCorrelations(
       correlationStrength: r,
       significance,
       direction: r > 0 ? 'POSITIVE' : 'NEGATIVE',
-      interpretation: generateInterpretation(trainingFactor, performanceMetric, r),
+      interpretation: generateInterpretation(trainingFactor, performanceMetric, r, locale),
     })
   }
 
   // Calculate correlations for VO2max
   if (vo2maxValues.some((v) => v > 0)) {
-    addCorrelation('Veckovolym (km)', 'VO2max', weeklyVolumes, vo2maxValues)
-    addCorrelation('Vecko-TSS', 'VO2max', weeklyTSS, vo2maxValues)
-    addCorrelation('Styrkepass', 'VO2max', strengthSessions, vo2maxValues)
-    addCorrelation('Genomsnittlig readiness', 'VO2max', avgReadiness, vo2maxValues)
-    addCorrelation('Sömntimmar', 'VO2max', avgSleep, vo2maxValues)
-    addCorrelation('Genomföringsgrad', 'VO2max', completionRates, vo2maxValues)
+    addCorrelation(locale === 'sv' ? 'Veckovolym (km)' : 'Weekly volume (km)', 'VO2max', weeklyVolumes, vo2maxValues)
+    addCorrelation(locale === 'sv' ? 'Vecko-TSS' : 'Weekly TSS', 'VO2max', weeklyTSS, vo2maxValues)
+    addCorrelation(locale === 'sv' ? 'Styrkepass' : 'Strength sessions', 'VO2max', strengthSessions, vo2maxValues)
+    addCorrelation(locale === 'sv' ? 'Genomsnittlig readiness' : 'Average readiness', 'VO2max', avgReadiness, vo2maxValues)
+    addCorrelation(locale === 'sv' ? 'Sömntimmar' : 'Sleep hours', 'VO2max', avgSleep, vo2maxValues)
+    addCorrelation(locale === 'sv' ? 'Genomföringsgrad' : 'Completion rate', 'VO2max', completionRates, vo2maxValues)
   }
 
   // Calculate correlations for LT2
   if (lt2Values.some((v) => v > 0)) {
-    addCorrelation('Veckovolym (km)', 'Anaerob tröskel', weeklyVolumes, lt2Values)
-    addCorrelation('Vecko-TSS', 'Anaerob tröskel', weeklyTSS, lt2Values)
-    addCorrelation('Styrkepass', 'Anaerob tröskel', strengthSessions, lt2Values)
+    addCorrelation(locale === 'sv' ? 'Veckovolym (km)' : 'Weekly volume (km)', locale === 'sv' ? 'Anaerob tröskel' : 'Anaerobic threshold', weeklyVolumes, lt2Values)
+    addCorrelation(locale === 'sv' ? 'Vecko-TSS' : 'Weekly TSS', locale === 'sv' ? 'Anaerob tröskel' : 'Anaerobic threshold', weeklyTSS, lt2Values)
+    addCorrelation(locale === 'sv' ? 'Styrkepass' : 'Strength sessions', locale === 'sv' ? 'Anaerob tröskel' : 'Anaerobic threshold', strengthSessions, lt2Values)
   }
 
   return correlations.sort((a, b) => Math.abs(b.correlationStrength) - Math.abs(a.correlationStrength))
@@ -261,25 +269,46 @@ function pearsonCorrelation(x: number[], y: number[]): number {
 function generateInterpretation(
   trainingFactor: string,
   performanceMetric: string,
-  correlation: number
+  correlation: number,
+  locale: PerformanceAnalysisLocale
 ): string {
+  if (locale === 'sv') {
+    const strength =
+      Math.abs(correlation) >= 0.7
+        ? 'stark'
+        : Math.abs(correlation) >= 0.5
+          ? 'måttlig'
+          : 'svag'
+
+    const direction = correlation > 0 ? 'positiv' : 'negativ'
+
+    if (correlation > 0.5) {
+      return `${strength} ${direction} korrelation: Högre ${trainingFactor.toLowerCase()} verkar associerat med högre ${performanceMetric}.`
+    } else if (correlation < -0.5) {
+      return `${strength} ${direction} korrelation: Högre ${trainingFactor.toLowerCase()} verkar associerat med lägre ${performanceMetric}.`
+    } else if (Math.abs(correlation) >= 0.3) {
+      return `${strength} ${direction} trend observerad mellan ${trainingFactor.toLowerCase()} och ${performanceMetric}.`
+    }
+    return `Ingen tydlig korrelation mellan ${trainingFactor.toLowerCase()} och ${performanceMetric}.`
+  }
+
   const strength =
     Math.abs(correlation) >= 0.7
-      ? 'stark'
+      ? 'strong'
       : Math.abs(correlation) >= 0.5
-        ? 'måttlig'
-        : 'svag'
+        ? 'moderate'
+        : 'weak'
 
-  const direction = correlation > 0 ? 'positiv' : 'negativ'
+  const direction = correlation > 0 ? 'positive' : 'negative'
 
   if (correlation > 0.5) {
-    return `${strength} ${direction} korrelation: Högre ${trainingFactor.toLowerCase()} verkar associerat med högre ${performanceMetric}.`
+    return `${strength} ${direction} correlation: Higher ${trainingFactor.toLowerCase()} appears associated with higher ${performanceMetric}.`
   } else if (correlation < -0.5) {
-    return `${strength} ${direction} korrelation: Högre ${trainingFactor.toLowerCase()} verkar associerat med lägre ${performanceMetric}.`
+    return `${strength} ${direction} correlation: Higher ${trainingFactor.toLowerCase()} appears associated with lower ${performanceMetric}.`
   } else if (Math.abs(correlation) >= 0.3) {
-    return `${strength} ${direction} trend observerad mellan ${trainingFactor.toLowerCase()} och ${performanceMetric}.`
+    return `${strength} ${direction} trend observed between ${trainingFactor.toLowerCase()} and ${performanceMetric}.`
   } else {
-    return `Ingen tydlig korrelation mellan ${trainingFactor.toLowerCase()} och ${performanceMetric}.`
+    return `No clear correlation between ${trainingFactor.toLowerCase()} and ${performanceMetric}.`
   }
 }
 

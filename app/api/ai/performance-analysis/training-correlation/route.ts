@@ -22,6 +22,7 @@ const requestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)
@@ -105,7 +106,7 @@ export async function POST(req: NextRequest) {
     const startTime = Date.now()
     const result = await withAiContext(
       { userId: user.id, clientId, category: 'performance_analysis' },
-      () => analyzeTrainingCorrelation(clientId, apiKeys, { lookbackMonths }),
+      () => analyzeTrainingCorrelation(clientId, apiKeys, { lookbackMonths, locale }),
     )
 
     if (!result) {

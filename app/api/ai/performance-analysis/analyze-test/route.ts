@@ -23,6 +23,7 @@ const requestSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
+    const locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
         includePredictions,
         includeRecommendations,
         trainingLookbackWeeks,
+        locale,
         userId: user.id,
       }),
     )

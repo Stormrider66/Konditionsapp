@@ -7,7 +7,11 @@
 
 import { logger } from '@/lib/logger'
 import { buildAnalysisContext } from './context-builder'
-import { generateTestAnalysisPrompt, PERFORMANCE_ANALYSIS_SYSTEM_PROMPT } from './prompts'
+import {
+  generateTestAnalysisPrompt,
+  getPerformanceAnalysisSystemPrompt,
+  type PerformanceAnalysisLocale,
+} from './prompts'
 import {
   PerformanceAnalysisResult,
   KeyFinding,
@@ -26,6 +30,7 @@ interface AnalyzeTestOptions {
   includePredictions?: boolean
   includeRecommendations?: boolean
   trainingLookbackWeeks?: number
+  locale?: PerformanceAnalysisLocale
   /** User ID to get API keys from settings */
   userId?: string
 }
@@ -41,6 +46,7 @@ export async function analyzeTest(
     includePredictions = true,
     includeRecommendations = true,
     trainingLookbackWeeks = 12,
+    locale = 'en',
     userId,
   } = options
 
@@ -64,7 +70,8 @@ export async function analyzeTest(
       context.test,
       context.previousTests,
       context.trainingContext,
-      context.athlete
+      context.athlete,
+      locale
     )
 
     // Get API key from user settings or fall back to environment variable
@@ -88,7 +95,7 @@ export async function analyzeTest(
     const model = GEMINI_MODELS.FLASH // Use Gemini 3.5 Flash for fast analysis
 
     const startTime = Date.now()
-    const fullPrompt = `${PERFORMANCE_ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`
+    const fullPrompt = `${getPerformanceAnalysisSystemPrompt(locale)}\n\n${prompt}`
     const response = await generateContent(
       client,
       model,

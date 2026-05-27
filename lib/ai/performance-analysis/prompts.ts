@@ -1,7 +1,7 @@
 /**
  * AI Prompts for Deep Performance Analysis
  *
- * Swedish-language prompts for generating insightful performance analysis.
+ * Localized prompts for generating insightful performance analysis.
  */
 
 import {
@@ -11,10 +11,16 @@ import {
 } from './types'
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'
 
+export type PerformanceAnalysisLocale = 'en' | 'sv'
+
 /**
  * System prompt for all performance analysis
  */
-export const PERFORMANCE_ANALYSIS_SYSTEM_PROMPT = `${buildConstitutionPreamble('analysis')}Du är en expert på prestationsanalys inom uthållighetsidrott med djup kunskap om:
+export function getPerformanceAnalysisSystemPrompt(
+  locale: PerformanceAnalysisLocale = 'en'
+): string {
+  if (locale === 'sv') {
+    return `${buildConstitutionPreamble('analysis')}Du är en expert på prestationsanalys inom uthållighetsidrott med djup kunskap om:
 - Fysiologiska testningar (VO2max, laktattröskel, löpekonomi)
 - Träningsteori och periodisering
 - Prestation-träningskorrelationer
@@ -37,6 +43,36 @@ Viktiga fysiologiska koncept:
 - VO2max: Maximal syreupptagningsförmåga
 - Löpekonomi: ml O2/kg/km - lägre är bättre
 - FTP: Funktionell tröskeleffekt för cykling`
+  }
+
+  return `${buildConstitutionPreamble('analysis')}You are an expert in endurance performance analysis with deep knowledge of:
+- Physiological testing (VO2max, lactate threshold, running economy)
+- Training theory and periodization
+- Performance-training correlations
+- Individualized coaching
+
+Your task is to analyze test data and provide insightful, actionable analysis in English.
+
+Guidelines:
+- Be specific and avoid generic statements
+- Focus on practical implications
+- Give concrete recommendations based on the data
+- Use professional but accessible language
+- Adapt complexity for coaches and advanced athletes
+- Include both strengths and development areas
+- Base predictions on established physiological models
+
+Important physiological concepts:
+- LT1 (aerobic threshold): First lactate rise, typically 1.5-2.0 mmol/L
+- LT2 (anaerobic threshold): Often defined as 4 mmol/L or MLSS
+- VO2max: Maximal oxygen uptake
+- Running economy: ml O2/kg/km - lower is better
+- FTP: Functional threshold power for cycling
+
+Output language requirement: write every user-facing JSON string value in English. If source data contains Swedish labels or names, use them only as input context and translate the meaning.`
+}
+
+export const PERFORMANCE_ANALYSIS_SYSTEM_PROMPT = getPerformanceAnalysisSystemPrompt('en')
 
 /**
  * Generate prompt for single test analysis
@@ -46,38 +82,41 @@ export function generateTestAnalysisPrompt(
   previousTests: TestDataForAnalysis[],
   trainingContext: TrainingContextForAnalysis | null,
   athlete: AthleteProfileForAnalysis,
-  locale: 'en' | 'sv' = 'en'
+  locale: PerformanceAnalysisLocale = 'en'
 ): string {
-  const testTypeLabel = getTestTypeLabel(test.testType)
+  const testTypeLabel = getTestTypeLabel(test.testType, locale)
   const hasTrainingData = trainingContext !== null
+  const isSv = locale === 'sv'
 
   return `
-## Analysera ${testTypeLabel} för ${athlete.name}
+## ${isSv ? 'Analysera' : 'Analyze'} ${testTypeLabel} ${isSv ? 'för' : 'for'} ${athlete.name}
 
-### Atletprofil
-- Ålder: ${athlete.age} år
-- Kön: ${athlete.gender === 'MALE' ? 'Man' : 'Kvinna'}
+${getOutputLanguageInstruction(locale)}
+
+### ${isSv ? 'Atletprofil' : 'Athlete profile'}
+- ${isSv ? 'Ålder' : 'Age'}: ${athlete.age} ${isSv ? 'år' : 'years'}
+- ${isSv ? 'Kön' : 'Gender'}: ${athlete.gender === 'MALE' ? (isSv ? 'Man' : 'Male') : (isSv ? 'Kvinna' : 'Female')}
 - Sport: ${athlete.sport}
-- Erfarenhet: ${athlete.experienceYears} år
-- Träningstimmar/vecka: ${athlete.weeklyTrainingHours}
-${athlete.primaryGoal ? `- Mål: ${athlete.primaryGoal}` : ''}
+- ${isSv ? 'Erfarenhet' : 'Experience'}: ${athlete.experienceYears} ${isSv ? 'år' : 'years'}
+- ${isSv ? 'Träningstimmar/vecka' : 'Training hours/week'}: ${athlete.weeklyTrainingHours}
+${athlete.primaryGoal ? `- ${isSv ? 'Mål' : 'Goal'}: ${athlete.primaryGoal}` : ''}
 
-### Testresultat (${formatDate(test.date, locale)})
-${formatTestData(test)}
+### ${isSv ? 'Testresultat' : 'Test results'} (${formatDate(test.date, locale)})
+${formatTestData(test, locale)}
 
 ${previousTests.length > 0 ? `
-### Tidigare tester (för kontext)
+### ${isSv ? 'Tidigare tester (för kontext)' : 'Previous tests (for context)'}
 ${previousTests.map((t, i) => `
 **Test ${i + 1} (${formatDate(t.date, locale)}):**
-- VO2max: ${t.vo2max ?? 'Ej mätt'} ml/kg/min
-- Aerob tröskel HR: ${t.aerobicThreshold?.hr ?? 'N/A'} bpm
-- Anaerob tröskel HR: ${t.anaerobicThreshold?.hr ?? 'N/A'} bpm
+- VO2max: ${t.vo2max ?? (isSv ? 'Ej mätt' : 'Not measured')} ml/kg/min
+- ${isSv ? 'Aerob tröskel HR' : 'Aerobic threshold HR'}: ${t.aerobicThreshold?.hr ?? 'N/A'} bpm
+- ${isSv ? 'Anaerob tröskel HR' : 'Anaerobic threshold HR'}: ${t.anaerobicThreshold?.hr ?? 'N/A'} bpm
 `).join('')}
 ` : ''}
 
 ${hasTrainingData ? `
-### Träningskontext (${trainingContext!.weekCount} veckor före test)
-${formatTrainingContext(trainingContext!)}
+### ${isSv ? 'Träningskontext' : 'Training context'} (${trainingContext!.weekCount} ${isSv ? 'veckor före test' : 'weeks before test'})
+${formatTrainingContext(trainingContext!, locale)}
 ` : ''}
 
 ### Instruktioner för analys
@@ -146,6 +185,8 @@ Svara i JSON-format enligt denna struktur:
   ]
 }
 \`\`\`
+
+${getOutputLanguageInstruction(locale)}
 `
 }
 
@@ -157,34 +198,37 @@ export function generateTestComparisonPrompt(
   previous: TestDataForAnalysis,
   trainingBetween: TrainingContextForAnalysis | null,
   athlete: AthleteProfileForAnalysis,
-  locale: 'en' | 'sv' = 'en'
+  locale: PerformanceAnalysisLocale = 'en'
 ): string {
-  const testTypeLabel = getTestTypeLabel(current.testType)
+  const testTypeLabel = getTestTypeLabel(current.testType, locale)
+  const isSv = locale === 'sv'
   const daysBetween = Math.floor(
     (new Date(current.date).getTime() - new Date(previous.date).getTime()) / (1000 * 60 * 60 * 24)
   )
 
   return `
-## Jämför ${testTypeLabel} för ${athlete.name}
+## ${isSv ? 'Jämför' : 'Compare'} ${testTypeLabel} ${isSv ? 'för' : 'for'} ${athlete.name}
 
-### Atletprofil
-- Ålder: ${athlete.age} år
+${getOutputLanguageInstruction(locale)}
+
+### ${isSv ? 'Atletprofil' : 'Athlete profile'}
+- ${isSv ? 'Ålder' : 'Age'}: ${athlete.age} ${isSv ? 'år' : 'years'}
 - Sport: ${athlete.sport}
-- Erfarenhet: ${athlete.experienceYears} år
+- ${isSv ? 'Erfarenhet' : 'Experience'}: ${athlete.experienceYears} ${isSv ? 'år' : 'years'}
 
-### Tidigare test (${formatDate(previous.date, locale)})
-${formatTestData(previous)}
+### ${isSv ? 'Tidigare test' : 'Previous test'} (${formatDate(previous.date, locale)})
+${formatTestData(previous, locale)}
 
-### Aktuellt test (${formatDate(current.date, locale)})
-${formatTestData(current)}
+### ${isSv ? 'Aktuellt test' : 'Current test'} (${formatDate(current.date, locale)})
+${formatTestData(current, locale)}
 
-### Tidsperiod mellan tester
-- Dagar: ${daysBetween}
-- Veckor: ${Math.round(daysBetween / 7)}
+### ${isSv ? 'Tidsperiod mellan tester' : 'Time between tests'}
+- ${isSv ? 'Dagar' : 'Days'}: ${daysBetween}
+- ${isSv ? 'Veckor' : 'Weeks'}: ${Math.round(daysBetween / 7)}
 
 ${trainingBetween ? `
-### Träning mellan testerna
-${formatTrainingContext(trainingBetween)}
+### ${isSv ? 'Träning mellan testerna' : 'Training between tests'}
+${formatTrainingContext(trainingBetween, locale)}
 ` : ''}
 
 ### Instruktioner för jämförelseanalys
@@ -250,6 +294,8 @@ Svara i JSON-format enligt denna struktur:
   "recommendations": [...]
 }
 \`\`\`
+
+${getOutputLanguageInstruction(locale)}
 `
 }
 
@@ -260,8 +306,9 @@ export function generateTrendAnalysisPrompt(
   tests: TestDataForAnalysis[],
   athlete: AthleteProfileForAnalysis,
   overallTraining: TrainingContextForAnalysis | null,
-  locale: 'en' | 'sv' = 'en'
+  locale: PerformanceAnalysisLocale = 'en'
 ): string {
+  const isSv = locale === 'sv'
   const months = tests.length > 1
     ? Math.ceil(
         (new Date(tests[tests.length - 1].date).getTime() - new Date(tests[0].date).getTime()) /
@@ -270,27 +317,29 @@ export function generateTrendAnalysisPrompt(
     : 1
 
   return `
-## Trendanalys för ${athlete.name}
+## ${isSv ? 'Trendanalys för' : 'Trend analysis for'} ${athlete.name}
 
-### Atletprofil
-- Ålder: ${athlete.age} år
+${getOutputLanguageInstruction(locale)}
+
+### ${isSv ? 'Atletprofil' : 'Athlete profile'}
+- ${isSv ? 'Ålder' : 'Age'}: ${athlete.age} ${isSv ? 'år' : 'years'}
 - Sport: ${athlete.sport}
-- Erfarenhet: ${athlete.experienceYears} år
-- Antal tester: ${tests.length} över ${months} månader
+- ${isSv ? 'Erfarenhet' : 'Experience'}: ${athlete.experienceYears} ${isSv ? 'år' : 'years'}
+- ${isSv ? 'Antal tester' : 'Number of tests'}: ${tests.length} ${isSv ? 'över' : 'over'} ${months} ${isSv ? 'månader' : 'months'}
 
-### Testhistorik
+### ${isSv ? 'Testhistorik' : 'Test history'}
 ${tests.map((t, i) => `
 **Test ${i + 1} (${formatDate(t.date, locale)}):**
 - VO2max: ${t.vo2max ?? 'N/A'} ml/kg/min
-- Aerob tröskel: HR ${t.aerobicThreshold?.hr ?? 'N/A'}, Intensitet ${t.aerobicThreshold?.intensity ?? 'N/A'}
-- Anaerob tröskel: HR ${t.anaerobicThreshold?.hr ?? 'N/A'}, Intensitet ${t.anaerobicThreshold?.intensity ?? 'N/A'}
+- ${isSv ? 'Aerob tröskel' : 'Aerobic threshold'}: HR ${t.aerobicThreshold?.hr ?? 'N/A'}, ${isSv ? 'Intensitet' : 'Intensity'} ${t.aerobicThreshold?.intensity ?? 'N/A'}
+- ${isSv ? 'Anaerob tröskel' : 'Anaerobic threshold'}: HR ${t.anaerobicThreshold?.hr ?? 'N/A'}, ${isSv ? 'Intensitet' : 'Intensity'} ${t.anaerobicThreshold?.intensity ?? 'N/A'}
 - MaxHR: ${t.maxHR}
-${t.economyData.length > 0 ? `- Ekonomi: ${t.economyData[0].economy.toFixed(1)} ml/kg/km` : ''}
+${t.economyData.length > 0 ? `- ${isSv ? 'Ekonomi' : 'Economy'}: ${t.economyData[0].economy.toFixed(1)} ml/kg/km` : ''}
 `).join('')}
 
 ${overallTraining ? `
-### Övergripande träningsdata
-${formatTrainingContext(overallTraining)}
+### ${isSv ? 'Övergripande träningsdata' : 'Overall training data'}
+${formatTrainingContext(overallTraining, locale)}
 ` : ''}
 
 ### Instruktioner för trendanalys
@@ -362,6 +411,8 @@ Svara i JSON-format enligt denna struktur:
   "recommendations": [...]
 }
 \`\`\`
+
+${getOutputLanguageInstruction(locale)}
 `
 }
 
@@ -372,29 +423,32 @@ export function generateTrainingCorrelationPrompt(
   tests: TestDataForAnalysis[],
   trainingPeriods: TrainingContextForAnalysis[],
   athlete: AthleteProfileForAnalysis,
-  locale: 'en' | 'sv' = 'en'
+  locale: PerformanceAnalysisLocale = 'en'
 ): string {
+  const isSv = locale === 'sv'
   return `
-## Träning-Prestationskorrelation för ${athlete.name}
+## ${isSv ? 'Träning-Prestationskorrelation för' : 'Training-performance correlation for'} ${athlete.name}
 
-### Atletprofil
+${getOutputLanguageInstruction(locale)}
+
+### ${isSv ? 'Atletprofil' : 'Athlete profile'}
 - Sport: ${athlete.sport}
-- Erfarenhet: ${athlete.experienceYears} år
+- ${isSv ? 'Erfarenhet' : 'Experience'}: ${athlete.experienceYears} ${isSv ? 'år' : 'years'}
 
-### Data för analys
-- Antal tester: ${tests.length}
-- Träningsperioder: ${trainingPeriods.length}
+### ${isSv ? 'Data för analys' : 'Data for analysis'}
+- ${isSv ? 'Antal tester' : 'Number of tests'}: ${tests.length}
+- ${isSv ? 'Träningsperioder' : 'Training periods'}: ${trainingPeriods.length}
 
-### Testresultat
+### ${isSv ? 'Testresultat' : 'Test results'}
 ${tests.map((t, i) => `Test ${i + 1} (${formatDate(t.date, locale)}): VO2max ${t.vo2max ?? 'N/A'}, LT2 HR ${t.anaerobicThreshold?.hr ?? 'N/A'}`).join('\n')}
 
-### Träningsperioder
+### ${isSv ? 'Träningsperioder' : 'Training periods'}
 ${trainingPeriods.map((tp, i) => `
-Period ${i + 1} (${tp.weekCount} veckor):
-- Sessioner: ${tp.totalSessions}
-- Volym: ${tp.totalDistanceKm.toFixed(0)} km
-- TSS/vecka: ${tp.avgWeeklyTSS.toFixed(0)}
-- Styrkepass: ${tp.strengthSessions}
+Period ${i + 1} (${tp.weekCount} ${isSv ? 'veckor' : 'weeks'}):
+- ${isSv ? 'Sessioner' : 'Sessions'}: ${tp.totalSessions}
+- ${isSv ? 'Volym' : 'Volume'}: ${tp.totalDistanceKm.toFixed(0)} km
+- ${isSv ? 'TSS/vecka' : 'TSS/week'}: ${tp.avgWeeklyTSS.toFixed(0)}
+- ${isSv ? 'Styrkepass' : 'Strength sessions'}: ${tp.strengthSessions}
 `).join('')}
 
 ### Instruktioner för korrelationsanalys
@@ -445,48 +499,56 @@ Svara i JSON-format:
   "recommendations": [...]
 }
 \`\`\`
+
+${getOutputLanguageInstruction(locale)}
 `
 }
 
 // Helper functions
 
-function getTestTypeLabel(testType: string): string {
-  const labels: Record<string, string> = {
-    RUNNING: 'löptest',
-    CYCLING: 'cykeltest',
-    SKIING: 'skitest',
-  }
-  return labels[testType] ?? 'konditionstest'
+function getOutputLanguageInstruction(locale: PerformanceAnalysisLocale): string {
+  return locale === 'sv'
+    ? 'VIKTIGT SPRÅK: Skriv alla användarsynliga JSON-strängar på svenska.'
+    : 'OUTPUT LANGUAGE: Write every user-facing JSON string in English, including narratives, titles, findings, recommendations, predictions, explanations, and methodology text.'
 }
 
-function formatDate(dateStr: string, locale: 'en' | 'sv' = 'en'): string {
+function getTestTypeLabel(testType: string, locale: PerformanceAnalysisLocale): string {
+  const labels: Record<string, { en: string; sv: string }> = {
+    RUNNING: { en: 'running test', sv: 'löptest' },
+    CYCLING: { en: 'cycling test', sv: 'cykeltest' },
+    SKIING: { en: 'skiing test', sv: 'skitest' },
+  }
+  return labels[testType]?.[locale] ?? (locale === 'sv' ? 'konditionstest' : 'fitness test')
+}
+
+function formatDate(dateStr: string, locale: PerformanceAnalysisLocale = 'en'): string {
   return new Date(dateStr).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
 }
 
-function formatTestData(test: TestDataForAnalysis): string {
+function formatTestData(test: TestDataForAnalysis, locale: PerformanceAnalysisLocale): string {
   const lines: string[] = []
 
   if (test.vo2max) lines.push(`- VO2max: ${test.vo2max} ml/kg/min`)
-  lines.push(`- Max-puls: ${test.maxHR} bpm`)
-  lines.push(`- Max-laktat: ${test.maxLactate} mmol/L`)
+  lines.push(`- ${locale === 'sv' ? 'Max-puls' : 'Max heart rate'}: ${test.maxHR} bpm`)
+  lines.push(`- ${locale === 'sv' ? 'Max-laktat' : 'Max lactate'}: ${test.maxLactate} mmol/L`)
 
   if (test.aerobicThreshold) {
-    lines.push(`- Aerob tröskel (LT1):`)
-    lines.push(`  - Puls: ${test.aerobicThreshold.hr} bpm (${test.aerobicThreshold.percentOfMax.toFixed(0)}% av max)`)
-    lines.push(`  - Intensitet: ${formatIntensity(test.aerobicThreshold.intensity, test.testType)}`)
-    lines.push(`  - Laktat: ${test.aerobicThreshold.lactate} mmol/L`)
+    lines.push(`- ${locale === 'sv' ? 'Aerob tröskel' : 'Aerobic threshold'} (LT1):`)
+    lines.push(`  - ${locale === 'sv' ? 'Puls' : 'Heart rate'}: ${test.aerobicThreshold.hr} bpm (${test.aerobicThreshold.percentOfMax.toFixed(0)}% ${locale === 'sv' ? 'av max' : 'of max'})`)
+    lines.push(`  - ${locale === 'sv' ? 'Intensitet' : 'Intensity'}: ${formatIntensity(test.aerobicThreshold.intensity, test.testType)}`)
+    lines.push(`  - ${locale === 'sv' ? 'Laktat' : 'Lactate'}: ${test.aerobicThreshold.lactate} mmol/L`)
   }
 
   if (test.anaerobicThreshold) {
-    lines.push(`- Anaerob tröskel (LT2):`)
-    lines.push(`  - Puls: ${test.anaerobicThreshold.hr} bpm (${test.anaerobicThreshold.percentOfMax.toFixed(0)}% av max)`)
-    lines.push(`  - Intensitet: ${formatIntensity(test.anaerobicThreshold.intensity, test.testType)}`)
-    lines.push(`  - Laktat: ${test.anaerobicThreshold.lactate} mmol/L`)
+    lines.push(`- ${locale === 'sv' ? 'Anaerob tröskel' : 'Anaerobic threshold'} (LT2):`)
+    lines.push(`  - ${locale === 'sv' ? 'Puls' : 'Heart rate'}: ${test.anaerobicThreshold.hr} bpm (${test.anaerobicThreshold.percentOfMax.toFixed(0)}% ${locale === 'sv' ? 'av max' : 'of max'})`)
+    lines.push(`  - ${locale === 'sv' ? 'Intensitet' : 'Intensity'}: ${formatIntensity(test.anaerobicThreshold.intensity, test.testType)}`)
+    lines.push(`  - ${locale === 'sv' ? 'Laktat' : 'Lactate'}: ${test.anaerobicThreshold.lactate} mmol/L`)
   }
 
   if (test.economyData.length > 0) {
     const avgEconomy = test.economyData.reduce((sum, e) => sum + e.economy, 0) / test.economyData.length
-    lines.push(`- Löpekonomi: ${avgEconomy.toFixed(1)} ml/kg/km (medel)`)
+    lines.push(`- ${locale === 'sv' ? 'Löpekonomi' : 'Running economy'}: ${avgEconomy.toFixed(1)} ml/kg/km (${locale === 'sv' ? 'medel' : 'average'})`)
   }
 
   if (test.cyclingData) {
@@ -495,21 +557,21 @@ function formatTestData(test: TestDataForAnalysis): string {
   }
 
   if (test.lactateCurveType) {
-    const curveLabels: Record<string, string> = {
-      FLAT: 'Platt (god grunduthållighet)',
-      MODERATE: 'Måttlig (balanserad)',
-      STEEP: 'Brant (snabb laktatstegring)',
+    const curveLabels: Record<string, { en: string; sv: string }> = {
+      FLAT: { en: 'Flat (strong base endurance)', sv: 'Platt (god grunduthållighet)' },
+      MODERATE: { en: 'Moderate (balanced)', sv: 'Måttlig (balanserad)' },
+      STEEP: { en: 'Steep (rapid lactate rise)', sv: 'Brant (snabb laktatstegring)' },
     }
-    lines.push(`- Laktatkurva: ${curveLabels[test.lactateCurveType]}`)
+    lines.push(`- ${locale === 'sv' ? 'Laktatkurva' : 'Lactate curve'}: ${curveLabels[test.lactateCurveType]?.[locale] ?? test.lactateCurveType}`)
   }
 
   if (test.athleteType) {
-    const typeLabels: Record<string, string> = {
-      UTHALLIGHET: 'Uthållighetstyp',
-      SNABBHET: 'Snabbhetstyp',
-      ALLROUND: 'Allroundtyp',
+    const typeLabels: Record<string, { en: string; sv: string }> = {
+      UTHALLIGHET: { en: 'Endurance type', sv: 'Uthållighetstyp' },
+      SNABBHET: { en: 'Speed type', sv: 'Snabbhetstyp' },
+      ALLROUND: { en: 'All-round type', sv: 'Allroundtyp' },
     }
-    lines.push(`- Atlettyp: ${typeLabels[test.athleteType]}`)
+    lines.push(`- ${locale === 'sv' ? 'Atlettyp' : 'Athlete type'}: ${typeLabels[test.athleteType]?.[locale] ?? test.athleteType}`)
   }
 
   return lines.join('\n')
@@ -522,37 +584,37 @@ function formatIntensity(value: number, testType: string): string {
   return `${value}`
 }
 
-function formatTrainingContext(ctx: TrainingContextForAnalysis): string {
+function formatTrainingContext(ctx: TrainingContextForAnalysis, locale: PerformanceAnalysisLocale): string {
   const lines: string[] = []
 
-  lines.push(`- Period: ${ctx.weekCount} veckor`)
-  lines.push(`- Totala pass: ${ctx.totalSessions}`)
-  lines.push(`- Total distans: ${ctx.totalDistanceKm.toFixed(0)} km`)
-  lines.push(`- Total tid: ${ctx.totalDurationHours.toFixed(0)} timmar`)
-  lines.push(`- Snitt TSS/vecka: ${ctx.avgWeeklyTSS.toFixed(0)}`)
-  lines.push(`- Snitt distans/vecka: ${ctx.avgWeeklyDistance.toFixed(0)} km`)
+  lines.push(`- ${locale === 'sv' ? 'Period' : 'Period'}: ${ctx.weekCount} ${locale === 'sv' ? 'veckor' : 'weeks'}`)
+  lines.push(`- ${locale === 'sv' ? 'Totala pass' : 'Total sessions'}: ${ctx.totalSessions}`)
+  lines.push(`- ${locale === 'sv' ? 'Total distans' : 'Total distance'}: ${ctx.totalDistanceKm.toFixed(0)} km`)
+  lines.push(`- ${locale === 'sv' ? 'Total tid' : 'Total time'}: ${ctx.totalDurationHours.toFixed(0)} ${locale === 'sv' ? 'timmar' : 'hours'}`)
+  lines.push(`- ${locale === 'sv' ? 'Snitt TSS/vecka' : 'Average TSS/week'}: ${ctx.avgWeeklyTSS.toFixed(0)}`)
+  lines.push(`- ${locale === 'sv' ? 'Snitt distans/vecka' : 'Average distance/week'}: ${ctx.avgWeeklyDistance.toFixed(0)} km`)
 
-  lines.push(`- Styrkepass: ${ctx.strengthSessions}`)
+  lines.push(`- ${locale === 'sv' ? 'Styrkepass' : 'Strength sessions'}: ${ctx.strengthSessions}`)
 
-  lines.push(`- Genomsnittlig readiness: ${ctx.avgReadiness.toFixed(1)}/10`)
-  lines.push(`- Snitt sömn: ${ctx.avgSleepHours.toFixed(1)} h`)
+  lines.push(`- ${locale === 'sv' ? 'Genomsnittlig readiness' : 'Average readiness'}: ${ctx.avgReadiness.toFixed(1)}/10`)
+  lines.push(`- ${locale === 'sv' ? 'Snitt sömn' : 'Average sleep'}: ${ctx.avgSleepHours.toFixed(1)} h`)
 
-  lines.push(`- ACWR snitt: ${ctx.avgACWR.toFixed(2)}`)
-  lines.push(`- ACWR max: ${ctx.peakACWR.toFixed(2)}`)
-  lines.push(`- Dagar i riskzon (ACWR>1.5): ${ctx.daysInDangerZone}`)
+  lines.push(`- ${locale === 'sv' ? 'ACWR snitt' : 'Average ACWR'}: ${ctx.avgACWR.toFixed(2)}`)
+  lines.push(`- ${locale === 'sv' ? 'ACWR max' : 'Peak ACWR'}: ${ctx.peakACWR.toFixed(2)}`)
+  lines.push(`- ${locale === 'sv' ? 'Dagar i riskzon (ACWR>1.5)' : 'Days in risk zone (ACWR>1.5)'}: ${ctx.daysInDangerZone}`)
 
-  lines.push(`- Genomföringsgrad: ${ctx.completionRate.toFixed(0)}%`)
-  lines.push(`- Längsta träningsstreak: ${ctx.longestStreak} dagar`)
+  lines.push(`- ${locale === 'sv' ? 'Genomföringsgrad' : 'Completion rate'}: ${ctx.completionRate.toFixed(0)}%`)
+  lines.push(`- ${locale === 'sv' ? 'Längsta träningsstreak' : 'Longest training streak'}: ${ctx.longestStreak} ${locale === 'sv' ? 'dagar' : 'days'}`)
 
   // Training type distribution
   const types = ctx.trainingTypeDistribution
   const total = types.easyRuns + types.longRuns + types.tempoRuns + types.intervals + types.recovery
   if (total > 0) {
-    lines.push(`- Passfördelning:`)
-    if (types.easyRuns) lines.push(`  - Lugna pass: ${types.easyRuns} (${((types.easyRuns/total)*100).toFixed(0)}%)`)
-    if (types.longRuns) lines.push(`  - Långpass: ${types.longRuns} (${((types.longRuns/total)*100).toFixed(0)}%)`)
-    if (types.tempoRuns) lines.push(`  - Tempopass: ${types.tempoRuns} (${((types.tempoRuns/total)*100).toFixed(0)}%)`)
-    if (types.intervals) lines.push(`  - Intervaller: ${types.intervals} (${((types.intervals/total)*100).toFixed(0)}%)`)
+    lines.push(`- ${locale === 'sv' ? 'Passfördelning' : 'Session distribution'}:`)
+    if (types.easyRuns) lines.push(`  - ${locale === 'sv' ? 'Lugna pass' : 'Easy sessions'}: ${types.easyRuns} (${((types.easyRuns/total)*100).toFixed(0)}%)`)
+    if (types.longRuns) lines.push(`  - ${locale === 'sv' ? 'Långpass' : 'Long runs'}: ${types.longRuns} (${((types.longRuns/total)*100).toFixed(0)}%)`)
+    if (types.tempoRuns) lines.push(`  - ${locale === 'sv' ? 'Tempopass' : 'Tempo sessions'}: ${types.tempoRuns} (${((types.tempoRuns/total)*100).toFixed(0)}%)`)
+    if (types.intervals) lines.push(`  - ${locale === 'sv' ? 'Intervaller' : 'Intervals'}: ${types.intervals} (${((types.intervals/total)*100).toFixed(0)}%)`)
   }
 
   return lines.join('\n')

@@ -7,7 +7,11 @@
 
 import { logger } from '@/lib/logger'
 import { buildComparisonContext } from './context-builder'
-import { generateTestComparisonPrompt, PERFORMANCE_ANALYSIS_SYSTEM_PROMPT } from './prompts'
+import {
+  generateTestComparisonPrompt,
+  getPerformanceAnalysisSystemPrompt,
+  type PerformanceAnalysisLocale,
+} from './prompts'
 import {
   TestComparisonResult,
   DeltaValue,
@@ -26,6 +30,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
 interface CompareTestsOptions {
   includeTrainingCorrelation?: boolean
+  locale?: PerformanceAnalysisLocale
   /** User ID to get API keys from settings */
   userId?: string
 }
@@ -38,7 +43,7 @@ export async function compareTests(
   previousTestId: string,
   options: CompareTestsOptions = {}
 ): Promise<TestComparisonResult | null> {
-  const { includeTrainingCorrelation = true, userId } = options
+  const { includeTrainingCorrelation = true, locale = 'en', userId } = options
 
   try {
     // Build comparison context
@@ -61,7 +66,8 @@ export async function compareTests(
       context.current,
       context.previous,
       context.trainingBetween,
-      context.athlete
+      context.athlete,
+      locale
     )
 
     // Get API key from user settings or fall back to environment variable
@@ -86,7 +92,7 @@ export async function compareTests(
 
     // Call Gemini
     const startTime = Date.now()
-    const fullPrompt = `${PERFORMANCE_ANALYSIS_SYSTEM_PROMPT}\n\n${prompt}`
+    const fullPrompt = `${getPerformanceAnalysisSystemPrompt(locale)}\n\n${prompt}`
     const response = await generateContent(
       client,
       model,
