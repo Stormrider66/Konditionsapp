@@ -696,13 +696,13 @@ export function generateProgramPrompt(
 
 LANGUAGE: Write every user-facing field, explanation, workout name, phase name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
-Du ska skapa ett strukturerat träningsprogram för en atlet.
+Create a structured training program for an athlete.
 
 ${sportInfo.systemContext}
 
 ${sportInfo.zoneGuidance}
 
-### SESSIONSTYPER ATT ANVÄNDA:
+### SESSION TYPES TO USE:
 ${sportInfo.sessionTypes.map(s => `- ${s}`).join('\n')}
 
 ${sportInfo.periodizationNotes}
@@ -715,23 +715,23 @@ ${sportInfo.periodizationNotes}
 
   if (methodInfo) {
     prompt += `
-### TRÄNINGSMETODIK: ${methodInfo.name}
+### TRAINING METHODOLOGY: ${methodInfo.name}
 ${methodInfo.description}
 
-NYCKELPRINCIPER:
+KEY PRINCIPLES:
 ${methodInfo.keyPrinciples.map(p => `- ${p}`).join('\n')}
 `;
   }
 
   if (programWeeks) {
     prompt += `
-### PROGRAMLÄNGD: ${programWeeks} veckor
+### PROGRAM LENGTH: ${programWeeks} weeks
 `;
   }
 
   if (goalDescription) {
     prompt += `
-### ATLETENS MÅL:
+### ATHLETE GOAL:
 ${goalDescription}
 `;
   }
@@ -739,42 +739,42 @@ ${goalDescription}
   prompt += `
 ### OUTPUT FORMAT
 
-Strukturera programmet som JSON med följande format:
+Structure the program as JSON using this format:
 
 \`\`\`json
 {
-  "name": "Programnamn",
-  "description": "Kort beskrivning",
+  "name": "Program name",
+  "description": "Short description",
   "totalWeeks": 12,
   "methodology": "POLARIZED",
   "weeklySchedule": {
     "sessionsPerWeek": 5,
-    "restDays": [0, 3]  // 0=måndag, 6=söndag
+    "restDays": [0, 3]  // 0=Monday, 6=Sunday
   },
   "phases": [
     {
-      "name": "Basperiod",
+      "name": "Base phase",
       "weeks": "1-4",
-      "focus": "Aerob bas och teknik",
+      "focus": "Aerobic base and technique",
       "weeklyTemplate": {
-        "monday": { "type": "REST", "description": "Vila" },
+        "monday": { "type": "REST", "description": "Rest" },
         "tuesday": {
           "type": "RUNNING",
-          "name": "Grundträning",
+          "name": "Base training",
           "duration": 60,
           "zone": "2",
-          "description": "Lugn löpning i Zon 2"
+          "description": "Easy Zone 2 run"
         },
-        // ... fler dagar
+        // ... more days
       }
     }
   ],
-  "notes": "Generella kommentarer om programmet"
+  "notes": "General program notes"
 }
 \`\`\`
 
-Var specifik med tider, distanser, intensiteter och zonhänvisningar.
-Anpassa efter atletens nivå och tillgängliga tid.
+Be specific with times, distances, intensities, and zone references.
+Adapt to the athlete's level and available time.
 `;
 
   return prompt;
@@ -789,22 +789,22 @@ export function modifyProgramPrompt(
 
 LANGUAGE: Write every user-facing field, explanation, workout name, phase name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
-Du ska modifiera ett befintligt träningsprogram baserat på coachens instruktion.
+Modify an existing training program based on the coach's instruction.
 
-### NUVARANDE VECKA:
+### CURRENT WEEK:
 ${currentWeekSummary}
 
-### ÖNSKAD ÄNDRING:
+### REQUESTED CHANGE:
 ${modification}
 
-### INSTRUKTIONER:
-1. Behåll programmets övergripande struktur
-2. Gör den begärda ändringen på ett fysiologiskt korrekt sätt
-3. Justera angränsande pass om nödvändigt för balans
-4. Förklara kort varför du gjort de specifika ändringarna
+### INSTRUCTIONS:
+1. Keep the program's overall structure
+2. Make the requested change in a physiologically sound way
+3. Adjust adjacent sessions when needed for balance
+4. Briefly explain why you made the specific changes
 
 ### OUTPUT FORMAT:
-Returnera den modifierade veckan i samma JSON-format som ovan, plus en kort förklaring.
+Return the modified week in the same JSON format as above, plus a short explanation.
 `;
 }
 
@@ -821,16 +821,16 @@ export function quickWorkoutPrompt(
 
 LANGUAGE: Write every user-facing field, workout name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
-Skapa ett ${duration}-minuters ${intensity === 'easy' ? 'lätt' : intensity === 'moderate' ? 'medel' : 'hårt'} pass.
+Create a ${duration}-minute ${intensity} session.
 
 ${sportInfo.sessionTypes.slice(0, 4).map(s => `- ${s}`).join('\n')}
 
-${constraints ? `Begränsningar: ${constraints}` : ''}
+${constraints ? `Constraints: ${constraints}` : ''}
 
-Returnera passet i format:
+Return the workout in this format:
 \`\`\`json
 {
-  "name": "Passnamn",
+  "name": "Workout name",
   "duration": ${duration},
   "warmup": { "duration": 10, "description": "..." },
   "main": { "duration": ${duration - 20}, "description": "...", "intervals": [] },
@@ -852,22 +852,22 @@ export function injuryModificationPrompt(
 
 LANGUAGE: Write every user-facing field, explanation, workout name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
-En atlet har rapporterat:
-- Skadetyp: ${injuryType}
-- Smärtnivå: ${painLevel}/10
+An athlete has reported:
+- Injury type: ${injuryType}
+- Pain level: ${painLevel}/10
 
-Originalpass:
+Original workout:
 ${originalWorkout}
 
-### UNIVERSITY OF DELAWARE SMÄRTREGLER:
-- Smärta >5: Vila eller endast cross-training
-- Smärta 3-5: Modifierad träning med 50% reduktion
-- Smärta <3: Försiktig progression tillbaka
+### UNIVERSITY OF DELAWARE PAIN RULES:
+- Pain >5: Rest or cross-training only
+- Pain 3-5: Modified training with 50% reduction
+- Pain <3: Careful progression back
 
-### UPPGIFT:
-Anpassa passet enligt smärtnivån. Om smärta >5, föreslå ett alternativt cross-training pass.
+### TASK:
+Adapt the workout according to pain level. If pain is >5, suggest an alternative cross-training session.
 
-Returnera det modifierade passet i JSON-format med förklaring.
+Return the modified workout in JSON format with an explanation.
 `;
 }
 
@@ -884,48 +884,48 @@ export type ProgramPromptOptions = {
  */
 function buildCalendarConstraintsPrompt(constraints: CalendarConstraints): string {
   let prompt = `
-### KALENDERBEGRÄNSNINGAR - VIKTIGT!
+### CALENDAR CONSTRAINTS - IMPORTANT!
 
-Du MÅSTE respektera följande kalenderbegränsningar när du planerar träningen:
+You MUST respect the following calendar constraints when planning training:
 `;
 
   // Blocked dates
   if (constraints.blockedDates.length > 0) {
     prompt += `
-#### Blockerade dagar (INGEN träning tillåten)
+#### Blocked days (NO training allowed)
 ${formatDateList(constraints.blockedDates)}
 
-**KRITISKT**: Lägg ALDRIG träningspass på dessa datum. De är helt blockerade för träning.
+**CRITICAL**: NEVER place training sessions on these dates. They are fully blocked for training.
 `;
   }
 
   // Reduced dates
   if (constraints.reducedDates.length > 0) {
     prompt += `
-#### Dagar med reducerad kapacitet
+#### Reduced-capacity days
 ${formatDateList(constraints.reducedDates)}
 
-På dessa dagar bör träningen vara:
-- Reducerad volym (max 70% av normal)
-- Låg till måttlig intensitet (Zon 1-2)
-- Endast återhämtning eller lätt rörlighet
+On these days, training should be:
+- Reduced volume (max 70% of normal)
+- Low to moderate intensity (Zone 1-2)
+- Recovery only or light mobility
 `;
   }
 
   // Altitude periods
   if (constraints.altitudePeriods.length > 0) {
     prompt += `
-#### Höghöjdsläger
+#### Altitude camp
 `;
     for (const period of constraints.altitudePeriods) {
       prompt += `
 **${period.start} - ${period.end}** (${period.altitude}m)
-- Dag 1-3: Reducera intensitet till 60%, volym till 50%
-- Dag 4-5: Öka till 70% intensitet, 60% volym
-- Dag 6-10: 80% intensitet, 75% volym
-- Dag 11+: 90-95% av normal träning
-- Undvik VO2max-intervaller de första 5 dagarna
-- Fokusera på aerob basträning initialt
+- Day 1-3: Reduce intensity to 60%, volume to 50%
+- Day 4-5: Increase to 70% intensity, 60% volume
+- Day 6-10: 80% intensity, 75% volume
+- Day 11+: 90-95% of normal training
+- Avoid VO2max intervals for the first 5 days
+- Focus on aerobic base training initially
 `;
     }
   }
@@ -933,28 +933,28 @@ På dessa dagar bör träningen vara:
   // Illness recovery
   if (constraints.illnessRecoveryPeriods && constraints.illnessRecoveryPeriods.length > 0) {
     prompt += `
-#### Återhämtning efter sjukdom
+#### Illness recovery
 `;
     for (const period of constraints.illnessRecoveryPeriods) {
       prompt += `
-**${period.start} - ${period.returnDate}**: Gradvis återgång till träning
-- Första 2-3 dagar efter sjukdom: Endast promenad/lätt rörelse
-- Dag 4-7: Lätt träning (50% volym, endast Zon 1-2)
-- Vecka 2: Gradvis ökning till 75%
-- Vecka 3+: Normal träning om symptomfri
+**${period.start} - ${period.returnDate}**: Gradual return to training
+- First 2-3 days after illness: Walking/light movement only
+- Day 4-7: Light training (50% volume, Zone 1-2 only)
+- Week 2: Gradual increase to 75%
+- Week 3+: Normal training if symptom-free
 `;
     }
   }
 
   prompt += `
-### INSTRUKTIONER FÖR KALENDERMEDVETEN PLANERING
+### INSTRUCTIONS FOR CALENDAR-AWARE PLANNING
 
-1. **Placera inga pass på blockerade datum** - flytta till närmast tillgängliga dag
-2. **Flytta inte nyckelpass** till reducerade dagar - välj fullt tillgängliga dagar
-3. **Planera återhämtningspass** före och efter längre blockeringar
-4. **Under höghöjdsläger**: Följ anpassningsprotokollet exakt
-5. **Efter sjukdom**: Prioritera gradvis upptrappning framför att "hinna ikapp"
-6. **Var flexibel**: Om många blockeringar finns, fokusera på kvalitet över kvantitet
+1. **Do not place sessions on blocked dates** - move them to the nearest available day
+2. **Do not move key sessions** to reduced-capacity days - choose fully available days
+3. **Plan recovery sessions** before and after longer blocked periods
+4. **During altitude camps**: Follow the adaptation protocol exactly
+5. **After illness**: Prioritize gradual progression over "catching up"
+6. **Be flexible**: If there are many blocked dates, focus on quality over quantity
 `;
 
   return prompt;
@@ -997,7 +997,7 @@ function formatDateList(dates: string[]): string {
     if (group.length === 1) {
       return `- ${group[0]}`;
     } else {
-      return `- ${group[0]} till ${group[group.length - 1]} (${group.length} dagar)`;
+      return `- ${group[0]} to ${group[group.length - 1]} (${group.length} days)`;
     }
   }).join('\n');
 }
@@ -1024,12 +1024,12 @@ export function calendarAwareWorkoutPrompt(
 
 LANGUAGE: Write every user-facing field, suggestion, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
-Denna dag är blockerad i atletens kalender. Ingen träning ska planeras.
+This day is blocked in the athlete's calendar. No training should be planned.
 
-Föreslå istället:
-- Kort rörlighetspass (10-15 min)
-- Mental visualisering
-- Utrustningsunderhåll
+Suggest instead:
+- Short mobility session (10-15 min)
+- Mental visualization
+- Equipment maintenance
 `;
   }
 
@@ -1039,49 +1039,49 @@ Föreslå istället:
   if (calendarContext.inAltitude && calendarContext.altitudeDay) {
     const day = calendarContext.altitudeDay;
     if (day <= 3) {
-      intensityGuide = 'Endast lätt aerob träning (Zon 1). Max 60% av normal volym.';
-      sessionRecommendation = 'Lätt jogg, promenad, eller stretching';
+      intensityGuide = 'Only light aerobic training (Zone 1). Max 60% of normal volume.';
+      sessionRecommendation = 'Easy jog, walk, or stretching';
     } else if (day <= 5) {
-      intensityGuide = 'Lätt till måttlig intensitet (Zon 1-2). Max 70% volym.';
-      sessionRecommendation = 'Grundträning, teknikfokus';
+      intensityGuide = 'Light to moderate intensity (Zone 1-2). Max 70% volume.';
+      sessionRecommendation = 'Base training, technique focus';
     } else if (day <= 10) {
-      intensityGuide = 'Kan introducera tempo (Zon 3). Max 80% volym.';
-      sessionRecommendation = 'Grundträning med inslag av tempo';
+      intensityGuide = 'Can introduce tempo (Zone 3). Max 80% volume.';
+      sessionRecommendation = 'Base training with tempo elements';
     } else {
-      intensityGuide = 'Nära normal träning (90% intensitet och volym)';
-      sessionRecommendation = 'Normal träning enligt plan';
+      intensityGuide = 'Near-normal training (90% intensity and volume)';
+      sessionRecommendation = 'Normal training according to plan';
     }
   } else if (calendarContext.recentIllness && calendarContext.daysSinceIllness) {
     const days = calendarContext.daysSinceIllness;
     if (days <= 3) {
-      intensityGuide = 'Endast promenad eller lätt rörlighet';
-      sessionRecommendation = 'Kort promenad (20-30 min)';
+      intensityGuide = 'Walking or light mobility only';
+      sessionRecommendation = 'Short walk (20-30 min)';
     } else if (days <= 7) {
-      intensityGuide = 'Lätt träning (50% volym, Zon 1)';
-      sessionRecommendation = 'Lätt jogg eller cykling';
+      intensityGuide = 'Light training (50% volume, Zone 1)';
+      sessionRecommendation = 'Easy jog or cycling';
     } else if (days <= 14) {
-      intensityGuide = 'Gradvis ökning (75% volym, Zon 1-2)';
-      sessionRecommendation = 'Grundträning, undvik intervaller';
+      intensityGuide = 'Gradual increase (75% volume, Zone 1-2)';
+      sessionRecommendation = 'Base training, avoid intervals';
     } else {
-      intensityGuide = 'Normal träning om symptomfri';
-      sessionRecommendation = 'Normal träning';
+      intensityGuide = 'Normal training if symptom-free';
+      sessionRecommendation = 'Normal training';
     }
   } else if (calendarContext.isReduced) {
-    intensityGuide = 'Reducerad träning (max Zon 2, 70% volym)';
-    sessionRecommendation = 'Lätt återhämtningspass eller rörlighet';
+    intensityGuide = 'Reduced training (max Zone 2, 70% volume)';
+    sessionRecommendation = 'Easy recovery session or mobility';
   }
 
   return `## WORKOUT FOR ${targetDate}
 
 LANGUAGE: Write every user-facing field, workout name, and note in English. Some legacy context below may contain Swedish examples; translate their meaning and do not copy Swedish into the generated output.
 
-${intensityGuide ? `**Begränsning**: ${intensityGuide}` : ''}
+${intensityGuide ? `**Constraint**: ${intensityGuide}` : ''}
 
-**Rekommenderat**: ${sessionRecommendation || 'Normal träning enligt plan'}
+**Recommended**: ${sessionRecommendation || 'Normal training according to plan'}
 
-Tillgängliga passtyper för ${sport}:
+Available session types for ${sport}:
 ${sportInfo.sessionTypes.slice(0, 4).map(s => `- ${s}`).join('\n')}
 
-Returnera passet i JSON-format.
+Return the workout in JSON format.
 `;
 }
