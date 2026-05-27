@@ -13,14 +13,23 @@ export interface MuscleBuildingContext {
   sleepHours?: number
 }
 
-export function buildMuscleBuildingPersona(context: MuscleBuildingContext): string {
-  const experienceLevel = context.experienceLevel ?? 'intermediate'
-  const focusAreas = context.focusAreas?.join(', ') ?? 'Allmän utveckling'
+type AppLocale = 'en' | 'sv'
 
-  const experienceLabels: Record<string, string> = {
-    beginner: 'Nybörjare (0-1 år)',
-    intermediate: 'Medel (1-3 år)',
-    advanced: 'Avancerad (3+ år)',
+export function buildMuscleBuildingPersona(context: MuscleBuildingContext, locale: AppLocale = 'en'): string {
+  const experienceLevel = context.experienceLevel ?? 'intermediate'
+  const focusAreas = context.focusAreas?.join(', ') ?? (locale === 'sv' ? 'Allmän utveckling' : 'General development')
+
+  const experienceLabels: Record<AppLocale, Record<string, string>> = {
+    en: {
+      beginner: 'Beginner (0-1 years)',
+      intermediate: 'Intermediate (1-3 years)',
+      advanced: 'Advanced (3+ years)',
+    },
+    sv: {
+      beginner: 'Nybörjare (0-1 år)',
+      intermediate: 'Medel (1-3 år)',
+      advanced: 'Avancerad (3+ år)',
+    },
   }
 
   // Format recent PRs
@@ -28,7 +37,73 @@ export function buildMuscleBuildingPersona(context: MuscleBuildingContext): stri
     ? Object.entries(context.recentPRs)
         .map(([exercise, weight]) => `${exercise}: ${weight} kg`)
         .join(', ')
-    : 'Inga registrerade'
+    : locale === 'sv' ? 'Inga registrerade' : 'None registered'
+
+  if (locale === 'en') {
+    return `
+You are a knowledgeable strength coach focused on muscle growth. Your approach:
+
+PRINCIPLES:
+- Progressive overload is the KEY to growth
+- Technique before load - always
+- Recovery is when muscles grow, not during training
+- Protein: 1.6-2.2 g/kg body weight
+- Calories: Small surplus (200-500 kcal) for optimized growth
+
+COMMUNICATION STYLE:
+- Motivating and goal-focused
+- Celebrate PRs and strength progress enthusiastically
+- Technical when needed, but keep it practical
+- Focus on long-term development, not quick fixes
+- Normalize plateaus as part of the process
+
+PRIORITIES:
+1. Training consistency (3-6 sessions/week)
+2. Progressive overload (2-for-2 rule)
+3. Adequate protein and calorie surplus
+4. 7-9 hours of sleep for optimal recovery
+5. Exercise variation for complete development
+
+TRAINING PRINCIPLES:
+- 10-20 sets per muscle group/week
+- RPE 7-9 for hypertrophy
+- 6-12 reps for hypertrophy, 1-5 for strength
+- Deload every 4-6 weeks
+- Compound exercises as the base
+
+WEEKLY VOLUME RECOMMENDATIONS:
+- Beginner: 10-12 sets per muscle group
+- Intermediate: 12-16 sets per muscle group
+- Advanced: 16-20+ sets per muscle group
+
+PROGRESSION:
+- Increase weight when the top of the rep range is achieved with good technique
+- 2-for-2 rule: If you complete 2 extra reps for 2 sets in a row, increase weight
+- Track all sets to see progression over time
+
+WARNINGS - flag:
+- Overtraining (dropping strength, constant fatigue)
+- Underfueling (plateau despite good training)
+- Injury risk with poor technique
+- Too-rapid weight gain (mostly fat)
+
+CURRENT DATA:
+- Training experience: ${experienceLabels.en[experienceLevel]}
+- Body weight: ${context.currentBodyWeight ?? 'Unknown'} kg
+${context.targetBodyWeight ? `- Target weight: ${context.targetBodyWeight} kg` : ''}
+${context.leanMass ? `- Lean mass: ${context.leanMass} kg` : ''}
+- Focus areas: ${focusAreas}
+- Latest PRs: ${prList}
+${context.weeklyVolume ? `- Weekly volume: ~${context.weeklyVolume} sets` : ''}
+${context.proteinIntake ? `- Protein intake: ${context.proteinIntake} g/day` : ''}
+${context.sleepHours ? `- Sleep: ~${context.sleepHours} hours/night` : ''}
+
+SITUATION ASSESSMENT:
+${experienceLevel === 'beginner' ? 'As a beginner, rapid progression is possible - focus on technique and consistency' : ''}
+${experienceLevel === 'intermediate' ? 'At the intermediate level, smart programming and gradually increased volume matter most' : ''}
+${experienceLevel === 'advanced' ? 'As an advanced athlete, periodization and varied stimulus are needed for continued development' : ''}
+`.trim()
+  }
 
   return `
 Du är en kunnig styrketräningscoach fokuserad på muskeltillväxt. Din approach:
@@ -78,7 +153,7 @@ VARNINGAR - Flagga för:
 - För snabb viktökning (mestadels fett)
 
 AKTUELL DATA:
-- Träningserfarenhet: ${experienceLabels[experienceLevel]}
+- Träningserfarenhet: ${experienceLabels.sv[experienceLevel]}
 - Kroppsvikt: ${context.currentBodyWeight ?? 'Okänd'} kg
 ${context.targetBodyWeight ? `- Målvikt: ${context.targetBodyWeight} kg` : ''}
 ${context.leanMass ? `- Muskelmassa: ${context.leanMass} kg` : ''}
@@ -95,11 +170,21 @@ ${experienceLevel === 'advanced' ? '🔬 Som avancerad krävs periodisering och 
 `.trim()
 }
 
-export const MUSCLE_BUILDING_QUICK_TIPS = [
-  'Protein inom 2 timmar efter träning optimerar muskelproteinsyntesen',
-  'Compound-övningar (knäböj, marklyft, bänkpress) ger mest "bang for your buck"',
-  'Minst 48 timmar vila för samma muskelgrupp före nästa träning',
-  'Kreatin monohydrat är det mest välbeforskade och effektiva supplementet',
-  'Progressive overload behöver inte alltid vara mer vikt - kan vara fler reps, sets eller bättre teknik',
-  'Sömn är anabolt - de flesta tillväxthormoner frisätts under djupsömn',
-]
+export const MUSCLE_BUILDING_QUICK_TIPS = {
+  en: [
+    'Protein within 2 hours after training supports muscle protein synthesis',
+    'Compound exercises (squats, deadlifts, bench press) give the most return',
+    'Allow at least 48 hours before training the same muscle group again',
+    'Creatine monohydrate is one of the best-researched and most effective supplements',
+    'Progressive overload does not always mean more weight - it can be more reps, sets, or better technique',
+    'Sleep is anabolic - much of growth hormone release happens during deep sleep',
+  ],
+  sv: [
+    'Protein inom 2 timmar efter träning optimerar muskelproteinsyntesen',
+    'Compound-övningar (knäböj, marklyft, bänkpress) ger mest "bang for your buck"',
+    'Minst 48 timmar vila för samma muskelgrupp före nästa träning',
+    'Kreatin monohydrat är det mest välbeforskade och effektiva supplementet',
+    'Progressive overload behöver inte alltid vara mer vikt - kan vara fler reps, sets eller bättre teknik',
+    'Sömn är anabolt - de flesta tillväxthormoner frisätts under djupsömn',
+  ],
+} satisfies Record<AppLocale, string[]>
