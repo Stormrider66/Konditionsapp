@@ -35,14 +35,14 @@ const VIDEO_TYPES = [
 ]
 
 const HYROX_STATIONS = [
-  { value: 'SKIERG', label: 'SkiErg (1000m)' },
-  { value: 'SLED_PUSH', label: 'Sled Push (50m)' },
-  { value: 'SLED_PULL', label: 'Sled Pull (50m)' },
-  { value: 'BURPEE_BROAD_JUMP', label: 'Burpee Broad Jump (80 reps)' },
-  { value: 'ROWING', label: 'Rodd (1000m)' },
-  { value: 'FARMERS_CARRY', label: 'Farmers Carry (200m)' },
-  { value: 'SANDBAG_LUNGE', label: 'Sandbag Lunge (100m)' },
-  { value: 'WALL_BALLS', label: 'Wall Balls (75-100 reps)' },
+  { value: 'SKIERG', label: { en: 'SkiErg (1000m)', sv: 'SkiErg (1000m)' } },
+  { value: 'SLED_PUSH', label: { en: 'Sled Push (50m)', sv: 'Sled Push (50m)' } },
+  { value: 'SLED_PULL', label: { en: 'Sled Pull (50m)', sv: 'Sled Pull (50m)' } },
+  { value: 'BURPEE_BROAD_JUMP', label: { en: 'Burpee Broad Jump (80 reps)', sv: 'Burpee Broad Jump (80 reps)' } },
+  { value: 'ROWING', label: { en: 'Rowing (1000m)', sv: 'Rodd (1000m)' } },
+  { value: 'FARMERS_CARRY', label: { en: 'Farmers Carry (200m)', sv: 'Farmers Carry (200m)' } },
+  { value: 'SANDBAG_LUNGE', label: { en: 'Sandbag Lunge (100m)', sv: 'Sandbag Lunge (100m)' } },
+  { value: 'WALL_BALLS', label: { en: 'Wall Balls (75-100 reps)', sv: 'Wall Balls (75-100 reps)' } },
 ]
 
 const COPY: Record<AppLocale, {
@@ -339,7 +339,7 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
             <SelectContent>
               {HYROX_STATIONS.map((station) => (
                 <SelectItem key={station.value} value={station.value}>
-                  {station.label}
+                  {station.label[locale]}
                 </SelectItem>
               ))}
             </SelectContent>
