@@ -19,6 +19,18 @@ const PHASE_DURATIONS = {
 } as const;
 
 type Phase = keyof typeof PHASE_DURATIONS;
+type AppLocale = 'en' | 'sv';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
+function requestLocale(request: NextRequest, language?: string | null): AppLocale {
+  if (language === 'sv') return 'sv';
+
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? '';
+  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en';
+}
 
 /**
  * Calculate current phase based on cycle day
@@ -44,24 +56,27 @@ function daysUntilNextPhase(cycleDay: number): number {
 export async function GET(request: NextRequest) {
   try {
     let clientId: string;
+    let locale = requestLocale(request);
 
     // Try as athlete (or coach in athlete mode) first
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       clientId = resolved.clientId;
+      locale = requestLocale(request, resolved.user.language);
     } else {
       // Try as coach viewing a specific client
       const user = await requireCoach();
+      locale = requestLocale(request, user.language);
       const { searchParams } = new URL(request.url);
       clientId = searchParams.get('clientId') || '';
 
       if (!clientId) {
-        return NextResponse.json({ error: 'clientId required' }, { status: 400 });
+        return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 });
       }
 
       const hasAccess = await canAccessClient(user.id, clientId);
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 });
       }
     }
 
@@ -83,7 +98,11 @@ export async function GET(request: NextRequest) {
     if (!currentCycle) {
       return NextResponse.json({
         hasCycle: false,
-        message: 'No active cycle found. Start a new cycle to begin tracking.',
+        message: t(
+          locale,
+          'No active cycle found. Start a new cycle to begin tracking.',
+          'Ingen aktiv cykel hittades. Starta en ny cykel för att börja spåra.'
+        ),
       });
     }
 
@@ -100,7 +119,7 @@ export async function GET(request: NextRequest) {
     const phase = calculatePhase(cycleDay);
 
     // Get phase-specific training recommendations
-    const recommendations = getPhaseRecommendations(phase);
+    const recommendations = getPhaseRecommendations(phase, locale);
 
     return NextResponse.json({
       hasCycle: true,
@@ -123,7 +142,7 @@ export async function GET(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch cycle data' },
+      { error: t(requestLocale(request), 'Failed to fetch cycle data', 'Kunde inte hämta cykeldata') },
       { status: 500 }
     );
   }
@@ -135,31 +154,30 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     let clientId: string;
-    let isCoach = false;
+    let locale = requestLocale(request);
+    const body = await request.json();
+    const { action, startDate } = body;
 
     // Try as athlete (or coach in athlete mode) first
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       clientId = resolved.clientId;
+      locale = requestLocale(request, resolved.user.language);
     } else {
       // Try as coach managing a specific client
       const user = await requireCoach();
-      isCoach = true;
-      const body = await request.json();
+      locale = requestLocale(request, user.language);
       clientId = body.clientId;
 
       if (!clientId) {
-        return NextResponse.json({ error: 'clientId required' }, { status: 400 });
+        return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 });
       }
 
       const hasAccess = await canAccessClient(user.id, clientId);
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 });
       }
     }
-
-    const body = await request.json();
-    const { action, startDate } = body;
 
     if (action === 'start' || !action) {
       // End any existing active cycle
@@ -218,7 +236,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         cycle: newCycle,
-        message: 'New cycle started successfully',
+        message: t(locale, 'New cycle started successfully', 'Ny cykel startades'),
       });
     }
 
@@ -226,7 +244,7 @@ export async function POST(request: NextRequest) {
       const { cycleId, endDate } = body;
 
       if (!cycleId) {
-        return NextResponse.json({ error: 'cycleId required' }, { status: 400 });
+        return NextResponse.json({ error: t(locale, 'cycleId required', 'cycleId krävs') }, { status: 400 });
       }
 
       const cycle = await prisma.menstrualCycle.findFirst({
@@ -234,7 +252,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!cycle) {
-        return NextResponse.json({ error: 'Cycle not found' }, { status: 404 });
+        return NextResponse.json({ error: t(locale, 'Cycle not found', 'Cykeln hittades inte') }, { status: 404 });
       }
 
       const cycleEndDate = endDate ? new Date(endDate) : new Date();
@@ -254,11 +272,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         cycle: updatedCycle,
-        message: 'Cycle ended successfully',
+        message: t(locale, 'Cycle ended successfully', 'Cykeln avslutades'),
       });
     }
 
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
+    return NextResponse.json({ error: t(locale, 'Invalid action', 'Ogiltig åtgärd') }, { status: 400 });
   } catch (error) {
     logError('Menstrual cycle POST error:', error);
 
@@ -267,7 +285,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to update cycle' },
+      { error: t(requestLocale(request), 'Failed to update cycle', 'Kunde inte uppdatera cykeln') },
       { status: 500 }
     );
   }
@@ -276,54 +294,90 @@ export async function POST(request: NextRequest) {
 /**
  * Get phase-specific training recommendations
  */
-function getPhaseRecommendations(phase: Phase) {
+function getPhaseRecommendations(phase: Phase, locale: AppLocale) {
   const recommendations = {
     MENSTRUAL: {
       intensityModifier: 0.85,
       volumeModifier: 0.80,
-      focusAreas: ['Återhämtning', 'Lätt aerob träning', 'Mobilitet', 'Yoga'],
-      description: 'Menstruationsfasen - Fokusera på återhämtning och lätt rörelse. Kroppen arbetar hårt, minska belastningen.',
+      focusAreas: [
+        t(locale, 'Recovery', 'Återhämtning'),
+        t(locale, 'Easy aerobic training', 'Lätt aerob träning'),
+        t(locale, 'Mobility', 'Mobilitet'),
+        'Yoga',
+      ],
+      description: t(
+        locale,
+        'Menstrual phase - focus on recovery and easy movement. The body is working hard, so reduce load.',
+        'Menstruationsfasen - Fokusera på återhämtning och lätt rörelse. Kroppen arbetar hårt, minska belastningen.'
+      ),
       tips: [
-        'Lyssna på din kropp - vila vid behov',
-        'Undvik höga intensiteter och tunga lyft',
-        'Prioritera järn- och proteinrik kost',
-        'Håll dig hydrerad',
+        t(locale, 'Listen to your body - rest when needed', 'Lyssna på din kropp - vila vid behov'),
+        t(locale, 'Avoid high intensities and heavy lifting', 'Undvik höga intensiteter och tunga lyft'),
+        t(locale, 'Prioritize iron- and protein-rich foods', 'Prioritera järn- och proteinrik kost'),
+        t(locale, 'Stay hydrated', 'Håll dig hydrerad'),
       ],
     },
     FOLLICULAR: {
       intensityModifier: 1.0,
       volumeModifier: 1.0,
-      focusAreas: ['Styrketräning', 'Höga intensiteter', 'Intervalldagar', 'Teknisk träning'],
-      description: 'Follikelfasen - Energin ökar! Bra tid för intensiv träning och styrkebyggande.',
+      focusAreas: [
+        t(locale, 'Strength training', 'Styrketräning'),
+        t(locale, 'High intensities', 'Höga intensiteter'),
+        t(locale, 'Interval days', 'Intervalldagar'),
+        t(locale, 'Technical training', 'Teknisk träning'),
+      ],
+      description: t(
+        locale,
+        'Follicular phase - energy is rising. A good time for intensive training and strength building.',
+        'Follikelfasen - Energin ökar! Bra tid för intensiv träning och styrkebyggande.'
+      ),
       tips: [
-        'Utnyttja ökad energi för hårdare pass',
-        'Bra tid för personbästa-försök',
-        'Fokusera på progressiv styrketräning',
-        'Öka proteinintaget för muskelbyggande',
+        t(locale, 'Use the increased energy for harder sessions', 'Utnyttja ökad energi för hårdare pass'),
+        t(locale, 'A good time for personal-best attempts', 'Bra tid för personbästa-försök'),
+        t(locale, 'Focus on progressive strength training', 'Fokusera på progressiv styrketräning'),
+        t(locale, 'Increase protein intake to support muscle building', 'Öka proteinintaget för muskelbyggande'),
       ],
     },
     OVULATORY: {
       intensityModifier: 1.1,
       volumeModifier: 1.05,
-      focusAreas: ['Maximal intensitet', 'Tävling', 'Personbästa', 'Explosiv träning'],
-      description: 'Ovulationsfasen - Toppform! Optimal tid för prestationsförsök och tävling.',
+      focusAreas: [
+        t(locale, 'Maximum intensity', 'Maximal intensitet'),
+        t(locale, 'Competition', 'Tävling'),
+        t(locale, 'Personal bests', 'Personbästa'),
+        t(locale, 'Explosive training', 'Explosiv träning'),
+      ],
+      description: t(
+        locale,
+        'Ovulatory phase - peak form. An optimal time for performance attempts and competition.',
+        'Ovulationsfasen - Toppform! Optimal tid för prestationsförsök och tävling.'
+      ),
       tips: [
-        'Planera tävlingar under denna fas om möjligt',
-        'Ökad skaderisk i knäled - fokusera på korrekt teknik',
-        'Energin är som högst - utnyttja det!',
-        'Var medveten om eventuell överdrift',
+        t(locale, 'Plan competitions during this phase when possible', 'Planera tävlingar under denna fas om möjligt'),
+        t(locale, 'Knee injury risk may be higher - focus on correct technique', 'Ökad skaderisk i knäled - fokusera på korrekt teknik'),
+        t(locale, 'Energy is at its highest - use it', 'Energin är som högst - utnyttja det!'),
+        t(locale, 'Be mindful of overreaching', 'Var medveten om eventuell överdrift'),
       ],
     },
     LUTEAL: {
       intensityModifier: 0.90,
       volumeModifier: 0.85,
-      focusAreas: ['Uthållighetsträning', 'Teknikfokus', 'Måttlig intensitet', 'Steady-state'],
-      description: 'Lutealfasen - Kroppen förbereder sig. Fokusera på uthållighet och undvik extrema intensiteter.',
+      focusAreas: [
+        t(locale, 'Endurance training', 'Uthållighetsträning'),
+        t(locale, 'Technique focus', 'Teknikfokus'),
+        t(locale, 'Moderate intensity', 'Måttlig intensitet'),
+        'Steady-state',
+      ],
+      description: t(
+        locale,
+        'Luteal phase - the body is preparing. Focus on endurance and avoid extreme intensities.',
+        'Lutealfasen - Kroppen förbereder sig. Fokusera på uthållighet och undvik extrema intensiteter.'
+      ),
       tips: [
-        'Förvänta dig ökad upplevd ansträngning (RPE)',
-        'Kolhydrater kan hjälpa mot energidipp',
-        'Undvik höga intensiteter nära menstruation',
-        'Fokusera på sömnkvalitet',
+        t(locale, 'Expect higher perceived exertion (RPE)', 'Förvänta dig ökad upplevd ansträngning (RPE)'),
+        t(locale, 'Carbohydrates can help with energy dips', 'Kolhydrater kan hjälpa mot energidipp'),
+        t(locale, 'Avoid high intensities close to menstruation', 'Undvik höga intensiteter nära menstruation'),
+        t(locale, 'Focus on sleep quality', 'Fokusera på sömnkvalitet'),
       ],
     },
   };
