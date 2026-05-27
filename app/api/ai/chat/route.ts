@@ -40,6 +40,7 @@ import type { KnowledgeSkillAccessMode } from '@/lib/ai/skill-access'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60
+type AppLocale = 'en' | 'sv'
 
 function jsonError(status: number, payload: Record<string, unknown>): Response {
   return new Response(JSON.stringify(payload), {
@@ -48,11 +49,18 @@ function jsonError(status: number, payload: Record<string, unknown>): Response {
   })
 }
 
-function t(locale: 'en' | 'sv', en: string, sv: string): string {
+function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
+}
+
 export async function POST(request: NextRequest) {
+  let responseLocale: AppLocale = getRequestLocale(request)
+
   try {
     const body: ChatRequest = await request.json()
     const {
@@ -79,7 +87,6 @@ export async function POST(request: NextRequest) {
     let staffPermissions: Awaited<ReturnType<typeof getStaffPermissions>> | undefined
     let athleteAllowedProviders: Set<LowerProvider> | null = null
     let skillAccessMode: KnowledgeSkillAccessMode = 'full'
-    let responseLocale: 'en' | 'sv' = 'en'
 
     let calendarProgramStartDate: Date | undefined
     let calendarProgramEndDate: Date | undefined
@@ -96,7 +103,7 @@ export async function POST(request: NextRequest) {
 
     if (isAthleteChat) {
       const resolved = await resolveAthleteClientId()
-      if (!resolved) return jsonError(401, { error: 'Unauthorized' })
+      if (!resolved) return jsonError(401, { error: t(responseLocale, 'Unauthorized', 'Obehörig') })
 
       userId = resolved.user.id
       responseLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
@@ -107,7 +114,13 @@ export async function POST(request: NextRequest) {
         select: { id: true, name: true, userId: true, businessId: true },
       })
       if (!clientRecord?.userId) {
-        return jsonError(400, { error: 'Athlete account not properly linked to coach' })
+        return jsonError(400, {
+          error: t(
+            responseLocale,
+            'Athlete account is not properly linked to a coach.',
+            'Atletkontot är inte korrekt kopplat till en coach.'
+          ),
+        })
       }
 
       apiKeyUserId = clientRecord.userId
@@ -212,7 +225,7 @@ export async function POST(request: NextRequest) {
                 'Your coach has not configured AI keys yet.',
                 'Din coach har inte konfigurerat AI-nycklar ännu'
               ))
-        : 'API keys not configured'
+        : t(responseLocale, 'API keys are not configured', 'API-nycklar är inte konfigurerade')
       return jsonError(400, { error: errorMsg })
     }
 
@@ -372,21 +385,29 @@ export async function POST(request: NextRequest) {
     logger.error('Chat streaming error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return jsonError(401, { error: 'Unauthorized' })
+      return jsonError(401, { error: t(responseLocale, 'Unauthorized', 'Obehörig') })
     }
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    let userMessage = 'Failed to stream response'
+    let userMessage = t(responseLocale, 'Failed to stream response', 'Kunde inte strömma svaret')
     if (
       errorMessage.includes('401') ||
       errorMessage.includes('authentication') ||
       errorMessage.includes('api_key')
     ) {
-      userMessage = 'API key is invalid or expired. Please check your API key in settings.'
+      userMessage = t(
+        responseLocale,
+        'API key is invalid or expired. Please check your API key in settings.',
+        'API-nyckeln är ogiltig eller har gått ut. Kontrollera API-nyckeln i inställningarna.'
+      )
     } else if (errorMessage.includes('429') || errorMessage.includes('rate')) {
-      userMessage = 'Rate limit exceeded. Please wait a moment and try again.'
+      userMessage = t(
+        responseLocale,
+        'Rate limit exceeded. Please wait a moment and try again.',
+        'Hastighetsgränsen har överskridits. Vänta en stund och försök igen.'
+      )
     } else if (errorMessage.includes('model')) {
-      userMessage = `Model error: ${errorMessage}`
+      userMessage = t(responseLocale, `Model error: ${errorMessage}`, `Modellfel: ${errorMessage}`)
     }
 
     return jsonError(500, { error: userMessage, message: errorMessage })
