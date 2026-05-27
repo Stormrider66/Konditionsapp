@@ -331,7 +331,8 @@ export async function cleanupExpiredMemories(): Promise<number> {
  * Format memories for inclusion in AI system prompt
  */
 export function formatMemoriesForPrompt(
-  memories: { memoryType: string; content: string; extractedAt: Date }[]
+  memories: { memoryType: string; content: string; extractedAt: Date }[],
+  locale: AppLocale = 'en'
 ): string {
   if (memories.length === 0) {
     return ''
@@ -340,14 +341,14 @@ export function formatMemoriesForPrompt(
   const grouped: Record<string, string[]> = {}
 
   for (const memory of memories) {
-    const category = getCategoryLabel(memory.memoryType)
+    const category = getCategoryLabel(memory.memoryType, locale)
     if (!grouped[category]) {
       grouped[category] = []
     }
     grouped[category].push(memory.content)
   }
 
-  let output = '## MINNEN OM DENNA ATLET\n\n'
+  let output = locale === 'sv' ? '## MINNEN OM DENNA ATLET\n\n' : '## MEMORIES ABOUT THIS ATHLETE\n\n'
 
   for (const [category, items] of Object.entries(grouped)) {
     output += `### ${category}\n`
@@ -357,7 +358,9 @@ export function formatMemoriesForPrompt(
     output += '\n'
   }
 
-  output += '*Använd dessa minnen för att ge personliga och relevanta svar.*\n'
+  output += locale === 'sv'
+    ? '*Använd dessa minnen för att ge personliga och relevanta svar.*\n'
+    : '*Use these memories to give personalized and relevant responses.*\n'
 
   return output
 }
@@ -379,19 +382,19 @@ function getCategoryFromType(type: MemoryType): string {
   return categoryMap[type] || 'other'
 }
 
-function getCategoryLabel(type: string): string {
-  const labels: Record<string, string> = {
-    INJURY_MENTION: 'Skador & smärta',
-    GOAL_STATEMENT: 'Mål',
-    PREFERENCE: 'Preferenser',
-    LIFE_EVENT: 'Livshändelser',
-    FEEDBACK: 'Feedback',
-    MILESTONE: 'Milstolpar',
-    EQUIPMENT: 'Utrustning',
-    LIMITATION: 'Begränsningar',
-    PERSONAL_FACT: 'Personligt',
+function getCategoryLabel(type: string, locale: AppLocale): string {
+  const labels: Record<string, { en: string; sv: string }> = {
+    INJURY_MENTION: { en: 'Injuries & pain', sv: 'Skador & smärta' },
+    GOAL_STATEMENT: { en: 'Goals', sv: 'Mål' },
+    PREFERENCE: { en: 'Preferences', sv: 'Preferenser' },
+    LIFE_EVENT: { en: 'Life events', sv: 'Livshändelser' },
+    FEEDBACK: { en: 'Feedback', sv: 'Feedback' },
+    MILESTONE: { en: 'Milestones', sv: 'Milstolpar' },
+    EQUIPMENT: { en: 'Equipment', sv: 'Utrustning' },
+    LIMITATION: { en: 'Limitations', sv: 'Begränsningar' },
+    PERSONAL_FACT: { en: 'Personal', sv: 'Personligt' },
   }
-  return labels[type] || 'Övrigt'
+  return labels[type]?.[locale] || t(locale, 'Other', 'Övrigt')
 }
 
 function normalizeForComparison(text: string): string {

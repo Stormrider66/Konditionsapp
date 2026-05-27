@@ -22,7 +22,19 @@ interface RouteParams {
   params: Promise<{ clientId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: Request, { params }: RouteParams) {
+  let locale: AppLocale = 'en'
+
   try {
     const { clientId } = await params
     const supabase = await createClient()
@@ -34,10 +46,16 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { language: true },
+    })
+    locale = resolveLocale(dbUser?.language)
+
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
+        { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
         { status: 404 }
       )
     }
@@ -54,7 +72,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     if (format === 'prompt') {
       // Return formatted for AI system prompt
       return NextResponse.json({
-        memoryContext: formatMemoriesForPrompt(memories),
+        memoryContext: formatMemoriesForPrompt(memories, locale),
         summary: summary?.summary || null,
       })
     }
@@ -68,7 +86,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error('Memory retrieval error:', error)
     return NextResponse.json(
-      { error: 'Failed to retrieve memories' },
+      { error: t(locale, 'Failed to retrieve memories', 'Kunde inte hämta minnen') },
       { status: 500 }
     )
   }
