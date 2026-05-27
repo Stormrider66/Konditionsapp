@@ -20,6 +20,25 @@ function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
 }
 
+function localizeValidationDetails<T extends Array<{ message: string }>>(
+  details: T,
+  locale: AppLocale
+): T {
+  const messageMap = new Map<string, string>([
+    ['Namnet måste vara minst 2 tecken', t(locale, 'Name must be at least 2 characters', 'Namnet måste vara minst 2 tecken')],
+    ['Ogiltig e-postadress', t(locale, 'Invalid email address', 'Ogiltig e-postadress')],
+    ['Ålder måste vara mellan 10 och 100 år', t(locale, 'Age must be between 10 and 100 years', 'Ålder måste vara mellan 10 och 100 år')],
+    ['Längd måste vara minst 100 cm', t(locale, 'Height must be at least 100 cm', 'Längd måste vara minst 100 cm')],
+    ['Vikt måste vara minst 30 kg', t(locale, 'Weight must be at least 30 kg', 'Vikt måste vara minst 30 kg')],
+    ['Tröjnummer måste vara mellan 0 och 999', t(locale, 'Jersey number must be between 0 and 999', 'Tröjnummer måste vara mellan 0 och 999')],
+  ])
+
+  return details.map((detail) => ({
+    ...detail,
+    message: messageMap.get(detail.message) ?? detail.message,
+  })) as T
+}
+
 // GET /api/clients - Hämta alla klienter för inloggad användare
 // Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
 export async function GET(request: NextRequest) {
@@ -133,7 +152,7 @@ export async function POST(request: NextRequest) {
             'Validation failed',
             'Valideringen misslyckades',
           ),
-          details: validation.error.errors,
+          details: localizeValidationDetails(validation.error.errors, locale),
         },
         { status: 400 }
       )
