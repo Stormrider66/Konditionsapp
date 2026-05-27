@@ -817,7 +817,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
                   .filter((e) => e.section === 'MAIN')
                   .map((e) => `${e.exerciseName} (${e.sets}x${e.reps})`),
               })),
-              message: `${sessions.length} pass skapade och sparade i Passbiblioteket.`,
+              message: toolText(
+                locale,
+                `${sessions.length} sessions created and saved in the workout library.`,
+                `${sessions.length} pass skapade och sparade i Passbiblioteket.`,
+              ),
             }
           }
 
@@ -859,13 +863,17 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
             mainExercises: session.exercises
               .filter((e) => e.section === 'MAIN')
               .map((e) => `${e.exerciseName} (${e.sets}x${e.reps}${e.weight ? ` @ ${e.weight}kg` : ''})`),
-            message: `Pass "${session.name}" skapat och sparat i Passbiblioteket.`,
+            message: toolText(
+              locale,
+              `Session "${session.name}" created and saved in the workout library.`,
+              `Pass "${session.name}" skapat och sparat i Passbiblioteket.`,
+            ),
           }
         } catch (error) {
           logger.error('Error in generateStrengthSession tool', {}, error)
           return {
             success: false,
-            error: 'Kunde inte generera styrkepass. Försök igen.',
+            error: toolText(locale, 'Could not generate the strength session. Please try again.', 'Kunde inte generera styrkepass. Försök igen.'),
           }
         }
       },
