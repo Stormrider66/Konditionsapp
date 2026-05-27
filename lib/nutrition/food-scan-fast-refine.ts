@@ -25,6 +25,8 @@ export interface SimpleFoodIdentityCorrection {
   targetName?: string
   grams?: number
   portionDescription?: string
+  portionAmount?: string
+  portionUnit?: string
 }
 
 export interface FastFoodRefineResult {
@@ -166,6 +168,8 @@ function parseQuantity(candidate: string): {
   foodName: string
   grams?: number
   portionDescription?: string
+  portionAmount?: string
+  portionUnit?: string
 } {
   const match = candidate.match(/\b(\d+(?:[,.]\d+)?)\s*(kg|g|gram|grams|ml|cl|dl|l|liter|litre|liters|litres)\b/i)
   if (!match) return { foodName: candidate }
@@ -195,6 +199,8 @@ function parseQuantity(candidate: string): {
     foodName: foodName || candidate,
     grams: roundTo(grams, 1),
     portionDescription: `${match[1].replace('.', ',')} ${match[2].toLowerCase()}`,
+    portionAmount: match[1],
+    portionUnit: match[2].toLowerCase(),
   }
 }
 
@@ -224,7 +230,13 @@ export function parseSimpleFoodIdentityCorrection(text: string): SimpleFoodIdent
     const candidate = match?.[1] ? cleanCandidate(match[1]) : null
     if (candidate) {
       const parsed = parseQuantity(candidate)
-      return { foodName: parsed.foodName, grams: parsed.grams, portionDescription: parsed.portionDescription }
+      return {
+        foodName: parsed.foodName,
+        grams: parsed.grams,
+        portionDescription: parsed.portionDescription,
+        portionAmount: parsed.portionAmount,
+        portionUnit: parsed.portionUnit,
+      }
     }
   }
 
@@ -233,7 +245,13 @@ export function parseSimpleFoodIdentityCorrection(text: string): SimpleFoodIdent
     const candidate = match?.[1] ? cleanCandidate(match[1]) : null
     if (candidate) {
       const parsed = parseQuantity(candidate)
-      return { foodName: parsed.foodName, grams: parsed.grams, portionDescription: parsed.portionDescription }
+      return {
+        foodName: parsed.foodName,
+        grams: parsed.grams,
+        portionDescription: parsed.portionDescription,
+        portionAmount: parsed.portionAmount,
+        portionUnit: parsed.portionUnit,
+      }
     }
   }
 
@@ -252,6 +270,8 @@ export function parseSimpleFoodIdentityCorrection(text: string): SimpleFoodIdent
       targetName: target,
       grams: parsed.grams,
       portionDescription: parsed.portionDescription,
+      portionAmount: parsed.portionAmount,
+      portionUnit: parsed.portionUnit,
     }
   }
 
@@ -339,12 +359,14 @@ function buildItemFromFoodReference({
   grams,
   fallbackCategory,
   portionDescription,
+  fallbackName,
   locale = 'en',
 }: {
   foodMatch: FoodReferenceMatch
   grams: number
   fallbackCategory: FoodCategory
   portionDescription: string
+  fallbackName: string
   locale?: 'en' | 'sv'
 }): FoodItem {
   const factor = grams / 100
@@ -352,7 +374,7 @@ function buildItemFromFoodReference({
   const carbsGrams = roundTo(foodMatch.carbsPer100g * factor, 1)
 
   return {
-    name: locale === 'sv' ? foodMatch.nameSv : foodMatch.nameEn || foodMatch.nameSv,
+    name: locale === 'sv' ? foodMatch.nameSv : foodMatch.nameEn || fallbackName,
     category: normalizeCategory(foodMatch.category) ?? fallbackCategory,
     estimatedGrams: grams,
     portionDescription,
@@ -375,6 +397,12 @@ function buildItemFromFoodReference({
         ? foodMatch.proteinSource
         : undefined,
   }
+}
+
+function formatPortionDescription(correction: SimpleFoodIdentityCorrection, locale: 'en' | 'sv'): string | undefined {
+  if (!correction.portionAmount || !correction.portionUnit) return correction.portionDescription
+  const amount = locale === 'sv' ? correction.portionAmount.replace('.', ',') : correction.portionAmount.replace(',', '.')
+  return `${amount} ${correction.portionUnit}`
 }
 
 function sumItems(items: FoodItem[]): FoodPhotoAnalysisResult['totals'] {
@@ -460,7 +488,8 @@ export function applySimpleFoodIdentityCorrection({
   const originalItem = analysis.items[target.index]
   const guessedCategory = guessCategory(correction.foodName)
   const grams = correction.grams ?? originalItem.estimatedGrams
-  const portionDescription = correction.portionDescription ?? originalItem.portionDescription
+  const portionDescription = formatPortionDescription(correction, locale) ?? originalItem.portionDescription
+  const fallbackName = formatFallbackName(correction.foodName)
 
   const updatedItem = foodMatch
     ? buildItemFromFoodReference({
@@ -468,11 +497,12 @@ export function applySimpleFoodIdentityCorrection({
         grams,
         fallbackCategory: normalizeCategory(originalItem.category) ?? guessedCategory ?? 'OTHER',
         portionDescription,
+        fallbackName,
         locale,
       })
     : {
         ...scaleExistingItem(originalItem, grams),
-        name: formatFallbackName(correction.foodName),
+        name: fallbackName,
         category: guessedCategory ?? originalItem.category,
         portionDescription,
       }
