@@ -73,6 +73,12 @@ import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { useLocale } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 interface ExerciseLibraryBrowserProps {
   onSelectExercise?: (exercise: Exercise) => void
   mode?: 'browse' | 'select' // 'browse' for library view, 'select' for adding to workout
@@ -85,7 +91,7 @@ export function ExerciseLibraryBrowser({
   userId,
 }: ExerciseLibraryBrowserProps) {
   const { toast } = useToast()
-  const locale = useLocale()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const pathname = usePathname()
   const businessHeaders = useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
   const exerciseDisplayName = useCallback(
@@ -232,25 +238,25 @@ export function ExerciseLibraryBrowser({
 
       if (!res.ok) {
         toast({
-          title: 'Fel',
-          description: data.error || 'Kunde inte generera bilder',
+          title: copy(locale, 'Error', 'Fel'),
+          description: data.error || copy(locale, 'Could not generate images', 'Kunde inte generera bilder'),
           variant: 'destructive',
         })
         return
       }
 
       toast({
-        title: `${data.generated} bilder genererade`,
+        title: copy(locale, `${data.generated} images generated`, `${data.generated} bilder genererade`),
         description: data.remaining > 0
-          ? `${data.remaining} övningar kvar utan bilder. Kör igen för fler.`
-          : 'Alla övningar har nu bilder!',
+          ? copy(locale, `${data.remaining} exercises still need images. Run again for more.`, `${data.remaining} övningar kvar utan bilder. Kör igen för fler.`)
+          : copy(locale, 'All exercises now have images.', 'Alla övningar har nu bilder!'),
       })
       setImageStats({ withoutImages: data.remaining })
       fetchExercises() // Refresh to show new images
     } catch {
       toast({
-        title: 'Fel',
-        description: 'Kunde inte generera bilder',
+        title: copy(locale, 'Error', 'Fel'),
+        description: copy(locale, 'Could not generate images', 'Kunde inte generera bilder'),
         variant: 'destructive',
       })
     } finally {
@@ -708,9 +714,13 @@ export function ExerciseLibraryBrowser({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Exercise Library</h2>
+          <h2 className="text-2xl font-bold">{copy(locale, 'Exercise Library', 'Övningsbibliotek')}</h2>
           <p className="text-sm text-gray-500">
-            {totalCount} övningar {searchTerm && `matchar "${searchTerm}"`}
+            {copy(
+              locale,
+              `${totalCount} exercises${searchTerm ? ` matching "${searchTerm}"` : ''}`,
+              `${totalCount} övningar${searchTerm ? ` matchar "${searchTerm}"` : ''}`
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -727,7 +737,9 @@ export function ExerciseLibraryBrowser({
               ) : (
                 <ImagePlus className="h-3.5 w-3.5 mr-1.5" />
               )}
-              {isGeneratingImages ? 'Genererar...' : `Generera bilder (${imageStats.withoutImages})`}
+              {isGeneratingImages
+                ? copy(locale, 'Generating...', 'Genererar...')
+                : copy(locale, `Generate images (${imageStats.withoutImages})`, `Generera bilder (${imageStats.withoutImages})`)}
             </Button>
           )}
           <Button
