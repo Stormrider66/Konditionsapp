@@ -16,6 +16,12 @@ import {
   sendNewApplicationNotification,
 } from '@/lib/email'
 
+type AppLocale = 'en' | 'sv'
+
+function getRequestLocale(request: NextRequest): AppLocale {
+  return request.headers.get('accept-language')?.toLowerCase().startsWith('sv') ? 'sv' : 'en'
+}
+
 const applicationSchema = z.object({
   type: z.enum(['GYM', 'CLUB']),
   contactName: z.string().min(2, 'Name is required'),
@@ -32,6 +38,8 @@ const applicationSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const locale = getRequestLocale(request)
+
   try {
     // Rate limit by IP - 3 submissions per hour
     const ip = request.headers.get('x-forwarded-for') || 'unknown'
@@ -80,7 +88,9 @@ export async function POST(request: NextRequest) {
     sendApplicationReceivedEmail(
       data.contactEmail,
       data.contactName,
-      data.organizationName
+      data.organizationName,
+      undefined,
+      locale
     ).catch(() => {})
 
     // Notify admin
@@ -89,7 +99,8 @@ export async function POST(request: NextRequest) {
       sendNewApplicationNotification(
         adminEmail,
         data.organizationName,
-        data.type
+        data.type,
+        locale
       ).catch(() => {})
     }
 
