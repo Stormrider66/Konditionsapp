@@ -61,11 +61,13 @@ function recipeValidationMessage(error: z.ZodError, locale: AppLocale) {
 
 // GET /api/nutrition/recipes - List saved recipe templates for the athlete.
 export async function GET() {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = getUserLocale(resolved.user?.language)
 
     const recipes = await prisma.nutritionRecipe.findMany({
       where: { clientId: resolved.clientId },
@@ -77,7 +79,7 @@ export async function GET() {
   } catch (error) {
     logger.error('Error fetching nutrition recipes', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch recipes' },
+      { success: false, error: t(locale, 'Failed to fetch recipes', 'Kunde inte hämta recept') },
       { status: 500 }
     )
   }
@@ -85,12 +87,13 @@ export async function GET() {
 
 // POST /api/nutrition/recipes - Save the current ingredient list as a template.
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = getUserLocale(resolved.user?.language)
+    locale = getUserLocale(resolved.user?.language)
 
     const body = await request.json()
     const validation = createRecipeSchema.safeParse(body)
@@ -146,7 +149,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Error creating nutrition recipe', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to save recipe' },
+      { success: false, error: t(locale, 'Failed to save recipe', 'Kunde inte spara recept') },
       { status: 500 }
     )
   }
