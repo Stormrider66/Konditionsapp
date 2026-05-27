@@ -402,7 +402,7 @@ export async function POST(request: NextRequest) {
       const normalizedNames = finalResult.items.map((i) => i.name.toLowerCase().trim())
       const stats = await fetchPortionStats(clientId, normalizedNames)
       if (stats.size > 0) {
-        const { items: calibratedItems, snaps } = calibratePortions(finalResult.items, stats)
+        const { items: calibratedItems, snaps } = calibratePortions(finalResult.items, stats, { locale })
         if (snaps.length > 0) {
           finalResult = {
             ...finalResult,

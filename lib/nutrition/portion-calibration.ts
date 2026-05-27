@@ -45,6 +45,12 @@ export interface CalibrationResult<T extends CalibratableItem> {
   snaps: PortionSnap[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+interface CalibrationOptions {
+  locale?: AppLocale
+}
+
 const MIN_HISTORICAL_COUNT = 3
 /** Within this ±band of the user's median we trust Gemini. */
 const TRUST_BAND = 0.4
@@ -63,7 +69,9 @@ const normalizeName = (name: string) => name.toLowerCase().trim()
 export function calibratePortions<T extends CalibratableItem>(
   items: T[],
   statsByNormalizedName: Map<string, PortionStats>,
+  options: CalibrationOptions = {},
 ): CalibrationResult<T> {
+  const { locale = 'en' } = options
   const snaps: PortionSnap[] = []
   const calibrated = items.map((item, itemIndex) => {
     const key = normalizeName(item.name)
@@ -96,7 +104,10 @@ export function calibratePortions<T extends CalibratableItem>(
     return {
       ...item,
       estimatedGrams: snappedGrams,
-      portionDescription: stats.commonPortionDescription ?? item.portionDescription ?? '',
+      portionDescription:
+        locale === 'sv'
+          ? stats.commonPortionDescription ?? item.portionDescription ?? ''
+          : item.portionDescription ?? '',
       calories: round1(item.calories * scale),
       proteinGrams: round1(item.proteinGrams * scale),
       carbsGrams: round1(item.carbsGrams * scale),

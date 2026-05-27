@@ -63,7 +63,25 @@ describe('calibratePortions', () => {
     expect(items[0].fatGrams).toBeCloseTo(5.0, 1)
   })
 
-  it('prefers the historical portion description when snapping', () => {
+  it('keeps the generated English portion description when snapping for English users', () => {
+    const stats = new Map<string, PortionStats>([
+      ['pasta', { count: 20, medianGrams: 80, commonPortionDescription: '1 dl torr' }],
+    ])
+    const item = makeItem({
+      name: 'Pasta',
+      estimatedGrams: 200,
+      portionDescription: 'Generous portion',
+      calories: 714,
+      proteinGrams: 24,
+      carbsGrams: 142,
+      fatGrams: 2.4,
+    })
+    const { items, snaps } = calibratePortions([item], stats)
+    expect(snaps).toHaveLength(1)
+    expect(items[0].portionDescription).toBe('Generous portion')
+  })
+
+  it('prefers the historical portion description when snapping for Swedish users', () => {
     const stats = new Map<string, PortionStats>([
       ['pasta', { count: 20, medianGrams: 80, commonPortionDescription: '1 dl torr' }],
     ])
@@ -76,7 +94,7 @@ describe('calibratePortions', () => {
       carbsGrams: 142,
       fatGrams: 2.4,
     })
-    const { items, snaps } = calibratePortions([item], stats)
+    const { items, snaps } = calibratePortions([item], stats, { locale: 'sv' })
     expect(snaps).toHaveLength(1)
     expect(items[0].portionDescription).toBe('1 dl torr')
   })
