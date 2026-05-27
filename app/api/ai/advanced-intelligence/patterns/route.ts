@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     const denied = await requireFeatureAccess(clientId, 'advanced_intelligence')
     if (denied) return denied
 
-    const patterns = await analyzeTrainingPatterns(clientId, weeks)
+    const patterns = await analyzeTrainingPatterns(clientId, weeks, locale)
 
     return NextResponse.json({
       success: true,

@@ -3,6 +3,8 @@
 
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
 export interface TrainingPattern {
   type: 'weekly_volume' | 'intensity_distribution' | 'workout_response' | 'recovery_pattern' | 'progression_rate'
   description: string
@@ -67,7 +69,8 @@ export interface ProgressionPattern {
  */
 export async function analyzeTrainingPatterns(
   clientId: string,
-  lookbackWeeks: number = 12
+  lookbackWeeks: number = 12,
+  locale: AppLocale = 'en'
 ): Promise<TrainingPattern[]> {
   const patterns: TrainingPattern[] = []
   const startDate = new Date()
@@ -101,11 +104,11 @@ export async function analyzeTrainingPatterns(
   if (workoutLogs.length < 10) {
     return [{
       type: 'weekly_volume',
-      description: 'Otillräcklig data för mönsteranalys',
+      description: t(locale, 'Insufficient data for pattern analysis', 'Otillräcklig data för mönsteranalys'),
       confidence: 0,
       data: { workoutsLogged: workoutLogs.length, minimumRequired: 10 },
-      insights: ['Behöver minst 10 loggade pass för mönsteranalys'],
-      recommendations: ['Fortsätt logga pass för att få bättre insikter'],
+      insights: [t(locale, 'At least 10 logged workouts are needed for pattern analysis', 'Behöver minst 10 loggade pass för mönsteranalys')],
+      recommendations: [t(locale, 'Keep logging workouts to unlock better insights', 'Fortsätt logga pass för att få bättre insikter')],
     }]
   }
 
@@ -114,11 +117,11 @@ export async function analyzeTrainingPatterns(
   if (volumePattern) {
     patterns.push({
       type: 'weekly_volume',
-      description: 'Veckovolym-mönster',
+      description: t(locale, 'Weekly volume pattern', 'Veckovolym-mönster'),
       confidence: calculateConfidence(workoutLogs.length, lookbackWeeks),
       data: volumePattern,
-      insights: generateVolumeInsights(volumePattern),
-      recommendations: generateVolumeRecommendations(volumePattern),
+      insights: generateVolumeInsights(volumePattern, locale),
+      recommendations: generateVolumeRecommendations(volumePattern, locale),
     })
   }
 
@@ -127,37 +130,37 @@ export async function analyzeTrainingPatterns(
   if (intensityPattern) {
     patterns.push({
       type: 'intensity_distribution',
-      description: 'Intensitetsfördelning',
+      description: t(locale, 'Intensity distribution', 'Intensitetsfördelning'),
       confidence: calculateConfidence(workoutLogs.length, lookbackWeeks),
       data: intensityPattern,
-      insights: generateIntensityInsights(intensityPattern),
-      recommendations: generateIntensityRecommendations(intensityPattern),
+      insights: generateIntensityInsights(intensityPattern, locale),
+      recommendations: generateIntensityRecommendations(intensityPattern, locale),
     })
   }
 
   // Analyze recovery patterns
-  const recoveryPattern = analyzeRecoveryPattern(checkIns, workoutLogs)
+  const recoveryPattern = analyzeRecoveryPattern(checkIns, workoutLogs, locale)
   if (recoveryPattern) {
     patterns.push({
       type: 'recovery_pattern',
-      description: 'Återhämtningsmönster',
+      description: t(locale, 'Recovery pattern', 'Återhämtningsmönster'),
       confidence: calculateConfidence(checkIns.length, lookbackWeeks),
       data: recoveryPattern,
-      insights: generateRecoveryInsights(recoveryPattern),
-      recommendations: generateRecoveryRecommendations(recoveryPattern),
+      insights: generateRecoveryInsights(recoveryPattern, locale),
+      recommendations: generateRecoveryRecommendations(recoveryPattern, locale),
     })
   }
 
   // Analyze progression rate
-  const progressionPattern = analyzeProgressionPattern(workoutLogs, trainingLoads)
+  const progressionPattern = analyzeProgressionPattern(workoutLogs, trainingLoads, locale)
   if (progressionPattern) {
     patterns.push({
       type: 'progression_rate',
-      description: 'Progressionsmönster',
+      description: t(locale, 'Progression pattern', 'Progressionsmönster'),
       confidence: calculateConfidence(workoutLogs.length, lookbackWeeks),
       data: progressionPattern,
-      insights: generateProgressionInsights(progressionPattern),
-      recommendations: generateProgressionRecommendations(progressionPattern),
+      insights: generateProgressionInsights(progressionPattern, locale),
+      recommendations: generateProgressionRecommendations(progressionPattern, locale),
     })
   }
 
@@ -166,7 +169,7 @@ export async function analyzeTrainingPatterns(
 
 function analyzeVolumePattern(
   workoutLogs: { completedAt: Date | null; duration: number | null; distance: number | null }[],
-  lookbackWeeks: number
+  _lookbackWeeks: number
 ): VolumePattern | null {
   const weeklyVolumes: Map<number, number> = new Map()
 
@@ -258,17 +261,10 @@ function analyzeIntensityPattern(
 
 function analyzeRecoveryPattern(
   checkIns: { date: Date; readinessScore: number | null; sleepQuality: number; sleepHours: number | null; soreness: number; fatigue: number }[],
-  workoutLogs: { completedAt: Date | null; perceivedEffort: number | null }[]
+  workoutLogs: { completedAt: Date | null; perceivedEffort: number | null }[],
+  locale: AppLocale = 'en'
 ): RecoveryPattern | null {
   if (checkIns.length < 7) return null
-
-  // Calculate average recovery metrics
-  const avgSleep = checkIns.reduce((sum, c) => sum + c.sleepQuality, 0) / checkIns.length
-  const avgSoreness = checkIns.reduce((sum, c) => sum + c.soreness, 0) / checkIns.length
-  const avgFatigue = checkIns.reduce((sum, c) => sum + c.fatigue, 0) / checkIns.length
-  const avgReadiness = checkIns
-    .filter(c => c.readinessScore)
-    .reduce((sum, c) => sum + (c.readinessScore || 0), 0) / checkIns.filter(c => c.readinessScore).length || 70
 
   // Calculate how readiness drops after hard workouts
   const hardWorkouts = workoutLogs.filter(w => w.perceivedEffort && w.perceivedEffort >= 7)
@@ -307,9 +303,9 @@ function analyzeRecoveryPattern(
   return {
     averageRecoveryTime: Math.round(avgRecoveryTime * 10) / 10,
     factorsAffectingRecovery: [
-      { factor: 'Sömnkvalitet', impact: sleepReadinessCorrelation, confidence: 0.8 },
-      { factor: 'Sömntimmar', impact: 0.6, confidence: 0.7 },
-      { factor: 'Träningsintensitet', impact: -0.5, confidence: 0.75 },
+      { factor: t(locale, 'Sleep quality', 'Sömnkvalitet'), impact: sleepReadinessCorrelation, confidence: 0.8 },
+      { factor: t(locale, 'Sleep hours', 'Sömntimmar'), impact: 0.6, confidence: 0.7 },
+      { factor: t(locale, 'Training intensity', 'Träningsintensitet'), impact: -0.5, confidence: 0.75 },
     ],
     optimalRestDays: Math.round(avgRecoveryTime),
     sleepImpact: Math.round(sleepReadinessCorrelation * 100) / 100,
@@ -318,7 +314,8 @@ function analyzeRecoveryPattern(
 
 function analyzeProgressionPattern(
   workoutLogs: { completedAt: Date | null; avgPace: string | null; duration: number | null }[],
-  trainingLoads: { date: Date; acwr: number | null }[]
+  trainingLoads: { date: Date; acwr: number | null }[],
+  locale: AppLocale = 'en'
 ): ProgressionPattern | null {
   if (workoutLogs.length < 10) return null
 
@@ -369,7 +366,11 @@ function analyzeProgressionPattern(
     .slice(0, 5)
     .map(w => ({
       date: w.date,
-      description: `${formatSecondsToMinSec(w.paceSeconds)}/km (${Math.round((1 - w.paceSeconds / avgPace) * 100)}% snabbare än genomsnitt)`,
+      description: t(
+        locale,
+        `${formatSecondsToMinSec(w.paceSeconds)}/km (${Math.round((1 - w.paceSeconds / avgPace) * 100)}% faster than average)`,
+        `${formatSecondsToMinSec(w.paceSeconds)}/km (${Math.round((1 - w.paceSeconds / avgPace) * 100)}% snabbare än genomsnitt)`
+      ),
     }))
 
   // Calculate sustainable load increase from ACWR
@@ -386,6 +387,10 @@ function analyzeProgressionPattern(
 }
 
 // Helper functions
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function getWeekNumber(date: Date): number {
   const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
   const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
@@ -454,134 +459,134 @@ function formatSecondsToMinSec(seconds: number): string {
 }
 
 // Insight generators
-function generateVolumeInsights(pattern: VolumePattern): string[] {
+function generateVolumeInsights(pattern: VolumePattern, locale: AppLocale): string[] {
   const insights: string[] = []
 
   if (pattern.trend === 'increasing') {
-    insights.push(`Volymen har ökat stadigt över perioden (${pattern.averageWeeklyVolume} km/vecka i genomsnitt)`)
+    insights.push(t(locale, `Volume has increased steadily over the period (${pattern.averageWeeklyVolume} km/week on average)`, `Volymen har ökat stadigt över perioden (${pattern.averageWeeklyVolume} km/vecka i genomsnitt)`))
   } else if (pattern.trend === 'decreasing') {
-    insights.push(`Volymen har minskat under perioden - kontrollera att detta är planerat`)
+    insights.push(t(locale, 'Volume has decreased during the period - check that this is planned', 'Volymen har minskat under perioden - kontrollera att detta är planerat'))
   }
 
   if (pattern.volumeVariability > 0.3) {
-    insights.push(`Hög variation i veckovolym (CV: ${(pattern.volumeVariability * 100).toFixed(0)}%) - mer konsekvent träning rekommenderas`)
+    insights.push(t(locale, `High weekly volume variation (CV: ${(pattern.volumeVariability * 100).toFixed(0)}%) - more consistent training is recommended`, `Hög variation i veckovolym (CV: ${(pattern.volumeVariability * 100).toFixed(0)}%) - mer konsekvent träning rekommenderas`))
   }
 
   const volumeRange = pattern.peakVolume - pattern.lowVolume
   if (volumeRange > pattern.averageWeeklyVolume * 0.5) {
-    insights.push(`Stor skillnad mellan topp- och lågvolym (${pattern.peakVolume.toFixed(0)} vs ${pattern.lowVolume.toFixed(0)} km)`)
+    insights.push(t(locale, `Large gap between peak and low volume (${pattern.peakVolume.toFixed(0)} vs ${pattern.lowVolume.toFixed(0)} km)`, `Stor skillnad mellan topp- och lågvolym (${pattern.peakVolume.toFixed(0)} vs ${pattern.lowVolume.toFixed(0)} km)`))
   }
 
   return insights
 }
 
-function generateVolumeRecommendations(pattern: VolumePattern): string[] {
+function generateVolumeRecommendations(pattern: VolumePattern, locale: AppLocale): string[] {
   const recommendations: string[] = []
 
   if (pattern.volumeVariability > 0.3) {
-    recommendations.push('Sikta på max 10% volymökning per vecka för säker progression')
-    recommendations.push('Planera in återhämtningsveckor var 4:e vecka med 20-30% reducerad volym')
+    recommendations.push(t(locale, 'Aim for a maximum 10% volume increase per week for safe progression', 'Sikta på max 10% volymökning per vecka för säker progression'))
+    recommendations.push(t(locale, 'Plan recovery weeks every 4th week with 20-30% reduced volume', 'Planera in återhämtningsveckor var 4:e vecka med 20-30% reducerad volym'))
   }
 
   if (pattern.trend === 'decreasing') {
-    recommendations.push('Granska orsaken till minskad volym - skada, överträning, eller planerad vila?')
+    recommendations.push(t(locale, 'Review the reason for reduced volume - injury, overtraining, or planned rest?', 'Granska orsaken till minskad volym - skada, överträning, eller planerad vila?'))
   }
 
   return recommendations
 }
 
-function generateIntensityInsights(pattern: IntensityPattern): string[] {
+function generateIntensityInsights(pattern: IntensityPattern, locale: AppLocale): string[] {
   const insights: string[] = []
   const easyPercent = pattern.zone1Percent + pattern.zone2Percent
 
   if (easyPercent >= 75 && easyPercent <= 85) {
-    insights.push(`Bra intensitetsfördelning med ${easyPercent}% lågintensiv träning`)
+    insights.push(t(locale, `Good intensity distribution with ${easyPercent}% low-intensity training`, `Bra intensitetsfördelning med ${easyPercent}% lågintensiv träning`))
   } else if (easyPercent < 70) {
-    insights.push(`För lite lågintensiv träning (${easyPercent}%) - risk för överträning`)
+    insights.push(t(locale, `Too little low-intensity training (${easyPercent}%) - risk of overtraining`, `För lite lågintensiv träning (${easyPercent}%) - risk för överträning`))
   }
 
   if (pattern.polarizationIndex >= 0.7) {
-    insights.push('Hög grad av polariserad träning - effektivt för uthållighet')
+    insights.push(t(locale, 'High degree of polarized training - effective for endurance', 'Hög grad av polariserad träning - effektivt för uthållighet'))
   } else if (pattern.polarizationIndex < 0.5) {
-    insights.push('Låg polarisering - mycket träning i "grå zonen"')
+    insights.push(t(locale, 'Low polarization - a lot of training in the "gray zone"', 'Låg polarisering - mycket träning i "grå zonen"'))
   }
 
   return insights
 }
 
-function generateIntensityRecommendations(pattern: IntensityPattern): string[] {
+function generateIntensityRecommendations(pattern: IntensityPattern, locale: AppLocale): string[] {
   const recommendations: string[] = []
 
   if (pattern.recommendation === 'more_easy') {
-    recommendations.push('Öka andelen lågintensiv träning (Z1-Z2) till 75-80%')
-    recommendations.push('Byt ut medelintensiva pass mot antingen lätta eller hårda pass')
+    recommendations.push(t(locale, 'Increase low-intensity training (Z1-Z2) to 75-80%', 'Öka andelen lågintensiv träning (Z1-Z2) till 75-80%'))
+    recommendations.push(t(locale, 'Replace medium-intensity sessions with either easy or hard sessions', 'Byt ut medelintensiva pass mot antingen lätta eller hårda pass'))
   } else if (pattern.recommendation === 'more_intensity') {
-    recommendations.push('Lägg till 1-2 kvalitetspass per vecka (intervaller eller tröskeltempo)')
+    recommendations.push(t(locale, 'Add 1-2 quality sessions per week (intervals or threshold tempo)', 'Lägg till 1-2 kvalitetspass per vecka (intervaller eller tröskeltempo)'))
   }
 
   if (pattern.zone3Percent > 25) {
-    recommendations.push('Minska träning i "ingen mans land" (Z3) - välj lättare ELLER hårdare')
+    recommendations.push(t(locale, 'Reduce training in "no man\'s land" (Z3) - choose easier OR harder', 'Minska träning i "ingen mans land" (Z3) - välj lättare ELLER hårdare'))
   }
 
   return recommendations
 }
 
-function generateRecoveryInsights(pattern: RecoveryPattern): string[] {
+function generateRecoveryInsights(pattern: RecoveryPattern, locale: AppLocale): string[] {
   const insights: string[] = []
 
   if (pattern.averageRecoveryTime > 3) {
-    insights.push(`Längre återhämtningstid än genomsnitt (${pattern.averageRecoveryTime.toFixed(1)} dagar)`)
+    insights.push(t(locale, `Longer recovery time than average (${pattern.averageRecoveryTime.toFixed(1)} days)`, `Längre återhämtningstid än genomsnitt (${pattern.averageRecoveryTime.toFixed(1)} dagar)`))
   } else if (pattern.averageRecoveryTime < 2) {
-    insights.push('Snabb återhämtning - god träningsanpassning')
+    insights.push(t(locale, 'Fast recovery - good training adaptation', 'Snabb återhämtning - god träningsanpassning'))
   }
 
   if (pattern.sleepImpact > 0.5) {
-    insights.push('Stark koppling mellan sömnkvalitet och prestationsberedskap')
+    insights.push(t(locale, 'Strong link between sleep quality and performance readiness', 'Stark koppling mellan sömnkvalitet och prestationsberedskap'))
   }
 
   return insights
 }
 
-function generateRecoveryRecommendations(pattern: RecoveryPattern): string[] {
+function generateRecoveryRecommendations(pattern: RecoveryPattern, locale: AppLocale): string[] {
   const recommendations: string[] = []
 
   if (pattern.sleepImpact > 0.4) {
-    recommendations.push('Prioritera sömn - det har stor påverkan på din återhämtning')
+    recommendations.push(t(locale, 'Prioritize sleep - it has a major impact on your recovery', 'Prioritera sömn - det har stor påverkan på din återhämtning'))
   }
 
   if (pattern.averageRecoveryTime > 3) {
-    recommendations.push(`Planera ${pattern.optimalRestDays} vilodag(ar) efter hårda pass`)
-    recommendations.push('Överväg att minska intensiteten på kvalitetspass')
+    recommendations.push(t(locale, `Plan ${pattern.optimalRestDays} rest day(s) after hard sessions`, `Planera ${pattern.optimalRestDays} vilodag(ar) efter hårda pass`))
+    recommendations.push(t(locale, 'Consider reducing the intensity of quality sessions', 'Överväg att minska intensiteten på kvalitetspass'))
   }
 
   return recommendations
 }
 
-function generateProgressionInsights(pattern: ProgressionPattern): string[] {
+function generateProgressionInsights(pattern: ProgressionPattern, locale: AppLocale): string[] {
   const insights: string[] = []
 
   if (pattern.weeklyProgressionRate > 0.5) {
-    insights.push(`Positiv utveckling med ${pattern.weeklyProgressionRate.toFixed(1)}% förbättring per vecka`)
+    insights.push(t(locale, `Positive development with ${pattern.weeklyProgressionRate.toFixed(1)}% improvement per week`, `Positiv utveckling med ${pattern.weeklyProgressionRate.toFixed(1)}% förbättring per vecka`))
   } else if (pattern.weeklyProgressionRate < 0) {
-    insights.push('Prestationen har minskat - behöver analys av orsak')
+    insights.push(t(locale, 'Performance has declined - the cause needs analysis', 'Prestationen har minskat - behöver analys av orsak'))
   }
 
   if (pattern.breakthroughWorkouts.length > 0) {
-    insights.push(`${pattern.breakthroughWorkouts.length} genombrottspass identifierade`)
+    insights.push(t(locale, `${pattern.breakthroughWorkouts.length} breakthrough workouts identified`, `${pattern.breakthroughWorkouts.length} genombrottspass identifierade`))
   }
 
   return insights
 }
 
-function generateProgressionRecommendations(pattern: ProgressionPattern): string[] {
+function generateProgressionRecommendations(pattern: ProgressionPattern, locale: AppLocale): string[] {
   const recommendations: string[] = []
 
   if (pattern.weeklyProgressionRate < 0.2) {
-    recommendations.push('Överväg att justera träningsupplägg för att bryta platå')
-    recommendations.push('Lägg till variation - nya typer av pass eller ändrad struktur')
+    recommendations.push(t(locale, 'Consider adjusting the training setup to break the plateau', 'Överväg att justera träningsupplägg för att bryta platå'))
+    recommendations.push(t(locale, 'Add variety - new session types or a changed structure', 'Lägg till variation - nya typer av pass eller ändrad struktur'))
   }
 
-  recommendations.push(`Säker belastningsökning: max ${pattern.sustainableLoadIncrease}% per vecka`)
+  recommendations.push(t(locale, `Safe load increase: max ${pattern.sustainableLoadIncrease}% per week`, `Säker belastningsökning: max ${pattern.sustainableLoadIncrease}% per vecka`))
 
   return recommendations
 }
