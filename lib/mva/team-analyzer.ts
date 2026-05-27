@@ -13,6 +13,7 @@ interface AnalyzeTeamParams {
   coachId: string
   sport: SportType
   selectedVariableIds?: string[]
+  locale?: AppLocale
 }
 
 interface AnalyzeTeamResult {
@@ -26,6 +27,7 @@ interface AnalyzeTeamPLSParams {
   sport: SportType
   yVariableId: string
   selectedVariableIds?: string[]
+  locale?: AppLocale
 }
 
 interface AnalyzeTeamPLSResult {
@@ -34,6 +36,11 @@ interface AnalyzeTeamPLSResult {
 }
 
 const MIN_ATHLETES = 8
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * High-level orchestration: collect → preprocess → PCA → diagnostics → store.
@@ -44,13 +51,18 @@ export async function analyzeTeam({
   coachId,
   sport,
   selectedVariableIds,
+  locale = 'en',
 }: AnalyzeTeamParams): Promise<AnalyzeTeamResult> {
   // 1. Collect data for all team members
   const bundles = await collectTeamData(teamId)
 
   if (bundles.length < MIN_ATHLETES) {
     throw new Error(
-      `Minst ${MIN_ATHLETES} spelare krävs för multivariat analys. Laget har ${bundles.length} spelare.`
+      t(
+        locale,
+        `At least ${MIN_ATHLETES} players are required for multivariate analysis. The team has ${bundles.length} players.`,
+        `Minst ${MIN_ATHLETES} spelare krävs för multivariat analys. Laget har ${bundles.length} spelare.`
+      )
     )
   }
 
@@ -60,13 +72,21 @@ export async function analyzeTeam({
 
   if (preprocessed.athleteIds.length < MIN_ATHLETES) {
     throw new Error(
-      `Efter datafiltrering återstår ${preprocessed.athleteIds.length} spelare med tillräcklig data. Minst ${MIN_ATHLETES} krävs.`
+      t(
+        locale,
+        `After data filtering, ${preprocessed.athleteIds.length} players have enough data remaining. At least ${MIN_ATHLETES} are required.`,
+        `Efter datafiltrering återstår ${preprocessed.athleteIds.length} spelare med tillräcklig data. Minst ${MIN_ATHLETES} krävs.`
+      )
     )
   }
 
   if (preprocessed.variableIds.length < 3) {
     throw new Error(
-      `Bara ${preprocessed.variableIds.length} variabler har tillräcklig datatäckning. Minst 3 krävs.`
+      t(
+        locale,
+        `Only ${preprocessed.variableIds.length} variables have enough data coverage. At least 3 are required.`,
+        `Bara ${preprocessed.variableIds.length} variabler har tillräcklig datatäckning. Minst 3 krävs.`
+      )
     )
   }
 
@@ -98,13 +118,18 @@ export async function analyzeTeamPLS({
   sport,
   yVariableId,
   selectedVariableIds,
+  locale = 'en',
 }: AnalyzeTeamPLSParams): Promise<AnalyzeTeamPLSResult> {
   // 1. Collect data for all team members
   const bundles = await collectTeamData(teamId)
 
   if (bundles.length < MIN_ATHLETES) {
     throw new Error(
-      `Minst ${MIN_ATHLETES} spelare krävs för multivariat analys. Laget har ${bundles.length} spelare.`
+      t(
+        locale,
+        `At least ${MIN_ATHLETES} players are required for multivariate analysis. The team has ${bundles.length} players.`,
+        `Minst ${MIN_ATHLETES} spelare krävs för multivariat analys. Laget har ${bundles.length} spelare.`
+      )
     )
   }
 
@@ -120,14 +145,22 @@ export async function analyzeTeamPLS({
 
   if (preprocessed.athleteIds.length < MIN_ATHLETES) {
     throw new Error(
-      `Efter datafiltrering återstår ${preprocessed.athleteIds.length} spelare med tillräcklig data. Minst ${MIN_ATHLETES} krävs.`
+      t(
+        locale,
+        `After data filtering, ${preprocessed.athleteIds.length} players have enough data remaining. At least ${MIN_ATHLETES} are required.`,
+        `Efter datafiltrering återstår ${preprocessed.athleteIds.length} spelare med tillräcklig data. Minst ${MIN_ATHLETES} krävs.`
+      )
     )
   }
 
   // Need at least 3 X vars + 1 Y var = 4 total
   if (preprocessed.variableIds.length < 4) {
     throw new Error(
-      `Bara ${preprocessed.variableIds.length} variabler har tillräcklig datatäckning. Minst 4 krävs (3 X + 1 Y).`
+      t(
+        locale,
+        `Only ${preprocessed.variableIds.length} variables have enough data coverage. At least 4 are required (3 X + 1 Y).`,
+        `Bara ${preprocessed.variableIds.length} variabler har tillräcklig datatäckning. Minst 4 krävs (3 X + 1 Y).`
+      )
     )
   }
 
@@ -135,7 +168,7 @@ export async function analyzeTeamPLS({
   const result = runPLS(preprocessed, yVariableId)
 
   // 5. Generate AI insight (non-blocking — failure is OK)
-  const aiInsight = await generatePLSInsight(coachId, result, sport)
+  const aiInsight = await generatePLSInsight(coachId, result, sport, locale)
   result.aiInsight = aiInsight
 
   // 6. Store model + scores

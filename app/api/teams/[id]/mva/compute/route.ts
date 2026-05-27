@@ -76,6 +76,7 @@ export async function POST(
       coachId: user.id,
       sport,
       selectedVariableIds,
+      locale,
     })
 
     // Build variable categories map from registry

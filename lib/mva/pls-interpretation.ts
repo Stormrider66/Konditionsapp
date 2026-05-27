@@ -1,6 +1,8 @@
 import { generateAIResponse } from '@/lib/ai/ai-service'
 import type { PLSModelResult, PLSInsight } from './types'
 
+type AppLocale = 'en' | 'sv'
+
 /**
  * Generate AI-powered interpretation of PLS results.
  * Returns null if AI generation fails (graceful degradation).
@@ -8,18 +10,22 @@ import type { PLSModelResult, PLSInsight } from './types'
 export async function generatePLSInsight(
   coachUserId: string,
   result: PLSModelResult,
-  sportType: string
+  sportType: string,
+  locale: AppLocale = 'en'
 ): Promise<PLSInsight | null> {
   try {
     const topVIP = result.vipScores.slice(0, 5)
     const vipDescription = topVIP
       .map(
         (v) =>
-          `- ${v.variableName}: VIP=${v.vip.toFixed(2)}, koefficient=${v.coefficient > 0 ? '+' : ''}${v.coefficient.toFixed(3)} (${v.category})`
+          locale === 'sv'
+            ? `- ${v.variableName}: VIP=${v.vip.toFixed(2)}, koefficient=${v.coefficient > 0 ? '+' : ''}${v.coefficient.toFixed(3)} (${v.category})`
+            : `- ${v.variableName}: VIP=${v.vip.toFixed(2)}, coefficient=${v.coefficient > 0 ? '+' : ''}${v.coefficient.toFixed(3)} (${v.category})`
       )
       .join('\n')
 
-    const prompt = `Du är en erfaren idrottsfysiolog och dataanalytiker. Analysera dessa PLS-regressionsresultat och ge insikter på svenska.
+    const prompt = locale === 'sv'
+      ? `Du är en erfaren idrottsfysiolog och dataanalytiker. Analysera dessa PLS-regressionsresultat och ge insikter på svenska.
 
 KONTEXT:
 - Sport: ${sportType}
@@ -43,6 +49,30 @@ Svara EXAKT i detta JSON-format (inget annat):
 }
 
 Var konkret, undvik generella uttalanden. Fokusera på praktiska insikter som en coach kan agera på.`
+      : `You are an experienced exercise physiologist and data analyst. Analyze these PLS regression results and provide insights in English.
+
+CONTEXT:
+- Sport: ${sportType}
+- Response variable (Y): ${result.yVariableName}
+- Number of athletes: ${result.athleteIds.length}
+- Number of X variables: ${result.xVariableIds.length}
+- Number of PLS components: ${result.nComponents}
+- R2Y (model explanatory power): ${result.r2Y.toFixed(3)}
+- Q2 (cross-validated explanatory power): ${result.q2.toFixed(3)}
+
+TOP 5 VIP VARIABLES (Variable Importance in Projection):
+${vipDescription}
+
+Variables with VIP > 1.0 are considered important. Positive coefficient = positive association with ${result.yVariableName}.
+
+Respond EXACTLY in this JSON format and nothing else:
+{
+  "summary": "2-3 sentence summary of what the model shows",
+  "keyDrivers": ["description of driver 1", "description of driver 2", "description of driver 3"],
+  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"]
+}
+
+Be concrete and avoid generic statements. Focus on practical insights a coach can act on.`
 
     const response = await generateAIResponse(coachUserId, prompt, {
       maxTokens: 800,
