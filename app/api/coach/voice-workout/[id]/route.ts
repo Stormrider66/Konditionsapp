@@ -28,6 +28,14 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function localizeValidationMessage(message: string, locale: AppLocale): string {
+  const messageMap = new Map<string, string>([
+    ['Namn krävs', t(locale, 'Name is required', 'Namn krävs')],
+  ])
+
+  return messageMap.get(message) ?? message
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   let locale: AppLocale = 'en'
 
@@ -189,7 +197,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const parsed = voiceWorkoutUpdateIntentSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: t(locale, 'Invalid request data', 'Ogiltig förfrågningsdata'), details: parsed.error.flatten() },
+        {
+          error: t(locale, 'Invalid request data', 'Ogiltig förfrågningsdata'),
+          details: parsed.error.flatten((issue) => localizeValidationMessage(issue.message, locale)),
+        },
         { status: 400 }
       )
     }

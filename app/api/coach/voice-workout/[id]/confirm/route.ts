@@ -28,6 +28,17 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function localizeValidationMessage(message: string, locale: AppLocale): string {
+  const messageMap = new Map<string, string>([
+    ['Namn krävs', t(locale, 'Name is required', 'Namn krävs')],
+    ['Ogiltig mål-ID', t(locale, 'Invalid target ID', 'Ogiltig mål-ID')],
+    ['Datum måste vara i format YYYY-MM-DD', t(locale, 'Date must be in YYYY-MM-DD format', 'Datum måste vara i format YYYY-MM-DD')],
+    ['Tid måste vara i format HH:mm', t(locale, 'Time must be in HH:mm format', 'Tid måste vara i format HH:mm')],
+  ])
+
+  return messageMap.get(message) ?? message
+}
+
 function syncWorkoutDisplayFields(workoutData: GeneratedWorkoutData): GeneratedWorkoutData {
   if (workoutData.type === 'CARDIO' && workoutData.cardioData) {
     const name = workoutData.cardioData.name ?? workoutData.name
@@ -85,7 +96,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const parsed = voiceWorkoutConfirmSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: t(locale, 'Invalid request data', 'Ogiltig förfrågningsdata'), details: parsed.error.flatten() },
+        {
+          error: t(locale, 'Invalid request data', 'Ogiltig förfrågningsdata'),
+          details: parsed.error.flatten((issue) => localizeValidationMessage(issue.message, locale)),
+        },
         { status: 400 }
       )
     }
