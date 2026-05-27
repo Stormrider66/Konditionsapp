@@ -65,6 +65,10 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
 function nextPhase(phase: CompletedWorkoutPhase): CompletedWorkoutScanState {
   if (phase === 'strength') return { phase: 'cardio', cursor: null }
   if (phase === 'cardio') return { phase: 'hybrid', cursor: null }
@@ -400,11 +404,21 @@ export async function createPostWorkoutCheckIn(
 
   const client = await prisma.client.findUnique({
     where: { id: workout.athleteId },
-    select: { name: true, user: { select: { language: true } } },
+    select: {
+      name: true,
+      user: { select: { language: true } },
+      athleteAccount: {
+        select: {
+          user: {
+            select: { language: true },
+          },
+        },
+      },
+    },
   })
 
   if (!client) return null
-  const locale: AppLocale = client.user?.language === 'sv' ? 'sv' : 'en'
+  const locale = resolveLocale(client.athleteAccount?.user?.language ?? client.user?.language)
 
   const checkInPrompt = await generateCheckInPrompt(
     workout.coachUserId,

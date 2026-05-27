@@ -47,6 +47,10 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
 /**
  * Find upcoming workouts for an athlete within a time window
  */
@@ -387,6 +391,13 @@ export async function generatePreWorkoutNudge(
     select: {
       name: true,
       user: { select: { language: true } },
+      athleteAccount: {
+        select: {
+          user: {
+            select: { language: true },
+          },
+        },
+      },
       conversationMemories: {
         where: {
           OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
@@ -399,7 +410,7 @@ export async function generatePreWorkoutNudge(
   })
 
   if (!client) return null
-  const locale: AppLocale = client.user?.language === 'sv' ? 'sv' : 'en'
+  const locale = resolveLocale(client.athleteAccount?.user?.language ?? client.user?.language)
 
   // Get readiness
   const readiness = await getAthleteReadiness(clientId)
@@ -519,10 +530,19 @@ export async function createPreWorkoutNudge(
 async function getClientLocale(clientId: string): Promise<AppLocale> {
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    select: { user: { select: { language: true } } },
+    select: {
+      user: { select: { language: true } },
+      athleteAccount: {
+        select: {
+          user: {
+            select: { language: true },
+          },
+        },
+      },
+    },
   })
 
-  return client?.user?.language === 'sv' ? 'sv' : 'en'
+  return resolveLocale(client?.athleteAccount?.user?.language ?? client?.user?.language)
 }
 
 /**

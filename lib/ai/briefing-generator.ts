@@ -17,6 +17,10 @@ const SWEDISH_DAYS = ['söndag', 'måndag', 'tisdag', 'onsdag', 'torsdag', 'fred
 const ENGLISH_DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 type BriefingLocale = 'en' | 'sv'
 
+function resolveLocale(language: string | null | undefined): BriefingLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
 export interface BriefingContext {
   athleteName: string
   locale: BriefingLocale
@@ -301,7 +305,14 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
       name: true,
       userId: true,
       user: { select: { language: true } },
-      athleteAccount: { select: { userId: true } },
+      athleteAccount: {
+        select: {
+          userId: true,
+          user: {
+            select: { language: true },
+          },
+        },
+      },
       dailyMetrics: {
         orderBy: { date: 'desc' },
         take: 1,
@@ -357,7 +368,7 @@ export async function buildBriefingContext(clientId: string): Promise<BriefingCo
     return null
   }
 
-  const locale: BriefingLocale = client.user.language === 'sv' ? 'sv' : 'en'
+  const locale = resolveLocale(client.athleteAccount?.user?.language ?? client.user.language)
 
   // Fetch all enrichment data in parallel
   const [

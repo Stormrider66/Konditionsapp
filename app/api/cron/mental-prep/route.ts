@@ -44,6 +44,11 @@ type RaceCandidate = {
     user?: {
       language: string | null
     }
+    athleteAccount?: {
+      user?: {
+        language: string | null
+      } | null
+    } | null
   }
 }
 
@@ -51,6 +56,10 @@ type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
 }
 
 type ProcessRaceOutcome =
@@ -165,6 +174,15 @@ export async function POST(request: NextRequest) {
               user: {
                 select: {
                   language: true,
+                },
+              },
+              athleteAccount: {
+                select: {
+                  user: {
+                    select: {
+                      language: true,
+                    },
+                  },
                 },
               },
             },
@@ -310,7 +328,7 @@ async function processRace(
       athleteName: race.client.name.split(' ')[0],
       coachUserId: race.client.userId,
       clientId: race.clientId,
-      locale: race.client.user?.language === 'sv' ? 'sv' : 'en',
+      locale: resolveLocale(race.client.athleteAccount?.user?.language ?? race.client.user?.language),
     }
 
     const content = await generateMentalPrepContent(context, prepType, daysUntilRace)
