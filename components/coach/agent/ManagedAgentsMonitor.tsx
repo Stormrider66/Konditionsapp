@@ -38,7 +38,6 @@ import {
   Loader2,
   RefreshCw,
   Shield,
-  Heart,
   Apple,
   Stethoscope,
   LayoutDashboard,
@@ -59,6 +58,13 @@ import {
   Bar,
   Cell,
 } from 'recharts'
+import { useLocale } from '@/i18n/client'
+
+type AppLocale = 'en' | 'sv'
+
+function copy(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const fetcher = (url: string) => fetch(url).then(r => r.json())
 
@@ -120,6 +126,7 @@ interface MonitorData {
 
 export function ManagedAgentsMonitor() {
   const [days, setDays] = useState('30')
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
 
   const { data, isLoading, error, mutate } = useSWR<MonitorData>(
     `/api/agent-tools/monitor?days=${days}`,
@@ -140,7 +147,7 @@ export function ManagedAgentsMonitor() {
       <GlassCard>
         <GlassCardContent className="py-12 text-center">
           <AlertTriangle className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
-          <p className="text-muted-foreground">Kunde inte ladda agentdata</p>
+          <p className="text-muted-foreground">{copy(locale, 'Could not load agent data', 'Kunde inte ladda agentdata')}</p>
         </GlassCardContent>
       </GlassCard>
     )
@@ -163,9 +170,9 @@ export function ManagedAgentsMonitor() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7">7 dagar</SelectItem>
-              <SelectItem value="30">30 dagar</SelectItem>
-              <SelectItem value="90">90 dagar</SelectItem>
+              <SelectItem value="7">{copy(locale, '7 days', '7 dagar')}</SelectItem>
+              <SelectItem value="30">{copy(locale, '30 days', '30 dagar')}</SelectItem>
+              <SelectItem value="90">{copy(locale, '90 days', '90 dagar')}</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" onClick={() => mutate()}>
@@ -182,10 +189,12 @@ export function ManagedAgentsMonitor() {
           <GlassCardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
               <Bot className="h-4 w-4 text-indigo-400" />
-              <span className="text-sm text-muted-foreground">Sessioner</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Sessions', 'Sessioner')}</span>
             </div>
             <p className="text-2xl font-bold mt-1">{data.summary.totalSessions}</p>
-            <p className="text-xs text-muted-foreground">{data.summary.activeSessions} aktiva</p>
+            <p className="text-xs text-muted-foreground">
+              {copy(locale, `${data.summary.activeSessions} active`, `${data.summary.activeSessions} aktiva`)}
+            </p>
           </GlassCardContent>
         </GlassCard>
 
@@ -204,10 +213,10 @@ export function ManagedAgentsMonitor() {
           <GlassCardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
               <DollarSign className="h-4 w-4 text-green-400" />
-              <span className="text-sm text-muted-foreground">Kostnad</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Cost', 'Kostnad')}</span>
             </div>
             <p className="text-2xl font-bold mt-1">${data.summary.totalCostUsd.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground">senaste {days} dagar</p>
+            <p className="text-xs text-muted-foreground">{copy(locale, `last ${days} days`, `senaste ${days} dagar`)}</p>
           </GlassCardContent>
         </GlassCard>
 
@@ -215,14 +224,14 @@ export function ManagedAgentsMonitor() {
           <GlassCardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-blue-400" />
-              <span className="text-sm text-muted-foreground">Svarstid</span>
+              <span className="text-sm text-muted-foreground">{copy(locale, 'Response time', 'Svarstid')}</span>
             </div>
             <p className="text-2xl font-bold mt-1">{formatMs(data.summary.avgProcessingTimeMs)}</p>
             <p className="text-xs text-muted-foreground">
               {data.summary.erroredSessions > 0 && (
-                <span className="text-red-400">{data.summary.erroredSessions} fel</span>
+                <span className="text-red-400">{copy(locale, `${data.summary.erroredSessions} errors`, `${data.summary.erroredSessions} fel`)}</span>
               )}
-              {data.summary.erroredSessions === 0 && 'genomsnitt'}
+              {data.summary.erroredSessions === 0 && copy(locale, 'average', 'genomsnitt')}
             </p>
           </GlassCardContent>
         </GlassCard>
@@ -231,8 +240,8 @@ export function ManagedAgentsMonitor() {
       {/* Agent Type Breakdown */}
       <GlassCard>
         <GlassCardHeader>
-          <GlassCardTitle>Per agenttyp</GlassCardTitle>
-          <GlassCardDescription>Sessioner, tokens och kostnad per agent</GlassCardDescription>
+          <GlassCardTitle>{copy(locale, 'By agent type', 'Per agenttyp')}</GlassCardTitle>
+          <GlassCardDescription>{copy(locale, 'Sessions, tokens, and cost by agent', 'Sessioner, tokens och kostnad per agent')}</GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
           <div className="space-y-3">
@@ -247,10 +256,12 @@ export function ManagedAgentsMonitor() {
                   </div>
                   <div className="flex-1 grid grid-cols-4 gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Sessioner: </span>
+                      <span className="text-muted-foreground">{copy(locale, 'Sessions: ', 'Sessioner: ')}</span>
                       <span className="font-medium">{stats.sessions}</span>
                       {stats.activeSessions > 0 && (
-                        <Badge variant="outline" className="ml-1 text-xs">{stats.activeSessions} aktiva</Badge>
+                        <Badge variant="outline" className="ml-1 text-xs">
+                          {copy(locale, `${stats.activeSessions} active`, `${stats.activeSessions} aktiva`)}
+                        </Badge>
                       )}
                     </div>
                     <div>
@@ -258,11 +269,11 @@ export function ManagedAgentsMonitor() {
                       <span className="font-medium">{formatTokens(stats.totalTokens)}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Snitt/session: </span>
+                      <span className="text-muted-foreground">{copy(locale, 'Avg/session: ', 'Snitt/session: ')}</span>
                       <span className="font-medium">{formatTokens(stats.avgTokensPerSession)}</span>
                     </div>
                     <div>
-                      <span className="text-muted-foreground">Kostnad: </span>
+                      <span className="text-muted-foreground">{copy(locale, 'Cost: ', 'Kostnad: ')}</span>
                       <span className="font-medium">${stats.totalCostUsd.toFixed(3)}</span>
                     </div>
                   </div>
@@ -280,8 +291,8 @@ export function ManagedAgentsMonitor() {
       {data.dailyCosts.length > 0 && (
         <GlassCard>
           <GlassCardHeader>
-            <GlassCardTitle>Kostnadstrend</GlassCardTitle>
-            <GlassCardDescription>Daily cost and token usage</GlassCardDescription>
+            <GlassCardTitle>{copy(locale, 'Cost trend', 'Kostnadstrend')}</GlassCardTitle>
+            <GlassCardDescription>{copy(locale, 'Daily cost and token usage', 'Daglig kostnad och tokenanvändning')}</GlassCardDescription>
           </GlassCardHeader>
           <GlassCardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -299,7 +310,7 @@ export function ManagedAgentsMonitor() {
                 <Tooltip
                   contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: 8 }}
                   formatter={(value: number, name: string) => {
-                    if (name === 'cost') return [`$${value.toFixed(3)}`, 'Kostnad']
+                    if (name === 'cost') return [`$${value.toFixed(3)}`, copy(locale, 'Cost', 'Kostnad')]
                     return [value, name]
                   }}
                 />
@@ -399,17 +410,17 @@ export function ManagedAgentsMonitor() {
           <GlassCardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium mb-2">Agentbeslut</p>
+                <p className="text-sm font-medium mb-2">{copy(locale, 'Agent decisions', 'Agentbeslut')}</p>
                 <p className="text-2xl font-bold">{data.shadowComparison.agentDecisions.length}</p>
               </div>
               <div>
-                <p className="text-sm font-medium mb-2">Cron-beslut</p>
+                <p className="text-sm font-medium mb-2">{copy(locale, 'Cron decisions', 'Cron-beslut')}</p>
                 <p className="text-2xl font-bold">{data.shadowComparison.cronDecisions.length}</p>
               </div>
             </div>
             {data.shadowComparison.matchRate !== null && (
               <div className="mt-4 p-3 rounded-lg bg-muted/30">
-                <p className="text-sm text-muted-foreground">Matchningsgrad</p>
+                <p className="text-sm text-muted-foreground">{copy(locale, 'Match rate', 'Matchningsgrad')}</p>
                 <p className="text-xl font-bold">{(data.shadowComparison.matchRate * 100).toFixed(1)}%</p>
               </div>
             )}
