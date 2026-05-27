@@ -531,7 +531,7 @@ export async function GET(
               },
               endurance7x40: latest.endurance7x40,
               muscleLabMaxima: latest.muscleLabMaxima,
-            })
+            }, locale)
           : [] as HockeyQualityFlag[],
       }
     })

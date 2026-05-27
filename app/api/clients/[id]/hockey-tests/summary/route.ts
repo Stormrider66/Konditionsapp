@@ -31,6 +31,8 @@ import {
   getLinkedHockeyAerobicProfiles,
 } from '@/lib/hockey/aerobic-profile-link'
 
+type AppLocale = 'en' | 'sv'
+
 interface HockeySummary {
   id: string
   testDate: string
@@ -233,6 +235,7 @@ function toSummary(
   test: EnrichedHockeyTest,
   birthDate: Date | null,
   bodyMassKg: number | null,
+  locale: AppLocale,
 ): HockeySummary {
   const beepScore = test.beepTestLevel
     ? test.beepTestLevel + ((test.beepTestShuttle ?? 0) / 10)
@@ -321,7 +324,7 @@ function toSummary(
       metrics,
       endurance7x40: test.endurance7x40,
       muscleLabMaxima: test.muscleLabMaxima,
-    }),
+    }, locale),
   }
 }
 
@@ -734,6 +737,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const { id: clientId } = await params
     const hasAccess = await canAccessClient(user.id, clientId)
 
@@ -765,7 +769,7 @@ export async function GET(
     const enrichedTests = tests.map((test) => (
       applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId))
     ))
-    const history = enrichedTests.map((test) => toSummary(test, client?.birthDate ?? null, client?.weight ?? null))
+    const history = enrichedTests.map((test) => toSummary(test, client?.birthDate ?? null, client?.weight ?? null, locale))
     const latest = history[0] ?? null
     const previous = history[1] ?? null
     const trends = buildTrends(latest, previous)
