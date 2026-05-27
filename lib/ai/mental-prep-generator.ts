@@ -87,7 +87,7 @@ async function generateVisualization(
 
 Lopp: ${ctx.raceName}
 Distans: ${distanceLabel}
-${ctx.targetTime ? `Måltid: ${ctx.targetTime}` : ''}
+${ctx.targetTime ? `Mål-tid: ${ctx.targetTime}` : ''}
 ${paceStr ? `Målpace: ${paceStr}` : ''}
 Prioritet: ${getPriorityLabel(ctx.classification, locale)}
 
@@ -168,7 +168,7 @@ async function generateRacePlan(
 
 Lopp: ${ctx.raceName}
 Distans: ${distanceLabel}
-${ctx.targetTime ? `Måltid: ${ctx.targetTime}` : ''}
+${ctx.targetTime ? `Mål-tid: ${ctx.targetTime}` : ''}
 ${paceStr ? `Målpace: ${paceStr}` : ''}
 Prioritet: ${getPriorityLabel(ctx.classification, locale)}
 
@@ -253,7 +253,7 @@ async function generateAffirmations(
 
 Lopp: ${ctx.raceName}
 Distans: ${distanceLabel}
-${ctx.targetTime ? `Måltid: ${ctx.targetTime}` : ''}
+${ctx.targetTime ? `Mål-tid: ${ctx.targetTime}` : ''}
 Prioritet: ${getPriorityLabel(ctx.classification, locale)}
 
 Skriv på svenska:

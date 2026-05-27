@@ -270,7 +270,7 @@ export function buildProgramPrompt(context: ProgramContext): string {
     prompt += `- **${t('Tävlingsdatum', 'Race date')}**: ${formatDate(wizardData.targetRaceDate)}\n`
   }
   if (wizardData.targetTime) {
-    prompt += `- **${t('Måltid', 'Target time')}**: ${wizardData.targetTime}\n`
+    prompt += `- **${t('Mål-tid', 'Target time')}**: ${wizardData.targetTime}\n`
   }
 
   prompt += buildTeamSportPromptSection({

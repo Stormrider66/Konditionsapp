@@ -30,7 +30,7 @@ export function buildHyroxContext(athlete: AthleteData, locale: SportContextLoca
     context += `- **${t(locale, 'Race category', 'Tävlingskategori')}**: ${settings.targetCategory}\n`;
   }
   if (settings?.targetTime) {
-    context += `- **${t(locale, 'Target time', 'Måltid')}**: ${settings.targetTime}\n`;
+    context += `- **${t(locale, 'Target time', 'Mål-tid')}**: ${settings.targetTime}\n`;
   }
 
   // Station times

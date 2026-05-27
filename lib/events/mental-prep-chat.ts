@@ -70,7 +70,7 @@ export function buildMentalPrepMessage(event: MentalPrepChatEvent, locale: AppLo
   message += t(locale, `Today's focus is ${prepLabel}. `, `Dagens fokus är ${prepLabel}. `)
 
   if (event.targetTime) {
-    message += t(locale, `My target time is ${event.targetTime}. `, `Min måltid är ${event.targetTime}. `)
+    message += t(locale, `My target time is ${event.targetTime}. `, `Min mål-tid är ${event.targetTime}. `)
   }
 
   message += t(locale, 'Can you guide me through the exercise?', 'Kan du guida mig genom övningen?')
@@ -147,7 +147,7 @@ Atleten har startat en guidad mental förberedelseövning. Du ska agera som ment
 **Lopp:** ${raceName}
 **Distans:** ${distance}
 **Dagar kvar:** ${event.daysUntilRace || 0}
-${event.targetTime ? `**Måltid:** ${event.targetTime}` : ''}
+${event.targetTime ? `**Mål-tid:** ${event.targetTime}` : ''}
 **Övning:** ${prepLabel}
 
 ### INSTRUKTIONER FÖR DENNA SESSION
