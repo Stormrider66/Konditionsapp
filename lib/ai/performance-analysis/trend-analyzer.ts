@@ -113,7 +113,7 @@ export async function analyzeTrends(
     const parsed = parseTrendResponse(response.text)
 
     // Calculate projections
-    const projections = calculateProjections(statistics)
+    const projections = calculateProjections(statistics, locale)
 
     // Build result
     const tokensUsed = (response.usage?.inputTokens ?? 0) + (response.usage?.outputTokens ?? 0)
@@ -306,7 +306,8 @@ function linearRegression(values: { date: string; value: number }[]): {
  * Calculate future projections based on trends
  */
 function calculateProjections(
-  statistics: TrendAnalysisResult['statistics']
+  statistics: TrendAnalysisResult['statistics'],
+  locale: PerformanceAnalysisLocale
 ): TrendAnalysisResult['projections'] {
   const projections: TrendAnalysisResult['projections'] = []
 
@@ -330,14 +331,16 @@ function calculateProjections(
       projectedValue,
       projectionDate: projectionDate.toISOString().split('T')[0],
       confidence,
-      methodology: `Linjär extrapolering baserad på ${stats.dataPoints} datapunkter (R²=${stats.r2.toFixed(2)})`,
+      methodology: locale === 'sv'
+        ? `Linjär extrapolering baserad på ${stats.dataPoints} datapunkter (R²=${stats.r2.toFixed(2)})`
+        : `Linear extrapolation based on ${stats.dataPoints} data points (R²=${stats.r2.toFixed(2)})`,
     })
   }
 
   addProjection('VO2max', statistics.vo2max)
-  addProjection('Aerob tröskel', statistics.aerobicThreshold)
-  addProjection('Anaerob tröskel', statistics.anaerobicThreshold)
-  addProjection('Löpekonomi', statistics.economy)
+  addProjection(locale === 'sv' ? 'Aerob tröskel' : 'Aerobic threshold', statistics.aerobicThreshold)
+  addProjection(locale === 'sv' ? 'Anaerob tröskel' : 'Anaerobic threshold', statistics.anaerobicThreshold)
+  addProjection(locale === 'sv' ? 'Löpekonomi' : 'Running economy', statistics.economy)
 
   return projections
 }
