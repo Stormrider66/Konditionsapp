@@ -27,12 +27,18 @@ export async function GET(request: NextRequest) {
     // Two-band query: prefix matches first (more relevant), then substring.
     const [prefix, contains] = await Promise.all([
       prisma.food.findMany({
-        where: { searchName: { startsWith: q } },
+        where: {
+          OR: [
+            { searchName: { startsWith: q } },
+            { nameEn: { startsWith: q, mode: 'insensitive' } },
+          ],
+        },
         orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
         take: 20,
         select: {
           id: true,
           nameSv: true,
+          nameEn: true,
           category: true,
           caloriesPer100g: true,
           proteinPer100g: true,
@@ -49,13 +55,29 @@ export async function GET(request: NextRequest) {
       }),
       prisma.food.findMany({
         where: {
-          AND: [{ searchName: { contains: q } }, { NOT: { searchName: { startsWith: q } } }],
+          AND: [
+            {
+              OR: [
+                { searchName: { contains: q } },
+                { nameEn: { contains: q, mode: 'insensitive' } },
+              ],
+            },
+            {
+              NOT: {
+                OR: [
+                  { searchName: { startsWith: q } },
+                  { nameEn: { startsWith: q, mode: 'insensitive' } },
+                ],
+              },
+            },
+          ],
         },
         orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
         take: 20,
         select: {
           id: true,
           nameSv: true,
+          nameEn: true,
           category: true,
           caloriesPer100g: true,
           proteinPer100g: true,

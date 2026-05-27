@@ -284,6 +284,7 @@ export async function POST(request: NextRequest) {
           originalAnalysis,
           correction: simpleCorrection,
           foodMatch,
+          locale,
         })
       : null
 

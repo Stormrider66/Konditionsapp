@@ -289,7 +289,7 @@ describe('food scan refine API route', () => {
       targetIndex: 0,
     })
     expect(body.result.items[0]).toMatchObject({
-      name: 'Quinoa kokt',
+      name: 'Cooked quinoa',
       category: 'GRAIN',
       estimatedGrams: 250,
       calories: 300,

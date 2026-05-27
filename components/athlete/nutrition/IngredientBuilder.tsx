@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { BookOpen, Camera, Plus, Save, Sparkles, Trash2, Loader2 } from 'lucide-react'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 
 export interface IngredientRow {
@@ -45,6 +45,7 @@ export interface IngredientTotals {
 interface FoodOption {
   id: string
   nameSv: string
+  nameEn?: string | null
   category: string | null
   caloriesPer100g: number
   proteinPer100g: number
@@ -67,6 +68,7 @@ interface IngredientBuilderProps {
 
 interface RecipeScanIngredient {
   name: string
+  lookupName?: string | null
   grams: number
   food: FoodOption | null
 }
@@ -303,6 +305,8 @@ function formatGramsForDisplay(value: number): string {
 
 export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: IngredientBuilderProps) {
   const t = useTranslations('components.ingredientBuilder')
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
 
   const ensureRow = () => {
     if (value.length === 0) onChange([makeRow()])
@@ -399,7 +403,7 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
           ? {
               rowId: makeRowId(),
               foodId: ing.food.id,
-              name: ing.food.nameSv,
+              name: appLocale === 'sv' ? ing.food.nameSv : ing.food.nameEn || ing.food.nameSv,
               category: ing.food.category,
               grams: ing.grams,
               caloriesPer100g: ing.food.caloriesPer100g,
@@ -815,6 +819,8 @@ interface RowEditorProps {
 
 function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
   const t = useTranslations('components.ingredientBuilder')
+  const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const [query, setQuery] = useState(row.name)
   const [results, setResults] = useState<FoodOption[]>([])
   const [open, setOpen] = useState(false)
@@ -867,12 +873,13 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
   }, [open])
 
   const pick = (food: FoodOption) => {
-    setQuery(food.nameSv)
+    const displayName = appLocale === 'sv' ? food.nameSv : food.nameEn || food.nameSv
+    setQuery(displayName)
     setOpen(false)
     setResults([])
     onChange({
       foodId: food.id,
-      name: food.nameSv,
+      name: displayName,
       category: food.category,
       caloriesPer100g: food.caloriesPer100g,
       proteinPer100g: food.proteinPer100g,
@@ -1016,23 +1023,26 @@ function IngredientRowEditor({ row, onChange, onRemove }: RowEditorProps) {
           naturally with the dialog body on mobile — no nested-scroll fight. */}
       {open && results.length > 0 && (
         <div className="rounded-md border border-border dark:border-slate-700 bg-popover dark:bg-slate-800 max-h-72 overflow-y-auto overscroll-contain">
-          {results.map((food) => (
-            <button
-              key={food.id}
-              type="button"
-              onClick={() => pick(food)}
-              className="block w-full text-left px-3 py-2 text-sm hover:bg-accent dark:hover:bg-slate-700 border-b border-border/50 dark:border-slate-700/60 last:border-b-0"
-            >
-              <div className="truncate dark:text-slate-100">{food.nameSv}</div>
-              <div className="text-xs text-muted-foreground">
-                {Math.round(food.caloriesPer100g)} kcal · {t('macros.summary', {
-                  protein: food.proteinPer100g.toFixed(1),
-                  carbs: food.carbsPer100g.toFixed(1),
-                  fat: food.fatPer100g.toFixed(1),
-                })} {t('row.per100g')}
-              </div>
-            </button>
-          ))}
+          {results.map((food) => {
+            const displayName = appLocale === 'sv' ? food.nameSv : food.nameEn || food.nameSv
+            return (
+              <button
+                key={food.id}
+                type="button"
+                onClick={() => pick(food)}
+                className="block w-full text-left px-3 py-2 text-sm hover:bg-accent dark:hover:bg-slate-700 border-b border-border/50 dark:border-slate-700/60 last:border-b-0"
+              >
+                <div className="truncate dark:text-slate-100">{displayName}</div>
+                <div className="text-xs text-muted-foreground">
+                  {Math.round(food.caloriesPer100g)} kcal · {t('macros.summary', {
+                    protein: food.proteinPer100g.toFixed(1),
+                    carbs: food.carbsPer100g.toFixed(1),
+                    fat: food.fatPer100g.toFixed(1),
+                  })} {t('row.per100g')}
+                </div>
+              </button>
+            )
+          })}
         </div>
       )}
 

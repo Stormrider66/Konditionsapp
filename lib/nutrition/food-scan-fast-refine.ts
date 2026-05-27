@@ -339,18 +339,20 @@ function buildItemFromFoodReference({
   grams,
   fallbackCategory,
   portionDescription,
+  locale = 'en',
 }: {
   foodMatch: FoodReferenceMatch
   grams: number
   fallbackCategory: FoodCategory
   portionDescription: string
+  locale?: 'en' | 'sv'
 }): FoodItem {
   const factor = grams / 100
   const sugarGrams = scaleOptional(foodMatch.sugarPer100g, factor)
   const carbsGrams = roundTo(foodMatch.carbsPer100g * factor, 1)
 
   return {
-    name: foodMatch.nameSv,
+    name: locale === 'sv' ? foodMatch.nameSv : foodMatch.nameEn || foodMatch.nameSv,
     category: normalizeCategory(foodMatch.category) ?? fallbackCategory,
     estimatedGrams: grams,
     portionDescription,
@@ -436,10 +438,12 @@ export function applySimpleFoodIdentityCorrection({
   originalAnalysis,
   correction,
   foodMatch,
+  locale = 'en',
 }: {
   originalAnalysis: unknown
   correction: SimpleFoodIdentityCorrection
   foodMatch?: FoodReferenceMatch | null
+  locale?: 'en' | 'sv'
 }): FastFoodRefineResult | null {
   if (
     typeof originalAnalysis !== 'object' ||
@@ -464,6 +468,7 @@ export function applySimpleFoodIdentityCorrection({
         grams,
         fallbackCategory: normalizeCategory(originalItem.category) ?? guessedCategory ?? 'OTHER',
         portionDescription,
+        locale,
       })
     : {
         ...scaleExistingItem(originalItem, grams),

@@ -39,7 +39,8 @@ const recipeSchema = z.object({
   ingredients: z
     .array(
       z.object({
-        name: z.string().describe('Swedish ingredient lookup name, as close as possible to Livsmedelsverket food terminology.'),
+        name: z.string().describe('User-facing ingredient name in the requested app language.'),
+        lookupName: z.string().nullable().optional().describe('Swedish ingredient lookup name, as close as possible to Livsmedelsverket food terminology.'),
         grams: z.number().nonnegative().describe('Weight in grams for the full recipe or batch.'),
       })
     )
@@ -61,7 +62,7 @@ eller ett fotograferat recept. Din uppgift är att extrahera alla ingredienser m
 vikt i gram för hela receptet/satsen.
 
 INSTRUKTIONER:
-1. Identifiera varje separat ingrediens och dess mängd. Ange svensk benämning i ingredients[].name som matchar
+1. Identifiera varje separat ingrediens och dess mängd. Ange svensk benämning i ingredients[].name och ingredients[].lookupName som matchar
    svenska livsmedelsdatabasens terminologi (t.ex. "havregryn", "vetemjöl", "kycklingfilé").
 2. Skriv title och notes på svenska.
 3. Konvertera alla mått till gram. Vanliga konverteringar: 1 dl mjöl ungefär 60 g, 1 dl vatten/mjölk = 100 g,
@@ -74,7 +75,7 @@ INSTRUKTIONER:
 
 VIKTIGT:
 - Returnera alltid minst en ingrediens.
-- Använd korrekta svenska termer i ingredients[].name - undvik engelska eller varumärken om generiska finns.
+- Använd korrekta svenska termer i ingredients[].name och ingredients[].lookupName - undvik engelska eller varumärken om generiska finns.
 - Var konservativ med portionsuppskattning - det är bättre att underskatta än överskatta.`
   }
 
@@ -83,9 +84,10 @@ it may be a recipe card, a package ingredient list, a handwritten list, or a pho
 Your task is to extract every ingredient with an estimated weight in grams for the full recipe or batch.
 
 INSTRUCTIONS:
-1. Identify each separate ingredient and its quantity. For ingredients[].name, use a Swedish lookup term that matches
+1. Identify each separate ingredient and its quantity. Write ingredients[].name in English for the user.
+   For ingredients[].lookupName, use a Swedish lookup term that matches
    the Swedish food database as closely as possible (for example "havregryn", "vetemjöl", "kycklingfilé").
-   This field is used for database matching, so keep ingredients[].name in Swedish even when the app language is English.
+   lookupName is used only for database matching, so keep lookupName in Swedish even when the app language is English.
 2. Write title and notes in English.
 3. Convert all measurements to grams. Common conversions: 1 dl flour is about 60 g, 1 dl water/milk = 100 g,
    1 tbsp oil is about 14 g, 1 tsp salt is about 5 g, 1 egg is about 55 g, 1 standard dry rice serving is about 75 g.
@@ -97,7 +99,7 @@ INSTRUCTIONS:
 
 IMPORTANT:
 - Always return at least one ingredient.
-- Use correct Swedish terms in ingredients[].name; avoid English or brand names when a generic term exists.
+- Keep ingredients[].name user-facing and English. Use correct Swedish terms in ingredients[].lookupName; avoid English or brand names when a generic Swedish lookup term exists.
 - Be conservative with portion estimates - underestimating is better than overestimating.`
 }
 
@@ -211,7 +213,7 @@ export async function POST(request: NextRequest) {
     // can drop the rows straight into the builder with foodId + macros set.
     const ingredients = await Promise.all(
       result.object.ingredients.map(async (ing) => {
-        const q = ing.name.trim().toLowerCase()
+        const q = (ing.lookupName || ing.name).trim().toLowerCase()
         if (q.length < 2) return { ...ing, food: null }
         const prefix = await prisma.food.findFirst({
           where: { searchName: { startsWith: q } },
@@ -219,6 +221,7 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             nameSv: true,
+            nameEn: true,
             category: true,
             caloriesPer100g: true,
             proteinPer100g: true,
@@ -240,6 +243,7 @@ export async function POST(request: NextRequest) {
           select: {
             id: true,
             nameSv: true,
+            nameEn: true,
             category: true,
             caloriesPer100g: true,
             proteinPer100g: true,
