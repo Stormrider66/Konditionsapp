@@ -53,9 +53,16 @@ export interface PatternDetectionOptions {
   executionBudgetMs?: number
 }
 
+type AppLocale = 'en' | 'sv'
+
 type AthleteCandidate = {
   id: string
   userId: string
+  athleteAccount?: {
+    user?: {
+      language: string | null
+    } | null
+  } | null
 }
 
 type PatternDetectionOutcome = 'created' | 'skipped' | 'error'
@@ -64,6 +71,14 @@ const DEFAULT_BATCH_LIMIT = 120
 const DEFAULT_PAGE_SIZE = 200
 const DEFAULT_CONCURRENCY = 6
 const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function getRecentCheckIns(
   clientId: string,
@@ -116,7 +131,7 @@ function average(values: number[]): number {
   return values.reduce((a, b) => a + b, 0) / values.length
 }
 
-export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
+export function detectPatterns(checkIns: CheckInData[], locale: AppLocale = 'en'): DetectedPattern[] {
   if (checkIns.length < 3) {
     return []
   }
@@ -139,7 +154,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'sleepQuality',
       trend: sleepQuality.slice(-5),
       change: sleepTrend,
-      description: `Sömnkvalitet har försämrats de senaste ${checkIns.length} dagarna`,
+      description: t(
+        locale,
+        `Sleep quality has declined over the past ${checkIns.length} days`,
+        `Sömnkvalitet har försämrats de senaste ${checkIns.length} dagarna`
+      ),
     })
   }
 
@@ -152,7 +171,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'fatigue',
       trend: fatigue.slice(-5),
       change: fatigueTrend,
-      description: `Trötthetsnivån har ökat stadigt de senaste ${checkIns.length} dagarna`,
+      description: t(
+        locale,
+        `Fatigue has steadily increased over the past ${checkIns.length} days`,
+        `Trötthetsnivån har ökat stadigt de senaste ${checkIns.length} dagarna`
+      ),
     })
   }
 
@@ -165,7 +188,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'soreness',
       trend: soreness.slice(-5),
       change: sorenessTrend,
-      description: `Muskelömhet har ackumulerats de senaste ${checkIns.length} dagarna`,
+      description: t(
+        locale,
+        `Muscle soreness has built up over the past ${checkIns.length} days`,
+        `Muskelömhet har ackumulerats de senaste ${checkIns.length} dagarna`
+      ),
     })
   }
 
@@ -178,7 +205,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'stress',
       trend: stress.slice(-5),
       change: stressTrend,
-      description: `Stressnivåer har eskalerat de senaste ${checkIns.length} dagarna`,
+      description: t(
+        locale,
+        `Stress levels have escalated over the past ${checkIns.length} days`,
+        `Stressnivåer har eskalerat de senaste ${checkIns.length} dagarna`
+      ),
     })
   }
 
@@ -191,7 +222,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'mood',
       trend: mood.slice(-5),
       change: moodTrend,
-      description: `Humöret har dalat de senaste ${checkIns.length} dagarna`,
+      description: t(
+        locale,
+        `Mood has declined over the past ${checkIns.length} days`,
+        `Humöret har dalat de senaste ${checkIns.length} dagarna`
+      ),
     })
   }
 
@@ -204,7 +239,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'motivation',
       trend: motivation.slice(-5),
       change: motivationTrend,
-      description: `Motivationen har minskat de senaste ${checkIns.length} dagarna`,
+      description: t(
+        locale,
+        `Motivation has decreased over the past ${checkIns.length} days`,
+        `Motivationen har minskat de senaste ${checkIns.length} dagarna`
+      ),
     })
   }
 
@@ -221,7 +260,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'combined',
       trend: fatigue.slice(-3),
       change: recentFatigue,
-      description: 'Hög risk för överträning baserat på kombinerad data',
+      description: t(
+        locale,
+        'High overtraining risk based on combined readiness data',
+        'Hög risk för överträning baserat på kombinerad data'
+      ),
     })
   }
 
@@ -242,7 +285,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
         metric: 'readinessScore',
         trend: recentReadiness,
         change: avgReadiness,
-        description: 'Återhämtning rekommenderas - låg beredskap flera dagar i rad',
+        description: t(
+          locale,
+          'Recovery is recommended - readiness has been low for several days in a row',
+          'Återhämtning rekommenderas - låg beredskap flera dagar i rad'
+        ),
       })
     }
   }
@@ -259,7 +306,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
       metric: 'overall',
       trend: sleepQuality.slice(-5),
       change: sleepTrend,
-      description: 'Positiv trend! Sömn, energi och humör förbättras',
+      description: t(
+        locale,
+        'Positive trend! Sleep, energy, and mood are improving',
+        'Positiv trend! Sömn, energi och humör förbättras'
+      ),
     })
   }
 
@@ -269,10 +320,11 @@ export function detectPatterns(checkIns: CheckInData[]): DetectedPattern[] {
 function buildPatternAnalysisPrompt(
   athleteName: string,
   patterns: DetectedPattern[],
-  recentCheckIns: CheckInData[]
+  recentCheckIns: CheckInData[],
+  locale: AppLocale
 ): string {
   const patternDescriptions = patterns
-    .map((p) => `- ${p.description} (${p.severity} allvarlighetsgrad)`)
+    .map((p) => `- ${p.description} (${t(locale, `${p.severity} severity`, `${p.severity} allvarlighetsgrad`)})`)
     .join('\n')
 
   const recentData = recentCheckIns.slice(-5).map((c) => ({
@@ -283,7 +335,8 @@ function buildPatternAnalysisPrompt(
     mood: c.mood,
   }))
 
-  return `Analysera följande mönster för atleten ${athleteName} och ge personliga rekommendationer.
+  if (locale === 'sv') {
+    return `Analysera följande mönster för atleten ${athleteName} och ge personliga rekommendationer.
 
 DETEKTERADE MÖNSTER:
 ${patternDescriptions}
@@ -307,6 +360,32 @@ SVARA I JSON-FORMAT (ENDAST JSON, inget annat):
 }
 
 TONALITET: Omsorgsfull, professionell, handlingsorienterad.`
+  }
+
+  return `Analyze the following patterns for athlete ${athleteName} and provide personalized recommendations.
+
+DETECTED PATTERNS:
+${patternDescriptions}
+
+RECENT DATA (5 days):
+${JSON.stringify(recentData, null, 2)}
+
+INSTRUCTIONS:
+1. Give a short summary of the situation (1-2 sentences)
+2. Explain the most important pattern in simple terms
+3. Give 2-3 concrete actions the athlete can take
+4. Be supportive but clear about risks
+
+RESPOND IN JSON FORMAT (ONLY JSON, nothing else):
+{
+  "title": "Short title (max 6 words)",
+  "summary": "Summary of the situation...",
+  "mainInsight": "Main insight about the pattern...",
+  "recommendations": ["Action 1", "Action 2", "Action 3"],
+  "urgency": "low" | "medium" | "high"
+}
+
+TONE: Caring, professional, action-oriented.`
 }
 
 export async function generatePatternAnalysis(
@@ -314,7 +393,8 @@ export async function generatePatternAnalysis(
   clientId: string,
   athleteName: string,
   patterns: DetectedPattern[],
-  recentCheckIns: CheckInData[]
+  recentCheckIns: CheckInData[],
+  locale: AppLocale = 'en'
 ): Promise<{
   title: string
   summary: string
@@ -322,7 +402,7 @@ export async function generatePatternAnalysis(
   recommendations: string[]
   urgency: 'low' | 'medium' | 'high'
 } | null> {
-  const prompt = buildPatternAnalysisPrompt(athleteName, patterns, recentCheckIns)
+  const prompt = buildPatternAnalysisPrompt(athleteName, patterns, recentCheckIns, locale)
 
   try {
     const response = await generateAIResponse(coachUserId, prompt, {
@@ -348,14 +428,25 @@ export async function generatePatternAnalysis(
 export async function createPatternAlert(
   clientId: string,
   coachUserId: string,
-  patterns: DetectedPattern[]
+  patterns: DetectedPattern[],
+  locale: AppLocale = 'en'
 ): Promise<string | null> {
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    select: { name: true },
+    select: {
+      name: true,
+      athleteAccount: {
+        select: {
+          user: {
+            select: { language: true },
+          },
+        },
+      },
+    },
   })
 
   if (!client) return null
+  const notificationLocale = resolveLocale(client.athleteAccount?.user?.language ?? locale)
 
   const recentCheckIns = await getRecentCheckIns(clientId, 7)
   if (recentCheckIns.length < 3) {
@@ -387,7 +478,8 @@ export async function createPatternAlert(
     clientId,
     client.name.split(' ')[0],
     patterns,
-    recentCheckIns
+    recentCheckIns,
+    notificationLocale
   )
 
   const priority =
@@ -408,11 +500,11 @@ export async function createPatternAlert(
       clientId,
       notificationType: 'PATTERN_ALERT',
       priority,
-      title: analysis?.title || `Mönster upptäckt i din data`,
+      title: analysis?.title || t(notificationLocale, 'Pattern detected in your data', 'Mönster upptäckt i din data'),
       message: analysis?.summary || patterns[0].description,
       icon: highestSeverity === 'HIGH' ? 'alert-triangle' : 'trending-down',
       actionUrl: '/athlete/check-in',
-      actionLabel: 'Se detaljer',
+      actionLabel: t(notificationLocale, 'View details', 'Se detaljer'),
       contextData,
       triggeredBy: patterns.map((p) => p.type).join(','),
       triggerReason: `Detected ${patterns.length} pattern(s): ${patterns.map((p) => p.type).join(', ')}`,
@@ -428,6 +520,7 @@ async function processAthletePatternDetection(
   athlete: AthleteCandidate
 ): Promise<PatternDetectionOutcome> {
   try {
+    const locale = resolveLocale(athlete.athleteAccount?.user?.language)
     const prefs = await prisma.aINotificationPreferences.findUnique({
       where: { clientId: athlete.id },
       select: { patternAlertsEnabled: true },
@@ -442,13 +535,13 @@ async function processAthletePatternDetection(
       return 'skipped'
     }
 
-    const patterns = detectPatterns(checkIns)
+    const patterns = detectPatterns(checkIns, locale)
     const concerningPatterns = patterns.filter((p) => p.type !== 'POSITIVE_TREND')
     if (concerningPatterns.length === 0) {
       return 'skipped'
     }
 
-    const alertId = await createPatternAlert(athlete.id, athlete.userId, concerningPatterns)
+    const alertId = await createPatternAlert(athlete.id, athlete.userId, concerningPatterns, locale)
     return alertId ? 'created' : 'skipped'
   } catch (error) {
     logger.error('Error analyzing athlete patterns', { athleteId: athlete.id }, error)
@@ -510,6 +603,13 @@ export async function analyzeAllAthletes(
         select: {
           id: true,
           userId: true,
+          athleteAccount: {
+            select: {
+              user: {
+                select: { language: true },
+              },
+            },
+          },
         },
       })
 

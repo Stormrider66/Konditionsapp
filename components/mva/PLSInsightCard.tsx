@@ -11,17 +11,19 @@ interface PLSInsight {
 
 interface PLSInsightCardProps {
   insight: PLSInsight | null
+  locale?: 'en' | 'sv'
 }
 
-export function PLSInsightCard({ insight }: PLSInsightCardProps) {
+export function PLSInsightCard({ insight, locale = 'en' }: PLSInsightCardProps) {
   if (!insight) return null
+  const t = (sv: string, en: string) => locale === 'sv' ? sv : en
 
   return (
     <Card className="dark:bg-slate-900/50 dark:border-white/10">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 dark:text-white">
           <Brain className="h-5 w-5" />
-          AI-insikter
+          {t('AI-insikter', 'AI insights')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -31,7 +33,7 @@ export function PLSInsightCard({ insight }: PLSInsightCardProps) {
 
         {insight.keyDrivers.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-2 dark:text-white">Nyckeldrivare</h4>
+            <h4 className="text-sm font-semibold mb-2 dark:text-white">{t('Nyckeldrivare', 'Key drivers')}</h4>
             <ul className="space-y-1">
               {insight.keyDrivers.map((driver, i) => (
                 <li key={i} className="text-sm dark:text-slate-300 flex items-start gap-2">
@@ -45,7 +47,7 @@ export function PLSInsightCard({ insight }: PLSInsightCardProps) {
 
         {insight.recommendations.length > 0 && (
           <div>
-            <h4 className="text-sm font-semibold mb-2 dark:text-white">Rekommendationer</h4>
+            <h4 className="text-sm font-semibold mb-2 dark:text-white">{t('Rekommendationer', 'Recommendations')}</h4>
             <ul className="space-y-1">
               {insight.recommendations.map((rec, i) => (
                 <li key={i} className="text-sm dark:text-slate-300 flex items-start gap-2">

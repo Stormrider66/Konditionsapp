@@ -1388,7 +1388,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
           {hasInsight && (
             <TabsContent value="insights" className="space-y-6">
-              <PLSInsightCard insight={plsDisplay.aiInsight} />
+              <PLSInsightCard insight={plsDisplay.aiInsight} locale={locale} />
             </TabsContent>
           )}
 
