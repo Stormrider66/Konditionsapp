@@ -30,6 +30,8 @@ const rescheduleSchema = z.object({
 type AppLocale = 'en' | 'sv'
 
 export async function POST(request: NextRequest) {
+  let locale = getRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -37,7 +39,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -45,16 +47,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    const locale = getUserLocale(dbUser.language)
+    locale = getUserLocale(dbUser.language)
 
     const body = await request.json()
     const validationResult = rescheduleSchema.safeParse(body)
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.issues },
+        { error: t(locale, 'Invalid request', 'Ogiltig förfrågan'), details: validationResult.error.issues },
         { status: 400 }
       )
     }
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     const program = workout.day.week.program
@@ -96,14 +98,17 @@ export async function POST(request: NextRequest) {
 
     const hasAccess = await canAccessClient(dbUser.id, client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const originalDate = workout.day.date
 
     // Check if date is actually different
     if (originalDate.toISOString().split('T')[0] === targetDate.toISOString().split('T')[0]) {
-      return NextResponse.json({ error: 'Target date is the same as current date' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'Target date is the same as current date', 'Måldatumet är samma som nuvarande datum') },
+        { status: 400 }
+      )
     }
 
     // Check for conflicts at the new date (unless skipped)
@@ -123,9 +128,9 @@ export async function POST(request: NextRequest) {
       if (criticalConflicts.length > 0) {
         return NextResponse.json(
           {
-            error: 'Critical conflicts detected',
+            error: t(locale, 'Critical conflicts detected', 'Kritiska konflikter hittades'),
             conflicts: criticalConflicts,
-            message: 'Set skipConflictCheck=true to proceed anyway',
+            message: t(locale, 'Set skipConflictCheck=true to proceed anyway', 'Sätt skipConflictCheck=true för att fortsätta ändå'),
           },
           { status: 409 }
         )
@@ -201,8 +206,13 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     logError('Error rescheduling workout:', error)
-    return NextResponse.json({ error: 'Failed to reschedule workout' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to reschedule workout', 'Kunde inte flytta passet') }, { status: 500 })
   }
+}
+
+function getRequestLocale(request: NextRequest): AppLocale {
+  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
+  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
 }
 
 function getUserLocale(language: string | null | undefined): AppLocale {
