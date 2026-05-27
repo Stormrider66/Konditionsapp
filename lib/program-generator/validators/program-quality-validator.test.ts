@@ -72,6 +72,7 @@ describe('validateGeneratedProgramQuality', () => {
     }), {
       sport: 'STRENGTH',
       expectedSessionsPerWeek: 3,
+      locale: 'sv',
     })
 
     expect(result.valid).toBe(false)
@@ -94,6 +95,6 @@ describe('validateGeneratedProgramQuality', () => {
     })
 
     expect(result.valid).toBe(false)
-    expect(result.errors.join(' ')).toContain('utan tillräckligt träningsinnehåll')
+    expect(result.errors.join(' ')).toContain('without enough training content')
   })
 })

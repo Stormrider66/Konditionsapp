@@ -129,9 +129,10 @@ export async function generateSportProgram(
       throw new Error(`Team sport program validation failed: ${validation.errors.join(', ')}`)
     }
     if (validation.warnings.length > 0) {
+      const label = params.locale === 'sv' ? 'Valideringsnoteringar' : 'Validation notes'
       program = {
         ...program,
-        notes: [program.notes, `Valideringsnoteringar: ${validation.warnings.join(' ')}`]
+        notes: [program.notes, `${label}: ${validation.warnings.join(' ')}`]
           .filter(Boolean)
           .join(' '),
       }
@@ -141,14 +142,16 @@ export async function generateSportProgram(
   const quality = validateGeneratedProgramQuality(program, {
     sport: params.sport,
     expectedSessionsPerWeek: params.sessionsPerWeek,
+    locale: params.locale,
   })
   if (!quality.valid) {
     throw new Error(`Program quality validation failed: ${quality.errors.join(', ')}`)
   }
   if (quality.warnings.length > 0) {
+    const label = params.locale === 'sv' ? 'Kvalitetsnoteringar' : 'Quality notes'
     program = {
       ...program,
-      notes: [program.notes, `Kvalitetsnoteringar: ${quality.warnings.join(' ')}`]
+      notes: [program.notes, `${label}: ${quality.warnings.join(' ')}`]
         .filter(Boolean)
         .join(' '),
     }

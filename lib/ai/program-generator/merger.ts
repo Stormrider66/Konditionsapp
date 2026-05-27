@@ -7,6 +7,16 @@
 import type { GeneratedPhase, ProgramOutline, MergedProgram, WeeklyTemplate, DayWorkout } from './types'
 import { parseWeekRange } from './types'
 
+type ProgramLocale = 'en' | 'sv'
+
+function resolveLocale(locale?: ProgramLocale): ProgramLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: ProgramLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // Main Merger Function
 // ============================================
@@ -14,7 +24,8 @@ import { parseWeekRange } from './types'
 /**
  * Merge multiple phases into a complete program
  */
-export function mergePhases(phases: GeneratedPhase[], outline: ProgramOutline): MergedProgram {
+export function mergePhases(phases: GeneratedPhase[], outline: ProgramOutline, locale?: ProgramLocale): MergedProgram {
+  const outputLocale = resolveLocale(locale)
   // Sort phases by phase number
   const sortedPhases = [...phases].sort((a, b) => a.phaseNumber - b.phaseNumber)
 
@@ -29,7 +40,7 @@ export function mergePhases(phases: GeneratedPhase[], outline: ProgramOutline): 
 
   return {
     name: outline.programName,
-    description: outline.description || generateDescription(outline, sortedPhases),
+    description: outline.description || generateDescription(outline, sortedPhases, outputLocale),
     totalWeeks: outline.totalWeeks,
     methodology: outline.methodology,
     weeklySchedule: {
@@ -124,22 +135,26 @@ function identifyRestDays(template?: WeeklyTemplate): string[] {
 /**
  * Generate a description from outline and phases
  */
-function generateDescription(outline: ProgramOutline, phases: GeneratedPhase[]): string {
+function generateDescription(outline: ProgramOutline, phases: GeneratedPhase[], locale: ProgramLocale): string {
   const phaseNames = phases.map((p) => p.name).join(', ')
-  return `${outline.totalWeeks}-veckors ${formatMethodology(outline.methodology)} träningsprogram med faserna: ${phaseNames}.`
+  if (locale === 'sv') {
+    return `${outline.totalWeeks}-veckors ${formatMethodology(outline.methodology, locale)} träningsprogram med faserna: ${phaseNames}.`
+  }
+  return `${outline.totalWeeks}-week ${formatMethodology(outline.methodology, locale)} training program with phases: ${phaseNames}.`
 }
 
 /**
- * Format methodology name in Swedish
+ * Format methodology name for generated fallback descriptions
  */
-function formatMethodology(methodology?: string): string {
-  const methodNames: Record<string, string> = {
-    POLARIZED: 'polariserat',
-    NORWEGIAN: 'norskt',
-    CANOVA: 'Canova-inspirerat',
-    PYRAMIDAL: 'pyramidalt',
+function formatMethodology(methodology?: string, locale: ProgramLocale = 'en'): string {
+  const methodNames: Record<string, Record<ProgramLocale, string>> = {
+    POLARIZED: { en: 'polarized', sv: 'polariserat' },
+    NORWEGIAN: { en: 'Norwegian', sv: 'norskt' },
+    CANOVA: { en: 'Canova-inspired', sv: 'Canova-inspirerat' },
+    PYRAMIDAL: { en: 'pyramidal', sv: 'pyramidalt' },
   }
-  return methodology ? methodNames[methodology] || methodology.toLowerCase() : 'balanserat'
+  if (!methodology) return text(locale, 'balanced', 'balanserat')
+  return methodNames[methodology]?.[locale] || methodology.toLowerCase()
 }
 
 // ============================================
@@ -150,7 +165,8 @@ function formatMethodology(methodology?: string): string {
  * Expand a merged program into week-by-week structure
  * Used when saving to database
  */
-export function expandToWeeks(program: MergedProgram): ExpandedWeek[] {
+export function expandToWeeks(program: MergedProgram, locale?: ProgramLocale): ExpandedWeek[] {
+  const outputLocale = resolveLocale(locale)
   const weeks: ExpandedWeek[] = []
 
   for (const phase of program.phases) {
@@ -161,7 +177,7 @@ export function expandToWeeks(program: MergedProgram): ExpandedWeek[] {
         weekNumber: weekNum,
         phase: phase.name,
         focus: phase.focus,
-        days: expandWeeklyTemplate(phase.weeklyTemplate, weekNum),
+        days: expandWeeklyTemplate(phase.weeklyTemplate, weekNum, outputLocale),
       })
     }
   }
@@ -185,15 +201,15 @@ export interface ExpandedDay {
 /**
  * Expand weekly template to day-by-day structure
  */
-function expandWeeklyTemplate(template: WeeklyTemplate, weekNumber: number): ExpandedDay[] {
-  const dayMap: Record<string, { num: number; name: string }> = {
-    monday: { num: 1, name: 'Måndag' },
-    tuesday: { num: 2, name: 'Tisdag' },
-    wednesday: { num: 3, name: 'Onsdag' },
-    thursday: { num: 4, name: 'Torsdag' },
-    friday: { num: 5, name: 'Fredag' },
-    saturday: { num: 6, name: 'Lördag' },
-    sunday: { num: 7, name: 'Söndag' },
+function expandWeeklyTemplate(template: WeeklyTemplate, weekNumber: number, locale: ProgramLocale): ExpandedDay[] {
+  const dayMap: Record<string, { num: number; name: Record<ProgramLocale, string> }> = {
+    monday: { num: 1, name: { en: 'Monday', sv: 'Måndag' } },
+    tuesday: { num: 2, name: { en: 'Tuesday', sv: 'Tisdag' } },
+    wednesday: { num: 3, name: { en: 'Wednesday', sv: 'Onsdag' } },
+    thursday: { num: 4, name: { en: 'Thursday', sv: 'Torsdag' } },
+    friday: { num: 5, name: { en: 'Friday', sv: 'Fredag' } },
+    saturday: { num: 6, name: { en: 'Saturday', sv: 'Lördag' } },
+    sunday: { num: 7, name: { en: 'Sunday', sv: 'Söndag' } },
   }
 
   const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
@@ -204,7 +220,7 @@ function expandWeeklyTemplate(template: WeeklyTemplate, weekNumber: number): Exp
 
     return {
       dayNumber: num,
-      dayName: name,
+      dayName: name[locale],
       workout: workout || null,
     }
   })
@@ -217,23 +233,24 @@ function expandWeeklyTemplate(template: WeeklyTemplate, weekNumber: number): Exp
 /**
  * Validate a merged program has required fields
  */
-export function validateMergedProgram(program: MergedProgram): ValidationResult {
+export function validateMergedProgram(program: MergedProgram, locale?: ProgramLocale): ValidationResult {
+  const outputLocale = resolveLocale(locale)
   const errors: string[] = []
   const warnings: string[] = []
 
   // Required fields
-  if (!program.name) errors.push('Program saknar namn')
-  if (!program.totalWeeks || program.totalWeeks < 1) errors.push('Ogiltigt antal veckor')
-  if (!program.phases || program.phases.length === 0) errors.push('Program saknar faser')
+  if (!program.name) errors.push(text(outputLocale, 'Program is missing a name', 'Program saknar namn'))
+  if (!program.totalWeeks || program.totalWeeks < 1) errors.push(text(outputLocale, 'Invalid number of weeks', 'Ogiltigt antal veckor'))
+  if (!program.phases || program.phases.length === 0) errors.push(text(outputLocale, 'Program is missing phases', 'Program saknar faser'))
 
   // Phase validation
   program.phases.forEach((phase, index) => {
     if (!phase.weeklyTemplate) {
-      errors.push(`Fas ${index + 1} saknar veckotemplet`)
+      errors.push(text(outputLocale, `Phase ${index + 1} is missing the weekly template`, `Fas ${index + 1} saknar veckotemplet`))
     } else {
       const sessionCount = calculateSessionsPerWeek(phase.weeklyTemplate)
       if (sessionCount === 0) {
-        warnings.push(`Fas ${index + 1} har inga träningspass`)
+        warnings.push(text(outputLocale, `Phase ${index + 1} has no training sessions`, `Fas ${index + 1} har inga träningspass`))
       }
     }
   })
@@ -247,7 +264,11 @@ export function validateMergedProgram(program: MergedProgram): ValidationResult 
 
   if (totalCoveredWeeks !== program.totalWeeks) {
     warnings.push(
-      `Faserna täcker ${totalCoveredWeeks} veckor, programmet är ${program.totalWeeks} veckor`
+      text(
+        outputLocale,
+        `The phases cover ${totalCoveredWeeks} weeks, but the program is ${program.totalWeeks} weeks`,
+        `Faserna täcker ${totalCoveredWeeks} veckor, programmet är ${program.totalWeeks} veckor`
+      )
     )
   }
 

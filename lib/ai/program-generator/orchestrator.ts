@@ -206,8 +206,8 @@ export async function generateMultiPartProgram(options: OrchestratorOptions): Pr
       progressMessage: t(context, 'Assembling the program...', 'Sammanställer programmet...'),
     })
 
-    const mergedProgram = mergePhases(completedPhases, outline)
-    const validation = validateMergedProgram(mergedProgram)
+    const mergedProgram = mergePhases(completedPhases, outline, context.locale)
+    const validation = validateMergedProgram(mergedProgram, context.locale)
 
     if (!validation.valid) {
       throw new Error(`Program validation failed: ${validation.errors.join(', ')}`)
