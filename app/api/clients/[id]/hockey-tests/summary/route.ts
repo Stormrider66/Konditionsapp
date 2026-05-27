@@ -576,7 +576,7 @@ function buildBests(history: HockeySummary[]): Record<string, HockeyBest | null>
   return bests
 }
 
-function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): HockeyFlag[] {
+function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[], locale: AppLocale): HockeyFlag[] {
   if (!latest) return []
   const flags: HockeyFlag[] = []
 
@@ -593,7 +593,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'muscleLabWkg',
       severity: 'warning',
-      label: `MuscleLab power ned ${Math.abs(powerTrend.percentChange ?? 0).toFixed(1)}% sedan föregående test`,
+      label: locale === 'sv'
+        ? `MuscleLab power ned ${Math.abs(powerTrend.percentChange ?? 0).toFixed(1)}% sedan föregående test`
+        : `MuscleLab power down ${Math.abs(powerTrend.percentChange ?? 0).toFixed(1)}% since the previous test`,
     })
   }
 
@@ -601,7 +603,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'sprint10m',
       severity: 'warning',
-      label: `10m sprint långsammare med ${Math.abs(sprintTrend.delta).toFixed(2)} s`,
+      label: locale === 'sv'
+        ? `10m sprint långsammare med ${Math.abs(sprintTrend.delta).toFixed(2)} s`
+        : `10m sprint slower by ${Math.abs(sprintTrend.delta).toFixed(2)} s`,
     })
   }
 
@@ -609,7 +613,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'agilityBest',
       severity: 'warning',
-      label: `5-10-5 långsammare med ${Math.abs(agilityTrend.delta).toFixed(2)} s`,
+      label: locale === 'sv'
+        ? `5-10-5 långsammare med ${Math.abs(agilityTrend.delta).toFixed(2)} s`
+        : `5-10-5 slower by ${Math.abs(agilityTrend.delta).toFixed(2)} s`,
     })
   }
 
@@ -617,7 +623,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'enduranceFatigueDrop',
       severity: 'warning',
-      label: `7x40 drop ${fatigueDrop.toFixed(1)}%, följ återhämtning och sprintuthållighet`,
+      label: locale === 'sv'
+        ? `7x40 drop ${fatigueDrop.toFixed(1)}%, följ återhämtning och sprintuthållighet`
+        : `7x40 drop ${fatigueDrop.toFixed(1)}%; monitor recovery and repeated-sprint endurance`,
     })
   }
 
@@ -625,7 +633,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'vo2Max',
       severity: 'warning',
-      label: `VO2max ned ${Math.abs(vo2Trend.delta).toFixed(1)} ml/kg/min sedan föregående test`,
+      label: locale === 'sv'
+        ? `VO2max ned ${Math.abs(vo2Trend.delta).toFixed(1)} ml/kg/min sedan föregående test`
+        : `VO2max down ${Math.abs(vo2Trend.delta).toFixed(1)} ml/kg/min since the previous test`,
     })
   }
 
@@ -633,7 +643,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'lt2SpeedKmh',
       severity: 'info',
-      label: `LT2 fart upp ${Math.abs(lt2Trend.delta).toFixed(1)} km/h med stabil VO2-profil`,
+      label: locale === 'sv'
+        ? `LT2 fart upp ${Math.abs(lt2Trend.delta).toFixed(1)} km/h med stabil VO2-profil`
+        : `LT2 speed up ${Math.abs(lt2Trend.delta).toFixed(1)} km/h with a stable VO2 profile`,
     })
   }
 
@@ -641,7 +653,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'maxLactate',
       severity: 'info',
-      label: `Maxlaktat ${maxLactate.toFixed(1)} mmol/L, kontrollera maximal insats och profiltyp`,
+      label: locale === 'sv'
+        ? `Maxlaktat ${maxLactate.toFixed(1)} mmol/L, kontrollera maximal insats och profiltyp`
+        : `Max lactate ${maxLactate.toFixed(1)} mmol/L; verify maximal effort and profile type`,
     })
   }
 
@@ -649,7 +663,9 @@ function buildFlags(latest: HockeySummary | null, trends: HockeyTrend[]): Hockey
     flags.push({
       key: 'progress',
       severity: 'info',
-      label: 'Positiv testtrend jämfört med föregående hockeytest',
+      label: locale === 'sv'
+        ? 'Positiv testtrend jämfört med föregående hockeytest'
+        : 'Positive test trend compared with the previous hockey test',
     })
   }
 
@@ -791,7 +807,7 @@ export async function GET(
         previous,
         bests,
         trends,
-        flags: buildFlags(latest, trends),
+        flags: buildFlags(latest, trends, locale),
         history,
         pathway,
         singleTestGoals,
