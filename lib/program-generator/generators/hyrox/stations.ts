@@ -1,5 +1,6 @@
 import type { CreateWorkoutSegmentDTO } from '@/types'
 import type { HYROXTemplateWorkout } from '../../templates/hyrox'
+import type { AppLocale } from './mappers'
 
 /**
  * Official HYROX station config — distances, reps, weights per division,
@@ -173,7 +174,8 @@ export function createStationSegments(
   workout: HYROXTemplateWorkout,
   division?: 'open' | 'pro' | 'doubles',
   gender?: 'male' | 'female',
-  experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
+  experienceLevel?: 'beginner' | 'intermediate' | 'advanced',
+  locale: AppLocale = 'en'
 ): CreateWorkoutSegmentDTO[] {
   const segments: CreateWorkoutSegmentDTO[] = []
   let segmentOrder = 1
@@ -194,8 +196,8 @@ export function createStationSegments(
     duration: isFullSimulation ? 15 : 10,
     zone: 2,
     description: isFullSimulation
-      ? 'Uppvärmning: 5 min rodd/SkiErg, dynamisk stretch, aktivering'
-      : 'Uppvärmning: 5 min lätt cardio, rörlighet',
+      ? t(locale, 'Warm-up: 5 min rowing/SkiErg, dynamic stretching, activation', 'Uppvärmning: 5 min rodd/SkiErg, dynamisk stretch, aktivering')
+      : t(locale, 'Warm-up: 5 min easy cardio, mobility', 'Uppvärmning: 5 min lätt cardio, rörlighet'),
   })
 
   if (isFullSimulation) {
@@ -217,7 +219,7 @@ export function createStationSegments(
         type: 'interval',
         distance: runDistanceKm,
         zone: 3,
-        description: `Löpning ${runNumber}/8: 1 km${partnerRunNote}`,
+        description: `${t(locale, 'Run', 'Löpning')} ${runNumber}/8: 1 km${partnerRunNote}`,
       })
 
       segments.push({
@@ -225,7 +227,7 @@ export function createStationSegments(
         type: 'rest',
         duration: 1, // ~45-60 s transition
         zone: 1,
-        description: `Roxzone ${runNumber}: Övergång till ${station.nameSv}`,
+        description: `Roxzone ${runNumber}: ${t(locale, 'transition to', 'Övergång till')} ${stationName(station, locale)}`,
       })
 
       const weight = div === 'pro' ? station.weightPro[gen] : station.weightOpen[gen]
@@ -237,12 +239,12 @@ export function createStationSegments(
         : undefined
 
       const partnerStationNote = div === 'doubles'
-        ? ` - Partner ${isDoublesPartnerB ? 'A' : 'B'} (byte vid halva)`
+        ? ` - Partner ${isDoublesPartnerB ? 'A' : 'B'} (${t(locale, 'switch halfway', 'byte vid halva')})`
         : ''
 
       const stationDescription = station.distance
-        ? `${station.nameSv} ${station.distance}m @ ${typeof weight === 'number' ? weight + 'kg' : weight}${partnerStationNote}`
-        : `${station.nameSv} ${repsForWallBalls} reps @ ${weight}kg${partnerStationNote}`
+        ? `${stationName(station, locale)} ${station.distance}m @ ${typeof weight === 'number' ? weight + 'kg' : weight}${partnerStationNote}`
+        : `${stationName(station, locale)} ${repsForWallBalls} reps @ ${weight}kg${partnerStationNote}`
 
       segments.push({
         order: segmentOrder++,
@@ -252,7 +254,7 @@ export function createStationSegments(
         reps: repsForWallBalls,
         zone: 4,
         description: stationDescription,
-        notes: station.techniqueSv,
+        notes: stationTechnique(station, locale),
       })
     }
   } else {
@@ -269,7 +271,7 @@ export function createStationSegments(
           type: 'work',
           duration: 0,
           zone: 3,
-          description: `--- Runda ${round}/${rounds} ---`,
+          description: `--- ${t(locale, 'Round', 'Runda')} ${round}/${rounds} ---`,
         })
       }
 
@@ -284,8 +286,8 @@ export function createStationSegments(
         const partnerNote = div === 'doubles' ? ` (Partner ${round % 2 === 1 ? 'A' : 'B'})` : ''
 
         const description = practiceDistance
-          ? `${station.nameSv} ${practiceDistance}m @ ${typeof weight === 'number' ? weight + 'kg' : weight}${partnerNote}`
-          : `${station.nameSv} ${practiceReps} reps @ ${weight}kg${partnerNote}`
+          ? `${stationName(station, locale)} ${practiceDistance}m @ ${typeof weight === 'number' ? weight + 'kg' : weight}${partnerNote}`
+          : `${stationName(station, locale)} ${practiceReps} reps @ ${weight}kg${partnerNote}`
 
         segments.push({
           order: segmentOrder++,
@@ -295,7 +297,7 @@ export function createStationSegments(
           reps: practiceReps,
           zone: 3,
           description,
-          notes: station.techniqueSv,
+          notes: stationTechnique(station, locale),
         })
 
         if (selectedStations.indexOf(station) < selectedStations.length - 1) {
@@ -304,7 +306,7 @@ export function createStationSegments(
             type: 'rest',
             duration: 1,
             zone: 1,
-            description: 'Vila/övergång mellan stationer',
+            description: t(locale, 'Rest/transition between stations', 'Vila/övergång mellan stationer'),
           })
         }
       }
@@ -315,7 +317,7 @@ export function createStationSegments(
           type: 'rest',
           duration: 2,
           zone: 1,
-          description: `Vila mellan rundor: 2 min`,
+          description: t(locale, 'Rest between rounds: 2 min', 'Vila mellan rundor: 2 min'),
         })
       }
     }
@@ -326,8 +328,20 @@ export function createStationSegments(
     type: 'cooldown',
     duration: 5,
     zone: 1,
-    description: 'Nedvarvning: lätt stretch och rörlighet',
+    description: t(locale, 'Cooldown: light stretching and mobility', 'Nedvarvning: lätt stretch och rörlighet'),
   })
 
   return segments
+}
+
+function stationName(station: StationConfig, locale: AppLocale): string {
+  return locale === 'sv' ? station.nameSv : station.name
+}
+
+function stationTechnique(station: StationConfig, locale: AppLocale): string {
+  return locale === 'sv' ? station.techniqueSv : station.technique
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

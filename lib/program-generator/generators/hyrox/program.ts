@@ -26,7 +26,7 @@ import {
 } from '../../hyrox-athlete-profiler'
 import type { StrengthPRs } from '../../templates/hyrox-strength'
 import { createEmptyHyroxProgram } from './empty-program'
-import { mapHyroxWorkoutType, mapIntensity, mapPhase, getAthleteTypeLabel } from './mappers'
+import { mapHyroxWorkoutType, mapIntensity, mapPhase, getAthleteTypeLabel, type AppLocale } from './mappers'
 import { calculateTotalsFromSegments, createRunningSegments } from './running-segments'
 import { createStationSegments } from './stations'
 import { addStrengthWorkoutsToProgram } from './strength'
@@ -44,6 +44,7 @@ export async function generateHyroxProgram(
     division: params.hyroxDivision || 'open',
     gender: params.hyroxGender || 'not specified',
   })
+  const locale: AppLocale = params.locale === 'sv' ? 'sv' : 'en'
 
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)
@@ -124,11 +125,11 @@ export async function generateHyroxProgram(
           wallBalls: 'Wall Balls',
         }
         const weakLabels = weaknessAnalysis.weakStations.map((s) => stationLabels[s] || s)
-        programNotes.push(`⚠️ Prioritera: ${weakLabels.join(', ')}`)
+        programNotes.push(`${t(locale, 'Prioritize', 'Prioritera')}: ${weakLabels.join(', ')}`)
       }
 
       if (raceTimeEstimate) {
-        programNotes.push(`📊 Beräknad tävlingstid: ${raceTimeEstimate.formatted}`)
+        programNotes.push(`${t(locale, 'Estimated race time', 'Beräknad tävlingstid')}: ${raceTimeEstimate.formatted}`)
       }
 
       logger.debug('[HYROX Generator] Station analysis completed')
@@ -162,7 +163,7 @@ export async function generateHyroxProgram(
         }
         if (!meets) {
           programNotes.push(
-            `💪 Öka marklyft: ${params.strengthPRs.deadlift} → ${Math.round(strengthRequirements.deadliftMin)} kg`
+            `${t(locale, 'Increase deadlift', 'Öka marklyft')}: ${params.strengthPRs.deadlift} -> ${Math.round(strengthRequirements.deadliftMin)} kg`
           )
         }
       }
@@ -175,7 +176,7 @@ export async function generateHyroxProgram(
         }
         if (!meets) {
           programNotes.push(
-            `💪 Öka knäböj: ${params.strengthPRs.backSquat} → ${Math.round(strengthRequirements.squatMin)} kg`
+            `${t(locale, 'Increase back squat', 'Öka knäböj')}: ${params.strengthPRs.backSquat} -> ${Math.round(strengthRequirements.squatMin)} kg`
           )
         }
       }
@@ -237,15 +238,15 @@ export async function generateHyroxProgram(
     }
     logger.debug('[HYROX Generator] Athlete profile analysis completed', profileLogContext)
 
-    programNotes.push(`🏃 Atletprofil: ${getAthleteTypeLabel(athleteProfile.athleteType)}`)
-    programNotes.push(`   ${athleteProfile.profileDescription}`)
+    programNotes.push(`${t(locale, 'Athlete profile', 'Atletprofil')}: ${getAthleteTypeLabel(athleteProfile.athleteType, locale)}`)
+    programNotes.push(`   ${localizeHyroxAnalysisText(athleteProfile.profileDescription, locale)}`)
     if (athleteProfile.volumeScaleFactor !== 1.0) {
       const scalePercent = Math.round((athleteProfile.volumeScaleFactor - 1) * 100)
       const direction = scalePercent > 0 ? '+' : ''
-      programNotes.push(`📊 Volymjustering: ${direction}${scalePercent}% vs standardprogram`)
+      programNotes.push(`${t(locale, 'Volume adjustment', 'Volymjustering')}: ${direction}${scalePercent}% vs ${t(locale, 'standard program', 'standardprogram')}`)
     }
     if (athleteProfile.goalTimeSeconds && athleteProfile.currentEstimatedTime) {
-      programNotes.push(`🎯 ${athleteProfile.goalAssessment}`)
+      programNotes.push(localizeHyroxAnalysisText(athleteProfile.goalAssessment, locale))
     }
   }
 
@@ -370,30 +371,36 @@ export async function generateHyroxProgram(
 
               const segments =
                 w.type === 'station_practice' || w.type === 'hyrox_simulation' || w.type === 'mixed'
-                  ? createStationSegments(w, params.hyroxDivision, params.hyroxGender, params.experienceLevel)
+                  ? createStationSegments(w, params.hyroxDivision, params.hyroxGender, params.experienceLevel, locale)
                   : createRunningSegments(
-                      { ...w, runningDistance: scaledDistance, duration: scaledDuration },
+                      {
+                        ...w,
+                        name: localizeHyroxTemplateText(w.name, locale),
+                        runningDistance: scaledDistance,
+                        duration: scaledDuration,
+                      },
                       elitePaces,
-                      params.hyroxDivision
+                      params.hyroxDivision,
+                      locale
                     )
 
               const calculatedTotals = calculateTotalsFromSegments(segments, scaledDuration, scaledDistance)
 
               return {
                 type: mapHyroxWorkoutType(w.type),
-                name: w.name,
-                description: w.description,
+                name: localizeHyroxTemplateText(w.name, locale),
+                description: localizeHyroxTemplateText(w.description, locale),
                 intensity: mapIntensity(w.intensity, w.structure),
                 duration: calculatedTotals.totalDuration,
                 distance: calculatedTotals.totalDistance,
-                instructions: w.structure,
+                instructions: w.structure ? localizeHyroxTemplateText(w.structure, locale) : undefined,
                 segments,
               }
             })
 
       return {
         dayNumber: day.dayNumber,
-        notes: day.isRestDay ? 'Vilodag' : '',
+        notes: day.isRestDay ? t(locale, 'Rest day', 'Vilodag') : '',
         workouts: filteredWorkouts,
       }
     })
@@ -410,11 +417,12 @@ export async function generateHyroxProgram(
     let adjustedFocus = week.focus
     if (athleteProfile) {
       if (currentAthleteType === 'FAST_WEAK') {
-        adjustedFocus = `${week.focus} (Fokus: stationsträning)`
+        adjustedFocus = `${week.focus} (${t(locale, 'Focus: station training', 'Fokus: stationsträning')})`
       } else if (currentAthleteType === 'SLOW_STRONG') {
-        adjustedFocus = `${week.focus} (Fokus: löpvolym)`
+        adjustedFocus = `${week.focus} (${t(locale, 'Focus: running volume', 'Fokus: löpvolym')})`
       }
     }
+    adjustedFocus = localizeHyroxTemplateText(adjustedFocus, locale)
 
     // mapHyroxWeekToWorkouts is used for side effects (logging/validation) by
     // upstream template code; keep the call site in sync with the pre-split
@@ -442,39 +450,159 @@ export async function generateHyroxProgram(
       weakStationsToPrioritize: weakStationsList.length > 0 ? weakStationsList : 'None',
     })
 
-    addStrengthWorkoutsToProgram(weeks, params.strengthSessionsPerWeek, strengthPRs, weakStationsList)
+    addStrengthWorkoutsToProgram(weeks, params.strengthSessionsPerWeek, strengthPRs, weakStationsList, locale)
 
     logger.debug('[HYROX Generator] Strength workouts added')
 
     programNotes.push(
-      `💪 Styrketräning: ${params.strengthSessionsPerWeek}x/vecka med ${
-        Object.keys(strengthPRs).length > 0 ? '% av 1RM' : 'relativ belastning'
+      `${t(locale, 'Strength training', 'Styrketräning')}: ${params.strengthSessionsPerWeek}x/${t(locale, 'week', 'vecka')} ${t(locale, 'with', 'med')} ${
+        Object.keys(strengthPRs).length > 0 ? '% of 1RM' : t(locale, 'relative loading', 'relativ belastning')
       }`
     )
   }
 
-  const goalLabels: Record<string, string> = {
-    'beginner': 'Nybörjare',
-    'intermediate': 'Mellanliggande',
-    'pro': 'Pro Division',
-    'age-group': 'Age Group',
-    'doubles': 'Doubles',
-    'custom': 'Anpassad',
+  const goalLabels: Record<string, { en: string; sv: string }> = {
+    'beginner': { en: 'Beginner', sv: 'Nybörjare' },
+    'intermediate': { en: 'Intermediate', sv: 'Mellanliggande' },
+    'pro': { en: 'Pro Division', sv: 'Pro Division' },
+    'age-group': { en: 'Age Group', sv: 'Age Group' },
+    'doubles': { en: 'Doubles', sv: 'Doubles' },
+    'custom': { en: 'Custom', sv: 'Anpassad' },
   }
 
-  const baseNotes = params.notes || template.description || 'HYROX-träningsprogram med löpning och funktionella stationer'
-  const analysisNotes = programNotes.length > 0 ? '\n\n--- Analys ---\n' + programNotes.join('\n') : ''
+  const goalLabel = goalLabels[params.goal]?.[locale] || localizeHyroxTemplateText(template.name, locale)
+  const baseNotes = params.notes || localizeHyroxTemplateText(template.description, locale) || t(locale, 'HYROX training program with running and functional stations', 'HYROX-träningsprogram med löpning och funktionella stationer')
+  const analysisNotes = programNotes.length > 0 ? `\n\n--- ${t(locale, 'Analysis', 'Analys')} ---\n` + programNotes.join('\n') : ''
   const finalNotes = baseNotes + analysisNotes
 
   return {
     clientId: params.clientId,
     coachId: params.coachId,
     testId: undefined,
-    name: `HYROX ${goalLabels[params.goal] || template.name} - ${client.name}`,
+    name: `HYROX ${goalLabel} - ${client.name}`,
     goalType: params.goal,
     startDate,
     endDate,
     notes: finalNotes,
     weeks,
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+const HYROX_TEMPLATE_TRANSLATIONS: Record<string, string> = {
+  'Styrketräning för HYROX': 'Strength training for HYROX',
+  'Aktiv återhämtning eller vila': 'Active recovery or rest',
+  'HYROX Nybörjarplan': 'HYROX Beginner Plan',
+  '12 veckors program för din första HYROX. Bygger upp löpkapacitet och introducerar alla stationer gradvis.': '12-week program for your first HYROX. Builds running capacity and introduces all stations gradually.',
+  'Fullföra under 90 min': 'Finish under 90 min',
+  'Introduktion till HYROX-format': 'Introduction to the HYROX format',
+  'Lugn löpning': 'Easy run',
+  'Intervalträning': 'Interval training',
+  'SkiErg & Rodd intro': 'SkiErg & rowing intro',
+  'Lång lugn löpning': 'Long easy run',
+  'Bygga löpbas och stationsteknik': 'Build running base and station technique',
+  'Tempo-löpning': 'Tempo run',
+  'Introduktion till släde och bärövningar': 'Introduction to sled and carry work',
+  'Alla stationer introducerade': 'All stations introduced',
+  'Teknik för burpee broad jump och walking lunges': 'Technique for burpee broad jump and walking lunges',
+  'Återhämtningsvecka': 'Recovery week',
+  'Lätt löpning': 'Easy run',
+  'Lätt styrka': 'Light strength',
+  'Wall Balls intro': 'Wall balls intro',
+  'Öka intensitet och volym': 'Increase intensity and volume',
+  'Halv HYROX': 'Half HYROX',
+  'Lång löpning': 'Long run',
+  'Stationsuthållighet': 'Station endurance',
+  'Överkropp & Core': 'Upper body & core',
+  'Roxzone-träning': 'Roxzone training',
+  'HYROX-specifik': 'HYROX-specific',
+  'Teknikfokus': 'Technique focus',
+  'Lätt lång löpning': 'Light long run',
+  'Race-pace löpning': 'Race-pace running',
+  'Återhämtningslöpning': 'Recovery run',
+  'Race-pace stationer': 'Race-pace stations',
+  'Underhållsstyrka': 'Maintenance strength',
+  'Nedtrappning - behåll intensitet, minska volym': 'Taper - keep intensity, reduce volume',
+  'Stationsgenomgång': 'Station walkthrough',
+  'Lätt tempo': 'Light tempo',
+  'Aktivering': 'Activation',
+  'Kort löpning': 'Short run',
+  'Tävlingsvecka': 'Race week',
+  'Lätt shakeout': 'Easy shakeout',
+  'Mini-aktivering': 'Mini activation',
+  'Tävlingsdag! Ge allt du har!': 'Race day! Give it everything you have!',
+  'HYROX Medelplan': 'HYROX Intermediate Plan',
+  '16 veckors program för erfarna atleter som vill förbättra sin HYROX-tid. Fokus på specifika svagheter och race-strategi.': '16-week program for experienced athletes who want to improve their HYROX time. Focus on specific weaknesses and race strategy.',
+  'Återhämtning': 'Recovery',
+  'Bygga konditionsbas': 'Build aerobic base',
+  'HYROX-specifik träning': 'HYROX-specific training',
+  'Sista simuleringen': 'Final simulation',
+  'Maximal HYROX-förberedelse': 'Maximum HYROX preparation',
+  'Nedtrappning med bibehållen intensitet': 'Taper while maintaining intensity',
+  'Tävlingsvecka - prestera!': 'Race week - perform!',
+  'Tempolöpning': 'Tempo run',
+  'Stationsträning': 'Station training',
+  'Lätt stationsarbete': 'Light station work',
+  'Stationer 1-4 + 4x1km löpning': 'Stations 1-4 + 4x1 km running',
+  'Stationer 5-8': 'Stations 5-8',
+  'Lätt jogg': 'Easy jog',
+  'Tävlingsdag - KROSSA DIN MÅLTID!': 'Race day - crush your target!',
+}
+
+function localizeHyroxTemplateText(text: string | undefined, locale: AppLocale): string {
+  if (!text || locale === 'sv') return text || ''
+
+  return (HYROX_TEMPLATE_TRANSLATIONS[text] || text)
+    .replace(/(\d+(?:\.\d+)?)km löpning/g, '$1 km running')
+    .replace(/(\d+) stationer \+ (\d+)x1km löpning/g, '$1 stations + $2x1 km running')
+    .replace(/(\d+) min lugnt, (\d+) min hårt x (\d+)/g, '$1 min easy, $2 min hard x $3')
+    .replace(/(\d+)km lugnt, (\d+)m hårt x (\d+)/g, '$1 km easy, $2 m hard x $3')
+    .replace(/ med (\d+)s vila/g, ' with $1s rest')
+    .replace(/ med (\d+) min vila/g, ' with $1 min rest')
+    .replace(/x(\d+) varv/g, 'x$1 rounds')
+    .replace(/målpace/g, 'target pace')
+    .replace(/Lätta övningar/g, 'light exercises')
+    .replace(/Dynamiska övningar/g, 'dynamic exercises')
+    .replace(/Focus på/g, 'Focus on')
+    .replace(/Fokus på/g, 'Focus on')
+    .replace(/Teknikfokus på/g, 'Technique focus on')
+    .replace(/svaga stationer/g, 'weak stations')
+    .replace(/senare stationer/g, 'later stations')
+    .replace(/lätt jogg/g, 'easy jog')
+    .replace(/lätt/g, 'easy')
+    .replace(/hårt/g, 'hard')
+    .replace(/ och /g, ' and ')
+    .replace(/släde/g, 'sled')
+    .replace(/bärövningar/g, 'carry work')
+    .replace(/löpning/g, 'running')
+    .replace(/stationer/g, 'stations')
+    .replace(/varv/g, 'rounds')
+    .replace(/vila/g, 'rest')
+}
+
+function localizeHyroxAnalysisText(text: string, locale: AppLocale): string {
+  if (locale === 'sv') return text
+
+  return text
+    .replace('Din löpkapacitet är stark, men stationerna bromsar dig. Fokusera på stationsträning och "kompromisslöpning" efter stationer.', 'Your running capacity is strong, but the stations are slowing you down. Focus on station training and compromised running after stations.')
+    .replace('Dina stationer är effektiva, men löpningen begränsar din totaltid. Öka löpvolymen och laktattröskelträning.', 'Your stations are efficient, but running limits your total time. Increase running volume and lactate-threshold training.')
+    .replace('Både löpning och stationer behöver utvecklas. Bygg gradvis upp kapacitet på båda fronterna.', 'Both running and stations need development. Build capacity gradually in both areas.')
+    .replace('Balanserad profil med jämn fördelning mellan löpning och stationer.', 'Balanced profile with an even split between running and stations.')
+    .replace('Ingen måltid angiven', 'No target time provided')
+    .replace('Kunde inte tolka måltid', 'Could not parse target time')
+    .replace('Du är redan', 'You are already')
+    .replace('under måltiden', 'under the target time')
+    .replace('Målet är nåbart', 'The goal is achievable')
+    .replace('Ambitiöst mål', 'Ambitious goal')
+    .replace('Mycket ambitiöst', 'Very ambitious')
+    .replace('Orealistiskt mål', 'Unrealistic goal')
+    .replace('att förbättra', 'to improve')
+    .replace('Möjligt med dedikerad träning.', 'Possible with dedicated training.')
+    .replace('Kan kräva längre förberedelse.', 'May require a longer preparation period.')
+    .replace('Överväg ett närmare delmål.', 'Consider a closer intermediate target.')
+    .replace('Måltid:', 'Target time:')
+    .replace('Ange stationstider för fullständig analys.', 'Enter station times for a full analysis.')
 }

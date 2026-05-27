@@ -1,6 +1,7 @@
 import type { CreateWorkoutSegmentDTO } from '@/types'
 import type { HYROXTemplateWorkout } from '../../templates/hyrox'
 import { validateEliteZones, type EliteZonePaces } from '../../elite-pace-integration'
+import type { AppLocale } from './mappers'
 
 /**
  * Parse pace string (MM:SS or M:SS or MM:SS/km) to seconds per km.
@@ -94,7 +95,8 @@ export function getWorkoutZone(intensity: string): number {
 export function createRunningSegments(
   workout: HYROXTemplateWorkout,
   elitePaces: EliteZonePaces | null,
-  division?: 'open' | 'pro' | 'doubles'
+  division?: 'open' | 'pro' | 'doubles',
+  locale: AppLocale = 'en'
 ): CreateWorkoutSegmentDTO[] {
   const runningTypes = ['running', 'interval', 'endurance']
   if (!runningTypes.includes(workout.type)) return []
@@ -156,7 +158,7 @@ export function createRunningSegments(
         distance: warmupDistanceKm,
         pace: warmupPaceSeconds.toString(),
         zone: 2,
-        description: `Uppvärmning ${warmupDistanceKm} km @ ${warmupPaceStr}`,
+        description: `${t(locale, 'Warm-up', 'Uppvärmning')} ${warmupDistanceKm} km @ ${warmupPaceStr}`,
       })
 
       // Short intervals (≤ 1 km) are paced faster than the workout's main pace.
@@ -174,7 +176,7 @@ export function createRunningSegments(
           distance: intervalDistanceKm,
           pace: intervalPaceSeconds.toString(),
           zone: intervalZone,
-          description: `Intervall ${rep}/${reps}: ${distance}${unit} @ ${intervalPaceStr}${partnerNote}`,
+          description: `${t(locale, 'Interval', 'Intervall')} ${rep}/${reps}: ${distance}${unit} @ ${intervalPaceStr}${partnerNote}`,
         })
 
         if (rep < reps) {
@@ -183,7 +185,7 @@ export function createRunningSegments(
             type: 'rest',
             duration: Math.round(restSeconds / 60),
             zone: 1,
-            description: `Vila ${restSeconds >= 60 ? Math.round(restSeconds / 60) + ' min' : restSeconds + ' sek'}`,
+            description: `${t(locale, 'Rest', 'Vila')} ${restSeconds >= 60 ? Math.round(restSeconds / 60) + ' min' : restSeconds + (locale === 'sv' ? ' sek' : ' sec')}`,
           })
         }
       }
@@ -195,7 +197,7 @@ export function createRunningSegments(
         distance: cooldownDistanceKm,
         pace: warmupPaceSeconds.toString(),
         zone: 2,
-        description: `Nedvarvning ${cooldownDistanceKm} km @ ${warmupPaceStr}`,
+        description: `${t(locale, 'Cooldown', 'Nedvarvning')} ${cooldownDistanceKm} km @ ${warmupPaceStr}`,
       })
     } else {
       // Generic interval structure — we can't parse reps but still add
@@ -214,7 +216,7 @@ export function createRunningSegments(
         distance: warmupDist,
         pace: warmupPaceSeconds.toString(),
         zone: 2,
-        description: `Uppvärmning ${warmupDist} km @ ${warmupPaceStr}`,
+        description: `${t(locale, 'Warm-up', 'Uppvärmning')} ${warmupDist} km @ ${warmupPaceStr}`,
       })
       segments.push({
         order: segmentOrder++,
@@ -231,7 +233,7 @@ export function createRunningSegments(
         distance: cooldownDist,
         pace: warmupPaceSeconds.toString(),
         zone: 2,
-        description: `Nedvarvning ${cooldownDist} km @ ${warmupPaceStr}`,
+        description: `${t(locale, 'Cooldown', 'Nedvarvning')} ${cooldownDist} km @ ${warmupPaceStr}`,
       })
     }
   } else if (needsWarmupCooldown) {
@@ -252,7 +254,7 @@ export function createRunningSegments(
       distance: warmupDistanceKm,
       pace: warmupPaceSeconds.toString(),
       zone: 2,
-      description: `Uppvärmning ${warmupDistanceKm} km @ ${warmupPaceStr}`,
+      description: `${t(locale, 'Warm-up', 'Uppvärmning')} ${warmupDistanceKm} km @ ${warmupPaceStr}`,
     })
 
     // The template distance IS the main workout; warmup/cooldown are additional.
@@ -270,7 +272,7 @@ export function createRunningSegments(
         duration: mainDuration,
         pace: easyMinSeconds.toString(),
         zone: 1,
-        description: `Huvudpass ${mainDistance ? mainDistance.toFixed(1) + ' km' : mainDuration + ' min'} @ ${elitePaces.daniels.easy.minPace}-${elitePaces.daniels.easy.maxPace}`,
+        description: `${t(locale, 'Main set', 'Huvudpass')} ${mainDistance ? mainDistance.toFixed(1) + ' km' : mainDuration + ' min'} @ ${elitePaces.daniels.easy.minPace}-${elitePaces.daniels.easy.maxPace}`,
       })
     } else {
       segments.push({
@@ -280,7 +282,7 @@ export function createRunningSegments(
         duration: mainDuration,
         pace: mainPaceSeconds.toString(),
         zone: mainZone,
-        description: `Huvudpass ${mainDistance ? mainDistance.toFixed(1) + ' km' : mainDuration + ' min'} @ ${mainPaceStr}`,
+        description: `${t(locale, 'Main set', 'Huvudpass')} ${mainDistance ? mainDistance.toFixed(1) + ' km' : mainDuration + ' min'} @ ${mainPaceStr}`,
       })
     }
 
@@ -291,7 +293,7 @@ export function createRunningSegments(
       distance: cooldownDistanceKm,
       pace: warmupPaceSeconds.toString(),
       zone: 2,
-      description: `Nedvarvning ${cooldownDistanceKm} km @ ${warmupPaceStr}`,
+      description: `${t(locale, 'Cooldown', 'Nedvarvning')} ${cooldownDistanceKm} km @ ${warmupPaceStr}`,
     })
   } else {
     // Short run: single work segment.
@@ -307,4 +309,8 @@ export function createRunningSegments(
   }
 
   return segments
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

@@ -6,7 +6,7 @@ import {
   type StrengthPRs,
   type HyroxStation,
 } from '../../templates/hyrox-strength'
-import { getStrengthPhaseNameSv } from './mappers'
+import { getStrengthPhaseName, type AppLocale } from './mappers'
 
 /**
  * Map the running-plan phase to an appropriate strength phase.
@@ -46,30 +46,31 @@ export function createHyroxStrengthWorkout(
   strengthPhase: StrengthPhase,
   sessionType: 'lower' | 'upper' | 'full_body' | 'power' | 'station_specific',
   strengthPRs: StrengthPRs,
-  weakStations?: HyroxStation[]
+  weakStations?: HyroxStation[],
+  locale: AppLocale = 'en'
 ): CreateWorkoutDTO {
   const session = generateHyroxStrengthSession(strengthPhase, sessionType, strengthPRs, weakStations)
 
   const instructions: string[] = []
 
-  instructions.push('=== UPPVÄRMNING ===')
-  instructions.push(`${session.warmup.generalCardio.exerciseSv} - ${session.warmup.generalCardio.durationMinutes} min`)
+  instructions.push(`=== ${t(locale, 'WARM-UP', 'UPPVÄRMNING')} ===`)
+  instructions.push(`${locale === 'sv' ? session.warmup.generalCardio.exerciseSv : session.warmup.generalCardio.exercise} - ${session.warmup.generalCardio.durationMinutes} min`)
   instructions.push('')
-  instructions.push('Aktiveringsövningar:')
+  instructions.push(t(locale, 'Activation exercises:', 'Aktiveringsövningar:'))
   for (const activation of session.warmup.activation) {
-    instructions.push(`• ${activation.exerciseSv}: ${activation.sets}×${activation.reps}`)
+    instructions.push(`• ${locale === 'sv' ? activation.exerciseSv : activation.exercise}: ${activation.sets}×${activation.reps}`)
   }
 
   if (session.warmup.rampUpSets && session.warmup.rampUpSets.length > 0) {
     instructions.push('')
-    instructions.push('Uppvärmningsset (för huvudövningen):')
+    instructions.push(t(locale, 'Warm-up sets (for the main lift):', 'Uppvärmningsset (för huvudövningen):'))
     for (const rampUp of session.warmup.rampUpSets) {
       instructions.push(`• ${rampUp.reps} reps @ ${rampUp.percentOf1RM}%`)
     }
   }
 
   instructions.push('')
-  instructions.push('=== HUVUDPASS ===')
+  instructions.push(`=== ${t(locale, 'MAIN SESSION', 'HUVUDPASS')} ===`)
 
   for (const exercise of session.mainWorkout) {
     const workingWeight = exercise.percentOf1RM
@@ -81,32 +82,33 @@ export function createHyroxStrengthWorkout(
       ? `${Math.round(exercise.restSeconds / 60)} min`
       : `${exercise.restSeconds}s`
 
-    let exerciseLine = `${exercise.nameSv}: ${exercise.sets}×${repStr}`
+    let exerciseLine = `${locale === 'sv' ? exercise.nameSv : exercise.name}: ${exercise.sets}×${repStr}`
     if (exercise.percentOf1RM && workingWeight) {
       exerciseLine += ` @ ${exercise.percentOf1RM}% (${workingWeight}kg)`
     } else if (exercise.percentOf1RM) {
       exerciseLine += ` @ ${exercise.percentOf1RM}%`
     }
-    exerciseLine += ` - Vila ${restStr}`
+    exerciseLine += ` - ${t(locale, 'Rest', 'Vila')} ${restStr}`
     if (exercise.tempo) exerciseLine += ` [Tempo: ${exercise.tempo}]`
 
     instructions.push(`• ${exerciseLine}`)
-    if (exercise.notesSv) instructions.push(`  → ${exercise.notesSv}`)
+    const notes = locale === 'sv' ? exercise.notesSv : exercise.notes
+    if (notes) instructions.push(`  → ${notes}`)
   }
 
   if (session.finisher) {
     instructions.push('')
-    instructions.push(`=== AVSLUTNING: ${session.finisher.nameSv} ===`)
+    instructions.push(`=== ${t(locale, 'FINISHER', 'AVSLUTNING')}: ${locale === 'sv' ? session.finisher.nameSv : session.finisher.name} ===`)
     instructions.push(`Format: ${session.finisher.format}`)
     for (const ex of session.finisher.exercises) {
-      instructions.push(`• ${ex.exerciseSv}: ${ex.reps}`)
+      instructions.push(`• ${locale === 'sv' ? ex.exerciseSv : ex.exercise}: ${ex.reps}`)
     }
   }
 
   const segments: CreateWorkoutSegmentDTO[] = session.mainWorkout.map((exercise, index) => ({
     order: index + 1,
     type: 'work',
-    description: exercise.nameSv,
+    description: locale === 'sv' ? exercise.nameSv : exercise.name,
     duration: Math.round(
       (exercise.sets * (typeof exercise.reps === 'number' ? exercise.reps * 3 : 30)
         + exercise.restSeconds * (exercise.sets - 1)) / 60
@@ -115,8 +117,8 @@ export function createHyroxStrengthWorkout(
 
   return {
     type: 'STRENGTH',
-    name: session.nameSv,
-    description: `${getStrengthPhaseNameSv(strengthPhase)} - HYROX styrkepass`,
+    name: locale === 'sv' ? session.nameSv : session.name,
+    description: `${getStrengthPhaseName(strengthPhase, locale)} - ${t(locale, 'HYROX strength session', 'HYROX styrkepass')}`,
     intensity:
       strengthPhase === 'ANATOMICAL_ADAPTATION' ? 'MODERATE'
         : strengthPhase === 'MAXIMUM_STRENGTH' ? 'THRESHOLD'
@@ -137,7 +139,8 @@ export function addStrengthWorkoutsToProgram(
   weeks: NonNullable<CreateTrainingProgramDTO['weeks']>,
   strengthSessionsPerWeek: number,
   strengthPRs: StrengthPRs,
-  weakStations?: string[]
+  weakStations?: string[],
+  locale: AppLocale = 'en'
 ): void {
   if (strengthSessionsPerWeek < 1 || !weeks || weeks.length === 0) return
 
@@ -184,12 +187,17 @@ export function addStrengthWorkoutsToProgram(
         strengthPhase,
         sessionType,
         strengthPRs,
-        typedWeakStations
+        typedWeakStations,
+        locale
       )
 
       day.workouts.push(strengthWorkout)
     }
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**

@@ -4,6 +4,7 @@ export interface HyroxProgramParams {
   goal: string
   durationWeeks: number
   sessionsPerWeek: number
+  locale?: 'en' | 'sv'
   notes?: string
   targetRaceDate?: Date
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced'

@@ -11,6 +11,7 @@ import { generateSportProgram } from '../sport-router/dispatcher'
 import { validateGeneratedProgramQuality } from '../validators/program-quality-validator'
 
 const client = { id: 'client-1', name: 'Alex Athlete' } as Client
+const swedishUserVisiblePattern = /[åäöÅÄÖ]|\b(Vilodag|Uppvärmning|Nedvarvning|Löpning|löpning|Vila|Rörlighet|Återhämtning)\b/
 
 function expectRealProgram(
   program: CreateTrainingProgramDTO,
@@ -113,6 +114,41 @@ describe('non-running fallback generators', () => {
 
     expectRealProgram(program, 'HYROX', 4)
     expect(program.weeks?.[0].days.flatMap((day) => day.workouts).some((workout) => workout.type === 'HYROX')).toBe(true)
+  })
+
+  it('creates custom HYROX fallback content in English by default', () => {
+    const startDate = getProgramStartDate()
+    const program = createEmptyHyroxProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'custom',
+      durationWeeks: 4,
+      sessionsPerWeek: 5,
+      experienceLevel: 'intermediate',
+      locale: 'en',
+    }, client, startDate, getProgramEndDate(startDate, 4))
+
+    expectRealProgram(program, 'HYROX', 5)
+    expect(JSON.stringify(program)).not.toMatch(swedishUserVisiblePattern)
+    expect(program.notes).toContain('Custom HYROX program')
+    expect(program.weeks?.[0].focus).toContain('Station-specific training')
+  })
+
+  it('keeps custom HYROX fallback content Swedish for Swedish users', () => {
+    const startDate = getProgramStartDate()
+    const program = createEmptyHyroxProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'custom',
+      durationWeeks: 4,
+      sessionsPerWeek: 5,
+      experienceLevel: 'intermediate',
+      locale: 'sv',
+    }, client, startDate, getProgramEndDate(startDate, 4))
+
+    expectRealProgram(program, 'HYROX', 5)
+    expect(program.notes).toContain('Anpassat HYROX-program')
+    expect(program.weeks?.[0].focus).toContain('Stationsspecifik träning')
   })
 
   it('quality-gates programs through the sport router', async () => {

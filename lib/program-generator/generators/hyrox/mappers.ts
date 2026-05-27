@@ -2,6 +2,8 @@ import type { PeriodPhase } from '@/types'
 import type { StrengthPhase } from '@prisma/client'
 import type { AthleteType } from '../../hyrox-athlete-profiler'
 
+export type AppLocale = 'en' | 'sv'
+
 export function mapHyroxWorkoutType(
   type: string
 ): 'RUNNING' | 'STRENGTH' | 'HYROX' | 'RECOVERY' {
@@ -59,34 +61,41 @@ export function getHyroxPhase(weekNum: number, totalWeeks: number): 'BASE' | 'BU
   return 'TAPER'
 }
 
-export function getHyroxFocus(goal: string, weekNum: number, totalWeeks: number): string {
+export function getHyroxFocus(goal: string, weekNum: number, totalWeeks: number, locale: AppLocale = 'en'): string {
   const progress = weekNum / totalWeeks
-  if (progress < 0.25) return 'Grundkondition och teknisk inlärning av stationer'
-  if (progress < 0.5) return 'Stationsspecifik träning och löpkapacitet'
-  if (progress < 0.75) return 'Race-simuleringar och övergångar'
-  if (progress < 0.9) return 'Tävlingstempo och finjustering'
-  return 'Taper och vila'
+  if (locale === 'sv') {
+    if (progress < 0.25) return 'Grundkondition och teknisk inlärning av stationer'
+    if (progress < 0.5) return 'Stationsspecifik träning och löpkapacitet'
+    if (progress < 0.75) return 'Race-simuleringar och övergångar'
+    if (progress < 0.9) return 'Tävlingstempo och finjustering'
+    return 'Taper och vila'
+  }
+  if (progress < 0.25) return 'Base fitness and station skill development'
+  if (progress < 0.5) return 'Station-specific training and running capacity'
+  if (progress < 0.75) return 'Race simulations and transitions'
+  if (progress < 0.9) return 'Race pace and fine-tuning'
+  return 'Taper and recovery'
 }
 
-export function getStrengthPhaseNameSv(phase: StrengthPhase): string {
-  const names: Record<StrengthPhase, string> = {
-    ANATOMICAL_ADAPTATION: 'Anatomisk anpassning',
-    MAXIMUM_STRENGTH: 'Maxstyrka',
-    POWER: 'Kraft',
-    MAINTENANCE: 'Underhåll',
-    TAPER: 'Taper',
+export function getStrengthPhaseName(phase: StrengthPhase, locale: AppLocale = 'en'): string {
+  const names: Record<StrengthPhase, { en: string; sv: string }> = {
+    ANATOMICAL_ADAPTATION: { en: 'Anatomical adaptation', sv: 'Anatomisk anpassning' },
+    MAXIMUM_STRENGTH: { en: 'Maximum strength', sv: 'Maxstyrka' },
+    POWER: { en: 'Power', sv: 'Kraft' },
+    MAINTENANCE: { en: 'Maintenance', sv: 'Underhåll' },
+    TAPER: { en: 'Taper', sv: 'Taper' },
   }
-  return names[phase] || phase
+  return names[phase]?.[locale] || phase
 }
 
-export function getAthleteTypeLabel(athleteType: AthleteType): string {
-  const labels: Record<AthleteType, string> = {
-    FAST_WEAK: 'Stark löpare / Svaga stationer',
-    SLOW_STRONG: 'Svag löpare / Starka stationer',
-    BALANCED: 'Balanserad profil',
-    NEEDS_BOTH: 'Utvecklingspotential i båda',
+export function getAthleteTypeLabel(athleteType: AthleteType, locale: AppLocale = 'en'): string {
+  const labels: Record<AthleteType, { en: string; sv: string }> = {
+    FAST_WEAK: { en: 'Strong runner / weaker stations', sv: 'Stark löpare / Svaga stationer' },
+    SLOW_STRONG: { en: 'Developing runner / strong stations', sv: 'Svag löpare / Starka stationer' },
+    BALANCED: { en: 'Balanced profile', sv: 'Balanserad profil' },
+    NEEDS_BOTH: { en: 'Development potential in both areas', sv: 'Utvecklingspotential i båda' },
   }
-  return labels[athleteType]
+  return labels[athleteType][locale]
 }
 
 /** Format pace from seconds/km to MM:SS. */
