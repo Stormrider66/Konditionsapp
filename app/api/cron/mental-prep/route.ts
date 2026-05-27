@@ -41,7 +41,16 @@ type RaceCandidate = {
     id: string
     name: string
     userId: string
+    user?: {
+      language: string | null
+    }
   }
+}
+
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 type ProcessRaceOutcome =
@@ -153,6 +162,11 @@ export async function POST(request: NextRequest) {
               id: true,
               name: true,
               userId: true,
+              user: {
+                select: {
+                  language: true,
+                },
+              },
             },
           },
         },
@@ -296,9 +310,11 @@ async function processRace(
       athleteName: race.client.name.split(' ')[0],
       coachUserId: race.client.userId,
       clientId: race.clientId,
+      locale: race.client.user?.language === 'sv' ? 'sv' : 'en',
     }
 
     const content = await generateMentalPrepContent(context, prepType, daysUntilRace)
+    const locale = context.locale ?? 'en'
 
     const scheduledFor = new Date(today)
     scheduledFor.setHours(8, 0, 0, 0)
@@ -312,7 +328,7 @@ async function processRace(
         message: content.preview,
         icon: '🧠',
         actionUrl: '/athlete/chat',
-        actionLabel: 'Chatta med AI',
+        actionLabel: t(locale, 'Chat with AI', 'Chatta med AI'),
         contextData: {
           prepType: content.prepType,
           raceId: race.id,

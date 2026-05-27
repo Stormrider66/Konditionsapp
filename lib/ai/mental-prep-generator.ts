@@ -10,6 +10,7 @@
 import { generateAIResponse } from './ai-service'
 
 export type MentalPrepType = 'VISUALIZATION' | 'RACE_PLAN' | 'AFFIRMATIONS'
+type AppLocale = 'en' | 'sv'
 
 export interface MentalPrepContext {
   raceName: string
@@ -21,6 +22,7 @@ export interface MentalPrepContext {
   athleteName: string
   coachUserId: string
   clientId?: string
+  locale?: AppLocale
 }
 
 export interface MentalPrepContent {
@@ -33,11 +35,19 @@ export interface MentalPrepContent {
   daysUntilRace: number
 }
 
-const DISTANCE_LABELS: Record<string, string> = {
-  '5K': '5 km',
-  '10K': '10 km',
-  HALF: 'Halvmaraton',
-  MARATHON: 'Maraton',
+const DISTANCE_LABELS: Record<string, { en: string; sv: string }> = {
+  '5K': { en: '5 km', sv: '5 km' },
+  '10K': { en: '10 km', sv: '10 km' },
+  HALF: { en: 'Half marathon', sv: 'Halvmaraton' },
+  MARATHON: { en: 'Marathon', sv: 'Maraton' },
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function getDistanceLabel(distance: string, locale: AppLocale): string {
+  return DISTANCE_LABELS[distance]?.[locale] || distance
 }
 
 function formatPace(secPerKm: number): string {
@@ -46,9 +56,19 @@ function formatPace(secPerKm: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}/km`
 }
 
-function getDaysLabel(days: number): string {
-  if (days === 1) return 'imorgon'
-  return `om ${days} dagar`
+function getDaysLabel(days: number, locale: AppLocale): string {
+  if (days === 1) return t(locale, 'tomorrow', 'imorgon')
+  return t(locale, `in ${days} days`, `om ${days} dagar`)
+}
+
+function getPriorityLabel(classification: string, locale: AppLocale): string {
+  if (classification === 'A') {
+    return t(locale, 'A race (most important race of the season)', 'A-lopp (säsongens viktigaste)')
+  }
+  if (classification === 'B') {
+    return t(locale, 'B race (important)', 'B-lopp (viktigt)')
+  }
+  return t(locale, 'C race (training race)', 'C-lopp (träningslopp)')
 }
 
 /**
@@ -58,16 +78,18 @@ async function generateVisualization(
   ctx: MentalPrepContext,
   daysUntilRace: number
 ): Promise<MentalPrepContent> {
-  const distanceLabel = DISTANCE_LABELS[ctx.distance] || ctx.distance
+  const locale = ctx.locale ?? 'en'
+  const distanceLabel = getDistanceLabel(ctx.distance, locale)
   const paceStr = ctx.targetPace ? formatPace(ctx.targetPace) : null
 
-  const prompt = `Du är en mental coach för löpare. Skriv en guidad visualiseringsövning för en atlet som ska springa ett lopp.
+  const prompt = locale === 'sv'
+    ? `Du är en mental coach för löpare. Skriv en guidad visualiseringsövning för en atlet som ska springa ett lopp.
 
 Lopp: ${ctx.raceName}
 Distans: ${distanceLabel}
 ${ctx.targetTime ? `Måltid: ${ctx.targetTime}` : ''}
 ${paceStr ? `Målpace: ${paceStr}` : ''}
-Prioritet: ${ctx.classification === 'A' ? 'A-lopp (säsongens viktigaste)' : ctx.classification === 'B' ? 'B-lopp (viktigt)' : 'C-lopp (träningslopp)'}
+Prioritet: ${getPriorityLabel(ctx.classification, locale)}
 
 Skriv en visualiseringsövning på svenska som:
 1. Börjar med att atleten blundar och tar djupa andetag
@@ -78,6 +100,23 @@ Skriv en visualiseringsövning på svenska som:
 
 Skriv i andra person ("du ser dig själv..."). Håll texten mellan 200-300 ord.
 Skriv ENDAST visualiseringstexten, ingen introduktion eller avslutning.`
+    : `You are a mental coach for runners. Write a guided visualization exercise for an athlete who is about to race.
+
+Race: ${ctx.raceName}
+Distance: ${distanceLabel}
+${ctx.targetTime ? `Target time: ${ctx.targetTime}` : ''}
+${paceStr ? `Target pace: ${paceStr}` : ''}
+Priority: ${getPriorityLabel(ctx.classification, locale)}
+
+Write a visualization exercise in English that:
+1. Starts with the athlete closing their eyes and taking deep breaths
+2. Visualizes the start area and nerves transforming into focus
+3. Walks through the three phases of the race: start, middle, finish
+4. Includes handling difficult moments
+5. Ends with crossing the finish line strongly
+
+Write in second person ("you see yourself..."). Keep the text between 200-300 words.
+Write ONLY the visualization text, no introduction or closing.`
 
   const mainContent = await generateAIResponse(ctx.coachUserId, prompt, {
     maxTokens: 800,
@@ -91,17 +130,24 @@ Skriv ENDAST visualiseringstexten, ingen introduktion eller avslutning.`
   const preview = sentences.slice(0, 3).join(' ')
 
   return {
-    title: 'Mental förberedelse - Visualisering',
-    subtitle: `${ctx.raceName} ${getDaysLabel(daysUntilRace)}`,
+    title: t(locale, 'Mental preparation - Visualization', 'Mental förberedelse - Visualisering'),
+    subtitle: `${ctx.raceName} ${getDaysLabel(daysUntilRace, locale)}`,
     prepType: 'VISUALIZATION',
     mainContent,
     preview,
-    bulletPoints: [
-      'Blunda och ta djupa andetag',
-      'Visualisera startområdet',
-      'Känn din pace genom loppet',
-      'Se dig själv korsa mållinjen',
-    ],
+    bulletPoints: locale === 'sv'
+      ? [
+          'Blunda och ta djupa andetag',
+          'Visualisera startområdet',
+          'Känn din pace genom loppet',
+          'Se dig själv korsa mållinjen',
+        ]
+      : [
+          'Close your eyes and take deep breaths',
+          'Visualize the start area',
+          'Feel your pace through the race',
+          'See yourself crossing the finish line',
+        ],
     daysUntilRace,
   }
 }
@@ -113,16 +159,18 @@ async function generateRacePlan(
   ctx: MentalPrepContext,
   daysUntilRace: number
 ): Promise<MentalPrepContent> {
-  const distanceLabel = DISTANCE_LABELS[ctx.distance] || ctx.distance
+  const locale = ctx.locale ?? 'en'
+  const distanceLabel = getDistanceLabel(ctx.distance, locale)
   const paceStr = ctx.targetPace ? formatPace(ctx.targetPace) : null
 
-  const prompt = `Du är en erfaren löpcoach. Skapa en tävlingsplan för en atlet som ska springa ett lopp.
+  const prompt = locale === 'sv'
+    ? `Du är en erfaren löpcoach. Skapa en tävlingsplan för en atlet som ska springa ett lopp.
 
 Lopp: ${ctx.raceName}
 Distans: ${distanceLabel}
 ${ctx.targetTime ? `Måltid: ${ctx.targetTime}` : ''}
 ${paceStr ? `Målpace: ${paceStr}` : ''}
-Prioritet: ${ctx.classification === 'A' ? 'A-lopp (säsongens viktigaste)' : ctx.classification === 'B' ? 'B-lopp (viktigt)' : 'C-lopp (träningslopp)'}
+Prioritet: ${getPriorityLabel(ctx.classification, locale)}
 
 Skapa en tävlingsplan på svenska som inkluderar:
 
@@ -134,6 +182,24 @@ Skapa en tävlingsplan på svenska som inkluderar:
 
 Skriv konkret och handlingsbart. Använd punktlistor där lämpligt.
 Håll texten mellan 250-350 ord.`
+    : `You are an experienced running coach. Create a race plan for an athlete who is about to race.
+
+Race: ${ctx.raceName}
+Distance: ${distanceLabel}
+${ctx.targetTime ? `Target time: ${ctx.targetTime}` : ''}
+${paceStr ? `Target pace: ${paceStr}` : ''}
+Priority: ${getPriorityLabel(ctx.classification, locale)}
+
+Create a race plan in English that includes:
+
+1. **Pacing strategy** - How should the athlete distribute effort? (first third, middle, final third)
+2. **Plan A** - If everything feels good
+3. **Plan B** - If it gets tough (weather, form, etc.)
+4. **Mental checkpoints** - What should the athlete focus on at different points in the race?
+5. **Pre-race routine** - The morning before the race
+
+Write concretely and actionably. Use bullet lists where appropriate.
+Keep the text between 250-350 words.`
 
   const mainContent = await generateAIResponse(ctx.coachUserId, prompt, {
     maxTokens: 900,
@@ -147,17 +213,23 @@ Håll texten mellan 250-350 ord.`
 
   const bulletPoints: string[] = []
   if (paceStr) {
-    bulletPoints.push(`Målpace: ${paceStr}`)
+    bulletPoints.push(t(locale, `Target pace: ${paceStr}`, `Målpace: ${paceStr}`))
   }
-  bulletPoints.push(
-    'Starta kontrollerat - spara kraft',
-    'Ha en Plan B redo',
-    'Fokusera på en kilometer i taget'
-  )
+  bulletPoints.push(...(locale === 'sv'
+    ? [
+        'Starta kontrollerat - spara kraft',
+        'Ha en Plan B redo',
+        'Fokusera på en kilometer i taget',
+      ]
+    : [
+        'Start controlled - save energy',
+        'Have a Plan B ready',
+        'Focus on one kilometer at a time',
+      ]))
 
   return {
-    title: 'Mental förberedelse - Tävlingsplan',
-    subtitle: `${ctx.raceName} ${getDaysLabel(daysUntilRace)}`,
+    title: t(locale, 'Mental preparation - Race plan', 'Mental förberedelse - Tävlingsplan'),
+    subtitle: `${ctx.raceName} ${getDaysLabel(daysUntilRace, locale)}`,
     prepType: 'RACE_PLAN',
     mainContent,
     preview,
@@ -173,14 +245,16 @@ async function generateAffirmations(
   ctx: MentalPrepContext,
   daysUntilRace: number
 ): Promise<MentalPrepContent> {
-  const distanceLabel = DISTANCE_LABELS[ctx.distance] || ctx.distance
+  const locale = ctx.locale ?? 'en'
+  const distanceLabel = getDistanceLabel(ctx.distance, locale)
 
-  const prompt = `Du är en mental coach och motivatör för löpare. Skriv positiva affirmationer och en peppande text för en atlet som ska tävla imorgon.
+  const prompt = locale === 'sv'
+    ? `Du är en mental coach och motivatör för löpare. Skriv positiva affirmationer och en peppande text för en atlet som ska tävla imorgon.
 
 Lopp: ${ctx.raceName}
 Distans: ${distanceLabel}
 ${ctx.targetTime ? `Måltid: ${ctx.targetTime}` : ''}
-Prioritet: ${ctx.classification === 'A' ? 'A-lopp (säsongens viktigaste)' : ctx.classification === 'B' ? 'B-lopp (viktigt)' : 'C-lopp (träningslopp)'}
+Prioritet: ${getPriorityLabel(ctx.classification, locale)}
 
 Skriv på svenska:
 
@@ -198,6 +272,29 @@ Skriv på svenska:
 3. **Morgonrutin på loppsdagen** - 3-4 enkla steg för att starta dagen rätt
 
 Tonen ska vara varm, stöttande och energigivande.`
+    : `You are a mental coach and motivator for runners. Write positive affirmations and an encouraging text for an athlete racing tomorrow.
+
+Race: ${ctx.raceName}
+Distance: ${distanceLabel}
+${ctx.targetTime ? `Target time: ${ctx.targetTime}` : ''}
+Priority: ${getPriorityLabel(ctx.classification, locale)}
+
+Write in English:
+
+1. **5-7 powerful affirmations** the athlete can repeat to themselves
+   - "I have trained for this"
+   - "My body is strong and ready"
+   - etc.
+
+2. **A short encouraging text** (100-150 words) reminding the athlete:
+   - Of all the preparation they have done
+   - That nerves are energy
+   - To trust their training
+   - To enjoy the experience
+
+3. **Race morning routine** - 3-4 simple steps to start the day well
+
+The tone should be warm, supportive, and energizing.`
 
   const mainContent = await generateAIResponse(ctx.coachUserId, prompt, {
     maxTokens: 800,
@@ -210,17 +307,24 @@ Tonen ska vara varm, stöttande och energigivande.`
   const preview = sentences.slice(0, 3).join(' ')
 
   return {
-    title: 'Mental förberedelse - Du är redo!',
-    subtitle: `${ctx.raceName} ${getDaysLabel(daysUntilRace)}`,
+    title: t(locale, 'Mental preparation - You are ready!', 'Mental förberedelse - Du är redo!'),
+    subtitle: `${ctx.raceName} ${getDaysLabel(daysUntilRace, locale)}`,
     prepType: 'AFFIRMATIONS',
     mainContent,
     preview,
-    bulletPoints: [
-      'Jag har tränat för detta',
-      'Min kropp är redo',
-      'Jag litar på min förmåga',
-      'Idag visar jag vad jag kan',
-    ],
+    bulletPoints: locale === 'sv'
+      ? [
+          'Jag har tränat för detta',
+          'Min kropp är redo',
+          'Jag litar på min förmåga',
+          'Idag visar jag vad jag kan',
+        ]
+      : [
+          'I have trained for this',
+          'My body is ready',
+          'I trust my ability',
+          'Today I show what I can do',
+        ],
     daysUntilRace,
   }
 }
