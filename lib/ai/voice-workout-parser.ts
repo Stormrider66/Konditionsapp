@@ -18,7 +18,6 @@ import {
 import type {
   VoiceWorkoutIntent,
   VoiceWorkoutTarget,
-  VoiceWorkoutSchedule,
   VoiceWorkoutType,
 } from '@/types/voice-workout'
 import {
@@ -35,7 +34,7 @@ import {
   parse,
   isValid,
 } from 'date-fns'
-import { sv } from 'date-fns/locale'
+import { enUS, sv } from 'date-fns/locale'
 
 // ============================================
 // TYPES
@@ -72,6 +71,12 @@ interface ParsedIntentRaw {
   ambiguities: string[]
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, svText: string): string {
+  return locale === 'sv' ? svText : en
+}
+
 // ============================================
 // MAIN PARSER
 // ============================================
@@ -90,13 +95,14 @@ export async function parseVoiceWorkoutIntent(
   mimeType: string,
   coachId: string,
   googleApiKey: string,
+  locale: AppLocale = 'en',
   meta?: AiCallMeta
 ): Promise<{ intent: VoiceWorkoutIntent; modelUsed: string }> {
   const client = createGoogleGenAIClient(googleApiKey)
   const modelId = getGeminiModelId('audio')
 
   // Build the intent parsing prompt
-  const prompt = buildIntentParsingPrompt()
+  const prompt = buildIntentParsingPrompt(locale)
 
   // Call Gemini with audio
   const result = await generateContent(client, modelId, [
@@ -119,7 +125,7 @@ export async function parseVoiceWorkoutIntent(
     }
   } catch {
     // Fallback with transcription only
-    rawIntent = createFallbackIntent(result.text)
+    rawIntent = createFallbackIntent(result.text, locale)
   }
 
   // Resolve target name to database ID
@@ -132,7 +138,8 @@ export async function parseVoiceWorkoutIntent(
   // Resolve date and time
   const resolvedSchedule = resolveDateAndTime(
     rawIntent.schedule.dateText,
-    rawIntent.schedule.timeText
+    rawIntent.schedule.timeText,
+    locale
   )
 
   // Build the final intent
@@ -167,13 +174,17 @@ export async function transcribeVoiceAudio(
   audioBase64: string,
   mimeType: string,
   googleApiKey: string,
+  locale: AppLocale = 'en',
   meta?: AiCallMeta
 ): Promise<{ transcription: string; modelUsed: string }> {
   const client = createGoogleGenAIClient(googleApiKey)
   const modelId = getGeminiModelId('audio')
 
-  const prompt = `Transkribera denna ljudinspelning på svenska.
-Returnera endast transkriptionen, ingen annan text.`
+  const prompt = t(
+    locale,
+    'Transcribe this audio recording to clean text. Keep the same language the speaker uses. Return only the transcription, no other text.',
+    'Transkribera denna ljudinspelning på svenska. Returnera endast transkriptionen, ingen annan text.'
+  )
 
   const result = await generateContent(client, modelId, [
     createText(prompt),
@@ -194,9 +205,115 @@ Returnera endast transkriptionen, ingen annan text.`
 // ============================================
 
 /**
- * Build the Swedish prompt for intent extraction
+ * Build the prompt for intent extraction.
  */
-function buildIntentParsingPrompt(): string {
+function buildIntentParsingPrompt(locale: AppLocale): string {
+  if (locale === 'en') {
+    return `You are an experienced training coach who interprets voice commands for creating workouts.
+
+TASK: Transcribe the recording and extract structured data for training planning.
+
+## LISTEN FOR:
+
+### 1. RECIPIENT - Who should do the workout?
+- Individual athlete: "John", "Maria Andersson", "Lisa"
+- Team: "Team Alpha", "A-team", "juniors", "U19"
+- If unclear, guess "ATHLETE" with low confidence
+
+### 2. DATE/TIME - When should the workout happen?
+- Relative days: "tomorrow", "today", "the day after tomorrow"
+- Weekdays: "on Tuesday", "Thursday", "on Friday"
+- Next week: "next Monday", "next week Thursday"
+- Absolute dates: "January 27", "the 15th", "February 5"
+- Time: "at 6 pm", "at 6 in the morning", "after work", "in the morning"
+
+### 3. WORKOUT TYPE - What type of training?
+
+**CARDIO (running, cycling, swimming):**
+- "tempo", "tempo session", "threshold"
+- "intervals", "fartlek"
+- "long run", "distance session", "LSD"
+- "recovery", "recovery run"
+- Zones: "zone 2", "zone 3", "easy", "hard"
+
+**STRENGTH:**
+- "strength session", "gym"
+- "upper body", "lower body", "full body"
+- "leg day", "back session", "press session"
+- Exercises: "squat", "deadlift", "bench press"
+
+**HYBRID (CrossFit/HYROX style):**
+- "AMRAP", "for time", "EMOM"
+- "metcon", "conditioning"
+- "chipper", "couplet", "triplet"
+- "21-15-9", "Fran", "Cindy"
+
+### 4. STRUCTURE - How is the workout built?
+
+**For CARDIO:**
+- Warm-up: "10 min warm-up", "jog for 10"
+- Main set: "4x4 minutes in zone 4", "30 min tempo"
+- Recovery: "3 min rest between", "90 sec rest"
+- Cooldown: "10 min cooldown"
+
+**For STRENGTH:**
+- Sets x reps: "4 sets of 8 reps", "3x10"
+- Exercises: "start with squats, then deadlifts"
+- Rest: "90 seconds rest"
+
+**For HYBRID:**
+- Format: "20 min AMRAP", "for time with 15 min cap"
+- Movements: "10 pull-ups, 20 push-ups, 30 squats"
+- Rounds: "5 rounds of..."
+
+## OUTPUT FORMAT
+
+Respond ONLY with JSON using this schema:
+
+\`\`\`json
+{
+  "transcription": "<full transcription in English, or the speaker's language if they spoke another language>",
+  "target": {
+    "type": "ATHLETE" or "TEAM",
+    "name": "<athlete or team name>"
+  },
+  "schedule": {
+    "dateText": "<original date text, for example 'on Thursday'>",
+    "timeText": "<original time text, for example 'at 6 pm'>"
+  },
+  "workout": {
+    "type": "CARDIO" | "STRENGTH" | "HYBRID",
+    "subtype": "<more specific type, for example 'intervals', 'tempo', 'AMRAP'>",
+    "name": "<suggested workout name, for example '4x4 Intervals'>",
+    "duration": <estimated total duration in minutes>,
+    "structure": [
+      {
+        "type": "warmup" | "main" | "cooldown" | "interval" | "exercise" | "rest",
+        "duration": <minutes if applicable>,
+        "zone": <1-5 for cardio>,
+        "reps": <number of intervals/rounds>,
+        "sets": <number of sets for strength>,
+        "repsCount": "<reps as text, for example '10', '8-12', 'AMRAP'>",
+        "exerciseName": "<exercise name>",
+        "rest": <rest in seconds>,
+        "description": "<free-text description>"
+      }
+    ]
+  },
+  "confidence": <0.0-1.0, how confident you are in the interpretation>,
+  "ambiguities": ["<things that are unclear and may need clarification>"]
+}
+\`\`\`
+
+## IMPORTANT:
+- If something is not mentioned, leave the field null or use an empty array
+- Do NOT guess values that were not mentioned
+- If the recipient is unclear, set confidence low and add it to ambiguities
+- Structure workout.structure chronologically (warm-up first, etc.)
+- For intervals, include rest as a separate structure element
+- Write user-facing generated names, descriptions, and ambiguities in English unless the speaker clearly used another language`
+  }
+
   return `Du är en erfaren träningscoach som tolkar röstkommandon för att skapa träningspass.
 
 UPPGIFT: Transkribera inspelningen och extrahera strukturerad data för träningsplanering.
@@ -459,53 +576,59 @@ function calculateSimilarity(str1: string, str2: string): number {
  */
 export function resolveDateAndTime(
   dateText: string,
-  timeText?: string
+  timeText?: string,
+  locale: AppLocale = 'en'
 ): { date?: string; time?: string } {
   const result: { date?: string; time?: string } = {}
   const now = new Date()
   const lowerDate = dateText.toLowerCase().trim()
 
   // Relative days
-  if (lowerDate === 'idag' || lowerDate === 'i dag') {
+  if (lowerDate === 'today' || lowerDate === 'idag' || lowerDate === 'i dag') {
     result.date = format(now, 'yyyy-MM-dd')
-  } else if (lowerDate === 'imorgon' || lowerDate === 'i morgon') {
+  } else if (lowerDate === 'tomorrow' || lowerDate === 'imorgon' || lowerDate === 'i morgon') {
     result.date = format(addDays(now, 1), 'yyyy-MM-dd')
-  } else if (lowerDate === 'i övermorgon' || lowerDate === 'övermorgon') {
+  } else if (
+    lowerDate === 'the day after tomorrow' ||
+    lowerDate === 'day after tomorrow' ||
+    lowerDate === 'i övermorgon' ||
+    lowerDate === 'övermorgon'
+  ) {
     result.date = format(addDays(now, 2), 'yyyy-MM-dd')
   }
   // Weekdays (next occurrence)
-  else if (lowerDate.includes('måndag') || lowerDate.includes('mandag')) {
-    const isNextWeek = lowerDate.includes('nästa')
+  else if (lowerDate.includes('monday') || lowerDate.includes('måndag') || lowerDate.includes('mandag')) {
+    const isNextWeek = lowerDate.includes('next') || lowerDate.includes('nästa')
     const date = nextMonday(now)
     result.date = format(isNextWeek ? addWeeks(date, 1) : date, 'yyyy-MM-dd')
-  } else if (lowerDate.includes('tisdag')) {
-    const isNextWeek = lowerDate.includes('nästa')
+  } else if (lowerDate.includes('tuesday') || lowerDate.includes('tisdag')) {
+    const isNextWeek = lowerDate.includes('next') || lowerDate.includes('nästa')
     const date = nextTuesday(now)
     result.date = format(isNextWeek ? addWeeks(date, 1) : date, 'yyyy-MM-dd')
-  } else if (lowerDate.includes('onsdag')) {
-    const isNextWeek = lowerDate.includes('nästa')
+  } else if (lowerDate.includes('wednesday') || lowerDate.includes('onsdag')) {
+    const isNextWeek = lowerDate.includes('next') || lowerDate.includes('nästa')
     const date = nextWednesday(now)
     result.date = format(isNextWeek ? addWeeks(date, 1) : date, 'yyyy-MM-dd')
-  } else if (lowerDate.includes('torsdag')) {
-    const isNextWeek = lowerDate.includes('nästa')
+  } else if (lowerDate.includes('thursday') || lowerDate.includes('torsdag')) {
+    const isNextWeek = lowerDate.includes('next') || lowerDate.includes('nästa')
     const date = nextThursday(now)
     result.date = format(isNextWeek ? addWeeks(date, 1) : date, 'yyyy-MM-dd')
-  } else if (lowerDate.includes('fredag')) {
-    const isNextWeek = lowerDate.includes('nästa')
+  } else if (lowerDate.includes('friday') || lowerDate.includes('fredag')) {
+    const isNextWeek = lowerDate.includes('next') || lowerDate.includes('nästa')
     const date = nextFriday(now)
     result.date = format(isNextWeek ? addWeeks(date, 1) : date, 'yyyy-MM-dd')
-  } else if (lowerDate.includes('lördag') || lowerDate.includes('lordag')) {
-    const isNextWeek = lowerDate.includes('nästa')
+  } else if (lowerDate.includes('saturday') || lowerDate.includes('lördag') || lowerDate.includes('lordag')) {
+    const isNextWeek = lowerDate.includes('next') || lowerDate.includes('nästa')
     const date = nextSaturday(now)
     result.date = format(isNextWeek ? addWeeks(date, 1) : date, 'yyyy-MM-dd')
-  } else if (lowerDate.includes('söndag') || lowerDate.includes('sondag')) {
-    const isNextWeek = lowerDate.includes('nästa')
+  } else if (lowerDate.includes('sunday') || lowerDate.includes('söndag') || lowerDate.includes('sondag')) {
+    const isNextWeek = lowerDate.includes('next') || lowerDate.includes('nästa')
     const date = nextSunday(now)
     result.date = format(isNextWeek ? addWeeks(date, 1) : date, 'yyyy-MM-dd')
   }
   // Absolute dates (try various formats)
   else {
-    const absoluteDate = parseAbsoluteDate(dateText)
+    const absoluteDate = parseAbsoluteDate(dateText, locale)
     if (absoluteDate) {
       result.date = format(absoluteDate, 'yyyy-MM-dd')
     }
@@ -522,7 +645,7 @@ export function resolveDateAndTime(
 /**
  * Parse absolute date text in Swedish formats.
  */
-function parseAbsoluteDate(text: string): Date | null {
+function parseAbsoluteDate(text: string, locale: AppLocale = 'en'): Date | null {
   const now = new Date()
   const currentYear = now.getFullYear()
 
@@ -552,10 +675,18 @@ function parseAbsoluteDate(text: string): Date | null {
     nov: 10,
     december: 11,
     dec: 11,
+    january: 0,
+    february: 1,
+    march: 2,
+    may: 4,
+    june: 5,
+    july: 6,
+    august: 7,
+    october: 9,
   }
 
   // Try "27 januari" or "den 27 januari"
-  const dayMonthMatch = text.match(/(?:den\s+)?(\d{1,2})(?::?e|:?a)?\s+([a-zåäö]+)/i)
+  const dayMonthMatch = text.match(/(?:den\s+|the\s+)?(\d{1,2})(?::?e|:?a|st|nd|rd|th)?\s+([a-zåäö]+)/i)
   if (dayMonthMatch) {
     const day = parseInt(dayMonthMatch[1], 10)
     const monthName = dayMonthMatch[2].toLowerCase()
@@ -563,6 +694,21 @@ function parseAbsoluteDate(text: string): Date | null {
     if (month !== undefined && day >= 1 && day <= 31) {
       let year = currentYear
       // If the date is in the past, assume next year
+      const date = new Date(year, month, day)
+      if (date < now) {
+        year = currentYear + 1
+      }
+      return new Date(year, month, day)
+    }
+  }
+
+  const monthDayMatch = text.match(/([a-zåäö]+)\s+(\d{1,2})(?:st|nd|rd|th)?/i)
+  if (monthDayMatch) {
+    const monthName = monthDayMatch[1].toLowerCase()
+    const day = parseInt(monthDayMatch[2], 10)
+    const month = months[monthName]
+    if (month !== undefined && day >= 1 && day <= 31) {
+      let year = currentYear
       const date = new Date(year, month, day)
       if (date < now) {
         year = currentYear + 1
@@ -588,7 +734,7 @@ function parseAbsoluteDate(text: string): Date | null {
   const formats = ['d MMMM', 'd MMM', 'dd/MM', 'dd-MM', 'yyyy-MM-dd']
   for (const fmt of formats) {
     try {
-      const parsed = parse(text, fmt, now, { locale: sv })
+      const parsed = parse(text, fmt, now, { locale: locale === 'sv' ? sv : enUS })
       if (isValid(parsed)) {
         // Adjust year if parsed date is in the past
         if (parsed < now && !fmt.includes('yyyy')) {
@@ -611,15 +757,27 @@ function parseTimeText(text: string): string | undefined {
   const lower = text.toLowerCase().trim()
 
   // "kl 18", "kl. 18:30", "18:00"
-  const timeMatch = lower.match(/(?:kl\.?\s*)?(\d{1,2})(?::(\d{2}))?/)
+  const timeMatch = lower.match(/(?:kl\.?\s*|at\s*)?(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/)
   if (timeMatch) {
     let hours = parseInt(timeMatch[1], 10)
     const minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0
+    const meridiem = timeMatch[3]
 
     // Adjust for AM/PM hints
-    if (lower.includes('morgon') || lower.includes('förmiddag') || lower.includes('fm')) {
+    if (meridiem === 'am' && hours === 12) {
+      hours = 0
+    } else if (meridiem === 'pm' && hours < 12) {
+      hours += 12
+    } else if (lower.includes('morning') || lower.includes('morgon') || lower.includes('förmiddag') || lower.includes('fm')) {
       // Morning, keep as is if < 12
-    } else if (lower.includes('eftermiddag') || lower.includes('em') || lower.includes('kväll')) {
+    } else if (
+      lower.includes('afternoon') ||
+      lower.includes('evening') ||
+      lower.includes('after work') ||
+      lower.includes('eftermiddag') ||
+      lower.includes('em') ||
+      lower.includes('kväll')
+    ) {
       // Afternoon/evening, add 12 if < 12
       if (hours < 12) hours += 12
     }
@@ -631,13 +789,13 @@ function parseTimeText(text: string): string | undefined {
   }
 
   // Time of day phrases
-  if (lower.includes('morgon') || lower.includes('förmiddag')) {
+  if (lower.includes('morning') || lower.includes('morgon') || lower.includes('förmiddag')) {
     return '09:00'
   } else if (lower.includes('lunch') || lower.includes('middag')) {
     return '12:00'
-  } else if (lower.includes('eftermiddag')) {
+  } else if (lower.includes('afternoon') || lower.includes('eftermiddag')) {
     return '15:00'
-  } else if (lower.includes('kväll')) {
+  } else if (lower.includes('evening') || lower.includes('after work') || lower.includes('kväll')) {
     return '18:00'
   }
 
@@ -651,7 +809,7 @@ function parseTimeText(text: string): string | undefined {
 /**
  * Create a fallback intent when parsing fails.
  */
-function createFallbackIntent(rawText: string): ParsedIntentRaw {
+function createFallbackIntent(rawText: string, locale: AppLocale = 'en'): ParsedIntentRaw {
   return {
     transcription: rawText,
     target: {
@@ -671,10 +829,10 @@ function createFallbackIntent(rawText: string): ParsedIntentRaw {
     },
     confidence: 0.2,
     ambiguities: [
-      'Kunde inte tolka röstkommandot korrekt',
-      'Vänligen specificera mottagare (atlet eller lag)',
-      'Vänligen specificera datum',
-      'Vänligen specificera typ av pass',
+      t(locale, 'Could not interpret the voice command correctly', 'Kunde inte tolka röstkommandot korrekt'),
+      t(locale, 'Please specify recipient (athlete or team)', 'Vänligen specificera mottagare (atlet eller lag)'),
+      t(locale, 'Please specify date', 'Vänligen specificera datum'),
+      t(locale, 'Please specify workout type', 'Vänligen specificera typ av pass'),
     ],
   }
 }
