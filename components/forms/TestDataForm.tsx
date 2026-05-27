@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocale } from 'next-intl'
-import { useForm, useFieldArray } from 'react-hook-form'
+import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity, Video, Square, CheckCircle2, ExternalLink } from 'lucide-react'
 import { createTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
@@ -107,7 +107,6 @@ export function TestDataForm({
     handleSubmit,
     getValues,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<CreateTestFormData>({
     resolver: zodResolver(createTestSchema),
@@ -201,16 +200,13 @@ export function TestDataForm({
     name: 'postTestMeasurements',
   })
 
-  const inclineUnit = watch('inclineUnit') || 'PERCENT'
+  const inclineUnit = useWatch({ control, name: 'inclineUnit' }) || 'PERCENT'
   const inclineLabel = inclineUnit === 'DEGREES' ? t('Lutning (°)', 'Incline (°)') : t('Lutning (%)', 'Incline (%)')
   const stageLabelClassName = 'text-xs text-foreground dark:text-slate-100'
   const stageInputClassName = 'text-foreground placeholder:text-muted-foreground dark:border-slate-600 dark:bg-slate-950/40 dark:text-slate-100 dark:placeholder:text-slate-400 dark:[color-scheme:dark]'
 
-  const watchedStages = watch('stages')
-  const lactateWarnings = useMemo(
-    () => detectLactateDecreases(watchedStages || []),
-    [watchedStages]
-  )
+  const watchedStages = useWatch({ control, name: 'stages' })
+  const lactateWarnings = detectLactateDecreases(watchedStages || [])
 
   const [templates, setTemplates] = useState<TestTemplate[]>([])
   const [showSaveDialog, setShowSaveDialog] = useState(false)
@@ -593,7 +589,7 @@ export function TestDataForm({
 
   const handleSmartImport = useCallback((data: TestImportResult) => {
     if (data.stages.length > 0) {
-      replace(data.stages as any)
+      replace(data.stages as CreateTestFormData['stages'])
       // Auto-expand metabolic section if import contains metabolic data
       if (data.stages.some(s => s.rer != null || s.ve != null || s.fatPercent != null)) {
         setShowMetabolicData(true)
@@ -752,7 +748,7 @@ export function TestDataForm({
   }
 
   const handleLoadTemplate = (template: TestTemplate) => {
-    replace(template.stages as any)
+    replace(template.stages as CreateTestFormData['stages'])
     setShowLoadDialog(false)
     toast({
       title: t('Mall laddad!', 'Template loaded!'),
