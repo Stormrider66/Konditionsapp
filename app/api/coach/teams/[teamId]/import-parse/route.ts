@@ -60,15 +60,17 @@ type NormalizedInput =
     }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(request)
 
     const team = await getWritableTeam(user.id, teamId, scope.businessSlug, 'roster')
     if (!team) {
-      return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const limited = await rateLimitJsonResponse('teams:import-parse', user.id, {
@@ -103,7 +105,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
       const cap = isImage ? MAX_IMAGE_BYTES : MAX_FILE_BYTES
       if (file.size > cap) {
         return NextResponse.json(
-          { error: `File too large. Max ${cap / (1024 * 1024)} MB.` },
+          {
+            error: t(
+              locale,
+              `File too large. Max ${cap / (1024 * 1024)} MB.`,
+              `Filen är för stor. Max ${cap / (1024 * 1024)} MB.`
+            ),
+          },
           { status: 413 }
         )
       }
@@ -123,20 +131,25 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } catch (e) {
       logger.error('Failed to pre-process roster input', {}, e)
       return NextResponse.json(
-        { error: e instanceof Error ? e.message : 'Could not read the uploaded file' },
+        {
+          error:
+            e instanceof Error
+              ? e.message
+              : t(locale, 'Could not read the uploaded file', 'Kunde inte läsa den uppladdade filen'),
+        },
         { status: 400 }
       )
     }
 
     if (!normalized) {
       return NextResponse.json(
-        { error: 'Provide either pasted text or a file to import' },
+        { error: t(locale, 'Provide either pasted text or a file to import', 'Klistra in text eller välj en fil att importera') },
         { status: 400 }
       )
     }
     if (normalized.kind !== 'image' && normalized.body.trim().length === 0) {
       return NextResponse.json(
-        { error: 'Provide either pasted text or a file to import' },
+        { error: t(locale, 'Provide either pasted text or a file to import', 'Klistra in text eller välj en fil att importera') },
         { status: 400 }
       )
     }
@@ -158,7 +171,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           error:
             normalized.kind === 'image'
               ? t(locale, 'No image-capable AI model is configured. Add a Google, Anthropic, or OpenAI API key in settings.', 'Ingen bildkapabel AI-modell är konfigurerad. Lägg till en Google, Anthropic eller OpenAI API-nyckel i inställningarna.')
-              : 'No AI provider configured. Add an API key in settings to use the roster importer.',
+              : t(locale, 'No AI provider configured. Add an API key in settings to use the roster importer.', 'Ingen AI-leverantör är konfigurerad. Lägg till en API-nyckel i inställningarna för att använda truppimporten.'),
         },
         { status: 400 }
       )
@@ -202,10 +215,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const warnings: string[] = []
     if (normalized.kind !== 'image' && normalized.truncated) {
-      warnings.push('Input was truncated before sending to the model; review the result carefully.')
+      warnings.push(t(locale, 'Input was truncated before sending to the model; review the result carefully.', 'Innehållet kortades ner innan det skickades till modellen. Granska resultatet noggrant.'))
     }
     if (!parsedRows.ok) {
-      warnings.push(`Model output was not valid roster JSON: ${parsedRows.error}`)
+      warnings.push(t(locale, `Model output was not valid roster JSON: ${parsedRows.error}`, `Modellens svar var inte giltig trupp-JSON: ${parsedRows.error}`))
     } else if (parsedRows.rows.length === 0) {
       warnings.push(t(locale, 'AI found no players in the source.', 'AI hittade inga spelare i källan.'))
     }
@@ -220,10 +233,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Roster import-parse failed', {}, error)
-    const msg = error instanceof Error ? error.message : 'Internal server error'
+    const msg = error instanceof Error ? error.message : t(locale, 'Internal server error', 'Internt serverfel')
     return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
