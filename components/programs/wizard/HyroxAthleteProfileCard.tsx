@@ -325,7 +325,7 @@ export function HyroxAthleteProfileCard({
         if (timeGapSeconds <= 0) {
           goalAssessment = t(
             locale,
-            `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under måltiden!`,
+            `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under mål-tiden!`,
             `You are already ${formatTime(Math.abs(timeGapSeconds))} under target time!`
           )
         } else {

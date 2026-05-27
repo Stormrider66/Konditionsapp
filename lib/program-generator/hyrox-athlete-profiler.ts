@@ -565,7 +565,7 @@ function analyzeGoal(
       currentEstimatedTime: null,
       timeGapSeconds: null,
       isGoalRealistic: true,
-      goalAssessment: 'Ingen måltid angiven',
+      goalAssessment: 'Ingen mål-tid angiven',
     }
   }
 
@@ -577,7 +577,7 @@ function analyzeGoal(
       currentEstimatedTime: null,
       timeGapSeconds: null,
       isGoalRealistic: true,
-      goalAssessment: 'Kunde inte tolka måltid',
+      goalAssessment: 'Kunde inte tolka mål-tid',
     }
   }
 
@@ -607,7 +607,7 @@ function analyzeGoal(
     const improvementPercent = (timeGapSeconds / (currentEstimatedTime || 1)) * 100
 
     if (timeGapSeconds <= 0) {
-      goalAssessment = `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under måltiden!`
+      goalAssessment = `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under mål-tiden!`
       isGoalRealistic = true
     } else if (improvementPercent <= 5) {
       goalAssessment = `Målet är nåbart - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%)`
@@ -623,7 +623,7 @@ function analyzeGoal(
       isGoalRealistic = false
     }
   } else {
-    goalAssessment = `Måltid: ${formatTime(goalTimeSeconds)}. Ange stationstider för fullständig analys.`
+    goalAssessment = `Mål-tid: ${formatTime(goalTimeSeconds)}. Ange stationstider för fullständig analys.`
   }
 
   return {

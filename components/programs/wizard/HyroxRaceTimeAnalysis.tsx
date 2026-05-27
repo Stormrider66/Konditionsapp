@@ -293,20 +293,20 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
                 <>
                   <TrendingDown className="h-5 w-5 text-red-600" />
                   <span className="font-medium text-red-700 dark:text-red-400">
-                    {formatTime(Math.abs(analysis.timeToTarget))} {t(locale, 'över måltid', 'over target time')}
+                    {formatTime(Math.abs(analysis.timeToTarget))} {t(locale, 'över mål-tid', 'over target time')}
                   </span>
                 </>
               ) : (
                 <>
                   <TrendingUp className="h-5 w-5 text-green-600" />
                   <span className="font-medium text-green-700 dark:text-green-400">
-                    {formatTime(Math.abs(analysis.timeToTarget))} {t(locale, 'under måltid', 'under target time')}
+                    {formatTime(Math.abs(analysis.timeToTarget))} {t(locale, 'under mål-tid', 'under target time')}
                   </span>
                 </>
               )}
             </div>
             <p className="text-sm text-muted-foreground">
-              {t(locale, 'Måltid', 'Target time')}: {formatTime(analysis.targetTimeSeconds)}
+              {t(locale, 'Mål-tid', 'Target time')}: {formatTime(analysis.targetTimeSeconds)}
             </p>
           </div>
         )}
