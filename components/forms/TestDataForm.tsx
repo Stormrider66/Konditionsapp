@@ -748,7 +748,7 @@ export function TestDataForm({
   }
 
   const handleLoadTemplate = (template: TestTemplate) => {
-    replace(template.stages as CreateTestFormData['stages'])
+    replace(template.stages as unknown as CreateTestFormData['stages'])
     setShowLoadDialog(false)
     toast({
       title: t('Mall laddad!', 'Template loaded!'),

@@ -314,11 +314,11 @@ export async function buildChatContext(
           })
           const docMap = new Map(docs.map((d) => [d.id, d.name]))
           documentContext = `
-## RELEVANT INFORMATION FRÅN DINA DOKUMENT
+## ${t(locale, 'RELEVANT INFORMATION FROM YOUR DOCUMENTS', 'RELEVANT INFORMATION FRÅN DINA DOKUMENT')}
 
 ${chunks
   .map(
-    (c, i) => `### Källa ${i + 1}: ${docMap.get(c.documentId) || 'Dokument'}
+    (c, i) => `### ${t(locale, 'Source', 'Källa')} ${i + 1}: ${docMap.get(c.documentId) || t(locale, 'Document', 'Dokument')}
 ${c.content}
 `
   )

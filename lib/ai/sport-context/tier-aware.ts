@@ -98,7 +98,7 @@ export function buildTierAwareContext(
 
   // Basic profile is always included for paid tiers
   if (config.includeBasicProfile) {
-    context += buildBasicProfileContext(athlete);
+    context += buildBasicProfileContext(athlete, locale);
   }
 
   // Sport-specific context
