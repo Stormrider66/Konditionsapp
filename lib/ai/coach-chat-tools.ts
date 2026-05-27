@@ -2434,36 +2434,40 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
     }),
 
     createCardioSession: tool({
-      description: 'Skapa ett konditionspass/intervallpass. Sparas i Cardio Studio. Stödjer uthållighetssporter, HYROX, funktionell fitness, lagidrotter och racketsporter. För lag/racket: gör passen sportnära med repeated sprints, court/field intervals, change-of-direction, point/shift repeats och relevant prevention.',
+      description: toolText(
+        locale,
+        'Create a cardio or interval session. Saves in Cardio Studio. Supports endurance sports, HYROX, functional fitness, team sports, and racket sports. For team/racket sports: make sessions sport-specific with repeated sprints, court/field intervals, change of direction, point/shift repeats, and relevant prevention.',
+        'Skapa ett konditionspass/intervallpass. Sparas i Cardio Studio. Stödjer uthållighetssporter, HYROX, funktionell fitness, lagidrotter och racketsporter. För lag/racket: gör passen sportnära med repeated sprints, court/field intervals, change-of-direction, point/shift repeats och relevant prevention.'
+      ),
       inputSchema: z.object({
-        name: z.string().describe('Passnamn på svenska'),
-        description: z.string().optional().describe('Kort beskrivning'),
-        sport: z.enum(CARDIO_TOOL_SPORTS).default('RUNNING').describe('Sport/aktivitet. Använd TEAM_ICE_HOCKEY för hockeyspecifika 7x40/RSA/shift-repeat, TEAM_BASKETBALL för court repeats, TENNIS/PADEL för point-intervals, och motsvarande sport för övriga lagidrotter.'),
+        name: z.string().describe('Session name in the coach chat language.'),
+        description: z.string().optional().describe('Short description in the coach chat language.'),
+        sport: z.enum(CARDIO_TOOL_SPORTS).default('RUNNING').describe('Sport/activity. Use TEAM_ICE_HOCKEY for hockey-specific 7x40/RSA/shift repeats, TEAM_BASKETBALL for court repeats, TENNIS/PADEL for point intervals, and the corresponding sport for other team sports.'),
         segments: z.array(z.object({
-          type: z.enum(['WARMUP', 'COOLDOWN', 'INTERVAL', 'STEADY', 'RECOVERY', 'HILL', 'DRILLS', 'REPEAT_GROUP']).describe('Segmenttyp'),
-          duration: z.number().optional().describe('Tid i sekunder'),
-          distance: z.number().optional().describe('Distans i meter'),
-          pace: z.string().optional().describe('Tempo t.ex. "4:30" (min/km)'),
-          zone: z.number().min(1).max(5).optional().describe('Pulszon 1-5'),
-          notes: z.string().optional().describe('Instruktioner'),
-          repeats: z.number().optional().describe('Antal upprepningar (för intervaller)'),
-          restDuration: z.number().optional().describe('Vila i sekunder (mellan upprepningar)'),
-          calories: z.number().optional().describe('Kalorimål (för ergometer)'),
+          type: z.enum(['WARMUP', 'COOLDOWN', 'INTERVAL', 'STEADY', 'RECOVERY', 'HILL', 'DRILLS', 'REPEAT_GROUP']).describe('Segment type.'),
+          duration: z.number().optional().describe('Time in seconds.'),
+          distance: z.number().optional().describe('Distance in meters.'),
+          pace: z.string().optional().describe('Pace, for example "4:30" (min/km).'),
+          zone: z.number().min(1).max(5).optional().describe('Heart-rate zone 1-5.'),
+          notes: z.string().optional().describe('Instructions in the coach chat language.'),
+          repeats: z.number().optional().describe('Number of repeats for intervals.'),
+          restDuration: z.number().optional().describe('Rest in seconds between repeats.'),
+          calories: z.number().optional().describe('Calorie target for ergometers.'),
           // For REPEAT_GROUP
           steps: z.array(z.object({
-            type: z.enum(['INTERVAL', 'STEADY', 'RECOVERY']).describe('Stegtyp'),
+            type: z.enum(['INTERVAL', 'STEADY', 'RECOVERY']).describe('Step type.'),
             duration: z.number().optional(),
             distance: z.number().optional(),
             pace: z.string().optional(),
             zone: z.number().min(1).max(5).optional(),
             notes: z.string().optional(),
             calories: z.number().optional(),
-            targetType: z.string().optional().describe('Mål: watt, rpm, tempo, puls'),
-            targetValue: z.string().optional().describe('Målvärde t.ex. "250" (W)'),
-            equipment: z.string().optional().describe('Utrustning t.ex. "Wattbike"'),
-          })).optional().describe('Steg i repeat group'),
-          restBetweenRounds: z.number().optional().describe('Vila mellan rundor i sekunder'),
-        })).describe('Passets segment i ordning'),
+            targetType: z.string().optional().describe('Target type: watts, rpm, pace, heart rate.'),
+            targetValue: z.string().optional().describe('Target value, for example "250" (W).'),
+            equipment: z.string().optional().describe('Equipment, for example "Wattbike".'),
+          })).optional().describe('Steps in the repeat group.'),
+          restBetweenRounds: z.number().optional().describe('Rest between rounds in seconds.'),
+        })).describe('Session segments in order.'),
         tags: z.array(z.string()).optional(),
       }),
       execute: async ({ name, description, sport, segments, tags }) => {
@@ -2511,38 +2515,49 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             totalDuration: `${durationMin} min`,
             totalDistance: distanceKm ? `${distanceKm} km` : null,
             segmentCount: segments.length,
-            message: `Konditionspass "${name}" skapat och sparat i Cardio Studio.${distanceKm ? ` Total distans: ${distanceKm} km.` : ''} Total tid: ${durationMin} min.`,
+            message: toolText(
+              locale,
+              `Cardio session "${name}" was created and saved in Cardio Studio.${distanceKm ? ` Total distance: ${distanceKm} km.` : ''} Total time: ${durationMin} min.`,
+              `Konditionspass "${name}" skapat och sparat i Cardio Studio.${distanceKm ? ` Total distans: ${distanceKm} km.` : ''} Total tid: ${durationMin} min.`
+            ),
           }
         } catch (error) {
           logger.error('Error in createCardioSession tool', {}, error)
-          return { success: false, error: 'Kunde inte skapa konditionspass.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not create the cardio session.', 'Kunde inte skapa konditionspass.'),
+          }
         }
       },
     }),
 
     createHybridWorkout: tool({
-      description: 'Skapa ett hybridpass/funktionellt pass (CrossFit-stil, HYROX, hockey off-ice circuit etc). Sparas i Hybrid Studio. Stödjer AMRAP, For Time, EMOM, Tabata, Chipper, Ladder, Intervals, HYROX-sim och Custom. Använd detta för hockeypass med stationer som sled, carries, SkiErg, medicine ball och mixed circuits. Övningarna definieras med namn — de matchas automatiskt mot övningsbiblioteket.',
+      description: toolText(
+        locale,
+        'Create a hybrid or functional session (CrossFit-style, HYROX, hockey off-ice circuit, etc.). Saves in Hybrid Studio. Supports AMRAP, For Time, EMOM, Tabata, Chipper, Ladder, Intervals, HYROX simulation, and Custom. Use this for hockey sessions with stations such as sled, carries, SkiErg, medicine ball, and mixed circuits. Movements are defined by name and matched automatically against the exercise library.',
+        'Skapa ett hybridpass/funktionellt pass (CrossFit-stil, HYROX, hockey off-ice circuit etc). Sparas i Hybrid Studio. Stödjer AMRAP, For Time, EMOM, Tabata, Chipper, Ladder, Intervals, HYROX-sim och Custom. Använd detta för hockeypass med stationer som sled, carries, SkiErg, medicine ball och mixed circuits. Övningarna definieras med namn — de matchas automatiskt mot övningsbiblioteket.'
+      ),
       inputSchema: z.object({
-        name: z.string().describe('Passnamn'),
+        name: z.string().describe('Session name in the coach chat language.'),
         description: z.string().optional(),
-        format: z.enum(['AMRAP', 'FOR_TIME', 'EMOM', 'TABATA', 'CHIPPER', 'LADDER', 'INTERVALS', 'HYROX_SIM', 'CUSTOM']).describe('Passformat'),
-        timeCap: z.number().optional().describe('Tidsbegränsning i sekunder (0 = ingen)'),
-        workTime: z.number().optional().describe('Arbetstid per intervall (EMOM/Tabata) i sekunder'),
-        restTime: z.number().optional().describe('Vilotid per intervall i sekunder'),
-        totalRounds: z.number().optional().describe('Antal rundor'),
-        totalMinutes: z.number().optional().describe('Total tid i minuter (för AMRAP/EMOM)'),
-        repScheme: z.string().optional().describe('Repschema t.ex. "21-15-9" eller "5-5-5-5-5"'),
+        format: z.enum(['AMRAP', 'FOR_TIME', 'EMOM', 'TABATA', 'CHIPPER', 'LADDER', 'INTERVALS', 'HYROX_SIM', 'CUSTOM']).describe('Session format.'),
+        timeCap: z.number().optional().describe('Time cap in seconds (0 = none).'),
+        workTime: z.number().optional().describe('Work time per interval in seconds (EMOM/Tabata).'),
+        restTime: z.number().optional().describe('Rest time per interval in seconds.'),
+        totalRounds: z.number().optional().describe('Number of rounds.'),
+        totalMinutes: z.number().optional().describe('Total time in minutes (for AMRAP/EMOM).'),
+        repScheme: z.string().optional().describe('Rep scheme, for example "21-15-9" or "5-5-5-5-5".'),
         movements: z.array(z.object({
-          exerciseName: z.string().describe('Övningsnamn på engelska eller svenska'),
-          order: z.number().describe('Ordning'),
+          exerciseName: z.string().describe('Exercise name in English or Swedish.'),
+          order: z.number().describe('Order.'),
           reps: z.number().optional(),
           calories: z.number().optional(),
-          distance: z.number().optional().describe('Distans i meter'),
-          duration: z.number().optional().describe('Tid i sekunder'),
-          weightMale: z.number().optional().describe('Vikt herrar i kg'),
-          weightFemale: z.number().optional().describe('Vikt damer i kg'),
+          distance: z.number().optional().describe('Distance in meters.'),
+          duration: z.number().optional().describe('Time in seconds.'),
+          weightMale: z.number().optional().describe('Male/RX weight in kg.'),
+          weightFemale: z.number().optional().describe('Female/scaled weight in kg.'),
           notes: z.string().optional(),
-        })).describe('Övningar/rörelser i passet'),
+        })).describe('Exercises/movements in the session.'),
         tags: z.array(z.string()).optional(),
       }),
       execute: async ({ name, description, format, timeCap, workTime, restTime, totalRounds, totalMinutes, repScheme, movements, tags }) => {
@@ -2568,7 +2583,11 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
               duration: m.duration,
               weightMale: m.weightMale,
               weightFemale: m.weightFemale,
-              notes: m.notes ? `${m.exerciseName}: ${m.notes}` : (!match ? `⚠️ "${m.exerciseName}" — ej matchad i biblioteket` : undefined),
+              notes: m.notes
+                ? `${m.exerciseName}: ${m.notes}`
+                : (!match
+                    ? toolText(locale, `"${m.exerciseName}" - not matched in library`, `"${m.exerciseName}" - ej matchad i biblioteket`)
+                    : undefined),
             }
           })
 
@@ -2598,35 +2617,46 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             name,
             format,
             movementCount: movements.length,
-            message: `Hybridpass "${name}" (${format}) skapat med ${movements.length} övningar och sparat i Hybrid Studio.`,
+            message: toolText(
+              locale,
+              `Hybrid session "${name}" (${format}) was created with ${movements.length} movements and saved in Hybrid Studio.`,
+              `Hybridpass "${name}" (${format}) skapat med ${movements.length} övningar och sparat i Hybrid Studio.`
+            ),
           }
         } catch (error) {
           logger.error('Error in createHybridWorkout tool', {}, error)
-          return { success: false, error: 'Kunde inte skapa hybridpass.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not create the hybrid session.', 'Kunde inte skapa hybridpass.'),
+          }
         }
       },
     }),
 
     createSportWorkout: tool({
-      description: 'Skapa ett sportspecifikt träningspass med blandade sektioner. Kan kombinera uppvärmning, styrka, kondition, agility/teknik och nedvarvning i ett pass. Idealiskt för lagsporter (fotboll, ishockey, handboll, basket etc), HYROX, tennis, padel m.m. Passet sparas som en AI-genererad WOD åt en specifik atlet.',
+      description: toolText(
+        locale,
+        'Create a sport-specific workout with mixed sections. Can combine warmup, strength, conditioning, agility/technique, and cooldown in one session. Ideal for team sports (football, ice hockey, handball, basketball, etc.), HYROX, tennis, padel, and more. The session is saved as an AI-generated WOD for a specific athlete.',
+        'Skapa ett sportspecifikt träningspass med blandade sektioner. Kan kombinera uppvärmning, styrka, kondition, agility/teknik och nedvarvning i ett pass. Idealiskt för lagsporter (fotboll, ishockey, handboll, basket etc), HYROX, tennis, padel m.m. Passet sparas som en AI-genererad WOD åt en specifik atlet.'
+      ),
       inputSchema: z.object({
-        clientId: z.string().describe('Atletens client-ID'),
-        title: z.string().describe('Passtitel på svenska'),
-        description: z.string().describe('Beskrivning'),
-        sport: z.string().describe('Sport t.ex. FOOTBALL, ICE_HOCKEY, BASKETBALL, HANDBALL, HYROX, TENNIS, PADEL, RUNNING, CYCLING'),
-        duration: z.number().min(10).max(180).describe('Total tid i minuter'),
+        clientId: z.string().describe('Athlete client ID.'),
+        title: z.string().describe('Session title in the coach chat language.'),
+        description: z.string().describe('Description in the coach chat language.'),
+        sport: z.string().describe('Sport, for example FOOTBALL, ICE_HOCKEY, BASKETBALL, HANDBALL, HYROX, TENNIS, PADEL, RUNNING, CYCLING.'),
+        duration: z.number().min(10).max(180).describe('Total time in minutes.'),
         intensity: z.enum(['recovery', 'easy', 'moderate', 'threshold']).optional(),
         sections: z.array(z.object({
-          type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN', 'AGILITY', 'CONDITIONING']).describe('Sektionstyp'),
-          name: z.string().describe('Sektionsnamn på svenska'),
-          duration: z.number().describe('Sektionslängd i minuter'),
+          type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN', 'AGILITY', 'CONDITIONING']).describe('Section type.'),
+          name: z.string().describe('Section name in the coach chat language.'),
+          duration: z.number().describe('Section length in minutes.'),
           exercises: z.array(z.object({
-            name: z.string().describe('Övningsnamn på engelska'),
-            nameSv: z.string().describe('Övningsnamn på svenska'),
+            name: z.string().describe('Exercise name in English.'),
+            nameSv: z.string().describe('Exercise name in Swedish, for compatibility.'),
             sets: z.number().optional(),
             reps: z.string().optional(),
-            duration: z.number().optional().describe('Tid i sekunder'),
-            distance: z.number().optional().describe('Distans i meter'),
+            duration: z.number().optional().describe('Time in seconds.'),
+            distance: z.number().optional().describe('Distance in meters.'),
             restSeconds: z.number().optional(),
             notes: z.string().optional(),
           })),
@@ -2686,11 +2716,18 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             duration: `${duration} min`,
             totalExercises,
             sectionNames: sections.map((s) => s.name).join(', '),
-            message: `Sportpass "${title}" skapat för atleten. ${totalExercises} övningar i ${sections.length} sektioner (${sections.map(s => s.name).join(', ')}).`,
+            message: toolText(
+              locale,
+              `Sport workout "${title}" was created for the athlete. ${totalExercises} exercises in ${sections.length} sections (${sections.map(s => s.name).join(', ')}).`,
+              `Sportpass "${title}" skapat för atleten. ${totalExercises} övningar i ${sections.length} sektioner (${sections.map(s => s.name).join(', ')}).`
+            ),
           }
         } catch (error) {
           logger.error('Error in createSportWorkout tool', {}, error)
-          return { success: false, error: 'Kunde inte skapa sportpass.' }
+          return {
+            success: false,
+            error: toolText(locale, 'Could not create the sport workout.', 'Kunde inte skapa sportpass.'),
+          }
         }
       },
     }),
