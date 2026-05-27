@@ -26,7 +26,7 @@ function params(overrides: Partial<SportProgramParams> = {}): SportProgramParams
 }
 
 describe('generateHockeyProgram', () => {
-  it('creates goalie-specific in-season work with mobility and reaction emphasis', async () => {
+  it('creates English goalie-specific in-season work by default', async () => {
     const program = await generateHockeyProgram(params(), client)
 
     expect(program.weeks).toHaveLength(8)
@@ -38,8 +38,9 @@ describe('generateHockeyProgram', () => {
       .join(' ')
 
     expect(instructions).toContain('Match')
-    expect(instructions).toMatch(/Höft|höft/)
-    expect(instructions).toMatch(/reaktion|Reaktion/)
+    expect(instructions).toMatch(/Hip|hip/)
+    expect(instructions).toMatch(/reaction|Reaction/)
+    expect(JSON.stringify(program)).not.toMatch(/[åäöÅÄÖ]|\b(Vilodag|Återhämtning|Skadeprevention|Hög|istid|bytesbelastning|rörlighet)\b/)
     expect(program.planningMetadata).toMatchObject({
       sport: 'TEAM_ICE_HOCKEY',
       position: 'goalie',
@@ -47,7 +48,22 @@ describe('generateHockeyProgram', () => {
     })
   })
 
-  it('backs off off-ice load for high game and ice-time load', async () => {
+  it('preserves Swedish hockey program output when requested', async () => {
+    const program = await generateHockeyProgram(params({ locale: 'sv' }), client)
+
+    const firstWeek = program.weeks?.[0]
+    const instructions = (firstWeek?.days.flatMap((day) => day.workouts) ?? [])
+      .map((workout) => `${workout.name} ${workout.instructions}`)
+      .join(' ')
+
+    expect(program.name).toContain('Hockey säsongsunderhåll')
+    expect(instructions).toContain('Kort styrka/prehab')
+    expect(instructions).toContain('Matchförberedande aktivering')
+    expect(instructions).toMatch(/Höft|höft/)
+    expect(program.notes).toContain('Programmet styrs av säsongsfas')
+  })
+
+  it('backs off off-ice load for high game and ice-time load in English', async () => {
     const program = await generateHockeyProgram(params({
       hockeySettings: {
         position: 'defense',
@@ -63,10 +79,10 @@ describe('generateHockeyProgram', () => {
 
     const conditioning = program.weeks?.[0].days
       .flatMap((day) => day.workouts)
-      .find((workout) => workout.name.includes('Bytesintervaller'))
+      .find((workout) => workout.name.includes('Shift intervals'))
 
     expect(conditioning?.duration ?? 0).toBeLessThan(45)
-    expect(program.notes).toContain('Hög istid/bytesbelastning')
+    expect(program.notes).toContain('High ice-time/shift load')
     expect(program.planningMetadata).toMatchObject({
       sport: 'TEAM_ICE_HOCKEY',
       position: 'defense',

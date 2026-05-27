@@ -10,12 +10,14 @@ import { buildHockeyPlanningContext, type HockeyPlanningContext } from '../team-
 import { buildHockeyPlanningMetadata } from '../team-sports/planning-metadata'
 
 const DAY_MS = 24 * 60 * 60 * 1000
+type AppLocale = 'en' | 'sv'
 
 export async function generateHockeyProgram(
   params: SportProgramParams,
   client: Client
 ): Promise<CreateTrainingProgramDTO> {
-  const planning = buildHockeyPlanningContext(params)
+  const locale: AppLocale = params.locale === 'sv' ? 'sv' : 'en'
+  const planning = buildHockeyPlanningContext({ ...params, locale })
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
@@ -46,6 +48,7 @@ export async function generateHockeyProgram(
       conditioningSessions: planning.trainingLoad.conditioningSessions,
       intensityFactor,
       loadNotes: planning.loadGuidance.notes,
+      locale,
     })
 
     return {
@@ -53,7 +56,7 @@ export async function generateHockeyProgram(
       startDate: new Date(startDate.getTime() + index * 7 * DAY_MS),
       phase: periodPhase,
       volume: days.reduce((sum, day) => sum + day.workouts.reduce((total, workout) => total + (workout.duration || 0), 0), 0),
-      focus: `${planning.phaseTraining.primaryGoals[0] || 'Ishockey'} - ${planning.profile.primaryConditioningFocus[0] || planning.position}`,
+      focus: `${planning.phaseTraining.primaryGoals[0] || t(locale, 'Ice hockey', 'Ishockey')} - ${planning.profile.primaryConditioningFocus[0] || planning.position}`,
       days,
     }
   })
@@ -62,13 +65,13 @@ export async function generateHockeyProgram(
     clientId: params.clientId,
     coachId: params.coachId,
     testId: params.testId,
-    name: `${hockeyGoalLabel(params.goal)} - ${client.name}`,
+    name: `${hockeyGoalLabel(params.goal, locale)} - ${client.name}`,
     goalType: params.goal,
     startDate,
     endDate,
     notes: params.notes || [
       planning.profile.description,
-      'Programmet styrs av säsongsfas, matchbelastning och positionsspecifik skadeprevention.',
+      t(locale, 'The program is guided by season phase, match load, and position-specific injury prevention.', 'Programmet styrs av säsongsfas, matchbelastning och positionsspecifik skadeprevention.'),
       ...planning.trainingLoad.notes,
       ...planning.loadGuidance.notes,
     ].join(' '),
@@ -92,6 +95,7 @@ function buildHockeyWeek(input: {
   conditioningSessions: number
   intensityFactor: number
   loadNotes: string[]
+  locale: AppLocale
 }): CreateTrainingDayDTO[] {
   const days: CreateTrainingDayDTO[] = Array.from({ length: 7 }).map((_, index) => ({
     dayNumber: index + 1,
@@ -100,44 +104,44 @@ function buildHockeyWeek(input: {
   }))
 
   if (input.phase === 'in_season' || input.phase === 'playoffs' || input.matchesThisWeek >= 2) {
-    days[0] = withWorkout(1, recoveryWorkout('Återhämtning efter match', 'Lätt cykel/promenad, mobilitet och vätska/nutrition.'))
+    days[0] = withWorkout(1, recoveryWorkout(t(input.locale, 'Post-match recovery', 'Återhämtning efter match'), t(input.locale, 'Easy bike/walk, mobility, and fluids/nutrition.', 'Lätt cykel/promenad, mobilitet och vätska/nutrition.')))
     days[1] = input.hasGym
-      ? withWorkout(2, strengthWorkout('Kort styrka/prehab', input.profile.primaryStrengthFocus, input.prevention, 'MODERATE', input.position))
-      : withWorkout(2, mobilityWorkout('Prehab och mobilitet', input.prevention, input.position))
+      ? withWorkout(2, strengthWorkout(t(input.locale, 'Short strength/prehab', 'Kort styrka/prehab'), input.profile.primaryStrengthFocus, input.prevention, 'MODERATE', input.position, input.locale))
+      : withWorkout(2, mobilityWorkout(t(input.locale, 'Prehab and mobility', 'Prehab och mobilitet'), input.prevention, input.position, input.locale))
     days[2] = input.hasIce
-      ? withWorkout(3, iceWorkout('Is: teknik och matchtempo', input.position, input.intensityFactor, input.loadNotes))
-      : withWorkout(3, conditioningWorkout('Bytesintervaller off-ice', input.position, input.intensityFactor, input.loadNotes))
-    days[4] = withWorkout(5, activationWorkout('Matchförberedande aktivering', input.position))
-    days[5] = withWorkout(6, matchWorkout('Match', input.position))
+      ? withWorkout(3, iceWorkout(t(input.locale, 'Ice: technique and match tempo', 'Is: teknik och matchtempo'), input.position, input.intensityFactor, input.locale, input.loadNotes))
+      : withWorkout(3, conditioningWorkout(t(input.locale, 'Shift intervals off-ice', 'Bytesintervaller off-ice'), input.position, input.intensityFactor, input.locale, input.loadNotes))
+    days[4] = withWorkout(5, activationWorkout(t(input.locale, 'Match-prep activation', 'Matchförberedande aktivering'), input.position, input.locale))
+    days[5] = withWorkout(6, matchWorkout(t(input.locale, 'Match', 'Match'), input.position, input.locale))
     if (input.matchesThisWeek >= 2) {
-      days[6] = withWorkout(7, matchWorkout('Match 2', input.position))
+      days[6] = withWorkout(7, matchWorkout('Match 2', input.position, input.locale))
     }
-    return trimToSessions(days, Math.max(2, Math.min(input.requestedSessions, input.matchesThisWeek >= 2 ? 5 : 4)), [6, 7, 5, 2, 3, 1])
+    return trimToSessions(days, Math.max(2, Math.min(input.requestedSessions, input.matchesThisWeek >= 2 ? 5 : 4)), [6, 7, 5, 2, 3, 1], input.locale)
   }
 
   days[0] = input.hasGym
-    ? withWorkout(1, strengthWorkout('Maxstyrka och acceleration', input.profile.primaryStrengthFocus, input.prevention, 'THRESHOLD', input.position))
-    : withWorkout(1, mobilityWorkout('Prehab och mobilitet', input.prevention, input.position))
-  days[1] = withWorkout(2, conditioningWorkout('Hockeyspecifik kondition', input.position, input.intensityFactor, input.loadNotes))
-  days[2] = withWorkout(3, recoveryWorkout('Aktiv återhämtning', 'Lätt aerob aktivitet och rörlighet.'))
-  days[3] = withWorkout(4, powerWorkout(input.position))
+    ? withWorkout(1, strengthWorkout(t(input.locale, 'Maximum strength and acceleration', 'Maxstyrka och acceleration'), input.profile.primaryStrengthFocus, input.prevention, 'THRESHOLD', input.position, input.locale))
+    : withWorkout(1, mobilityWorkout(t(input.locale, 'Prehab and mobility', 'Prehab och mobilitet'), input.prevention, input.position, input.locale))
+  days[1] = withWorkout(2, conditioningWorkout(t(input.locale, 'Hockey-specific conditioning', 'Hockeyspecifik kondition'), input.position, input.intensityFactor, input.locale, input.loadNotes))
+  days[2] = withWorkout(3, recoveryWorkout(t(input.locale, 'Active recovery', 'Aktiv återhämtning'), t(input.locale, 'Easy aerobic activity and mobility.', 'Lätt aerob aktivitet och rörlighet.')))
+  days[3] = withWorkout(4, powerWorkout(input.position, input.locale))
   days[4] = input.hasIce
-    ? withWorkout(5, iceWorkout('Is: skills och hög fart', input.position, input.intensityFactor))
-    : withWorkout(5, conditioningWorkout('Agility och riktningsförändringar', input.position, input.intensityFactor, input.loadNotes))
+    ? withWorkout(5, iceWorkout(t(input.locale, 'Ice: skills and high speed', 'Is: skills och hög fart'), input.position, input.intensityFactor, input.locale))
+    : withWorkout(5, conditioningWorkout(t(input.locale, 'Agility and changes of direction', 'Agility och riktningsförändringar'), input.position, input.intensityFactor, input.locale, input.loadNotes))
   days[5] = input.hasGym
-    ? withWorkout(6, strengthWorkout('Unilateral styrka/prehab', input.profile.primaryStrengthFocus, input.prevention, 'MODERATE', input.position))
-    : withWorkout(6, mobilityWorkout('Rörlighet och bål', input.prevention, input.position))
+    ? withWorkout(6, strengthWorkout(t(input.locale, 'Unilateral strength/prehab', 'Unilateral styrka/prehab'), input.profile.primaryStrengthFocus, input.prevention, 'MODERATE', input.position, input.locale))
+    : withWorkout(6, mobilityWorkout(t(input.locale, 'Mobility and trunk', 'Rörlighet och bål'), input.prevention, input.position, input.locale))
 
-  return trimToSessions(days, input.requestedSessions, [1, 2, 4, 5, 6, 3])
+  return trimToSessions(days, input.requestedSessions, [1, 2, 4, 5, 6, 3], input.locale)
 }
 
 function withWorkout(dayNumber: number, workout: CreateWorkoutDTO): CreateTrainingDayDTO {
   return { dayNumber, notes: '', workouts: [workout] }
 }
 
-function trimToSessions(days: CreateTrainingDayDTO[], sessionsPerWeek: number, priorityDays: number[]): CreateTrainingDayDTO[] {
+function trimToSessions(days: CreateTrainingDayDTO[], sessionsPerWeek: number, priorityDays: number[], locale: AppLocale): CreateTrainingDayDTO[] {
   const keep = new Set(priorityDays.slice(0, sessionsPerWeek))
-  return days.map((day) => keep.has(day.dayNumber) ? day : { ...day, notes: 'Vilodag', workouts: [] })
+  return days.map((day) => keep.has(day.dayNumber) ? day : { ...day, notes: t(locale, 'Rest day', 'Vilodag'), workouts: [] })
 }
 
 function strengthWorkout(
@@ -145,7 +149,8 @@ function strengthWorkout(
   focusAreas: string[],
   prevention: HockeyPlanningContext['prevention'],
   intensity: WorkoutIntensity,
-  position: HockeyPosition
+  position: HockeyPosition,
+  locale: AppLocale
 ): CreateWorkoutDTO {
   const mainFocus = focusAreas.slice(0, 3).join(', ')
   const prehab = prevention.slice(0, position === 'goalie' ? 4 : 3).map((exercise) => `${exercise.name} (${exercise.sets || ''}x${exercise.reps || exercise.frequency || ''})`).join(', ')
@@ -154,21 +159,21 @@ function strengthWorkout(
     name,
     intensity,
     duration: position === 'goalie' ? 40 : 50,
-    instructions: `Fokus: ${mainFocus}. Skadeprevention: ${prehab}.`,
+    instructions: `${t(locale, 'Focus', 'Fokus')}: ${mainFocus}. ${t(locale, 'Injury prevention', 'Skadeprevention')}: ${prehab}.`,
     segments: [
-      { order: 1, type: 'warmup', duration: 10, description: 'Dynamisk uppvärmning och höft/ljumske-aktivering' },
-      { order: 2, type: 'exercise', duration: 30, description: mainFocus || 'Helkroppsstyrka' },
+      { order: 1, type: 'warmup', duration: 10, description: t(locale, 'Dynamic warm-up and hip/groin activation', 'Dynamisk uppvärmning och höft/ljumske-aktivering') },
+      { order: 2, type: 'exercise', duration: 30, description: mainFocus || t(locale, 'Full-body strength', 'Helkroppsstyrka') },
       { order: 3, type: 'exercise', duration: 10, description: prehab || 'Hockeyprehab' },
     ],
   }
 }
 
-function conditioningWorkout(name: string, position: HockeyPosition, factor: number, loadNotes: string[] = []): CreateWorkoutDTO {
+function conditioningWorkout(name: string, position: HockeyPosition, factor: number, locale: AppLocale, loadNotes: string[] = []): CreateWorkoutDTO {
   const isGoalie = position === 'goalie'
   const duration = Math.round((isGoalie ? 35 : 45) * factor)
   const description = isGoalie
-    ? 'Korta laterala explosiva intervaller och reaktion med lång vila.'
-    : '30-60 sek bytessimulering med kontrollerad vila och bra kvalitet.'
+    ? t(locale, 'Short lateral explosive intervals and reaction work with long recoveries.', 'Korta laterala explosiva intervaller och reaktion med lång vila.')
+    : t(locale, '30-60 sec shift simulation with controlled recovery and high quality.', '30-60 sek bytessimulering med kontrollerad vila och bra kvalitet.')
   return {
     type: 'CYCLING',
     name,
@@ -176,70 +181,70 @@ function conditioningWorkout(name: string, position: HockeyPosition, factor: num
     duration,
     instructions: [description, ...loadNotes].join(' '),
     segments: [
-      { order: 1, type: 'warmup', duration: 10, zone: 1, description: 'Lätt uppvärmning' },
+      { order: 1, type: 'warmup', duration: 10, zone: 1, description: t(locale, 'Easy warm-up', 'Lätt uppvärmning') },
       { order: 2, type: 'interval', duration: Math.max(15, duration - 20), zone: 4, description },
-      { order: 3, type: 'cooldown', duration: 10, zone: 1, description: 'Nedvarvning' },
+      { order: 3, type: 'cooldown', duration: 10, zone: 1, description: t(locale, 'Cooldown', 'Nedvarvning') },
     ],
   }
 }
 
-function powerWorkout(position: HockeyPosition): CreateWorkoutDTO {
+function powerWorkout(position: HockeyPosition, locale: AppLocale): CreateWorkoutDTO {
   const description = position === 'goalie'
-    ? 'Lateral push, reaktion och bålstabilitet.'
+    ? t(locale, 'Lateral push, reaction, and trunk stability.', 'Lateral push, reaktion och bålstabilitet.')
     : position === 'defense'
-      ? 'Lateral power, höftstyrka och explosiva riktningsförändringar.'
-      : 'Acceleration, rotation och explosiv benkraft.'
+      ? t(locale, 'Lateral power, hip strength, and explosive changes of direction.', 'Lateral power, höftstyrka och explosiva riktningsförändringar.')
+      : t(locale, 'Acceleration, rotation, and explosive leg power.', 'Acceleration, rotation och explosiv benkraft.')
   return {
     type: 'PLYOMETRIC',
-    name: 'Explosivitet och power',
+    name: t(locale, 'Explosiveness and power', 'Explosivitet och power'),
     intensity: 'INTERVAL',
     duration: 40,
     instructions: description,
     segments: [
-      { order: 1, type: 'warmup', duration: 10, description: 'Dynamisk uppvärmning' },
+      { order: 1, type: 'warmup', duration: 10, description: t(locale, 'Dynamic warm-up', 'Dynamisk uppvärmning') },
       { order: 2, type: 'work', duration: 20, description },
-      { order: 3, type: 'cooldown', duration: 10, description: 'Rörlighet höft/ljumske' },
+      { order: 3, type: 'cooldown', duration: 10, description: t(locale, 'Hip/groin mobility', 'Rörlighet höft/ljumske') },
     ],
   }
 }
 
-function iceWorkout(name: string, position: HockeyPosition, factor: number, loadNotes: string[] = []): CreateWorkoutDTO {
+function iceWorkout(name: string, position: HockeyPosition, factor: number, locale: AppLocale, loadNotes: string[] = []): CreateWorkoutDTO {
   const duration = Math.round(60 * factor)
   const baseInstructions = position === 'goalie'
-    ? 'Målvaktsspecifik is: vinklar, reaktion, lateral förflyttning och kontrollerad volym.'
-    : 'Is-pass med skridskoekonomi, riktningsförändringar och positionsspecifika moment.'
+    ? t(locale, 'Goalie-specific ice work: angles, reaction, lateral movement, and controlled volume.', 'Målvaktsspecifik is: vinklar, reaktion, lateral förflyttning och kontrollerad volym.')
+    : t(locale, 'Ice session with skating economy, changes of direction, and position-specific elements.', 'Is-pass med skridskoekonomi, riktningsförändringar och positionsspecifika moment.')
   return {
     type: 'OTHER',
     name,
     intensity: 'MODERATE',
     duration,
     instructions: [baseInstructions, ...loadNotes].join(' '),
-    segments: [{ order: 1, type: 'work', duration, description: 'Is-specifik träning' }],
+    segments: [{ order: 1, type: 'work', duration, description: t(locale, 'Ice-specific training', 'Is-specifik träning') }],
   }
 }
 
-function mobilityWorkout(name: string, prevention: HockeyPlanningContext['prevention'], position: HockeyPosition): CreateWorkoutDTO {
+function mobilityWorkout(name: string, prevention: HockeyPlanningContext['prevention'], position: HockeyPosition, locale: AppLocale): CreateWorkoutDTO {
   const exercises = prevention.map((exercise) => exercise.name).join(', ')
   return {
     type: 'RECOVERY',
     name,
     intensity: 'EASY',
     duration: position === 'goalie' ? 35 : 25,
-    instructions: `Fokus på ${exercises}.`,
+    instructions: `${t(locale, 'Focus on', 'Fokus på')} ${exercises}.`,
     segments: [{ order: 1, type: 'work', duration: position === 'goalie' ? 35 : 25, description: exercises }],
   }
 }
 
-function activationWorkout(name: string, position: HockeyPosition): CreateWorkoutDTO {
+function activationWorkout(name: string, position: HockeyPosition, locale: AppLocale): CreateWorkoutDTO {
   return {
     type: 'OTHER',
     name,
     intensity: 'EASY',
     duration: 25,
     instructions: position === 'goalie'
-      ? 'Höftmobilitet, reaktion och lätt lateral aktivering.'
-      : 'Rörlighet, korta stegringar och lätt puck-/klubbförberedelse.',
-    segments: [{ order: 1, type: 'work', duration: 25, description: 'Aktivering' }],
+      ? t(locale, 'Hip mobility, reaction, and light lateral activation.', 'Höftmobilitet, reaktion och lätt lateral aktivering.')
+      : t(locale, 'Mobility, short strides, and light puck/stick preparation.', 'Rörlighet, korta stegringar och lätt puck-/klubbförberedelse.'),
+    segments: [{ order: 1, type: 'work', duration: 25, description: t(locale, 'Activation', 'Aktivering') }],
   }
 }
 
@@ -254,13 +259,13 @@ function recoveryWorkout(name: string, instructions: string): CreateWorkoutDTO {
   }
 }
 
-function matchWorkout(name: string, position: HockeyPosition): CreateWorkoutDTO {
+function matchWorkout(name: string, position: HockeyPosition, locale: AppLocale): CreateWorkoutDTO {
   return {
     type: 'OTHER',
     name,
     intensity: 'MAX',
     duration: position === 'goalie' ? 60 : 45,
-    instructions: 'Matchdag. Logga istid, byten, RPE, eventuell smärta och återhämtning.',
+    instructions: t(locale, 'Match day. Log ice time, shifts, RPE, any pain, and recovery.', 'Matchdag. Logga istid, byten, RPE, eventuell smärta och återhämtning.'),
     segments: [{ order: 1, type: 'work', duration: 60, description: 'Match' }],
   }
 }
@@ -280,15 +285,19 @@ function getWeekIntensityFactor(week: number, totalWeeks: number, goal: string):
   return 1
 }
 
-function hockeyGoalLabel(goal: string): string {
-  const labels: Record<string, string> = {
-    'off-season-build': 'Hockey off-season',
-    'pre-season-readiness': 'Hockey försäsong',
-    'in-season-maintenance': 'Hockey säsongsunderhåll',
-    'speed-power': 'Hockey snabbhet & power',
-    'injury-prevention': 'Hockey skadeprevention',
-    'return-to-play': 'Hockey return to play',
-    custom: 'Hockeyprogram',
+function hockeyGoalLabel(goal: string, locale: AppLocale): string {
+  const labels: Record<string, { en: string; sv: string }> = {
+    'off-season-build': { en: 'Hockey off-season', sv: 'Hockey off-season' },
+    'pre-season-readiness': { en: 'Hockey pre-season', sv: 'Hockey försäsong' },
+    'in-season-maintenance': { en: 'Hockey in-season maintenance', sv: 'Hockey säsongsunderhåll' },
+    'speed-power': { en: 'Hockey speed & power', sv: 'Hockey snabbhet & power' },
+    'injury-prevention': { en: 'Hockey injury prevention', sv: 'Hockey skadeprevention' },
+    'return-to-play': { en: 'Hockey return to play', sv: 'Hockey return to play' },
+    custom: { en: 'Hockey program', sv: 'Hockeyprogram' },
   }
-  return labels[goal] || 'Hockeyprogram'
+  return labels[goal]?.[locale] || t(locale, 'Hockey program', 'Hockeyprogram')
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

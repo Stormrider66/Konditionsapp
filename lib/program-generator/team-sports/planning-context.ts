@@ -105,7 +105,9 @@ export function buildHockeyPlanningContext(input: {
   goal: string
   sessionsPerWeek?: number
   hockeySettings?: unknown
+  locale?: AppLocale
 }): HockeyPlanningContext {
+  const locale = input.locale === 'sv' ? 'sv' : 'en'
   const settings = normalizeHockeySettings(input.hockeySettings)
   const position = settings.position || 'center'
   const phase = settings.seasonPhase || inferHockeySeasonPhase(input.goal)
@@ -118,11 +120,11 @@ export function buildHockeyPlanningContext(input: {
     phase,
     matchesThisWeek,
     requestedSessions,
-    profile: getHockeyPositionRecommendations(position, 'sv'),
-    phaseTraining: getHockeySeasonPhaseTraining(phase, 'sv'),
-    prevention: getHockeyInjuryPreventionExercises(position, 'sv'),
-    trainingLoad: calculateTrainingLoad(position, phase, matchesThisWeek, 'sv'),
-    loadGuidance: getHockeyLoadGuidance(settings, matchesThisWeek),
+    profile: getHockeyPositionRecommendations(position, locale),
+    phaseTraining: getHockeySeasonPhaseTraining(phase, locale),
+    prevention: getHockeyInjuryPreventionExercises(position, locale),
+    trainingLoad: calculateTrainingLoad(position, phase, matchesThisWeek, locale),
+    loadGuidance: getHockeyLoadGuidance(settings, matchesThisWeek, locale),
   }
 }
 
@@ -183,22 +185,23 @@ function t(locale: AppLocale, en: string, sv: string): string {
 
 export function getHockeyLoadGuidance(
   settings: HockeyProgramSettings,
-  matchesThisWeek: number
+  matchesThisWeek: number,
+  locale: AppLocale = 'en'
 ): TeamSportLoadGuidance {
   const notes: string[] = []
   let intensityMultiplier = 1
 
   if (matchesThisWeek >= 3) {
     intensityMultiplier = Math.min(intensityMultiplier, 0.65)
-    notes.push('Mycket hög matchbelastning: minimera extra off-ice intensitet.')
+    notes.push(t(locale, 'Very high match load: minimize extra off-ice intensity.', 'Mycket hög matchbelastning: minimera extra off-ice intensitet.'))
   } else if (matchesThisWeek === 2) {
     intensityMultiplier = Math.min(intensityMultiplier, 0.8)
-    notes.push('Två matcher denna vecka: prioritera återhämtning och korta kvalitetspass.')
+    notes.push(t(locale, 'Two matches this week: prioritize recovery and short quality sessions.', 'Två matcher denna vecka: prioritera återhämtning och korta kvalitetspass.'))
   }
 
   if ((settings.averageIceTimeMinutes ?? 0) >= 22 || (settings.shiftsPerGame ?? 0) >= 26) {
     intensityMultiplier = Math.min(intensityMultiplier, 0.85)
-    notes.push('Hög istid/bytesbelastning: reducera extra intervallvolym och följ RPE noga.')
+    notes.push(t(locale, 'High ice-time/shift load: reduce extra interval volume and monitor RPE closely.', 'Hög istid/bytesbelastning: reducera extra intervallvolym och följ RPE noga.'))
   }
 
   return { intensityMultiplier, notes }
