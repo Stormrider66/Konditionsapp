@@ -108,8 +108,8 @@ export function GoalProjection({ measurements, options, className }: GoalProject
   const t = useTranslations('components.goalProjection')
   const locale = useLocale()
   const analysis = useMemo(
-    () => analyzeBodyComposition(measurements, options),
-    [measurements, options]
+    () => analyzeBodyComposition(measurements, { ...options, locale }),
+    [measurements, options, locale]
   )
 
   const latestMeasurement = measurements

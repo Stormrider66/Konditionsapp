@@ -20,7 +20,7 @@ import {
   type AnalysisOptions
 } from '@/lib/ai/body-composition-analyzer'
 import { cn } from '@/lib/utils'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface TrendAnalysisProps {
   measurements: BodyCompositionMeasurement[]
@@ -104,9 +104,10 @@ function TrendCard({
 
 export function TrendAnalysis({ measurements, options, className }: TrendAnalysisProps) {
   const t = useTranslations('components.trendAnalysis')
+  const locale = useLocale()
   const analysis = useMemo(
-    () => analyzeBodyComposition(measurements, options),
-    [measurements, options]
+    () => analyzeBodyComposition(measurements, { ...options, locale }),
+    [measurements, options, locale]
   )
 
   const latestMeasurement = measurements
