@@ -119,8 +119,8 @@ function escapeHtml(value: string): string {
 export async function sendTestResultInvite(
   opts: SendOptions,
 ): Promise<SendTestResultInviteResult> {
-  const locale = opts.locale || 'en'
-  const copy = getCopy(locale)
+  const fallbackLocale = opts.locale || 'en'
+  const fallbackCopy = getCopy(fallbackLocale)
 
   // 1. Load the test + client + business + tester + coach
   const test = await prisma.test.findUnique({
@@ -139,7 +139,7 @@ export async function sendTestResultInvite(
           businessId: true,
           business: { select: { slug: true } },
           athleteAccount: {
-            select: { id: true, userId: true, user: { select: { email: true } } },
+            select: { id: true, userId: true, user: { select: { email: true, language: true } } },
           },
         },
       },
@@ -148,16 +148,19 @@ export async function sendTestResultInvite(
     },
   })
 
-  if (!test) return { success: false, error: copy.testNotFound }
+  if (!test) return { success: false, error: fallbackCopy.testNotFound }
   if (!test.client.email) {
-    return { success: false, error: copy.missingEmail }
+    return { success: false, error: fallbackCopy.missingEmail }
   }
   if (!test.client.business?.slug) {
     return {
       success: false,
-      error: copy.missingBusiness,
+      error: fallbackCopy.missingBusiness,
     }
   }
+
+  const locale: EmailLocale = test.client.athleteAccount?.user?.language === 'sv' ? 'sv' : 'en'
+  const copy = getCopy(locale)
 
   const businessSlug = test.client.business.slug
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'
@@ -172,7 +175,7 @@ export async function sendTestResultInvite(
     if (!created.success) {
       return {
         success: false,
-        error: created.error || copy.accountCreateFailed,
+        error: created.error || fallbackCopy.accountCreateFailed,
       }
     }
     athleteAccountCreated = true
