@@ -115,7 +115,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Standard algorithmic analysis
-    const analysis = await analyzePeriodization(clientId, programId)
+    const analysis = await analyzePeriodization(clientId, programId, locale)
 
     return NextResponse.json({
       success: true,
@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const analysis = await analyzePeriodization(clientId, programId)
+    const analysis = await analyzePeriodization(clientId, programId, locale)
 
     // If applyAdjustments is true, we would apply the adjustments to the program
     // This would involve updating the program in the database

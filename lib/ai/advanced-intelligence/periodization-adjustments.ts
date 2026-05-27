@@ -3,6 +3,8 @@
 
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
 export interface PeriodizationAdjustment {
   type: 'volume' | 'intensity' | 'frequency' | 'recovery' | 'phase'
   urgency: 'immediate' | 'soon' | 'planned'
@@ -51,7 +53,8 @@ export interface WeeklyAdjustment {
  */
 export async function analyzePeriodization(
   clientId: string,
-  programId?: string
+  programId?: string,
+  locale: AppLocale = 'en'
 ): Promise<PeriodizationAnalysis> {
   // Fetch training data
   const [
@@ -90,22 +93,22 @@ export async function analyzePeriodization(
   ])
 
   // Determine current phase from program or infer
-  const currentPhase = determineCurrentPhase(program, workoutLogs, trainingLoads)
+  const currentPhase = determineCurrentPhase(program, workoutLogs, trainingLoads, locale)
 
   // Analyze response to training
   const responseAnalysis = analyzeTrainingResponse(workoutLogs, checkIns, trainingLoads)
 
   // Generate adjustments based on analysis
-  const adjustments = generateAdjustments(currentPhase, responseAnalysis, trainingLoads)
+  const adjustments = generateAdjustments(currentPhase, responseAnalysis, trainingLoads, locale)
 
   // Check for warnings
-  const warnings = detectWarnings(trainingLoads, checkIns, responseAnalysis)
+  const warnings = detectWarnings(trainingLoads, checkIns, responseAnalysis, locale)
 
   // Generate weekly plan adjustments
-  const weeklyPlan = generateWeeklyPlan(currentPhase, adjustments, responseAnalysis)
+  const weeklyPlan = generateWeeklyPlan(currentPhase, adjustments, responseAnalysis, locale)
 
   // Determine if phase change is needed
-  const recommendedPhase = shouldChangePhase(currentPhase, responseAnalysis, fieldTests)
+  const recommendedPhase = shouldChangePhase(currentPhase, responseAnalysis, fieldTests, locale)
 
   return {
     currentPhase,
@@ -127,10 +130,15 @@ interface TrainingResponse {
   acwrStatus: 'safe' | 'moderate' | 'risky'
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function determineCurrentPhase(
   program: { weeks: { weekNumber: number; focus: string | null }[] } | null,
   workoutLogs: { duration: number | null; perceivedEffort: number | null }[],
-  trainingLoads: { dailyLoad: number }[]
+  trainingLoads: { dailyLoad: number }[],
+  locale: AppLocale = 'en'
 ): TrainingPhase {
   // Try to get from program
   if (program && program.weeks.length > 0) {
@@ -147,7 +155,7 @@ function determineCurrentPhase(
       name: phase,
       weekNumber: currentWeek.weekNumber,
       totalWeeks: program.weeks.length,
-      focus: currentWeek.focus || 'Aerob bas',
+      focus: currentWeek.focus || t(locale, 'Aerobic base', 'Aerob bas'),
       targetVolume: calculateTargetVolume(phase),
       targetIntensity: calculateTargetIntensity(phase),
     }
@@ -170,7 +178,7 @@ function determineCurrentPhase(
     name: inferredPhase,
     weekNumber: 1,
     totalWeeks: 12,
-    focus: getPhaseDescription(inferredPhase),
+    focus: getPhaseDescription(inferredPhase, locale),
     targetVolume: calculateTargetVolume(inferredPhase),
     targetIntensity: calculateTargetIntensity(inferredPhase),
   }
@@ -255,7 +263,8 @@ function analyzeTrainingResponse(
 function generateAdjustments(
   currentPhase: TrainingPhase,
   response: TrainingResponse,
-  trainingLoads: { dailyLoad: number }[]
+  trainingLoads: { dailyLoad: number }[],
+  locale: AppLocale = 'en'
 ): PeriodizationAdjustment[] {
   const adjustments: PeriodizationAdjustment[] = []
 
@@ -264,21 +273,21 @@ function generateAdjustments(
     adjustments.push({
       type: 'volume',
       urgency: response.acwrStatus === 'risky' ? 'immediate' : 'soon',
-      currentValue: 'Hög belastning',
-      recommendedValue: 'Reducera med 20-30%',
-      rationale: 'Högt upplevd ansträngning indikerar att volymen är för hög',
+      currentValue: t(locale, 'High load', 'Hög belastning'),
+      recommendedValue: t(locale, 'Reduce by 20-30%', 'Reducera med 20-30%'),
+      rationale: t(locale, 'High perceived effort indicates that volume is too high', 'Högt upplevd ansträngning indikerar att volymen är för hög'),
       confidence: 0.85,
-      triggers: ['Hög RPE', 'Långsam återhämtning'],
+      triggers: [t(locale, 'High RPE', 'Hög RPE'), t(locale, 'Slow recovery', 'Långsam återhämtning')],
     })
   } else if (response.volumeTolerance === 'under-stimulated') {
     adjustments.push({
       type: 'volume',
       urgency: 'planned',
-      currentValue: 'Låg belastning',
-      recommendedValue: 'Öka med 10-15%',
-      rationale: 'Utrymme finns för ökad träningsvolym',
+      currentValue: t(locale, 'Low load', 'Låg belastning'),
+      recommendedValue: t(locale, 'Increase by 10-15%', 'Öka med 10-15%'),
+      rationale: t(locale, 'There is room for increased training volume', 'Utrymme finns för ökad träningsvolym'),
       confidence: 0.75,
-      triggers: ['Låg RPE', 'Snabb återhämtning'],
+      triggers: [t(locale, 'Low RPE', 'Låg RPE'), t(locale, 'Fast recovery', 'Snabb återhämtning')],
     })
   }
 
@@ -287,11 +296,11 @@ function generateAdjustments(
     adjustments.push({
       type: 'intensity',
       urgency: 'soon',
-      currentValue: 'Hög intensitet',
-      recommendedValue: 'Mer lågintensiv träning',
-      rationale: 'Negativ respons på intensitet - prioritera återhämtning',
+      currentValue: t(locale, 'High intensity', 'Hög intensitet'),
+      recommendedValue: t(locale, 'More low-intensity training', 'Mer lågintensiv träning'),
+      rationale: t(locale, 'Negative response to intensity - prioritize recovery', 'Negativ respons på intensitet - prioritera återhämtning'),
       confidence: 0.8,
-      triggers: ['Avtagande prestanda', 'Hög trötthet'],
+      triggers: [t(locale, 'Declining performance', 'Avtagande prestanda'), t(locale, 'High fatigue', 'Hög trötthet')],
     })
   }
 
@@ -300,11 +309,11 @@ function generateAdjustments(
     adjustments.push({
       type: 'recovery',
       urgency: response.fatigueLevel === 'high' ? 'immediate' : 'soon',
-      currentValue: `${response.readinessAverage.toFixed(0)}% beredskap`,
-      recommendedValue: 'Lägg till extra vilodag',
-      rationale: 'Långsam återhämtning kräver mer vila mellan pass',
+      currentValue: t(locale, `${response.readinessAverage.toFixed(0)}% readiness`, `${response.readinessAverage.toFixed(0)}% beredskap`),
+      recommendedValue: t(locale, 'Add an extra rest day', 'Lägg till extra vilodag'),
+      rationale: t(locale, 'Slow recovery requires more rest between sessions', 'Långsam återhämtning kräver mer vila mellan pass'),
       confidence: 0.85,
-      triggers: ['Låg beredskap', 'Hög muskelömhet'],
+      triggers: [t(locale, 'Low readiness', 'Låg beredskap'), t(locale, 'High muscle soreness', 'Hög muskelömhet')],
     })
   }
 
@@ -313,11 +322,11 @@ function generateAdjustments(
     adjustments.push({
       type: 'frequency',
       urgency: 'soon',
-      currentValue: 'Nuvarande frekvens',
-      recommendedValue: 'Minska med 1 pass/vecka',
-      rationale: 'Kombinerad hög trötthet och långsam återhämtning',
+      currentValue: t(locale, 'Current frequency', 'Nuvarande frekvens'),
+      recommendedValue: t(locale, 'Reduce by 1 session/week', 'Minska med 1 pass/vecka'),
+      rationale: t(locale, 'Combined high fatigue and slow recovery', 'Kombinerad hög trötthet och långsam återhämtning'),
       confidence: 0.8,
-      triggers: ['Hög trötthet', 'Långsam återhämtning'],
+      triggers: [t(locale, 'High fatigue', 'Hög trötthet'), t(locale, 'Slow recovery', 'Långsam återhämtning')],
     })
   }
 
@@ -326,11 +335,11 @@ function generateAdjustments(
     adjustments.push({
       type: 'phase',
       urgency: 'planned',
-      currentValue: getPhaseDescription(currentPhase.name),
-      recommendedValue: getNextPhaseRecommendation(currentPhase, response),
-      rationale: getPhaseChangeRationale(currentPhase, response),
+      currentValue: getPhaseDescription(currentPhase.name, locale),
+      recommendedValue: getNextPhaseRecommendation(currentPhase, response, locale),
+      rationale: getPhaseChangeRationale(currentPhase, response, locale),
       confidence: 0.7,
-      triggers: ['Fasutveckling', 'Träningsrespons'],
+      triggers: [t(locale, 'Phase progression', 'Fasutveckling'), t(locale, 'Training response', 'Träningsrespons')],
     })
   }
 
@@ -340,7 +349,8 @@ function generateAdjustments(
 function detectWarnings(
   trainingLoads: { dailyLoad: number; acwr: number | null }[],
   checkIns: { readinessScore: number | null; fatigue: number }[],
-  response: TrainingResponse
+  response: TrainingResponse,
+  locale: AppLocale = 'en'
 ): PeriodizationWarning[] {
   const warnings: PeriodizationWarning[] = []
 
@@ -350,15 +360,15 @@ function detectWarnings(
     warnings.push({
       type: 'injury_risk',
       severity: 'high',
-      message: `ACWR på ${recentACWR.toFixed(2)} indikerar förhöjd skaderisk`,
-      action: 'Reducera träningsbelastning omedelbart med 30-40%',
+      message: t(locale, `ACWR of ${recentACWR.toFixed(2)} indicates elevated injury risk`, `ACWR på ${recentACWR.toFixed(2)} indikerar förhöjd skaderisk`),
+      action: t(locale, 'Reduce training load immediately by 30-40%', 'Reducera träningsbelastning omedelbart med 30-40%'),
     })
   } else if (recentACWR > 1.3) {
     warnings.push({
       type: 'injury_risk',
       severity: 'medium',
-      message: `ACWR på ${recentACWR.toFixed(2)} närmar sig riskzonen`,
-      action: 'Undvik ytterligare belastningsökning denna vecka',
+      message: t(locale, `ACWR of ${recentACWR.toFixed(2)} is approaching the risk zone`, `ACWR på ${recentACWR.toFixed(2)} närmar sig riskzonen`),
+      action: t(locale, 'Avoid further load increases this week', 'Undvik ytterligare belastningsökning denna vecka'),
     })
   }
 
@@ -367,8 +377,8 @@ function detectWarnings(
     warnings.push({
       type: 'overtraining',
       severity: 'high',
-      message: 'Tecken på överträning: hög trötthet + avtagande prestanda',
-      action: 'Implementera återhämtningsvecka (50% volym, ingen intensitet)',
+      message: t(locale, 'Signs of overtraining: high fatigue + declining performance', 'Tecken på överträning: hög trötthet + avtagande prestanda'),
+      action: t(locale, 'Implement a recovery week (50% volume, no intensity)', 'Implementera återhämtningsvecka (50% volym, ingen intensitet)'),
     })
   }
 
@@ -377,8 +387,8 @@ function detectWarnings(
     warnings.push({
       type: 'undertraining',
       severity: 'low',
-      message: 'Träningen kan vara för lätt för optimal utveckling',
-      action: 'Överväg gradvis volym- eller intensitetsökning',
+      message: t(locale, 'Training may be too easy for optimal development', 'Träningen kan vara för lätt för optimal utveckling'),
+      action: t(locale, 'Consider gradual volume or intensity increases', 'Överväg gradvis volym- eller intensitetsökning'),
     })
   }
 
@@ -389,8 +399,8 @@ function detectWarnings(
       warnings.push({
         type: 'plateau',
         severity: 'low',
-        message: 'Prestationen har varit stabil i 4+ veckor',
-        action: 'Överväg periodiseringsbyte eller nya stimuli',
+        message: t(locale, 'Performance has been stable for 4+ weeks', 'Prestationen har varit stabil i 4+ veckor'),
+        action: t(locale, 'Consider a periodization change or new training stimuli', 'Överväg periodiseringsbyte eller nya stimuli'),
       })
     }
   }
@@ -400,8 +410,8 @@ function detectWarnings(
     warnings.push({
       type: 'imbalance',
       severity: 'medium',
-      message: 'Obalans mellan volym och intensitetstolerans',
-      action: 'Justera intensitetsfördelningen (mer 80/20)',
+      message: t(locale, 'Imbalance between volume and intensity tolerance', 'Obalans mellan volym och intensitetstolerans'),
+      action: t(locale, 'Adjust intensity distribution (more 80/20)', 'Justera intensitetsfördelningen (mer 80/20)'),
     })
   }
 
@@ -411,7 +421,8 @@ function detectWarnings(
 function generateWeeklyPlan(
   currentPhase: TrainingPhase,
   adjustments: PeriodizationAdjustment[],
-  response: TrainingResponse
+  response: TrainingResponse,
+  locale: AppLocale = 'en'
 ): WeeklyAdjustment[] {
   const plan: WeeklyAdjustment[] = []
 
@@ -430,26 +441,26 @@ function generateWeeklyPlan(
     if (week === 1) {
       if (immediateVolumeAdjust) {
         volumeChange = -25
-        focus = 'Återhämtning och justering'
+        focus = t(locale, 'Recovery and adjustment', 'Återhämtning och justering')
       } else if (response.fatigueLevel === 'high') {
         volumeChange = -20
-        focus = 'Lätt vecka'
+        focus = t(locale, 'Easy week', 'Lätt vecka')
       }
 
       keyWorkouts = response.fatigueLevel === 'high'
-        ? ['Lätt distans', 'Mobilitet']
-        : getKeyWorkouts(currentPhase.name)
+        ? [t(locale, 'Easy endurance', 'Lätt distans'), t(locale, 'Mobility', 'Mobilitet')]
+        : getKeyWorkouts(currentPhase.name, locale)
     }
 
     // Week 2 - gradual adjustments
     if (week === 2) {
       if (volumeAdjust?.urgency === 'soon') {
-        volumeChange = volumeAdjust.currentValue.includes('Hög') ? -15 : 10
+        volumeChange = volumeAdjust.type === 'volume' && response.volumeTolerance === 'struggling' ? -15 : 10
       }
       if (intensityAdjust) {
         intensityChange = -10
       }
-      keyWorkouts = getKeyWorkouts(currentPhase.name)
+      keyWorkouts = getKeyWorkouts(currentPhase.name, locale)
       focus = currentPhase.focus
     }
 
@@ -457,7 +468,7 @@ function generateWeeklyPlan(
     if (week === 3) {
       volumeChange = response.volumeTolerance === 'good' ? 5 : 0
       intensityChange = response.intensityResponse === 'positive' ? 5 : 0
-      keyWorkouts = getKeyWorkouts(currentPhase.name)
+      keyWorkouts = getKeyWorkouts(currentPhase.name, locale)
       focus = currentPhase.focus
     }
 
@@ -465,8 +476,8 @@ function generateWeeklyPlan(
     if (week === 4) {
       volumeChange = -15
       intensityChange = -10
-      keyWorkouts = ['Lätt distans', 'Tekniskt fokus', 'Mobilitet']
-      focus = 'Återhämtning och konsolidering'
+      keyWorkouts = [t(locale, 'Easy endurance', 'Lätt distans'), t(locale, 'Technical focus', 'Tekniskt fokus'), t(locale, 'Mobility', 'Mobilitet')]
+      focus = t(locale, 'Recovery and consolidation', 'Återhämtning och konsolidering')
     }
 
     plan.push({
@@ -484,7 +495,8 @@ function generateWeeklyPlan(
 function shouldChangePhase(
   currentPhase: TrainingPhase,
   response: TrainingResponse,
-  fieldTests: { date: Date; confidence: string | null }[]
+  fieldTests: { date: Date; confidence: string | null }[],
+  locale: AppLocale = 'en'
 ): TrainingPhase | null {
   // Check if phase duration reached
   const phaseProgress = calculatePhaseProgress(currentPhase)
@@ -510,7 +522,7 @@ function shouldChangePhase(
     name: nextPhaseName,
     weekNumber: 1,
     totalWeeks: getDefaultPhaseLength(nextPhaseName),
-    focus: getPhaseDescription(nextPhaseName),
+    focus: getPhaseDescription(nextPhaseName, locale),
     targetVolume: calculateTargetVolume(nextPhaseName),
     targetIntensity: calculateTargetIntensity(nextPhaseName),
   }
@@ -539,26 +551,26 @@ function calculateTargetIntensity(phase: TrainingPhase['name']): number {
   return intensities[phase]
 }
 
-function getPhaseDescription(phase: TrainingPhase['name']): string {
-  const descriptions: Record<TrainingPhase['name'], string> = {
-    'BASE': 'Aerob bas - bygga uthållighet',
-    'BUILD': 'Bygg - öka specifik kapacitet',
-    'PEAK': 'Topp - maximal anpassning',
-    'RACE': 'Tävling - prestation',
-    'RECOVERY': 'Återhämtning - vila och förnyelse',
+function getPhaseDescription(phase: TrainingPhase['name'], locale: AppLocale = 'en'): string {
+  const descriptions: Record<TrainingPhase['name'], Record<AppLocale, string>> = {
+    'BASE': { en: 'Aerobic base - build endurance', sv: 'Aerob bas - bygga uthållighet' },
+    'BUILD': { en: 'Build - increase specific capacity', sv: 'Bygg - öka specifik kapacitet' },
+    'PEAK': { en: 'Peak - maximize adaptation', sv: 'Topp - maximal anpassning' },
+    'RACE': { en: 'Race - performance', sv: 'Tävling - prestation' },
+    'RECOVERY': { en: 'Recovery - rest and renewal', sv: 'Återhämtning - vila och förnyelse' },
   }
-  return descriptions[phase]
+  return descriptions[phase][locale]
 }
 
-function getKeyWorkouts(phase: TrainingPhase['name']): string[] {
-  const workouts: Record<TrainingPhase['name'], string[]> = {
-    'BASE': ['Långpass', 'Fartlek', 'Stärkande'],
-    'BUILD': ['Tempopass', 'Intervaller', 'Långpass'],
-    'PEAK': ['Tävlingsspecifik', 'Intensiva intervaller', 'Testpass'],
-    'RACE': ['Aktivering', 'Lätt löpning', 'Mentalt fokus'],
-    'RECOVERY': ['Lätt distans', 'Korsträning', 'Mobilitet'],
+function getKeyWorkouts(phase: TrainingPhase['name'], locale: AppLocale = 'en'): string[] {
+  const workouts: Record<TrainingPhase['name'], Record<AppLocale, string[]>> = {
+    'BASE': { en: ['Long session', 'Fartlek', 'Strength support'], sv: ['Långpass', 'Fartlek', 'Stärkande'] },
+    'BUILD': { en: ['Tempo session', 'Intervals', 'Long session'], sv: ['Tempopass', 'Intervaller', 'Långpass'] },
+    'PEAK': { en: ['Race-specific', 'Intensive intervals', 'Test session'], sv: ['Tävlingsspecifik', 'Intensiva intervaller', 'Testpass'] },
+    'RACE': { en: ['Activation', 'Easy run', 'Mental focus'], sv: ['Aktivering', 'Lätt löpning', 'Mentalt fokus'] },
+    'RECOVERY': { en: ['Easy endurance', 'Cross-training', 'Mobility'], sv: ['Lätt distans', 'Korsträning', 'Mobilitet'] },
   }
-  return workouts[phase]
+  return workouts[phase][locale]
 }
 
 function getDefaultPhaseLength(phase: TrainingPhase['name']): number {
@@ -601,34 +613,36 @@ function shouldRecommendPhaseChange(
 
 function getNextPhaseRecommendation(
   currentPhase: TrainingPhase,
-  response: TrainingResponse
+  response: TrainingResponse,
+  locale: AppLocale = 'en'
 ): string {
   if (response.volumeTolerance === 'struggling' || response.fatigueLevel === 'high') {
-    return 'Återhämtningsfas (2 veckor)'
+    return t(locale, 'Recovery phase (2 weeks)', 'Återhämtningsfas (2 veckor)')
   }
 
-  const nextPhaseMap: Record<TrainingPhase['name'], string> = {
-    'BASE': 'Byggfas - öka specifik kapacitet',
-    'BUILD': 'Toppfas - maximal anpassning',
-    'PEAK': 'Tävlingsfas',
-    'RACE': 'Återhämtningsfas',
-    'RECOVERY': 'Ny basfas',
+  const nextPhaseMap: Record<TrainingPhase['name'], Record<AppLocale, string>> = {
+    'BASE': { en: 'Build phase - increase specific capacity', sv: 'Byggfas - öka specifik kapacitet' },
+    'BUILD': { en: 'Peak phase - maximize adaptation', sv: 'Toppfas - maximal anpassning' },
+    'PEAK': { en: 'Race phase', sv: 'Tävlingsfas' },
+    'RACE': { en: 'Recovery phase', sv: 'Återhämtningsfas' },
+    'RECOVERY': { en: 'New base phase', sv: 'Ny basfas' },
   }
 
-  return nextPhaseMap[currentPhase.name]
+  return nextPhaseMap[currentPhase.name][locale]
 }
 
 function getPhaseChangeRationale(
   currentPhase: TrainingPhase,
-  response: TrainingResponse
+  response: TrainingResponse,
+  locale: AppLocale = 'en'
 ): string {
   if (response.volumeTolerance === 'struggling') {
-    return 'Hög belastning kräver återhämtning innan fortsatt utveckling'
+    return t(locale, 'High load requires recovery before continued development', 'Hög belastning kräver återhämtning innan fortsatt utveckling')
   }
 
   if (response.performanceTrend === 'improving') {
-    return 'Positiv träningsrespons indikerar redo för nästa fas'
+    return t(locale, 'Positive training response indicates readiness for the next phase', 'Positiv träningsrespons indikerar redo för nästa fas')
   }
 
-  return `Fasperiod (${currentPhase.totalWeeks} veckor) närmar sig slutet`
+  return t(locale, `Phase period (${currentPhase.totalWeeks} weeks) is nearing its end`, `Fasperiod (${currentPhase.totalWeeks} veckor) närmar sig slutet`)
 }
