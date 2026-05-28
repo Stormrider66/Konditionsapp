@@ -14,7 +14,6 @@ import {
   Users,
   Calendar,
   CheckCircle2,
-  Pencil,
   ShieldAlert,
 } from 'lucide-react'
 import { TeamDashboardClient } from '@/components/coach/teams/TeamDashboardClient'
@@ -583,12 +582,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                 teamName={team.name}
                 businessSlug={businessSlug}
                 initialPlan={activeTeamPlan}
-                trigger={
-                  <Button variant="outline" size="sm">
-                    <Pencil className="mr-2 h-4 w-4" />
-                    {t('teamPlan.edit')}
-                  </Button>
-                }
               />
             }
           />

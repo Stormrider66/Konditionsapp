@@ -546,7 +546,7 @@ export function CreateBlockPlanDialog({
         {trigger ?? (
           <Button size="sm">
             <Plus className="mr-2 h-4 w-4" />
-            {copy.createPlan}
+            {isEditing ? copy.editPlan : copy.createPlan}
           </Button>
         )}
       </DialogTrigger>
