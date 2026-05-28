@@ -19,6 +19,28 @@ export interface LinkedHockeyAerobicProfile extends Omit<HockeyAerobicFields, 'c
   sourceDate: Date | null
 }
 
+export interface LabTestForHockeyAerobicFields {
+  vo2max?: number | null
+  maxHR?: number | null
+  maxLactate?: number | null
+  postTestMeasurements?: unknown
+  aerobicThreshold?: unknown
+  anaerobicThreshold?: unknown
+  thresholdCalculation?: {
+    lt1Intensity: number | null
+    lt1Hr: number | null
+    lt1Lactate: number | null
+    lt2Intensity: number | null
+    lt2Hr: number | null
+    lt2Lactate: number | null
+  } | null
+  testStages?: Array<{
+    vo2?: number | null
+    lactate?: number | null
+    heartRate?: number | null
+  }>
+}
+
 type ThresholdJson = {
   value?: unknown
   speed?: unknown
@@ -73,6 +95,40 @@ function maxPostTestLactate(measurements: unknown): number | null {
     .map((entry) => entry && typeof entry === 'object' ? numberOrNull((entry as { lactate?: unknown }).lactate) : null)
     .filter((value): value is number => value != null)
   return values.length > 0 ? Math.max(...values) : null
+}
+
+function maxNumber(values: Array<number | null | undefined> | undefined): number | null {
+  if (!values) return null
+  const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
+  return valid.length > 0 ? Math.max(...valid) : null
+}
+
+export function buildHockeyAerobicFieldsFromLabTest(
+  test: LabTestForHockeyAerobicFields
+): Omit<HockeyAerobicFields, 'clientId'> {
+  const calculation = test.thresholdCalculation
+  const lt1 = test.aerobicThreshold
+  const lt2 = test.anaerobicThreshold
+
+  return {
+    vo2Max: test.vo2max ?? maxNumber(test.testStages?.map((stage) => stage.vo2)) ?? null,
+    lt1SpeedKmh: calculation?.lt1Intensity ?? thresholdSpeedKmh(lt1),
+    lt1HeartRate: calculation?.lt1Hr != null ? Math.round(calculation.lt1Hr) : thresholdHeartRate(lt1),
+    lt1Lactate: calculation?.lt1Lactate ?? thresholdLactate(lt1),
+    lt2SpeedKmh: calculation?.lt2Intensity ?? thresholdSpeedKmh(lt2),
+    lt2HeartRate: calculation?.lt2Hr != null ? Math.round(calculation.lt2Hr) : thresholdHeartRate(lt2),
+    lt2Lactate: calculation?.lt2Lactate ?? thresholdLactate(lt2),
+    maxLactate: test.maxLactate
+      ?? maxPostTestLactate(test.postTestMeasurements)
+      ?? maxNumber(test.testStages?.map((stage) => stage.lactate))
+      ?? null,
+    maxHeartRate: test.maxHR ?? maxNumber(test.testStages?.map((stage) => stage.heartRate)) ?? null,
+    rampTimeSeconds: null,
+  }
+}
+
+export function hasHockeyAerobicData(fields: Partial<Omit<HockeyAerobicFields, 'clientId'>>): boolean {
+  return Object.values(fields).some((value) => value != null)
 }
 
 export function applyLinkedHockeyAerobicProfile<T extends HockeyAerobicFields>(
@@ -172,26 +228,25 @@ export async function getLinkedHockeyAerobicProfiles(clientIds: string[]): Promi
     ))
 
     const profile = client.athleteProfile
-    const lt1 = latestTest?.aerobicThreshold
-    const lt2 = latestTest?.anaerobicThreshold
-    const calculation = latestTest?.thresholdCalculation
-    const maxLactate = latestTest?.maxLactate
-      ?? maxPostTestLactate(latestTest?.postTestMeasurements)
+    const latestTestFields = latestTest
+      ? buildHockeyAerobicFieldsFromLabTest(latestTest)
+      : null
+    const maxLactate = latestTestFields?.maxLactate
       ?? profile?.maxLactate
       ?? null
 
     const linked: LinkedHockeyAerobicProfile = {
       source: latestTest ? 'lab-test' : profile ? 'athlete-profile' : 'manual-profile',
       sourceDate: latestTest?.testDate ?? profile?.lactateTestDate ?? null,
-      vo2Max: latestTest?.vo2max ?? client.manualVo2max ?? null,
-      lt1SpeedKmh: calculation?.lt1Intensity ?? thresholdSpeedKmh(lt1),
-      lt1HeartRate: calculation?.lt1Hr != null ? Math.round(calculation.lt1Hr) : thresholdHeartRate(lt1),
-      lt1Lactate: calculation?.lt1Lactate ?? thresholdLactate(lt1),
-      lt2SpeedKmh: profile?.lt2Speed ?? calculation?.lt2Intensity ?? thresholdSpeedKmh(lt2),
-      lt2HeartRate: profile?.lt2HeartRate ?? (calculation?.lt2Hr != null ? Math.round(calculation.lt2Hr) : thresholdHeartRate(lt2)),
-      lt2Lactate: calculation?.lt2Lactate ?? thresholdLactate(lt2),
+      vo2Max: latestTestFields?.vo2Max ?? client.manualVo2max ?? null,
+      lt1SpeedKmh: latestTestFields?.lt1SpeedKmh ?? null,
+      lt1HeartRate: latestTestFields?.lt1HeartRate ?? null,
+      lt1Lactate: latestTestFields?.lt1Lactate ?? null,
+      lt2SpeedKmh: profile?.lt2Speed ?? latestTestFields?.lt2SpeedKmh ?? null,
+      lt2HeartRate: profile?.lt2HeartRate ?? latestTestFields?.lt2HeartRate ?? null,
+      lt2Lactate: latestTestFields?.lt2Lactate ?? null,
       maxLactate,
-      maxHeartRate: latestTest?.maxHR ?? client.manualMaxHR ?? null,
+      maxHeartRate: latestTestFields?.maxHeartRate ?? client.manualMaxHR ?? null,
       rampTimeSeconds: null,
     }
 

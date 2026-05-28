@@ -32,7 +32,9 @@ import {
 } from '@/lib/hockey/team-test-metrics'
 import {
   applyLinkedHockeyAerobicProfile,
+  buildHockeyAerobicFieldsFromLabTest,
   getLinkedHockeyAerobicProfiles,
+  hasHockeyAerobicData,
 } from '@/lib/hockey/aerobic-profile-link'
 
 type AcwrZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL' | 'UNKNOWN'
@@ -250,6 +252,7 @@ export async function GET(
       recentLoads,
       oneRepMaxRows,
       hockeyTestsRaw,
+      labTestsRaw,
       savedNormReferences,
       strengthAssignments,
       cardioAssignments,
@@ -328,6 +331,42 @@ export async function GET(
           muscleLabMaxima: true,
         },
       }),
+      prisma.test.findMany({
+        where: {
+          clientId: { in: memberIds },
+          testDate: { gte: hockeySince },
+          status: 'COMPLETED',
+        },
+        orderBy: { testDate: 'desc' },
+        select: {
+          clientId: true,
+          testDate: true,
+          vo2max: true,
+          maxHR: true,
+          maxLactate: true,
+          postTestMeasurements: true,
+          aerobicThreshold: true,
+          anaerobicThreshold: true,
+          thresholdCalculation: {
+            select: {
+              lt1Intensity: true,
+              lt1Hr: true,
+              lt1Lactate: true,
+              lt2Intensity: true,
+              lt2Hr: true,
+              lt2Lactate: true,
+            },
+          },
+          testStages: {
+            orderBy: { sequence: 'asc' },
+            select: {
+              vo2: true,
+              lactate: true,
+              heartRate: true,
+            },
+          },
+        },
+      }),
       prisma.hockeyNormReference.findMany({
         where: { teamId, coachId: user.id },
         orderBy: [
@@ -355,9 +394,16 @@ export async function GET(
     ])
 
     const linkedProfiles = await getLinkedHockeyAerobicProfiles(memberIds)
-    const hockeyTests = hockeyTestsRaw.map((test) => (
-      applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId))
+    const labHockeyTests = labTestsRaw
+      .map(labTestToHockeySummary)
+      .filter((test): test is HockeyTestForSummary => test != null)
+    const clientsWithLabTests = new Set(labHockeyTests.map((test) => test.clientId))
+    const hockeyPhysicalTests: HockeyTestForSummary[] = hockeyTestsRaw.map((test): HockeyTestForSummary => (
+      clientsWithLabTests.has(test.clientId)
+        ? test
+        : applyLinkedHockeyAerobicProfile(test, linkedProfiles.get(test.clientId))
     ))
+    const hockeyTests: HockeyTestForSummary[] = [...hockeyPhysicalTests, ...labHockeyTests]
     const hockeyNormReferences = mergeHockeyNormReferences(savedNormReferences)
     const teamLevel = inferTeamLevel(team.name)
     const memberNameById = new Map(team.members.map((m) => [m.id, m.name]))
@@ -527,6 +573,53 @@ function buildMetricGroups({
     { id: 'hockey' as const, label: t(locale, 'Tests', 'Tester'), metrics: hockeyMetrics },
     { id: 'strength' as const, label: t(locale, 'Strength PRs', 'Styrke-PRs'), metrics: strengthMetrics },
   ].filter((group) => group.metrics.length > 0)
+}
+
+type LabTestForSummary = Parameters<typeof buildHockeyAerobicFieldsFromLabTest>[0] & {
+  clientId: string
+  testDate: Date
+}
+
+function labTestToHockeySummary(test: LabTestForSummary): HockeyTestForSummary | null {
+  const aerobic = buildHockeyAerobicFieldsFromLabTest(test)
+  if (!hasHockeyAerobicData(aerobic)) return null
+
+  return {
+    clientId: test.clientId,
+    testDate: test.testDate,
+    sprint5m: null,
+    sprint10m: null,
+    sprint20m: null,
+    sprint30m: null,
+    sprint20mFly: null,
+    sprint30mFly: null,
+    agility505Left: null,
+    agility505Right: null,
+    endurance7x40: null,
+    gripStrengthLeft: null,
+    gripStrengthRight: null,
+    standingLongJump: null,
+    threeJumpLeft: null,
+    threeJumpRight: null,
+    beepTestLevel: null,
+    beepTestShuttle: null,
+    wingate30sAveragePower: null,
+    vo2Max: aerobic.vo2Max ?? null,
+    lt1SpeedKmh: aerobic.lt1SpeedKmh ?? null,
+    lt1HeartRate: aerobic.lt1HeartRate ?? null,
+    lt1Lactate: aerobic.lt1Lactate ?? null,
+    lt2SpeedKmh: aerobic.lt2SpeedKmh ?? null,
+    lt2HeartRate: aerobic.lt2HeartRate ?? null,
+    lt2Lactate: aerobic.lt2Lactate ?? null,
+    maxLactate: aerobic.maxLactate ?? null,
+    maxHeartRate: aerobic.maxHeartRate ?? null,
+    rampTimeSeconds: aerobic.rampTimeSeconds ?? null,
+    backSquat1RM: null,
+    powerClean1RM: null,
+    benchPress1RM: null,
+    pullUp1RM: null,
+    muscleLabMaxima: null,
+  }
 }
 
 function buildHockeyMetricRows(
