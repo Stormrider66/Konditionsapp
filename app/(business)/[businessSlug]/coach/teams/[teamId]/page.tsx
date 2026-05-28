@@ -10,23 +10,10 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCard
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
   ArrowLeft,
   Users,
   Calendar,
-  TrendingUp,
-  Dumbbell,
-  Heart,
-  Zap,
   CheckCircle2,
-  Clock,
   Pencil,
   ShieldAlert,
 } from 'lucide-react'
@@ -38,10 +25,10 @@ import { TeamLeaderboard } from '@/components/coach/leaderboards'
 import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
 import { TeamNotesCard, type TeamNoteSummary, type TeamNoteTag } from '@/components/coach/teams/TeamNotesCard'
+import { TeamWorkoutMonitor } from '@/components/coach/teams/TeamWorkoutMonitor'
 import { AssignmentStatus } from '@prisma/client'
-import { getLocale, getTranslations } from '@/i18n/server'
+import { getTranslations } from '@/i18n/server'
 import { getSportLabelKey } from '@/lib/sports/catalog'
-import { syncTeamWorkoutBroadcastRosters } from '@/lib/team-calendar/assignment-roster-sync'
 
 interface TeamPageProps {
   params: Promise<{
@@ -80,8 +67,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   const { businessSlug, teamId } = await params
   const t = await getTranslations('coach.pages.teamDetail')
   const tSports = await getTranslations('sports')
-  const locale = await getLocale()
-  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const user = await requireCoach()
 
   // Validate business membership
@@ -136,35 +121,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const broadcasts = await prisma.teamWorkoutBroadcast.findMany({
-    where: {
-      teamId,
-      assignedDate: {
-        gte: thirtyDaysAgo,
-      },
-    },
-    include: {
-      strengthSession: {
-        select: { id: true, name: true },
-      },
-      cardioSession: {
-        select: { id: true, name: true },
-      },
-      hybridWorkout: {
-        select: { id: true, name: true },
-      },
-    },
-    orderBy: {
-      assignedDate: 'desc',
-    },
-    take: 10,
-  })
-
-  await syncTeamWorkoutBroadcastRosters(
-    broadcasts.map((broadcast) => broadcast.id),
-    { businessId: membership.businessId, assignedBy: user.id }
-  )
-
   const hockeyTestCount = await prisma.hockeyPhysicalTest.count({
     where: { teamId },
   })
@@ -173,25 +129,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   const activeWorkoutMembers = team.members.filter((member) => (
     Boolean(member.athleteAccount) && member.businessId === membership.businessId
   ))
-  const activeWorkoutMemberIds = activeWorkoutMembers.map((member) => member.id)
-  type WorkoutBroadcastLinkSource = {
-    strengthSessionId: string | null
-    cardioSessionId: string | null
-    hybridWorkoutId: string | null
-  }
-  const getWorkoutHref = (broadcast: WorkoutBroadcastLinkSource) => {
-    if (broadcast.strengthSessionId) {
-      return `/${businessSlug}/coach/strength?editSessionId=${encodeURIComponent(broadcast.strengthSessionId)}`
-    }
-    if (broadcast.cardioSessionId) {
-      return `/${businessSlug}/coach/cardio?editSessionId=${encodeURIComponent(broadcast.cardioSessionId)}`
-    }
-    if (broadcast.hybridWorkoutId) {
-      return `/${businessSlug}/coach/hybrid-studio?editWorkoutId=${encodeURIComponent(broadcast.hybridWorkoutId)}`
-    }
-
-    return `/${businessSlug}/coach/teams/${teamId}/calendar`
-  }
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   const tomorrow = new Date(today)
@@ -405,68 +342,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     restrictionSummaries: restrictionSummaries.get(member.id) ?? [],
   }))
 
-  // Calculate completion stats for broadcasts
-  const recentBroadcasts = await Promise.all(
-    broadcasts.map(async (broadcast) => {
-      let completedCount = 0
-
-      if (broadcast.strengthSessionId) {
-        completedCount = await prisma.strengthSessionAssignment.count({
-          where: {
-            teamBroadcastId: broadcast.id,
-            athleteId: { in: activeWorkoutMemberIds },
-            status: 'COMPLETED',
-          },
-        })
-      } else if (broadcast.cardioSessionId) {
-        completedCount = await prisma.cardioSessionAssignment.count({
-          where: {
-            teamBroadcastId: broadcast.id,
-            athleteId: { in: activeWorkoutMemberIds },
-            status: 'COMPLETED',
-          },
-        })
-      } else if (broadcast.hybridWorkoutId) {
-        completedCount = await prisma.hybridWorkoutAssignment.count({
-          where: {
-            teamBroadcastId: broadcast.id,
-            athleteId: { in: activeWorkoutMemberIds },
-            status: 'COMPLETED',
-          },
-        })
-      }
-
-      const workoutName =
-        broadcast.strengthSession?.name ||
-        broadcast.cardioSession?.name ||
-        broadcast.hybridWorkout?.name ||
-        t('unknownWorkout')
-
-      const workoutType = broadcast.strengthSessionId
-        ? 'strength'
-        : broadcast.cardioSessionId
-          ? 'cardio'
-          : 'hybrid'
-
-      return {
-        id: broadcast.id,
-        assignedDate: broadcast.assignedDate,
-        workoutName,
-        workoutType,
-        totalAssigned: activeWorkoutMembers.length,
-        totalCompleted: completedCount,
-        completionRate:
-          activeWorkoutMembers.length > 0
-            ? Math.round((completedCount / activeWorkoutMembers.length) * 100)
-            : 0,
-        workoutHref: getWorkoutHref(broadcast),
-      }
-    })
-  )
-  const recentBroadcastsForDisplay = [...recentBroadcasts].sort(
-    (a, b) => a.assignedDate.getTime() - b.assignedDate.getTime()
-  )
-
   // Calculate member stats
   const memberStats = await Promise.all(
     activeWorkoutMembers.map(async (member) => {
@@ -554,44 +429,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   const rosterReady = team.members.length > 0 && missingProfileCount === 0
   const athletePortalReady =
     team.members.length > 0 && athleteAccountCount === team.members.length
-
-  const getWorkoutTypeIcon = (type: string) => {
-    switch (type) {
-      case 'strength':
-        return <Dumbbell className="h-4 w-4" />
-      case 'cardio':
-        return <Heart className="h-4 w-4" />
-      case 'hybrid':
-        return <Zap className="h-4 w-4" />
-      default:
-        return <Dumbbell className="h-4 w-4" />
-    }
-  }
-
-  const getWorkoutTypeBadge = (type: string) => {
-    switch (type) {
-      case 'strength':
-        return (
-          <Badge variant="outline" className="text-xs">
-            {t('workoutTypes.strength')}
-          </Badge>
-        )
-      case 'cardio':
-        return (
-          <Badge variant="outline" className="text-xs text-red-600 border-red-300">
-            {t('workoutTypes.cardio')}
-          </Badge>
-        )
-      case 'hybrid':
-        return (
-          <Badge variant="outline" className="text-xs text-purple-600 border-purple-300">
-            Hybrid
-          </Badge>
-        )
-      default:
-        return null
-    }
-  }
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -687,6 +524,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           </GlassCardHeader>
         </GlassCard>
       </div>
+
+      <TeamWorkoutMonitor teamId={teamId} businessSlug={businessSlug} />
 
       <GlassCard glow="teal" className="mb-8">
         <GlassCardHeader>
@@ -799,121 +638,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
               businessSlug={businessSlug}
               members={membersWithRosterStatus}
             />
-          </GlassCardContent>
-        </GlassCard>
-      </div>
-
-      <div className="grid gap-8 lg:grid-cols-2">
-        <GlassCard glow="emerald">
-          <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
-              <Calendar className="h-5 w-5" />
-              {t('recentWorkouts.title')}
-            </GlassCardTitle>
-            <GlassCardDescription>{t('recentWorkouts.description')}</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            {recentBroadcasts.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                {t('recentWorkouts.empty')}
-              </p>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('recentWorkouts.workout')}</TableHead>
-                    <TableHead>{t('recentWorkouts.date')}</TableHead>
-                    <TableHead className="text-right">{t('recentWorkouts.completed')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentBroadcastsForDisplay.map((broadcast) => (
-                    <TableRow key={broadcast.id}>
-                      <TableCell>
-                        <Link
-                          href={broadcast.workoutHref}
-                          aria-label={t('recentWorkouts.openWorkout', { name: broadcast.workoutName })}
-                          className="group/workout inline-flex max-w-full min-w-0 items-center gap-2 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          {getWorkoutTypeIcon(broadcast.workoutType)}
-                          <span className="min-w-0 truncate font-medium dark:text-slate-200 group-hover/workout:text-primary group-hover/workout:underline group-focus-visible/workout:text-primary group-focus-visible/workout:underline underline-offset-4">
-                            {broadcast.workoutName}
-                          </span>
-                          {getWorkoutTypeBadge(broadcast.workoutType)}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="dark:text-slate-300">
-                        {new Date(broadcast.assignedDate).toLocaleDateString(dateLocale)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <span className="text-sm dark:text-slate-300">
-                            {broadcast.totalCompleted}/{broadcast.totalAssigned}
-                          </span>
-                          <Badge
-                            variant={broadcast.completionRate >= 80 ? 'default' : 'secondary'}
-                            className="min-w-[48px] justify-center"
-                          >
-                            {broadcast.completionRate}%
-                          </Badge>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </GlassCardContent>
-        </GlassCard>
-
-        <GlassCard glow="amber">
-          <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
-              <TrendingUp className="h-5 w-5" />
-              {t('playerStats.title')}
-            </GlassCardTitle>
-            <GlassCardDescription>{t('playerStats.description')}</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            {memberStats.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-8">
-                {t('playerStats.empty')}
-              </p>
-            ) : (
-              <div className="space-y-4">
-                {memberStats.map((member) => (
-                  <div key={member.athleteId} className="flex items-center gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-medium truncate dark:text-slate-200">{member.name}</span>
-                        <span className="text-sm text-muted-foreground">
-                          {member.completedCount}/{member.assignedCount}
-                        </span>
-                      </div>
-                      <Progress value={member.completionRate} className="h-2" />
-                    </div>
-                    <div className="flex items-center gap-1 min-w-[60px] justify-end">
-                      {member.completionRate >= 80 ? (
-                        <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      ) : member.completionRate >= 50 ? (
-                        <Clock className="h-4 w-4 text-yellow-500" />
-                      ) : null}
-                      <span
-                        className={`text-sm font-medium ${
-                          member.completionRate >= 80
-                            ? 'text-green-600'
-                            : member.completionRate >= 50
-                              ? 'text-yellow-600'
-                              : 'text-muted-foreground'
-                        }`}
-                      >
-                        {member.completionRate}%
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
           </GlassCardContent>
         </GlassCard>
       </div>
