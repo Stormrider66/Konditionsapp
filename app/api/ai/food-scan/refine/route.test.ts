@@ -208,9 +208,9 @@ describe('food scan refine API route', () => {
       targetIndex: 0,
     })
     expect(body.result).toMatchObject({
-      mealDescription: 'Pasta kokt m. salt majs 100% glutenfri',
+      mealDescription: 'Majspasta',
       items: [expect.objectContaining({
-        name: 'Pasta kokt m. salt majs 100% glutenfri',
+        name: 'Majspasta',
         calories: 388,
         proteinGrams: 7.3,
         carbsGrams: 82.5,

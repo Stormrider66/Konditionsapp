@@ -26,7 +26,7 @@ describe('team sport planning context', () => {
     expect(context.phase).toBe('in_season')
     expect(context.sessionsPerWeek).toBe(5)
     expect(context.loadGuidance.intensityMultiplier).toBeLessThan(1)
-    expect(context.loadGuidance.notes.join(' ')).toContain('GPS-belastning är hög')
+    expect(context.loadGuidance.notes.join(' ')).toContain('GPS load is high')
   })
 
   it('infers hockey match count from phase and adjusts high game load', () => {
@@ -44,7 +44,7 @@ describe('team sport planning context', () => {
     expect(context.matchesThisWeek).toBe(2)
     expect(context.requestedSessions).toBe(5)
     expect(context.loadGuidance.intensityMultiplier).toBe(0.8)
-    expect(context.loadGuidance.notes.join(' ')).toContain('Hög istid/bytesbelastning')
+    expect(context.loadGuidance.notes.join(' ')).toContain('High ice-time/shift load')
   })
 
   it('sanitizes stringly and invalid football settings before planning', () => {

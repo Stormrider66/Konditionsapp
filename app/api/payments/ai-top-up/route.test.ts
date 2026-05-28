@@ -82,6 +82,7 @@ describe('athlete AI top-up checkout route', () => {
       'ai_120',
       'https://app.example.test/demo-business/athlete/subscription?aiTopUp=success',
       'https://app.example.test/demo-business/athlete/subscription?aiTopUp=cancelled',
+      'en',
     )
     expect(body).toEqual({
       success: true,

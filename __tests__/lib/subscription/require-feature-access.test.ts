@@ -9,6 +9,13 @@ vi.mock('@/lib/subscription/feature-access', () => ({
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
+    client: {
+      findUnique: vi.fn(() => Promise.resolve({
+        athleteAccount: {
+          user: { language: null },
+        },
+      })),
+    },
     subscription: {
       findUnique: vi.fn(),
     },

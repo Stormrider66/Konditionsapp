@@ -99,7 +99,7 @@ describe('checkAthleteFeatureAccess', () => {
     expect(mockPrisma.subscription.findUnique).not.toHaveBeenCalled()
     expect(result).toEqual({
       allowed: false,
-      reason: 'Denna funktion kräver en uppgraderad prenumeration.',
+      reason: 'This feature requires an upgraded subscription.',
       code: 'FEATURE_DISABLED',
       upgradeUrl: '/athlete/subscription',
     })
@@ -150,7 +150,7 @@ describe('checkAthleteFeatureAccess', () => {
 
     expect(result).toEqual({
       allowed: false,
-      reason: 'Denna funktion kräver en uppgraderad prenumeration.',
+      reason: 'This feature requires an upgraded subscription.',
       code: 'FEATURE_DISABLED',
       upgradeUrl: '/athlete/subscription',
     })

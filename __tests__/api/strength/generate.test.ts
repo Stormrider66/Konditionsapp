@@ -107,9 +107,9 @@ describe('POST /api/strength-sessions/generate', () => {
 
     // Each session should have a distinct name (A/B/C)
     const names = data.data.map((s: any) => s.name)
-    expect(names[0]).toContain('Pass A')
-    expect(names[1]).toContain('Pass B')
-    expect(names[2]).toContain('Pass C')
+    expect(names[0]).toContain('Session A')
+    expect(names[1]).toContain('Session B')
+    expect(names[2]).toContain('Session C')
   })
 
   it('filters out plyometric exercises when NO_JUMPING restriction', async () => {

@@ -92,7 +92,7 @@ describe('video analysis run API route', () => {
       coachId: 'coach-1',
       athleteId: 'client-1',
       videoType: 'STRENGTH',
-      athlete: { id: 'client-1', name: 'Athlete One', gender: null },
+      athlete: { id: 'client-1', name: 'Athlete One', gender: null, user: { language: null } },
       exercise: null,
     })
   })

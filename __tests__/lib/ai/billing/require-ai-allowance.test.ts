@@ -43,7 +43,7 @@ describe('requireAiAllowance', () => {
     await expect(response?.json()).resolves.toMatchObject({
       code: 'AI_ALLOWANCE_EXHAUSTED',
       remainingSek: 0.1,
-      actionLabel: 'Hantera AI-krediter',
+      actionLabel: 'Manage AI credits',
     })
   })
 })
