@@ -20,6 +20,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { SmartTestImportDialog } from '@/components/forms/SmartTestImportDialog'
 import type { TestImportResult } from '@/lib/validations/test-import-schema'
@@ -213,6 +223,8 @@ export function TestDataForm({
   const [showLoadDialog, setShowLoadDialog] = useState(false)
   const [templateName, setTemplateName] = useState('')
   const [templateDescription, setTemplateDescription] = useState('')
+  const [templateToDelete, setTemplateToDelete] = useState<TestTemplate | null>(null)
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null)
   const [ocrLoading, setOcrLoading] = useState<number | null>(null)
   const [showImportDialog, setShowImportDialog] = useState(false)
   const [showMetabolicData, setShowMetabolicData] = useState(false)
@@ -756,6 +768,42 @@ export function TestDataForm({
         ? `Mall "${template.name}" har laddats.`
         : `Template "${template.name}" has been loaded.`,
     })
+  }
+
+  const handleDeleteTemplate = async () => {
+    if (!templateToDelete) return
+
+    setDeletingTemplateId(templateToDelete.id)
+    try {
+      const response = await fetch(`/api/templates/${templateToDelete.id}`, {
+        method: 'DELETE',
+      })
+      const data = await response.json()
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete template')
+      }
+
+      setTemplates((currentTemplates) =>
+        currentTemplates.filter((template) => template.id !== templateToDelete.id)
+      )
+      toast({
+        title: t('Mall borttagen', 'Template deleted'),
+        description: locale === 'sv'
+          ? `Mallen "${templateToDelete.name}" har tagits bort.`
+          : `Template "${templateToDelete.name}" has been deleted.`,
+      })
+      setTemplateToDelete(null)
+    } catch (error) {
+      console.error('Error deleting template:', error)
+      toast({
+        title: t('Fel', 'Error'),
+        description: t('Kunde inte ta bort mall', 'Could not delete template'),
+        variant: 'destructive',
+      })
+    } finally {
+      setDeletingTemplateId(null)
+    }
   }
 
   const onSubmitHandler = async (data: CreateTestFormData) => {
@@ -1550,10 +1598,10 @@ export function TestDataForm({
             ) : (
               <div className="space-y-2">
                 {templates.map((template) => (
-                  <Card key={template.id} className="cursor-pointer hover:bg-accent" onClick={() => handleLoadTemplate(template)}>
+                  <Card key={template.id} className="cursor-pointer transition-colors hover:bg-accent" onClick={() => handleLoadTemplate(template)}>
                     <CardContent className="p-4">
-                      <div className="flex justify-between items-start">
-                        <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
                           <h4 className="font-semibold">{template.name}</h4>
                           {template.description && (
                             <p className="text-sm text-muted-foreground mt-1">
@@ -1564,6 +1612,19 @@ export function TestDataForm({
                             {template.stages.length} {t('steg', 'stages')}
                           </p>
                         </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={locale === 'sv' ? `Ta bort mallen ${template.name}` : `Delete template ${template.name}`}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setTemplateToDelete(template)
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -1578,6 +1639,38 @@ export function TestDataForm({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!templateToDelete} onOpenChange={(open) => {
+        if (!open && !deletingTemplateId) setTemplateToDelete(null)
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('Ta bort testmall?', 'Delete test template?')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {templateToDelete
+                ? locale === 'sv'
+                  ? `Detta tar bort "${templateToDelete.name}". Åtgärden kan inte ångras.`
+                  : `This will delete "${templateToDelete.name}". This action cannot be undone.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingTemplateId}>
+              {t('Avbryt', 'Cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!!deletingTemplateId}
+              onClick={(event) => {
+                event.preventDefault()
+                void handleDeleteTemplate()
+              }}
+            >
+              {deletingTemplateId ? t('Tar bort...', 'Deleting...') : t('Ta bort', 'Delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </form>
   )
 }
