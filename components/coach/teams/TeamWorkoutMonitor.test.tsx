@@ -129,8 +129,11 @@ describe('TeamWorkoutMonitor', () => {
     const user = userEvent.setup()
     render(<TeamWorkoutMonitor teamId="team-1" businessSlug="star-by-thomson" />)
 
+    expect(await screen.findByText('Genomförandegrad')).toBeInTheDocument()
+    expect(await screen.findByText(/1 pass dolda/)).toBeInTheDocument()
+
+    await user.click(screen.getAllByRole('button', { name: /Visa pass/ })[0])
     expect(await screen.findByText('Power/Plyometri 1')).toBeInTheDocument()
-    expect(screen.getByText('Genomförandegrad')).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Spelare' }))
     expect(screen.getByText(/Lars Bryggman/)).toBeInTheDocument()

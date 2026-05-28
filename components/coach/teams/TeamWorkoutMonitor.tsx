@@ -5,6 +5,8 @@ import { useLocale } from 'next-intl'
 import {
   Activity,
   BarChart3,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   Clock,
   Dumbbell,
@@ -259,6 +261,7 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isExpanded, setIsExpanded] = useState(false)
 
   const loadSummary = useCallback(async () => {
     setLoading(true)
@@ -340,18 +343,34 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
               {text('Följ upp lagpass, spelare och loggade resultat på ett ställe.', 'Review team sessions, players, and logged results in one place.')}
             </GlassCardDescription>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {[7, 30, 90].map((value) => (
-              <Button
-                key={value}
-                type="button"
-                variant={days === value ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setDays(value)}
-              >
-                {value} {text('dagar', 'days')}
-              </Button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap gap-2">
+              {[7, 30, 90].map((value) => (
+                <Button
+                  key={value}
+                  type="button"
+                  variant={days === value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setDays(value)}
+                >
+                  {value} {text('dagar', 'days')}
+                </Button>
+              ))}
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-expanded={isExpanded}
+              onClick={() => setIsExpanded((current) => !current)}
+            >
+              {isExpanded ? (
+                <ChevronUp className="mr-2 h-4 w-4" />
+              ) : (
+                <ChevronDown className="mr-2 h-4 w-4" />
+              )}
+              {isExpanded ? text('Dölj pass', 'Hide sessions') : text('Visa pass', 'Show sessions')}
+            </Button>
           </div>
         </div>
       </GlassCardHeader>
@@ -374,70 +393,87 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
               <SummaryStat label={text('Genomförandegrad', 'Completion')} value={`${total?.completionRate ?? 0}%`} progress={total?.completionRate ?? 0} />
             </div>
 
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-wrap gap-2">
-                {KIND_OPTIONS.map((option) => (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    variant={kindFilter === option.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setKindFilter(option.value)}
-                  >
-                    {uiLocale === 'sv' ? option.sv : option.en}
-                  </Button>
-                ))}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {STATUS_OPTIONS.map((option) => (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    variant={statusFilter === option.value ? 'secondary' : 'outline'}
-                    size="sm"
-                    onClick={() => setStatusFilter(option.value)}
-                  >
-                    {uiLocale === 'sv' ? option.sv : option.en}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <Tabs defaultValue="sessions" className="w-full">
-              <TabsList>
-                <TabsTrigger value="sessions">{text('Pass', 'Sessions')}</TabsTrigger>
-                <TabsTrigger value="players">{text('Spelare', 'Players')}</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="sessions" className="mt-4">
-                {filteredSessions.length === 0 ? (
-                  <EmptyState text={text('Inga pass matchar filtret.', 'No sessions match the filter.')} />
-                ) : (
-                  <div className="grid gap-3 xl:grid-cols-2">
-                    {filteredSessions.map((session) => (
-                      <SessionCard
-                        key={`${session.detailKind}-${session.id}`}
-                        session={session}
-                        locale={uiLocale}
-                        onOpen={() => void loadDetail(session)}
-                      />
+            {isExpanded ? (
+              <>
+                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                  <div className="flex flex-wrap gap-2">
+                    {KIND_OPTIONS.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={kindFilter === option.value ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setKindFilter(option.value)}
+                      >
+                        {uiLocale === 'sv' ? option.sv : option.en}
+                      </Button>
                     ))}
                   </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="players" className="mt-4">
-                {filteredPlayers.length === 0 ? (
-                  <EmptyState text={text('Inga spelare matchar filtret.', 'No players match the filter.')} />
-                ) : (
-                  <div className="grid gap-3 xl:grid-cols-2">
-                    {filteredPlayers.map((player) => (
-                      <PlayerCard key={player.athleteId} player={player} />
+                  <div className="flex flex-wrap gap-2">
+                    {STATUS_OPTIONS.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={statusFilter === option.value ? 'secondary' : 'outline'}
+                        size="sm"
+                        onClick={() => setStatusFilter(option.value)}
+                      >
+                        {uiLocale === 'sv' ? option.sv : option.en}
+                      </Button>
                     ))}
                   </div>
-                )}
-              </TabsContent>
-            </Tabs>
+                </div>
+
+                <Tabs defaultValue="sessions" className="w-full">
+                  <TabsList>
+                    <TabsTrigger value="sessions">{text('Pass', 'Sessions')}</TabsTrigger>
+                    <TabsTrigger value="players">{text('Spelare', 'Players')}</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="sessions" className="mt-4">
+                    {filteredSessions.length === 0 ? (
+                      <EmptyState text={text('Inga pass matchar filtret.', 'No sessions match the filter.')} />
+                    ) : (
+                      <div className="grid gap-3 xl:grid-cols-2">
+                        {filteredSessions.map((session) => (
+                          <SessionCard
+                            key={`${session.detailKind}-${session.id}`}
+                            session={session}
+                            locale={uiLocale}
+                            onOpen={() => void loadDetail(session)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="players" className="mt-4">
+                    {filteredPlayers.length === 0 ? (
+                      <EmptyState text={text('Inga spelare matchar filtret.', 'No players match the filter.')} />
+                    ) : (
+                      <div className="grid gap-3 xl:grid-cols-2">
+                        {filteredPlayers.map((player) => (
+                          <PlayerCard key={player.athleteId} player={player} />
+                        ))}
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              </>
+            ) : (
+              <div className="flex flex-col gap-3 rounded-lg border border-dashed bg-background/40 p-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between dark:border-white/10 dark:bg-slate-950/20">
+                <span>
+                  {text(
+                    `${data?.sessions.length ?? 0} pass dolda. Öppna listan när du vill granska spelare och detaljer.`,
+                    `${data?.sessions.length ?? 0} sessions hidden. Open the list when you want to review players and details.`
+                  )}
+                </span>
+                <Button type="button" variant="secondary" size="sm" onClick={() => setIsExpanded(true)}>
+                  <ChevronDown className="mr-2 h-4 w-4" />
+                  {text('Visa pass', 'Show sessions')}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </GlassCardContent>
