@@ -49,6 +49,29 @@ export async function DELETE(
     // Delete all non-cascading relations in a transaction, then the user.
     // Relations with onDelete: Cascade/SetNull are handled automatically.
     await prisma.$transaction(async (tx) => {
+      // 0. Preserve financial/referral history for compliance BEFORE the
+      // deletes + cascade wipe it. Stored in an unrelated archive table so the
+      // user-delete cascade cannot reach it (see DeletedUserDataArchive).
+      const subscription = await tx.subscription.findUnique({ where: { userId } });
+      const coachEarnings = await tx.coachEarnings.findMany({ where: { coachUserId: userId } });
+      const referrals = await tx.referral.findMany({ where: { referrerUserId: userId } });
+      const referralCodes = await tx.referralCode.findMany({ where: { userId } });
+      const partnerReferrals = await tx.partnerReferral.findMany({ where: { userId } });
+      // JSON round-trip normalizes Date/Decimal values to JSON-safe primitives.
+      const snapshot = JSON.parse(
+        JSON.stringify({ subscription, coachEarnings, referrals, referralCodes, partnerReferrals })
+      );
+      await tx.deletedUserDataArchive.create({
+        data: {
+          deletedUserId: userId,
+          email: targetUser.email,
+          name: targetUser.name,
+          role: targetUser.role,
+          deletedByUserId: adminUser.id,
+          snapshot,
+        },
+      });
+
       // 1. Nullify optional FKs that reference this user (no cascade, nullable)
       await tx.injuryAssessment.updateMany({ where: { assessedById: userId }, data: { assessedById: null } });
       await tx.calendarEvent.updateMany({ where: { lastModifiedById: userId }, data: { lastModifiedById: null } });

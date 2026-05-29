@@ -2271,3 +2271,20 @@ model CoachDashboardTemplate {
   @@index([businessId, scope])
   @@index([targetId])
 }
+
+/// Compliance snapshot of a user's financial/referral records, captured before
+/// an admin hard-deletes the user. Intentionally has NO relation to User, so the
+/// cascade that wipes the user's data cannot also wipe this archive. Append-only.
+model DeletedUserDataArchive {
+  id              String   @id @default(uuid())
+  deletedUserId   String
+  email           String?
+  name            String?
+  role            String?
+  snapshot        Json
+  deletedByUserId String?
+  createdAt       DateTime @default(now())
+
+  @@index([deletedUserId])
+  @@index([createdAt])
+}

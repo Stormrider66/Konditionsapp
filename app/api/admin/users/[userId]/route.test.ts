@@ -16,6 +16,7 @@ const mockFindUnique = vi.hoisted(() => vi.fn())
 const mockTransaction = vi.hoisted(() => vi.fn())
 const mockDeleteAuthUser = vi.hoisted(() => vi.fn())
 const mockLogAuditEvent = vi.hoisted(() => vi.fn())
+const mockArchiveCreate = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/auth-utils', () => ({
   requireAdmin: mockRequireAdmin,
@@ -46,19 +47,27 @@ vi.mock('@/lib/audit/log', () => ({
 
 import { DELETE } from '@/app/api/admin/users/[userId]/route'
 
-// A transaction client where any model returns resolving deleteMany/update/
-// delete/create stubs, so the route's long cleanup chain completes.
+// A transaction client where any model returns resolving read/write stubs, so
+// the route's snapshot reads + long cleanup chain complete. The archive table's
+// create is a shared spy so we can assert the snapshot was written.
 function makeTxClient() {
   return new Proxy(
     {},
     {
-      get: () => ({
-        deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-        update: vi.fn().mockResolvedValue({}),
-        delete: vi.fn().mockResolvedValue({}),
-        create: vi.fn().mockResolvedValue({}),
-      }),
+      get: (_target, prop) => {
+        if (prop === 'deletedUserDataArchive') {
+          return { create: mockArchiveCreate }
+        }
+        return {
+          findUnique: vi.fn().mockResolvedValue(null),
+          findMany: vi.fn().mockResolvedValue([]),
+          deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+          update: vi.fn().mockResolvedValue({}),
+          delete: vi.fn().mockResolvedValue({}),
+          create: vi.fn().mockResolvedValue({}),
+        }
+      },
     },
   )
 }
@@ -79,6 +88,7 @@ describe('DELETE /api/admin/users/[userId]', () => {
     mockTransaction.mockImplementation(async (cb: (tx: unknown) => Promise<unknown>) => cb(makeTxClient()))
     mockDeleteAuthUser.mockResolvedValue({ data: {}, error: null })
     mockLogAuditEvent.mockResolvedValue(undefined)
+    mockArchiveCreate.mockResolvedValue({})
   })
 
   it('rejects non-admins (requireAdmin throws → 500, nothing touched)', async () => {
@@ -120,6 +130,22 @@ describe('DELETE /api/admin/users/[userId]', () => {
     expect(mockDeleteAuthUser).toHaveBeenCalledWith('target-1')
     expect(mockLogAuditEvent).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'USER_DELETE', targetId: 'target-1', targetType: 'User' }),
+    )
+  })
+
+  it('archives the financial/referral snapshot before wiping the user (Track 4 retention)', async () => {
+    await DELETE(deleteRequest(), ctx('target-1'))
+
+    expect(mockArchiveCreate).toHaveBeenCalledTimes(1)
+    expect(mockArchiveCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          deletedUserId: 'target-1',
+          email: 't@example.com',
+          deletedByUserId: 'admin-1',
+          snapshot: expect.any(Object),
+        }),
+      }),
     )
   })
 
