@@ -1,6 +1,6 @@
 # Team Cockpit Redesign — Plan
 
-**Status:** Design / not yet implemented · no code written yet
+**Status:** Phase 1 (tabbed layout + relocation) **shipped to `main` 2026-05-30**. Next: the two-pane cockpit body (schedule + roster rail) on the Idag tab — Phase 2.
 **Author context:** Redesign of the team detail page (the screen a coach sees when opening a team).
 **Date:** 2026-05-29
 
@@ -198,6 +198,8 @@ No `prisma migrate` in any slice — purely a re-layout of data that already flo
 ---
 
 ## Phase 1 — implementation spec (tab scaffold + relocation)
+
+> **✅ Shipped 2026-05-30.** Built in 3 commits: `TeamTabNav` + i18n; the four extracted routes (`/uppfoljning`, `/plan`, `/trupp`, `/analys`); then the atomic flip (shared `layout.tsx` + interim Idag + header strip on the 6 sub-pages). Two deviations from the spec below: (1) old slices 5 & 6 were **merged** into one atomic commit (introducing the layout forces removing the root + sub-page headers in the same change, so no commit ever shipped a double header); (2) **interim Idag does not re-render the roster** — to avoid duplicating the Trupp tab it shows a phase summary + auto-hiding setup banner + a "Dagens schema kommer härnäst" placeholder. Verified per slice with typecheck + eslint. Known follow-up: `getAccessibleTeam` runs in both layout and page (not `React.cache()`-wrapped like `validateBusinessMembership`) — one extra cheap query per team page load; wrap it if it shows up in profiling.
 
 ### Architecture decision: route-based tabs + shared `layout.tsx`
 
