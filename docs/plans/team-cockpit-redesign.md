@@ -10,9 +10,13 @@
 
 | # | Decision | Choice |
 |---|----------|--------|
-| 1 | How aggressive is the new landing? | **Full replace.** The team root becomes the two-pane cockpit. Current stat cards + Passuppföljning move entirely to an **Uppföljning** tab. |
+| 1 | How aggressive is the new landing? | **Full replace.** The team root's *default tab* (Idag) becomes the two-pane cockpit. Current stat cards + Passuppföljning move to an **Uppföljning** tab. |
 | 2 | What does the roster Status dot mean at launch? | **Medical-only first.** Injury/restriction status only (always available). Readiness/ACWR is layered in as Phase 2. |
 | 3 | Schedule pane default scope? | **Single day + `‹ Idag ›` nav.** One day at a time, matching the reference design. |
+| 4 | How are the non-cockpit modules organized? | **Tabs under the header.** Idag (default) · Plan · Uppföljning · Trupp · Medical · Analys. Nothing is deleted — everything is one click away. |
+| 5 | Surface the current training block on the cockpit? | **Yes.** A one-line "Nuvarande block: … (n/m) · vecka x/y" strip on the cockpit; the full phase planner lives in the **Plan** tab. |
+
+> **Scope clarification (important):** "Full replace" applies only to the *landing tab*, not the page. The cockpit is the **hero you see first** — it is **not** the whole page. The only content genuinely demoted is the misleading adherence block (stat cards + Passuppföljning). The header, phase planner, notes, analysis cards, leaderboard, and full roster are all **kept** — relocated into sibling tabs, never removed.
 
 ---
 
@@ -61,17 +65,35 @@ Adherence-over-time is a **different job** → it gets its own **Uppföljning** 
 
 ## Information architecture
 
-The team page already has sub-routes (`/calendar`, `/medical`, `/analysis`, `/tests`, `/multivariate`). The redesign mainly changes **what the team root index renders**:
+A **persistent header** sits above a **tab bar**. The team root renders the **Idag** tab by default. Existing sub-routes (`/calendar`, `/medical`, `/analysis`, `/tests`, `/multivariate`) are preserved and surfaced through the header buttons and the **Analys** tab.
 
 ```
-/coach/teams/[teamId]            → Idag (cockpit)        ← NEW default landing
-/coach/teams/[teamId]/calendar   → Kalender              (existing TeamCalendarView, untouched)
-/coach/teams/[teamId]            → Trupp                 (full TeamRosterTable — management view)
-/coach/teams/[teamId]/medical    → Medical               (existing board)
-/coach/teams/[teamId]            → Uppföljning           ← current index content moves here
+Header (persistent):  team name · sport · count
+                      [+ Tilldela pass]  Medical · Lagkalender · Skriv ut lagpass · Lägg till spelare · ⋯
+
+Tab bar:  [ Idag ]   Plan   Uppföljning   Trupp   Medical   Analys
+          ───────
+          Idag        → cockpit: phase strip + attention strip + Dagens schema | Trupp-rail
+          Plan        → full phase planner (blockplan) + team notes
+          Uppföljning → stat cards (deduped/fixed) + Passuppföljning + ergometer-topplista
+          Trupp       → full editable TeamRosterTable (photos, inline edit, bulk-assign)
+          Medical     → existing medical board (/medical)
+          Analys      → Lagets analys (/analysis) · Tester (/tests) · Multivariat (/multivariate)
 ```
 
-> The current index content (stat cards + `TeamWorkoutMonitor` + leaderboard + notes) **moves to Uppföljning**. Nothing is deleted — it's demoted one click.
+### Element-destination map (nothing is deleted)
+
+| Current element | Verdict | New home |
+|---|---|---|
+| Header: name · sport badge · player count | **Keep** | Header, slimmed |
+| Buttons: Medical · Lagkalender · Skriv ut lagpass · Lägg till spelare · Skapa blockplan · Tilldela pass | **Keep all** | Header — `Tilldela pass` primary; rest grouped, low-frequency ones into `⋯` |
+| 4 stat cards (Spelare / Tilldelade / Genomförda / Genomförandegrad) | **Demote + fix** | Uppföljning tab (deduped against the panel — see discrepancy section) |
+| Passuppföljning panel (`TeamWorkoutMonitor`) | **Demote** | Uppföljning tab |
+| "Snabb kontroll inför lagstart" (Roster / Profiler / Atletportal / Testflöde readiness checklist) | **Keep, auto-hide** | Collapsible setup banner that hides once all states are "Redo" — it's onboarding, noise once complete |
+| Phase planner (e.g. "15 veckor styrkeblock", Nuvarande block) | **Keep** | Full planner in **Plan** tab + a one-line "current block" strip on the cockpit |
+| Team notes (`TeamNotesCard`) | **Keep** | Plan tab |
+| Ergometer-topplista (`TeamLeaderboard`) | **Keep** | Uppföljning tab |
+| Analysis cards (Lagets analys · Tester · Multivariat) | **Keep** | Analys tab (they already link to existing sub-routes) |
 
 ---
 
@@ -79,6 +101,15 @@ The team page already has sub-routes (`/calendar`, `/medical`, `/analysis`, `/te
 
 ### Header (slim)
 Team name · sport badge · player count. Action cluster collapses from a wall of equal-weight black buttons to: **Tilldela pass** (primary) · Lagkalender · Medical · `⋯` (Skriv ut lagpass, Lägg till spelare, Skapa blockplan).
+
+### Phase context strip (one line)
+A thin strip at the top of the cockpit showing where the team is in its plan:
+
+```
+NUVARANDE BLOCK:  Maxstyrka (2/6)  ▓▓▓▓░░  ·  vecka 5/15
+```
+
+Source: `TeamPlan` / `TeamPlanBlock` (current active block + index + week). Clicking it opens the **Plan** tab. Renders only when an active `TeamPlan` exists; otherwise hidden. The *full* planner lives in Plan — this is just the at-a-glance context so today's sessions read against their phase.
 
 ### Attention strip (renders only when non-empty)
 A single triage line above the panes:
@@ -156,10 +187,11 @@ The top cards and the Passuppföljning panel run **different queries**:
 
 ## Phasing (each slice independently shippable; commit + verify per slice)
 
-1. **Cockpit shell on existing data** — two panes (schedule from events API + compact roster with injury/restriction + today-workout), move current stats/`TeamWorkoutMonitor` to the **Uppföljning** tab. *Fixes the confusing-landing problem on its own.*
-2. **Readiness + ACWR** into the status dot and attention strip (adds the batched readiness helper + "ej incheckad" state).
-3. **Cross-pane interactions**, position filter across both panes, live "now" highlighting.
-4. **Fix + reframe the adherence analytics** in Uppföljning (resolve the discrepancy).
+1. **Tab scaffold + relocate (no logic changes).** Add the header + tab bar; move existing modules into tabs — Plan (phase planner + notes), Uppföljning (stat cards + `TeamWorkoutMonitor` + leaderboard), Trupp (`TeamRosterTable`), Medical, Analys. Auto-hide the "Snabb kontroll" checklist when complete. Pure relocation of existing components → low risk, instantly de-clutters the landing.
+2. **Cockpit (Idag tab) on existing data.** Two panes — schedule from events API + compact roster rail with injury/restriction + today-workout — plus the phase-context strip (`TeamPlan`) and attention strip (medical-only). *This is the slice that delivers the new operational view.*
+3. **Readiness + ACWR** into the status dot and attention strip (adds the batched readiness helper + "ej incheckad" state).
+4. **Cross-pane interactions**, position filter across both panes, live "now" highlighting.
+5. **Fix + reframe the adherence analytics** in Uppföljning (resolve the discrepancy).
 
 No `prisma migrate` in any slice — purely a re-layout of data that already flows.
 
