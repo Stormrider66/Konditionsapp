@@ -6,9 +6,7 @@ import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { prisma } from '@/lib/prisma'
 import { TeamCalendarView } from '@/components/coach/team-calendar/TeamCalendarView'
 import { ManageAssistantsDialog } from '@/components/coach/team-calendar/ManageAssistantsDialog'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft, Calendar } from 'lucide-react'
-import Link from 'next/link'
+import { Calendar } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
@@ -76,21 +74,14 @@ export default async function TeamCalendarPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
       <div className="flex items-center justify-between gap-3 mb-6">
-        <div className="flex items-center gap-3">
-          <Link href={`/${businessSlug}/coach/teams`}>
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
-              <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
-              {t('title', { teamName: team.name })}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {t('description')}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
+            <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
+            {t('title', { teamName: team.name })}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {t('description')}
+          </p>
         </div>
         {previewRole !== 'MEMBER' && (
           <ManageAssistantsDialog teamId={team.id} teamName={team.name} />

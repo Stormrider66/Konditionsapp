@@ -9,7 +9,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Lock } from 'lucide-react'
+import { Lock } from 'lucide-react'
 import { getLocale, getTranslations } from '@/i18n/server'
 
 interface AnalysisPageProps {
@@ -44,13 +44,6 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
   if (!hasPro) {
     return (
       <div className="container mx-auto py-8 px-4">
-        <Link href={`/${businessSlug}/coach/teams/${teamId}`}>
-          <Button variant="ghost" className="mb-6">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('backToTeam')}
-          </Button>
-        </Link>
-
         <GlassCard glow="purple" className="max-w-lg mx-auto">
           <GlassCardHeader className="text-center">
             <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -77,13 +70,6 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <Link href={`/${businessSlug}/coach/teams/${teamId}`}>
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('backToTeam')}
-        </Button>
-      </Link>
-
       <div className="flex items-center gap-3 mb-8">
         <h1 className="text-3xl font-bold dark:text-white">{t('title')}</h1>
         <Badge variant="secondary">{team.name}</Badge>

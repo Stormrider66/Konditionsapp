@@ -3732,6 +3732,10 @@
           "medical": "Medical",
           "analysis": "Analytics"
         },
+        "cockpit": {
+          "scheduleComingTitle": "Today's schedule",
+          "scheduleComingDescription": "Soon this shows the team's whole day — sessions, times, location, and who's booked in. Until then, find the squad under the Roster tab."
+        },
         "stats": {
           "players": "Players",
           "assignedWorkouts": "Assigned workouts (30 days)",

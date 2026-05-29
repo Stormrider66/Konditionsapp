@@ -1,10 +1,7 @@
 import { notFound } from 'next/navigation'
-import Link from 'next/link'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getWritableTeam } from '@/lib/coach/team-access'
-import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
 import { ImportRosterClient } from '@/components/coach/teams/ImportRosterClient'
 import { getTranslations } from '@/i18n/server'
 
@@ -27,13 +24,6 @@ export default async function ImportRosterPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-5xl">
-      <Link href={teamPath}>
-        <Button variant="ghost" className="mb-6">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('backToTeam', { teamName: team.name })}
-        </Button>
-      </Link>
-
       <h1 className="text-3xl font-bold mb-2 dark:text-white">{t('title')}</h1>
       <p className="text-muted-foreground mb-8">
         {t('description', { teamName: team.name })}

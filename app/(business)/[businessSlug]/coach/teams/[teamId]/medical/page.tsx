@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import {
   AlertTriangle,
-  ArrowLeft,
   Ban,
   CheckCircle2,
   ClipboardList,
@@ -178,13 +177,6 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Button asChild variant="ghost" className="mb-6">
-        <Link href={`/${businessSlug}/coach/teams/${teamId}`}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('backToTeam')}
-        </Link>
-      </Button>
-
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="flex items-center gap-3">

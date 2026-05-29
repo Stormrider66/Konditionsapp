@@ -3732,6 +3732,10 @@
           "medical": "Medical",
           "analysis": "Analys"
         },
+        "cockpit": {
+          "scheduleComingTitle": "Dagens schema",
+          "scheduleComingDescription": "Snart visas hela lagets dag här – pass, tider, plats och vilka spelare som är inbokade. Tills dess hittar du truppen under fliken Trupp."
+        },
         "stats": {
           "players": "Spelare",
           "assignedWorkouts": "Tilldelade pass (30 dagar)",
