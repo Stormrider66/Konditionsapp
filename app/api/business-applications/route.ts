@@ -91,7 +91,9 @@ export async function POST(request: NextRequest) {
       data.organizationName,
       undefined,
       locale
-    ).catch(() => {})
+    ).catch((err) =>
+      logger.warn('Failed to send application-received email', { email: data.contactEmail }, err)
+    )
 
     // Notify admin
     const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
@@ -101,7 +103,9 @@ export async function POST(request: NextRequest) {
         data.organizationName,
         data.type,
         locale
-      ).catch(() => {})
+      ).catch((err) =>
+        logger.warn('Failed to send new-application admin notification', { adminEmail }, err)
+      )
     }
 
     return NextResponse.json(

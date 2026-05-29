@@ -1,6 +1,7 @@
 // lib/subscription/feature-access.ts
 // Centralized feature access checking for subscription enforcement
 
+import { cache } from 'react'
 import type { AthleteSubscription, Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
@@ -156,7 +157,7 @@ async function repairLegacyFreeAiChatEntitlement(
   return repairedSubscription
 }
 
-export async function getAthleteSubscriptionWithRepairs(
+async function getAthleteSubscriptionWithRepairsImpl(
   clientId: string
 ): Promise<AthleteSubscription | null> {
   const subscription = await prisma.athleteSubscription.findUnique({
@@ -169,6 +170,14 @@ export async function getAthleteSubscriptionWithRepairs(
 
   return repairLegacyFreeAiChatEntitlement(subscription)
 }
+
+/**
+ * Per-request memoized: multiple feature checks for the same client within one
+ * request share a single DB read (and at most one legacy-entitlement repair).
+ * `cache` from React dedupes by argument within the request scope; outside a
+ * request scope it simply runs the function, so callers stay correct.
+ */
+export const getAthleteSubscriptionWithRepairs = cache(getAthleteSubscriptionWithRepairsImpl)
 
 /**
  * Check if an athlete (client) has access to a specific feature
@@ -339,7 +348,7 @@ export async function checkAthleteFeatureAccess(
  * Check coach subscription status (for athlete mode access)
  * This checks the Subscription model (coach subscriptions)
  */
-export async function checkCoachSubscriptionStatus(
+async function checkCoachSubscriptionStatusImpl(
   userId: string
 ): Promise<CoachSubscriptionStatus> {
   const subscription = await prisma.subscription.findUnique({
@@ -405,6 +414,9 @@ export async function checkCoachSubscriptionStatus(
     status,
   }
 }
+
+/** Per-request memoized coach subscription lookup. */
+export const checkCoachSubscriptionStatus = cache(checkCoachSubscriptionStatusImpl)
 
 /**
  * Increment AI chat usage for an athlete

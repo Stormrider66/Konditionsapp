@@ -426,4 +426,43 @@ describe('Elite Threshold Detection', () => {
       }
     })
   })
+
+  describe('defensive stage ordering', () => {
+    const orderedStages: TestStage[] = [
+      { id: '1', testId: 't1', sequence: 1, duration: 240, speed: 8, heartRate: 120, lactate: 1.0 },
+      { id: '2', testId: 't1', sequence: 2, duration: 240, speed: 10, heartRate: 135, lactate: 1.4 },
+      { id: '3', testId: 't1', sequence: 3, duration: 240, speed: 12, heartRate: 150, lactate: 2.2 },
+      { id: '4', testId: 't1', sequence: 4, duration: 240, speed: 14, heartRate: 165, lactate: 3.6 },
+      { id: '5', testId: 't1', sequence: 5, duration: 240, speed: 16, heartRate: 178, lactate: 5.5 },
+    ]
+    // Same stages, scrambled order — the functions must sort by `sequence`.
+    const shuffledStages: TestStage[] = [
+      orderedStages[2],
+      orderedStages[0],
+      orderedStages[4],
+      orderedStages[1],
+      orderedStages[3],
+    ]
+
+    it('calculateAnaerobicThreshold is independent of input stage order', () => {
+      const fromOrdered = calculateAnaerobicThreshold(orderedStages)
+      const fromShuffled = calculateAnaerobicThreshold(shuffledStages)
+      expect(fromOrdered).not.toBeNull()
+      expect(fromShuffled).toEqual(fromOrdered)
+    })
+
+    it('calculateAerobicThreshold is independent of input stage order', () => {
+      const fromOrdered = calculateAerobicThreshold(orderedStages)
+      const fromShuffled = calculateAerobicThreshold(shuffledStages)
+      expect(fromOrdered).not.toBeNull()
+      expect(fromShuffled).toEqual(fromOrdered)
+    })
+
+    it('does not mutate the caller’s array', () => {
+      const input = [...shuffledStages]
+      calculateAnaerobicThreshold(input)
+      calculateAerobicThreshold(input)
+      expect(input).toEqual(shuffledStages)
+    })
+  })
 })

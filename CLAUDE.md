@@ -6,7 +6,7 @@ Always commit and push directly to `main`. Do NOT create feature branches or pul
 
 ## Project Overview
 
-**Elite Training Platform** - Next.js 15 SaaS for physiological testing, AI training programs, and athlete management. Multi-tenant architecture for coaches, athletes, and physiotherapists.
+**Elite Training Platform** - Next.js 16 SaaS for physiological testing, AI training programs, and athlete management. Multi-tenant architecture for coaches, athletes, and physiotherapists.
 
 ## Commands
 
@@ -42,7 +42,7 @@ postgresql://postgres:[pw]@db.rzvznvaxpxsfqfmhbept.supabase.co:5432/postgres
 
 ## Tech Stack
 
-Next.js 15 (App Router) | TypeScript (strict) | PostgreSQL/Supabase | Prisma ORM (192 models) | Supabase Auth | Tailwind + shadcn/ui (40 components) | React Hook Form + Zod | Recharts | jsPDF | Stripe | Remotion (video) | Vercel AI SDK
+Next.js 16 (App Router) | TypeScript (strict) | PostgreSQL/Supabase | Prisma ORM (192 models) | Supabase Auth | Tailwind + shadcn/ui (40 components) | React Hook Form + Zod | Recharts | jsPDF | Stripe | Remotion (video) | Vercel AI SDK
 
 ## Architecture
 
@@ -166,7 +166,7 @@ Post-`v2.0.0`. Not urgent, worth checking periodically:
 
 - **Supabase logs**: grep for `custom_access_token_hook failed:` — silent errors push users onto the slow DB-lookup fallback.
 - **Stripe webhook**: dry-run a few events through the new idempotency path before peak billing cycles.
-- **Lint warnings**: 3461 baseline. Rising fast = lost signal discipline.
+- **Lint warnings**: 1863 baseline, enforced via `--max-warnings` in the `lint` script (the build fails if it rises). Lower the gate in `package.json` whenever you reduce the count.
 - **MediaPipe**: unmaintained, no declared React peer. Plan a 1–2 day migration to `@mediapipe/tasks-vision` before the next React major bump.
 - **`videos` storage bucket**: never verified post-launch. When video-analysis gets real usage, confirm its RLS policies match `video-analysis` (private + 100 MB limit).
 - **PoseAnalyzer.tsx (1422 LOC) + ConfigurationForm.tsx (1073 LOC)**: still above the 500-LOC target. Decompose further only when actively editing.

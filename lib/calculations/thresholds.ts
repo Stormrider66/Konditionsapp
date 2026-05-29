@@ -380,6 +380,10 @@ function tryBishopModDmaxThreshold(stages: TestStage[]): (Threshold & { method: 
 }
 
 export function calculateAerobicThreshold(stages: TestStage[]): (Threshold & { method?: string; confidence?: string; profileType?: string }) | null {
+  // Threshold detection assumes stages are in ascending order. Callers (e.g.
+  // performAllCalculations) sort first, but sort defensively here too so a
+  // direct caller can't silently get a wrong result from unordered input.
+  stages = [...stages].sort((a, b) => a.sequence - b.sequence)
   const targetLactate = 2.0
 
   // Convert stages to lactate data points for elite detection
@@ -1024,6 +1028,9 @@ export function detectLT2Unified(
 }
 
 export function calculateAnaerobicThreshold(stages: TestStage[]): Threshold | null {
+  // See calculateAerobicThreshold: sort defensively so unordered input from a
+  // direct caller can't produce a wrong threshold.
+  stages = [...stages].sort((a, b) => a.sequence - b.sequence)
   const targetLactate = 4.0
 
   logger.debug('calculateAnaerobicThreshold - ANAEROBIC THRESHOLD CALCULATION', {

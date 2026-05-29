@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma, AssignmentStatus } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { requireCoach, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause based on user role
-    const where: any = {};
+    const where: Prisma.HybridWorkoutAssignmentWhereInput = {};
 
     // Try resolving as athlete (or coach-in-athlete-mode)
     if (!athleteId) {
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) {
-      where.status = status;
+      where.status = status as AssignmentStatus;
     }
 
     if (dateFrom || dateTo) {

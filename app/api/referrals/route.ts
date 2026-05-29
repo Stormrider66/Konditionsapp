@@ -1,5 +1,6 @@
 // app/api/referrals/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma, ReferralStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
@@ -38,12 +39,12 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0')
 
     // Build where clause
-    const where: any = {
+    const where: Prisma.ReferralWhereInput = {
       referrerUserId: user.id,
     }
 
     if (status && ['PENDING', 'COMPLETED', 'EXPIRED', 'REVOKED'].includes(status)) {
-      where.status = status
+      where.status = status as ReferralStatus
     }
 
     const [referrals, total] = await Promise.all([

@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
@@ -49,20 +50,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Build where clause
-    const where: any = { athleteId };
+    const where: Prisma.HybridWorkoutResultWhereInput = { athleteId };
 
     if (workoutId) {
       where.workoutId = workoutId;
     }
 
     if (dateFrom || dateTo) {
-      where.completedAt = {};
-      if (dateFrom) {
-        where.completedAt.gte = new Date(dateFrom);
-      }
-      if (dateTo) {
-        where.completedAt.lte = new Date(dateTo);
-      }
+      where.completedAt = {
+        ...(dateFrom ? { gte: new Date(dateFrom) } : {}),
+        ...(dateTo ? { lte: new Date(dateTo) } : {}),
+      };
     }
 
     // Fetch results with workout info

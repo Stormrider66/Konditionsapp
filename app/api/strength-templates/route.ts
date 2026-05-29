@@ -20,6 +20,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma, StrengthPhase, SportType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
@@ -65,7 +66,7 @@ export async function GET(request: NextRequest) {
     const targetGoal = searchParams.get('targetGoal')
 
     // Build where clause - show user's own templates + public + system templates
-    const where: any = {
+    const where: Prisma.StrengthTemplateWhereInput = {
       OR: [
         { coachId: user.id },
         { isPublic: true },
@@ -74,11 +75,11 @@ export async function GET(request: NextRequest) {
     }
 
     if (phase && phase !== 'ALL') {
-      where.phase = phase
+      where.phase = phase as StrengthPhase
     }
 
     if (targetSport && targetSport !== 'ALL') {
-      where.targetSport = targetSport
+      where.targetSport = targetSport as SportType
     }
 
     if (targetGoal && targetGoal !== 'ALL') {
