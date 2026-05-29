@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptationPhase } from '@prisma/client'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
-import { logError } from '@/lib/logger-console'
+import { logError, logWarn } from '@/lib/logger-console'
 
 type AppLocale = 'en' | 'sv'
 
@@ -114,56 +114,62 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Create the event
-    const event = await prisma.calendarEvent.create({
-      data: {
-        clientId,
-        type: type as CalendarEventType,
-        title,
-        description,
-        status: 'SCHEDULED' as CalendarEventStatus,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        allDay,
-        startTime,
-        endTime,
-        trainingImpact: trainingImpact as EventImpact,
-        impactNotes,
-        altitude,
-        adaptationPhase,
-        seaLevelReturnDate: type === 'ALTITUDE_CAMP' ? new Date(endDate) : null,
-        illnessType,
-        returnToTrainingDate: returnToTrainingDate ? new Date(returnToTrainingDate) : null,
-        medicalClearance: medicalClearance ?? false,
-        externalCalendarId,
-        externalCalendarType,
-        externalCalendarName,
-        isReadOnly: isReadOnly ?? false,
-        isRecurring: isRecurring ?? false,
-        recurrenceRule,
-        recurrenceParentId,
-        createdById: dbUser.id,
-        color,
-      },
-    })
     const changeDescription = eventCreatedDescription(dbUser.role, title, locale)
 
-    // Create change record for notifications
-    await prisma.calendarEventChange.create({
-      data: {
-        eventId: event.id,
-        clientId,
-        changeType: 'EVENT_CREATED',
-        changedById: dbUser.id,
-        description: changeDescription,
-        newData: {
-          type,
+    // Create the event and its change record atomically so we never end up
+    // with an event that has no audit/notification trail.
+    const event = await prisma.$transaction(async (tx) => {
+      const created = await tx.calendarEvent.create({
+        data: {
+          clientId,
+          type: type as CalendarEventType,
           title,
-          startDate,
-          endDate,
-          trainingImpact,
+          description,
+          status: 'SCHEDULED' as CalendarEventStatus,
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          allDay,
+          startTime,
+          endTime,
+          trainingImpact: trainingImpact as EventImpact,
+          impactNotes,
+          altitude,
+          adaptationPhase,
+          seaLevelReturnDate: type === 'ALTITUDE_CAMP' ? new Date(endDate) : null,
+          illnessType,
+          returnToTrainingDate: returnToTrainingDate ? new Date(returnToTrainingDate) : null,
+          medicalClearance: medicalClearance ?? false,
+          externalCalendarId,
+          externalCalendarType,
+          externalCalendarName,
+          isReadOnly: isReadOnly ?? false,
+          isRecurring: isRecurring ?? false,
+          recurrenceRule,
+          recurrenceParentId,
+          createdById: dbUser.id,
+          color,
         },
-      },
+      })
+
+      // Create change record for notifications
+      await tx.calendarEventChange.create({
+        data: {
+          eventId: created.id,
+          clientId,
+          changeType: 'EVENT_CREATED',
+          changedById: dbUser.id,
+          description: changeDescription,
+          newData: {
+            type,
+            title,
+            startDate,
+            endDate,
+            trainingImpact,
+          },
+        },
+      })
+
+      return created
     })
 
     // Send email notification asynchronously
@@ -218,6 +224,15 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type')
     const status = searchParams.get('status')
 
+    // Bound the query so a wide date range can't return unbounded rows.
+    // The response stays a bare array for backward compatibility; callers can
+    // page with ?limit/?offset if they ever need more than the default cap.
+    const DEFAULT_EVENT_LIMIT = 1000
+    const limitParam = parseInt(searchParams.get('limit') || '', 10)
+    const take = Number.isFinite(limitParam) && limitParam > 0 ? Math.min(limitParam, 5000) : DEFAULT_EVENT_LIMIT
+    const offsetParam = parseInt(searchParams.get('offset') || '', 10)
+    const skip = Number.isFinite(offsetParam) && offsetParam > 0 ? offsetParam : 0
+
     if (!clientId) {
       return NextResponse.json(
         { error: 'Missing required parameter: clientId' },
@@ -268,7 +283,17 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { startDate: 'asc' },
+      skip,
+      take,
     })
+
+    if (events.length === take) {
+      logWarn(
+        `calendar-events: result hit the ${take}-row cap for client ${clientId} ` +
+          `(startDate=${startDate ?? 'none'}, endDate=${endDate ?? 'none'}); ` +
+          'consider narrowing the range or paging with ?limit/?offset.'
+      )
+    }
 
     return NextResponse.json(events)
   } catch (error) {

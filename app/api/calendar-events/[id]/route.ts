@@ -241,55 +241,60 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updateData.seaLevelReturnDate = newEndDate
     }
 
-    // Update the event
-    const updatedEvent = await prisma.calendarEvent.update({
-      where: { id },
-      data: updateData,
-      include: {
-        createdBy: {
-          select: { id: true, name: true, role: true },
+    // Update the event and write its change record atomically so the audit
+    // trail can't diverge from the event itself.
+    const { updatedEvent, changeDescription } = await prisma.$transaction(async (tx) => {
+      const updated = await tx.calendarEvent.update({
+        where: { id },
+        data: updateData,
+        include: {
+          createdBy: {
+            select: { id: true, name: true, role: true },
+          },
+          lastModifiedBy: {
+            select: { id: true, name: true, role: true },
+          },
         },
-        lastModifiedBy: {
-          select: { id: true, name: true, role: true },
-        },
-      },
-    })
+      })
 
-    // Build change description
-    const changes: string[] = []
-    if (title && title !== existingEvent.title) changes.push(changedFieldLabel('title', locale))
-    if (startDate && new Date(startDate).getTime() !== existingEvent.startDate.getTime()) changes.push(changedFieldLabel('startDate', locale))
-    if (endDate && new Date(endDate).getTime() !== existingEvent.endDate.getTime()) changes.push(changedFieldLabel('endDate', locale))
-    if (trainingImpact && trainingImpact !== existingEvent.trainingImpact) changes.push(changedFieldLabel('trainingImpact', locale))
-    if (status && status !== existingEvent.status) changes.push(changedFieldLabel('status', locale))
+      // Build change description
+      const changes: string[] = []
+      if (title && title !== existingEvent.title) changes.push(changedFieldLabel('title', locale))
+      if (startDate && new Date(startDate).getTime() !== existingEvent.startDate.getTime()) changes.push(changedFieldLabel('startDate', locale))
+      if (endDate && new Date(endDate).getTime() !== existingEvent.endDate.getTime()) changes.push(changedFieldLabel('endDate', locale))
+      if (trainingImpact && trainingImpact !== existingEvent.trainingImpact) changes.push(changedFieldLabel('trainingImpact', locale))
+      if (status && status !== existingEvent.status) changes.push(changedFieldLabel('status', locale))
 
-    const changeDescription = eventUpdatedDescription(dbUser.role, changes, locale)
+      const description = eventUpdatedDescription(dbUser.role, changes, locale)
 
-    // Create change record
-    await prisma.calendarEventChange.create({
-      data: {
-        eventId: id,
-        clientId: existingEvent.clientId,
-        changeType: 'EVENT_UPDATED',
-        changedById: dbUser.id,
-        description: changeDescription,
-        previousData: {
-          type: existingEvent.type,
-          title: existingEvent.title,
-          startDate: existingEvent.startDate,
-          endDate: existingEvent.endDate,
-          trainingImpact: existingEvent.trainingImpact,
-          status: existingEvent.status,
+      // Create change record
+      await tx.calendarEventChange.create({
+        data: {
+          eventId: id,
+          clientId: existingEvent.clientId,
+          changeType: 'EVENT_UPDATED',
+          changedById: dbUser.id,
+          description,
+          previousData: {
+            type: existingEvent.type,
+            title: existingEvent.title,
+            startDate: existingEvent.startDate,
+            endDate: existingEvent.endDate,
+            trainingImpact: existingEvent.trainingImpact,
+            status: existingEvent.status,
+          },
+          newData: {
+            type: updated.type,
+            title: updated.title,
+            startDate: updated.startDate,
+            endDate: updated.endDate,
+            trainingImpact: updated.trainingImpact,
+            status: updated.status,
+          },
         },
-        newData: {
-          type: updatedEvent.type,
-          title: updatedEvent.title,
-          startDate: updatedEvent.startDate,
-          endDate: updatedEvent.endDate,
-          trainingImpact: updatedEvent.trainingImpact,
-          status: updatedEvent.status,
-        },
-      },
+      })
+
+      return { updatedEvent: updated, changeDescription: description }
     })
 
     // Send email notification asynchronously

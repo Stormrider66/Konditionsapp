@@ -18,7 +18,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getRequestedBusinessScope, requireCoach, hasReachedAthleteLimit } from '@/lib/auth-utils'
+import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
@@ -105,16 +105,27 @@ export async function POST(req: NextRequest, context: RouteContext) {
       : []
     const takenEmails = new Set(existingEmailClients.map((c) => c.email!.toLowerCase()))
 
+    // Per-coach athlete limit (solo coaches only — business members are governed
+    // at the business level). Fetch the subscription once, then track slots
+    // locally as we create athlete accounts so the cap still tightens across the
+    // batch without re-querying per row (was an N+1 of up to 200 lookups).
+    let athleteSlotsRemaining = Number.POSITIVE_INFINITY
+    if (!membership) {
+      const subscription = await prisma.subscription.findUnique({ where: { userId: user.id } })
+      if (!subscription) {
+        athleteSlotsRemaining = 0 // no subscription ≈ FREE with 0 slots
+      } else if (subscription.maxAthletes !== -1) {
+        athleteSlotsRemaining = Math.max(0, subscription.maxAthletes - subscription.currentAthletes)
+      }
+      // maxAthletes === -1 means unlimited → leave as +Infinity
+    }
+
     for (const row of rows) {
       try {
-        // Respect per-coach athlete limit (solo coaches only — business members
-        // are governed at the business level).
-        if (!membership) {
-          const limitReached = await hasReachedAthleteLimit(user.id)
-          if (limitReached) {
-            results.push({ status: 'skipped', name: row.name, reason: t(locale, 'athleteLimitReached') })
-            continue
-          }
+        // Respect per-coach athlete limit (tracked locally, computed above).
+        if (athleteSlotsRemaining <= 0) {
+          results.push({ status: 'skipped', name: row.name, reason: t(locale, 'athleteLimitReached') })
+          continue
         }
 
         if (row.email && takenEmails.has(row.email.toLowerCase())) {
@@ -167,6 +178,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
             })
           }
         }
+
+        // A new athlete account consumes one subscription slot (mirrors the
+        // increment inside createAthleteAccountForClient).
+        if (athleteAccountCreated) athleteSlotsRemaining -= 1
 
         if (row.email) takenEmails.add(row.email.toLowerCase())
 

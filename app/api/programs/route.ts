@@ -92,6 +92,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
+    // Pagination (bounds an otherwise unbounded list). Consumers read `data`;
+    // `pagination` is additive and non-breaking.
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '100', 10) || 100), 200)
+    const skip = (page - 1) * limit
+
     const coachPlatformAccess = await canAccessCoachPlatform(user.id)
     // Coach athlete pages pass an explicit clientId. That should take
     // precedence over the coach's own athlete-mode profile.
@@ -99,13 +105,13 @@ export async function GET(request: NextRequest) {
 
     // Get programs based on user role
     let programs
+    let countWhere: Prisma.TrainingProgramWhereInput = {}
 
     if (athleteResolved) {
       // Athlete (or coach in athlete mode) sees programs for their linked client
+      countWhere = { clientId: athleteResolved.clientId }
       programs = await prisma.trainingProgram.findMany({
-        where: {
-          clientId: athleteResolved.clientId,
-        },
+        where: countWhere,
         include: {
           client: {
             select: {
@@ -139,6 +145,8 @@ export async function GET(request: NextRequest) {
         orderBy: {
           startDate: 'desc',
         },
+        skip,
+        take: limit,
       })
     } else if (coachPlatformAccess) {
       if (clientId) {
@@ -163,6 +171,7 @@ export async function GET(request: NextRequest) {
       if (clientId) {
         whereClause.clientId = clientId
       }
+      countWhere = whereClause
 
       // Coaches see all programs they created (optionally filtered by client)
       programs = await prisma.trainingProgram.findMany({
@@ -201,6 +210,8 @@ export async function GET(request: NextRequest) {
         orderBy: {
           createdAt: 'desc',
         },
+        skip,
+        take: limit,
       })
     } else {
       // Admins see all programs (optionally filtered by client)
@@ -208,6 +219,7 @@ export async function GET(request: NextRequest) {
       if (clientId) {
         adminWhere.clientId = clientId
       }
+      countWhere = adminWhere
 
       programs = await prisma.trainingProgram.findMany({
         where: adminWhere,
@@ -245,12 +257,17 @@ export async function GET(request: NextRequest) {
         orderBy: {
           createdAt: 'desc',
         },
+        skip,
+        take: limit,
       })
     }
+
+    const total = await prisma.trainingProgram.count({ where: countWhere })
 
     return NextResponse.json({
       success: true,
       data: programs,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     })
   } catch (error) {
     logger.error('Error fetching programs', {}, error)

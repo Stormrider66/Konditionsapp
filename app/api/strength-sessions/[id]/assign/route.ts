@@ -172,84 +172,89 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const hasScheduling = !!startTime;
 
     const assignments = await Promise.all(
-      athleteIds.map(async (athleteId: string) => {
-        // Create calendar event if scheduling is enabled
-        let calendarEventId: string | undefined;
+      // Create each athlete's calendar event and the assignment that links to
+      // it inside one transaction, so a failed upsert can't leave an orphaned
+      // calendar event behind.
+      athleteIds.map((athleteId: string) =>
+        prisma.$transaction(async (tx) => {
+          // Create calendar event if scheduling is enabled
+          let calendarEventId: string | undefined;
 
-        if (createCalendarEvent) {
-          const locationDisplay = locationName || (locationId ? 'Scheduled location' : undefined);
+          if (createCalendarEvent) {
+            const locationDisplay = locationName || (locationId ? 'Scheduled location' : undefined);
 
-          const calendarEvent = await prisma.calendarEvent.create({
-            data: {
-              clientId: athleteId,
-              type: 'SCHEDULED_WORKOUT',
-              title: `Styrka: ${session.name}`,
-              description: locationDisplay
-                ? `Plats: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`
-                : notes || undefined,
-              status: 'SCHEDULED',
-              startDate: date,
-              endDate: date,
-              allDay: !hasScheduling,
+            const calendarEvent = await tx.calendarEvent.create({
+              data: {
+                clientId: athleteId,
+                type: 'SCHEDULED_WORKOUT',
+                title: `Styrka: ${session.name}`,
+                description: locationDisplay
+                  ? `Plats: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`
+                  : notes || undefined,
+                status: 'SCHEDULED',
+                startDate: date,
+                endDate: date,
+                allDay: !hasScheduling,
+                startTime,
+                endTime,
+                trainingImpact: 'NORMAL',
+                createdById: user.id,
+              },
+            });
+            calendarEventId = calendarEvent.id;
+          }
+
+          return tx.strengthSessionAssignment.upsert({
+            where: {
+              sessionId_athleteId_assignedDate: {
+                sessionId: id,
+                athleteId,
+                assignedDate: date,
+              },
+            },
+            update: {
+              notes,
+              status: 'PENDING',
               startTime,
               endTime,
-              trainingImpact: 'NORMAL',
-              createdById: user.id,
+              locationId,
+              locationName,
+              scheduledBy: hasScheduling ? user.id : undefined,
+              responsibleCoachId: responsibleCoachId || undefined,
+              calendarEventId,
             },
-          });
-          calendarEventId = calendarEvent.id;
-        }
-
-        return prisma.strengthSessionAssignment.upsert({
-          where: {
-            sessionId_athleteId_assignedDate: {
+            create: {
               sessionId: id,
               athleteId,
               assignedDate: date,
+              assignedBy: user.id,
+              notes,
+              status: 'PENDING',
+              startTime,
+              endTime,
+              locationId,
+              locationName,
+              scheduledBy: hasScheduling ? user.id : undefined,
+              responsibleCoachId: responsibleCoachId || undefined,
+              calendarEventId,
             },
-          },
-          update: {
-            notes,
-            status: 'PENDING',
-            startTime,
-            endTime,
-            locationId,
-            locationName,
-            scheduledBy: hasScheduling ? user.id : undefined,
-            responsibleCoachId: responsibleCoachId || undefined,
-            calendarEventId,
-          },
-          create: {
-            sessionId: id,
-            athleteId,
-            assignedDate: date,
-            assignedBy: user.id,
-            notes,
-            status: 'PENDING',
-            startTime,
-            endTime,
-            locationId,
-            locationName,
-            scheduledBy: hasScheduling ? user.id : undefined,
-            responsibleCoachId: responsibleCoachId || undefined,
-            calendarEventId,
-          },
-          include: {
-            athlete: {
-              select: {
-                id: true,
-                name: true,
+            include: {
+              athlete: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+              location: {
+                select: {
+                  id: true,
+                  name: true,
+                },
               },
             },
-            location: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        });
-      })
+          });
+        })
+      )
     );
 
     return NextResponse.json({ assignments }, { status: 201 });
