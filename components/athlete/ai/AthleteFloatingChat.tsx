@@ -34,6 +34,12 @@ import {
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
+import {
+  getVoiceFileExtension,
+  formatVoiceDuration,
+  getMessageTextContent,
+  getSpeakableAssistantText,
+} from '@/components/ai-studio/voice-helpers'
 import { cn } from '@/lib/utils'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
@@ -102,39 +108,6 @@ function hasExplicitSkillSelectionRequest(message: string): boolean {
   const normalized = normalizeSkillName(message)
   return /\b(anvand|use|pull|hamta|plocka|dra in|koppla in)\b/.test(normalized)
     && /\b(skills?|kunskap|expert|metod|test|aterhamtning|nutrition|styrka)\b/.test(normalized)
-}
-
-function getVoiceFileExtension(mimeType: string): string {
-  if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a'
-  if (mimeType.includes('ogg')) return 'ogg'
-  if (mimeType.includes('wav')) return 'wav'
-  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3'
-  return 'webm'
-}
-
-function formatVoiceDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
-}
-
-function getMessageTextContent(parts?: unknown[]): string {
-  return parts
-    ?.filter((part): part is { type: 'text'; text: string } => {
-      return typeof part === 'object' && part !== null && (part as { type?: unknown }).type === 'text'
-    })
-    .map((part) => part.text)
-    .join('') || ''
-}
-
-function getSpeakableAssistantText(text: string): string {
-  return text
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/[#*_~>|]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 export function AthleteFloatingChat({

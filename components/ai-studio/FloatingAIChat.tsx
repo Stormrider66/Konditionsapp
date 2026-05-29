@@ -33,6 +33,12 @@ import {
   Radio,
   PhoneOff,
 } from 'lucide-react'
+import {
+  getVoiceFileExtension,
+  formatVoiceDuration,
+  getMessageTextContent,
+  getSpeakableAssistantText,
+} from './voice-helpers'
 import { ChatMessage } from './ChatMessage'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
 import { ChatActionCard, type ChatActionResult } from './ChatActionCard'
@@ -284,20 +290,6 @@ function getToolOnlyStatusMessage(role: string, parts: unknown[] | undefined, lo
     latestOutput.output,
     locale
   )
-}
-
-function getVoiceFileExtension(mimeType: string): string {
-  if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a'
-  if (mimeType.includes('ogg')) return 'ogg'
-  if (mimeType.includes('wav')) return 'wav'
-  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3'
-  return 'webm'
-}
-
-function formatVoiceDuration(seconds: number): string {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
 }
 
 type AppLocale = 'en' | 'sv'
@@ -602,25 +594,6 @@ const FLOATING_CHAT_COPY = {
     aiVoiceGenerated: 'Rösten är AI-genererad.',
   },
 } satisfies Record<AppLocale, Record<string, string | ((value: string) => string) | ((total?: number, done?: number) => string)>>
-
-function getMessageTextContent(parts?: unknown[]): string {
-  return parts
-    ?.filter((part): part is { type: 'text'; text: string } => {
-      return typeof part === 'object' && part !== null && (part as { type?: unknown }).type === 'text'
-    })
-    .map((part) => part.text)
-    .join('') || ''
-}
-
-function getSpeakableAssistantText(text: string): string {
-  return text
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`([^`]+)`/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-    .replace(/[#*_~>|]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
 
 export function FloatingAIChat({
   athleteId,
