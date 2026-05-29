@@ -197,6 +197,54 @@ No `prisma migrate` in any slice — purely a re-layout of data that already flo
 
 ---
 
+## Phase 1 — implementation spec (tab scaffold + relocation)
+
+### Architecture decision: route-based tabs + shared `layout.tsx`
+
+The team area **already uses real sub-routes** (`/medical`, `/analysis`, `/tests`, `/multivariate`, `/calendar`), each a heavy server component with its own data fetch. The right move is to formalize that into a **shared `layout.tsx` (header + tab bar) with one route per tab** — *not* the query-param single-page pattern used by `components/client/ClientDetailTabs.tsx`. Merging these heavy pages into one query-param page would re-create the 687-line monolith and kill per-tab code-splitting / data isolation.
+
+- **Tab bar** = a client nav component (`TeamTabNav`) using `usePathname()` for active state, styled after `ClientDetailTabs` but rendering `<Link>`s, not query-param triggers.
+- **Cost:** all 6 sub-pages currently render their own back-link + `<h1>` header (confirmed via inspection). Those get stripped — the layout renders the header once. Mechanical cleanup that *removes* duplication (net win), but it touches 6 files.
+- **Rejected alternative:** query-param tabs on a single page (the `ClientDetailTabs` precedent). Rejected because the team sub-views are heavy independent server components already split into routes; consolidating them would regress performance and re-monolith the page.
+
+### New files
+
+| File | Type | Contents |
+|---|---|---|
+| `…/teams/[teamId]/layout.tsx` | server | Validate membership + team access (`validateBusinessMembership`, `getAccessibleTeam`); fetch header fields (name, sportType, member count, organization); render back-link + team header + action-button cluster + `<TeamTabNav>`; render `{children}`. |
+| `components/coach/teams/TeamTabNav.tsx` | client | Tab links: Idag · Plan · Uppföljning · Trupp · Medical · Analys. `usePathname()` active highlight, i18n labels. Sticky under the global header. |
+| `…/teams/[teamId]/plan/page.tsx` | server | Phase planner (`AthletePlanSummaryCard` / empty-state `CreateTeamPlanDialog`) + `TeamNotesCard`. Owns the `activeTeamPlan` + `teamNote` queries. |
+| `…/teams/[teamId]/uppfoljning/page.tsx` | server | Stat cards + `TeamWorkoutMonitor` + `TeamLeaderboard`. Owns the `memberStats` adherence calc (where the discrepancy gets fixed in Phase 5). |
+| `…/teams/[teamId]/trupp/page.tsx` | server | Full editable `TeamRosterTable`. Owns the roster-status aggregation (today/upcoming counts + injuries + restrictions). |
+| `…/teams/[teamId]/analys/page.tsx` | server | Hub with the 3 existing quick-link cards (Lagets analys → `/analysis`, Tester → `/tests`, Multivariat → `/multivariate`). |
+
+### Edited files
+
+- **`…/teams/[teamId]/page.tsx` (root = Idag).** Strip everything that moved (stat cards, monitor, plan card, notes, full roster, leaderboard, analysis cards). **Interim Idag (Phase 1) = existing components only:** active-plan summary (`AthletePlanSummaryCard`) + the auto-hiding "Snabb kontroll" setup banner + the roster (`TeamRosterTable`), with a small "Dagens schema kommer härnäst" notice. The real two-pane cockpit (schedule pane + compact rail + phase/attention strips) is **Phase 2** and replaces this interim body. Keep the queries Idag still needs; delete those whose consumers moved.
+- **6 sub-pages** (`medical`, `analysis`, `tests`, `multivariate`, `calendar`, `import`): remove the per-page back-link + `<h1>`/badge header blocks (now in layout). Keep page-specific actions (`medical`'s calendar link, `calendar`'s `ManageAssistantsDialog`) — or hoist into the layout cluster. Fix `calendar`'s back-link (currently points to `/teams`, not the team).
+- **`messages/sv.json` + `messages/en.json`:** add `coach.pages.teamDetail.tabs.{today,plan,followUp,roster,medical,analysis}`.
+
+### Notes / gotchas
+- **Auth dedup:** layout and each page both call `validateBusinessMembership` / `getAccessibleTeam`. Wrap in React `cache()` (or confirm already wrapped) so the layout+page pair doesn't double-query.
+- **Sticky nav:** the global `BusinessCoachGlassHeader` is already sticky; `TeamTabNav` should stick just below it.
+- **Routing:** new URLs `/plan`, `/uppfoljning`, `/trupp`, `/analys` had no prior deep links → no redirects needed. Root URL stays Idag.
+- **Kalender** stays a header button in Phase 1 (already is); promote to a tab later if desired.
+
+### Suggested commit slices (commit + verify each)
+1. `layout.tsx` + `TeamTabNav` + i18n keys
+2. extract `/uppfoljning`
+3. extract `/plan`
+4. extract `/trupp` + `/analys`
+5. strip headers from the 6 sub-pages (+ fix calendar back-link)
+6. trim root → interim Idag
+
+Verify after each: `npm run build` + `npm run typecheck`; click every tab → no double headers, data renders per tab, active highlight correct, setup banner hides when all "Redo".
+
+### Explicitly deferred to Phase 2+
+Two-pane cockpit body (schedule timeline + compact rail + phase/attention strips); readiness/ACWR in the status dot (Phase 3); adherence discrepancy fix (Phase 5).
+
+---
+
 ## Open questions / later
 
 - **Roster at scale (19–55).** Compact rail needs sticky header + search + position grouping; confirm the read query is batched (avoid N+1 over members for status).
