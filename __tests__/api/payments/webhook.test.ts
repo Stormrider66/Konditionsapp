@@ -43,6 +43,7 @@ vi.mock('@/lib/logger', () => ({
 import { verifyWebhookSignature, handleStripeWebhook } from '@/lib/payments/stripe'
 import { handleCoachStripeWebhook } from '@/lib/payments/coach-stripe'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 import { POST as postWebhook } from '@/app/api/payments/webhook/route'
 
 function request(body: string, headers: Record<string, string> = {}) {
@@ -193,5 +194,23 @@ describe('POST /api/payments/webhook', () => {
 
     expect(res.status).toBe(500)
     expect(prisma.stripeWebhookEvent.create).not.toHaveBeenCalled()
+  })
+
+  it('fails open when the idempotency insert fails with a generic error (non-P2021)', async () => {
+    vi.mocked(verifyWebhookSignature).mockReturnValue(buildEvent() as any)
+    vi.mocked(handleStripeWebhook).mockResolvedValue({ handled: true, message: 'ok' } as any)
+    // findUnique succeeds (fresh event) and the handler runs, but the
+    // idempotency/audit insert throws a non-migration error. We must still
+    // return 200 — the event was handled, so Stripe must not retry it.
+    vi.mocked(prisma.stripeWebhookEvent.create).mockRejectedValue(new Error('db write timeout'))
+
+    const res = await postWebhook(request('payload', { 'stripe-signature': 'sig' }))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.handled).toBe(true)
+    expect(handleStripeWebhook).toHaveBeenCalledTimes(1)
+    // The failure is logged (the swallow branch), not silently dropped.
+    expect(vi.mocked(logger.error)).toHaveBeenCalled()
   })
 })
