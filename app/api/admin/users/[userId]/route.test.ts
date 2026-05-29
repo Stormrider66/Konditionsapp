@@ -91,12 +91,12 @@ describe('DELETE /api/admin/users/[userId]', () => {
     mockArchiveCreate.mockResolvedValue({})
   })
 
-  it('rejects non-admins (requireAdmin throws → 500, nothing touched)', async () => {
-    mockRequireAdmin.mockRejectedValue(new Error('Admin access required'))
+  it('rejects non-admins with 403 (not a generic 500), nothing touched', async () => {
+    mockRequireAdmin.mockRejectedValue(new Error('Access denied. Platform admin access required.'))
 
     const res = await DELETE(deleteRequest(), ctx('target-1'))
 
-    expect(res.status).toBe(500)
+    expect(res.status).toBe(403)
     expect(mockFindUnique).not.toHaveBeenCalled()
     expect(mockTransaction).not.toHaveBeenCalled()
     expect(mockDeleteAuthUser).not.toHaveBeenCalled()

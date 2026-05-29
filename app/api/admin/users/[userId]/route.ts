@@ -143,7 +143,25 @@ export async function DELETE(
       message: t(locale, `User ${targetUser.email} has been deleted`, `Användaren ${targetUser.email} har tagits bort`),
     });
   } catch (error) {
+    // Let Next.js redirects (requireAdmin redirects unauthenticated users to
+    // /login) propagate instead of being swallowed into a 500.
+    if (
+      error &&
+      typeof error === 'object' &&
+      'digest' in error &&
+      typeof (error as { digest?: unknown }).digest === 'string' &&
+      (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+    ) {
+      throw error;
+    }
     const message = error instanceof Error ? error.message : String(error);
+    // Authenticated but lacking admin rights -> 403, not a generic 500.
+    if (message.includes('admin access required')) {
+      return NextResponse.json(
+        { success: false, error: t(locale, 'Platform admin access required', 'Plattformsadministratörsåtkomst krävs') },
+        { status: 403 }
+      );
+    }
     logger.error('Error deleting user', { detail: message }, error);
     return NextResponse.json(
       { success: false, error: t(locale, `Could not delete user: ${message}`, `Kunde inte ta bort användaren: ${message}`) },
