@@ -3724,6 +3724,14 @@
         "actions": {
           "teamCalendar": "Team calendar"
         },
+        "tabs": {
+          "today": "Today",
+          "plan": "Plan",
+          "followUp": "Follow-up",
+          "roster": "Roster",
+          "medical": "Medical",
+          "analysis": "Analytics"
+        },
         "stats": {
           "players": "Players",
           "assignedWorkouts": "Assigned workouts (30 days)",

@@ -3724,6 +3724,14 @@
         "actions": {
           "teamCalendar": "Lagkalender"
         },
+        "tabs": {
+          "today": "Idag",
+          "plan": "Plan",
+          "followUp": "Uppföljning",
+          "roster": "Trupp",
+          "medical": "Medical",
+          "analysis": "Analys"
+        },
         "stats": {
           "players": "Spelare",
           "assignedWorkouts": "Tilldelade pass (30 dagar)",
