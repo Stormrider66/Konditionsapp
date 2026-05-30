@@ -1,8 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Plus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
+import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog'
 
 const ACTIVE_ASSIGNMENT_STATUSES = new Set(['PENDING', 'SCHEDULED', 'MODIFIED'])
 
@@ -41,6 +44,9 @@ export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockp
   const [error, setError] = useState(false)
   const [selection, setSelection] = useState<Selection>(null)
   const [positionFilter, setPositionFilter] = useState<string | null>(null)
+  // Assignment dialog: null = closed; {athleteId} preselects one player.
+  const [assignTarget, setAssignTarget] = useState<{ athleteId?: string } | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   const dayStartIso = useMemo(() => startOfDay(viewedDate).toISOString(), [viewedDate])
 
@@ -76,7 +82,7 @@ export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockp
 
     void load()
     return () => controller.abort()
-  }, [teamId, businessSlug, dayStartIso])
+  }, [teamId, businessSlug, dayStartIso, refreshKey])
 
   const goToDay = useCallback((next: Date) => {
     setViewedDate(startOfDay(next))
@@ -194,14 +200,18 @@ export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockp
 
   const selectedPlayerHasNoSession =
     selectedPlayerId != null && (eventsByPlayer.get(selectedPlayerId)?.size ?? 0) === 0
-  const quickAssignHref = selectedPlayerHasNoSession
-    ? `/${businessSlug}/coach/teams/${teamId}/calendar`
-    : null
 
   const isToday = startOfDay(viewedDate).getTime() === today.getTime()
 
   return (
-    <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
+    <>
+      <div className="mb-3 flex justify-end">
+        <Button type="button" size="sm" onClick={() => setAssignTarget({})}>
+          <Plus className="mr-1.5 h-4 w-4" />
+          {locale === 'sv' ? 'Tilldela pass' : 'Assign workout'}
+        </Button>
+      </div>
+      <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
       <TeamSchedulePane
         teamId={teamId}
         businessSlug={businessSlug}
@@ -229,8 +239,23 @@ export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockp
         selectedPlayerId={selectedPlayerId}
         onSelectPlayer={onSelectPlayer}
         sessionParticipantIds={sessionParticipantIds}
-        quickAssignHref={quickAssignHref}
+        selectedPlayerHasNoSession={selectedPlayerHasNoSession}
+        onQuickAssign={(memberId) => setAssignTarget({ athleteId: memberId })}
       />
-    </div>
+      </div>
+
+      <TeamWorkoutAssignmentDialog
+        teamId={teamId}
+        preselectAthleteId={assignTarget?.athleteId}
+        open={assignTarget !== null}
+        onOpenChange={(next) => {
+          if (!next) setAssignTarget(null)
+        }}
+        onAssigned={() => {
+          setAssignTarget(null)
+          setRefreshKey((key) => key + 1) // refetch the day's events → coverage updates
+        }}
+      />
+    </>
   )
 }

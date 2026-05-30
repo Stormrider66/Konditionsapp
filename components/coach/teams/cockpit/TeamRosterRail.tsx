@@ -39,8 +39,10 @@ interface TeamRosterRailProps {
   onSelectPlayer: (memberId: string) => void
   /** Participants of the selected session — highlight these, dim the rest. */
   sessionParticipantIds: Set<string> | null
-  /** Quick-assign link for the selected player when they have no session today. */
-  quickAssignHref: string | null
+  /** Whether the selected player has no session on the viewed day (show quick-assign). */
+  selectedPlayerHasNoSession: boolean
+  /** Open the assignment dialog preselected to a player. */
+  onQuickAssign: (memberId: string) => void
 }
 
 type SortKey = 'position' | 'number'
@@ -61,7 +63,8 @@ export function TeamRosterRail({
   selectedPlayerId,
   onSelectPlayer,
   sessionParticipantIds,
-  quickAssignHref,
+  selectedPlayerHasNoSession,
+  onQuickAssign,
 }: TeamRosterRailProps) {
   const t = useTranslations('coach.pages.teamDetail')
   const [query, setQuery] = useState('')
@@ -165,7 +168,8 @@ export function TeamRosterRail({
               }
               dimmed={sessionParticipantIds != null && !sessionParticipantIds.has(member.id)}
               onSelect={() => onSelectPlayer(member.id)}
-              quickAssignHref={selectedPlayerId === member.id ? quickAssignHref : null}
+              showQuickAssign={selectedPlayerId === member.id && selectedPlayerHasNoSession}
+              onQuickAssign={() => onQuickAssign(member.id)}
               quickAssignLabel={t('cockpit.rail.quickAssign')}
             />
           ))
@@ -189,7 +193,8 @@ function RosterRow({
   highlighted,
   dimmed,
   onSelect,
-  quickAssignHref,
+  showQuickAssign,
+  onQuickAssign,
   quickAssignLabel,
 }: {
   member: RailMember
@@ -198,7 +203,8 @@ function RosterRow({
   highlighted: boolean
   dimmed: boolean
   onSelect: () => void
-  quickAssignHref: string | null
+  showQuickAssign: boolean
+  onQuickAssign: () => void
   quickAssignLabel: string
 }) {
   const active = coverage?.active ?? 0
@@ -243,15 +249,16 @@ function RosterRow({
           )}
         </span>
       </button>
-      {quickAssignHref && (
+      {showQuickAssign && (
         <div className="px-4 pb-2">
-          <Link
-            href={quickAssignHref}
+          <button
+            type="button"
+            onClick={onQuickAssign}
             className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
           >
             <Plus className="h-3 w-3" />
             {quickAssignLabel}
-          </Link>
+          </button>
         </div>
       )}
     </div>
