@@ -3743,6 +3743,23 @@
             "injured": "{count, plural, =1 {# skadad} other {# skadade}}",
             "limited": "{count, plural, =1 {# begränsad} other {# begränsade}}",
             "withoutWorkout": "{count} utan pass idag"
+          },
+          "rail": {
+            "title": "Trupp ({count})",
+            "viewAll": "Visa alla",
+            "searchPlaceholder": "Sök spelare",
+            "sortLabel": "Sortera",
+            "sortPosition": "Position",
+            "sortNumber": "Nummer",
+            "colName": "Namn",
+            "colPos": "Pos",
+            "colWorkout": "Pass",
+            "colStatus": "Status",
+            "empty": "Inga spelare matchar.",
+            "legendHealthy": "Frisk",
+            "legendLimited": "Begränsad",
+            "legendInjured": "Skadad",
+            "legendRestrictions": "R = Restriktioner"
           }
         },
         "stats": {

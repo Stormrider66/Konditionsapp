@@ -24,6 +24,7 @@ import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDia
 import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { TeamPhaseStrip } from '@/components/coach/teams/cockpit/TeamPhaseStrip'
 import { TeamAttentionStrip } from '@/components/coach/teams/cockpit/TeamAttentionStrip'
+import { TeamRosterRail, type RailMember } from '@/components/coach/teams/cockpit/TeamRosterRail'
 import { getTranslations } from '@/i18n/server'
 
 interface TeamPageProps {
@@ -172,6 +173,17 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
 
   const phase = activeTeamPlan ? computePhase(activeTeamPlan, today) : null
 
+  const railMembers: RailMember[] = members.map((member) => ({
+    id: member.id,
+    jerseyNumber: member.jerseyNumber,
+    name: member.name,
+    position: member.position,
+    todayWorkoutCount: member.todayWorkoutCount,
+    todayCompletedCount: member.todayCompletedCount,
+    activeInjuryCount: member.activeInjuryCount,
+    activeRestrictionCount: member.activeRestrictionCount,
+  }))
+
   return (
     <div className="container mx-auto pb-8 px-4">
       <div className="mt-2 mb-6 space-y-3">
@@ -194,18 +206,26 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         />
       </div>
 
-      {/* Today's schedule placeholder — the full two-pane cockpit lands in the next slice. */}
-      <GlassCard glow="blue" className="mb-8">
-        <GlassCardHeader>
-          <GlassCardTitle className="flex items-center gap-2 dark:text-white">
-            <CalendarClock className="h-5 w-5 text-blue-500" />
-            {t('cockpit.scheduleComingTitle')}
-          </GlassCardTitle>
-          <GlassCardDescription>
-            {t('cockpit.scheduleComingDescription')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-      </GlassCard>
+      {/* Two-pane cockpit body. Left: schedule (timeline lands in the next slice).
+          Right: the compact roster rail. */}
+      <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
+        <GlassCard glow="blue">
+          <GlassCardHeader>
+            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
+              <CalendarClock className="h-5 w-5 text-blue-500" />
+              {t('cockpit.scheduleComingTitle')}
+            </GlassCardTitle>
+            <GlassCardDescription>
+              {t('cockpit.scheduleComingDescription')}
+            </GlassCardDescription>
+          </GlassCardHeader>
+        </GlassCard>
+
+        <TeamRosterRail
+          members={railMembers}
+          rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
+        />
+      </div>
 
       <div className="mb-8">
         {activeTeamPlan ? (

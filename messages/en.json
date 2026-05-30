@@ -3743,6 +3743,23 @@
             "injured": "{count, plural, =1 {# injured} other {# injured}}",
             "limited": "{count, plural, =1 {# limited} other {# limited}}",
             "withoutWorkout": "{count} without a session today"
+          },
+          "rail": {
+            "title": "Squad ({count})",
+            "viewAll": "View all",
+            "searchPlaceholder": "Search players",
+            "sortLabel": "Sort",
+            "sortPosition": "Position",
+            "sortNumber": "Number",
+            "colName": "Name",
+            "colPos": "Pos",
+            "colWorkout": "Session",
+            "colStatus": "Status",
+            "empty": "No players match.",
+            "legendHealthy": "Healthy",
+            "legendLimited": "Limited",
+            "legendInjured": "Injured",
+            "legendRestrictions": "R = Restrictions"
           }
         },
         "stats": {
