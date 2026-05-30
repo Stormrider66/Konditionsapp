@@ -1,7 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, TabletSmartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
@@ -213,6 +214,12 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
           teamName={teamName}
           coachBasePath={`/${businessSlug}/coach`}
         />
+        <Button asChild type="button" variant="outline">
+          <Link href={`/${businessSlug}/coach/teams/${teamId}/kiosk`}>
+            <TabletSmartphone className="mr-1.5 h-4 w-4" />
+            Focus mode
+          </Link>
+        </Button>
         <Button type="button" onClick={() => setAssignTarget({})}>
           <Plus className="mr-1.5 h-4 w-4" />
           {locale === 'sv' ? 'Tilldela pass' : 'Assign workout'}

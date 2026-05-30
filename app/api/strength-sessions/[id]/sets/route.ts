@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { resolveStrengthAssignmentAccess } from '@/lib/strength/assignment-access'
 
 type AppLocale = 'en' | 'sv'
 
@@ -40,15 +40,9 @@ export async function POST(
 ) {
   try {
     const { id: assignmentId } = await params
-    const resolved = await resolveAthleteClientId()
-    if (!resolved) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-    const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
+    if ('response' in accessResult) return accessResult.response
+    const { clientId, locale } = accessResult.access
 
     const body = await request.json()
     const {
@@ -192,15 +186,9 @@ export async function GET(
 ) {
   try {
     const { id: assignmentId } = await params
-    const resolved = await resolveAthleteClientId()
-    if (!resolved) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-    const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
+    if ('response' in accessResult) return accessResult.response
+    const { clientId, locale } = accessResult.access
 
     // Verify assignment exists
     const assignment = await prisma.strengthSessionAssignment.findUnique({
@@ -292,14 +280,9 @@ export async function DELETE(
       )
     }
 
-    const resolved = await resolveAthleteClientId()
-    if (!resolved) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-    const { clientId } = resolved
+    const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
+    if ('response' in accessResult) return accessResult.response
+    const { clientId } = accessResult.access
 
     // Verify set log exists and belongs to this assignment
     const setLog = await prisma.setLog.findUnique({

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
+import { resolveStrengthAssignmentAccess } from '@/lib/strength/assignment-access'
 
 type AppLocale = 'en' | 'sv'
 type WeightUnit = 'kg' | 'percent'
@@ -132,15 +132,9 @@ export async function GET(
 ) {
   try {
     const { id: assignmentId } = await params
-    const resolved = await resolveAthleteClientId()
-    if (!resolved) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-    const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
+    if ('response' in accessResult) return accessResult.response
+    const { clientId, locale } = accessResult.access
 
     // Get assignment with session and logged sets
     const assignment = await prisma.strengthSessionAssignment.findUnique({
@@ -520,15 +514,9 @@ export async function PUT(
 ) {
   try {
     const { id: assignmentId } = await params
-    const resolved = await resolveAthleteClientId()
-    if (!resolved) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-    const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
+    if ('response' in accessResult) return accessResult.response
+    const { clientId, locale } = accessResult.access
 
     const body = await request.json()
 
