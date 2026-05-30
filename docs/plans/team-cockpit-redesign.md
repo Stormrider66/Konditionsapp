@@ -1,6 +1,6 @@
 # Team Cockpit Redesign — Plan
 
-**Status:** Phase 1 (tabbed layout + relocation) **shipped to `main` 2026-05-30**. Next: the two-pane cockpit body (schedule + roster rail) on the Idag tab — Phase 2.
+**Status:** Phases 1 (tabbed layout + relocation) and 2 (two-pane cockpit body) **shipped to `main` 2026-05-30**. The Idag tab now renders the phase + attention strips over a two-pane cockpit (live schedule timeline | compact roster rail) plus the auto-hiding setup banner; the interim plan-summary leftover is gone (Plan tab owns it). Next: Phase 3 — readiness/ACWR in the status dot + attention strip.
 **Author context:** Redesign of the team detail page (the screen a coach sees when opening a team).
 **Date:** 2026-05-29
 
@@ -188,7 +188,7 @@ The top cards and the Passuppföljning panel run **different queries**:
 ## Phasing (each slice independently shippable; commit + verify per slice)
 
 1. **Tab scaffold + relocate (no logic changes).** Add the header + tab bar; move existing modules into tabs — Plan (phase planner + notes), Uppföljning (stat cards + `TeamWorkoutMonitor` + leaderboard), Trupp (`TeamRosterTable`), Medical, Analys. Auto-hide the "Snabb kontroll" checklist when complete. Pure relocation of existing components → low risk, instantly de-clutters the landing.
-2. **Cockpit (Idag tab) on existing data.** Two panes — schedule from events API + compact roster rail with injury/restriction + today-workout — plus the phase-context strip (`TeamPlan`) and attention strip (medical-only). *This is the slice that delivers the new operational view.*
+2. **Cockpit (Idag tab) on existing data.** ✅ **Shipped 2026-05-30.** Two panes — schedule from events API + compact roster rail with injury/restriction + today-workout — plus the phase-context strip (`TeamPlan`) and attention strip (medical-only). Built in 4 slices: `getTeamRosterStatus` shared helper → `TeamPhaseStrip` + `TeamAttentionStrip` (one aggregation feeds both) → `TeamRosterRail` (compact read-only rail: #/name/pos, pass-idag coverage marker, medical status dot + R-count, client-side search/sort) → `TeamSchedulePane` (client component fetching the events API with a `‹ Idag ›` day-nav; timeline cards with time/duration, type badge, location, completion bar, Upcoming/Active/Done status, "Saknar innehåll" warning, "Visa pass" studio deep-link, rest-day empty-state CTA). A 5th cleanup slice removed the Phase 1 interim plan-summary card (the phase strip + Plan tab supersede it). Verified per slice with typecheck + eslint. *This is the slice that delivers the new operational view.*
 3. **Readiness + ACWR** into the status dot and attention strip (adds the batched readiness helper + "ej incheckad" state).
 4. **Cross-pane interactions**, position filter across both panes, live "now" highlighting.
 5. **Fix + reframe the adherence analytics** in Uppföljning (resolve the discrepancy).

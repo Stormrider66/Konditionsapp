@@ -20,8 +20,6 @@ import {
 } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2 } from 'lucide-react'
-import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
-import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { TeamPhaseStrip } from '@/components/coach/teams/cockpit/TeamPhaseStrip'
 import { TeamAttentionStrip } from '@/components/coach/teams/cockpit/TeamAttentionStrip'
 import { TeamRosterRail, type RailMember } from '@/components/coach/teams/cockpit/TeamRosterRail'
@@ -110,7 +108,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     notFound()
   }
 
-  const teamName = accessibleTeam.name
   const members = await getTeamRosterStatus(teamId)
 
   const today = new Date()
@@ -216,40 +213,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           members={railMembers}
           rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
         />
-      </div>
-
-      <div className="mb-8">
-        {activeTeamPlan ? (
-          <AthletePlanSummaryCard
-            plan={activeTeamPlan}
-            now={today}
-            variant="team"
-            action={
-              <CreateTeamPlanDialog
-                teamId={teamId}
-                teamName={teamName}
-                businessSlug={businessSlug}
-                initialPlan={activeTeamPlan}
-              />
-            }
-          />
-        ) : (
-          <GlassCard glow="blue">
-            <GlassCardHeader>
-              <GlassCardTitle className="dark:text-white">{t('teamPlan.title')}</GlassCardTitle>
-              <GlassCardDescription>
-                {t('teamPlan.description')}
-              </GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent>
-              <CreateTeamPlanDialog
-                teamId={teamId}
-                teamName={teamName}
-                businessSlug={businessSlug}
-              />
-            </GlassCardContent>
-          </GlassCard>
-        )}
       </div>
 
       {!setupComplete && (
