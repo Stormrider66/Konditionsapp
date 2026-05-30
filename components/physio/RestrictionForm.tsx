@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
 import { useTranslations } from '@/i18n/client'
+import { MultiExercisePicker, type PickedExercise } from './MultiExercisePicker'
 
 type AthleteOption = {
   id: string
@@ -31,6 +32,7 @@ type RestrictionPayload = {
   severity: string
   bodyParts: string[]
   affectedWorkoutTypes: string[]
+  affectedExerciseIds: string[]
   endDate?: string
   volumeReductionPercent?: number
   maxIntensityZone?: number
@@ -94,6 +96,7 @@ export function RestrictionForm({
   const [severity, setSeverity] = useState('MODERATE')
   const [bodyParts, setBodyParts] = useState('')
   const [affectedTypes, setAffectedTypes] = useState<string[]>([])
+  const [selectedExercises, setSelectedExercises] = useState<PickedExercise[]>([])
   const [endDate, setEndDate] = useState('')
   const [volumeReductionPercent, setVolumeReductionPercent] = useState('')
   const [maxIntensityZone, setMaxIntensityZone] = useState('')
@@ -131,6 +134,29 @@ export function RestrictionForm({
         setSeverity(data.severity)
         setBodyParts((data.bodyParts || []).join(', '))
         setAffectedTypes(data.affectedWorkoutTypes || [])
+        const exerciseIds: string[] = data.affectedExerciseIds || []
+        if (exerciseIds.length > 0) {
+          try {
+            const exRes = await fetch(`/api/exercises?ids=${exerciseIds.join(',')}&limit=${exerciseIds.length}`)
+            if (exRes.ok) {
+              const exData = await exRes.json()
+              const byId = new Map<string, { id: string; name: string; nameSv?: string | null; nameEn?: string | null }>(
+                (exData.exercises ?? []).map((e: { id: string; name: string; nameSv?: string | null; nameEn?: string | null }) => [e.id, e])
+              )
+              if (!cancelled) {
+                setSelectedExercises(
+                  exerciseIds.map((id) => {
+                    const e = byId.get(id)
+                    return { id, name: e ? e.nameSv || e.nameEn || e.name : id }
+                  })
+                )
+              }
+            }
+          } catch {
+            // names are cosmetic — fall back to ids if the lookup fails
+            if (!cancelled) setSelectedExercises(exerciseIds.map((id) => ({ id, name: id })))
+          }
+        }
         setEndDate(dateToInput(data.endDate))
         setVolumeReductionPercent(data.volumeReductionPercent?.toString() || '')
         setMaxIntensityZone(data.maxIntensityZone?.toString() || '')
@@ -171,6 +197,7 @@ export function RestrictionForm({
       severity,
       bodyParts: splitList(bodyParts),
       affectedWorkoutTypes: affectedTypes,
+      affectedExerciseIds: selectedExercises.map((e) => e.id),
       endDate: dateInputToIso(endDate),
       volumeReductionPercent: volumeReductionPercent ? Number(volumeReductionPercent) : undefined,
       maxIntensityZone: maxIntensityZone ? Number(maxIntensityZone) : undefined,
@@ -365,6 +392,18 @@ export function RestrictionForm({
               )
             })}
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-slate-200">{t('fields.blockedExercises')}</Label>
+          <p className="text-xs text-slate-400">{t('hints.blockedExercises')}</p>
+          <MultiExercisePicker
+            value={selectedExercises}
+            onChange={setSelectedExercises}
+            searchPlaceholder={t('placeholders.searchExercises')}
+            emptyText={t('hints.noExerciseMatches')}
+            noneSelectedText={t('hints.noExercisesBlocked')}
+          />
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">

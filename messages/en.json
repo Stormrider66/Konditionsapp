@@ -10600,6 +10600,7 @@
         "endDate": "Applies until",
         "bodyParts": "Body parts",
         "affectedWorkoutTypes": "Affects workout types",
+        "blockedExercises": "Blocked exercises",
         "volumeReduction": "Volume reduction (%)",
         "maxIntensityZone": "Max intensity zone",
         "reason": "Short reason",
@@ -10611,7 +10612,13 @@
         "optional": "Optional",
         "bodyParts": "e.g. knee, groin, shoulder",
         "reason": "e.g. Groin, no acceleration",
-        "coachInstruction": "What should the coach avoid or modify?"
+        "coachInstruction": "What should the coach avoid or modify?",
+        "searchExercises": "Search exercises to block…"
+      },
+      "hints": {
+        "blockedExercises": "Workouts containing these exercises can't be assigned to this player.",
+        "noExerciseMatches": "No exercises found.",
+        "noExercisesBlocked": "No exercises blocked."
       },
       "injuries": {
         "none": "No linked injury",

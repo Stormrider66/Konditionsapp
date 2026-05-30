@@ -10967,6 +10967,7 @@
         "endDate": "Gäller till",
         "bodyParts": "Kroppsdelar",
         "affectedWorkoutTypes": "Påverkar träningsformer",
+        "blockedExercises": "Blockerade övningar",
         "volumeReduction": "Volymreduktion (%)",
         "maxIntensityZone": "Max intensitetszon",
         "reason": "Kort orsak",
@@ -10978,7 +10979,13 @@
         "optional": "Valfritt",
         "bodyParts": "t.ex. knä, ljumske, axel",
         "reason": "t.ex. Ljumske, ingen acceleration",
-        "coachInstruction": "Vad ska tränaren undvika eller modifiera?"
+        "coachInstruction": "Vad ska tränaren undvika eller modifiera?",
+        "searchExercises": "Sök övningar att blockera…"
+      },
+      "hints": {
+        "blockedExercises": "Pass som innehåller dessa övningar kan inte tilldelas spelaren.",
+        "noExerciseMatches": "Inga övningar hittades.",
+        "noExercisesBlocked": "Inga övningar blockerade."
       },
       "injuries": {
         "none": "Ingen kopplad skada",

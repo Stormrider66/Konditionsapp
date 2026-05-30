@@ -184,6 +184,14 @@ export async function GET(request: NextRequest) {
       ]
     }
 
+    // Resolve a specific set of exercises by id (e.g. to rehydrate names for
+    // already-selected exercise blocks in the physio restriction form).
+    const idsParam = searchParams.get('ids')
+    if (idsParam) {
+      const idList = idsParam.split(',').map((s) => s.trim()).filter(Boolean)
+      if (idList.length > 0) filtersWhere.id = { in: idList }
+    }
+
     // Exclude exercises hidden by this user
     let hiddenIds: string[] = []
     try {
