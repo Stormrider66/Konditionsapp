@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { Users } from 'lucide-react'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
+import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { getTranslations } from '@/i18n/server'
 
 interface TeamRosterPageProps {
@@ -31,8 +32,8 @@ export default async function TeamRosterPage({ params }: TeamRosterPageProps) {
     notFound()
   }
 
-  const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
-  if (!accessibleTeam) {
+  const team = await getAccessibleTeam(user.id, teamId, businessSlug)
+  if (!team) {
     notFound()
   }
 
@@ -42,13 +43,23 @@ export default async function TeamRosterPage({ params }: TeamRosterPageProps) {
     <div className="container mx-auto py-8 px-4">
       <GlassCard glow="purple">
         <GlassCardHeader>
-          <GlassCardTitle className="flex items-center gap-2 dark:text-white">
-            <Users className="h-5 w-5" />
-            {t('roster.title', { count: members.length })}
-          </GlassCardTitle>
-          <GlassCardDescription>
-            {t('roster.description')}
-          </GlassCardDescription>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <GlassCardTitle className="flex items-center gap-2 dark:text-white">
+                <Users className="h-5 w-5" />
+                {t('roster.title', { count: members.length })}
+              </GlassCardTitle>
+              <GlassCardDescription>
+                {t('roster.description')}
+              </GlassCardDescription>
+            </div>
+            <AddPlayersDialog
+              teamId={teamId}
+              teamName={team.name}
+              basePath={`/${businessSlug}/coach`}
+              importPath={`/${businessSlug}/coach/teams/${teamId}/import`}
+            />
+          </div>
         </GlassCardHeader>
         <GlassCardContent>
           <TeamRosterTable

@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog'
+import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
 
 const ACTIVE_ASSIGNMENT_STATUSES = new Set(['PENDING', 'SCHEDULED', 'MODIFIED'])
 
 interface TeamCockpitProps {
   teamId: string
+  teamName: string
   businessSlug: string
   locale: Locale
   members: RailMember[]
@@ -36,7 +38,7 @@ function startOfDay(date: Date): Date {
  * its players, click a player to spotlight their sessions, filter both panes by
  * position at once.
  */
-export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockpitProps) {
+export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }: TeamCockpitProps) {
   const today = useMemo(() => startOfDay(new Date()), [])
   const [viewedDate, setViewedDate] = useState<Date>(() => startOfDay(new Date()))
   const [events, setEvents] = useState<ScheduleEvent[]>([])
@@ -205,8 +207,13 @@ export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockp
 
   return (
     <>
-      <div className="mb-3 flex justify-end">
-        <Button type="button" size="sm" onClick={() => setAssignTarget({})}>
+      <div className="mb-3 flex flex-wrap justify-end gap-2">
+        <TeamDayPrintButton
+          teamId={teamId}
+          teamName={teamName}
+          coachBasePath={`/${businessSlug}/coach`}
+        />
+        <Button type="button" onClick={() => setAssignTarget({})}>
           <Plus className="mr-1.5 h-4 w-4" />
           {locale === 'sv' ? 'Tilldela pass' : 'Assign workout'}
         </Button>

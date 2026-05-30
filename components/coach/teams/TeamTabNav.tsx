@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
 import {
   LayoutDashboard,
+  CalendarDays,
   Layers,
   ClipboardCheck,
   Users,
@@ -31,6 +32,7 @@ interface TeamTab {
 
 const TEAM_TABS: TeamTab[] = [
   { key: 'today', labelKey: 'tabs.today', icon: LayoutDashboard, segment: '', activeSegments: [''] },
+  { key: 'calendar', labelKey: 'tabs.calendar', icon: CalendarDays, segment: '/calendar', activeSegments: ['calendar'] },
   { key: 'plan', labelKey: 'tabs.plan', icon: Layers, segment: '/plan', activeSegments: ['plan'] },
   { key: 'followUp', labelKey: 'tabs.followUp', icon: ClipboardCheck, segment: '/uppfoljning', activeSegments: ['uppfoljning'] },
   { key: 'roster', labelKey: 'tabs.roster', icon: Users, segment: '/trupp', activeSegments: ['trupp'] },
@@ -53,7 +55,7 @@ export function TeamTabNav({ base }: TeamTabNavProps) {
   const currentSegment = rest.replace(/^\//, '').split('/')[0] ?? ''
 
   return (
-    <nav className="sticky top-16 z-40 bg-gray-50/95 backdrop-blur-sm dark:bg-slate-950/80">
+    <nav className="sticky top-16 z-40 border-y bg-gray-50/95 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/85">
       <div className="container mx-auto px-4 py-3">
         <div className="flex gap-1 overflow-x-auto rounded-lg border bg-white p-1 shadow-sm dark:border-white/10 dark:bg-slate-900">
           {TEAM_TABS.map(({ key, labelKey, icon: Icon, segment, activeSegments }) => {
@@ -66,8 +68,8 @@ export function TeamTabNav({ base }: TeamTabNavProps) {
                 className={cn(
                   'flex shrink-0 items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all',
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-muted-foreground hover:bg-gray-100 dark:hover:bg-white/5'
+                    ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-600/20'
+                    : 'text-muted-foreground hover:bg-gray-100 hover:text-foreground dark:hover:bg-white/5'
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />

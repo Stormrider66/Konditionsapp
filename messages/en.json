@@ -3726,10 +3726,11 @@
         },
         "tabs": {
           "today": "Today",
+          "calendar": "Calendar",
           "plan": "Plan",
           "followUp": "Follow-up",
           "roster": "Roster",
-          "medical": "Medical",
+          "medical": "Health",
           "analysis": "Analytics"
         },
         "cockpit": {
@@ -3757,13 +3758,19 @@
           },
           "phase": {
             "currentBlock": "Current block",
-            "week": "week {current}/{total}"
+            "week": "week {current}/{total}",
+            "openPlan": "Open plan"
           },
           "attention": {
             "injured": "{count, plural, =1 {# injured} other {# injured}}",
+            "injuredNamed": "{name} injured",
             "limited": "{count, plural, =1 {# limited} other {# limited}}",
+            "limitedNamed": "{name} limited",
             "withoutWorkout": "{count} without a session today",
-            "highAcwr": "{count} high ACWR"
+            "withoutWorkoutNamed": "{name} without a session today",
+            "highAcwr": "{count} high ACWR",
+            "highAcwrNamed": "{name} high ACWR",
+            "nameListWithMore": "{names} +{count} more"
           },
           "rail": {
             "title": "Squad ({count})",
@@ -3810,7 +3817,9 @@
         "teamPlan": {
           "edit": "Edit",
           "title": "Team block plan",
-          "description": "Create the plan phases first, then fill the calendar with ice, gym, and matches."
+          "description": "Create the plan phases first, then fill the calendar with ice, gym, and matches.",
+          "emptyTitle": "No active block plan",
+          "emptyDescription": "Create a block plan to collect the team's phases, focus, and progression here."
         },
         "roster": {
           "title": "Players ({count})",

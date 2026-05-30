@@ -104,8 +104,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     notFound()
   }
 
-  const accessibleTeam = await getAccessibleTeam(user.id, teamId, businessSlug)
-  if (!accessibleTeam) {
+  const team = await getAccessibleTeam(user.id, teamId, businessSlug)
+  if (!team) {
     notFound()
   }
 
@@ -160,17 +160,23 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   const athletePortalReady = memberCount > 0 && athleteAccountCount === memberCount
   const setupComplete = rosterReady && athletePortalReady && hockeyTestCount > 0
 
-  const injuredCount = members.filter((member) => member.activeInjuryCount > 0).length
-  const limitedCount = members.filter(
-    (member) => member.activeInjuryCount === 0 && member.activeRestrictionCount > 0
-  ).length
-  const withoutWorkoutCount = members.filter(
-    (member) =>
-      member.hasAthleteAccount &&
-      member.todayWorkoutCount === 0 &&
-      member.todayCompletedCount === 0
-  ).length
-  const highAcwrCount = members.filter((member) => isHighAcwr(member.acwrZone)).length
+  const injuredPlayers = members
+    .filter((member) => member.activeInjuryCount > 0)
+    .map((member) => member.name)
+  const limitedPlayers = members
+    .filter((member) => member.activeInjuryCount === 0 && member.activeRestrictionCount > 0)
+    .map((member) => member.name)
+  const withoutWorkoutPlayers = members
+    .filter(
+      (member) =>
+        member.hasAthleteAccount &&
+        member.todayWorkoutCount === 0 &&
+        member.todayCompletedCount === 0
+    )
+    .map((member) => member.name)
+  const highAcwrPlayers = members
+    .filter((member) => isHighAcwr(member.acwrZone))
+    .map((member) => member.name)
 
   const phase = activeTeamPlan ? computePhase(activeTeamPlan, today) : null
 
@@ -199,10 +205,11 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           />
         )}
         <TeamAttentionStrip
-          injured={injuredCount}
-          limited={limitedCount}
-          withoutWorkout={withoutWorkoutCount}
-          highAcwr={highAcwrCount}
+          teamBasePath={`/${businessSlug}/coach/teams/${teamId}`}
+          injuredPlayers={injuredPlayers}
+          limitedPlayers={limitedPlayers}
+          withoutWorkoutPlayers={withoutWorkoutPlayers}
+          highAcwrPlayers={highAcwrPlayers}
         />
       </div>
 
@@ -210,6 +217,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           shell owns the day fetch + cross-pane interaction state. */}
       <TeamCockpit
         teamId={teamId}
+        teamName={team.name}
         businessSlug={businessSlug}
         locale={locale}
         members={railMembers}

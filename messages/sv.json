@@ -3726,10 +3726,11 @@
         },
         "tabs": {
           "today": "Idag",
+          "calendar": "Kalender",
           "plan": "Plan",
           "followUp": "Uppföljning",
           "roster": "Trupp",
-          "medical": "Medical",
+          "medical": "Hälsa",
           "analysis": "Analys"
         },
         "cockpit": {
@@ -3757,13 +3758,19 @@
           },
           "phase": {
             "currentBlock": "Nuvarande block",
-            "week": "vecka {current}/{total}"
+            "week": "vecka {current}/{total}",
+            "openPlan": "Öppna plan"
           },
           "attention": {
             "injured": "{count, plural, =1 {# skadad} other {# skadade}}",
+            "injuredNamed": "{name} skadad",
             "limited": "{count, plural, =1 {# begränsad} other {# begränsade}}",
+            "limitedNamed": "{name} begränsad",
             "withoutWorkout": "{count} utan pass idag",
-            "highAcwr": "{count} hög ACWR"
+            "withoutWorkoutNamed": "{name} utan pass idag",
+            "highAcwr": "{count} hög ACWR",
+            "highAcwrNamed": "{name} hög ACWR",
+            "nameListWithMore": "{names} +{count} till"
           },
           "rail": {
             "title": "Trupp ({count})",
@@ -3810,7 +3817,9 @@
         "teamPlan": {
           "edit": "Redigera",
           "title": "Lagets blockplan",
-          "description": "Skapa planens faser först, fyll sedan kalendern med is, fys och matcher."
+          "description": "Skapa planens faser först, fyll sedan kalendern med is, fys och matcher.",
+          "emptyTitle": "Ingen aktiv blockplan",
+          "emptyDescription": "Skapa en blockplan för att samla lagets faser, fokus och progression här."
         },
         "roster": {
           "title": "Spelare ({count})",

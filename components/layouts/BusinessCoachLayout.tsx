@@ -2,6 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { BusinessCoachGlassHeader } from '@/components/coach/BusinessCoachGlassHeader'
 import { createClient } from '@/lib/supabase/client'
 import { FloatingAIChat } from '@/components/ai-studio/FloatingAIChat'
@@ -76,6 +77,8 @@ function ThemedContent({
   const themeContext = useWorkoutThemeOptional()
   const isDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
   const tCommon = useTranslations('common')
+  const pathname = usePathname()
+  const isTeamWorkspace = /^\/[^/]+\/coach\/teams\/[^/]+(?:\/|$)/.test(pathname)
 
   // Build CSS custom properties from branding
   const customStyle: Record<string, string> = {}
@@ -116,8 +119,8 @@ function ThemedContent({
         {children}
       </div>
 
-      {/* Floating AI Chat - available on all coach pages with page context */}
-      <FloatingAIChatWithContext />
+      {/* Floating AI Chat - kept off dense team workspaces where it covers roster controls. */}
+      {!isTeamWorkspace && <FloatingAIChatWithContext />}
 
       <BetaFeedbackWidget userRole="COACH" businessSlug={businessSlug} />
 

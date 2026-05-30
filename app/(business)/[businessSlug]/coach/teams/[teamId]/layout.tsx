@@ -6,11 +6,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Users, Calendar, ShieldAlert } from 'lucide-react'
-import { TeamDashboardClient } from '@/components/coach/teams/TeamDashboardClient'
-import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
-import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
-import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
+import { ArrowLeft, Users } from 'lucide-react'
 import { TeamTabNav } from '@/components/coach/teams/TeamTabNav'
 import { getTranslations } from '@/i18n/server'
 import { getSportLabelKey } from '@/lib/sports/catalog'
@@ -68,8 +64,8 @@ export default async function TeamLayout({ children, params }: TeamLayoutProps) 
           </Button>
         </Link>
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-          <div>
+        <div className="mb-6 flex flex-col gap-3">
+          <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold dark:text-white">{team.name}</h1>
               {team.sportType && (
@@ -89,38 +85,6 @@ export default async function TeamLayout({ children, params }: TeamLayoutProps) 
                 </span>
               )}
             </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button asChild variant="outline">
-              <Link href={`${teamBase}/medical`}>
-                <ShieldAlert className="mr-2 h-4 w-4" />
-                Medical
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={`${teamBase}/calendar`}>
-                <Calendar className="mr-2 h-4 w-4" />
-                {t('actions.teamCalendar')}
-              </Link>
-            </Button>
-            <TeamDayPrintButton
-              teamId={teamId}
-              teamName={team.name}
-              coachBasePath={`/${businessSlug}/coach`}
-            />
-            <AddPlayersDialog
-              teamId={teamId}
-              teamName={team.name}
-              basePath={`/${businessSlug}/coach`}
-              importPath={`${teamBase}/import`}
-            />
-            <CreateTeamPlanDialog
-              teamId={teamId}
-              teamName={team.name}
-              businessSlug={businessSlug}
-            />
-            <TeamDashboardClient teamId={teamId} basePath={`/${businessSlug}`} />
           </div>
         </div>
       </div>

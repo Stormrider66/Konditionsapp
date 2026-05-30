@@ -8,7 +8,6 @@ import {
   GlassCardHeader,
   GlassCardTitle,
   GlassCardDescription,
-  GlassCardContent,
 } from '@/components/ui/GlassCard'
 import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
 import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
@@ -100,6 +99,22 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="text-2xl font-semibold tracking-tight dark:text-white">
+            {t('teamPlan.title')}
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {t('teamPlan.description')}
+          </p>
+        </div>
+        <CreateTeamPlanDialog
+          teamId={teamId}
+          teamName={team.name}
+          businessSlug={businessSlug}
+        />
+      </div>
+
       <div className="mb-8">
         {activeTeamPlan ? (
           <AthletePlanSummaryCard
@@ -118,18 +133,11 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
         ) : (
           <GlassCard glow="blue">
             <GlassCardHeader>
-              <GlassCardTitle className="dark:text-white">{t('teamPlan.title')}</GlassCardTitle>
+              <GlassCardTitle className="dark:text-white">{t('teamPlan.emptyTitle')}</GlassCardTitle>
               <GlassCardDescription>
-                {t('teamPlan.description')}
+                {t('teamPlan.emptyDescription')}
               </GlassCardDescription>
             </GlassCardHeader>
-            <GlassCardContent>
-              <CreateTeamPlanDialog
-                teamId={teamId}
-                teamName={team.name}
-                businessSlug={businessSlug}
-              />
-            </GlassCardContent>
           </GlassCard>
         )}
       </div>
