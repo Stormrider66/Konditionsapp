@@ -10639,6 +10639,7 @@
       "toasts": {
         "noExercises": "Lägg till övningar",
         "saved": "Pass sparat",
+        "savedAsNew": "Ny version sparad",
         "savedDescription": "\"{sessionName}\" har sparats.",
         "savedUpdated": "Pass uppdaterat",
         "savedUpdatedDescription": "\"{sessionName}\" har uppdaterats.",
@@ -10662,6 +10663,7 @@
         "cancel": "Avbryt",
         "saving": "Sparar...",
         "updateSession": "Uppdatera pass",
+        "saveAsNewVersion": "Spara som ny version",
         "saveSession": "Spara pass"
       },
       "placeholders": {

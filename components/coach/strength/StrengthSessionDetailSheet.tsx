@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/collapsible';
 import {
   Edit,
+  Copy,
   Trash2,
   Users,
   ChevronDown,
@@ -86,6 +87,7 @@ const copy = {
     },
     strengthSession: 'Strength session',
     edit: 'Edit',
+    saveAsNew: 'Save as new',
     delete: 'Delete',
     assign: 'Assign',
     assignTeam: 'Assign team',
@@ -134,6 +136,7 @@ const copy = {
     },
     strengthSession: 'Styrkepass',
     edit: 'Redigera',
+    saveAsNew: 'Spara som ny',
     delete: 'Ta bort',
     assign: 'Tilldela',
     assignTeam: 'Tilldela lag',
@@ -191,6 +194,7 @@ interface StrengthSessionDetailSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit: () => void;
+  onDuplicate?: () => void;
   onDelete: () => void;
   onAssign: () => void;
   onTeamAssign?: () => void;
@@ -217,6 +221,7 @@ export function StrengthSessionDetailSheet({
   open,
   onOpenChange,
   onEdit,
+  onDuplicate,
   onDelete,
   onAssign,
   onTeamAssign,
@@ -376,6 +381,12 @@ export function StrengthSessionDetailSheet({
             <Edit className="h-4 w-4 mr-1" />
             {t.edit}
           </Button>
+          {onDuplicate && (
+            <Button variant="outline" size="sm" onClick={onDuplicate}>
+              <Copy className="h-4 w-4 mr-1" />
+              {t.saveAsNew}
+            </Button>
+          )}
           <Button variant="outline" size="sm" onClick={onDelete} className="text-destructive hover:text-destructive">
             <Trash2 className="h-4 w-4 mr-1" />
             {t.delete}

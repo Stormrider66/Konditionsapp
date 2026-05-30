@@ -10272,6 +10272,7 @@
       "toasts": {
         "noExercises": "Add exercises",
         "saved": "Session saved",
+        "savedAsNew": "New version saved",
         "savedDescription": "{sessionName} has been saved.",
         "savedUpdated": "Session updated",
         "savedUpdatedDescription": "{sessionName} has been updated.",
@@ -10295,6 +10296,7 @@
         "cancel": "Cancel",
         "saving": "Saving...",
         "updateSession": "Update session",
+        "saveAsNewVersion": "Save as new version",
         "saveSession": "Save session"
       },
       "placeholders": {

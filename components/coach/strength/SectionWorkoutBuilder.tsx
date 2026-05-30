@@ -93,6 +93,7 @@ import {
   Percent,
   ShieldCheck,
   ArrowRightLeft,
+  Copy,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CustomExerciseCreator } from '@/components/coach/exercise-library/CustomExerciseCreator'
@@ -320,6 +321,15 @@ function categoryLabel(value: string, locale: AppLocale): string {
 
 function intensityLabel(value: CardioIntensity, locale: AppLocale): string {
   return INTENSITY_LABELS[value][locale]
+}
+
+function newVersionName(currentName: string, originalName: string | undefined, locale: AppLocale): string {
+  const trimmed = currentName.trim()
+  const original = originalName?.trim()
+  if (trimmed && trimmed !== original) return trimmed
+
+  const base = trimmed || original || text(locale, 'Nytt Styrkepass', 'New Strength Session')
+  return `${base} - ${text(locale, 'ny version', 'new version')}`
 }
 
 interface SectionWorkoutBuilderProps {
@@ -1035,7 +1045,7 @@ export function SectionWorkoutBuilder({
     )
 
   // Save handler
-  const handleSave = async () => {
+  const handleSave = async (saveAsNewVersion = false) => {
     if (sections.MAIN.exercises.length === 0) {
       toast.error(text(locale, 'Lägg till övningar', 'Add exercises'), {
         description: text(locale, 'Du måste lägga till minst en övning i huvudpasset.', 'You need to add at least one exercise to the main session.'),
@@ -1157,8 +1167,12 @@ export function SectionWorkoutBuilder({
           }
         : undefined
 
+      const nameForSave = saveAsNewVersion
+        ? newVersionName(sessionName, initialData?.name, locale)
+        : sessionName.trim()
+
       const payload = {
-        name: sessionName,
+        name: nameForSave,
         description: description || undefined,
         phase: PHASE_MAP[phase] || 'ANATOMICAL_ADAPTATION',
         teamId,
@@ -1173,9 +1187,10 @@ export function SectionWorkoutBuilder({
         totalExercises,
       }
 
-      const isEditing = initialData?.id
-      const url = isEditing
-        ? `/api/strength-sessions/${initialData.id}`
+      const editingSessionId = saveAsNewVersion ? undefined : initialData?.id
+      const isEditing = Boolean(editingSessionId)
+      const url = editingSessionId
+        ? `/api/strength-sessions/${editingSessionId}`
         : '/api/strength-sessions'
       const method = isEditing ? 'PUT' : 'POST'
 
@@ -1188,19 +1203,22 @@ export function SectionWorkoutBuilder({
       if (response.ok) {
         const result = await response.json()
         toast.success(
-          isEditing
+          saveAsNewVersion
+            ? text(locale, 'Ny version sparad!', 'New version saved!')
+            : isEditing
             ? text(locale, 'Pass uppdaterat!', 'Session updated!')
             : text(locale, 'Pass sparat!', 'Session saved!'),
           {
             description: text(
               locale,
-              `"${sessionName}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
-              `"${sessionName}" has been ${isEditing ? 'updated' : 'saved'}.`
+              `"${nameForSave}" har ${isEditing ? 'uppdaterats' : 'sparats'}.`,
+              `"${nameForSave}" has been ${isEditing ? 'updated' : 'saved'}.`
             ),
           }
         )
-        const savedId = result.id || result.session?.id || initialData?.id
-        onSaved?.(savedId, sessionName)
+        if (saveAsNewVersion) setSessionName(nameForSave)
+        const savedId = result.id || result.session?.id || editingSessionId
+        onSaved?.(savedId, nameForSave)
       } else {
         const data = await response.json()
         toast.error(text(locale, 'Kunde inte spara', 'Could not save'), {
@@ -1638,7 +1656,7 @@ export function SectionWorkoutBuilder({
 
             <Button
               className="w-full mt-4"
-              onClick={handleSave}
+              onClick={() => void handleSave()}
               disabled={saving || sections.MAIN.exercises.length === 0}
             >
               {saving ? (
@@ -1653,12 +1671,23 @@ export function SectionWorkoutBuilder({
               )}
             </Button>
             {initialData?.id && (
-              <PrintWorkoutButton
-                kind="strength"
-                workoutId={initialData.id}
-                label={text(locale, 'Skriv ut pass', 'Print session')}
-                className="w-full"
-              />
+              <div className="mt-2 space-y-2">
+                <Button
+                  variant="secondary"
+                  className="w-full"
+                  onClick={() => void handleSave(true)}
+                  disabled={saving || sections.MAIN.exercises.length === 0}
+                >
+                  <Copy className="h-4 w-4 mr-2" />
+                  {text(locale, 'Spara som ny version', 'Save as new version')}
+                </Button>
+                <PrintWorkoutButton
+                  kind="strength"
+                  workoutId={initialData.id}
+                  label={text(locale, 'Skriv ut pass', 'Print session')}
+                  className="w-full"
+                />
+              </div>
             )}
           </CardContent>
         </Card>

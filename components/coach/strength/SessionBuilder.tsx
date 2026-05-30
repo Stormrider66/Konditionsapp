@@ -26,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search, Download, Loader2, X, MapPin } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search, Download, Loader2, X, MapPin, Copy } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -39,7 +39,7 @@ import {
 } from '@/lib/strength/exercise-library-filters'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { StrengthSessionData } from '@/types'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import {
   getDefaultTrainingYear,
@@ -75,6 +75,16 @@ const PHASE_REVERSE_MAP: Record<string, string> = {
   'TAPER': 'Taper',
 }
 
+function newVersionName(currentName: string, originalName: string | undefined, locale: string): string {
+  const trimmed = currentName.trim()
+  const original = originalName?.trim()
+  if (trimmed && trimmed !== original) return trimmed
+
+  const isSv = locale === 'sv'
+  const base = trimmed || original || (isSv ? 'Nytt styrkepass' : 'New Strength Session')
+  return `${base} - ${isSv ? 'ny version' : 'new version'}`
+}
+
 interface SessionBuilderProps {
   initialData?: StrengthSessionData | null
   onSaved?: (sessionId?: string, sessionName?: string) => void
@@ -87,6 +97,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   const businessHeaders = React.useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
   const workoutId = searchParams.get('workoutId')
   const tSessionBuilder = useTranslations('components.sessionBuilder')
+  const locale = useLocale()
 
   const [sessionName, setSessionName] = useState(tSessionBuilder('defaults.sessionName'))
   const [description, setDescription] = useState('')
@@ -330,7 +341,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
     }
   }
 
-  async function handleSave() {
+  async function handleSave(saveAsNewVersion = false) {
     if (exercises.length === 0) {
       toast.error(tSessionBuilder('toasts.noExercises'), {
         description: tSessionBuilder('toasts.noExercisesDescription'),
@@ -350,8 +361,12 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
         notes: e.notes,
       }))
 
+      const nameForSave = saveAsNewVersion
+        ? newVersionName(sessionName, initialData?.name, locale)
+        : sessionName.trim()
+
       const payload = {
-        name: sessionName,
+        name: nameForSave,
         description: description || undefined,
         phase: PHASE_MAP[phase] || 'ANATOMICAL_ADAPTATION',
         teamId,
@@ -359,9 +374,10 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
         exercises: exerciseData,
       }
 
-      const isEditing = initialData?.id
-      const url = isEditing
-        ? `/api/strength-sessions/${initialData.id}`
+      const editingSessionId = saveAsNewVersion ? undefined : initialData?.id
+      const isEditing = Boolean(editingSessionId)
+      const url = editingSessionId
+        ? `/api/strength-sessions/${editingSessionId}`
         : '/api/strength-sessions'
       const method = isEditing ? 'PUT' : 'POST'
 
@@ -373,12 +389,20 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
 
       if (response.ok) {
         const result = await response.json()
-        toast.success(isEditing ? tSessionBuilder('toasts.savedUpdated') : tSessionBuilder('toasts.saved'), {
+        toast.success(
+          saveAsNewVersion
+            ? tSessionBuilder('toasts.savedAsNew')
+            : isEditing
+              ? tSessionBuilder('toasts.savedUpdated')
+              : tSessionBuilder('toasts.saved'),
+          {
           description: tSessionBuilder(isEditing ? 'toasts.savedUpdatedDescription' : 'toasts.savedDescription', {
-            sessionName,
+            sessionName: nameForSave,
           }),
-        })
-        onSaved?.(result.id || result.session?.id || initialData?.id, sessionName)
+          }
+        )
+        if (saveAsNewVersion) setSessionName(nameForSave)
+        onSaved?.(result.id || result.session?.id || editingSessionId, nameForSave)
       } else {
         const data = await response.json()
         toast.error(tSessionBuilder('toasts.saveFailed'), {
@@ -629,7 +653,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
               </span>
             </div>
             <div className="flex gap-2 mt-4">
-              <Button className="flex-1" onClick={handleSave} disabled={saving || exercises.length === 0}>
+              <Button className="flex-1" onClick={() => void handleSave()} disabled={saving || exercises.length === 0}>
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -647,6 +671,17 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
                 disabled={exercises.length === 0}
               />
             </div>
+            {initialData?.id && (
+              <Button
+                variant="secondary"
+                className="mt-2 w-full"
+                onClick={() => void handleSave(true)}
+                disabled={saving || exercises.length === 0}
+              >
+                <Copy className="h-4 w-4 mr-2" />
+                {tSessionBuilder('actions.saveAsNewVersion')}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

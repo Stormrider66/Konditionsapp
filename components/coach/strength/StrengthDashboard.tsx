@@ -196,7 +196,28 @@ const COPY = {
 
 function useStrengthDashboardCopy() {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
-  return { copy: COPY[locale], localeCode: LOCALE_CONFIG[locale] }
+  return { copy: COPY[locale], locale, localeCode: LOCALE_CONFIG[locale] }
+}
+
+function suggestedVersionName(name: string, locale: AppLocale) {
+  const trimmed = name.trim() || (locale === 'sv' ? 'Nytt styrkepass' : 'New strength session')
+  const suffix = locale === 'sv' ? 'ny version' : 'new version'
+  return `${trimmed} - ${suffix}`
+}
+
+function toNewVersionDraft(session: StrengthSessionData, locale: AppLocale): StrengthSessionData {
+  const draft = {
+    ...session,
+    name: suggestedVersionName(session.name, locale),
+  }
+  delete draft.id
+  delete draft.createdAt
+  delete draft.updatedAt
+  delete draft.coachId
+  delete draft._count
+  return {
+    ...draft,
+  }
 }
 
 interface StrengthDashboardProps {
@@ -204,7 +225,7 @@ interface StrengthDashboardProps {
 }
 
 export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
-  const { copy, localeCode } = useStrengthDashboardCopy()
+  const { copy, locale, localeCode } = useStrengthDashboardCopy()
   const pageCtx = usePageContextOptional()
   const searchParams = useSearchParams()
   const pathname = usePathname()
@@ -686,6 +707,11 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
             }}
             onEditSession={(session) => {
               setEditSession(session)
+              setActiveTab('builder')
+            }}
+            onDuplicateSession={(session) => {
+              setEditSession(toNewVersionDraft(session, locale))
+              setUseSectionBuilder(true)
               setActiveTab('builder')
             }}
             businessId={businessId}

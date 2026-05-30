@@ -117,6 +117,7 @@ const LEVEL_LABELS: Record<string, LocalizedLabel> = {
 interface StrengthSessionLibraryProps {
   onNewSession?: () => void;
   onEditSession?: (session: StrengthSessionData) => void;
+  onDuplicateSession?: (session: StrengthSessionData) => void;
   businessId?: string;
 }
 
@@ -147,6 +148,7 @@ function phaseLabel(phase: string, locale: AppLocale) {
 export function StrengthSessionLibrary({
   onNewSession,
   onEditSession,
+  onDuplicateSession,
   businessId,
 }: StrengthSessionLibraryProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
@@ -348,6 +350,13 @@ export function StrengthSessionLibrary({
   function handleSheetEdit() {
     if (sheetSession && onEditSession) {
       onEditSession(sheetSession);
+      setIsSheetOpen(false);
+    }
+  }
+
+  function handleSheetDuplicate() {
+    if (sheetSession && onDuplicateSession) {
+      onDuplicateSession(sheetSession);
       setIsSheetOpen(false);
     }
   }
@@ -715,6 +724,7 @@ export function StrengthSessionLibrary({
         open={isSheetOpen}
         onOpenChange={setIsSheetOpen}
         onEdit={handleSheetEdit}
+        onDuplicate={onDuplicateSession ? handleSheetDuplicate : undefined}
         onDelete={handleSheetDelete}
         onAssign={handleSheetAssign}
         onTeamAssign={handleSheetTeamAssign}
