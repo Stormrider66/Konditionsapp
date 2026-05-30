@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Users, Search, Check, CheckCheck } from 'lucide-react'
+import { Users, Search, Check, CheckCheck, Plus } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 import type { RosterDotLevel } from '@/lib/coach/roster-dot-status'
@@ -22,35 +22,57 @@ export interface RailMember {
   activeRestrictionCount: number
 }
 
+interface TeamRosterRailProps {
+  members: RailMember[]
+  /** Link to the full Trupp tab. */
+  rosterHref: string
+  /** Distinct positions present in the squad, for the filter dropdown. */
+  positions: string[]
+  positionFilter: string | null
+  onPositionFilterChange: (position: string | null) => void
+  /** The player the coach clicked, if any. */
+  selectedPlayerId: string | null
+  onSelectPlayer: (memberId: string) => void
+  /** Participants of the selected session — highlight these, dim the rest. */
+  sessionParticipantIds: Set<string> | null
+  /** Quick-assign link for the selected player when they have no session today. */
+  quickAssignHref: string | null
+}
+
+type SortKey = 'position' | 'number'
+
 const DOT_COLOR: Record<RosterDotLevel, string> = {
   red: 'bg-red-500',
   amber: 'bg-amber-500',
   green: 'bg-emerald-500',
 }
 
-interface TeamRosterRailProps {
-  members: RailMember[]
-  /** Link to the full Trupp tab. */
-  rosterHref: string
-}
-
-type SortKey = 'position' | 'number'
-
-export function TeamRosterRail({ members, rosterHref }: TeamRosterRailProps) {
+export function TeamRosterRail({
+  members,
+  rosterHref,
+  positions,
+  positionFilter,
+  onPositionFilterChange,
+  selectedPlayerId,
+  onSelectPlayer,
+  sessionParticipantIds,
+  quickAssignHref,
+}: TeamRosterRailProps) {
   const t = useTranslations('coach.pages.teamDetail')
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<SortKey>('position')
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    const list = q
-      ? members.filter(
-          (m) =>
-            m.name.toLowerCase().includes(q) ||
-            (m.position?.toLowerCase().includes(q) ?? false) ||
-            (m.jerseyNumber != null && String(m.jerseyNumber).includes(q))
-        )
-      : members
+    const list = members.filter((m) => {
+      if (positionFilter && m.position !== positionFilter) return false
+      if (!q) return true
+      return (
+        m.name.toLowerCase().includes(q) ||
+        (m.position?.toLowerCase().includes(q) ?? false) ||
+        (m.jerseyNumber != null && String(m.jerseyNumber).includes(q))
+      )
+    })
 
     return [...list].sort((a, b) => {
       if (sort === 'number') {
@@ -61,7 +83,7 @@ export function TeamRosterRail({ members, rosterHref }: TeamRosterRailProps) {
       if (posA !== posB) return posA.localeCompare(posB, 'sv')
       return (a.jerseyNumber ?? Number.MAX_SAFE_INTEGER) - (b.jerseyNumber ?? Number.MAX_SAFE_INTEGER)
     })
-  }, [members, query, sort])
+  }, [members, query, sort, positionFilter])
 
   return (
     <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
@@ -86,6 +108,21 @@ export function TeamRosterRail({ members, rosterHref }: TeamRosterRailProps) {
             className="w-full rounded-md border bg-transparent py-1.5 pl-7 pr-2 text-sm outline-none focus:border-blue-400 dark:border-white/10"
           />
         </div>
+        {positions.length > 0 && (
+          <select
+            value={positionFilter ?? ''}
+            onChange={(event) => onPositionFilterChange(event.target.value || null)}
+            aria-label={t('cockpit.rail.filterPosition')}
+            className="rounded-md border bg-transparent px-2 py-1.5 text-sm outline-none dark:border-white/10 dark:bg-slate-900"
+          >
+            <option value="">{t('cockpit.rail.allPositions')}</option>
+            {positions.map((position) => (
+              <option key={position} value={position}>
+                {position}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           value={sort}
           onChange={(event) => setSort(event.target.value as SortKey)}
@@ -111,7 +148,21 @@ export function TeamRosterRail({ members, rosterHref }: TeamRosterRailProps) {
             {t('cockpit.rail.empty')}
           </p>
         ) : (
-          filtered.map((member) => <RosterRow key={member.id} member={member} />)
+          filtered.map((member) => (
+            <RosterRow
+              key={member.id}
+              member={member}
+              selected={selectedPlayerId === member.id}
+              highlighted={
+                selectedPlayerId === member.id ||
+                (sessionParticipantIds?.has(member.id) ?? false)
+              }
+              dimmed={sessionParticipantIds != null && !sessionParticipantIds.has(member.id)}
+              onSelect={() => onSelectPlayer(member.id)}
+              quickAssignHref={selectedPlayerId === member.id ? quickAssignHref : null}
+              quickAssignLabel={t('cockpit.rail.quickAssign')}
+            />
+          ))
         )}
       </div>
 
@@ -125,33 +176,74 @@ export function TeamRosterRail({ members, rosterHref }: TeamRosterRailProps) {
   )
 }
 
-function RosterRow({ member }: { member: RailMember }) {
+function RosterRow({
+  member,
+  selected,
+  highlighted,
+  dimmed,
+  onSelect,
+  quickAssignHref,
+  quickAssignLabel,
+}: {
+  member: RailMember
+  selected: boolean
+  highlighted: boolean
+  dimmed: boolean
+  onSelect: () => void
+  quickAssignHref: string | null
+  quickAssignLabel: string
+}) {
   const done = member.todayCompletedCount > 0 && member.todayWorkoutCount === 0
   const assigned = member.todayWorkoutCount > 0
   const statusColor = DOT_COLOR[member.statusLevel]
 
   return (
-    <div className="grid grid-cols-[2rem_1fr_2.5rem_2.5rem_3.5rem] items-center gap-2 px-4 py-2 text-sm">
-      <span className="tabular-nums text-muted-foreground">{member.jerseyNumber ?? '–'}</span>
-      <span className="truncate dark:text-white">{member.name}</span>
-      <span className="text-muted-foreground">{member.position ?? '–'}</span>
-      <span className="flex justify-center">
-        {done ? (
-          <CheckCheck className="h-4 w-4 text-emerald-500" />
-        ) : assigned ? (
-          <Check className="h-4 w-4 text-blue-500" />
-        ) : (
-          <span className="text-muted-foreground">–</span>
-        )}
-      </span>
-      <span className="flex items-center justify-center gap-1">
-        <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', statusColor)} />
-        {member.activeRestrictionCount > 0 && (
-          <span className="text-[11px] font-medium text-muted-foreground">
-            {member.activeRestrictionCount}R
-          </span>
-        )}
-      </span>
+    <div
+      className={cn(
+        'transition',
+        highlighted && 'bg-blue-50 dark:bg-blue-500/10',
+        selected && 'ring-1 ring-inset ring-blue-400',
+        dimmed && 'opacity-40'
+      )}
+    >
+      <button
+        type="button"
+        onClick={onSelect}
+        aria-pressed={selected}
+        className="grid w-full grid-cols-[2rem_1fr_2.5rem_2.5rem_3.5rem] items-center gap-2 px-4 py-2 text-left text-sm hover:bg-muted/60 dark:hover:bg-white/5"
+      >
+        <span className="tabular-nums text-muted-foreground">{member.jerseyNumber ?? '–'}</span>
+        <span className="truncate dark:text-white">{member.name}</span>
+        <span className="text-muted-foreground">{member.position ?? '–'}</span>
+        <span className="flex justify-center">
+          {done ? (
+            <CheckCheck className="h-4 w-4 text-emerald-500" />
+          ) : assigned ? (
+            <Check className="h-4 w-4 text-blue-500" />
+          ) : (
+            <span className="text-muted-foreground">–</span>
+          )}
+        </span>
+        <span className="flex items-center justify-center gap-1">
+          <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', statusColor)} />
+          {member.activeRestrictionCount > 0 && (
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {member.activeRestrictionCount}R
+            </span>
+          )}
+        </span>
+      </button>
+      {quickAssignHref && (
+        <div className="px-4 pb-2">
+          <Link
+            href={quickAssignHref}
+            className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2 py-1 text-xs font-medium text-white hover:bg-blue-700"
+          >
+            <Plus className="h-3 w-3" />
+            {quickAssignLabel}
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

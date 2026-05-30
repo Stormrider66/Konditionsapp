@@ -23,8 +23,8 @@ import { Badge } from '@/components/ui/badge'
 import { CheckCircle2 } from 'lucide-react'
 import { TeamPhaseStrip } from '@/components/coach/teams/cockpit/TeamPhaseStrip'
 import { TeamAttentionStrip } from '@/components/coach/teams/cockpit/TeamAttentionStrip'
-import { TeamRosterRail, type RailMember } from '@/components/coach/teams/cockpit/TeamRosterRail'
-import { TeamSchedulePane } from '@/components/coach/teams/cockpit/TeamSchedulePane'
+import { type RailMember } from '@/components/coach/teams/cockpit/TeamRosterRail'
+import { TeamCockpit } from '@/components/coach/teams/cockpit/TeamCockpit'
 import { getTranslations } from '@/i18n/server'
 
 interface TeamPageProps {
@@ -208,15 +208,14 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         />
       </div>
 
-      {/* Two-pane cockpit body. Left: the day's schedule timeline. Right: the
-          compact roster rail. */}
-      <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <TeamSchedulePane teamId={teamId} businessSlug={businessSlug} locale={locale} />
-        <TeamRosterRail
-          members={railMembers}
-          rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
-        />
-      </div>
+      {/* Two-pane cockpit body (schedule timeline | roster rail). The client
+          shell owns the day fetch + cross-pane interaction state. */}
+      <TeamCockpit
+        teamId={teamId}
+        businessSlug={businessSlug}
+        locale={locale}
+        members={railMembers}
+      />
 
       {!setupComplete && (
         <GlassCard glow="teal" className="mb-8">

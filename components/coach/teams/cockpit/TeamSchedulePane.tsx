@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import Link from 'next/link'
 import {
   CalendarClock,
@@ -22,9 +22,9 @@ import {
   type TeamEventType,
 } from '@/lib/team-calendar/event-types'
 
-type Locale = 'en' | 'sv'
+export type Locale = 'en' | 'sv'
 
-interface ScheduleEvent {
+export interface ScheduleEvent {
   id: string
   title: string
   type: string
@@ -39,6 +39,7 @@ interface ScheduleEvent {
   assignmentSummary?: {
     totalAssigned: number
     totalCompleted: number
+    athletes?: Array<{ athleteId: string }>
   } | null
 }
 
@@ -46,11 +47,24 @@ interface TeamSchedulePaneProps {
   teamId: string
   businessSlug: string
   locale: Locale
+  events: ScheduleEvent[]
+  loading: boolean
+  error: boolean
+  viewedDate: Date
+  isToday: boolean
+  onPrevDay: () => void
+  onNextDay: () => void
+  onToday: () => void
+  /** The currently selected session, if the coach clicked one. */
+  selectedSessionId: string | null
+  /** Events to visually highlight (e.g. the selected player's sessions). */
+  highlightedEventIds: Set<string>
+  /** Events to mute (out of the active selection/filter). */
+  dimmedEventIds: Set<string>
+  onSelectSession: (eventId: string) => void
 }
 
 type EventStatus = 'upcoming' | 'active' | 'done'
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 function startOfDay(date: Date): Date {
   const next = new Date(date)
@@ -106,11 +120,7 @@ function needsContent(event: ScheduleEvent): boolean {
   return event.contentStatus !== 'CONTENT_READY' || !event.linkedWorkoutId
 }
 
-function studioHref(
-  event: ScheduleEvent,
-  teamId: string,
-  businessSlug: string
-): string | null {
+function studioHref(event: ScheduleEvent, teamId: string, businessSlug: string): string | null {
   if (!event.linkedWorkoutId) return null
   const base = `/${businessSlug}/coach`
   const query = new URLSearchParams({
@@ -137,55 +147,24 @@ function studioHref(
   }
 }
 
-export function TeamSchedulePane({ teamId, businessSlug, locale }: TeamSchedulePaneProps) {
+export function TeamSchedulePane({
+  teamId,
+  businessSlug,
+  locale,
+  events,
+  loading,
+  error,
+  viewedDate,
+  isToday,
+  onPrevDay,
+  onNextDay,
+  onToday,
+  selectedSessionId,
+  highlightedEventIds,
+  dimmedEventIds,
+  onSelectSession,
+}: TeamSchedulePaneProps) {
   const t = useTranslations('coach.pages.teamDetail.cockpit.schedule')
-  const today = useMemo(() => startOfDay(new Date()), [])
-  const [viewedDate, setViewedDate] = useState<Date>(() => startOfDay(new Date()))
-  const [events, setEvents] = useState<ScheduleEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-
-  const dayStartIso = useMemo(() => startOfDay(viewedDate).toISOString(), [viewedDate])
-
-  useEffect(() => {
-    const controller = new AbortController()
-    const dayStart = new Date(dayStartIso)
-    const dayEnd = new Date(dayStart.getTime() + DAY_MS)
-    const params = new URLSearchParams({
-      from: dayStart.toISOString(),
-      to: dayEnd.toISOString(),
-      businessSlug,
-    })
-
-    async function load() {
-      setLoading(true)
-      setError(false)
-      try {
-        const res = await fetch(`/api/coach/teams/${teamId}/events?${params}`, {
-          headers: { 'x-business-slug': businessSlug },
-          signal: controller.signal,
-        })
-        if (!res.ok) throw new Error('failed')
-        const data = await res.json()
-        setEvents(Array.isArray(data.events) ? data.events : [])
-      } catch (err) {
-        if (err instanceof DOMException && err.name === 'AbortError') return
-        setError(true)
-        setEvents([])
-      } finally {
-        if (!controller.signal.aborted) setLoading(false)
-      }
-    }
-
-    void load()
-    return () => controller.abort()
-  }, [teamId, businessSlug, dayStartIso])
-
-  const stepDay = useCallback((delta: number) => {
-    setViewedDate((current) => startOfDay(new Date(current.getTime() + delta * DAY_MS)))
-  }, [])
-
-  const isToday = startOfDay(viewedDate).getTime() === today.getTime()
 
   const sorted = useMemo(
     () =>
@@ -196,7 +175,7 @@ export function TeamSchedulePane({ teamId, businessSlug, locale }: TeamScheduleP
     [events]
   )
 
-  // `now` is captured when the day's events (re)load, so statuses stay stable
+  // `now` is captured when the day's events change, so statuses stay stable
   // within a render pass while still refreshing on navigation/refetch.
   const { counts, now } = useMemo(() => {
     const current = new Date()
@@ -223,7 +202,7 @@ export function TeamSchedulePane({ teamId, businessSlug, locale }: TeamScheduleP
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={() => stepDay(-1)}
+            onClick={onPrevDay}
             aria-label={t('prevDay')}
             className="rounded-md p-1 hover:bg-muted dark:hover:bg-white/5"
           >
@@ -231,7 +210,7 @@ export function TeamSchedulePane({ teamId, businessSlug, locale }: TeamScheduleP
           </button>
           <button
             type="button"
-            onClick={() => setViewedDate(today)}
+            onClick={onToday}
             className={cn(
               'rounded-md px-2 py-1 text-sm font-medium',
               isToday ? 'text-blue-600 dark:text-blue-400' : 'hover:bg-muted dark:hover:bg-white/5'
@@ -241,7 +220,7 @@ export function TeamSchedulePane({ teamId, businessSlug, locale }: TeamScheduleP
           </button>
           <button
             type="button"
-            onClick={() => stepDay(1)}
+            onClick={onNextDay}
             aria-label={t('nextDay')}
             className="rounded-md p-1 hover:bg-muted dark:hover:bg-white/5"
           >
@@ -285,6 +264,10 @@ export function TeamSchedulePane({ teamId, businessSlug, locale }: TeamScheduleP
               locale={locale}
               teamId={teamId}
               businessSlug={businessSlug}
+              selected={selectedSessionId === event.id}
+              highlighted={highlightedEventIds.has(event.id)}
+              dimmed={dimmedEventIds.has(event.id)}
+              onSelect={() => onSelectSession(event.id)}
               t={t}
             />
           ))
@@ -323,6 +306,10 @@ function ScheduleCard({
   locale,
   teamId,
   businessSlug,
+  selected,
+  highlighted,
+  dimmed,
+  onSelect,
   t,
 }: {
   event: ScheduleEvent
@@ -330,6 +317,10 @@ function ScheduleCard({
   locale: Locale
   teamId: string
   businessSlug: string
+  selected: boolean
+  highlighted: boolean
+  dimmed: boolean
+  onSelect: () => void
   t: (key: string, values?: Record<string, string | number>) => string
 }) {
   const duration = event.allDay ? null : formatDuration(event.startDate, event.endDate)
@@ -340,6 +331,7 @@ function ScheduleCard({
       : 0
   const href = studioHref(event, teamId, businessSlug)
   const gap = needsContent(event)
+  const isActive = status === 'active'
 
   const statusClass = {
     active: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
@@ -353,12 +345,36 @@ function ScheduleCard({
   }[status]
 
   return (
-    <div className="rounded-md border p-3 dark:border-white/10">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+      aria-pressed={selected}
+      className={cn(
+        'w-full cursor-pointer rounded-md border p-3 text-left transition dark:border-white/10',
+        isActive && 'border-l-4 border-l-emerald-500',
+        (selected || highlighted) && 'ring-2 ring-blue-400 border-blue-300 dark:border-blue-400/50',
+        dimmed && 'opacity-40',
+        'hover:border-blue-300 dark:hover:border-blue-400/50'
+      )}
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-sm font-semibold dark:text-white">
             <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', typeColor(event.type))} />
             <span className="truncate">{event.title}</span>
+            {isActive && (
+              <span className="flex h-2 w-2 shrink-0" aria-label={t('statusActive')}>
+                <span className="h-2 w-2 animate-ping rounded-full bg-emerald-500 opacity-75" />
+                <span className="-ml-2 h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+            )}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="font-medium">
@@ -407,6 +423,7 @@ function ScheduleCard({
           {href && (
             <Link
               href={href}
+              onClick={(clickEvent) => clickEvent.stopPropagation()}
               className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
             >
               {t('viewSession')}
