@@ -99,8 +99,17 @@ export async function GET(req: NextRequest, context: RouteContext) {
     const events = await prisma.teamEvent.findMany({
       where: {
         teamId,
-        ...(from ? { startDate: { gte: new Date(from) } } : {}),
-        ...(to ? { startDate: { lte: new Date(to) } } : {}),
+        // Combine the bounds into one `startDate` filter — two separate spreads
+        // each keyed `startDate` would clobber the first, dropping the `gte`
+        // lower bound (so a single-day query returned everything up to `to`).
+        ...((from || to)
+          ? {
+              startDate: {
+                ...(from ? { gte: new Date(from) } : {}),
+                ...(to ? { lte: new Date(to) } : {}),
+              },
+            }
+          : {}),
         ...(type ? { type } : {}),
       },
       include: {
