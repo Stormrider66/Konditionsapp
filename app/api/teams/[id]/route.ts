@@ -49,7 +49,14 @@ export async function GET(
     const team = await prisma.team.findUnique({
       where: { id },
       include: {
-        members: true,
+        // Keep all member scalar fields; additionally surface whether each
+        // member has an athlete account (needed by the assignment dialog to
+        // disable account-less players, who can't receive a program).
+        members: {
+          include: {
+            athleteAccount: { select: { id: true } },
+          },
+        },
         organization: {
           select: {
             id: true,

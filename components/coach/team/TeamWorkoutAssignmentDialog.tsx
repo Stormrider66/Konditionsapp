@@ -3,12 +3,14 @@
 /**
  * Team Workout Assignment Dialog
  *
- * Dialog for bulk assigning workouts to entire teams:
- * - Select team from dropdown
- * - Auto-selects all team members
- * - Optional member exclusion
- * - Scheduled date selection
- * - Optional notes
+ * Assign a workout to a team. Everyone is marked by default; uncheck to
+ * exclude (e.g. a goalie doing something different). Supports:
+ * - Team-selector mode (default) OR team-fixed mode (pass `teamId`).
+ * - A pre-chosen workout (props) OR an in-dialog workout picker (omit the
+ *   workout props).
+ * - Position quick-select chips (F/D/G…) and per-player preselect.
+ * - Account-less roster members are shown disabled (they can't receive a
+ *   program until invited).
  */
 
 import { useCallback, useState, useEffect, useMemo } from 'react'
@@ -39,6 +41,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, Calendar, Loader2, CheckCircle2, Clock, ChevronDown, MapPin, UserCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { TeamSelector } from './TeamSelector'
+import { PositionQuickSelect } from './PositionQuickSelect'
+import { WorkoutPickerField, type PickedWorkout } from './WorkoutPickerField'
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
@@ -57,6 +61,8 @@ interface TeamMember {
   id: string
   name: string
   email?: string
+  position?: string | null
+  hasAthleteAccount: boolean
 }
 
 interface Team {
@@ -66,9 +72,14 @@ interface Team {
 }
 
 interface TeamWorkoutAssignmentDialogProps {
-  workoutType: 'strength' | 'cardio' | 'hybrid'
-  workoutId: string
-  workoutName: string
+  /** Pre-chosen workout. Omit all three to show the in-dialog workout picker. */
+  workoutType?: 'strength' | 'cardio' | 'hybrid'
+  workoutId?: string
+  workoutName?: string
+  /** Fix the dialog to a single team (skips the team selector). */
+  teamId?: string
+  /** Open with only this athlete marked (per-player quick-assign). */
+  preselectAthleteId?: string
   trigger?: React.ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -85,6 +96,8 @@ export function TeamWorkoutAssignmentDialog({
   workoutType,
   workoutId,
   workoutName,
+  teamId: fixedTeamId,
+  preselectAthleteId,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -99,6 +112,13 @@ export function TeamWorkoutAssignmentDialog({
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingTeam, setLoadingTeam] = useState(false)
+
+  // In-dialog workout picker (used when no workout props were passed)
+  const [pickedWorkout, setPickedWorkout] = useState<PickedWorkout | null>(null)
+  const needsWorkoutPicker = !workoutId
+  const effectiveWorkout = workoutId
+    ? { type: workoutType!, id: workoutId, name: workoutName ?? '' }
+    : pickedWorkout
 
   // Location & trainer
   const [locations, setLocations] = useState<LocationOption[]>([])
@@ -125,9 +145,7 @@ export function TeamWorkoutAssignmentDialog({
 
   const fetchLocations = useCallback(async () => {
     try {
-      const response = await fetch('/api/locations', {
-        headers: businessHeaders,
-      })
+      const response = await fetch('/api/locations', { headers: businessHeaders })
       if (response.ok) {
         const data = await response.json()
         setLocations(data.locations || [])
@@ -139,9 +157,7 @@ export function TeamWorkoutAssignmentDialog({
 
   const fetchTrainers = useCallback(async () => {
     try {
-      const response = await fetch('/api/trainers', {
-        headers: businessHeaders,
-      })
+      const response = await fetch('/api/trainers', { headers: businessHeaders })
       if (response.ok) {
         const data = await response.json()
         setTrainers(data.trainers || [])
@@ -151,23 +167,41 @@ export function TeamWorkoutAssignmentDialog({
     }
   }, [businessHeaders])
 
-  const fetchTeamDetails = useCallback(async (teamId: string) => {
-    setLoadingTeam(true)
-    try {
-      const response = await fetch(`/api/teams/${teamId}`, {
-        headers: businessHeaders,
-      })
-      if (response.ok) {
-        const data = await response.json()
-        setTeam(data.data)
-        setExcludedMembers([]) // Reset exclusions when team changes
+  const fetchTeamDetails = useCallback(
+    async (teamId: string) => {
+      setLoadingTeam(true)
+      try {
+        const response = await fetch(`/api/teams/${teamId}`, { headers: businessHeaders })
+        if (response.ok) {
+          const data = await response.json()
+          const raw = data.data
+          const members: TeamMember[] = (raw?.members ?? []).map(
+            (m: { id: string; name: string; email?: string | null; position?: string | null; athleteAccount?: { id: string } | null }) => ({
+              id: m.id,
+              name: m.name,
+              email: m.email ?? undefined,
+              position: m.position ?? null,
+              hasAthleteAccount: Boolean(m.athleteAccount),
+            })
+          )
+          const nextTeam: Team = { id: raw.id, name: raw.name, members }
+          setTeam(nextTeam)
+          // Default selection: everyone with an account, unless preselecting one.
+          const accountLessIds = members.filter((m) => !m.hasAthleteAccount).map((m) => m.id)
+          if (preselectAthleteId) {
+            setExcludedMembers(members.filter((m) => m.id !== preselectAthleteId).map((m) => m.id))
+          } else {
+            setExcludedMembers(accountLessIds)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch team:', error)
+      } finally {
+        setLoadingTeam(false)
       }
-    } catch (error) {
-      console.error('Failed to fetch team:', error)
-    } finally {
-      setLoadingTeam(false)
-    }
-  }, [businessHeaders])
+    },
+    [businessHeaders, preselectAthleteId]
+  )
 
   useEffect(() => {
     if (!open) return
@@ -176,17 +210,16 @@ export function TeamWorkoutAssignmentDialog({
       void fetchLocations()
       void fetchTrainers()
       // Reset form
-      setSelectedTeamId('')
+      setSelectedTeamId(fixedTeamId ?? '')
       setTeam(null)
       setExcludedMembers([])
+      setPickedWorkout(null)
       setAssignedDate(new Date().toISOString().split('T')[0])
       setNotes('')
-      // Reset location & trainer
       setSelectedLocationId('')
       setCustomLocationName('')
       setUseCustomLocation(false)
       setSelectedTrainerId('')
-      // Reset scheduling
       setSchedulingOpen(false)
       setStartTime('')
       setEndTime('')
@@ -194,7 +227,7 @@ export function TeamWorkoutAssignmentDialog({
       setLocationName('')
       setCreateCalendarEvent(true)
     })
-  }, [fetchLocations, fetchTrainers, open])
+  }, [fetchLocations, fetchTrainers, open, fixedTeamId])
 
   useEffect(() => {
     void Promise.resolve().then(() => {
@@ -207,30 +240,53 @@ export function TeamWorkoutAssignmentDialog({
     })
   }, [fetchTeamDetails, selectedTeamId])
 
-  function toggleMemberExclusion(memberId: string) {
+  const accountLessIds = useMemo(
+    () => (team ? team.members.filter((m) => !m.hasAthleteAccount).map((m) => m.id) : []),
+    [team]
+  )
+
+  const positions = useMemo(() => {
+    if (!team) return []
+    const set = new Set<string>()
+    team.members.forEach((m) => {
+      if (m.position) set.add(m.position)
+    })
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'sv'))
+  }, [team])
+
+  function toggleMemberExclusion(member: TeamMember) {
+    if (!member.hasAthleteAccount) return // account-less can't be assigned
     setExcludedMembers((prev) =>
-      prev.includes(memberId)
-        ? prev.filter((id) => id !== memberId)
-        : [...prev, memberId]
+      prev.includes(member.id) ? prev.filter((id) => id !== member.id) : [...prev, member.id]
     )
   }
 
   function selectAllMembers() {
-    setExcludedMembers([])
+    setExcludedMembers(accountLessIds)
   }
 
   function deselectAllMembers() {
-    if (team) {
-      setExcludedMembers(team.members.map((m) => m.id))
-    }
+    if (team) setExcludedMembers(team.members.map((m) => m.id))
+  }
+
+  function selectPosition(position: string) {
+    if (!team) return
+    // Include only account-having members of this position.
+    setExcludedMembers(
+      team.members.filter((m) => !m.hasAthleteAccount || m.position !== position).map((m) => m.id)
+    )
   }
 
   const selectedMemberCount = team
-    ? team.members.length - excludedMembers.length
+    ? team.members.filter((m) => m.hasAthleteAccount && !excludedMembers.includes(m.id)).length
     : 0
 
+  const dialogTitle = effectiveWorkout?.name
+    ? `${copy(locale, 'Assign', 'Tilldela')} "${effectiveWorkout.name}"`
+    : copy(locale, 'Assign a workout', 'Tilldela ett pass')
+
   async function handleAssign() {
-    if (!selectedTeamId || selectedMemberCount === 0) return
+    if (!selectedTeamId || selectedMemberCount === 0 || !effectiveWorkout) return
 
     setLoading(true)
     try {
@@ -238,15 +294,14 @@ export function TeamWorkoutAssignmentDialog({
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
         body: JSON.stringify({
-          workoutType,
-          workoutId,
+          workoutType: effectiveWorkout.type,
+          workoutId: effectiveWorkout.id,
           assignedDate,
           notes: notes || undefined,
           excludeAthleteIds: excludedMembers.length > 0 ? excludedMembers : undefined,
           locationId: selectedLocationId || undefined,
           locationName: customLocationName || undefined,
           responsibleCoachId: selectedTrainerId || undefined,
-          // Include scheduling fields if time is set
           ...(startTime && {
             startTime,
             endTime: endTime || undefined,
@@ -262,8 +317,8 @@ export function TeamWorkoutAssignmentDialog({
         toast.success(copy(locale, 'Team workout assigned!', 'Lagpass tilldelat!'), {
           description: copy(
             locale,
-            `${workoutName} assigned to ${result.data.assignmentCount} players in ${result.data.teamName}.`,
-            `${workoutName} tilldelat till ${result.data.assignmentCount} spelare i ${result.data.teamName}.`
+            `${effectiveWorkout.name} assigned to ${result.data.assignmentCount} players in ${result.data.teamName}.`,
+            `${effectiveWorkout.name} tilldelat till ${result.data.assignmentCount} spelare i ${result.data.teamName}.`
           ),
         })
         setOpen(false)
@@ -291,21 +346,34 @@ export function TeamWorkoutAssignmentDialog({
           <Users className="h-5 w-5" />
           {copy(locale, 'Assign to Team', 'Tilldela till Lag')}
         </DialogTitle>
-        <DialogDescription>
-          {copy(locale, 'Assign', 'Tilldela')} &quot;{workoutName}&quot; {copy(locale, 'to an entire team.', 'till ett helt lag.')}
-        </DialogDescription>
+        <DialogDescription>{dialogTitle}</DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4 py-4 overflow-y-auto min-h-0">
-        {/* Team Selection */}
-        <div className="space-y-2">
-          <Label>{copy(locale, 'Select team', 'Välj lag')}</Label>
-          <TeamSelector
-            value={selectedTeamId}
-            onValueChange={setSelectedTeamId}
-            placeholder={copy(locale, 'Select a team...', 'Välj ett lag...')}
-          />
-        </div>
+        {/* Team Selection (hidden in team-fixed mode) */}
+        {!fixedTeamId && (
+          <div className="space-y-2">
+            <Label>{copy(locale, 'Select team', 'Välj lag')}</Label>
+            <TeamSelector
+              value={selectedTeamId}
+              onValueChange={setSelectedTeamId}
+              placeholder={copy(locale, 'Select a team...', 'Välj ett lag...')}
+            />
+          </div>
+        )}
+
+        {/* Workout picker (when no workout was passed in) */}
+        {needsWorkoutPicker && selectedTeamId && (
+          <div className="space-y-2">
+            <Label>{copy(locale, 'Workout', 'Pass')}</Label>
+            <WorkoutPickerField
+              teamId={selectedTeamId}
+              value={pickedWorkout}
+              onChange={setPickedWorkout}
+              locale={locale}
+            />
+          </div>
+        )}
 
         {/* Date Selection */}
         <div className="space-y-2">
@@ -398,25 +466,24 @@ export function TeamWorkoutAssignmentDialog({
               <Label>{copy(locale, 'Players', 'Spelare')}</Label>
               {team && (
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={selectAllMembers}
-                    disabled={excludedMembers.length === 0}
-                  >
+                  <Button variant="ghost" size="sm" onClick={selectAllMembers}>
                     {copy(locale, 'All', 'Alla')}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={deselectAllMembers}
-                    disabled={excludedMembers.length === team.members.length}
-                  >
+                  <Button variant="ghost" size="sm" onClick={deselectAllMembers}>
                     {copy(locale, 'None', 'Ingen')}
                   </Button>
                 </div>
               )}
             </div>
+
+            {team && positions.length > 0 && (
+              <PositionQuickSelect
+                positions={positions}
+                allLabel={copy(locale, 'All', 'Alla')}
+                onSelectAll={selectAllMembers}
+                onSelectPosition={selectPosition}
+              />
+            )}
 
             {loadingTeam ? (
               <div className="flex items-center justify-center py-8">
@@ -430,33 +497,42 @@ export function TeamWorkoutAssignmentDialog({
               <ScrollArea className="h-[200px] border rounded-md p-2">
                 <div className="space-y-2">
                   {team.members.map((member) => {
-                    const isIncluded = !excludedMembers.includes(member.id)
+                    const accountLess = !member.hasAthleteAccount
+                    const isIncluded = !accountLess && !excludedMembers.includes(member.id)
                     return (
                       <div
                         key={member.id}
-                        className={`flex items-center space-x-3 p-2 rounded cursor-pointer transition-colors ${
-                          isIncluded
-                            ? 'bg-primary/5 hover:bg-primary/10'
-                            : 'hover:bg-muted/50 opacity-60'
+                        className={`flex items-center space-x-3 p-2 rounded transition-colors ${
+                          accountLess
+                            ? 'opacity-50 cursor-not-allowed'
+                            : isIncluded
+                              ? 'bg-primary/5 hover:bg-primary/10 cursor-pointer'
+                              : 'hover:bg-muted/50 opacity-60 cursor-pointer'
                         }`}
-                        onClick={() => toggleMemberExclusion(member.id)}
+                        onClick={() => toggleMemberExclusion(member)}
                       >
                         <Checkbox
                           checked={isIncluded}
-                          onCheckedChange={() => toggleMemberExclusion(member.id)}
+                          disabled={accountLess}
+                          onCheckedChange={() => toggleMemberExclusion(member)}
                           onClick={(e) => e.stopPropagation()}
                         />
                         <div className="flex-1">
-                          <div className="font-medium text-sm">{member.name}</div>
-                          {member.email && (
-                            <div className="text-xs text-muted-foreground">
-                              {member.email}
+                          <div className="font-medium text-sm flex items-center gap-2">
+                            {member.name}
+                            {member.position && (
+                              <span className="text-xs text-muted-foreground">{member.position}</span>
+                            )}
+                          </div>
+                          {accountLess ? (
+                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                              {copy(locale, 'No athlete account — invite first', 'Saknar konto — bjud in först')}
                             </div>
-                          )}
+                          ) : member.email ? (
+                            <div className="text-xs text-muted-foreground">{member.email}</div>
+                          ) : null}
                         </div>
-                        {isIncluded && (
-                          <CheckCircle2 className="h-4 w-4 text-primary" />
-                        )}
+                        {isIncluded && <CheckCircle2 className="h-4 w-4 text-primary" />}
                       </div>
                     )
                   })}
@@ -526,7 +602,7 @@ export function TeamWorkoutAssignmentDialog({
         </Button>
         <Button
           onClick={handleAssign}
-          disabled={loading || !selectedTeamId || selectedMemberCount === 0}
+          disabled={loading || !selectedTeamId || selectedMemberCount === 0 || !effectiveWorkout}
         >
           {loading ? (
             <>
