@@ -37,6 +37,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 
 type WorkoutKind = 'strength' | 'cardio' | 'hybrid' | 'agility' | 'interval'
 type DetailKind = 'broadcast' | 'interval'
@@ -262,6 +263,15 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState<'sessions' | 'players'>('sessions')
+
+  // Jump straight from the headline "missed" number to the players behind it:
+  // expand the panel, switch to the players tab and apply the missed filter.
+  const focusMissedPlayers = useCallback(() => {
+    setIsExpanded(true)
+    setActiveTab('players')
+    setStatusFilter('missed')
+  }, [])
 
   const loadSummary = useCallback(async () => {
     setLoading(true)
@@ -389,9 +399,36 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
             <div className="grid gap-3 md:grid-cols-4">
               <SummaryStat label={text('Tilldelade', 'Assigned')} value={total?.assigned ?? 0} />
               <SummaryStat label={text('Genomförda', 'Completed')} value={total?.completed ?? 0} />
-              <SummaryStat label={text('Missade', 'Missed')} value={total?.missed ?? 0} />
+              <SummaryStat
+                label={text('Missade', 'Missed')}
+                value={total?.missed ?? 0}
+                tone={total && total.missed > 0 ? 'warning' : 'default'}
+                onClick={total && total.missed > 0 ? focusMissedPlayers : undefined}
+              />
               <SummaryStat label={text('Genomförandegrad', 'Completion')} value={`${total?.completionRate ?? 0}%`} progress={total?.completionRate ?? 0} />
             </div>
+
+            {total && total.missed > 0 && (
+              <div className="flex flex-col gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-amber-500/30 dark:bg-amber-500/10">
+                <div className="text-sm text-amber-900 dark:text-amber-200">
+                  <p className="font-medium">
+                    {text(
+                      `${total.missed} missade pass den här perioden.`,
+                      `${total.missed} missed sessions this period.`
+                    )}
+                  </p>
+                  <p className="text-xs text-amber-800/80 dark:text-amber-200/70">
+                    {text(
+                      'Ofta handlar det om ologgade pass snarare än överhoppad träning – följ upp vilka spelare det gäller.',
+                      'Often this is unlogged rather than skipped training — follow up which players it concerns.'
+                    )}
+                  </p>
+                </div>
+                <Button type="button" variant="secondary" size="sm" className="shrink-0" onClick={focusMissedPlayers}>
+                  {text('Visa vilka spelare', 'Show which players')}
+                </Button>
+              </div>
+            )}
 
             {isExpanded ? (
               <>
@@ -424,7 +461,7 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
                   </div>
                 </div>
 
-                <Tabs defaultValue="sessions" className="w-full">
+                <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'sessions' | 'players')} className="w-full">
                   <TabsList>
                     <TabsTrigger value="sessions">{text('Pass', 'Sessions')}</TabsTrigger>
                     <TabsTrigger value="players">{text('Spelare', 'Players')}</TabsTrigger>
@@ -510,14 +547,49 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
   )
 }
 
-function SummaryStat({ label, value, progress }: { label: string; value: string | number; progress?: number }) {
-  return (
-    <div className="rounded-lg border bg-background/70 p-4 dark:border-white/10 dark:bg-slate-950/40">
+function SummaryStat({
+  label,
+  value,
+  progress,
+  tone = 'default',
+  onClick,
+}: {
+  label: string
+  value: string | number
+  progress?: number
+  tone?: 'default' | 'warning'
+  onClick?: () => void
+}) {
+  const toneClass =
+    tone === 'warning'
+      ? 'border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10'
+      : 'bg-background/70 dark:border-white/10 dark:bg-slate-950/40'
+  const valueClass = tone === 'warning' ? 'text-amber-700 dark:text-amber-300' : 'dark:text-white'
+
+  const body = (
+    <>
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-1 text-2xl font-bold dark:text-white">{value}</p>
+      <p className={cn('mt-1 text-2xl font-bold', valueClass)}>{value}</p>
       {progress !== undefined && <Progress value={progress} className="mt-2 h-2" />}
-    </div>
+    </>
   )
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          'rounded-lg border p-4 text-left transition hover:brightness-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400',
+          toneClass
+        )}
+      >
+        {body}
+      </button>
+    )
+  }
+
+  return <div className={cn('rounded-lg border p-4', toneClass)}>{body}</div>
 }
 
 function SessionCard({ session, locale, onOpen }: { session: MonitorSession; locale: string; onOpen: () => void }) {
