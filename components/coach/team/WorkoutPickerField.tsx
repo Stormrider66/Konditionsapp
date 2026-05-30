@@ -18,7 +18,6 @@ export interface PickedWorkout {
 }
 
 interface WorkoutPickerFieldProps {
-  teamId: string
   value: PickedWorkout | null
   onChange: (workout: PickedWorkout | null) => void
   locale: 'en' | 'sv'
@@ -39,10 +38,10 @@ const ENDPOINT: Record<PickableWorkoutType, { path: string; key: string }> = {
 
 /**
  * In-dialog workout picker: choose a type, then search/select a session for the
- * team. Backed by the existing list endpoints (filtered by teamId). Used when
- * the assignment dialog isn't handed a workout up front.
+ * team. Backed by the existing business-scoped list endpoints. Used when the
+ * assignment dialog isn't handed a workout up front.
  */
-export function WorkoutPickerField({ teamId, value, onChange, locale }: WorkoutPickerFieldProps) {
+export function WorkoutPickerField({ value, onChange, locale }: WorkoutPickerFieldProps) {
   const t = (en: string, sv: string) => (locale === 'sv' ? sv : en)
   const [type, setType] = useState<PickableWorkoutType>(value?.type ?? 'strength')
   const [query, setQuery] = useState('')
@@ -56,7 +55,9 @@ export function WorkoutPickerField({ teamId, value, onChange, locale }: WorkoutP
       setLoading(true)
       try {
         const { path, key } = ENDPOINT[type]
-        const params = new URLSearchParams({ teamId, limit: '20' })
+        // Team sessions are business-scoped (StrengthSession.teamId is usually
+        // null), so list the business's sessions rather than filtering by team.
+        const params = new URLSearchParams({ limit: '20' })
         if (query.trim()) params.set('search', query.trim())
         const res = await fetch(`${path}?${params}`, { headers: businessHeaders, signal })
         if (!res.ok) throw new Error('failed')
@@ -70,7 +71,7 @@ export function WorkoutPickerField({ teamId, value, onChange, locale }: WorkoutP
         if (!signal.aborted) setLoading(false)
       }
     },
-    [type, query, teamId, businessHeaders]
+    [type, query, businessHeaders]
   )
 
   useEffect(() => {

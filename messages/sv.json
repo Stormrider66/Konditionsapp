@@ -5972,6 +5972,8 @@
         "regenerate": "Generera nytt",
         "complete": "Slutför",
         "finish": "Avsluta pass",
+        "printPreview": "Utskriftsvy",
+        "openStrengthStudio": "Strength Studio",
         "close": "Stäng",
         "voiceCoach": "AI-röstcoach"
       },

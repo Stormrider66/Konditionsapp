@@ -1,12 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, Radio } from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { ExternalLink, Loader2, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { WorkoutPreview } from './WorkoutPreview'
 import { ExerciseLogSheet } from './ExerciseLogSheet'
 import { FloatingRestTimer } from './FloatingRestTimer'
 import { CompleteSessionDialog } from './CompleteSessionDialog'
+import { getCoachBasePath, PrintWorkoutButton } from './print/PrintWorkoutButton'
 import { useRestTimer } from './useRestTimer'
 import { useTranslations } from '@/i18n/client'
 import type {
@@ -41,6 +44,7 @@ export function StrengthWorkoutPreview({
   onCompleted,
 }: StrengthWorkoutPreviewProps) {
   const t = useTranslations('components.workoutPreview')
+  const pathname = usePathname()
   const [data, setData] = useState<PreviewWorkoutData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -70,7 +74,7 @@ export function StrengthWorkoutPreview({
 
   useEffect(() => {
     startedAtRef.current = Date.now()
-    void refresh()
+    void Promise.resolve().then(refresh)
   }, [refresh])
 
   const activeExercise = data?.exercises.find((e) => e.exerciseId === activeExerciseId) ?? null
@@ -205,6 +209,7 @@ export function StrengthWorkoutPreview({
 
   const audioSupported =
     typeof window !== 'undefined' && AudioCaptureManager.isSupported()
+  const strengthStudioHref = `${getCoachBasePath(pathname)}/strength?editSessionId=${data.workout.id}`
 
   return (
     <>
@@ -214,6 +219,23 @@ export function StrengthWorkoutPreview({
         onExerciseClick={(ex: PreviewExercise) => setActiveExerciseId(ex.exerciseId)}
         onStart={() => setShowFocusMode(true)}
         onComplete={() => setShowCompleteDialog(true)}
+        footerActions={
+          <>
+            <PrintWorkoutButton
+              kind="strength"
+              workoutId={data.workout.id}
+              date={data.assignment.assignedDate}
+              label={t('actions.printPreview')}
+              className="h-10 w-full sm:w-auto"
+            />
+            <Button asChild variant="outline" size="sm" className="h-10 w-full sm:w-auto">
+              <Link href={strengthStudioHref}>
+                <ExternalLink className="h-4 w-4" />
+                {t('actions.openStrengthStudio')}
+              </Link>
+            </Button>
+          </>
+        }
         audioSlot={
           audioSupported ? (
             <Button

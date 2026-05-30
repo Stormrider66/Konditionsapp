@@ -5603,6 +5603,8 @@
         "regenerate": "Generate new",
         "complete": "Complete",
         "finish": "Finish workout",
+        "printPreview": "Print preview",
+        "openStrengthStudio": "Strength Studio",
         "close": "Close",
         "voiceCoach": "AI voice coach"
       },

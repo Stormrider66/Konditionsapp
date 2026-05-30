@@ -428,7 +428,6 @@ export function TeamWorkoutAssignmentDialog({
           <div className="space-y-2">
             <Label>{copy(locale, 'Workout', 'Pass')}</Label>
             <WorkoutPickerField
-              teamId={selectedTeamId}
               value={pickedWorkout}
               onChange={setPickedWorkout}
               locale={locale}

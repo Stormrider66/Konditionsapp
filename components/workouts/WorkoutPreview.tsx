@@ -83,6 +83,8 @@ export interface WorkoutPreviewProps {
   heroSlot?: ReactNode
   /** Toggle audio AI — renders the provided control on the right of the header. */
   audioSlot?: ReactNode
+  /** Optional secondary actions rendered above the primary workout controls. */
+  footerActions?: ReactNode
   /** Disable section auto-expansion on mount. */
   defaultCollapsed?: boolean
   /** Override which sections open initially. */
@@ -99,6 +101,7 @@ export function WorkoutPreview({
   footer,
   heroSlot,
   audioSlot,
+  footerActions,
   defaultCollapsed = false,
   defaultExpandedSections,
 }: WorkoutPreviewProps) {
@@ -261,6 +264,7 @@ export function WorkoutPreview({
           onComplete={onComplete}
           onRegenerate={onRegenerate}
           allDone={progress.isComplete}
+          footerActions={footerActions}
         />
       )}
     </div>
@@ -511,17 +515,24 @@ function DefaultFooter({
   onComplete,
   onRegenerate,
   allDone,
+  footerActions,
 }: {
   startLabel: string
   onStart?: () => void
   onComplete?: () => void
   onRegenerate?: () => void
   allDone: boolean
+  footerActions?: ReactNode
 }) {
   const t = useTranslations('components.workoutPreview')
   return (
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur">
       <div className="mx-auto w-full max-w-3xl px-4 py-3 sm:px-6">
+        {footerActions && (
+          <div className="mb-2 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
+            {footerActions}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           {onRegenerate && (
             <Button variant="outline" className="h-12 flex-1 sm:flex-none" onClick={onRegenerate}>
