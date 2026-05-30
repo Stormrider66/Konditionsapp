@@ -12,20 +12,24 @@ export interface RailMember {
   jerseyNumber: number | null
   name: string
   position: string | null
-  /** Active (not-yet-done) sessions on the viewed day. */
-  todayWorkoutCount: number
-  /** Completed sessions on the viewed day. */
-  todayCompletedCount: number
   /** Blended medical + readiness + ACWR status (computed server-side). */
   statusLevel: RosterDotLevel
   /** Active restriction count, for the "R" marker. */
   activeRestrictionCount: number
 }
 
+/** Per-member session coverage on the viewed day, derived from that day's events. */
+export interface DayCoverage {
+  active: number
+  completed: number
+}
+
 interface TeamRosterRailProps {
   members: RailMember[]
   /** Link to the full Trupp tab. */
   rosterHref: string
+  /** Session coverage for the viewed day, keyed by member id. */
+  coverageByMember: Map<string, DayCoverage>
   /** Distinct positions present in the squad, for the filter dropdown. */
   positions: string[]
   positionFilter: string | null
@@ -50,6 +54,7 @@ const DOT_COLOR: Record<RosterDotLevel, string> = {
 export function TeamRosterRail({
   members,
   rosterHref,
+  coverageByMember,
   positions,
   positionFilter,
   onPositionFilterChange,
@@ -152,6 +157,7 @@ export function TeamRosterRail({
             <RosterRow
               key={member.id}
               member={member}
+              coverage={coverageByMember.get(member.id)}
               selected={selectedPlayerId === member.id}
               highlighted={
                 selectedPlayerId === member.id ||
@@ -178,6 +184,7 @@ export function TeamRosterRail({
 
 function RosterRow({
   member,
+  coverage,
   selected,
   highlighted,
   dimmed,
@@ -186,6 +193,7 @@ function RosterRow({
   quickAssignLabel,
 }: {
   member: RailMember
+  coverage: DayCoverage | undefined
   selected: boolean
   highlighted: boolean
   dimmed: boolean
@@ -193,8 +201,10 @@ function RosterRow({
   quickAssignHref: string | null
   quickAssignLabel: string
 }) {
-  const done = member.todayCompletedCount > 0 && member.todayWorkoutCount === 0
-  const assigned = member.todayWorkoutCount > 0
+  const active = coverage?.active ?? 0
+  const completed = coverage?.completed ?? 0
+  const done = completed > 0 && active === 0
+  const assigned = active > 0
   const statusColor = DOT_COLOR[member.statusLevel]
 
   return (

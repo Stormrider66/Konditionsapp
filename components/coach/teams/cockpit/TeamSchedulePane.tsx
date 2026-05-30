@@ -39,7 +39,7 @@ export interface ScheduleEvent {
   assignmentSummary?: {
     totalAssigned: number
     totalCompleted: number
-    athletes?: Array<{ athleteId: string }>
+    athletes?: Array<{ athleteId: string; status: string }>
   } | null
 }
 

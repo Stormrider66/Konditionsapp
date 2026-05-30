@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
-import { TeamRosterRail, type RailMember } from './TeamRosterRail'
+import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
+
+const ACTIVE_ASSIGNMENT_STATUSES = new Set(['PENDING', 'SCHEDULED', 'MODIFIED'])
 
 interface TeamCockpitProps {
   teamId: string
@@ -124,6 +126,22 @@ export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockp
     return map
   }, [events])
 
+  // Per-member session coverage for the viewed day, derived from that day's
+  // events so the rail's "pass idag" column tracks the schedule's day-nav (the
+  // status dot stays current-state — readiness/medical isn't day-specific).
+  const coverageByMember = useMemo(() => {
+    const map = new Map<string, DayCoverage>()
+    events.forEach((event) => {
+      event.assignmentSummary?.athletes?.forEach((athlete) => {
+        const entry = map.get(athlete.athleteId) ?? { active: 0, completed: 0 }
+        if (athlete.status === 'COMPLETED') entry.completed += 1
+        else if (ACTIVE_ASSIGNMENT_STATUSES.has(athlete.status)) entry.active += 1
+        map.set(athlete.athleteId, entry)
+      })
+    })
+    return map
+  }, [events])
+
   // memberId → set of event ids they participate in on the viewed day.
   const eventsByPlayer = useMemo(() => {
     const map = new Map<string, Set<string>>()
@@ -204,6 +222,7 @@ export function TeamCockpit({ teamId, businessSlug, locale, members }: TeamCockp
       <TeamRosterRail
         members={members}
         rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
+        coverageByMember={coverageByMember}
         positions={positions}
         positionFilter={positionFilter}
         onPositionFilterChange={setPositionFilter}
