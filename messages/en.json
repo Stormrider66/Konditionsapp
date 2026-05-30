@@ -3733,8 +3733,28 @@
           "analysis": "Analytics"
         },
         "cockpit": {
-          "scheduleComingTitle": "Today's schedule",
-          "scheduleComingDescription": "Soon this shows the team's whole day — sessions, times, location, and who's booked in. Until then, find the squad under the Roster tab.",
+          "schedule": {
+            "title": "Today's schedule",
+            "today": "Today",
+            "prevDay": "Previous day",
+            "nextDay": "Next day",
+            "allDay": "All day",
+            "chipEvents": "events",
+            "chipActive": "active",
+            "chipUpcoming": "upcoming",
+            "chipDone": "done",
+            "loading": "Loading schedule…",
+            "error": "Could not load the schedule.",
+            "emptyTitle": "No sessions today",
+            "emptyDescription": "Nothing is scheduled for this day yet.",
+            "assignCta": "Assign session",
+            "viewSession": "View session",
+            "needsContent": "Needs content",
+            "statusActive": "Active",
+            "statusUpcoming": "Upcoming",
+            "statusDone": "Done",
+            "participants": "{completed}/{total} completed"
+          },
           "phase": {
             "currentBlock": "Current block",
             "week": "week {current}/{total}"

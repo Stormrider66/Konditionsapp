@@ -3733,8 +3733,28 @@
           "analysis": "Analys"
         },
         "cockpit": {
-          "scheduleComingTitle": "Dagens schema",
-          "scheduleComingDescription": "Snart visas hela lagets dag här – pass, tider, plats och vilka spelare som är inbokade. Tills dess hittar du truppen under fliken Trupp.",
+          "schedule": {
+            "title": "Dagens schema",
+            "today": "Idag",
+            "prevDay": "Föregående dag",
+            "nextDay": "Nästa dag",
+            "allDay": "Heldag",
+            "chipEvents": "händelser",
+            "chipActive": "aktiva",
+            "chipUpcoming": "kommande",
+            "chipDone": "klara",
+            "loading": "Laddar schema…",
+            "error": "Kunde inte ladda schemat.",
+            "emptyTitle": "Inga pass idag",
+            "emptyDescription": "Inget är inplanerat för den här dagen ännu.",
+            "assignCta": "Tilldela pass",
+            "viewSession": "Visa pass",
+            "needsContent": "Saknar innehåll",
+            "statusActive": "Pågår",
+            "statusUpcoming": "Kommande",
+            "statusDone": "Klart",
+            "participants": "{completed}/{total} klara"
+          },
           "phase": {
             "currentBlock": "Nuvarande block",
             "week": "vecka {current}/{total}"

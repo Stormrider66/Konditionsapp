@@ -19,12 +19,13 @@ import {
   GlassCardDescription,
 } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { CalendarClock, CheckCircle2 } from 'lucide-react'
+import { CheckCircle2 } from 'lucide-react'
 import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
 import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { TeamPhaseStrip } from '@/components/coach/teams/cockpit/TeamPhaseStrip'
 import { TeamAttentionStrip } from '@/components/coach/teams/cockpit/TeamAttentionStrip'
 import { TeamRosterRail, type RailMember } from '@/components/coach/teams/cockpit/TeamRosterRail'
+import { TeamSchedulePane } from '@/components/coach/teams/cockpit/TeamSchedulePane'
 import { getTranslations } from '@/i18n/server'
 
 interface TeamPageProps {
@@ -97,6 +98,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
   const { businessSlug, teamId } = await params
   const t = await getTranslations('coach.pages.teamDetail')
   const user = await requireCoach()
+  const locale: 'en' | 'sv' = user.language === 'sv' ? 'sv' : 'en'
 
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) {
@@ -206,21 +208,10 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         />
       </div>
 
-      {/* Two-pane cockpit body. Left: schedule (timeline lands in the next slice).
-          Right: the compact roster rail. */}
+      {/* Two-pane cockpit body. Left: the day's schedule timeline. Right: the
+          compact roster rail. */}
       <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <GlassCard glow="blue">
-          <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
-              <CalendarClock className="h-5 w-5 text-blue-500" />
-              {t('cockpit.scheduleComingTitle')}
-            </GlassCardTitle>
-            <GlassCardDescription>
-              {t('cockpit.scheduleComingDescription')}
-            </GlassCardDescription>
-          </GlassCardHeader>
-        </GlassCard>
-
+        <TeamSchedulePane teamId={teamId} businessSlug={businessSlug} locale={locale} />
         <TeamRosterRail
           members={railMembers}
           rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
