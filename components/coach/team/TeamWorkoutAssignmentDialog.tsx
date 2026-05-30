@@ -108,6 +108,8 @@ export function TeamWorkoutAssignmentDialog({
   const [selectedTeamId, setSelectedTeamId] = useState<string>('')
   const [team, setTeam] = useState<Team | null>(null)
   const [excludedMembers, setExcludedMembers] = useState<string[]>([])
+  // athleteId → blocked exercise names (from the restriction preview)
+  const [blockedById, setBlockedById] = useState<Record<string, string[]>>({})
   const [assignedDate, setAssignedDate] = useState('')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -119,6 +121,8 @@ export function TeamWorkoutAssignmentDialog({
   const effectiveWorkout = workoutId
     ? { type: workoutType!, id: workoutId, name: workoutName ?? '' }
     : pickedWorkout
+  const effWorkoutType = effectiveWorkout?.type
+  const effWorkoutId = effectiveWorkout?.id
 
   // Location & trainer
   const [locations, setLocations] = useState<LocationOption[]>([])
@@ -186,12 +190,14 @@ export function TeamWorkoutAssignmentDialog({
           )
           const nextTeam: Team = { id: raw.id, name: raw.name, members }
           setTeam(nextTeam)
-          // Default selection: everyone with an account, unless preselecting one.
-          const accountLessIds = members.filter((m) => !m.hasAthleteAccount).map((m) => m.id)
+          // Default selection: everyone (account-less + blocked are filtered by
+          // the inclusion rule, not by exclusions). Preselect narrows to one.
           if (preselectAthleteId) {
-            setExcludedMembers(members.filter((m) => m.id !== preselectAthleteId).map((m) => m.id))
+            setExcludedMembers(
+              members.filter((m) => m.hasAthleteAccount && m.id !== preselectAthleteId).map((m) => m.id)
+            )
           } else {
-            setExcludedMembers(accountLessIds)
+            setExcludedMembers([])
           }
         }
       } catch (error) {
@@ -213,6 +219,7 @@ export function TeamWorkoutAssignmentDialog({
       setSelectedTeamId(fixedTeamId ?? '')
       setTeam(null)
       setExcludedMembers([])
+      setBlockedById({})
       setPickedWorkout(null)
       setAssignedDate(new Date().toISOString().split('T')[0])
       setNotes('')
@@ -240,9 +247,55 @@ export function TeamWorkoutAssignmentDialog({
     })
   }, [fetchTeamDetails, selectedTeamId])
 
-  const accountLessIds = useMemo(
-    () => (team ? team.members.filter((m) => !m.hasAthleteAccount).map((m) => m.id) : []),
-    [team]
+  // Restriction preview: which account-having members are blocked for the
+  // chosen workout. Blocked members are then disabled + auto-excluded below.
+  useEffect(() => {
+    const controller = new AbortController()
+    async function loadPreview() {
+      if (!selectedTeamId || !team || !effWorkoutId || !effWorkoutType) {
+        setBlockedById({})
+        return
+      }
+      const athleteIds = team.members.filter((m) => m.hasAthleteAccount).map((m) => m.id)
+      if (athleteIds.length === 0) {
+        setBlockedById({})
+        return
+      }
+      try {
+        const res = await fetch(`/api/teams/${selectedTeamId}/assign-workout/preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
+          body: JSON.stringify({ workoutType: effWorkoutType, workoutId: effWorkoutId, athleteIds }),
+          signal: controller.signal,
+        })
+        if (!res.ok) {
+          setBlockedById({})
+          return
+        }
+        const data = await res.json()
+        const map: Record<string, string[]> = {}
+        if (data?.success) {
+          for (const b of data.data.blocked as Array<{ athleteId: string; exerciseNames: string[] }>) {
+            map[b.athleteId] = b.exerciseNames
+          }
+        }
+        setBlockedById(map)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setBlockedById({})
+      }
+    }
+    void loadPreview()
+    return () => controller.abort()
+  }, [selectedTeamId, team, effWorkoutType, effWorkoutId, businessHeaders])
+
+  const isBlocked = useCallback((memberId: string) => memberId in blockedById, [blockedById])
+
+  /** Will this member actually be assigned (has account, not blocked, not unchecked)? */
+  const isIncluded = useCallback(
+    (member: TeamMember) =>
+      member.hasAthleteAccount && !isBlocked(member.id) && !excludedMembers.includes(member.id),
+    [excludedMembers, isBlocked]
   )
 
   const positions = useMemo(() => {
@@ -255,14 +308,14 @@ export function TeamWorkoutAssignmentDialog({
   }, [team])
 
   function toggleMemberExclusion(member: TeamMember) {
-    if (!member.hasAthleteAccount) return // account-less can't be assigned
+    if (!member.hasAthleteAccount || isBlocked(member.id)) return // can't be assigned
     setExcludedMembers((prev) =>
       prev.includes(member.id) ? prev.filter((id) => id !== member.id) : [...prev, member.id]
     )
   }
 
   function selectAllMembers() {
-    setExcludedMembers(accountLessIds)
+    setExcludedMembers([])
   }
 
   function deselectAllMembers() {
@@ -271,15 +324,12 @@ export function TeamWorkoutAssignmentDialog({
 
   function selectPosition(position: string) {
     if (!team) return
-    // Include only account-having members of this position.
-    setExcludedMembers(
-      team.members.filter((m) => !m.hasAthleteAccount || m.position !== position).map((m) => m.id)
-    )
+    // Uncheck everyone not of this position; account-less / blocked are filtered
+    // out by the inclusion rule regardless.
+    setExcludedMembers(team.members.filter((m) => m.position !== position).map((m) => m.id))
   }
 
-  const selectedMemberCount = team
-    ? team.members.filter((m) => m.hasAthleteAccount && !excludedMembers.includes(m.id)).length
-    : 0
+  const selectedMemberCount = team ? team.members.filter(isIncluded).length : 0
 
   const dialogTitle = effectiveWorkout?.name
     ? `${copy(locale, 'Assign', 'Tilldela')} "${effectiveWorkout.name}"`
@@ -321,6 +371,17 @@ export function TeamWorkoutAssignmentDialog({
             `${effectiveWorkout.name} tilldelat till ${result.data.assignmentCount} spelare i ${result.data.teamName}.`
           ),
         })
+        const skipped = result.data.skipped as Array<{ name: string }> | undefined
+        if (skipped && skipped.length > 0) {
+          toast.warning(
+            copy(
+              locale,
+              `${skipped.length} player(s) skipped by a restriction`,
+              `${skipped.length} spelare hoppades över pga restriktion`
+            ),
+            { description: skipped.map((s) => s.name).join(', ') }
+          )
+        }
         setOpen(false)
         onAssigned?.()
       } else {
@@ -498,22 +559,25 @@ export function TeamWorkoutAssignmentDialog({
                 <div className="space-y-2">
                   {team.members.map((member) => {
                     const accountLess = !member.hasAthleteAccount
-                    const isIncluded = !accountLess && !excludedMembers.includes(member.id)
+                    const blockedNames = blockedById[member.id]
+                    const blocked = Boolean(blockedNames)
+                    const disabled = accountLess || blocked
+                    const included = isIncluded(member)
                     return (
                       <div
                         key={member.id}
                         className={`flex items-center space-x-3 p-2 rounded transition-colors ${
-                          accountLess
+                          disabled
                             ? 'opacity-50 cursor-not-allowed'
-                            : isIncluded
+                            : included
                               ? 'bg-primary/5 hover:bg-primary/10 cursor-pointer'
                               : 'hover:bg-muted/50 opacity-60 cursor-pointer'
                         }`}
                         onClick={() => toggleMemberExclusion(member)}
                       >
                         <Checkbox
-                          checked={isIncluded}
-                          disabled={accountLess}
+                          checked={included}
+                          disabled={disabled}
                           onCheckedChange={() => toggleMemberExclusion(member)}
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -528,11 +592,16 @@ export function TeamWorkoutAssignmentDialog({
                             <div className="text-xs text-amber-600 dark:text-amber-400">
                               {copy(locale, 'No athlete account — invite first', 'Saknar konto — bjud in först')}
                             </div>
+                          ) : blocked ? (
+                            <div className="text-xs text-amber-600 dark:text-amber-400">
+                              {copy(locale, 'Blocked by restriction', 'Blockerad av restriktion')}
+                              {blockedNames.length > 0 ? `: ${blockedNames.join(', ')}` : ''}
+                            </div>
                           ) : member.email ? (
                             <div className="text-xs text-muted-foreground">{member.email}</div>
                           ) : null}
                         </div>
-                        {isIncluded && <CheckCircle2 className="h-4 w-4 text-primary" />}
+                        {included && <CheckCircle2 className="h-4 w-4 text-primary" />}
                       </div>
                     )
                   })}

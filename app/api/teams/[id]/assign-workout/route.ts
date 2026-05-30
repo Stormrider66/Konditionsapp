@@ -23,6 +23,7 @@ import {
 } from '@/lib/workouts/business-scope'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { checkWorkoutAssignmentRestrictions } from '@/lib/training-restrictions/assignment-enforcement'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -117,7 +118,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const includeSet = includeAthleteIds ? new Set(includeAthleteIds) : null
     const excludeSet = new Set(excludeAthleteIds ?? [])
-    const eligibleMembers = team.members.filter((member) => {
+    let eligibleMembers = team.members.filter((member) => {
       if (workoutBusinessScope.businessId && member.businessId !== workoutBusinessScope.businessId) return false
       if (includeSet && !includeSet.has(member.id)) return false
       return !excludeSet.has(member.id)
@@ -192,6 +193,34 @@ export async function POST(request: NextRequest, context: RouteContext) {
         )
       }
       workoutName = workout.name
+    }
+
+    // Physio restriction enforcement: drop any athletes for whom this workout
+    // contains a blocked exercise/area (defense-in-depth behind the dialog's
+    // own preview). Run BEFORE the transaction so totalAssigned matches reality.
+    const { blockedByAthlete } = await checkWorkoutAssignmentRestrictions({
+      workoutType,
+      workoutId,
+      athleteIds: eligibleMembers.map((member) => member.id),
+    })
+    const skipped = eligibleMembers
+      .filter((member) => blockedByAthlete.has(member.id))
+      .map((member) => ({
+        athleteId: member.id,
+        name: member.name,
+        reasons: blockedByAthlete.get(member.id)?.reasons ?? [],
+      }))
+    eligibleMembers = eligibleMembers.filter((member) => !blockedByAthlete.has(member.id))
+
+    if (eligibleMembers.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'All selected players are blocked by an active restriction for this workout',
+          skipped,
+        },
+        { status: 400 }
+      )
     }
 
     // Create broadcast and assignments in a transaction
@@ -310,6 +339,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           assignmentCount: eligibleMembers.length,
           workoutName,
           teamName: team.name,
+          skipped,
         },
         message: `Workout assigned to ${eligibleMembers.length} team members`,
       },
