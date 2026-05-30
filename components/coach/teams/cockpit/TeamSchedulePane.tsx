@@ -14,6 +14,8 @@ import {
 } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
+import { buildWorkoutPrintUrl } from '@/components/workouts/print/PrintWorkoutButton'
+import type { PrintableWorkoutKind } from '@/lib/workout-print/normalize'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
   TEAM_EVENT_TYPE_COLORS,
@@ -120,31 +122,36 @@ function needsContent(event: ScheduleEvent): boolean {
   return event.contentStatus !== 'CONTENT_READY' || !event.linkedWorkoutId
 }
 
-function studioHref(event: ScheduleEvent, teamId: string, businessSlug: string): string | null {
-  if (!event.linkedWorkoutId) return null
-  const base = `/${businessSlug}/coach`
-  const query = new URLSearchParams({
-    fromTeamCalendar: 'true',
-    teamEventId: event.id,
-    teamId,
-    date: event.startDate,
-    eventTitle: event.title,
-  })
-  switch (event.type) {
+function printableKind(event: ScheduleEvent): PrintableWorkoutKind | null {
+  const type = event.linkedWorkoutType ?? event.type
+  switch (type) {
     case 'STRENGTH':
     case 'PREHAB':
     case 'PLYOMETRICS':
-      return `${base}/strength?${query}`
+      return 'strength'
     case 'CARDIO':
     case 'INTERVAL_SESSION':
-      return `${base}/cardio?${query}`
+      return 'cardio'
     case 'HYBRID':
-      return `${base}/hybrid-studio?${query}`
+      return 'hybrid'
     case 'AGILITY':
-      return `${base}/agility-studio?${query}`
+      return 'agility'
     default:
       return null
   }
+}
+
+function workoutPrintHref(event: ScheduleEvent, businessSlug: string): string | null {
+  if (!event.linkedWorkoutId) return null
+  const kind = printableKind(event)
+  if (!kind) return null
+
+  return buildWorkoutPrintUrl({
+    coachBasePath: `/${businessSlug}/coach`,
+    kind,
+    workoutId: event.linkedWorkoutId,
+    date: event.startDate,
+  })
 }
 
 export function TeamSchedulePane({
@@ -262,7 +269,6 @@ export function TeamSchedulePane({
               event={event}
               status={eventStatus(event, now, viewedDate)}
               locale={locale}
-              teamId={teamId}
               businessSlug={businessSlug}
               selected={selectedSessionId === event.id}
               highlighted={highlightedEventIds.has(event.id)}
@@ -304,7 +310,6 @@ function ScheduleCard({
   event,
   status,
   locale,
-  teamId,
   businessSlug,
   selected,
   highlighted,
@@ -315,7 +320,6 @@ function ScheduleCard({
   event: ScheduleEvent
   status: EventStatus
   locale: Locale
-  teamId: string
   businessSlug: string
   selected: boolean
   highlighted: boolean
@@ -329,7 +333,7 @@ function ScheduleCard({
     summary && summary.totalAssigned > 0
       ? Math.round((summary.totalCompleted / summary.totalAssigned) * 100)
       : 0
-  const href = studioHref(event, teamId, businessSlug)
+  const href = workoutPrintHref(event, businessSlug)
   const gap = needsContent(event)
   const isActive = status === 'active'
 
