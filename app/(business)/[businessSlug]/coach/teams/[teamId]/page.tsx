@@ -1,13 +1,15 @@
 // app/(business)/[businessSlug]/coach/teams/[teamId]/page.tsx
 //
 // The "Idag" landing tab. The persistent team header + tab bar live in the
-// sibling layout.tsx. This is currently an interim view (phase summary +
-// setup readiness + a placeholder for today's schedule); the full two-pane
-// cockpit (schedule timeline + roster rail) replaces the body in Phase 2.
+// sibling layout.tsx. This currently shows the phase + attention strips on top
+// of an interim body (plan summary + setup readiness + a schedule placeholder);
+// the two-pane cockpit body (schedule timeline + roster rail) replaces the
+// placeholder in the next slice.
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
+import { getTeamRosterStatus } from '@/lib/coach/team-roster-status'
 import { prisma } from '@/lib/prisma'
 import {
   GlassCard,
@@ -20,6 +22,8 @@ import { Badge } from '@/components/ui/badge'
 import { CalendarClock, CheckCircle2 } from 'lucide-react'
 import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
 import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
+import { TeamPhaseStrip } from '@/components/coach/teams/cockpit/TeamPhaseStrip'
+import { TeamAttentionStrip } from '@/components/coach/teams/cockpit/TeamAttentionStrip'
 import { getTranslations } from '@/i18n/server'
 
 interface TeamPageProps {
@@ -27,6 +31,39 @@ interface TeamPageProps {
     businessSlug: string
     teamId: string
   }>
+}
+
+const MS_PER_WEEK = 7 * 24 * 60 * 60 * 1000
+
+function computePhase(
+  plan: {
+    startDate: Date
+    endDate: Date
+    blocks: Array<{ title: string; focus: string | null; startDate: Date; endDate: Date }>
+  },
+  now: Date
+) {
+  const currentIndex = plan.blocks.findIndex(
+    (block) => now >= block.startDate && now <= block.endDate
+  )
+  const current = currentIndex >= 0 ? plan.blocks[currentIndex] : null
+  const blockTotal = plan.blocks.length
+  const weekTotal = Math.max(
+    1,
+    Math.round((plan.endDate.getTime() - plan.startDate.getTime()) / MS_PER_WEEK)
+  )
+  const elapsedWeeks = Math.floor((now.getTime() - plan.startDate.getTime()) / MS_PER_WEEK) + 1
+  const weekIndex = Math.min(weekTotal, Math.max(1, elapsedWeeks))
+
+  return {
+    blockTitle: current?.title ?? null,
+    focus: current?.focus ?? null,
+    blockIndex: currentIndex >= 0 ? currentIndex + 1 : 0,
+    blockTotal,
+    weekIndex,
+    weekTotal,
+    progress: blockTotal > 0 && currentIndex >= 0 ? (currentIndex + 1) / blockTotal : 0,
+  }
 }
 
 function PilotReadinessItem({
@@ -70,28 +107,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     notFound()
   }
 
-  const team = await prisma.team.findFirst({
-    where: { id: teamId },
-    select: {
-      id: true,
-      name: true,
-      members: {
-        select: {
-          id: true,
-          email: true,
-          position: true,
-          birthDate: true,
-          height: true,
-          weight: true,
-          athleteAccount: { select: { id: true } },
-        },
-      },
-    },
-  })
-
-  if (!team) {
-    notFound()
-  }
+  const teamName = accessibleTeam.name
+  const members = await getTeamRosterStatus(teamId)
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -128,8 +145,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     orderBy: { startDate: 'desc' },
   })
 
-  const memberCount = team.members.length
-  const missingProfileCount = team.members.filter(
+  const memberCount = members.length
+  const missingProfileCount = members.filter(
     (member) =>
       !member.email ||
       !member.position ||
@@ -137,15 +154,48 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       !member.height ||
       !member.weight
   ).length
-  const athleteAccountCount = team.members.filter((member) => member.athleteAccount).length
+  const athleteAccountCount = members.filter((member) => member.athleteAccount).length
   const rosterReady = memberCount > 0 && missingProfileCount === 0
   const athletePortalReady = memberCount > 0 && athleteAccountCount === memberCount
   const setupComplete = rosterReady && athletePortalReady && hockeyTestCount > 0
 
+  const injuredCount = members.filter((member) => member.activeInjuryCount > 0).length
+  const limitedCount = members.filter(
+    (member) => member.activeInjuryCount === 0 && member.activeRestrictionCount > 0
+  ).length
+  const withoutWorkoutCount = members.filter(
+    (member) =>
+      member.hasAthleteAccount &&
+      member.todayWorkoutCount === 0 &&
+      member.todayCompletedCount === 0
+  ).length
+
+  const phase = activeTeamPlan ? computePhase(activeTeamPlan, today) : null
+
   return (
     <div className="container mx-auto pb-8 px-4">
-      {/* Today's schedule placeholder — the full two-pane cockpit lands in Phase 2. */}
-      <GlassCard glow="blue" className="mt-2 mb-8">
+      <div className="mt-2 mb-6 space-y-3">
+        {phase && (
+          <TeamPhaseStrip
+            href={`/${businessSlug}/coach/teams/${teamId}/plan`}
+            blockTitle={phase.blockTitle}
+            focus={phase.focus}
+            blockIndex={phase.blockIndex}
+            blockTotal={phase.blockTotal}
+            weekIndex={phase.weekIndex}
+            weekTotal={phase.weekTotal}
+            progress={phase.progress}
+          />
+        )}
+        <TeamAttentionStrip
+          injured={injuredCount}
+          limited={limitedCount}
+          withoutWorkout={withoutWorkoutCount}
+        />
+      </div>
+
+      {/* Today's schedule placeholder — the full two-pane cockpit lands in the next slice. */}
+      <GlassCard glow="blue" className="mb-8">
         <GlassCardHeader>
           <GlassCardTitle className="flex items-center gap-2 dark:text-white">
             <CalendarClock className="h-5 w-5 text-blue-500" />
@@ -166,7 +216,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             action={
               <CreateTeamPlanDialog
                 teamId={teamId}
-                teamName={team.name}
+                teamName={teamName}
                 businessSlug={businessSlug}
                 initialPlan={activeTeamPlan}
               />
@@ -183,7 +233,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             <GlassCardContent>
               <CreateTeamPlanDialog
                 teamId={teamId}
-                teamName={team.name}
+                teamName={teamName}
                 businessSlug={businessSlug}
               />
             </GlassCardContent>

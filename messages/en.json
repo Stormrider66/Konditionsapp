@@ -3734,7 +3734,16 @@
         },
         "cockpit": {
           "scheduleComingTitle": "Today's schedule",
-          "scheduleComingDescription": "Soon this shows the team's whole day — sessions, times, location, and who's booked in. Until then, find the squad under the Roster tab."
+          "scheduleComingDescription": "Soon this shows the team's whole day — sessions, times, location, and who's booked in. Until then, find the squad under the Roster tab.",
+          "phase": {
+            "currentBlock": "Current block",
+            "week": "week {current}/{total}"
+          },
+          "attention": {
+            "injured": "{count, plural, =1 {# injured} other {# injured}}",
+            "limited": "{count, plural, =1 {# limited} other {# limited}}",
+            "withoutWorkout": "{count} without a session today"
+          }
         },
         "stats": {
           "players": "Players",
