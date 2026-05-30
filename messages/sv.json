@@ -3762,7 +3762,8 @@
           "attention": {
             "injured": "{count, plural, =1 {# skadad} other {# skadade}}",
             "limited": "{count, plural, =1 {# begränsad} other {# begränsade}}",
-            "withoutWorkout": "{count} utan pass idag"
+            "withoutWorkout": "{count} utan pass idag",
+            "highAcwr": "{count} hög ACWR"
           },
           "rail": {
             "title": "Trupp ({count})",

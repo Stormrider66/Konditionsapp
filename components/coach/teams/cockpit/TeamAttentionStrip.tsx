@@ -10,20 +10,23 @@ interface TeamAttentionStripProps {
   injured: number
   /** Athletes with no session assigned on the viewed day. */
   withoutWorkout: number
+  /** Members in the DANGER/CRITICAL ACWR zones (elevated injury risk). */
+  highAcwr: number
 }
 
 /**
  * Triage line above the cockpit panes — surfaces the day's exceptions so the
  * coach acts on them instead of scanning the whole roster. Renders nothing
- * when there's nothing to flag. (Click-to-filter the rail arrives in Phase 3.)
+ * when there's nothing to flag. (Click-to-filter the rail arrives in Phase 4.)
  */
-export function TeamAttentionStrip({ limited, injured, withoutWorkout }: TeamAttentionStripProps) {
+export function TeamAttentionStrip({ limited, injured, withoutWorkout, highAcwr }: TeamAttentionStripProps) {
   const t = useTranslations('coach.pages.teamDetail')
 
   const chips: string[] = []
   if (injured > 0) chips.push(t('cockpit.attention.injured', { count: injured }))
   if (limited > 0) chips.push(t('cockpit.attention.limited', { count: limited }))
   if (withoutWorkout > 0) chips.push(t('cockpit.attention.withoutWorkout', { count: withoutWorkout }))
+  if (highAcwr > 0) chips.push(t('cockpit.attention.highAcwr', { count: highAcwr }))
 
   if (chips.length === 0) {
     return null

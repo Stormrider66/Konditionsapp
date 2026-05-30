@@ -3762,7 +3762,8 @@
           "attention": {
             "injured": "{count, plural, =1 {# injured} other {# injured}}",
             "limited": "{count, plural, =1 {# limited} other {# limited}}",
-            "withoutWorkout": "{count} without a session today"
+            "withoutWorkout": "{count} without a session today",
+            "highAcwr": "{count} high ACWR"
           },
           "rail": {
             "title": "Squad ({count})",

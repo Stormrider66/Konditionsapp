@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Users, Search, Check, CheckCheck } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
+import type { RosterDotLevel } from '@/lib/coach/roster-dot-status'
 
 export interface RailMember {
   id: string
@@ -15,8 +16,16 @@ export interface RailMember {
   todayWorkoutCount: number
   /** Completed sessions on the viewed day. */
   todayCompletedCount: number
-  activeInjuryCount: number
+  /** Blended medical + readiness + ACWR status (computed server-side). */
+  statusLevel: RosterDotLevel
+  /** Active restriction count, for the "R" marker. */
   activeRestrictionCount: number
+}
+
+const DOT_COLOR: Record<RosterDotLevel, string> = {
+  red: 'bg-red-500',
+  amber: 'bg-amber-500',
+  green: 'bg-emerald-500',
 }
 
 interface TeamRosterRailProps {
@@ -119,12 +128,7 @@ export function TeamRosterRail({ members, rosterHref }: TeamRosterRailProps) {
 function RosterRow({ member }: { member: RailMember }) {
   const done = member.todayCompletedCount > 0 && member.todayWorkoutCount === 0
   const assigned = member.todayWorkoutCount > 0
-  const statusColor =
-    member.activeInjuryCount > 0
-      ? 'bg-red-500'
-      : member.activeRestrictionCount > 0
-        ? 'bg-amber-500'
-        : 'bg-emerald-500'
+  const statusColor = DOT_COLOR[member.statusLevel]
 
   return (
     <div className="grid grid-cols-[2rem_1fr_2.5rem_2.5rem_3.5rem] items-center gap-2 px-4 py-2 text-sm">

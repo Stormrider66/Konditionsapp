@@ -40,7 +40,18 @@ export interface TeamRosterMemberStatus {
   activeInjuryCount: number
   activeRestrictionCount: number
   restrictionSummaries: TeamRosterRestrictionSummary[]
+  /** Latest readiness level within the recent window (DailyMetrics), or null. */
+  readinessLevel: string | null
+  /** Latest ACWR zone within the recent window (TrainingLoad), or null. */
+  acwrZone: string | null
 }
+
+/**
+ * How many days back to look for the most recent readiness / load reading.
+ * Check-ins are sparse, so "current state" means the latest within this window
+ * rather than strictly today.
+ */
+const READINESS_LOOKBACK_DAYS = 3
 
 const ACTIVE_ASSIGNMENT_STATUSES = [
   AssignmentStatus.PENDING,
@@ -85,6 +96,8 @@ export async function getTeamRosterStatus(
   dayEnd.setDate(dayEnd.getDate() + 1)
   const upcomingUntil = new Date(dayStart)
   upcomingUntil.setDate(upcomingUntil.getDate() + 7)
+  const readinessSince = new Date(dayStart)
+  readinessSince.setDate(readinessSince.getDate() - READINESS_LOOKBACK_DAYS)
 
   const dayActiveWhere = {
     athleteId: { in: memberIds },
@@ -114,6 +127,8 @@ export async function getTeamRosterStatus(
     hybridUpcoming,
     activeInjuries,
     activeRestrictions,
+    recentMetrics,
+    recentLoads,
   ] = await Promise.all([
     prisma.strengthSessionAssignment.groupBy({ by: ['athleteId'], where: dayActiveWhere, _count: { id: true } }),
     prisma.cardioSessionAssignment.groupBy({ by: ['athleteId'], where: dayActiveWhere, _count: { id: true } }),
@@ -144,6 +159,24 @@ export async function getTeamRosterStatus(
         reason: true,
       },
       orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
+    }),
+    prisma.dailyMetrics.findMany({
+      where: {
+        clientId: { in: memberIds },
+        date: { gte: readinessSince, lt: dayEnd },
+        readinessLevel: { not: null },
+      },
+      select: { clientId: true, readinessLevel: true },
+      orderBy: { date: 'desc' },
+    }),
+    prisma.trainingLoad.findMany({
+      where: {
+        clientId: { in: memberIds },
+        date: { gte: readinessSince, lt: dayEnd },
+        acwrZone: { not: null },
+      },
+      select: { clientId: true, acwrZone: true },
+      orderBy: { date: 'desc' },
     }),
   ])
 
@@ -189,6 +222,21 @@ export async function getTeamRosterStatus(
     restrictionSummaries.set(restriction.clientId, current)
   })
 
+  // Rows arrive date-desc, so the first one seen per client is the most recent.
+  const readinessLevels = new Map<string, string>()
+  recentMetrics.forEach((metric) => {
+    if (metric.readinessLevel && !readinessLevels.has(metric.clientId)) {
+      readinessLevels.set(metric.clientId, metric.readinessLevel)
+    }
+  })
+
+  const acwrZones = new Map<string, string>()
+  recentLoads.forEach((load) => {
+    if (load.acwrZone && !acwrZones.has(load.clientId)) {
+      acwrZones.set(load.clientId, load.acwrZone)
+    }
+  })
+
   return members.map((member) => ({
     ...member,
     hasAthleteAccount: Boolean(member.athleteAccount),
@@ -198,5 +246,7 @@ export async function getTeamRosterStatus(
     activeInjuryCount: injuryCounts.get(member.id) ?? 0,
     activeRestrictionCount: restrictionSummaries.get(member.id)?.length ?? 0,
     restrictionSummaries: restrictionSummaries.get(member.id) ?? [],
+    readinessLevel: readinessLevels.get(member.id) ?? null,
+    acwrZone: acwrZones.get(member.id) ?? null,
   }))
 }

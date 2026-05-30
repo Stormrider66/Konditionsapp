@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { getTeamRosterStatus } from '@/lib/coach/team-roster-status'
+import { rosterDotLevel, isHighAcwr } from '@/lib/coach/roster-dot-status'
 import { prisma } from '@/lib/prisma'
 import {
   GlassCard,
@@ -169,6 +170,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       member.todayWorkoutCount === 0 &&
       member.todayCompletedCount === 0
   ).length
+  const highAcwrCount = members.filter((member) => isHighAcwr(member.acwrZone)).length
 
   const phase = activeTeamPlan ? computePhase(activeTeamPlan, today) : null
 
@@ -179,7 +181,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     position: member.position,
     todayWorkoutCount: member.todayWorkoutCount,
     todayCompletedCount: member.todayCompletedCount,
-    activeInjuryCount: member.activeInjuryCount,
+    statusLevel: rosterDotLevel(member),
     activeRestrictionCount: member.activeRestrictionCount,
   }))
 
@@ -202,6 +204,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
           injured={injuredCount}
           limited={limitedCount}
           withoutWorkout={withoutWorkoutCount}
+          highAcwr={highAcwrCount}
         />
       </div>
 
