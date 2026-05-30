@@ -8,6 +8,7 @@ import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
 import { dbDateFromZonedCalendarDay } from '@/lib/team-calendar/date-time'
 import { syncBroadcastAssignmentResponsibility } from '@/lib/team-calendar/assignment-responsibility'
 import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
+import { checkWorkoutAssignmentRestrictions } from '@/lib/training-restrictions/assignment-enforcement'
 import {
   agilityWorkoutAccessWhere,
   cardioSessionAccessWhere,
@@ -405,13 +406,31 @@ export async function POST(req: NextRequest, context: RouteContext) {
       },
     })
 
-    const eligibleMembers = teamWithMembers?.members.filter((member) => (
+    let eligibleMembers = teamWithMembers?.members.filter((member) => (
       Boolean(member.athleteAccount) && (businessScope.businessId ? member.businessId === businessScope.businessId : true)
     )) ?? []
 
     if (!teamWithMembers || eligibleMembers.length === 0) {
       return NextResponse.json({ error: 'No team members to assign workout to' }, { status: 400 })
     }
+
+    // Physio restriction enforcement: drop athletes blocked for this workout.
+    const { blockedByAthlete } = await checkWorkoutAssignmentRestrictions({
+      workoutType: event.linkedWorkoutType.toLowerCase() as 'strength' | 'cardio' | 'hybrid' | 'agility',
+      workoutId: event.linkedWorkoutId,
+      athleteIds: eligibleMembers.map((member) => member.id),
+    })
+    const skipped = eligibleMembers
+      .filter((member) => blockedByAthlete.has(member.id))
+      .map((member) => ({ athleteId: member.id, name: member.name, reasons: blockedByAthlete.get(member.id)?.reasons ?? [] }))
+    eligibleMembers = eligibleMembers.filter((member) => !blockedByAthlete.has(member.id))
+    if (eligibleMembers.length === 0) {
+      return NextResponse.json(
+        { error: 'All team members are blocked by an active restriction for this workout', skipped },
+        { status: 400 }
+      )
+    }
+
     const eligibleAthleteIds = new Set(eligibleMembers.map((member) => member.id))
 
     const assignedDate = dbDateFromZonedCalendarDay(event.startDate)
@@ -545,6 +564,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       totalAssigned: result.broadcast.totalAssigned,
       createdBroadcast: result.createdBroadcast,
       workoutName: event.linkedWorkoutName,
+      skipped,
     }, { status: result.createdBroadcast ? 201 : 200 })
   } catch (error) {
     if (error instanceof Error && error.message === 'ASSIGNED_BROADCAST_NOT_FOUND') {

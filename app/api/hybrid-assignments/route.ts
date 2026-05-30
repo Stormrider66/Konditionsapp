@@ -15,6 +15,7 @@ import {
   hybridWorkoutAccessWhere,
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope';
+import { checkWorkoutAssignmentRestrictions } from '@/lib/training-restrictions/assignment-enforcement';
 
 // GET /api/hybrid-assignments - Get assignments
 // Query params: athleteId, workoutId, status, dateFrom, dateTo
@@ -205,6 +206,23 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Physio restriction enforcement: skip athletes blocked for this workout.
+    const { blockedByAthlete } = await checkWorkoutAssignmentRestrictions({
+      workoutType: 'hybrid',
+      workoutId,
+      athleteIds,
+    });
+    const assignableIds = athleteIds.filter((aid: string) => !blockedByAthlete.has(aid));
+    const skipped = athleteIds
+      .filter((aid: string) => blockedByAthlete.has(aid))
+      .map((aid: string) => ({ athleteId: aid, reasons: blockedByAthlete.get(aid)?.reasons ?? [] }));
+    if (assignableIds.length === 0) {
+      return NextResponse.json(
+        { error: 'All selected athletes are blocked by an active restriction for this workout', skipped },
+        { status: 400 }
+      );
+    }
+
     // Resolve location name if locationId is provided
     let resolvedLocationName = locationName;
     if (locationId && !locationName) {
@@ -217,7 +235,7 @@ export async function POST(request: NextRequest) {
 
     // Create assignments for all athletes
     const assignments = await prisma.$transaction(
-      athleteIds.map((athleteId: string) =>
+      assignableIds.map((athleteId: string) =>
         prisma.hybridWorkoutAssignment.upsert({
           where: {
             workoutId_athleteId_assignedDate: {
@@ -301,6 +319,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: `Assigned workout to ${assignments.length} athlete(s)`,
       assignments,
+      skipped,
     });
   } catch (error) {
     logError('Error creating assignments:', error);

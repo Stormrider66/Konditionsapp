@@ -14,6 +14,7 @@ import {
   resolveStrengthBusinessScope,
   strengthSessionAccessWhere,
 } from '@/lib/strength/session-business-scope';
+import { checkWorkoutAssignmentRestrictions } from '@/lib/training-restrictions/assignment-enforcement';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -153,6 +154,23 @@ export async function POST(request: NextRequest, context: RouteContext) {
       );
     }
 
+    // Physio restriction enforcement: skip athletes blocked for this session.
+    const { blockedByAthlete } = await checkWorkoutAssignmentRestrictions({
+      workoutType: 'strength',
+      workoutId: id,
+      athleteIds,
+    });
+    const assignableIds = athleteIds.filter((aid: string) => !blockedByAthlete.has(aid));
+    const skipped = athleteIds
+      .filter((aid: string) => blockedByAthlete.has(aid))
+      .map((aid: string) => ({ athleteId: aid, reasons: blockedByAthlete.get(aid)?.reasons ?? [] }));
+    if (assignableIds.length === 0) {
+      return NextResponse.json(
+        { error: 'All selected athletes are blocked by an active restriction for this session', skipped },
+        { status: 400 }
+      );
+    }
+
     // Verify location if provided
     if (locationId) {
       const location = await prisma.location.findUnique({
@@ -175,7 +193,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       // Create each athlete's calendar event and the assignment that links to
       // it inside one transaction, so a failed upsert can't leave an orphaned
       // calendar event behind.
-      athleteIds.map((athleteId: string) =>
+      assignableIds.map((athleteId: string) =>
         prisma.$transaction(async (tx) => {
           // Create calendar event if scheduling is enabled
           let calendarEventId: string | undefined;
@@ -257,7 +275,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       )
     );
 
-    return NextResponse.json({ assignments }, { status: 201 });
+    return NextResponse.json({ assignments, skipped }, { status: 201 });
   } catch (error) {
     logError('Error creating assignments:', error);
     return NextResponse.json(
