@@ -33,12 +33,14 @@ type AppLocale = 'en' | 'sv'
  * Analyze athlete readiness and provide workout optimization suggestions
  */
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = getUserLocale(user.language)
+    locale = getUserLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:workout-optimization', user.id, {
       limit: 30,
@@ -53,13 +55,13 @@ export async function GET(req: NextRequest) {
     const plannedIntensity = searchParams.get('plannedIntensity')
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientId required', 'clientId är obligatoriskt') }, { status: 400 })
     }
 
     // Authorization check
     const allowed = await canAccessClient(user.id, clientId)
     if (!allowed) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Not found', 'Hittades inte') }, { status: 404 })
     }
 
     const now = new Date()
@@ -333,7 +335,7 @@ export async function GET(req: NextRequest) {
   } catch (error) {
     logger.error('Workout optimization error', {}, error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     )
   }

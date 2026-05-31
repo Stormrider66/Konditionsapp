@@ -23,10 +23,14 @@ interface RequestBody {
   endDate?: string;
 }
 
+type AppLocale = 'en' | 'sv'
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach();
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = getUserLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:generate-chart', user.id, {
       limit: 10,
@@ -40,14 +44,14 @@ export async function POST(request: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId is required' },
+        { error: t(locale, 'clientId is required', 'clientId är obligatoriskt') },
         { status: 400 }
       );
     }
 
     if (!query) {
       return NextResponse.json(
-        { error: 'query is required' },
+        { error: t(locale, 'query is required', 'query är obligatoriskt') },
         { status: 400 }
       );
     }
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
+        { error: t(locale, 'Client not found or access denied', 'Atleten hittades inte eller saknar behörighet') },
         { status: 404 }
       );
     }
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     if (!result.success) {
       return NextResponse.json(
-        { error: result.error || 'Failed to generate chart' },
+        { error: result.error || t(locale, 'Failed to generate chart', 'Kunde inte skapa diagrammet') },
         { status: 500 }
       );
     }
@@ -102,12 +106,20 @@ export async function POST(request: NextRequest) {
     logger.error('Generate chart error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     );
   }
+}
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

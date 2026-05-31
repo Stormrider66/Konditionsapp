@@ -39,10 +39,12 @@ function t(locale: AppLocale, en: string, sv: string): string {
 // ============================================
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     // Authenticate
     const user = await requireCoach()
-    const locale = getUserLocale(user.language)
+    locale = getUserLocale(user.language)
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'program_generation')
@@ -62,14 +64,20 @@ export async function POST(request: NextRequest) {
     // Validate
     if (!programContext || !totalWeeks) {
       return NextResponse.json(
-        { error: 'Missing required fields: programContext and totalWeeks' },
+        {
+          error: t(
+            locale,
+            'Missing required fields: programContext and totalWeeks',
+            'Obligatoriska fält saknas: programContext och totalWeeks'
+          ),
+        },
         { status: 400 }
       )
     }
 
     if (totalWeeks < 1 || totalWeeks > 52) {
       return NextResponse.json(
-        { error: 'totalWeeks must be between 1 and 52' },
+        { error: t(locale, 'totalWeeks must be between 1 and 52', 'totalWeeks måste vara mellan 1 och 52') },
         { status: 400 }
       )
     }
@@ -82,7 +90,7 @@ export async function POST(request: NextRequest) {
     if (localizedProgramContext.athleteId) {
       const access = await canAccessAthlete(user.id, localizedProgramContext.athleteId)
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
       }
 
       const allowanceDenied = await requireAiAllowance(localizedProgramContext.athleteId, {
@@ -110,7 +118,13 @@ export async function POST(request: NextRequest) {
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: `No API key configured for ${selectedProvider}` },
+        {
+          error: t(
+            locale,
+            `No API key configured for ${selectedProvider}`,
+            `Ingen API-nyckel är konfigurerad för ${selectedProvider}`
+          ),
+        },
         { status: 400 }
       )
     }
@@ -160,8 +174,12 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     logger.error('POST /api/ai/generate-program error', {}, error)
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    }
+
     return NextResponse.json(
-      { error: 'Failed to start program generation' },
+      { error: t(locale, 'Failed to start program generation', 'Kunde inte starta programgenereringen') },
       { status: 500 }
     )
   }
@@ -195,8 +213,11 @@ function startGenerationBackground(
 // ============================================
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
 
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')
@@ -239,7 +260,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -265,8 +286,12 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logger.error('GET /api/ai/generate-program error', {}, error)
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    }
+
     return NextResponse.json(
-      { error: 'Failed to get session' },
+      { error: t(locale, 'Failed to get session', 'Kunde inte hämta sessionen') },
       { status: 500 }
     )
   }
