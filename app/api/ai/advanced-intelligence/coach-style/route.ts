@@ -24,12 +24,15 @@ function t(locale: AppLocale, en: string, sv: string) {
  * Extract coaching style from documents and program history
  */
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(user.language)
 
     // Subscription gate (coach-level, no clientId needed)
     const denied = await requireCoachFeatureAccess(user.id, 'advanced_intelligence')
@@ -56,7 +59,7 @@ export async function GET(req: NextRequest) {
         select: { userId: true },
       })
       if (!client) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
       }
       coachId = client.userId
     } else if (user.role === 'ADMIN' && requestedCoachId) {
@@ -78,7 +81,7 @@ export async function GET(req: NextRequest) {
     logger.error('Error extracting coaching style', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -94,13 +97,15 @@ export async function GET(req: NextRequest) {
  * Extract style from specific documents or apply to prompt
  */
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveLocale(user.language)
 
     // Subscription gate (coach-level, no clientId needed)
     const deniedPost = await requireCoachFeatureAccess(user.id, 'advanced_intelligence')
@@ -126,7 +131,7 @@ export async function POST(req: NextRequest) {
         select: { userId: true },
       })
       if (!client) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
       }
       effectiveCoachId = client.userId
     } else if (user.role === 'ADMIN' && coachId) {
@@ -179,7 +184,7 @@ export async function POST(req: NextRequest) {
     logger.error('Error processing coach style request', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

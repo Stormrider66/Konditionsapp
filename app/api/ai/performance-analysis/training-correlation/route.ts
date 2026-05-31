@@ -19,17 +19,25 @@ const requestSchema = z.object({
   lookbackMonths: z.number().min(6).max(36).optional().default(12),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid request', 'Ogiltig förfrågan'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -39,7 +47,7 @@ export async function POST(req: NextRequest) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
+        { error: t(locale, 'Client not found or access denied', 'Atleten hittades inte eller saknar behörighet') },
         { status: 404 }
       )
     }
@@ -66,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     if (testCount < 3) {
       return NextResponse.json(
-        { error: 'At least 3 tests required for correlation analysis', testCount },
+        { error: t(locale, 'At least 3 tests required for correlation analysis', 'Minst 3 tester krävs för korrelationsanalys'), testCount },
         { status: 400 }
       )
     }
@@ -74,7 +82,7 @@ export async function POST(req: NextRequest) {
     if (workoutCount < 20) {
       return NextResponse.json(
         {
-          error: 'Insufficient workout data for correlation analysis',
+          error: t(locale, 'Insufficient workout data for correlation analysis', 'Otillräcklig träningsdata för korrelationsanalys'),
           workoutCount,
           minimum: 20,
         },
@@ -96,7 +104,7 @@ export async function POST(req: NextRequest) {
     const DAILY_LIMIT = 20
     if (usageToday >= DAILY_LIMIT) {
       return NextResponse.json(
-        { error: 'Daily AI analysis limit reached', limit: DAILY_LIMIT },
+        { error: t(locale, 'Daily AI analysis limit reached', 'Daglig gräns för AI-analys är nådd'), limit: DAILY_LIMIT },
         { status: 429 }
       )
     }
@@ -111,7 +119,7 @@ export async function POST(req: NextRequest) {
 
     if (!result) {
       return NextResponse.json(
-        { error: 'Could not analyze correlations - insufficient data' },
+        { error: t(locale, 'Could not analyze correlations - insufficient data', 'Kunde inte analysera korrelationer - otillräcklig data') },
         { status: 400 }
       )
     }
@@ -131,11 +139,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Error analyzing training correlation', {}, error)
     return NextResponse.json(
-      { error: 'Failed to analyze training correlation' },
+      { error: t(locale, 'Failed to analyze training correlation', 'Kunde inte analysera träningskorrelation') },
       { status: 500 }
     )
   }

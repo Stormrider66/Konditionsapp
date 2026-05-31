@@ -33,13 +33,15 @@ function t(locale: AppLocale, en: string, sv: string) {
  * - methodology: optional - POLARIZED | NORWEGIAN | PYRAMIDAL | CANOVA
  */
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization', user.id, {
       limit: 10,
@@ -63,21 +65,21 @@ export async function GET(req: NextRequest) {
     // Prevent IDOR: ensure user can access this clientId
     const allowed = await canAccessClient(user.id, clientId)
     if (!allowed) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     // If a programId is provided, ensure it's accessible and belongs to the same client
     if (programId) {
       const programAllowed = await canAccessProgram(user.id, programId)
       if (!programAllowed) {
-        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Program not found', 'Programmet hittades inte') }, { status: 404 })
       }
       const program = await prisma.trainingProgram.findUnique({
         where: { id: programId },
         select: { clientId: true },
       })
       if (!program || program.clientId !== clientId) {
-        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Program not found', 'Programmet hittades inte') }, { status: 404 })
       }
     }
 
@@ -129,7 +131,7 @@ export async function GET(req: NextRequest) {
     logger.error('Error analyzing periodization', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -145,13 +147,15 @@ export async function GET(req: NextRequest) {
  * Request specific periodization adjustments
  */
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization:post', user.id, {
       limit: 10,
@@ -172,21 +176,21 @@ export async function POST(req: NextRequest) {
     // Prevent IDOR: ensure user can access this clientId
     const allowed = await canAccessClient(user.id, clientId)
     if (!allowed) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     // If a programId is provided, ensure it's accessible and belongs to the same client
     if (programId) {
       const programAllowed = await canAccessProgram(user.id, programId)
       if (!programAllowed) {
-        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Program not found', 'Programmet hittades inte') }, { status: 404 })
       }
       const program = await prisma.trainingProgram.findUnique({
         where: { id: programId },
         select: { clientId: true },
       })
       if (!program || program.clientId !== clientId) {
-        return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Program not found', 'Programmet hittades inte') }, { status: 404 })
       }
     }
 
@@ -208,7 +212,7 @@ export async function POST(req: NextRequest) {
     logger.error('Error processing periodization adjustments', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

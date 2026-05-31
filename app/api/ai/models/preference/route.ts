@@ -13,15 +13,24 @@ import { logger } from '@/lib/logger'
 import { isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { user, clientId, isCoachInAthleteMode } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:model-preference:set', user.id, {
       limit: 30,
@@ -49,7 +58,7 @@ export async function POST(request: NextRequest) {
     // Legacy flow: validate model exists in DB
     if (!modelId) {
       return NextResponse.json(
-        { error: 'Missing intent or modelId' },
+        { error: t(locale, 'Missing intent or modelId', 'Intent eller modelId saknas') },
         { status: 400 }
       )
     }
@@ -64,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (!dbModel) {
       return NextResponse.json(
-        { error: 'Model not available for athletes' },
+        { error: t(locale, 'Model not available for athletes', 'Modellen är inte tillgänglig för atleter') },
         { status: 403 }
       )
     }
@@ -82,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     if (!coachId) {
       return NextResponse.json(
-        { error: 'Coach not found' },
+        { error: t(locale, 'Coach not found', 'Coachen hittades inte') },
         { status: 404 }
       )
     }
@@ -120,7 +129,7 @@ export async function POST(request: NextRequest) {
 
     if (!providerKeyValid) {
       return NextResponse.json(
-        { error: 'Model provider not available' },
+        { error: t(locale, 'Model provider not available', 'Modellens leverantör är inte tillgänglig') },
         { status: 403 }
       )
     }
@@ -132,7 +141,7 @@ export async function POST(request: NextRequest) {
       !coachSettings.allowedAthleteModelIds.includes(dbModel.modelId)
     ) {
       return NextResponse.json(
-        { error: 'Model not allowed by coach' },
+        { error: t(locale, 'Model not allowed by coach', 'Modellen är inte tillåten av coachen') },
         { status: 403 }
       )
     }
@@ -143,7 +152,7 @@ export async function POST(request: NextRequest) {
       !businessSettings.aiKeys.allowedAthleteModelIds.includes(dbModel.modelId)
     ) {
       return NextResponse.json(
-        { error: 'Model not allowed by business settings' },
+        { error: t(locale, 'Model not allowed by business settings', 'Modellen är inte tillåten av verksamhetens inställningar') },
         { status: 403 }
       )
     }
@@ -163,25 +172,28 @@ export async function POST(request: NextRequest) {
     logger.error('POST /api/ai/models/preference error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to save preference' },
+      { error: t(locale, 'Failed to save preference', 'Kunde inte spara inställningen') },
       { status: 500 }
     )
   }
 }
 
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { user, clientId } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:model-preference:get', user.id, {
       limit: 60,
@@ -224,11 +236,11 @@ export async function GET() {
     logger.error('GET /api/ai/models/preference error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to get preference' },
+      { error: t(locale, 'Failed to get preference', 'Kunde inte hämta inställningen') },
       { status: 500 }
     )
   }

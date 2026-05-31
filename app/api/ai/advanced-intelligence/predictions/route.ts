@@ -24,13 +24,15 @@ function t(locale: AppLocale, en: string, sv: string) {
  * Get goal predictions and race time estimates
  */
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:predictions:get', user.id, {
       limit: 10,
@@ -55,7 +57,7 @@ export async function GET(req: NextRequest) {
     // Prevent IDOR: ensure user can access this clientId
     const allowed = await canAccessClient(user.id, clientId)
     if (!allowed) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     // Subscription gate
@@ -130,7 +132,7 @@ export async function GET(req: NextRequest) {
     logger.error('Error generating predictions', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -146,13 +148,15 @@ export async function GET(req: NextRequest) {
  * Generate specific goal prediction
  */
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:predictions:post', user.id, {
       limit: 10,
@@ -173,7 +177,7 @@ export async function POST(req: NextRequest) {
     // Prevent IDOR: ensure user can access this clientId
     const allowed = await canAccessClient(user.id, clientId)
     if (!allowed) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     // Subscription gate
@@ -252,7 +256,7 @@ export async function POST(req: NextRequest) {
     logger.error('Error generating goal prediction', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

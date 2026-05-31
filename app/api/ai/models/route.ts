@@ -22,6 +22,12 @@ import {
   normalizeAIModelPricing,
 } from '@/lib/ai/model-compat'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // Transform database model to match the expected interface
 function transformDbModel(dbModel: PrismaAIModel) {
   const modelId = normalizeAIModelId(dbModel.modelId)
@@ -56,12 +62,15 @@ function transformDbModel(dbModel: PrismaAIModel) {
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:models:list', user.id, {
       limit: 60,
@@ -96,7 +105,7 @@ export async function GET(request: NextRequest) {
         select: { userId: true, businessId: true },
       })
       if (!client) {
-        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
       }
       coachUserId = client.userId
       effectiveBusinessId = client.businessId
@@ -141,7 +150,7 @@ export async function GET(request: NextRequest) {
         success: true,
         models: [],
         defaultModelId: null,
-        message: 'No API keys configured',
+        message: t(locale, 'No API keys configured', 'Inga API-nycklar konfigurerade'),
       })
     }
 
@@ -174,7 +183,7 @@ export async function GET(request: NextRequest) {
         success: true,
         models: [],
         defaultModelId: null,
-        message: 'No active models found for configured providers',
+        message: t(locale, 'No active models found for configured providers', 'Inga aktiva modeller hittades för konfigurerade leverantörer'),
       })
     }
 
@@ -280,7 +289,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('GET /api/ai/models error', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch AI models' },
+      { error: t(locale, 'Failed to fetch AI models', 'Kunde inte hämta AI-modeller') },
       { status: 500 }
     )
   }

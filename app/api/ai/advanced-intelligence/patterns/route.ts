@@ -14,18 +14,24 @@ function resolveLocale(language: string | null | undefined): AppLocale {
   return language === 'sv' ? 'sv' : 'en'
 }
 
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * GET /api/ai/advanced-intelligence/patterns
  * Analyze training history patterns for an athlete
  */
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await getCurrentUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveLocale(user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:patterns', user.id, {
       limit: 10,
@@ -39,7 +45,7 @@ export async function GET(req: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: locale === 'sv' ? 'clientId är obligatoriskt' : 'clientId is required' },
+        { error: t(locale, 'clientId is required', 'clientId är obligatoriskt') },
         { status: 400 }
       )
     }
@@ -47,7 +53,7 @@ export async function GET(req: NextRequest) {
     // Prevent IDOR: ensure user can access this clientId
     const allowed = await canAccessClient(user.id, clientId)
     if (!allowed) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     // Subscription gate
@@ -67,7 +73,7 @@ export async function GET(req: NextRequest) {
     logger.error('Error analyzing training patterns', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

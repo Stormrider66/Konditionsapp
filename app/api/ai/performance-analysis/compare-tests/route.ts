@@ -19,17 +19,25 @@ const requestSchema = z.object({
   includeTrainingCorrelation: z.boolean().optional().default(true),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid request', 'Ogiltig förfrågan'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -47,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     if (tests.length !== 2) {
       return NextResponse.json(
-        { error: 'One or both tests not found or access denied' },
+        { error: t(locale, 'One or both tests not found or access denied', 'Ett eller båda testerna hittades inte eller saknar behörighet') },
         { status: 404 }
       )
     }
@@ -55,14 +63,14 @@ export async function POST(req: NextRequest) {
     // Ensure tests are from same client and same type
     if (tests[0].clientId !== tests[1].clientId) {
       return NextResponse.json(
-        { error: 'Tests must be from the same athlete' },
+        { error: t(locale, 'Tests must be from the same athlete', 'Testerna måste vara från samma atlet') },
         { status: 400 }
       )
     }
 
     if (tests[0].testType !== tests[1].testType) {
       return NextResponse.json(
-        { error: 'Tests must be of the same type to compare' },
+        { error: t(locale, 'Tests must be of the same type to compare', 'Testerna måste vara av samma typ för att jämföras') },
         { status: 400 }
       )
     }
@@ -85,7 +93,7 @@ export async function POST(req: NextRequest) {
     const DAILY_LIMIT = 20
     if (usageToday >= DAILY_LIMIT) {
       return NextResponse.json(
-        { error: 'Daily AI analysis limit reached', limit: DAILY_LIMIT },
+        { error: t(locale, 'Daily AI analysis limit reached', 'Daglig gräns för AI-analys är nådd'), limit: DAILY_LIMIT },
         { status: 429 }
       )
     }
@@ -103,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     if (!result) {
       return NextResponse.json(
-        { error: 'Could not compare tests - insufficient data' },
+        { error: t(locale, 'Could not compare tests - insufficient data', 'Kunde inte jämföra testerna - otillräcklig data') },
         { status: 400 }
       )
     }
@@ -121,11 +129,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Error comparing tests', {}, error)
     return NextResponse.json(
-      { error: 'Failed to compare tests' },
+      { error: t(locale, 'Failed to compare tests', 'Kunde inte jämföra testerna') },
       { status: 500 }
     )
   }

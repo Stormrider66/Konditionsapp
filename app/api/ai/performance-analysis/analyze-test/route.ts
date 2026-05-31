@@ -20,17 +20,25 @@ const requestSchema = z.object({
   trainingLookbackWeeks: z.number().min(4).max(52).optional().default(12),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid request', 'Ogiltig förfrågan'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -48,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     if (!test) {
       return NextResponse.json(
-        { error: 'Test not found or access denied' },
+        { error: t(locale, 'Test not found or access denied', 'Testet hittades inte eller saknar behörighet') },
         { status: 404 }
       )
     }
@@ -70,7 +78,7 @@ export async function POST(req: NextRequest) {
     const DAILY_LIMIT = 20 // Could be subscription-based
     if (usageToday >= DAILY_LIMIT) {
       return NextResponse.json(
-        { error: 'Daily AI analysis limit reached', limit: DAILY_LIMIT },
+        { error: t(locale, 'Daily AI analysis limit reached', 'Daglig gräns för AI-analys är nådd'), limit: DAILY_LIMIT },
         { status: 429 }
       )
     }
@@ -90,7 +98,7 @@ export async function POST(req: NextRequest) {
 
     if (!result) {
       return NextResponse.json(
-        { error: 'Could not analyze test - insufficient data' },
+        { error: t(locale, 'Could not analyze test - insufficient data', 'Kunde inte analysera testet - otillräcklig data') },
         { status: 400 }
       )
     }
@@ -107,11 +115,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Error analyzing test', {}, error)
     return NextResponse.json(
-      { error: 'Failed to analyze test' },
+      { error: t(locale, 'Failed to analyze test', 'Kunde inte analysera testet') },
       { status: 500 }
     )
   }
