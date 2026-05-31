@@ -16,6 +16,8 @@ import type { BodyPart, IllnessType } from './sport-injuries'
 // TYPES
 // ============================================
 
+export type KeywordAnalysisLocale = 'en' | 'sv'
+
 export interface KeywordMatch {
   keyword: string
   originalText: string // The matched text from notes
@@ -302,7 +304,7 @@ const SIDE_KEYWORDS: [string, 'LEFT' | 'RIGHT' | 'BOTH', 'HIGH' | 'MEDIUM' | 'LO
 /**
  * Analyze notes text for injury-related keywords
  */
-export function analyzeNotesForInjury(notes: string): KeywordAnalysisResult {
+export function analyzeNotesForInjury(notes: string, locale: KeywordAnalysisLocale = 'en'): KeywordAnalysisResult {
   if (!notes || notes.trim().length === 0) {
     return {
       matches: [],
@@ -400,7 +402,7 @@ export function analyzeNotesForInjury(notes: string): KeywordAnalysisResult {
   }
 
   // Build summary
-  const summary = buildSummary(matches, bestBodyPart, bestSeverity, bestIllness, bestSide)
+  const summary = buildSummary(matches, bestBodyPart, bestSeverity, bestIllness, bestSide, locale)
 
   return {
     matches,
@@ -461,56 +463,73 @@ function buildSummary(
   bodyPart: { part: BodyPart; confidence: 'HIGH' | 'MEDIUM' | 'LOW' } | null,
   severity: { level: 'LOW' | 'MEDIUM' | 'HIGH'; confidence: 'HIGH' | 'MEDIUM' | 'LOW' } | null,
   illness: { type: IllnessType; confidence: 'HIGH' | 'MEDIUM' | 'LOW' } | null,
-  side: { side: 'LEFT' | 'RIGHT' | 'BOTH'; confidence: 'HIGH' | 'MEDIUM' | 'LOW' } | null
+  side: { side: 'LEFT' | 'RIGHT' | 'BOTH'; confidence: 'HIGH' | 'MEDIUM' | 'LOW' } | null,
+  locale: KeywordAnalysisLocale
 ): string {
   if (matches.length === 0) return ''
 
   const parts: string[] = []
 
   if (illness) {
-    const illnessLabels: Record<IllnessType, string> = {
-      FEVER: 'feber',
-      GASTROINTESTINAL: 'magbesvär',
-      COLD: 'förkylning',
-      HEADACHE: 'huvudvärk',
-      GENERAL_ILLNESS: 'sjukdom',
-      CHRONIC: 'kronisk sjukdom',
+    const illnessLabels: Record<IllnessType, { en: string; sv: string }> = {
+      FEVER: { en: 'fever', sv: 'feber' },
+      GASTROINTESTINAL: { en: 'GI issue', sv: 'magbesvär' },
+      COLD: { en: 'cold symptoms', sv: 'förkylning' },
+      HEADACHE: { en: 'headache', sv: 'huvudvärk' },
+      GENERAL_ILLNESS: { en: 'illness', sv: 'sjukdom' },
+      CHRONIC: { en: 'chronic illness', sv: 'kronisk sjukdom' },
     }
-    parts.push(`Möjlig ${illnessLabels[illness.type]} nämnd i anteckningar`)
+    const label = illnessLabels[illness.type][locale]
+    parts.push(locale === 'sv'
+      ? `Möjlig ${label} nämnd i anteckningar`
+      : `Possible ${label} mentioned in notes`)
   }
 
   if (bodyPart) {
-    const bodyPartLabels: Record<BodyPart, string> = {
-      HEAD_NECK: 'huvud/nacke',
-      SHOULDER: 'axel',
-      ARM_HAND: 'arm/hand',
-      UPPER_BACK: 'övre rygg',
-      LOWER_BACK: 'nedre rygg',
-      HIP_GROIN: 'höft/ljumske',
-      THIGH: 'lår',
-      KNEE: 'knä',
-      LOWER_LEG: 'underben/vad',
-      ANKLE_FOOT: 'fotled/fot',
-      OTHER: 'ospecificerat område',
+    const bodyPartLabels: Record<BodyPart, { en: string; sv: string }> = {
+      HEAD_NECK: { en: 'head/neck', sv: 'huvud/nacke' },
+      SHOULDER: { en: 'shoulder', sv: 'axel' },
+      ARM_HAND: { en: 'arm/hand', sv: 'arm/hand' },
+      UPPER_BACK: { en: 'upper back', sv: 'övre rygg' },
+      LOWER_BACK: { en: 'lower back', sv: 'nedre rygg' },
+      HIP_GROIN: { en: 'hip/groin', sv: 'höft/ljumske' },
+      THIGH: { en: 'thigh', sv: 'lår' },
+      KNEE: { en: 'knee', sv: 'knä' },
+      LOWER_LEG: { en: 'lower leg/calf', sv: 'underben/vad' },
+      ANKLE_FOOT: { en: 'ankle/foot', sv: 'fotled/fot' },
+      OTHER: { en: 'unspecified area', sv: 'ospecificerat område' },
     }
 
-    let bodyPartText = `Nämner ${bodyPartLabels[bodyPart.part]}`
+    let bodyPartText = locale === 'sv'
+      ? `Nämner ${bodyPartLabels[bodyPart.part].sv}`
+      : `Mentions ${bodyPartLabels[bodyPart.part].en}`
     if (side) {
-      const sideLabels = { LEFT: 'vänster', RIGHT: 'höger', BOTH: 'båda sidor' }
-      bodyPartText += ` (${sideLabels[side.side]})`
+      const sideLabels = {
+        LEFT: { en: 'left', sv: 'vänster' },
+        RIGHT: { en: 'right', sv: 'höger' },
+        BOTH: { en: 'both sides', sv: 'båda sidor' },
+      }
+      bodyPartText += ` (${sideLabels[side.side][locale]})`
     }
     parts.push(bodyPartText)
   }
 
   if (severity && severity.level !== 'LOW') {
-    const severityLabels = { LOW: 'lindrig', MEDIUM: 'måttlig', HIGH: 'hög' }
-    parts.push(`Indikerar ${severityLabels[severity.level]} allvarlighetsgrad`)
+    const severityLabels = {
+      LOW: { en: 'mild', sv: 'lindrig' },
+      MEDIUM: { en: 'moderate', sv: 'måttlig' },
+      HIGH: { en: 'high', sv: 'hög' },
+    }
+    const label = severityLabels[severity.level][locale]
+    parts.push(locale === 'sv'
+      ? `Indikerar ${label} allvarlighetsgrad`
+      : `Indicates ${label} severity`)
   }
 
   // Add relevant keywords mentioned
   const uniqueKeywords = [...new Set(matches.map(m => m.keyword))]
   if (uniqueKeywords.length > 0 && uniqueKeywords.length <= 5) {
-    parts.push(`Nyckelord: "${uniqueKeywords.join('", "')}"`)
+    parts.push(`${locale === 'sv' ? 'Nyckelord' : 'Keywords'}: "${uniqueKeywords.join('", "')}"`)
   }
 
   return parts.join('. ')

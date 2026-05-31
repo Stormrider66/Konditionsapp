@@ -31,6 +31,12 @@
 import type { MethodologyConfig, WeeklyStructure, ZoneDistribution3 } from './types'
 import { logger } from '@/lib/logger'
 
+export type NorwegianSessionLocale = 'en' | 'sv'
+
+function norwegianSessionText(locale: NorwegianSessionLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Get Norwegian methodology configuration
  *
@@ -554,7 +560,8 @@ export function calculateNorwegianSinglesIntensity(
  * These sessions run at 2.3-3.0 mmol/L (SUB-threshold) with distance-based intervals
  */
 export function getNorwegianSinglesSession(
-  type: NorwegianSinglesSessionType
+  type: NorwegianSinglesSessionType,
+  locale: NorwegianSessionLocale = 'en'
 ): {
   reps: number
   work: number // For distance: km, for time: minutes
@@ -570,7 +577,7 @@ export function getNorwegianSinglesSession(
         work: 1.0, // km
         rest: 60, // seconds
         workType: 'distance',
-        description: '6 × 1000m på 10K-15K-tempo (85-88% av 5K-tempo)',
+        description: norwegianSessionText(locale, '6 × 1000m at 10K-15K pace (85-88% of 5K pace)', '6 × 1000m på 10K-15K-tempo (85-88% av 5K-tempo)'),
         targetPace: '10K-15K pace (sub-threshold 2.3-3.0 mmol/L)',
       }
     case '8x1K':
@@ -579,7 +586,7 @@ export function getNorwegianSinglesSession(
         work: 1.0,
         rest: 60,
         workType: 'distance',
-        description: '8 × 1000m på 10K-15K-tempo',
+        description: norwegianSessionText(locale, '8 × 1000m at 10K-15K pace', '8 × 1000m på 10K-15K-tempo'),
         targetPace: '10K-15K pace (sub-threshold 2.3-3.0 mmol/L)',
       }
     case '4x2K':
@@ -588,7 +595,7 @@ export function getNorwegianSinglesSession(
         work: 2.0,
         rest: 75,
         workType: 'distance',
-        description: '4 × 2000m på halvmaratons-tempo (83-86% av 5K-tempo)',
+        description: norwegianSessionText(locale, '4 × 2000m at half-marathon pace (83-86% of 5K pace)', '4 × 2000m på halvmaratons-tempo (83-86% av 5K-tempo)'),
         targetPace: 'Half marathon pace (sub-threshold 2.3-3.0 mmol/L)',
       }
     case '5x2K':
@@ -597,7 +604,7 @@ export function getNorwegianSinglesSession(
         work: 2.0,
         rest: 75,
         workType: 'distance',
-        description: '5 × 2000m på halvmaratons-tempo',
+        description: norwegianSessionText(locale, '5 × 2000m at half-marathon pace', '5 × 2000m på halvmaratons-tempo'),
         targetPace: 'Half marathon pace (sub-threshold 2.3-3.0 mmol/L)',
       }
     case '3x3K':
@@ -606,7 +613,7 @@ export function getNorwegianSinglesSession(
         work: 3.0,
         rest: 90,
         workType: 'distance',
-        description: '3 × 3000m på 25K-30K-tempo (80-83% av 5K-tempo)',
+        description: norwegianSessionText(locale, '3 × 3000m at 25K-30K pace (80-83% of 5K pace)', '3 × 3000m på 25K-30K-tempo (80-83% av 5K-tempo)'),
         targetPace: '25K-30K pace (sub-threshold 2.3-3.0 mmol/L)',
       }
     case '10x3MIN':
@@ -615,7 +622,7 @@ export function getNorwegianSinglesSession(
         work: 3, // minutes
         rest: 60,
         workType: 'time',
-        description: '10 × 3 min på 15K-tempo',
+        description: norwegianSessionText(locale, '10 × 3 min at 15K pace', '10 × 3 min på 15K-tempo'),
         targetPace: '15K pace (sub-threshold 2.3-3.0 mmol/L)',
       }
     case '6x5MIN':
@@ -624,7 +631,7 @@ export function getNorwegianSinglesSession(
         work: 5,
         rest: 60,
         workType: 'time',
-        description: '6 × 5 min på 10-mils-tempo',
+        description: norwegianSessionText(locale, '6 × 5 min at 10-mile pace', '6 × 5 min på 10-mils-tempo'),
         targetPace: '10-mile pace (sub-threshold 2.3-3.0 mmol/L)',
       }
     case '3x10MIN':
@@ -633,7 +640,7 @@ export function getNorwegianSinglesSession(
         work: 10,
         rest: 90,
         workType: 'time',
-        description: '3 × 10 min på halvmaratons-30K-tempo',
+        description: norwegianSessionText(locale, '3 × 10 min at half-marathon to 30K pace', '3 × 10 min på halvmaratons-30K-tempo'),
         targetPace: 'Half marathon to 30K pace (sub-threshold 2.3-3.0 mmol/L)',
       }
   }
@@ -691,7 +698,8 @@ export function selectNorwegianSinglesSessionType(
  * Returns proper AM or PM session structure for elite double-threshold training
  */
 export function getNorwegianDoublesSession(
-  type: NorwegianDoublesSessionType
+  type: NorwegianDoublesSessionType,
+  locale: NorwegianSessionLocale = 'en'
 ): {
   reps: number
   work: number // For distance: km, for time: minutes
@@ -713,7 +721,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'AM',
         targetLactate: '2.0-3.0 mmol/L',
         totalWorkTime: 30,
-        description: 'Morgon: 5 × 2km på låg tröskel (2.0-3.0 mmol/L), 60s vila',
+        description: norwegianSessionText(locale, 'Morning: 5 × 2km at low threshold (2.0-3.0 mmol/L), 60s recovery', 'Morgon: 5 × 2km på låg tröskel (2.0-3.0 mmol/L), 60s vila'),
       }
     case 'AM_4x3K':
       return {
@@ -724,7 +732,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'AM',
         targetLactate: '2.0-3.0 mmol/L',
         totalWorkTime: 32,
-        description: 'Morgon: 4 × 3km på låg tröskel (2.0-3.0 mmol/L), 60s vila',
+        description: norwegianSessionText(locale, 'Morning: 4 × 3km at low threshold (2.0-3.0 mmol/L), 60s recovery', 'Morgon: 4 × 3km på låg tröskel (2.0-3.0 mmol/L), 60s vila'),
       }
     case 'AM_5x6MIN':
       return {
@@ -735,7 +743,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'AM',
         targetLactate: '2.0-3.0 mmol/L',
         totalWorkTime: 30,
-        description: 'Morgon: 5 × 6 min på låg tröskel (2.0-3.0 mmol/L), 60s vila',
+        description: norwegianSessionText(locale, 'Morning: 5 × 6 min at low threshold (2.0-3.0 mmol/L), 60s recovery', 'Morgon: 5 × 6 min på låg tröskel (2.0-3.0 mmol/L), 60s vila'),
       }
     case 'AM_6x5MIN':
       return {
@@ -746,7 +754,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'AM',
         targetLactate: '2.0-3.0 mmol/L',
         totalWorkTime: 30,
-        description: 'Morgon: 6 × 5 min på låg tröskel (2.0-3.0 mmol/L), 60s vila',
+        description: norwegianSessionText(locale, 'Morning: 6 × 5 min at low threshold (2.0-3.0 mmol/L), 60s recovery', 'Morgon: 6 × 5 min på låg tröskel (2.0-3.0 mmol/L), 60s vila'),
       }
 
     // PM Sessions (High Zone 2: 3.0-4.0 mmol/L)
@@ -759,7 +767,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'PM',
         targetLactate: '3.0-4.0 mmol/L',
         totalWorkTime: 30,
-        description: 'Kväll: 10 × 1km på hög tröskel (3.0-4.0 mmol/L), 60s vila',
+        description: norwegianSessionText(locale, 'Evening: 10 × 1km at high threshold (3.0-4.0 mmol/L), 60s recovery', 'Kväll: 10 × 1km på hög tröskel (3.0-4.0 mmol/L), 60s vila'),
       }
     case 'PM_25x400':
       return {
@@ -770,7 +778,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'PM',
         targetLactate: '3.0-4.0 mmol/L',
         totalWorkTime: 30,
-        description: 'Kväll: 25 × 400m på hög tröskel (3.0-4.0 mmol/L), 30s vila (hög densitet)',
+        description: norwegianSessionText(locale, 'Evening: 25 × 400m at high threshold (3.0-4.0 mmol/L), 30s recovery (high density)', 'Kväll: 25 × 400m på hög tröskel (3.0-4.0 mmol/L), 30s vila (hög densitet)'),
       }
     case 'PM_16x90S':
       return {
@@ -781,7 +789,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'PM',
         targetLactate: '3.0-4.0 mmol/L',
         totalWorkTime: 24,
-        description: 'Kväll: 16 × 90s på hög tröskel (3.0-4.0 mmol/L), 30s vila (mikrointervaller)',
+        description: norwegianSessionText(locale, 'Evening: 16 × 90s at high threshold (3.0-4.0 mmol/L), 30s recovery (micro-intervals)', 'Kväll: 16 × 90s på hög tröskel (3.0-4.0 mmol/L), 30s vila (mikrointervaller)'),
       }
     case 'PM_20x60S':
       return {
@@ -792,7 +800,7 @@ export function getNorwegianDoublesSession(
         sessionTime: 'PM',
         targetLactate: '3.0-4.0 mmol/L',
         totalWorkTime: 20,
-        description: 'Kväll: 20 × 60s på hög tröskel (3.0-4.0 mmol/L), 15s vila (mycket hög densitet)',
+        description: norwegianSessionText(locale, 'Evening: 20 × 60s at high threshold (3.0-4.0 mmol/L), 15s recovery (very high density)', 'Kväll: 20 × 60s på hög tröskel (3.0-4.0 mmol/L), 15s vila (mycket hög densitet)'),
       }
   }
 }

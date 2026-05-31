@@ -18,6 +18,12 @@ export interface WeeklyVolumeProgression {
   focus: string
 }
 
+export type PeriodizationLocale = 'en' | 'sv'
+
+function periodizationText(locale: PeriodizationLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Calculate phase distribution based on total program weeks and methodology
  *
@@ -186,7 +192,8 @@ export function calculateCanovaPhases(totalWeeks: number): PhaseDistribution {
 export function calculateWeeklyVolumeProgression(
   totalWeeks: number,
   baseVolume: number, // Starting weekly volume (hours or km)
-  peakVolume: number // Maximum weekly volume
+  peakVolume: number, // Maximum weekly volume
+  locale: PeriodizationLocale = 'en'
 ): WeeklyVolumeProgression[] {
   const phases = calculatePhases(totalWeeks)
   const progression: WeeklyVolumeProgression[] = []
@@ -202,7 +209,9 @@ export function calculateWeeklyVolumeProgression(
       week: currentWeek++,
       phase: 'BASE',
       volumePercentage: (volume / peakVolume) * 100,
-      focus: i < phases.base / 2 ? 'Bygg grundkondition' : 'Öka volym gradvis',
+      focus: i < phases.base / 2
+        ? periodizationText(locale, 'Build base fitness', 'Bygg grundkondition')
+        : periodizationText(locale, 'Increase volume gradually', 'Öka volym gradvis'),
     })
   }
 
@@ -215,7 +224,7 @@ export function calculateWeeklyVolumeProgression(
       week: currentWeek++,
       phase: 'BUILD',
       volumePercentage: (volume / peakVolume) * 100,
-      focus: 'Öka intensitet, tempopass och intervaller',
+      focus: periodizationText(locale, 'Increase intensity with tempo work and intervals', 'Öka intensitet, tempopass och intervaller'),
     })
   }
 
@@ -227,7 +236,7 @@ export function calculateWeeklyVolumeProgression(
       week: currentWeek++,
       phase: 'PEAK',
       volumePercentage: (volume / peakVolume) * 100,
-      focus: 'Maximal volym, tävlingsspecifik träning',
+      focus: periodizationText(locale, 'Peak volume and race-specific training', 'Maximal volym, tävlingsspecifik träning'),
     })
   }
 
@@ -240,7 +249,9 @@ export function calculateWeeklyVolumeProgression(
       week: currentWeek++,
       phase: 'TAPER',
       volumePercentage: (volume / peakVolume) * 100,
-      focus: i < phases.taper - 1 ? 'Minska volym, behåll intensitet' : 'Slutlig nedtrappning inför tävling',
+      focus: i < phases.taper - 1
+        ? periodizationText(locale, 'Reduce volume while maintaining intensity', 'Minska volym, behåll intensitet')
+        : periodizationText(locale, 'Final taper before race day', 'Slutlig nedtrappning inför tävling'),
     })
   }
 
@@ -287,14 +298,14 @@ export function calculateTrainingDaysPerWeek(
 /**
  * Get focus description for a specific phase
  */
-export function getPhaseFocus(phase: PeriodPhase): string {
-  const focuses = {
-    BASE: 'Bygg aerob grund med lätta till måttliga löppass',
-    BUILD: 'Öka intensitet med tempopass och intervaller',
-    PEAK: 'Maximal volym och tävlingsspecifik träning',
-    TAPER: 'Minska volym, behåll intensitet, förbered för tävling',
-    RECOVERY: 'Aktiv återhämtning efter tävling',
-    TRANSITION: 'Off-season, allmän kondition och styrka',
+export function getPhaseFocus(phase: PeriodPhase, locale: PeriodizationLocale = 'en'): string {
+  const focuses: Record<PeriodPhase, string> = {
+    BASE: periodizationText(locale, 'Build an aerobic base with easy to moderate runs', 'Bygg aerob grund med lätta till måttliga löppass'),
+    BUILD: periodizationText(locale, 'Increase intensity with tempo work and intervals', 'Öka intensitet med tempopass och intervaller'),
+    PEAK: periodizationText(locale, 'Peak volume and race-specific training', 'Maximal volym och tävlingsspecifik träning'),
+    TAPER: periodizationText(locale, 'Reduce volume, maintain intensity, and prepare to race', 'Minska volym, behåll intensitet, förbered för tävling'),
+    RECOVERY: periodizationText(locale, 'Active recovery after racing', 'Aktiv återhämtning efter tävling'),
+    TRANSITION: periodizationText(locale, 'Off-season general fitness and strength', 'Off-season, allmän kondition och styrka'),
   }
   return focuses[phase]
 }

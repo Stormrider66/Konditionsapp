@@ -220,7 +220,8 @@ export async function generateBaseProgram(
   const volumeProgression = calculateWeeklyVolumeProgression(
     params.durationWeeks,
     baseVolume,
-    peakVolume
+    peakVolume,
+    params.locale
   )
   logger.debug('Volume progression calculated', {
     volumeProgressionLength: volumeProgression.length,

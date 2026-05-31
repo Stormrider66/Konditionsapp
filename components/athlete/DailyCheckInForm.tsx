@@ -302,7 +302,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       }
 
       // Analyze notes for injury keywords
-      const keywordAnalysis = data.notes ? analyzeNotesForInjury(data.notes) : null
+      const keywordAnalysis = data.notes ? analyzeNotesForInjury(data.notes, locale) : null
 
       // Send values as-is to backend (1 = no pain/stress, 10 = extreme pain/stress)
       // Backend expects natural scale: higher values = worse condition

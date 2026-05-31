@@ -51,6 +51,7 @@ function calculateMarathonPaceForNorwegian(params: WorkoutDistributionParams): n
 
 export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
   const { phase, trainingDays, weekInPhase, test } = params
+  const locale = params.params.locale ?? 'en'
   const workouts: WorkoutSlot[] = []
 
   logger.debug('[Norwegian Doubles] Distributing workouts', {
@@ -106,7 +107,7 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
       weekInPhase,
       'AM'
     )
-    const amDetails = getNorwegianDoublesSession(amSessionType)
+    const amDetails = getNorwegianDoublesSession(amSessionType, locale)
 
     logger.debug('[Norwegian Doubles] AM session scheduled', {
       day: dayNum === 2 ? 'Tuesday' : 'Thursday',
@@ -143,7 +144,7 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
       weekInPhase,
       'PM'
     )
-    const pmDetails = getNorwegianDoublesSession(pmSessionType)
+    const pmDetails = getNorwegianDoublesSession(pmSessionType, locale)
 
     logger.debug('[Norwegian Doubles] PM session scheduled', {
       day: dayNum === 2 ? 'Tuesday' : 'Thursday',
@@ -232,6 +233,7 @@ export function distributeNorwegianDoublesWorkouts(params: WorkoutDistributionPa
 
 export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionParams): WorkoutSlot[] {
   const { phase, trainingDays, weekInPhase, test } = params
+  const locale = params.params.locale ?? 'en'
   const workouts: WorkoutSlot[] = []
 
   logger.debug('[Norwegian Singles] Distributing workouts', {
@@ -284,7 +286,7 @@ export function distributeNorwegianSinglesWorkouts(params: WorkoutDistributionPa
       weekInPhase,
       sessionNumber as 1 | 2 | 3
     )
-    const sessionDetails = getNorwegianSinglesSession(sessionType)
+    const sessionDetails = getNorwegianSinglesSession(sessionType, locale)
 
     logger.debug('[Norwegian Singles] Quality session scheduled', {
       sessionNumber,
