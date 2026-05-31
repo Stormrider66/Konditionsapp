@@ -33,6 +33,25 @@ interface AssignmentRequest {
   createCalendarEvent?: boolean;  // default true if startTime provided
 }
 
+type AssignmentLocale = 'en' | 'sv';
+type AssignmentAthleteLocaleSource = {
+  user?: { language: string | null } | null;
+  athleteAccount?: { user?: { language: string | null } | null } | null;
+};
+
+function resolveAssignmentLocale(athlete?: AssignmentAthleteLocaleSource): AssignmentLocale {
+  return athlete?.athleteAccount?.user?.language === 'sv' || athlete?.user?.language === 'sv' ? 'sv' : 'en';
+}
+
+function assignmentText(locale: AssignmentLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
+function buildCalendarEventDescription(locale: AssignmentLocale, locationDisplay?: string, notes?: string): string | undefined {
+  if (!locationDisplay) return notes || undefined;
+  return `${assignmentText(locale, 'Location', 'Plats')}: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`;
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach();
@@ -144,7 +163,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
           ? { businessId: businessScope.businessId }
           : { userId: user.id }),
       },
-      select: { id: true, name: true, businessId: true },
+      select: {
+        id: true,
+        name: true,
+        businessId: true,
+        user: { select: { language: true } },
+        athleteAccount: { select: { user: { select: { language: true } } } },
+      },
     });
 
     if (athletes.length !== athleteIds.length) {
@@ -188,6 +213,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Create assignments
     const date = assignedDate ? new Date(assignedDate) : new Date();
     const hasScheduling = !!startTime;
+    const athletesById = new Map(athletes.map((athlete) => [athlete.id, athlete]));
 
     const assignments = await Promise.all(
       // Create each athlete's calendar event and the assignment that links to
@@ -199,16 +225,15 @@ export async function POST(request: NextRequest, context: RouteContext) {
           let calendarEventId: string | undefined;
 
           if (createCalendarEvent) {
-            const locationDisplay = locationName || (locationId ? 'Scheduled location' : undefined);
+            const athleteLocale = resolveAssignmentLocale(athletesById.get(athleteId));
+            const locationDisplay = locationName || (locationId ? assignmentText(athleteLocale, 'Scheduled location', 'Schemalagd plats') : undefined);
 
             const calendarEvent = await tx.calendarEvent.create({
               data: {
                 clientId: athleteId,
                 type: 'SCHEDULED_WORKOUT',
-                title: `Styrka: ${session.name}`,
-                description: locationDisplay
-                  ? `Plats: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`
-                  : notes || undefined,
+                title: `${assignmentText(athleteLocale, 'Strength', 'Styrka')}: ${session.name}`,
+                description: buildCalendarEventDescription(athleteLocale, locationDisplay, notes),
                 status: 'SCHEDULED',
                 startDate: date,
                 endDate: date,
