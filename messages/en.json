@@ -120,7 +120,7 @@
         "description": "Manage your subscription"
       },
       "hybrid": {
-        "title": "Hybrid Pass | Trainomics",
+        "title": "Hybrid Workouts | Trainomics",
         "description": "Your CrossFit, HYROX, and functional workouts"
       }
     },
@@ -9046,7 +9046,7 @@
       "title": "Upcoming workouts",
       "emptyTitle": "No upcoming workouts scheduled",
       "titleWithDays": "Upcoming workouts ({days} days)",
-      "aiPass": "AI-pass",
+      "aiPass": "AI workout",
       "intensities": {
         "recovery": "Recovery",
         "easy": "Easy",
@@ -9096,7 +9096,7 @@
         "exercise": "Exercise"
       },
       "wod": {
-        "aiPass": "AI-pass"
+        "aiPass": "AI workout"
       }
     },
     "trainingLibraryClient": {

@@ -242,6 +242,10 @@ function statusLabel(status: string, locale: string) {
   return locale === 'sv' ? 'Väntar' : 'Pending'
 }
 
+function localized(locale: string, sv: string, en: string) {
+  return locale === 'sv' ? sv : en
+}
+
 function sessionMatchesStatus(session: MonitorSession, status: StatusFilter) {
   if (status === 'all') return true
   if (status === 'completed') return session.completed > 0
@@ -490,7 +494,7 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
                     ) : (
                       <div className="grid gap-3 xl:grid-cols-2">
                         {filteredPlayers.map((player) => (
-                          <PlayerCard key={player.athleteId} player={player} />
+                          <PlayerCard key={player.athleteId} player={player} locale={uiLocale} />
                         ))}
                       </div>
                     )}
@@ -610,14 +614,18 @@ function SessionCard({ session, locale, onOpen }: { session: MonitorSession; loc
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant="outline">{kindLabel(session.workoutKind, locale)}</Badge>
             <span className="text-xs text-muted-foreground">{formatDate(session.assignedDate, locale)}</span>
-            {hasProblem && <Badge variant="secondary">{session.missed + session.missing} att följa upp</Badge>}
+            {hasProblem && (
+              <Badge variant="secondary">
+                {session.missed + session.missing} {localized(locale, 'att följa upp', 'to follow up')}
+              </Badge>
+            )}
           </div>
         </div>
         <Eye className="h-4 w-4 shrink-0 text-muted-foreground" />
       </div>
       <div className="mt-4">
         <div className="mb-1 flex items-center justify-between text-sm">
-          <span className="text-muted-foreground">Klara</span>
+          <span className="text-muted-foreground">{localized(locale, 'Klara', 'Done')}</span>
           <span className="font-medium">{session.completed}/{session.assigned}</span>
         </div>
         <Progress value={session.completionRate} className="h-2" />
@@ -631,7 +639,7 @@ function SessionCard({ session, locale, onOpen }: { session: MonitorSession; loc
   )
 }
 
-function PlayerCard({ player }: { player: MonitorPlayer }) {
+function PlayerCard({ player, locale }: { player: MonitorPlayer; locale: string }) {
   return (
     <div className="rounded-lg border bg-background/80 p-4 dark:border-white/10 dark:bg-slate-950/40">
       <div className="flex items-start justify-between gap-3">
@@ -646,8 +654,8 @@ function PlayerCard({ player }: { player: MonitorPlayer }) {
       <Progress value={player.completionRate} className="mt-3 h-2" />
       <div className="mt-3 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
         <span>{player.completed}/{player.assigned}</span>
-        <span>{player.pending} väntar</span>
-        <span>{player.missed} missade</span>
+        <span>{player.pending} {localized(locale, 'väntar', 'pending')}</span>
+        <span>{player.missed} {localized(locale, 'missade', 'missed')}</span>
         <span>RPE {formatNumber(player.avgRpe)}</span>
       </div>
     </div>
@@ -666,17 +674,17 @@ function DetailView({ detail, locale }: { detail: MonitorDetail; locale: string 
   return (
     <Tabs defaultValue="overview" className="flex h-full flex-col">
       <TabsList className="shrink-0">
-        <TabsTrigger value="overview">Översikt</TabsTrigger>
-        <TabsTrigger value="players">Spelare</TabsTrigger>
-        <TabsTrigger value="exercises">Övningar</TabsTrigger>
+        <TabsTrigger value="overview">{localized(locale, 'Översikt', 'Overview')}</TabsTrigger>
+        <TabsTrigger value="players">{localized(locale, 'Spelare', 'Players')}</TabsTrigger>
+        <TabsTrigger value="exercises">{localized(locale, 'Övningar', 'Exercises')}</TabsTrigger>
       </TabsList>
       <ScrollArea className="mt-4 min-h-0 flex-1 pr-4">
         <TabsContent value="overview" className="mt-0 space-y-4">
           <div className="grid gap-3 sm:grid-cols-4">
-            <SummaryStat label="Klara" value={`${detail.overview.completed}/${detail.overview.assigned}`} />
-            <SummaryStat label="Saknas" value={detail.overview.missing} />
+            <SummaryStat label={localized(locale, 'Klara', 'Done')} value={`${detail.overview.completed}/${detail.overview.assigned}`} />
+            <SummaryStat label={localized(locale, 'Saknas', 'Missing')} value={detail.overview.missing} />
             <SummaryStat label="RPE" value={formatNumber(detail.overview.avgRpe)} />
-            <SummaryStat label="Tid" value={formatDuration(detail.overview.avgDurationSeconds)} />
+            <SummaryStat label={localized(locale, 'Tid', 'Time')} value={formatDuration(detail.overview.avgDurationSeconds)} />
           </div>
           {detail.overview.notes && (
             <div className="rounded-lg border bg-background/70 p-4 text-sm dark:border-white/10">
@@ -689,11 +697,11 @@ function DetailView({ detail, locale }: { detail: MonitorDetail; locale: string 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Spelare</TableHead>
+                <TableHead>{localized(locale, 'Spelare', 'Players')}</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Klar</TableHead>
+                <TableHead>{localized(locale, 'Klar', 'Done')}</TableHead>
                 <TableHead>RPE</TableHead>
-                <TableHead>Tid</TableHead>
+                <TableHead>{localized(locale, 'Tid', 'Time')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -718,10 +726,10 @@ function DetailView({ detail, locale }: { detail: MonitorDetail; locale: string 
         </TabsContent>
 
         <TabsContent value="exercises" className="mt-0 space-y-6">
-          {detail.exerciseRows.length > 0 && <ExerciseTable rows={detail.exerciseRows} />}
-          {detail.intervalRows.length > 0 && <IntervalTable rows={detail.intervalRows} />}
+          {detail.exerciseRows.length > 0 && <ExerciseTable rows={detail.exerciseRows} locale={locale} />}
+          {detail.intervalRows.length > 0 && <IntervalTable rows={detail.intervalRows} locale={locale} />}
           {detail.exerciseRows.length === 0 && detail.intervalRows.length === 0 && (
-            <EmptyState text="Inga detaljerade set eller intervaller är loggade ännu." />
+            <EmptyState text={localized(locale, 'Inga detaljerade set eller intervaller är loggade ännu.', 'No detailed sets or intervals have been logged yet.')} />
           )}
         </TabsContent>
       </ScrollArea>
@@ -729,21 +737,21 @@ function DetailView({ detail, locale }: { detail: MonitorDetail; locale: string 
   )
 }
 
-function ExerciseTable({ rows }: { rows: ExerciseRow[] }) {
+function ExerciseTable({ rows, locale }: { rows: ExerciseRow[]; locale: string }) {
   return (
     <div>
       <div className="mb-2 flex items-center gap-2 font-semibold">
         <Dumbbell className="h-4 w-4" />
-        Styrkeloggar
+        {localized(locale, 'Styrkeloggar', 'Strength logs')}
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Spelare</TableHead>
-            <TableHead>Övning</TableHead>
+            <TableHead>{localized(locale, 'Spelare', 'Players')}</TableHead>
+            <TableHead>{localized(locale, 'Övning', 'Exercise')}</TableHead>
             <TableHead>Set</TableHead>
-            <TableHead>Vikt/Reps</TableHead>
-            <TableHead>Hastighet</TableHead>
+            <TableHead>{localized(locale, 'Vikt/Reps', 'Weight/Reps')}</TableHead>
+            <TableHead>{localized(locale, 'Hastighet', 'Velocity')}</TableHead>
             <TableHead>Power</TableHead>
             <TableHead>e1RM</TableHead>
           </TableRow>
@@ -766,22 +774,22 @@ function ExerciseTable({ rows }: { rows: ExerciseRow[] }) {
   )
 }
 
-function IntervalTable({ rows }: { rows: IntervalRow[] }) {
+function IntervalTable({ rows, locale }: { rows: IntervalRow[]; locale: string }) {
   return (
     <div>
       <div className="mb-2 flex items-center gap-2 font-semibold">
         <Timer className="h-4 w-4" />
-        Intervaller
+        {localized(locale, 'Intervaller', 'Intervals')}
       </div>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Spelare</TableHead>
-            <TableHead>Del</TableHead>
+            <TableHead>{localized(locale, 'Spelare', 'Players')}</TableHead>
+            <TableHead>{localized(locale, 'Del', 'Part')}</TableHead>
             <TableHead>Plan</TableHead>
-            <TableHead>Utfall</TableHead>
+            <TableHead>{localized(locale, 'Utfall', 'Result')}</TableHead>
             <TableHead>Tempo</TableHead>
-            <TableHead>Puls</TableHead>
+            <TableHead>{localized(locale, 'Puls', 'Heart rate')}</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>

@@ -229,7 +229,7 @@ export function VideoAnalysisList() {
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
             <SelectTrigger className="w-[160px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
-              <SelectValue placeholder="Typ" />
+              <SelectValue placeholder={copy(locale, 'Type', 'Typ')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{copy(locale, 'All types', 'Alla typer')}</SelectItem>
@@ -245,7 +245,7 @@ export function VideoAnalysisList() {
 
           <Select value={athleteFilter} onValueChange={setAthleteFilter}>
             <SelectTrigger className="w-[160px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
-              <SelectValue placeholder="Atlet" />
+              <SelectValue placeholder={copy(locale, 'Athlete', 'Atlet')} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">{copy(locale, 'All athletes', 'Alla atleter')}</SelectItem>

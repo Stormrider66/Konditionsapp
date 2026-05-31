@@ -419,7 +419,7 @@ export function StrengthSessionLibrary({
           <TabsList>
             <TabsTrigger value="sessions" className="flex items-center gap-2">
               <FolderOpen className="h-4 w-4" />
-              {copy(locale, 'My sessions', 'Mina Pass')}
+              {copy(locale, 'My sessions', 'Mina pass')}
             </TabsTrigger>
             <TabsTrigger value="templates" className="flex items-center gap-2">
               <Library className="h-4 w-4" />
@@ -429,7 +429,7 @@ export function StrengthSessionLibrary({
           {onNewSession && activeTab === 'sessions' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
-              {copy(locale, 'New session', 'Nytt Pass')}
+              {copy(locale, 'New session', 'Nytt pass')}
             </Button>
           )}
         </div>
@@ -487,7 +487,7 @@ export function StrengthSessionLibrary({
           {onNewSession && !search && phaseFilter === 'all' && teamFilter === 'all' && yearFilter === 'all' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
-              {copy(locale, 'Create session', 'Skapa Pass')}
+              {copy(locale, 'Create session', 'Skapa pass')}
             </Button>
           )}
         </Card>

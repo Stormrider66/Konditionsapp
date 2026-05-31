@@ -288,7 +288,7 @@ export function CardioSessionLibrary({
         {onNewSession && (
           <Button onClick={onNewSession}>
             <Plus className="h-4 w-4 mr-2" />
-            {copy(locale, 'New session', 'Nytt Pass')}
+            {copy(locale, 'New session', 'Nytt pass')}
           </Button>
         )}
       </div>
@@ -312,7 +312,7 @@ export function CardioSessionLibrary({
           {onNewSession && !search && sportFilter === 'all' && teamFilter === 'all' && yearFilter === 'all' && (
             <Button onClick={onNewSession}>
               <Plus className="h-4 w-4 mr-2" />
-              {copy(locale, 'Create session', 'Skapa Pass')}
+              {copy(locale, 'Create session', 'Skapa pass')}
             </Button>
           )}
         </Card>
