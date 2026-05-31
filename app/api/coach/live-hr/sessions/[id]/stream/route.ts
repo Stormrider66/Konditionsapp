@@ -9,6 +9,7 @@ import { getSessionStreamData } from '@/lib/live-hr/reading-service'
 import { getSession } from '@/lib/live-hr/session-service'
 import { createClient } from '@/lib/supabase/server'
 import { STREAM_POLL_INTERVAL_MS } from '@/lib/live-hr/types'
+import { resolveLocale, t } from '@/lib/live-hr/api-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -16,6 +17,7 @@ interface RouteContext {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   const { id } = await context.params
+  const locale = resolveLocale(req.headers.get('accept-language'))
 
   // Verify authentication
   const supabase = await createClient()
@@ -24,17 +26,17 @@ export async function GET(req: NextRequest, context: RouteContext) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return new Response('Unauthorized', { status: 401 })
+    return new Response(t(locale, 'Unauthorized', 'Obehörig'), { status: 401 })
   }
 
   // Verify session exists and user has access
   const session = await getSession(id)
   if (!session) {
-    return new Response('Session not found', { status: 404 })
+    return new Response(t(locale, 'Session not found', 'Passet hittades inte'), { status: 404 })
   }
 
   if (session.coachId !== user.id) {
-    return new Response('Forbidden', { status: 403 })
+    return new Response(t(locale, 'Forbidden', 'Saknar behörighet'), { status: 403 })
   }
 
   // Create SSE stream
@@ -46,7 +48,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
         try {
           const data = await getSessionStreamData(id)
           if (!data) {
-            controller.enqueue(encoder.encode('event: error\ndata: Session not found\n\n'))
+            controller.enqueue(encoder.encode(`event: error\ndata: ${t(locale, 'Session not found', 'Passet hittades inte')}\n\n`))
             controller.close()
             return false
           }
@@ -55,14 +57,14 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
           // Close stream if session ended
           if (data.status === 'ENDED') {
-            controller.enqueue(encoder.encode('event: ended\ndata: Session ended\n\n'))
+            controller.enqueue(encoder.encode(`event: ended\ndata: ${t(locale, 'Session ended', 'Passet är avslutat')}\n\n`))
             return false
           }
 
           return true
         } catch (error) {
           console.error('SSE stream error:', error)
-          controller.enqueue(encoder.encode('event: error\ndata: Stream error\n\n'))
+          controller.enqueue(encoder.encode(`event: error\ndata: ${t(locale, 'Stream error', 'Strömfel')}\n\n`))
           return false
         }
       }
