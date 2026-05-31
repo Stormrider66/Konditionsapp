@@ -4,6 +4,7 @@ export type CalendarSidebarTranslation = (
   key: string,
   values?: Record<string, string | number>
 ) => string
+type AppLocale = 'en' | 'sv'
 
 function resolveLabel(
   maps: Record<string, string>,
@@ -170,7 +171,10 @@ export function formatRaceDistanceLabel(distance?: string | null, t?: CalendarSi
   return resolveLabel(RACE_DISTANCE_LABELS, RACE_DISTANCE_FALLBACK, distance, 'Race result', t, 'formatters.raceDistance')
 }
 
-export function getAdHocPreviewItems(parsed: Record<string, unknown>, t?: CalendarSidebarTranslation): string[] {
+export function getAdHocPreviewItems(
+  parsed: Record<string, unknown>,
+  locale: AppLocale = 'en',
+): string[] {
   const items: string[] = []
 
   const strengthExercises = Array.isArray(parsed.strengthExercises) ? parsed.strengthExercises : []
@@ -183,7 +187,7 @@ export function getAdHocPreviewItems(parsed: Record<string, unknown>, t?: Calend
         ? (exercise as { name?: string }).name
         : null
       if (nameSv || name) {
-        items.push(nameSv || name || '')
+        items.push(locale === 'sv' ? nameSv || name || '' : name || nameSv || '')
       }
     }
   }

@@ -10,6 +10,7 @@ type RouteContext = {
 
 type WorkoutKind = 'strength' | 'cardio' | 'hybrid' | 'agility' | 'interval'
 type DetailKind = 'broadcast' | 'interval'
+type AppLocale = 'en' | 'sv'
 
 type ExerciseRow = {
   athleteId: string
@@ -94,9 +95,16 @@ function formatDistanceKm(km?: number | null) {
 }
 
 function exerciseName(
-  exercise: { name: string; nameSv: string | null; nameEn: string | null }
+  exercise: { name: string; nameSv: string | null; nameEn: string | null },
+  locale: AppLocale
 ) {
-  return exercise.nameSv || exercise.nameEn || exercise.name
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.nameEn || exercise.name
+    : exercise.nameEn || exercise.name || exercise.nameSv
+}
+
+function intervalWorkoutName(name: string | null, locale: AppLocale) {
+  return name ?? (locale === 'sv' ? 'Intervallpass' : 'Interval session')
 }
 
 function plannedSegmentLabel(segment: {
@@ -191,7 +199,7 @@ function sourceForBroadcast(broadcast: {
   return { kind: 'agility' as const, sourceId: broadcast.agilityWorkoutId, name: broadcast.agilityWorkout?.name ?? 'Agility' }
 }
 
-async function buildBroadcastDetail(broadcastId: string, activeMemberIds: Set<string>) {
+async function buildBroadcastDetail(broadcastId: string, activeMemberIds: Set<string>, locale: AppLocale) {
   const broadcast = await prisma.teamWorkoutBroadcast.findUnique({
     where: { id: broadcastId },
     include: {
@@ -314,7 +322,7 @@ async function buildBroadcastDetail(broadcastId: string, activeMemberIds: Set<st
     assignment.setLogs.map((setLog) => ({
       athleteId: assignment.athleteId,
       athleteName: assignment.athlete.name,
-      exerciseName: exerciseName(setLog.exercise),
+      exerciseName: exerciseName(setLog.exercise, locale),
       setNumber: setLog.setNumber,
       loadKg: setLog.weight,
       reps: setLog.repsTarget ? `${setLog.repsCompleted}/${setLog.repsTarget}` : setLog.repsCompleted,
@@ -375,7 +383,7 @@ async function buildBroadcastDetail(broadcastId: string, activeMemberIds: Set<st
   }
 }
 
-async function buildIntervalDetail(sessionId: string, activeMemberIds: Set<string>) {
+async function buildIntervalDetail(sessionId: string, activeMemberIds: Set<string>, locale: AppLocale) {
   const session = await prisma.intervalSession.findUnique({
     where: { id: sessionId },
     include: {
@@ -434,7 +442,7 @@ async function buildIntervalDetail(sessionId: string, activeMemberIds: Set<strin
     id: session.id,
     kind: 'interval' as DetailKind,
     workoutKind: 'interval' as WorkoutKind,
-    workoutName: session.name ?? 'Intervallpass',
+    workoutName: intervalWorkoutName(session.name, locale),
     assignedDate: (session.scheduledDate ?? session.startedAt).toISOString(),
     overview: {
       assigned,
@@ -454,6 +462,7 @@ async function buildIntervalDetail(sessionId: string, activeMemberIds: Set<strin
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
+    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(request)
     const { id: teamId } = await context.params
     const teamContext = await getTeamContext(user.id, teamId, scope.businessSlug)
@@ -471,8 +480,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const detailId = request.nextUrl.searchParams.get('detailId')
     const detail = detailKind && detailId
       ? detailKind === 'broadcast'
-        ? await buildBroadcastDetail(detailId, activeMemberIds)
-        : await buildIntervalDetail(detailId, activeMemberIds)
+        ? await buildBroadcastDetail(detailId, activeMemberIds, locale)
+        : await buildIntervalDetail(detailId, activeMemberIds, locale)
       : null
 
     const [broadcasts, intervalSessions] = await Promise.all([
@@ -672,7 +681,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         id: session.id,
         detailKind: 'interval' as DetailKind,
         workoutKind: 'interval' as WorkoutKind,
-        workoutName: session.name ?? 'Intervallpass',
+        workoutName: intervalWorkoutName(session.name, locale),
         sourceId: session.id,
         assignedDate: (session.scheduledDate ?? session.startedAt).toISOString(),
         assigned: session.participants.length,

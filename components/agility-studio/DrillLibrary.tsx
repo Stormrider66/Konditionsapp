@@ -4,7 +4,7 @@
 // Drill library browser with filters
 
 import { useState, useMemo } from 'react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -62,6 +62,20 @@ const categories: AgilityDrillCategory[] = [
   'FOOTWORK',
   'BALANCE'
 ]
+
+type AppLocale = 'en' | 'sv'
+
+function getAppLocale(locale: string): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function drillName(drill: AgilityDrill, locale: AppLocale): string {
+  return locale === 'sv' ? drill.nameSv || drill.name : drill.name
+}
+
+function drillDescription(drill: AgilityDrill, locale: AppLocale): string {
+  return locale === 'sv' ? drill.descriptionSv || drill.description : drill.description
+}
 
 export function DrillLibrary({
   drills,
@@ -257,6 +271,7 @@ interface DrillCardProps {
 function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
   const t = useTranslations('agilityStudio')
   const tCommon = useTranslations('common')
+  const locale = getAppLocale(useLocale())
 
   return (
     <Card
@@ -280,11 +295,11 @@ function DrillCard({ drill, onView, onAdd }: DrillCardProps) {
             ))}
           </div>
         </div>
-        <CardTitle className="text-lg mt-2">{drill.nameSv || drill.name}</CardTitle>
+        <CardTitle className="text-lg mt-2">{drillName(drill, locale)}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-          {drill.descriptionSv || drill.description}
+          {drillDescription(drill, locale)}
         </p>
         <div className="flex flex-wrap gap-2 mb-4">
           {drill.primarySports.includes('TEAM_ICE_HOCKEY') && (
@@ -341,8 +356,12 @@ interface DrillDetailSheetProps {
 
 function DrillDetailSheet({ drill, onClose, onAdd, categoryLabels }: DrillDetailSheetProps) {
   const t = useTranslations('agilityStudio')
+  const locale = getAppLocale(useLocale())
 
   if (!drill) return null
+
+  const name = drillName(drill, locale)
+  const description = drillDescription(drill, locale)
 
   return (
     <Sheet open={!!drill} onOpenChange={() => onClose()}>
@@ -350,10 +369,10 @@ function DrillDetailSheet({ drill, onClose, onAdd, categoryLabels }: DrillDetail
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             {categoryIcons[drill.category]}
-            {drill.nameSv || drill.name}
+            {name}
           </SheetTitle>
           <SheetDescription className="sr-only">
-            {drill.descriptionSv || drill.description}
+            {description}
           </SheetDescription>
           <div className="mt-1">
             <Badge className={categoryColors[drill.category]}>
@@ -389,7 +408,7 @@ function DrillDetailSheet({ drill, onClose, onAdd, categoryLabels }: DrillDetail
           {/* Description */}
           <div>
             <h4 className="font-medium mb-2">{t('drill.description')}</h4>
-            <p className="text-sm text-muted-foreground">{drill.descriptionSv || drill.description}</p>
+            <p className="text-sm text-muted-foreground">{description}</p>
           </div>
 
           {/* Drill Animation - shown for all drills that have animations */}

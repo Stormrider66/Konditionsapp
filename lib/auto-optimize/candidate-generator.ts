@@ -17,17 +17,17 @@ import type {
   PromptVariant,
 } from './types'
 
-// ── Criterion labels (Swedish) ──────────────────────────────────────
+// ── Criterion labels ────────────────────────────────────────────────
 
 const CRITERION_LABELS: Record<CriterionName, string> = {
-  structuralCompleteness: 'Strukturell fullständighet',
-  progressiveOverload: 'Progressiv belastning',
-  zoneDistribution: 'Zonfördelning',
-  sportSpecificCorrectness: 'Sportspecifik korrekthet',
-  calendarCompliance: 'Kalenderefterlevnad',
-  injuryAwareness: 'Skademedvetenhet',
-  periodizationQuality: 'Periodiseringskvalitet',
-  segmentDetail: 'Segmentdetalj',
+  structuralCompleteness: 'Structural completeness',
+  progressiveOverload: 'Progressive overload',
+  zoneDistribution: 'Zone distribution',
+  sportSpecificCorrectness: 'Sport-specific correctness',
+  calendarCompliance: 'Calendar compliance',
+  injuryAwareness: 'Injury awareness',
+  periodizationQuality: 'Periodization quality',
+  segmentDetail: 'Segment detail',
 }
 
 // ── Main Entry Point ────────────────────────────────────────────────
@@ -121,43 +121,43 @@ function buildMetaPrompt(
     .map(([w, count]) => `- ${w} (${count}x)`)
     .join('\n')
 
-  return `Du är en expert på att optimera AI-prompts för träningsprogramgenerering.
+  return `You are an expert at optimizing AI prompts for training program generation.
 
-## Uppgift
-Förbättra prompten nedan så att den genererar bättre träningsprogram. Fokusera på de svagaste kriterierna.
+## Task
+Improve the prompt below so it generates better training programs. Focus on the weakest criteria.
 
-## Nuvarande prompt (slot: ${slot})
+## Current prompt (slot: ${slot})
 <current_prompt>
 ${currentPrompt}
 </current_prompt>
 
-## Utvärderingsresultat (genomsnitt av ${evaluations.length} scenario)
-Totalpoäng: ${overallAvg}/100
+## Evaluation results (average of ${evaluations.length} scenarios)
+Overall score: ${overallAvg}/100
 
-### Alla kriterier (sorterade efter styrka)
+### All criteria (sorted by strength)
 ${allScores}
 
-### Svagaste kriterierna (fokusera här)
+### Weakest criteria (focus here)
 ${weakDescriptions}
 
-### Vanligaste varningarna
-${topWarnings || 'Inga varningar'}
+### Most common warnings
+${topWarnings || 'No warnings'}
 
-## Regler
-1. Behåll allt som fungerar bra (starka kriterier)
-2. Förbättra specifikt de svaga kriterierna
-3. All output ska vara på SVENSKA
-4. Behåll JSON-format-instruktioner oförändrade
-5. Gör inte prompten för lång — var koncis men komplett
-6. Om strukturell fullständighet är svag: var mer explicit om att alla veckor ska täckas, vilodag per vecka krävs
-7. Om progressiv belastning är svag: kräv tydligt bas → bygg → topp → nedtrappning
-8. Om zonfördelning är svag: specificera exakta %-fördelningar per metodik
-9. Om segmentdetalj är svag: kräv segments-array med warmup/cooldown och specifika mål
-10. Om skademedvetenhet är svag: kräv anpassningar och alternativa övningar
+## Rules
+1. Preserve everything that works well (strong criteria)
+2. Improve the weak criteria specifically
+3. All user-facing generated output must be in English
+4. Keep JSON-format instructions unchanged
+5. Do not make the prompt too long - be concise but complete
+6. If structural completeness is weak: be more explicit that all weeks must be covered and that each week requires a rest day
+7. If progressive overload is weak: require a clear base -> build -> peak -> taper progression
+8. If zone distribution is weak: specify exact percentage distributions per methodology
+9. If segment detail is weak: require a segments array with warmup/cooldown and specific targets
+10. If injury awareness is weak: require adaptations and alternative exercises
 
 ## Format
-Svara ENBART med den förbättrade prompten. Ingen förklarande text före eller efter.
-Inled prompten med "---PROMPT_START---" och avsluta med "---PROMPT_END---".`
+Respond ONLY with the improved prompt. Do not add explanatory text before or after.
+Start the prompt with "---PROMPT_START---" and end it with "---PROMPT_END---".`
 }
 
 // ── Response Extraction ─────────────────────────────────────────────

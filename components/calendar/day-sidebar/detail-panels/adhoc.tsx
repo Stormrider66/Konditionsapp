@@ -13,7 +13,7 @@ import {
   TrendingUp,
   Zap,
 } from 'lucide-react'
-import { UnifiedCalendarItem, WORKOUT_TYPE_COLORS, INTENSITY_COLORS } from '../../types'
+import { UnifiedCalendarItem, INTENSITY_COLORS } from '../../types'
 import { cn } from '@/lib/utils'
 import {
   formatDistanceValue,
@@ -23,7 +23,7 @@ import {
   formatIntensityLabel,
   getAdHocPreviewItems,
 } from '../formatters'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 export interface SidebarAdHocDetail {
   id: string
@@ -35,29 +35,35 @@ export interface SidebarAdHocDetail {
 }
 
 export function AdHocDetailPanel({ workout, isGlass = false }: { workout: UnifiedCalendarItem; isGlass?: boolean }) {
-  const [detail, setDetail] = useState<SidebarAdHocDetail | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [detailState, setDetailState] = useState<{
+    workoutId: string
+    detail: SidebarAdHocDetail | null
+    isLoading: boolean
+  }>({ workoutId: workout.id, detail: null, isLoading: true })
   const t = useTranslations('components.daySidebar')
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
 
   useEffect(() => {
     let cancelled = false
-    setIsLoading(true)
 
     fetch(`/api/adhoc-workouts/${workout.id}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((response) => {
         if (!cancelled) {
-          setDetail(response?.data || null)
+          setDetailState({
+            workoutId: workout.id,
+            detail: response?.data || null,
+            isLoading: false,
+          })
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setDetail(null)
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false)
+          setDetailState({
+            workoutId: workout.id,
+            detail: null,
+            isLoading: false,
+          })
         }
       })
 
@@ -66,6 +72,9 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
     }
   }, [workout.id])
 
+  const isStale = detailState.workoutId !== workout.id
+  const detail = isStale ? null : detailState.detail
+  const isLoading = isStale || detailState.isLoading
   const parsed = detail?.parsedStructure || {}
   const distance = formatDistanceValue(parsed.distance)
   const duration = typeof parsed.duration === 'number' ? parsed.duration : null
@@ -77,7 +86,7 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
   const strengthCount = Array.isArray(parsed.strengthExercises) ? parsed.strengthExercises.length : 0
   const cardioCount = Array.isArray(parsed.cardioSegments) ? parsed.cardioSegments.length : 0
   const hybridCount = Array.isArray(parsed.hybridMovements) ? parsed.hybridMovements.length : 0
-  const previewItems = getAdHocPreviewItems(parsed)
+  const previewItems = getAdHocPreviewItems(parsed, locale)
 
   return (
     <div className={cn(
