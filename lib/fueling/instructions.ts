@@ -1,5 +1,13 @@
 export type FuelingInstructionLocale = 'en' | 'sv'
-export type FuelingInstructionFeedbackStatus = 'REDUCE' | 'HOLD' | 'READY_TO_PROGRESS' | 'NEUTRAL' | null | undefined
+export type FuelingInstructionFeedbackStatus =
+  | 'REDUCE'
+  | 'HOLD'
+  | 'READY_TO_PROGRESS'
+  | 'NO_DATA'
+  | 'ON_TRACK'
+  | 'NEUTRAL'
+  | null
+  | undefined
 
 type FuelingInstructionInput = {
   locale: FuelingInstructionLocale

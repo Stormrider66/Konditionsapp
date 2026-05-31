@@ -530,7 +530,7 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
                     {applyState === 'applying'
                       ? copy.updating
                       : syncCopy
-                        ? getSyncButtonLabel(syncCopy, locale, appliedCount ?? 0)
+                        ? getSyncButtonLabel(syncCopy, locale)
                         : copy.updateWorkouts}
                   </Button>
                 </div>
@@ -542,7 +542,7 @@ export function ClientFuelingSummary({ clientId, plansHref }: ClientFuelingSumma
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-100'
                       : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-100'
                   }`}>
-                    <p className="font-medium">{getSyncTitle(syncCopy, locale, appliedCount ?? 0)}</p>
+                    <p className="font-medium">{getSyncTitle(syncCopy, locale)}</p>
                     <p className="mt-1 opacity-80">{getSyncBody(syncCopy, locale)}</p>
                   </div>
                 )}
@@ -702,7 +702,7 @@ function TrendBar({ log, locale }: { log: FuelingLogSummary; locale: AppLocale }
       {log.notes && <p className="mt-1 line-clamp-2 text-muted-foreground">{log.notes}</p>}
       {productsUsed.length > 0 && (
         <p className="mt-1 line-clamp-2 text-muted-foreground">
-          {copy.products}: {summarizeRaceFuelingProductItems(productsUsed)}
+          {copy.products}: {summarizeRaceFuelingProductItems(productsUsed, locale)}
         </p>
       )}
     </div>
@@ -737,21 +737,19 @@ function formatRating(value: number | null | undefined): string {
   return value == null ? '-' : `${value.toFixed(1)}/5`
 }
 
-function getSyncButtonLabel(copy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale, count: number): string {
+function getSyncButtonLabel(copy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
   if (locale === 'sv') return copy.buttonLabelSv
-  return count > 0 ? `${count} sessions` : 'No sessions'
+  return copy.buttonLabelEn
 }
 
-function getSyncTitle(copy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale, count: number): string {
+function getSyncTitle(copy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
   if (locale === 'sv') return copy.titleSv
-  return copy.tone === 'success' ? `${count} upcoming sessions updated.` : 'No upcoming sessions were updated.'
+  return copy.titleEn
 }
 
 function getSyncBody(copy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
   if (locale === 'sv') return copy.bodySv
-  return copy.tone === 'success'
-    ? 'The athlete now sees carb targets on sessions that match the plan.'
-    : 'There are no active upcoming sessions that match length, sport, and intensity yet.'
+  return copy.bodyEn
 }
 
 function getRecommendationCopy(
@@ -767,58 +765,11 @@ function getRecommendationCopy(
     }
   }
 
-  const nextTarget = recommendation.nextTargetGPerHour
-  const product = recommendation.productSv
-    ? recommendation.productSv
-        .replace('Produkt/timing att justera:', 'Product/timing to adjust:')
-        .replace('Fungerande produkter att repetera:', 'Working products to repeat:')
-        .replace('Produkter från senaste logg:', 'Products from latest log:')
-    : null
-
-  switch (recommendation.status) {
-    case 'NO_DATA':
-      return {
-        label: 'No clear recommendation yet',
-        action: 'Log carbs, gut response, and energy after the next long session.',
-        reason: 'The coach recommendation needs at least one fueling log.',
-        product,
-      }
-    case 'REDUCE':
-      return {
-        label: 'Back off next session',
-        action: nextTarget ? `Next long session: aim for ${nextTarget} g/h and spread intake more evenly.` : 'Next long session: reduce intake slightly and spread it more evenly.',
-        reason: 'Gut response was low, so the target should be stabilized before the next increase.',
-        product,
-      }
-    case 'HOLD':
-      return {
-        label: recommendation.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level',
-        action: nextTarget ? `Next long session: repeat ${nextTarget} g/h before increasing.` : 'Next long session: repeat the current target before increasing.',
-        reason: 'Gut response was acceptable but not stable enough for clear progression.',
-        product,
-      }
-    case 'RACE_READY':
-      return {
-        label: 'Ready for the race target',
-        action: nextTarget ? `Keep the race target at ${nextTarget} g/h and repeat with race products.` : 'Keep the race target and repeat with race products.',
-        reason: 'Multiple sessions show stable gut feel and energy close to target intake.',
-        product,
-      }
-    case 'PROGRESS':
-      return {
-        label: 'Increase carefully',
-        action: nextTarget ? `Next long session: test ${nextTarget} g/h if the session is race-like.` : 'Next long session: test a small increase if the session is race-like.',
-        reason: 'The latest log shows stable gut feel and energy.',
-        product,
-      }
-    case 'ON_TRACK':
-    default:
-      return {
-        label: 'Follow up',
-        action: nextTarget ? `Next long session: continue with ${nextTarget} g/h and log the response.` : 'Next long session: continue with the current target and log the response.',
-        reason: 'There is data, but not a clear enough signal to increase or reduce.',
-        product,
-      }
+  return {
+    label: recommendation.labelEn,
+    action: recommendation.actionEn,
+    reason: recommendation.reasonEn,
+    product: recommendation.productEn,
   }
 }
 

@@ -6,7 +6,8 @@ export interface SavedFuelingProductPlanNote {
   lines: string[]
 }
 
-const PRODUCT_PLAN_HEADER = 'Produktplan:'
+const PRODUCT_PLAN_HEADERS = ['Produktplan:', 'Product plan:']
+const EMPTY_PRODUCT_LINES = ['Produkter ej valda ännu.', 'No products selected yet.']
 
 export function extractSavedFuelingProductPlanNote(notes: string | null | undefined): SavedFuelingProductPlanNote | null {
   if (!notes) return null
@@ -18,9 +19,9 @@ export function extractSavedFuelingProductPlanNote(notes: string | null | undefi
   const block = collectProductPlanBlock(lines, headerIndex)
   if (block.length === 0) return null
 
-  const summary = block[0] && block[0] !== 'Produkter ej valda ännu.' ? block[0] : null
-  const packedLine = block.find((line) => line.startsWith('Packat:')) ?? ''
-  const differenceLine = block.find((line) => line.startsWith('Skillnad:')) ?? ''
+  const summary = block[0] && !EMPTY_PRODUCT_LINES.includes(block[0]) ? block[0] : null
+  const packedLine = block.find((line) => /^(Packat|Packed):/i.test(line)) ?? ''
+  const differenceLine = block.find((line) => /^(Skillnad|Difference):/i.test(line)) ?? ''
 
   return {
     summary,
@@ -33,7 +34,7 @@ export function extractSavedFuelingProductPlanNote(notes: string | null | undefi
 
 function findLastProductPlanHeader(lines: string[]): number {
   for (let index = lines.length - 1; index >= 0; index -= 1) {
-    if (lines[index]?.trim() === PRODUCT_PLAN_HEADER) return index
+    if (PRODUCT_PLAN_HEADERS.includes(lines[index]?.trim() ?? '')) return index
   }
 
   return -1
@@ -45,7 +46,7 @@ function collectProductPlanBlock(lines: string[], headerIndex: number): string[]
   for (let index = headerIndex + 1; index < lines.length; index += 1) {
     const line = lines[index]?.trim() ?? ''
     if (!line) break
-    if (line === PRODUCT_PLAN_HEADER) break
+    if (PRODUCT_PLAN_HEADERS.includes(line)) break
     block.push(line)
   }
 
@@ -59,7 +60,7 @@ function parseFirstNumber(value: string): number | null {
 }
 
 function parseTargetCarbs(value: string): number | null {
-  const match = value.match(/planm[aå]l\s+(\d+(?:[.,]\d+)?)/i)
+  const match = value.match(/(?:planm[aå]l|plan target)\s+(\d+(?:[.,]\d+)?)/i)
   if (!match) return null
   return parseNumericMatch(match[1])
 }

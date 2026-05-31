@@ -306,51 +306,15 @@ function getRecommendationCopy(recommendation: FuelingCoachingRecommendation, lo
     }
   }
 
-  const nextTarget = recommendation.nextTargetGPerHour
-  const copy: Record<FuelingCoachingRecommendation['status'], { label: string; action: string; reason: string }> = {
-    NO_DATA: {
-      label: 'No clear recommendation yet',
-      action: 'Log carbohydrates, stomach response, and energy after the next long session.',
-      reason: 'The coaching recommendation needs at least one fueling log.',
-    },
-    REDUCE: {
-      label: 'Step back next session',
-      action: `Next long session: aim for ${nextTarget ?? 30} g/h and spread intake more evenly.`,
-      reason: 'Stomach response was low, so the target should be stabilized before increasing again.',
-    },
-    HOLD: {
-      label: 'Hold this level',
-      action: `Next long session: repeat ${nextTarget ?? 'the current target'} g/h before increasing.`,
-      reason: 'The latest signal is not stable enough for a clear progression.',
-    },
-    PROGRESS: {
-      label: 'Increase carefully',
-      action: `Next long session: test ${nextTarget ?? 'a slightly higher target'} g/h if the session is race-like.`,
-      reason: 'The latest log shows stable stomach response and energy.',
-    },
-    RACE_READY: {
-      label: 'Ready for race target',
-      action: `Keep the race target ${nextTarget ?? ''} g/h and repeat with race products.`.trim(),
-      reason: 'Multiple sessions show stable stomach response and energy close to the target intake.',
-    },
-    ON_TRACK: {
-      label: 'Follow up',
-      action: `Next long session: continue with ${nextTarget ?? 'the current target'} g/h and log the response.`,
-      reason: 'There is data, but not a clear enough signal to increase or reduce.',
-    },
+  return {
+    label: recommendation.labelEn,
+    action: recommendation.actionEn,
+    reason: recommendation.reasonEn,
   }
-
-  return copy[recommendation.status]
 }
 
 function getRecommendationProduct(recommendation: FuelingCoachingRecommendation, locale: AppLocale): string | null {
-  if (!recommendation.productSv) return null
-  if (locale === 'sv') return recommendation.productSv
-
-  return recommendation.productSv
-    .replace('Produkt/timing att justera:', 'Product/timing to adjust:')
-    .replace('Fungerande produkter att repetera:', 'Working products to repeat:')
-    .replace('Produkter från senaste logg:', 'Products from latest log:')
+  return locale === 'sv' ? recommendation.productSv : recommendation.productEn
 }
 
 type FuelingSession = {

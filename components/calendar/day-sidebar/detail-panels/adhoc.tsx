@@ -86,7 +86,7 @@ export function AdHocDetailPanel({ workout, isGlass = false }: { workout: Unifie
   const strengthCount = Array.isArray(parsed.strengthExercises) ? parsed.strengthExercises.length : 0
   const cardioCount = Array.isArray(parsed.cardioSegments) ? parsed.cardioSegments.length : 0
   const hybridCount = Array.isArray(parsed.hybridMovements) ? parsed.hybridMovements.length : 0
-  const previewItems = getAdHocPreviewItems(parsed, locale)
+  const previewItems = getAdHocPreviewItems(parsed, locale, t)
 
   return (
     <div className={cn(

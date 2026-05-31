@@ -101,7 +101,7 @@ export function RaceFuelingCard({
   const savedProductPlanNote = extractSavedFuelingProductPlanNote(plan?.athleteNotes ?? plan?.coachNotes)
   const hasSavedProductPlan = Boolean(structuredProductPlan || savedProductPlanNote)
   const savedProductPlanSummary = structuredProductPlan
-    ? summarizeRaceFuelingProductPlan(structuredProductPlan)
+    ? summarizeRaceFuelingProductPlan(structuredProductPlan, locale)
     : savedProductPlanNote?.summary
   const savedPackedCarbs = structuredProductPlan?.totalCarbsG ?? savedProductPlanNote?.packedCarbsG ?? null
   const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true, locale })

@@ -571,7 +571,7 @@ function PlanCard({
                   ? 'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/30 dark:bg-emerald-900/10 dark:text-emerald-100'
                   : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-100'
               }`}>
-                <p className="font-medium">{syncTitle(syncCopy, applyResult?.count ?? 0, locale)}</p>
+                <p className="font-medium">{syncTitle(syncCopy, locale)}</p>
                 <p className="mt-1 opacity-80">{syncBody(syncCopy, locale)}</p>
               </div>
             )}
@@ -635,23 +635,17 @@ function statusLabel(status: string, locale: AppLocale): string {
 
 function syncButtonLabel(syncCopy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
   if (locale === 'sv') return syncCopy.buttonLabelSv
-  if (syncCopy.tone === 'empty') return 'No sessions'
-  const match = syncCopy.buttonLabelSv.match(/\d+/)
-  return match ? `${match[0]} sessions` : 'Sessions'
+  return syncCopy.buttonLabelEn
 }
 
-function syncTitle(syncCopy: ReturnType<typeof buildFuelingSyncResultCopy>, count: number, locale: AppLocale): string {
+function syncTitle(syncCopy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
   if (locale === 'sv') return syncCopy.titleSv
-  return syncCopy.tone === 'success'
-    ? `${count} upcoming sessions updated.`
-    : 'No upcoming sessions were updated.'
+  return syncCopy.titleEn
 }
 
 function syncBody(syncCopy: ReturnType<typeof buildFuelingSyncResultCopy>, locale: AppLocale): string {
   if (locale === 'sv') return syncCopy.bodySv
-  return syncCopy.tone === 'success'
-    ? 'The athlete now sees carb targets on sessions that match the plan.'
-    : 'There are no active upcoming sessions that match length, sport, and intensity yet.'
+  return syncCopy.bodyEn
 }
 
 function parseOptionalNumber(value: string): number | undefined {

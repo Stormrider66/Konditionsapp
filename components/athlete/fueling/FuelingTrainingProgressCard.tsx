@@ -405,8 +405,7 @@ function FuelingLogBar({ log, locale }: { log: FuelingLogSummary; locale: AppLoc
 }
 
 function formatProductSummary(productsUsed: ReturnType<typeof normalizeRaceFuelingProductItems>, locale: AppLocale): string | null {
-  const summary = summarizeRaceFuelingProductItems(productsUsed)
-  return locale === 'en' ? summary?.replaceAll(' à ', ' at ') ?? null : summary
+  return summarizeRaceFuelingProductItems(productsUsed, locale)
 }
 
 function BarLine({ label, width, className }: { label: string; width: number; className: string }) {
@@ -500,51 +499,10 @@ function localizeRecommendation(
     }
   }
 
-  const nextTarget = recommendation.nextTargetGPerHour
-  const product = recommendation.productSv
-    ?.replace('Produkt/timing att justera:', 'Product/timing to adjust:')
-    .replace('Fungerande produkter att repetera:', 'Working products to repeat:')
-    .replace('Produkter från senaste logg:', 'Products from latest log:')
-    .replaceAll(' à ', ' at ') ?? null
-
-  switch (recommendation.status) {
-    case 'NO_DATA':
-      return {
-        label: 'No clear recommendation yet',
-        action: 'Log carbs, gut feel, and energy after your next long session.',
-        product,
-      }
-    case 'REDUCE':
-      return {
-        label: 'Back off next session',
-        action: nextTarget ? `Next long session: aim for ${nextTarget} g/h and spread intake more evenly.` : 'Next long session: reduce intake slightly and spread it more evenly.',
-        product,
-      }
-    case 'HOLD':
-      return {
-        label: recommendation.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level',
-        action: nextTarget ? `Next long session: repeat ${nextTarget} g/h before increasing.` : 'Next long session: repeat the current target before increasing.',
-        product,
-      }
-    case 'RACE_READY':
-      return {
-        label: 'Ready for race target',
-        action: nextTarget ? `Hold the race target at ${nextTarget} g/h and repeat with race-day products.` : 'Hold the race target and repeat with race-day products.',
-        product,
-      }
-    case 'PROGRESS':
-      return {
-        label: 'Increase carefully',
-        action: nextTarget ? `Next long session: test ${nextTarget} g/h if the session is race-like.` : 'Next long session: test a small increase if the session is race-like.',
-        product,
-      }
-    case 'ON_TRACK':
-    default:
-      return {
-        label: 'Follow up',
-        action: nextTarget ? `Next long session: continue with ${nextTarget} g/h and log the response.` : 'Next long session: continue with the current target and log the response.',
-        product,
-      }
+  return {
+    label: recommendation.labelEn,
+    action: recommendation.actionEn,
+    product: recommendation.productEn,
   }
 }
 

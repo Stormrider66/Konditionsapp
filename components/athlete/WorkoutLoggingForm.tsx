@@ -1467,7 +1467,7 @@ export function WorkoutLoggingForm({
                 {fuelingProductsUsed && fuelingProductsUsed.length > 0 && (
                   <div className="mb-4 rounded-md border border-slate-200 bg-white/70 p-3 text-xs text-slate-700 dark:border-white/10 dark:bg-slate-950/40 dark:text-slate-200">
                     <p className="mb-1 font-bold uppercase tracking-widest text-muted-foreground">{localText(locale, 'Produkter sparade i loggen', 'Products saved in the log')}</p>
-                    <p>{summarizeRaceFuelingProductItems(fuelingProductsUsed)}</p>
+                    <p>{summarizeRaceFuelingProductItems(fuelingProductsUsed, locale)}</p>
                   </div>
                 )}
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1991,43 +1991,7 @@ function getFuelingFeedbackCopy(
     return { label: feedback.labelSv, message: feedback.messageSv }
   }
 
-  const nextTarget = feedback.nextTargetGPerHour
-  switch (feedback.status) {
-    case 'MISSING':
-      return {
-        label: 'Missing intake',
-        message: 'Log carbohydrates per hour to get the next recommendation.',
-      }
-    case 'REDUCE':
-      return {
-        label: 'Reduce next time',
-        message: nextTarget
-          ? `Gut response was not stable. Aim for about ${nextTarget} g/h next time and prioritize even timing.`
-          : 'Gut response was not stable. Reduce the next target and prioritize even timing.',
-      }
-    case 'HOLD':
-      return {
-        label: feedback.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level',
-        message: nextTarget
-          ? `Repeat about ${nextTarget} g/h until your gut feels more stable before increasing.`
-          : 'Repeat the current level until your gut feels more stable before increasing.',
-      }
-    case 'PROGRESS':
-      return {
-        label: 'Ready to increase',
-        message: nextTarget
-          ? `Good tolerance. The next long session can test about ${nextTarget} g/h if it is race-like.`
-          : 'Good tolerance. The next long session can test a small increase if it is race-like.',
-      }
-    case 'ON_TRACK':
-    default:
-      return {
-        label: 'On track',
-        message: nextTarget
-          ? `Continue with about ${nextTarget} g/h and log the response after the next long session.`
-          : 'Continue with the current target and log the response after the next long session.',
-      }
-  }
+  return { label: feedback.labelEn, message: feedback.messageEn }
 }
 
 function getEffortBadgeClass(effort: number): string {

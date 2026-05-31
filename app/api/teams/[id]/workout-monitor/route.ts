@@ -99,8 +99,8 @@ function exerciseName(
   locale: AppLocale
 ) {
   return locale === 'sv'
-    ? exercise.nameSv || exercise.nameEn || exercise.name
-    : exercise.nameEn || exercise.name || exercise.nameSv
+    ? exercise.nameSv || exercise.nameEn || exercise.name || 'Övning'
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
 }
 
 function intervalWorkoutName(name: string | null, locale: AppLocale) {

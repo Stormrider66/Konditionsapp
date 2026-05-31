@@ -70,11 +70,13 @@ function getAppLocale(locale: string): AppLocale {
 }
 
 function drillName(drill: AgilityDrill, locale: AppLocale): string {
-  return locale === 'sv' ? drill.nameSv || drill.name : drill.name
+  return locale === 'sv' ? drill.nameSv || drill.name || '' : drill.name || drill.nameSv || ''
 }
 
 function drillDescription(drill: AgilityDrill, locale: AppLocale): string {
-  return locale === 'sv' ? drill.descriptionSv || drill.description : drill.description
+  return locale === 'sv'
+    ? drill.descriptionSv || drill.description || ''
+    : drill.description || drill.descriptionSv || ''
 }
 
 export function DrillLibrary({

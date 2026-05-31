@@ -30,6 +30,29 @@ describe('extractSavedFuelingProductPlanNote', () => {
     })
   })
 
+  it('extracts English product plan blocks', () => {
+    const note = [
+      'Coach note',
+      '',
+      'Product plan:',
+      '6 gel at 25 g, 1 sports drink bottle at 40 g',
+      'Packed: 190 g carbohydrates against plan target 180 g.',
+      'Difference: +10 g.',
+    ].join('\n')
+
+    expect(extractSavedFuelingProductPlanNote(note)).toEqual({
+      summary: '6 gel at 25 g, 1 sports drink bottle at 40 g',
+      packedCarbsG: 190,
+      targetCarbsG: 180,
+      differenceG: 10,
+      lines: [
+        '6 gel at 25 g, 1 sports drink bottle at 40 g',
+        'Packed: 190 g carbohydrates against plan target 180 g.',
+        'Difference: +10 g.',
+      ],
+    })
+  })
+
   it('returns null when no product plan exists', () => {
     expect(extractSavedFuelingProductPlanNote('Vanlig anteckning')).toBeNull()
   })

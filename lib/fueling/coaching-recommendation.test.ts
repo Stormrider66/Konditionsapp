@@ -18,7 +18,10 @@ describe('buildFuelingCoachingRecommendation', () => {
 
     expect(recommendation.status).toBe('REDUCE')
     expect(recommendation.nextTargetGPerHour).toBe(60)
+    expect(recommendation.productEn).toContain('adjust')
+    expect(recommendation.productEn).toContain('3 gel at 25 g')
     expect(recommendation.productSv).toContain('justera')
+    expect(recommendation.productSv).toContain('3 gel à 25 g')
   })
 
   it('progresses when latest log is stable', () => {

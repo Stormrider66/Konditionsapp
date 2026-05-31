@@ -200,7 +200,7 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
               {text(locale, 'Produkter som användes', 'Products used')}
             </p>
             <p className="mt-2 text-sm font-semibold text-slate-800 dark:text-slate-100">
-              {summarizeRaceFuelingProductItems(productsUsed)}
+              {summarizeRaceFuelingProductItems(productsUsed, locale)}
             </p>
           </div>
         )}

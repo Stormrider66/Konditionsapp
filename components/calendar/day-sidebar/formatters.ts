@@ -174,6 +174,7 @@ export function formatRaceDistanceLabel(distance?: string | null, t?: CalendarSi
 export function getAdHocPreviewItems(
   parsed: Record<string, unknown>,
   locale: AppLocale = 'en',
+  t?: CalendarSidebarTranslation,
 ): string[] {
   const items: string[] = []
 

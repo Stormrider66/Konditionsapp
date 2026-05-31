@@ -22,6 +22,8 @@ export interface RaceFuelingProductTimingPoint {
   carbsG: number
 }
 
+export type FuelingProductLocale = 'en' | 'sv'
+
 export function normalizeRaceFuelingProductPlan(value: unknown): RaceFuelingProductPlan | null {
   if (!value || typeof value !== 'object') return null
   const record = value as Record<string, unknown>
@@ -48,13 +50,17 @@ export function normalizeRaceFuelingProductPlan(value: unknown): RaceFuelingProd
   }
 }
 
-export function summarizeRaceFuelingProductPlan(plan: RaceFuelingProductPlan): string | null {
-  return summarizeRaceFuelingProductItems(plan.items)
+export function summarizeRaceFuelingProductPlan(
+  plan: RaceFuelingProductPlan,
+  locale: FuelingProductLocale = 'en'
+): string | null {
+  return summarizeRaceFuelingProductItems(plan.items, locale)
 }
 
 export function retargetRaceFuelingProductPlan(
   plan: RaceFuelingProductPlan,
-  targetCarbsG: number | null
+  targetCarbsG: number | null,
+  locale: FuelingProductLocale = 'en'
 ): RaceFuelingProductPlan {
   const differenceG = targetCarbsG != null ? plan.totalCarbsG - targetCarbsG : null
 
@@ -62,7 +68,7 @@ export function retargetRaceFuelingProductPlan(
     ...plan,
     targetCarbsG,
     differenceG,
-    marginLabel: getProductPlanMarginLabel(differenceG),
+    marginLabel: getProductPlanMarginLabel(differenceG, locale),
     updatedAt: new Date().toISOString(),
   }
 }
@@ -72,10 +78,14 @@ export function normalizeRaceFuelingProductItems(value: unknown): RaceFuelingPro
   return value.map(normalizeProductPlanItem).filter((item): item is RaceFuelingProductPlanItem => item !== null)
 }
 
-export function summarizeRaceFuelingProductItems(items: RaceFuelingProductPlanItem[]): string | null {
+export function summarizeRaceFuelingProductItems(
+  items: RaceFuelingProductPlanItem[],
+  locale: FuelingProductLocale = 'en'
+): string | null {
+  const connector = locale === 'sv' ? 'à' : 'at'
   const summary = items
     .filter((item) => item.count > 0 && item.carbsPerItemG > 0)
-    .map((item) => `${item.count} ${item.label.toLowerCase()} à ${item.carbsPerItemG} g`)
+    .map((item) => `${item.count} ${formatProductLabel(item.label, item.count, locale)} ${connector} ${item.carbsPerItemG} g`)
     .join(', ')
 
   return summary || null
@@ -145,11 +155,24 @@ function buildTimingSlots(durationMinutes: number): number[] {
   return slots.slice(0, 18)
 }
 
-function getProductPlanMarginLabel(differenceG: number | null): string {
+function getProductPlanMarginLabel(differenceG: number | null, locale: FuelingProductLocale = 'en'): string {
   if (differenceG == null) return '-'
-  if (differenceG >= 20) return 'God'
+  if (differenceG >= 20) return locale === 'sv' ? 'God' : 'Good'
   if (differenceG >= 0) return 'Tight'
-  return 'Saknas'
+  return locale === 'sv' ? 'Saknas' : 'Missing'
+}
+
+function formatProductLabel(label: string, count: number, locale: FuelingProductLocale): string {
+  const normalized = label.trim().toLowerCase()
+  if (locale === 'sv') return normalized
+
+  if (normalized === 'flaskor sportdryck') {
+    return count === 1 ? 'sports drink bottle' : 'sports drink bottles'
+  }
+
+  if (normalized === 'sportdryck') return 'sports drink'
+
+  return normalized
 }
 
 function normalizeProductPlanItem(value: unknown): RaceFuelingProductPlanItem | null {

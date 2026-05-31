@@ -24,7 +24,8 @@ describe('normalizeRaceFuelingProductPlan', () => {
     })
 
     expect(plan?.totalCarbsG).toBe(190)
-    expect(summarizeRaceFuelingProductPlan(plan!)).toBe('6 gel à 25 g, 1 flaskor sportdryck à 40 g')
+    expect(summarizeRaceFuelingProductPlan(plan!)).toBe('6 gel at 25 g, 1 sports drink bottle at 40 g')
+    expect(summarizeRaceFuelingProductPlan(plan!, 'sv')).toBe('6 gel à 25 g, 1 flaskor sportdryck à 40 g')
   })
 
   it('rejects malformed values', () => {
@@ -67,7 +68,8 @@ describe('normalizeRaceFuelingProductPlan', () => {
       { label: 'Gel', count: 2, carbsPerItemG: 25, totalCarbsG: 50 },
       { label: 'Chews/bar', count: 1, carbsPerItemG: 20, totalCarbsG: 20 },
     ])
-    expect(summarizeRaceFuelingProductItems(items)).toBe('2 gel à 25 g, 1 chews/bar à 20 g')
+    expect(summarizeRaceFuelingProductItems(items)).toBe('2 gel at 25 g, 1 chews/bar at 20 g')
+    expect(summarizeRaceFuelingProductItems(items, 'sv')).toBe('2 gel à 25 g, 1 chews/bar à 20 g')
   })
 
   it('builds product items from calculator values', () => {
@@ -97,7 +99,7 @@ describe('normalizeRaceFuelingProductPlan', () => {
 
     expect(retargeted.targetCarbsG).toBe(220)
     expect(retargeted.differenceG).toBe(-30)
-    expect(retargeted.marginLabel).toBe('Saknas')
+    expect(retargeted.marginLabel).toBe('Missing')
     expect(retargeted.items).toEqual(plan?.items)
     expect(retargeted.updatedAt).toBeTruthy()
   })

@@ -525,7 +525,12 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
             {raceDayPlan ? (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <PackItem label="Gel" value={raceDayPlan.gelEquivalentCount ? `${raceDayPlan.gelEquivalentCount} st à 25 g` : '-'} />
+                  <PackItem
+                    label="Gel"
+                    value={raceDayPlan.gelEquivalentCount
+                      ? text(locale, `${raceDayPlan.gelEquivalentCount} st à 25 g`, `${raceDayPlan.gelEquivalentCount} gels at 25 g`)
+                      : '-'}
+                  />
                   <PackItem label={text(locale, 'Sportdryck', 'Sports drink')} value={raceDayPlan.bottleMixCount ? `${raceDayPlan.bottleMixCount} ${text(locale, 'flaskor à 40 g', 'bottles at 40 g')}` : '-'} />
                 </div>
 
@@ -632,7 +637,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           {storedProductPlan ? (
             <div className="rounded-lg border bg-emerald-50/70 p-3 text-sm text-emerald-950 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-100">
               <p className="font-medium">{text(locale, 'Sparad produktplan', 'Saved product plan')}</p>
-              <p className="mt-1">{formatProductSummary(summarizeRaceFuelingProductPlan(storedProductPlan), locale) ?? text(locale, 'Produkter sparade.', 'Products saved.')}</p>
+              <p className="mt-1">{summarizeRaceFuelingProductPlan(storedProductPlan, locale) ?? text(locale, 'Produkter sparade.', 'Products saved.')}</p>
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <span>{text(locale, 'Packat', 'Packed')} {formatGrams(storedProductPlan.totalCarbsG)}</span>
                 <span>{text(locale, 'Mål', 'Target')} {formatGrams(storedProductPlan.targetCarbsG)}</span>
@@ -848,7 +853,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                     )}
                   </div>
                   <p className="mt-2 text-xs text-muted-foreground">{localizeRecommendation(buildUpRecommendation, locale).reason}</p>
-                  {buildUpRecommendation.productSv && (
+                  {localizeRecommendation(buildUpRecommendation, locale).product && (
                     <p className="mt-1 text-xs text-muted-foreground">{localizeRecommendation(buildUpRecommendation, locale).product}</p>
                   )}
                 </div>
@@ -1011,7 +1016,7 @@ function FuelingPrescriptionRow({ prescription, raceDate, locale }: { prescripti
           </div>
           {productsUsed.length > 0 && (
             <p className="mt-2 text-muted-foreground">
-              {text(locale, 'Produkter', 'Products')}: {formatProductSummary(summarizeRaceFuelingProductItems(productsUsed), locale)}
+              {text(locale, 'Produkter', 'Products')}: {summarizeRaceFuelingProductItems(productsUsed, locale)}
             </p>
           )}
         </div>
@@ -1352,10 +1357,10 @@ function SyncResultNotice({ count, locale }: { count: number; locale: AppLocale 
         : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/30 dark:bg-amber-900/10 dark:text-amber-100'
     }`}>
       <p className="font-medium">
-        {locale === 'sv' ? copy.titleSv : copy.tone === 'success' ? `${count} upcoming sessions updated.` : 'No upcoming sessions were updated.'}
+        {locale === 'sv' ? copy.titleSv : copy.titleEn}
       </p>
       <p className="mt-1 text-xs opacity-80">
-        {locale === 'sv' ? copy.bodySv : copy.tone === 'success' ? 'The athlete now sees carb targets on sessions that match the plan.' : 'There are no active upcoming sessions that match length, sport, and intensity yet.'}
+        {locale === 'sv' ? copy.bodySv : copy.bodyEn}
       </p>
     </div>
   )
@@ -1380,7 +1385,10 @@ function raceDayNote(note: string, locale: AppLocale): string {
 
 function formatProductSummary(summary: string | null | undefined, locale: AppLocale): string | null {
   if (!summary) return null
-  return locale === 'en' ? summary.replaceAll(' à ', ' at ') : summary
+  if (locale === 'sv') return summary
+  return summary
+    .replaceAll(' à ', ' at ')
+    .replaceAll('flaskor sportdryck', 'sports drink bottles')
 }
 
 function localizeRecommendation(
@@ -1396,26 +1404,10 @@ function localizeRecommendation(
     }
   }
 
-  const nextTarget = recommendation.nextTargetGPerHour
-  const product = recommendation.productSv
-    ?.replace('Produkt/timing att justera:', 'Product/timing to adjust:')
-    .replace('Fungerande produkter att repetera:', 'Working products to repeat:')
-    .replace('Produkter från senaste logg:', 'Products from latest log:')
-    .replaceAll(' à ', ' at ') ?? null
-
-  switch (recommendation.status) {
-    case 'NO_DATA':
-      return { label: 'No clear recommendation yet', action: 'Log carbohydrates, gut feel, and energy after the next long session.', reason: 'The recommendation needs at least one fueling log.', product }
-    case 'REDUCE':
-      return { label: 'Back off next session', action: nextTarget ? `Next long session: aim for ${nextTarget} g/h and spread intake more evenly.` : 'Next long session: reduce intake slightly and spread it more evenly.', reason: 'Gut response was low, so the target should be stabilized before increasing again.', product }
-    case 'HOLD':
-      return { label: recommendation.labelSv === 'Bygg upp till planen' ? 'Build up to the plan' : 'Hold level', action: nextTarget ? `Next long session: repeat ${nextTarget} g/h before increasing.` : 'Next long session: repeat the current target before increasing.', reason: 'Gut response was acceptable but not stable enough for a clear progression.', product }
-    case 'RACE_READY':
-      return { label: 'Ready for race target', action: nextTarget ? `Keep the race target at ${nextTarget} g/h and repeat with race products.` : 'Keep the race target and repeat with race products.', reason: 'Multiple sessions show stable gut feel and energy close to target intake.', product }
-    case 'PROGRESS':
-      return { label: 'Increase carefully', action: nextTarget ? `Next long session: test ${nextTarget} g/h if the session is race-like.` : 'Next long session: test a small increase if the session is race-like.', reason: 'The latest log shows stable gut feel and energy.', product }
-    case 'ON_TRACK':
-    default:
-      return { label: 'Follow up', action: nextTarget ? `Next long session: continue with ${nextTarget} g/h and log the response.` : 'Next long session: continue with the current target and log the response.', reason: 'There is data, but not a clear enough signal to increase or reduce.', product }
+  return {
+    label: recommendation.labelEn,
+    action: recommendation.actionEn,
+    reason: recommendation.reasonEn,
+    product: recommendation.productEn,
   }
 }
