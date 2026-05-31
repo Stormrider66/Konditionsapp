@@ -28,12 +28,15 @@ vi.mock('@/lib/ai/embeddings', () => ({
 }))
 
 import {
+  fetchSkillContext,
   formatKnowledgeSkillCatalog,
+  getKnowledgeSkillDisplayName,
   hasExplicitKnowledgeSkillRequest,
   isKnowledgeSkillCatalogRequest,
   resolveKnowledgeSkillsByIds,
   resolveRequestedKnowledgeSkills,
 } from '@/lib/ai/knowledge-skills'
+import { searchSystemChunks } from '@/lib/ai/embeddings'
 
 describe('knowledge skill controls', () => {
   beforeEach(() => {
@@ -94,6 +97,39 @@ describe('knowledge skill controls', () => {
     expect(englishCatalog).not.toContain('Norsk Dubbeltröskelmetod')
     expect(englishCatalog).not.toContain('Laktattröskeltest')
     expect(englishCatalog).not.toContain('dubbeltröskel')
+  })
+
+  it('defaults knowledge skill display names and retrieved context wrappers to English', async () => {
+    const skill = {
+      id: 'skill-1',
+      name: 'Crohn och träning',
+      nameEn: "Crohn's Training and Nutrition",
+      category: 'NUTRITION',
+      documentIds: ['doc-1'],
+      maxChunks: 1,
+      score: 1,
+      matchType: 'keyword' as const,
+    }
+
+    expect(getKnowledgeSkillDisplayName(skill)).toBe("Crohn's Training and Nutrition")
+
+    vi.mocked(searchSystemChunks).mockResolvedValue([
+      {
+        documentId: 'doc-1',
+        content: 'Svenskt källmaterial kan fortfarande användas som intern kontext.',
+        similarity: 0.91,
+      },
+    ])
+    mockPrisma.coachDocument.findMany.mockResolvedValue([])
+
+    const result = await fetchSkillContext('crohn training', [skill], { googleKey: 'test-key' }, 'en')
+
+    expect(result.context).toContain('EXPERT KNOWLEDGE (auto-retrieved)')
+    expect(result.context).toContain('Knowledge source (91% relevance)')
+    expect(result.context).toContain('Source excerpts may contain Swedish')
+    expect(result.context).not.toContain('EXPERTKUNSKAP')
+    expect(result.context).not.toContain('Kunskapskälla')
+    expect(result.skillsUsed).toEqual(["Crohn's Training and Nutrition"])
   })
 
   it('resolves explicitly named skills by Swedish name, English name, and keyword', async () => {

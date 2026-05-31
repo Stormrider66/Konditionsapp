@@ -194,7 +194,7 @@ export function getAnalysisConstitution(): string {
 export function buildConstitutionPreamble(
   domain: ConstitutionDomain,
   role?: ChatRole,
-  locale: 'en' | 'sv' = 'sv'
+  locale: 'en' | 'sv' = 'en'
 ): string {
   let domainSection: string
 

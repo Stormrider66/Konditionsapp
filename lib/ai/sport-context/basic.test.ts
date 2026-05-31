@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { AthleteData, TestData } from './types'
 import { buildBasicProfileContext, buildTestContext } from './basic'
+import {
+  getViewSpecificMetricsLabel,
+  translateCameraAngle,
+  translateFootStrike,
+  translateRiskLevel,
+} from './formatters'
 
 const athlete = {
   id: 'client-1',
@@ -58,5 +64,14 @@ describe('sport context basic localization', () => {
     expect(swedish).toContain('## Senaste testresultat')
     expect(swedish).toContain('**Max puls**')
     expect(swedish).toContain('**Aerob tröskel**')
+  })
+})
+
+describe('sport context formatter defaults', () => {
+  it('defaults formatter labels to English', () => {
+    expect(translateFootStrike('HEEL_STRIKE')).toBe('Heel strike')
+    expect(translateRiskLevel('HIGH')).toBe('High')
+    expect(translateCameraAngle('FRONT')).toBe('Front view')
+    expect(getViewSpecificMetricsLabel('SIDE')).toContain('Sagittal-plane analysis')
   })
 })

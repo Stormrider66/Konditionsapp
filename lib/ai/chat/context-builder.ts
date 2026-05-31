@@ -7,6 +7,7 @@ import { buildCalendarContext } from '@/lib/ai/calendar-context-builder'
 import {
   fetchSkillContext,
   formatKnowledgeSkillCatalog,
+  getKnowledgeSkillDisplayName,
   hasExplicitKnowledgeSkillRequest,
   isKnowledgeSkillCatalogRequest,
   listKnowledgeSkills,
@@ -268,12 +269,12 @@ export async function buildChatContext(
               })
 
         if (matched.length > 0) {
-          const result = await fetchSkillContext(userContent, matched, embeddingKeys)
+          const result = await fetchSkillContext(userContent, matched, embeddingKeys, locale)
           const selectedIntro = selected.matched.length > 0
-            ? `\n## ${t(locale, 'THE USER SELECTED THESE KNOWLEDGE SKILLS IN THE UI', 'ANVÄNDAREN VALDE DESSA KUNSKAPSSKILLS I UI')}\n${selected.matched.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            ? `\n## ${t(locale, 'THE USER SELECTED THESE KNOWLEDGE SKILLS IN THE UI', 'ANVÄNDAREN VALDE DESSA KUNSKAPSSKILLS I UI')}\n${selected.matched.map((skill) => `- ${getKnowledgeSkillDisplayName(skill, locale)}`).join('\n')}\n`
             : ''
           const requestedIntro = selected.matched.length === 0 && requested.length > 0
-            ? `\n## ${t(locale, 'THE USER EXPLICITLY REQUESTED THESE KNOWLEDGE SKILLS', 'ANVÄNDAREN BAD UTTRYCKLIGEN OM DESSA KUNSKAPSSKILLS')}\n${requested.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            ? `\n## ${t(locale, 'THE USER EXPLICITLY REQUESTED THESE KNOWLEDGE SKILLS', 'ANVÄNDAREN BAD UTTRYCKLIGEN OM DESSA KUNSKAPSSKILLS')}\n${requested.map((skill) => `- ${getKnowledgeSkillDisplayName(skill, locale)}`).join('\n')}\n`
             : ''
           const missingIntro = missingSelectedSkillIds.length > 0
             ? `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Say visibly that these selected skills could not be used if it is relevant to the answer.', 'Säg synligt att dessa valda skills inte kunde användas om det är relevant för svaret.')}\n`
@@ -284,7 +285,7 @@ export async function buildChatContext(
           skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${athleteSafetyIntro}${result.context}`
           skillsUsed = result.skillsUsed.length > 0
             ? result.skillsUsed
-            : matched.map((skill) => skill.name)
+            : matched.map((skill) => getKnowledgeSkillDisplayName(skill, locale))
         } else if (missingSelectedSkillIds.length > 0) {
           skillContext = `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Say visibly that these selected skills could not be used.', 'Säg synligt att dessa valda skills inte kunde användas.')}\n`
         }

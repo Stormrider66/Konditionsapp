@@ -2,7 +2,7 @@
  * Athlete-Specific AI Prompts
  *
  * System prompts and quick prompts for athlete AI chat.
- * All prompts are in Swedish to match the app's primary language.
+ * Prompts are localized; English is the default and Swedish is preserved via locale branches.
  */
 
 import { buildConstitutionPreamble } from '@/lib/ai/constitution'

@@ -12,6 +12,7 @@ import { resolveModel } from '@/types/ai-models'
 import { hasEmbeddingKeys } from '@/lib/ai/embeddings'
 import {
   fetchSkillContext,
+  getKnowledgeSkillDisplayName,
   hasExplicitKnowledgeSkillRequest,
   matchKnowledgeSkills,
   resolveKnowledgeSkillsByIds,
@@ -260,22 +261,22 @@ export async function POST(request: NextRequest) {
             ? requestedSkills
             : await matchKnowledgeSkills(prompt, embeddingKeys, { maxSkills: 3 })
         if (matchedSkills.length > 0) {
-          const result = await fetchSkillContext(prompt, matchedSkills, embeddingKeys)
+          const result = await fetchSkillContext(prompt, matchedSkills, embeddingKeys, locale)
           const selectedIntro = selectedSkills.matched.length > 0
-            ? `\n## SELECTED KNOWLEDGE SKILLS\n${selectedSkills.matched.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            ? `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS', 'VALDA KUNSKAPSSKILLS')}\n${selectedSkills.matched.map((skill) => `- ${getKnowledgeSkillDisplayName(skill, locale)}`).join('\n')}\n`
             : ''
           const requestedIntro = selectedSkills.matched.length === 0 && requestedSkills.length > 0
-            ? `\n## REQUESTED KNOWLEDGE SKILLS\n${requestedSkills.map((skill) => `- ${skill.name}`).join('\n')}\n`
+            ? `\n## ${t(locale, 'REQUESTED KNOWLEDGE SKILLS', 'EFTERFRÅGADE KUNSKAPSSKILLS')}\n${requestedSkills.map((skill) => `- ${getKnowledgeSkillDisplayName(skill, locale)}`).join('\n')}\n`
             : ''
           const missingIntro = missingSelectedSkillIds.length > 0
-            ? `\n## SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nMention this visibly if relevant.\n`
+            ? `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Mention this visibly if relevant.', 'Nämn detta synligt om det är relevant.')}\n`
             : ''
           skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${result.context}`
           skillsUsed = result.skillsUsed.length > 0
             ? result.skillsUsed
-            : matchedSkills.map((skill) => skill.name)
+            : matchedSkills.map((skill) => getKnowledgeSkillDisplayName(skill, locale))
         } else if (missingSelectedSkillIds.length > 0) {
-          skillContext = `\n## SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\nMention this visibly.\n`
+          skillContext = `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Mention this visibly.', 'Nämn detta synligt.')}\n`
         }
       } catch (error) {
         logger.warn('AI canvas skill retrieval failed', {}, error)

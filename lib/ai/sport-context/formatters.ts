@@ -26,7 +26,7 @@ type SportContextLocale = 'en' | 'sv'
 /**
  * Translate foot strike pattern for AI context.
  */
-export function translateFootStrike(pattern: string, locale: SportContextLocale = 'sv'): string {
+export function translateFootStrike(pattern: string, locale: SportContextLocale = 'en'): string {
   const translations: Record<string, { en: string; sv: string }> = {
     'HEEL_STRIKE': { en: 'Heel strike', sv: 'Hälisättning' },
     'MIDFOOT': { en: 'Midfoot strike', sv: 'Mellanfotisättning' },
@@ -41,7 +41,7 @@ export function translateFootStrike(pattern: string, locale: SportContextLocale 
 /**
  * Translate injury risk level for AI context.
  */
-export function translateRiskLevel(level: string, locale: SportContextLocale = 'sv'): string {
+export function translateRiskLevel(level: string, locale: SportContextLocale = 'en'): string {
   const translations: Record<string, { en: string; sv: string }> = {
     'HIGH': { en: 'High', sv: 'Hög' },
     'MODERATE': { en: 'Moderate', sv: 'Måttlig' },
@@ -54,7 +54,7 @@ export function translateRiskLevel(level: string, locale: SportContextLocale = '
 /**
  * Translate camera angle for AI context.
  */
-export function translateCameraAngle(angle: string | null, locale: SportContextLocale = 'sv'): string {
+export function translateCameraAngle(angle: string | null, locale: SportContextLocale = 'en'): string {
   if (!angle) return '';
   const translations: Record<string, { en: string; sv: string }> = {
     'FRONT': { en: 'Front view', sv: 'Framifrån' },
@@ -67,7 +67,7 @@ export function translateCameraAngle(angle: string | null, locale: SportContextL
 /**
  * Get view-specific metrics label for context
  */
-export function getViewSpecificMetricsLabel(angle: string, locale: SportContextLocale = 'sv'): string {
+export function getViewSpecificMetricsLabel(angle: string, locale: SportContextLocale = 'en'): string {
   switch (angle) {
     case 'FRONT':
       return locale === 'sv'

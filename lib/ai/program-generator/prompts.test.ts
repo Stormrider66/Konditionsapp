@@ -21,4 +21,17 @@ describe('program generator prompts', () => {
     expect(prompt).toContain('Position: point_guard')
     expect(prompt).toContain('jump load')
   })
+
+  it('defaults outline prompts to English', () => {
+    const prompt = buildOutlinePrompt({
+      sport: 'RUNNING',
+      totalWeeks: 6,
+      sessionsPerWeek: 4,
+      goal: 'Improve 10K performance',
+    })
+
+    expect(prompt).toContain('Create a PERIODIZATION PLAN')
+    expect(prompt).toContain('6-week running program')
+    expect(prompt).not.toContain('Skapa en PERIODISERINGSPLAN')
+  })
 })

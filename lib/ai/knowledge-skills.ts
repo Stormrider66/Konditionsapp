@@ -182,6 +182,17 @@ type AppLocale = 'en' | 'sv'
 
 const SWEDISH_CHARS = /[åäöÅÄÖ]/
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+export function getKnowledgeSkillDisplayName(
+  skill: Pick<KnowledgeSkillSummary | MatchedSkill, 'name' | 'nameEn'>,
+  locale: AppLocale = 'en'
+): string {
+  return locale === 'sv' ? skill.name : skill.nameEn || skill.name
+}
+
 function formatSkillCatalogLine(skill: KnowledgeSkillSummary, locale: AppLocale): string {
   if (locale === 'sv') {
     const englishName = skill.nameEn && skill.nameEn !== skill.name ? ` / ${skill.nameEn}` : ''
@@ -189,7 +200,7 @@ function formatSkillCatalogLine(skill: KnowledgeSkillSummary, locale: AppLocale)
     return `- ${skill.name}${englishName}${keywords ? ` (${keywords})` : ''}`
   }
 
-  const displayName = skill.nameEn || skill.name
+  const displayName = getKnowledgeSkillDisplayName(skill, locale)
   const keywords = skill.keywords
     .filter((keyword) => !SWEDISH_CHARS.test(keyword))
     .slice(0, 5)
@@ -467,6 +478,7 @@ export async function fetchSkillContext(
   query: string,
   matchedSkills: MatchedSkill[],
   keys: EmbeddingKeys,
+  locale: AppLocale = 'en',
 ): Promise<{ context: string; skillsUsed: string[]; chunksUsed: number }> {
   if (matchedSkills.length === 0) {
     return { context: '', skillsUsed: [], chunksUsed: 0 }
@@ -521,10 +533,14 @@ export async function fetchSkillContext(
     )
 
     const context = `
-## EXPERTKUNSKAP (automatiskt hämtad)
-Följande expertkunskap är relevant för frågan:
+## ${t(locale, 'EXPERT KNOWLEDGE (auto-retrieved)', 'EXPERTKUNSKAP (automatiskt hämtad)')}
+${t(
+  locale,
+  'The following expert knowledge is relevant to the question. Source excerpts may contain Swedish; use them as source material and answer in English unless the user explicitly asks for another language.',
+  'Följande expertkunskap är relevant för frågan:'
+)}
 
-${selectedChunks.map((c) => `### ${docMap.get(c.documentId) || 'Kunskapskälla'} (${(c.similarity * 100).toFixed(0)}% relevans)
+${selectedChunks.map((c) => `### ${docMap.get(c.documentId) || t(locale, 'Knowledge source', 'Kunskapskälla')} (${(c.similarity * 100).toFixed(0)}% ${t(locale, 'relevance', 'relevans')})
 ${c.content}
 `).join('\n')}
 ---
@@ -532,7 +548,7 @@ ${c.content}
 
     return {
       context,
-      skillsUsed: activeSkills.map(s => s.name),
+      skillsUsed: activeSkills.map(s => getKnowledgeSkillDisplayName(s, locale)),
       chunksUsed: selectedChunks.length,
     }
   } catch (error) {

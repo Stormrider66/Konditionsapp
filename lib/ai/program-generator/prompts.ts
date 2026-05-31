@@ -101,7 +101,7 @@ RETURN ONLY THIS JSON FORMAT:
 }`
   }
 
-  return `Skapa en PERIODISERINGSPLAN (endast struktur) för ett ${context.totalWeeks}-veckors ${formatSport(context.sport)} program.
+  return `Skapa en PERIODISERINGSPLAN (endast struktur) för ett ${context.totalWeeks}-veckors ${formatSport(context.sport, locale)} program.
 
 ${athleteInfo}
 ${testInfo}
@@ -457,7 +457,7 @@ function formatDayShort(day: string, locale: AppLocale): string {
   return (locale === 'sv' ? svMap : enMap)[day] || day
 }
 
-function formatSport(sport: string, locale: AppLocale = 'sv'): string {
+function formatSport(sport: string, locale: AppLocale = 'en'): string {
   return getSportLabel(sport, locale).toLowerCase()
 }
 

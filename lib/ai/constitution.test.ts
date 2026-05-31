@@ -22,8 +22,16 @@ describe('buildConstitutionPreamble localization', () => {
     expect(`${athlete}\n${coach}\n${analysis}`).not.toMatch(/[åäöÅÄÖ]|\b(ATLET|ANALYSSPECIFIKA|överträning)\b/)
   })
 
-  it('preserves the Swedish constitution by default', () => {
+  it('uses the English constitution by default', () => {
     const preamble = buildConstitutionPreamble('program')
+
+    expect(preamble).toContain('CONSTITUTION - CORE PRINCIPLES')
+    expect(preamble).toContain('PROGRAM GENERATION PRINCIPLES')
+    expect(preamble).not.toContain('KONSTITUTION')
+  })
+
+  it('preserves the Swedish constitution when requested', () => {
+    const preamble = buildConstitutionPreamble('program', undefined, 'sv')
 
     expect(preamble).toContain('KONSTITUTION')
     expect(preamble).toContain('PROGRAMGENERERINGSPRINCIPER')
