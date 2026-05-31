@@ -6,6 +6,7 @@ import { Grid3x3, LayoutList, LineChart } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TeamTestProfile } from './TeamTestProfile'
 import { TeamTestsClient } from './TeamTestsClient'
+import { TeamPlayerDevelopment } from './TeamPlayerDevelopment'
 
 type TestTab = 'selector' | 'matrix' | 'development'
 
@@ -54,7 +55,10 @@ export function TeamTestTabs({ teamId, teamName, basePath, businessSlug }: TeamT
       </div>
 
       {tab === 'development' ? (
-        <TeamTestsClient teamId={teamId} teamName={teamName} basePath={basePath} />
+        <div className="space-y-8">
+          <TeamPlayerDevelopment teamId={teamId} businessSlug={businessSlug} />
+          <TeamTestsClient teamId={teamId} teamName={teamName} basePath={basePath} />
+        </div>
       ) : (
         <TeamTestProfile teamId={teamId} businessSlug={businessSlug} view={tab} />
       )}
