@@ -37,9 +37,6 @@ import {
   Trophy,
   Download,
   TrendingUp,
-  AlertTriangle,
-  Target,
-  Timer,
   FlaskConical,
 } from 'lucide-react'
 import { TeamTestImportDialog } from './TeamTestImportDialog'
@@ -84,7 +81,6 @@ import {
 } from 'recharts'
 import { toast } from 'sonner'
 import { buildHockeyActionItems, type HockeyActionItem } from '@/lib/hockey/team-action-plan'
-import { buildTeamIceSpeedProfileRows } from '@/lib/hockey/ice-speed'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import { useLocale } from '@/i18n/client'
 
@@ -287,19 +283,6 @@ function formatChartDate(iso: string, locale: AppLocale): string {
   return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { month: 'short', day: 'numeric' })
 }
 
-function aerobicSourceLabel(source: string | null | undefined, locale: AppLocale): string {
-  switch (source) {
-    case 'lab-test':
-      return t(locale, 'lab', 'labb')
-    case 'athlete-profile':
-      return t(locale, 'profile', 'profil')
-    case 'manual-profile':
-      return t(locale, 'manual', 'manuell')
-    default:
-      return t(locale, 'lab/profile', 'labb/profil')
-  }
-}
-
 const SIMCA_PRESET_LINKS: Record<AppLocale, Array<{ id: string; label: string; description: string }>> = {
   en: [
     { id: 'full', label: 'Full', description: 'All variables' },
@@ -336,73 +319,16 @@ function formatMetricValue(value: number | null | undefined, unit: string): stri
   return `${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
 }
 
-function formatSpeed(value: number | null | undefined): string {
-  return value == null ? '–' : `${value.toFixed(1)} km/h`
-}
-
-function formatDistance(value: number | null | undefined): string {
-  return value == null ? '–' : `${value.toFixed(1)} m`
-}
-
-interface IceSpeedGapRow {
-  key: string
-  label: string
-  coverage: number
-  leader: { athleteName: string; timeS: number; speedKmh: number } | null
-  averageSpeedKmh: number | null
-  medianGapM: number | null
-  maxGap: { athleteName: string; gapM: number } | null
-}
-
-function buildIceSpeedGapRows(athletes: HockeyAthleteRow[]): IceSpeedGapRow[] {
-  return buildTeamIceSpeedProfileRows(athletes).map((row) => ({
-    key: row.key,
-    label: row.label,
-    coverage: row.coverage,
-    leader: {
-      athleteName: row.leaderName,
-      timeS: row.timeS,
-      speedKmh: row.speedKmh,
-    },
-    averageSpeedKmh: row.averageSpeedKmh,
-    medianGapM: row.medianGapM,
-    maxGap: row.maxGapM == null
-      ? null
-      : { athleteName: row.maxGapAthleteName ?? '-', gapM: row.maxGapM },
-  }))
-}
-
 function getRankVariant(percentile: number): 'default' | 'secondary' | 'outline' {
   if (percentile >= 80) return 'default'
   if (percentile >= 50) return 'secondary'
   return 'outline'
 }
 
-function getBenchmarkLabel(band: HockeyBenchmarkBand, locale: AppLocale): string {
-  switch (band) {
-    case 'top':
-      return t(locale, 'Top 20%', 'Topp 20%')
-    case 'above':
-      return t(locale, 'Above average', 'Över snitt')
-    case 'watch':
-      return t(locale, 'Follow up', 'Följ upp')
-    case 'priority':
-      return t(locale, 'Priority', 'Prioritet')
-    default:
-      return t(locale, 'Team range', 'Lagspann')
-  }
-}
-
 function formatPathwayChange(value: number | null | undefined, unit: string): string {
   if (value == null) return '–'
   const decimals = unit === 's' ? 2 : ['W/kg', 'km/h', 'ml/kg/min', 'mmol/L', 'xBW'].includes(unit) ? 1 : 0
   return `${value > 0 ? '+' : ''}${value.toFixed(decimals)}${unit ? ` ${unit}` : ''}`
-}
-
-function formatNormGap(value: number | null | undefined, unit: string): string {
-  if (value == null) return '–'
-  const decimals = unit === 's' ? 2 : ['W/kg', 'km/h', 'ml/kg/min', 'mmol/L', 'xBW'].includes(unit) ? 1 : 0
-  return `${value > 0 ? '+' : ''}${value.toFixed(decimals)} ${unit}`
 }
 
 function metricByKey(metrics: HockeyMetric[] | undefined, key: string): HockeyMetric | undefined {
@@ -453,7 +379,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   const [sessions, setSessions] = useState<TestSession[]>([])
   const [hockey, setHockey] = useState<HockeyTeamSummary | null>(null)
   const [selectedHockeyMetric, setSelectedHockeyMetric] = useState('muscleLabWkg')
-  const [selectedPosition, setSelectedPosition] = useState('all')
+  const selectedPosition = 'all'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [importOpen, setImportOpen] = useState(false)
@@ -644,11 +570,8 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
   }
 
   const hockeyExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`)
-  const hockeyAerobicExportHref = scopedTeamApiUrl(`/api/teams/${teamId}/hockey-tests/export`, { preset: 'aerobic_profile' })
   const simcaReadiness = useMemo(() => buildSimcaReadiness(hockey, locale), [hockey, locale])
   const simcaPresetLinks = SIMCA_PRESET_LINKS[locale]
-  const hockeyAthletes = hockey?.athletes
-    .filter((athlete) => selectedPosition === 'all' || athlete.position.key === selectedPosition) ?? []
   const selectedHistory = hockey?.history.find((metric) => metric.key === selectedHockeyMetric)
     ?? hockey?.history.find((metric) => metric.teamTrend.length > 0)
   const hockeyChangeRows = selectedHistory?.athletes
@@ -659,7 +582,6 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
     () => hockey ? buildHockeyActionItems(hockey, { basePath, locale }) : [],
     [basePath, hockey, locale]
   )
-  const iceSpeedGapRows = buildIceSpeedGapRows(hockeyAthletes)
   const aerobicLeaders = useMemo(
     () => ['vo2Max', 'lt2SpeedKmh', 'maxLactate', 'rampTimeSeconds']
       .map((key) => hockey?.leaders.find((leader) => leader.key === key))
@@ -793,77 +715,6 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-              {hockey.leaders
-                .filter((leader) => leader.leader)
-                .slice(0, 4)
-                .map((leader) => (
-                  <div key={leader.key} className="rounded-md border bg-muted/20 px-3 py-2">
-                    <p className="text-[10px] uppercase text-muted-foreground">{leader.label}</p>
-                    <p className="text-sm font-semibold truncate">{leader.leader?.athleteName}</p>
-                    <p className="font-mono text-xs text-muted-foreground">
-                      {formatMetricValue(leader.leader?.value, leader.unit)}
-                      {leader.average != null && ` · ${copy.average} ${formatMetricValue(leader.average, leader.unit)}`}
-                    </p>
-                  </div>
-                ))}
-            </div>
-
-            {hockeyActionItems.length > 0 && (
-              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <p className="text-sm font-semibold flex items-center gap-2">
-                      <Target className="h-4 w-4 text-amber-500" />
-                      Coach action plan
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t(locale, 'Automatically summarized from position percentiles, z-score, and test history.', 'Automatiskt sammanfattat från positionpercentiler, z-score och testhistorik.')}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px]">
-                    {plural(locale, hockeyActionItems.length, 'action', 'actions', 'åtgärd', 'åtgärder')}
-                  </Badge>
-                </div>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                  {hockeyActionItems.map((item) => (
-                    <div key={item.id} className="rounded-md border bg-background px-3 py-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="text-sm font-semibold flex items-center gap-1.5">
-                            {item.severity === 'priority' && <AlertTriangle className="h-3.5 w-3.5 text-red-500" />}
-                            {item.title}
-                          </p>
-                          <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
-                        </div>
-                        <Badge
-                          variant={item.severity === 'priority' ? 'destructive' : item.severity === 'watch' ? 'secondary' : 'outline'}
-                          className="shrink-0 text-[10px]"
-                        >
-                          {item.severity === 'priority' ? t(locale, 'Priority', 'Prioritet') : item.severity === 'watch' ? t(locale, 'Follow up', 'Följ upp') : 'Info'}
-                        </Badge>
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        {item.athletes.map((athlete) => (
-                          <Link key={athlete.id} href={`${basePath}/clients/${athlete.id}?tab=development`}>
-                            <Badge variant="outline" className="text-[10px] hover:bg-muted">
-                              {athlete.name}
-                            </Badge>
-                          </Link>
-                        ))}
-                        {item.href && (
-                          <Link href={item.href}>
-                            <Badge variant="secondary" className="text-[10px] hover:bg-muted">
-                              {copy.open}
-                            </Badge>
-                          </Link>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {pathway && pathway.seasonSummaries.length > 0 && (
               <div className="rounded-md border bg-muted/10 p-3 space-y-3">
@@ -1217,236 +1068,6 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
               </div>
             )}
 
-            <div className="flex items-center justify-between gap-3 flex-wrap rounded-md border bg-muted/10 px-3 py-2">
-              <div>
-                <p className="text-sm font-semibold">{t(locale, 'Norms and percentiles', 'Normer och percentiler')}</p>
-                <p className="text-xs text-muted-foreground">
-                  {t(locale, "Z-score is calculated against the team; percentile is calculated against both team and the player's position.", 'Z-score räknas mot laget, percentil mot både lag och spelarens position.')}
-                </p>
-              </div>
-              <Select value={selectedPosition} onValueChange={setSelectedPosition}>
-                <SelectTrigger className="h-8 w-[190px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t(locale, 'All positions', 'Alla positioner')}</SelectItem>
-                  {hockey.positions.map((position) => (
-                    <SelectItem key={position.key} value={position.key}>
-                      {position.label} ({position.athleteCount})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {hockeyAthletes.some((athlete) => athlete.latestTestDate) ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b text-muted-foreground">
-                      <th className="sticky left-0 z-10 bg-background px-3 py-2 text-left font-medium min-w-40">
-                        {t(locale, 'Player', 'Spelare')}
-                      </th>
-                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">Position</th>
-                      <th className="px-3 py-2 text-left font-medium whitespace-nowrap">{t(locale, 'Latest', 'Senast')}</th>
-                      {hockey.metrics.map((metric) => (
-                        <th key={metric.key} className="px-3 py-2 text-right font-medium whitespace-nowrap">
-                          {metric.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {hockeyAthletes.map((athlete) => (
-                      <tr key={athlete.id} className="border-b last:border-0">
-                        <td className="sticky left-0 z-10 bg-background px-3 py-2 font-medium">
-                          <Link href={`${basePath}/clients/${athlete.id}?tab=development`} className="hover:underline">
-                            {athlete.name}
-                          </Link>
-                          {athlete.qualityFlags.some((flag) => flag.severity === 'warning') && (
-                            <div className="mt-1">
-                              <Badge variant="destructive" className="h-4 px-1.5 text-[9px] font-normal">
-                                {plural(locale, athlete.qualityFlags.filter((flag) => flag.severity === 'warning').length, 'quality flag', 'quality flags', 'kvalitetsflagga', 'kvalitetsflaggor')}
-                              </Badge>
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                          {athlete.position.label}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground">
-                          <div>{athlete.latestTestDate ? formatShortDate(athlete.latestTestDate, locale) : '–'}</div>
-                          {athlete.aerobicAutoLinked && (
-                            <Badge variant="secondary" className="mt-1 h-4 px-1.5 text-[9px] font-normal">
-                              {t(locale, 'Aerobic', 'Aerob')} {aerobicSourceLabel(athlete.aerobicAutoLinkSource, locale)}
-                            </Badge>
-                          )}
-                        </td>
-                        {hockey.metrics.map((metric) => (
-                          <td key={metric.key} className="px-3 py-2 text-right font-mono whitespace-nowrap">
-                            {(() => {
-                              const benchmark = athlete.benchmarks[metric.key]
-                              const normGap = athlete.normGaps[metric.key]
-                              return (
-                                <>
-                            <div>{formatMetricValue(athlete.metrics[metric.key], metric.unit)}</div>
-                            {athlete.ranks[metric.key] && (
-                              <Badge
-                                variant={getRankVariant(athlete.ranks[metric.key]?.percentile ?? 0)}
-                                className="mt-1 h-4 px-1.5 text-[9px] font-normal"
-                              >
-                                #{athlete.ranks[metric.key]?.rank} · P{athlete.ranks[metric.key]?.percentile}
-                              </Badge>
-                            )}
-                                  {benchmark && (
-                                    <div className="mt-1 flex justify-end gap-1">
-                                      <Badge variant={getRankVariant(benchmark.positionPercentile ?? benchmark.percentile ?? 0)} className="h-4 px-1.5 text-[9px] font-normal">
-                                        {getBenchmarkLabel(benchmark.band, locale)}
-                                      </Badge>
-                                      {benchmark.positionRank && benchmark.positionCoverage > 1 && (
-                                        <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-normal">
-                                          Pos #{benchmark.positionRank}/{benchmark.positionCoverage}
-                                        </Badge>
-                                      )}
-                                      {benchmark.zScore != null && (
-                                        <Badge variant="outline" className="h-4 px-1.5 text-[9px] font-normal">
-                                          z {benchmark.zScore > 0 ? '+' : ''}{benchmark.zScore.toFixed(2)}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-                                  {normGap && (
-                                    <div className="mt-1 flex justify-end">
-                                      <Badge
-                                        variant={normGap.gapToTarget >= 0 ? 'secondary' : 'outline'}
-                                        className="h-4 px-1.5 text-[9px] font-normal"
-                                      >
-                                        Target {formatNormGap(normGap.gapToTarget, normGap.unit)}
-                                      </Badge>
-                                    </div>
-                                  )}
-                                </>
-                              )
-                            })()}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="rounded-md border border-dashed py-8 text-center text-sm text-muted-foreground">
-                {t(locale, 'No hockey sessions registered yet. Log tests from the hockey page to fill the matrix.', 'Inga hockeysessioner registrerade ännu. Logga tester från hockeysidan för att fylla matrisen.')}
-              </div>
-            )}
-
-            {iceSpeedGapRows.length > 0 && (
-              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <p className="text-sm font-semibold flex items-center gap-2">
-                      <Timer className="h-4 w-4 text-sky-500" />
-                      {t(locale, 'Ice speed and distance gaps', 'Isfart och avståndsgap')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t(locale, 'Speed is calculated as distance/time in km/h. Distance gap shows meters behind the fastest player when that player reaches the finish marker.', 'Fart räknas som distans/tid i km/h. Avståndsgap visar meter bakom snabbaste spelaren när snabbaste spelaren passerar målmarkeringen.')}
-                    </p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px]">
-                    {selectedPosition === 'all' ? t(locale, 'All positions', 'Alla positioner') : t(locale, 'Position filter active', 'Positionsfilter aktivt')}
-                  </Badge>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="border-b text-muted-foreground">
-                        <th className="px-2 py-1.5 text-left font-medium">Stint</th>
-                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Fastest', 'Snabbast')}</th>
-                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Team speed', 'Lagfart')}</th>
-                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Median behind', 'Median bakom')}</th>
-                        <th className="px-2 py-1.5 text-right font-medium">{t(locale, 'Largest gap', 'Störst gap')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {iceSpeedGapRows.map((row) => (
-                        <tr key={row.key} className="border-b last:border-0">
-                          <td className="px-2 py-1.5 font-medium">
-                            {row.label}
-                            <div className="text-[10px] text-muted-foreground">{plural(locale, row.coverage, 'player', 'players', 'spelare', 'spelare')}</div>
-                          </td>
-                          <td className="px-2 py-1.5 text-right font-mono">
-                            {row.leader ? (
-                              <>
-                                <div>{formatSpeed(row.leader.speedKmh)}</div>
-                                <div className="text-[10px] text-muted-foreground">
-                                  {row.leader.athleteName} · {row.leader.timeS.toFixed(2)} s
-                                </div>
-                              </>
-                            ) : (
-                              '–'
-                            )}
-                          </td>
-                          <td className="px-2 py-1.5 text-right font-mono">
-                            {formatSpeed(row.averageSpeedKmh)}
-                          </td>
-                          <td className="px-2 py-1.5 text-right font-mono">
-                            {formatDistance(row.medianGapM)}
-                          </td>
-                          <td className="px-2 py-1.5 text-right font-mono">
-                            {row.maxGap ? (
-                              <>
-                                <div>{formatDistance(row.maxGap.gapM)}</div>
-                                <div className="text-[10px] text-muted-foreground">{row.maxGap.athleteName}</div>
-                              </>
-                            ) : (
-                              '–'
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {aerobicLeaders.length > 0 && (
-              <div className="rounded-md border bg-muted/10 p-3 space-y-3">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <p className="text-sm font-semibold flex items-center gap-2">
-                      <Activity className="h-4 w-4 text-emerald-500" />
-                      {t(locale, 'Aerobic profile', 'Aerob profil')}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {t(locale, 'VO2max, LT2, lactate, and ramp time are compared against the team and can be exported to SIMCA.', 'VO2max, LT2, laktat och ramptid jämförs mot laget och kan exporteras till SIMCA.')}
-                      {hockeyAthletes.some((athlete) => athlete.aerobicAutoLinked)
-                        ? t(locale, ' The table badge shows when values are linked from lab/profile.', ' Badge i tabellen visar när värden är länkade från labb/profil.')
-                        : ''}
-                    </p>
-                  </div>
-                  <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">
-                    <a href={hockeyAerobicExportHref}>
-                      <Download className="mr-1.5 h-3.5 w-3.5" />
-                      {t(locale, 'SIMCA aerobic', 'SIMCA aerob')}
-                    </a>
-                  </Button>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-                  {aerobicLeaders.map((leader) => (
-                    <div key={leader.key} className="rounded-md border bg-background px-3 py-2">
-                      <p className="text-[10px] uppercase text-muted-foreground">{leader.label}</p>
-                      <p className="text-sm font-semibold truncate">{leader.leader?.athleteName}</p>
-                      <p className="font-mono text-xs text-muted-foreground">
-                        {formatMetricValue(leader.leader?.value, leader.unit)}
-                        {leader.average != null && ` · ${copy.average} ${formatMetricValue(leader.average, leader.unit)}`}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {selectedHistory && (
               <div className="rounded-md border bg-muted/10 p-3 space-y-3">
