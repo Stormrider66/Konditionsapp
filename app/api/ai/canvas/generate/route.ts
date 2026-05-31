@@ -204,7 +204,10 @@ export async function POST(request: NextRequest) {
     } = parsed.data
     const membership = await validateBusinessMembership(user.id, businessSlug)
     if (!membership) {
-      return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
+      return NextResponse.json(
+        { error: t(locale, 'Business not found or access denied', 'Verksamheten hittades inte eller saknar behörighet') },
+        { status: 404 }
+      )
     }
 
     const keys = await getResolvedAiKeys(user.id, { businessId: membership.businessId })
@@ -358,7 +361,7 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     if (isNextRedirectError(error) || (error instanceof Error && error.message === 'Unauthorized')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     logger.error('AI canvas generation failed', {}, error)

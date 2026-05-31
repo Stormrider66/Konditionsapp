@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Authenticate athlete (supports coaches in athlete mode)
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { user, clientId } = resolved
     locale = user.language === 'sv' ? 'sv' : 'en'
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
 
     if (!context) {
       return NextResponse.json(
-        { error: 'Failed to load athlete context' },
+        { error: t(locale, 'Failed to load athlete context', 'Kunde inte läsa in atletkontext') },
         { status: 500 }
       )
     }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     if (!guardrails.canGenerate) {
       return NextResponse.json(
         {
-          error: 'WOD generation blocked',
+          error: t(locale, 'WOD generation blocked', 'Dagens pass-generering blockerad'),
           reason: guardrails.blockedReason,
           guardrails: guardrails.checks,
         },
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
       const resolved = resolveModel(apiKeys, requestedIntent)
       if (!resolved) {
         return NextResponse.json(
-          { error: 'No API key available for AI generation' },
+          { error: t(locale, 'No API key available for AI generation', 'Ingen AI-nyckel tillgänglig för generering') },
           { status: 500 }
         )
       }
@@ -240,7 +240,7 @@ export async function POST(request: NextRequest) {
 
       if (!selectedModelConfig) {
         return NextResponse.json(
-          { error: 'No API key available for AI generation' },
+          { error: t(locale, 'No API key available for AI generation', 'Ingen AI-nyckel tillgänglig för generering') },
           { status: 500 }
         )
       }
@@ -471,7 +471,7 @@ export async function POST(request: NextRequest) {
     logger.error('WOD generation error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Check for specific API errors
@@ -524,7 +524,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       {
-        error: 'Failed to generate workout',
+        error: t(locale, 'Failed to generate workout', 'Kunde inte generera pass'),
         details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
       },
       { status: 500 }
@@ -820,12 +820,15 @@ async function enhanceWorkoutWithLibrary(
 // ============================================
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { searchParams } = new URL(request.url)
     const wodId = searchParams.get('id')
@@ -840,7 +843,7 @@ export async function GET(request: NextRequest) {
       })
 
       if (!wod) {
-        return NextResponse.json({ error: 'WOD not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'WOD not found', 'Dagens pass hittades inte') }, { status: 404 })
       }
 
       return NextResponse.json(wod)
@@ -858,11 +861,11 @@ export async function GET(request: NextRequest) {
     logger.error('GET WOD error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch WOD' },
+      { error: t(locale, 'Failed to fetch WOD', 'Kunde inte hämta dagens pass') },
       { status: 500 }
     )
   }
@@ -873,19 +876,22 @@ export async function GET(request: NextRequest) {
 // ============================================
 
 export async function PATCH(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await request.json()
     const { wodId, status, sessionRPE, exerciseLogs, actualDuration } = body
     const feedback = normalizeWODFeedback(body.feedback)
 
     if (body.feedback && !feedback) {
-      return NextResponse.json({ error: 'Invalid WOD feedback' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid WOD feedback', 'Ogiltig feedback för dagens pass') }, { status: 400 })
     }
 
     // Get WOD for training load calculation
@@ -897,7 +903,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!existingWOD) {
-      return NextResponse.json({ error: 'WOD not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'WOD not found', 'Dagens pass hittades inte') }, { status: 404 })
     }
 
     // Update WOD
@@ -920,7 +926,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (wod.count === 0) {
-      return NextResponse.json({ error: 'WOD not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'WOD not found', 'Dagens pass hittades inte') }, { status: 404 })
     }
 
     // Calculate and save training load when WOD is completed
@@ -998,11 +1004,11 @@ export async function PATCH(request: NextRequest) {
     logger.error('PATCH WOD error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to update WOD' },
+      { error: t(locale, 'Failed to update WOD', 'Kunde inte uppdatera dagens pass') },
       { status: 500 }
     )
   }
