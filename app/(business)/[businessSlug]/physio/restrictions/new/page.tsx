@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RestrictionForm } from '@/components/physio/RestrictionForm'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -11,6 +12,7 @@ interface PageProps {
 export default async function NewRestrictionPage({ params, searchParams }: PageProps) {
   const { businessSlug } = await params
   const { clientId, injuryId } = await searchParams
+  const common = await getTranslations('common')
   const basePath = `/${businessSlug}/physio`
 
   return (
@@ -18,7 +20,7 @@ export default async function NewRestrictionPage({ params, searchParams }: PageP
       <Button asChild variant="ghost" className="mb-6 text-slate-300 hover:text-white">
         <Link href={`${basePath}/restrictions`}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka
+          {common('back')}
         </Link>
       </Button>
       <RestrictionForm basePath={basePath} initialClientId={clientId} initialInjuryId={injuryId} />

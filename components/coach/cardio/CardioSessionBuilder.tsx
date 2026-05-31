@@ -125,23 +125,25 @@ type CardioChildStep = {
   targetValue?: string // "250", "62", "2:05"
 }
 
-const EQUIPMENT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'RUN', label: 'Löpning' },
-  { value: 'TREADMILL', label: 'Löpband' },
-  { value: 'BIKE', label: 'Cykel' },
+const EQUIPMENT_OPTIONS: { value: string; label: string; labelSv?: string }[] = [
+  { value: 'RUN', label: 'Running', labelSv: 'Löpning' },
+  { value: 'TREADMILL', label: 'Treadmill', labelSv: 'Löpband' },
+  { value: 'BIKE', label: 'Bike', labelSv: 'Cykel' },
   { value: 'ASSAULT_BIKE', label: 'Assault Bike' },
   { value: 'ECHO_BIKE', label: 'Echo Bike' },
   { value: 'WATTBIKE', label: 'Wattbike' },
-  { value: 'ROW', label: 'Rodd (Concept2)' },
+  { value: 'ROW', label: 'Row (Concept2)', labelSv: 'Rodd (Concept2)' },
   { value: 'SKI_ERG', label: 'SkiErg' },
-  { value: 'SWIM', label: 'Simning' },
-  { value: 'OTHER', label: 'Annat' },
+  { value: 'SWIM', label: 'Swimming', labelSv: 'Simning' },
+  { value: 'OTHER', label: 'Other', labelSv: 'Annat' },
 ]
 
-const EQUIPMENT_LABEL_BY_VALUE: Record<string, string> = EQUIPMENT_OPTIONS.reduce(
-  (acc, opt) => ({ ...acc, [opt.value]: opt.label }),
-  {}
-)
+function equipmentLabel(
+  option: { label: string; labelSv?: string },
+  locale: AppLocale
+): string {
+  return locale === 'sv' ? option.labelSv ?? option.label : option.label
+}
 
 type CardioRepeatGroup = {
   id: string
@@ -271,6 +273,20 @@ interface CardioSessionBuilderProps {
 
 export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessId }: CardioSessionBuilderProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const localizedEquipmentOptions = React.useMemo(
+    () => EQUIPMENT_OPTIONS.map((option) => ({
+      value: option.value,
+      label: equipmentLabel(option, locale),
+    })),
+    [locale]
+  )
+  const localizedEquipmentLabelByValue = React.useMemo(
+    () => localizedEquipmentOptions.reduce<Record<string, string>>(
+      (acc, option) => ({ ...acc, [option.value]: option.label }),
+      {}
+    ),
+    [localizedEquipmentOptions]
+  )
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const businessHeaders = React.useMemo(() => ({
@@ -629,10 +645,10 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
         type: template.type,
         duration: template.defaultDuration || undefined,
         notes: template.type === 'PREHAB'
-          ? 'Ledkontroll, vävnadskapacitet och riskområden kopplat till konditionspasset.'
+          ? text(locale, 'Ledkontroll, vävnadskapacitet och riskområden kopplat till konditionspasset.', 'Joint control, tissue capacity, and risk areas connected to the cardio session.')
           : template.type === 'PLYOMETRIC'
-            ? 'Explosivitet, elastisk styrka och landningskvalitet kopplat till konditionspasset.'
-            : 'Core-kontroll som stödjer hållning, kraftöverföring och teknikkvalitet.',
+            ? text(locale, 'Explosivitet, elastisk styrka och landningskvalitet kopplat till konditionspasset.', 'Explosiveness, elastic strength, and landing quality connected to the cardio session.')
+            : text(locale, 'Core-kontroll som stödjer hållning, kraftöverföring och teknikkvalitet.', 'Core control supporting posture, force transfer, and technical quality.'),
         exercises: [],
       }
       setSegments([...segments, newBlock])
@@ -990,24 +1006,24 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="RUNNING">Löpning</SelectItem>
-                    <SelectItem value="CYCLING">Cykling</SelectItem>
-                    <SelectItem value="SWIMMING">Simning</SelectItem>
-                    <SelectItem value="SKIING">Skidor</SelectItem>
+                    <SelectItem value="RUNNING">{text(locale, 'Löpning', 'Running')}</SelectItem>
+                    <SelectItem value="CYCLING">{text(locale, 'Cykling', 'Cycling')}</SelectItem>
+                    <SelectItem value="SWIMMING">{text(locale, 'Simning', 'Swimming')}</SelectItem>
+                    <SelectItem value="SKIING">{text(locale, 'Skidor', 'Skiing')}</SelectItem>
                     <SelectItem value="TRIATHLON">Triathlon</SelectItem>
                     <SelectItem value="HYROX">HYROX</SelectItem>
-                    <SelectItem value="TEAM_ICE_HOCKEY">Ishockey</SelectItem>
-                    <SelectItem value="GENERAL_FITNESS">Allmän Kondition</SelectItem>
+                    <SelectItem value="TEAM_ICE_HOCKEY">{text(locale, 'Ishockey', 'Ice hockey')}</SelectItem>
+                    <SelectItem value="GENERAL_FITNESS">{text(locale, 'Allmän Kondition', 'General Fitness')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
             {onCancel && (
               <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Redigerar: {initialData?.name}</span>
+                <span>{text(locale, 'Redigerar', 'Editing')}: {initialData?.name}</span>
                 <Button variant="ghost" size="sm" onClick={onCancel} className="ml-auto">
                   <X className="h-4 w-4 mr-1" />
-                  Avbryt
+                  {text(locale, 'Avbryt', 'Cancel')}
                 </Button>
               </div>
             )}
@@ -1017,7 +1033,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
               {segments.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-2">
                   <Activity className="h-12 w-12 opacity-50" />
-                  <p>Dra segment hit eller klicka &quot;+&quot; för att lägga till</p>
+                  <p>{text(locale, 'Dra segment hit eller klicka "+" för att lägga till', 'Drag segments here or click "+" to add')}</p>
                 </div>
               ) : (
                 <DndContext
@@ -1227,8 +1243,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
     <PatternBlockDialog
       open={patternDialogOpen}
       onOpenChange={setPatternDialogOpen}
-      equipmentOptions={EQUIPMENT_OPTIONS}
-      equipmentLabelByValue={EQUIPMENT_LABEL_BY_VALUE}
+      equipmentOptions={localizedEquipmentOptions}
+      equipmentLabelByValue={localizedEquipmentLabelByValue}
       onAdd={addGeneratedPattern}
     />
     </>

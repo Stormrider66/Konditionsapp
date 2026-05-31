@@ -175,7 +175,7 @@ export function BusinessesTable() {
               variant="outline"
               size="icon"
               onClick={fetchBusinesses}
-              aria-label="Uppdatera lista"
+              aria-label="Refresh list"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>

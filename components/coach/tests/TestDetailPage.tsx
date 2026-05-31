@@ -18,6 +18,7 @@ import { ArrowLeft, Edit2 } from 'lucide-react';
 import { performAllCalculations } from '@/lib/calculations';
 import { logger } from '@/lib/logger';
 import type { TestCalculations, Threshold, TrainingZone } from '@/types';
+import { getTranslations } from '@/i18n/server';
 
 interface TestPageProps {
   params: Promise<{
@@ -28,6 +29,7 @@ interface TestPageProps {
 
 export default async function TestDetailPage({ params }: TestPageProps) {
   const user = await requireCoach();
+  const common = await getTranslations('common');
   const resolvedParams = await params;
   const { testId } = resolvedParams;
   const businessSlug = (resolvedParams as any).businessSlug as string | undefined;
@@ -108,13 +110,13 @@ export default async function TestDetailPage({ params }: TestPageProps) {
             <Link href={`${basePath}/coach/clients/${labTest.clientId}`}>
               <Button variant="outline">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Tillbaka till atlet
+                {common('backToAthlete')}
               </Button>
             </Link>
             <Link href={`${basePath}/coach/tests/${labTest.id}/edit`}>
               <Button variant="outline">
                 <Edit2 className="mr-2 h-4 w-4" />
-                Redigera test
+                {common('editTest')}
               </Button>
             </Link>
             <PDFExportButton

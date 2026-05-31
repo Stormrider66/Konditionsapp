@@ -1,5 +1,5 @@
 // app/(business)/[businessSlug]/athlete/tests/[id]/page.tsx
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
@@ -10,6 +10,7 @@ import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
 import type { TestCalculations, Threshold, TrainingZone } from '@/types'
 import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
+import { getTranslations } from '@/i18n/server'
 
 interface BusinessTestDetailPageProps {
   params: Promise<{
@@ -21,6 +22,7 @@ interface BusinessTestDetailPageProps {
 export default async function BusinessAthleteTestDetailPage({ params }: BusinessTestDetailPageProps) {
   const { businessSlug, id } = await params
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
+  const common = await getTranslations('common')
 
   // Validate business membership
   const membership = await validateBusinessMembership(user.id, businessSlug)
@@ -74,7 +76,7 @@ export default async function BusinessAthleteTestDetailPage({ params }: Business
           <Link href={`${basePath}/athlete/tests`}>
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Tillbaka till tester
+              {common('backToTests')}
             </Button>
           </Link>
           <PDFExportButton

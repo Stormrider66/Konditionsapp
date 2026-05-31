@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { RehabProgramForm } from '@/components/physio/RehabProgramForm'
+import { getTranslations } from '@/i18n/server'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -11,6 +12,7 @@ interface PageProps {
 export default async function NewRehabProgramPage({ params, searchParams }: PageProps) {
   const { businessSlug } = await params
   const { clientId, injuryId } = await searchParams
+  const common = await getTranslations('common')
   const basePath = `/${businessSlug}/physio`
 
   return (
@@ -18,7 +20,7 @@ export default async function NewRehabProgramPage({ params, searchParams }: Page
       <Button asChild variant="ghost" className="mb-6 text-slate-300 hover:text-white">
         <Link href={`${basePath}/rehab-programs`}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Tillbaka
+          {common('back')}
         </Link>
       </Button>
       <RehabProgramForm basePath={basePath} initialClientId={clientId} initialInjuryId={injuryId} />

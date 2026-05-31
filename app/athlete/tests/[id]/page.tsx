@@ -1,14 +1,15 @@
 // app/athlete/tests/[id]/page.tsx
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { ReportTemplate } from '@/components/reports/ReportTemplate'
 import { PDFExportButton } from '@/components/reports/PDFExportButton'
 import type { TestCalculations, Threshold, TrainingZone } from '@/types'
 import { VisualReportCard } from '@/components/visual-reports/VisualReportCard'
+import { getTranslations } from '@/i18n/server'
 
 interface AthleteTestDetailPageProps {
   params: Promise<{
@@ -19,6 +20,7 @@ interface AthleteTestDetailPageProps {
 export default async function AthleteTestDetailPage({ params }: AthleteTestDetailPageProps) {
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
   const { id } = await params
+  const common = await getTranslations('common')
 
   // Fetch test with stages and client data
   const test = await prisma.test.findUnique({
@@ -64,7 +66,7 @@ export default async function AthleteTestDetailPage({ params }: AthleteTestDetai
           <Link href="/athlete/tests">
             <Button variant="outline">
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Tillbaka till tester
+              {common('backToTests')}
             </Button>
           </Link>
           <PDFExportButton
