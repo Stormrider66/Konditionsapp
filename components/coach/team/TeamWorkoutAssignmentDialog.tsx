@@ -44,6 +44,11 @@ import { TeamSelector } from './TeamSelector'
 import { PositionQuickSelect } from './PositionQuickSelect'
 import { WorkoutPickerField, type PickedWorkout } from './WorkoutPickerField'
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields'
+import {
+  RepeatWeeklyFields,
+  computeWeeklyDates,
+  DEFAULT_OCCURRENCES,
+} from '@/components/coach/scheduling/RepeatWeeklyFields'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 
 interface LocationOption {
@@ -111,6 +116,8 @@ export function TeamWorkoutAssignmentDialog({
   // athleteId → blocked exercise names (from the restriction preview)
   const [blockedById, setBlockedById] = useState<Record<string, string[]>>({})
   const [assignedDate, setAssignedDate] = useState('')
+  const [repeatEnabled, setRepeatEnabled] = useState(false)
+  const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES)
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingTeam, setLoadingTeam] = useState(false)
@@ -222,6 +229,8 @@ export function TeamWorkoutAssignmentDialog({
       setBlockedById({})
       setPickedWorkout(null)
       setAssignedDate(new Date().toISOString().split('T')[0])
+      setRepeatEnabled(false)
+      setOccurrences(DEFAULT_OCCURRENCES)
       setNotes('')
       setSelectedLocationId('')
       setCustomLocationName('')
@@ -335,43 +344,85 @@ export function TeamWorkoutAssignmentDialog({
     ? `${copy(locale, 'Assign', 'Tilldela')} "${effectiveWorkout.name}"`
     : copy(locale, 'Assign a workout', 'Tilldela ett pass')
 
+  type AssignResponseBody = {
+    data?: { assignmentCount?: number; teamName?: string; skipped?: Array<{ name: string }> }
+    error?: string
+  }
+
   async function handleAssign() {
-    if (!selectedTeamId || selectedMemberCount === 0 || !effectiveWorkout) return
+    if (!selectedTeamId || selectedMemberCount === 0 || !effectiveWorkout || !assignedDate) return
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/teams/${selectedTeamId}/assign-workout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
-        body: JSON.stringify({
-          workoutType: effectiveWorkout.type,
-          workoutId: effectiveWorkout.id,
-          assignedDate,
-          notes: notes || undefined,
-          excludeAthleteIds: excludedMembers.length > 0 ? excludedMembers : undefined,
-          locationId: selectedLocationId || undefined,
-          locationName: customLocationName || undefined,
-          responsibleCoachId: selectedTrainerId || undefined,
-          ...(startTime && {
-            startTime,
-            endTime: endTime || undefined,
-            locationId: locationId || undefined,
-            locationName: locationName || undefined,
-            createCalendarEvent,
-          }),
-        }),
-      })
+      const baseDate = new Date(assignedDate)
+      const dates = repeatEnabled ? computeWeeklyDates(baseDate, occurrences) : [baseDate]
+      const dateStrings = dates.map((d) => d.toISOString().split('T')[0])
 
-      if (response.ok) {
-        const result = await response.json()
-        toast.success(copy(locale, 'Team workout assigned!', 'Lagpass tilldelat!'), {
-          description: copy(
-            locale,
-            `${effectiveWorkout.name} assigned to ${result.data.assignmentCount} players in ${result.data.teamName}.`,
-            `${effectiveWorkout.name} tilldelat till ${result.data.assignmentCount} spelare i ${result.data.teamName}.`
-          ),
-        })
-        const skipped = result.data.skipped as Array<{ name: string }> | undefined
+      const responses = await Promise.all(
+        dateStrings.map((isoDate) =>
+          fetch(`/api/teams/${selectedTeamId}/assign-workout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
+            body: JSON.stringify({
+              workoutType: effectiveWorkout.type,
+              workoutId: effectiveWorkout.id,
+              assignedDate: isoDate,
+              notes: notes || undefined,
+              excludeAthleteIds: excludedMembers.length > 0 ? excludedMembers : undefined,
+              locationId: selectedLocationId || undefined,
+              locationName: customLocationName || undefined,
+              responsibleCoachId: selectedTrainerId || undefined,
+              ...(startTime && {
+                startTime,
+                endTime: endTime || undefined,
+                locationId: locationId || undefined,
+                locationName: locationName || undefined,
+                createCalendarEvent,
+              }),
+            }),
+          })
+            .then(async (response) => ({
+              ok: response.ok,
+              isoDate,
+              body: (await response.json().catch(() => ({}))) as AssignResponseBody,
+            }))
+            .catch((error) => {
+              console.error(`Failed to assign on ${isoDate}:`, error)
+              return { ok: false, isoDate, body: {} as AssignResponseBody }
+            })
+        )
+      )
+
+      const okResponses = responses.filter((r) => r.ok)
+      const successCount = okResponses.length
+      const failCount = responses.length - successCount
+
+      if (successCount > 0) {
+        const teamName = okResponses[0]?.body.data?.teamName ?? ''
+        const perDateCount = okResponses[0]?.body.data?.assignmentCount ?? selectedMemberCount
+        const skipped = okResponses[0]?.body.data?.skipped
+
+        const description =
+          dates.length > 1
+            ? copy(
+                locale,
+                `${effectiveWorkout.name}: ${perDateCount} players × ${successCount} weeks in ${teamName}.`,
+                `${effectiveWorkout.name}: ${perDateCount} spelare × ${successCount} veckor i ${teamName}.`
+              )
+            : copy(
+                locale,
+                `${effectiveWorkout.name} assigned to ${perDateCount} players in ${teamName}.`,
+                `${effectiveWorkout.name} tilldelat till ${perDateCount} spelare i ${teamName}.`
+              )
+
+        if (failCount > 0) {
+          toast.warning(copy(locale, 'Partially assigned', 'Delvis tilldelat'), {
+            description: `${description} ${copy(locale, `${failCount} week(s) failed.`, `${failCount} vecka/veckor misslyckades.`)}`,
+          })
+        } else {
+          toast.success(copy(locale, 'Team workout assigned!', 'Lagpass tilldelat!'), { description })
+        }
+
         if (skipped && skipped.length > 0) {
           toast.warning(
             copy(
@@ -382,12 +433,14 @@ export function TeamWorkoutAssignmentDialog({
             { description: skipped.map((s) => s.name).join(', ') }
           )
         }
+
         setOpen(false)
         onAssigned?.()
       } else {
-        const data = await response.json()
         toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
-          description: data.error || copy(locale, 'Could not assign the workout to the team.', 'Kunde inte tilldela passet till laget.'),
+          description:
+            responses[0]?.body.error ||
+            copy(locale, 'Could not assign the workout to the team.', 'Kunde inte tilldela passet till laget.'),
         })
       }
     } catch (error) {
@@ -447,6 +500,13 @@ export function TeamWorkoutAssignmentDialog({
             type="date"
             value={assignedDate}
             onChange={(e) => setAssignedDate(e.target.value)}
+          />
+          <RepeatWeeklyFields
+            enabled={repeatEnabled}
+            onEnabledChange={setRepeatEnabled}
+            occurrences={occurrences}
+            onOccurrencesChange={setOccurrences}
+            baseDate={assignedDate ? new Date(assignedDate) : null}
           />
         </div>
 
@@ -681,7 +741,7 @@ export function TeamWorkoutAssignmentDialog({
           ) : (
             <>
               <Users className="h-4 w-4 mr-2" />
-              {copy(locale, 'Assign', 'Tilldela')} ({selectedMemberCount})
+              {copy(locale, 'Assign', 'Tilldela')} ({repeatEnabled ? `${selectedMemberCount}×${occurrences}` : selectedMemberCount})
             </>
           )}
         </Button>

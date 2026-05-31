@@ -134,7 +134,7 @@ export function WorkoutPickerField({ value, onChange, locale, teamId }: WorkoutP
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap gap-1.5">
+      <div className="grid grid-cols-4 gap-1.5">
         {TYPES.map((option) => {
           const Icon = option.icon
           const active = type === option.value
@@ -144,9 +144,10 @@ export function WorkoutPickerField({ value, onChange, locale, teamId }: WorkoutP
               type="button"
               variant={active ? 'default' : 'outline'}
               size="sm"
+              className="w-full px-1 text-xs"
               onClick={() => handleTypeChange(option.value)}
             >
-              <Icon className="mr-1.5 h-3.5 w-3.5" />
+              <Icon className="mr-1 h-3.5 w-3.5 shrink-0" />
               {t(option.en, option.sv)}
             </Button>
           )
