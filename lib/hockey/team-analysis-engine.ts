@@ -33,6 +33,53 @@ export type ScoreTone = 'good' | 'watch' | 'risk' | 'neutral'
 export type MetricCategory = 'hockey' | 'strength'
 export type LocalizedExerciseName = { name: string; nameSv: string | null; nameEn: string | null }
 
+/** Hockey season starts July 1 — a test in Aug 2025 belongs to season "2025/26". */
+const SEASON_START_MONTH = 6 // July (0-indexed)
+
+function seasonStartYear(date: Date): number {
+  return date.getMonth() >= SEASON_START_MONTH ? date.getFullYear() : date.getFullYear() - 1
+}
+
+function seasonLabel(startYear: number): string {
+  return `${startYear}/${String((startYear + 1) % 100).padStart(2, '0')}`
+}
+
+/** Map a stored position string onto the C/W/D/G norm buckets (else null). */
+export function normalizeHockeyPosition(position: string | null | undefined): HockeyPosition | null {
+  const p = (position ?? '').trim().toUpperCase()
+  if (!p) return null
+  if (p.startsWith('G') || p.includes('GOAL') || p.includes('MÅLVAKT')) return 'G'
+  if (p.startsWith('D') || p.includes('BACK') || p.includes('FÖRSVAR')) return 'D'
+  if (p.startsWith('C') || p.includes('CENTER') || p.includes('CENTRE')) return 'C'
+  if (p.startsWith('W') || p.includes('WING') || p.startsWith('F') || p.includes('FORWARD') || p.includes('ANFALL')) return 'W'
+  return null
+}
+
+/**
+ * Position-adjusted 0-100 score for one value against a target/elite norm
+ * (already converted to the metric's unit). Scale: 70 = meets target,
+ * 100 = elite, 0 = a floor symmetric below target.
+ */
+export function normScore(value: number, target: number, elite: number, lowerIsBetter: boolean): number {
+  const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)))
+  if (lowerIsBetter) {
+    const span = target - elite
+    if (span <= 0) return value <= target ? 100 : 0
+    if (value <= elite) return 100
+    if (value <= target) return clamp(70 + (30 * (target - value)) / span)
+    const floor = target + span
+    if (value >= floor) return 0
+    return clamp((70 * (floor - value)) / (floor - target))
+  }
+  const span = elite - target
+  if (span <= 0) return value >= target ? 100 : 0
+  if (value >= elite) return 100
+  if (value >= target) return clamp(70 + (30 * (value - target)) / span)
+  const floor = target - span
+  if (value <= floor) return 0
+  return clamp((70 * (value - floor)) / (target - floor))
+}
+
 export interface MemberSummary {
   clientId: string
   name: string
@@ -113,7 +160,33 @@ export interface AdaptiveMetricAthlete {
   rank: number | null
   percentile: number | null
   targetGap: number | null
+  /**
+   * Position-adjusted 0-100 sub-score for this metric (70 = meets position
+   * target, 100 = elite). Null when the athlete has no value or no resolvable
+   * norm. Averaged across metrics to form the player composite.
+   */
+  score: number | null
   missing: boolean
+}
+
+export type HockeyPosition = 'C' | 'W' | 'D' | 'G'
+
+export interface PlayerScore {
+  clientId: string
+  name: string
+  position: string | null
+  pos: HockeyPosition | null
+  /** Composite 0-100 (mean of per-metric sub-scores), null when no scored tests. */
+  total: number | null
+  /** How many metrics contributed to the composite. */
+  count: number
+}
+
+export interface SeasonAnalysis {
+  key: string
+  label: string
+  metricGroups: MetricGroup[]
+  scores: PlayerScore[]
 }
 
 export interface AdaptiveMetricRow {
@@ -204,6 +277,92 @@ export function buildMetricGroups({
     { id: 'hockey' as const, label: t(locale, 'Tests', 'Tester'), metrics: hockeyMetrics },
     { id: 'strength' as const, label: t(locale, 'Strength PRs', 'Styrke-PRs'), metrics: strengthMetrics },
   ].filter((group) => group.metrics.length > 0)
+}
+
+type OneRepMaxRow = {
+  clientId: string
+  exerciseId: string
+  oneRepMax: number
+  unit: string
+  date: Date
+  exercise: { id: string } & LocalizedExerciseName
+}
+
+/**
+ * Composite 0-100 profile score per player: the mean of each player's
+ * position-adjusted per-metric sub-scores across the supplied groups.
+ */
+export function buildPlayerScores(
+  members: Array<{ id: string; name: string; position: string | null }>,
+  groups: MetricGroup[]
+): PlayerScore[] {
+  const metrics = groups.flatMap((group) => group.metrics)
+  return members.map((member) => {
+    const subs: number[] = []
+    for (const metric of metrics) {
+      const athlete = metric.athletes.find((a) => a.clientId === member.id)
+      if (athlete && athlete.score != null) subs.push(athlete.score)
+    }
+    const total = subs.length ? Math.round(subs.reduce((sum, v) => sum + v, 0) / subs.length) : null
+    return {
+      clientId: member.id,
+      name: member.name,
+      position: member.position,
+      pos: normalizeHockeyPosition(member.position),
+      total,
+      count: subs.length,
+    }
+  })
+}
+
+/**
+ * Bucket all test/PR history into hockey seasons (July 1 boundary) and build a
+ * full MetricGroup[] + composite scores per season, newest first. Seasons with
+ * no usable data are dropped, keeping the view adaptive across years too.
+ */
+export function buildSeasonAnalyses({
+  members,
+  hockeyTests,
+  oneRepMaxRows,
+  norms,
+  teamLevel,
+  locale,
+  maxSeasons = 3,
+}: {
+  members: Array<{ id: string; name: string; weight: number; position: string | null }>
+  hockeyTests: HockeyTestForSummary[]
+  oneRepMaxRows: OneRepMaxRow[]
+  norms: HockeyNormReferenceConfig[]
+  teamLevel: string
+  locale: AppLocale
+  maxSeasons?: number
+}): SeasonAnalysis[] {
+  const years = new Set<number>()
+  for (const test of hockeyTests) years.add(seasonStartYear(test.testDate))
+  for (const row of oneRepMaxRows) years.add(seasonStartYear(row.date))
+
+  const orderedYears = Array.from(years).sort((a, b) => b - a).slice(0, maxSeasons)
+
+  return orderedYears
+    .map((year) => {
+      const seasonTests = hockeyTests.filter((test) => seasonStartYear(test.testDate) === year)
+      const seasonRows = oneRepMaxRows.filter((row) => seasonStartYear(row.date) === year)
+      const metricGroups = buildMetricGroups({
+        members,
+        hockeyTests: seasonTests,
+        oneRepMaxRows: seasonRows,
+        norms,
+        teamLevel,
+        locale,
+      })
+      return {
+        key: String(year),
+        label: seasonLabel(year),
+        metricGroups,
+        scores: buildPlayerScores(members, metricGroups),
+      }
+    })
+    .filter((season) => season.metricGroups.length > 0)
 }
 
 type LabTestForSummary = Parameters<typeof buildHockeyAerobicFieldsFromLabTest>[0] & {
@@ -420,6 +579,17 @@ export function buildMetricRow({
       : null
     const rank = rankByClient.get(member.id)
 
+    // Position-adjusted 0-100 sub-score: grade the athlete's value against
+    // their own position's target/elite (both converted to the metric's unit).
+    let score: number | null = null
+    if (norm && latest?.value != null) {
+      const scoreTarget = comparableNormValue(norm.target, norm.unit, metric.unit, member.weight)
+      const scoreElite = comparableNormValue(norm.elite, norm.unit, metric.unit, member.weight)
+      if (scoreTarget != null && Number.isFinite(scoreTarget) && scoreElite != null && Number.isFinite(scoreElite)) {
+        score = normScore(latest.value, scoreTarget, scoreElite, metric.lowerIsBetter === true)
+      }
+    }
+
     return {
       clientId: member.id,
       name: member.name,
@@ -432,6 +602,7 @@ export function buildMetricRow({
       rank: rank?.rank ?? null,
       percentile: rank?.percentile ?? null,
       targetGap,
+      score,
       missing: !latest,
     }
   })

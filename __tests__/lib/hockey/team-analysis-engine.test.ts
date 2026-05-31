@@ -21,6 +21,7 @@ function athlete(partial: Partial<AdaptiveMetricAthlete> & { clientId: string; n
     rank: null,
     percentile: null,
     targetGap: null,
+    score: null,
     missing: false,
     ...partial,
   }

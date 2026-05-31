@@ -27,6 +27,7 @@ import {
   buildPendingPRs,
   buildProgressSummary,
   buildRecentPRs,
+  buildSeasonAnalyses,
   buildTrainingQuality,
   emptyAggregates,
   emptyProgressSummary,
@@ -320,6 +321,14 @@ export async function GET(
       locale,
     })
     const flatMetrics = metricGroups.flatMap((group) => group.metrics)
+    const seasons = buildSeasonAnalyses({
+      members: team.members,
+      hockeyTests,
+      oneRepMaxRows,
+      norms: hockeyNormReferences,
+      teamLevel,
+      locale,
+    })
     const goalReadiness = buildGoalReadiness(flatMetrics, teamLevel)
     const progressSummary = buildProgressSummary(flatMetrics)
     const trainingQuality = buildTrainingQuality({
@@ -381,6 +390,7 @@ export async function GET(
         evaluationScores,
         trainingQuality,
         metricGroups,
+        seasons,
         goalReadiness,
         progressSummary,
         rosterSummary: {
