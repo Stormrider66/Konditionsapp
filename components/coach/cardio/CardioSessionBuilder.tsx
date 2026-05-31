@@ -380,14 +380,14 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
       )
     } else {
       // Reset form for new session
-      setSessionName('Nytt Konditionspass')
+      setSessionName(text(locale, 'Nytt Konditionspass', 'New Cardio Session'))
       setDescription('')
       setSport('RUNNING')
       setTeamId(null)
       setTrainingYear(getDefaultTrainingYear())
       setSegments([])
     }
-  }, [initialData])
+  }, [initialData, locale])
 
   useEffect(() => {
     async function fetchExercises() {
@@ -469,7 +469,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
         setSegments(mappedSegments)
       } catch (error) {
         console.error('Error loading workout:', error)
-        setSessionName('Error loading workout')
+        setSessionName(text(locale, 'Fel vid laddning', 'Error loading workout'))
         toast.error(text(locale, 'Fel', 'Error'), {
           description: text(locale, 'Kunde inte ladda träningspasset.', 'Could not load the workout.'),
         })
@@ -477,7 +477,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
     }
 
     loadWorkout()
-  }, [workoutId, programId, sessionDate])
+  }, [workoutId, programId, sessionDate, locale])
 
   const handleSaveToLibrary = async () => {
     if (segments.length === 0) {

@@ -319,6 +319,14 @@ interface DraftProgram {
   }
 }
 
+// Compute the week-count of a phase from its "weeks" string (e.g. "1-4" -> 4, "5" -> 1)
+function phaseWeekCount(weeks: string): number {
+  const parts = weeks.split('-').map((n) => parseInt(n.trim(), 10)).filter((n) => !Number.isNaN(n))
+  if (parts.length === 0) return 1
+  if (parts.length === 1) return 1
+  return Math.max(1, parts[1] - parts[0] + 1)
+}
+
 export function EnhancedProgramPreview({
   content,
   athleteId,
@@ -492,14 +500,6 @@ export function EnhancedProgramPreview({
     setIsDirty(true)
   }, [])
 
-  // Compute the week-count of a phase from its "weeks" string (e.g. "1-4" → 4, "5" → 1)
-  const phaseWeekCount = (weeks: string): number => {
-    const parts = weeks.split('-').map((n) => parseInt(n.trim(), 10)).filter((n) => !Number.isNaN(n))
-    if (parts.length === 0) return 1
-    if (parts.length === 1) return 1
-    return Math.max(1, parts[1] - parts[0] + 1)
-  }
-
   // Add a new blank phase at the end (4 weeks by default)
   const addPhase = useCallback(() => {
     setDraft(prev => {
@@ -507,7 +507,7 @@ export function EnhancedProgramPreview({
       const start = currentTotal + 1
       const end = currentTotal + 4
       const newPhase: ParsedPhase = {
-        name: `Ny fas ${prev.phases.length + 1}`,
+        name: `${locale === 'sv' ? 'Ny fas' : 'New phase'} ${prev.phases.length + 1}`,
         weeks: `${start}-${end}`,
         focus: '',
         weeklyTemplate: {},
@@ -519,7 +519,7 @@ export function EnhancedProgramPreview({
       }
     })
     setIsDirty(true)
-  }, [])
+  }, [locale])
 
   // Duplicate a phase, appending the copy at the end with shifted week range
   const duplicatePhase = useCallback((phaseIndex: number) => {
@@ -532,7 +532,7 @@ export function EnhancedProgramPreview({
       const end = currentTotal + count
       const copy: ParsedPhase = {
         ...source,
-        name: `${source.name} (kopia)`,
+        name: `${source.name} (${locale === 'sv' ? 'kopia' : 'copy'})`,
         weeks: count === 1 ? `${start}` : `${start}-${end}`,
         weeklyTemplate: source.weeklyTemplate ? { ...source.weeklyTemplate } : {},
       }
@@ -543,7 +543,7 @@ export function EnhancedProgramPreview({
       }
     })
     setIsDirty(true)
-  }, [])
+  }, [locale])
 
   // Remove a phase and shrink totalWeeks
   const removePhase = useCallback((phaseIndex: number) => {

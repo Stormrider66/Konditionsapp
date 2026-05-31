@@ -28,6 +28,7 @@ import { Concept2BikeErgTestForm } from './protocols/Concept2BikeErgTestForm';
 import { WattbikeTestForm } from './protocols/WattbikeTestForm';
 import { AirBikeTestForm } from './protocols/AirBikeTestForm';
 import { ErgometerTestResults } from './results/ErgometerTestResults';
+import { useLocale } from '@/i18n/client';
 
 interface Athlete {
   id: string;
@@ -63,6 +64,25 @@ interface ErgometerFieldTestFormProps {
   onTestComplete?: (result: ErgometerTestResult) => void;
 }
 
+type AppLocale = 'en' | 'sv';
+
+const COPY: Record<AppLocale, {
+  title: string;
+  description: string;
+  submissionFailed: string;
+}> = {
+  en: {
+    title: 'Ergometer fitness test',
+    description: 'Register field tests to calculate threshold power, zones, and benchmark comparisons',
+    submissionFailed: 'Test submission failed',
+  },
+  sv: {
+    title: 'Ergometer konditionstest',
+    description: 'Registrera fälttest för att beräkna tröskeleffekt, zoner och benchmark-jämförelse',
+    submissionFailed: 'Testet kunde inte skickas',
+  },
+};
+
 const ERGOMETER_ICONS: Record<ErgometerType, React.ReactNode> = {
   CONCEPT2_ROW: <Activity className="h-4 w-4" />,
   CONCEPT2_SKIERG: <Wind className="h-4 w-4" />,
@@ -71,12 +91,12 @@ const ERGOMETER_ICONS: Record<ErgometerType, React.ReactNode> = {
   ASSAULT_BIKE: <Dumbbell className="h-4 w-4" />,
 };
 
-const ERGOMETER_LABELS: Record<ErgometerType, string> = {
-  CONCEPT2_ROW: 'Roddmaskin',
-  CONCEPT2_SKIERG: 'SkiErg',
-  CONCEPT2_BIKEERG: 'BikeErg',
-  WATTBIKE: 'Wattbike',
-  ASSAULT_BIKE: 'Air Bike',
+const ERGOMETER_LABELS: Record<ErgometerType, Record<AppLocale, string>> = {
+  CONCEPT2_ROW: { en: 'RowErg', sv: 'Roddmaskin' },
+  CONCEPT2_SKIERG: { en: 'SkiErg', sv: 'SkiErg' },
+  CONCEPT2_BIKEERG: { en: 'BikeErg', sv: 'BikeErg' },
+  WATTBIKE: { en: 'Wattbike', sv: 'Wattbike' },
+  ASSAULT_BIKE: { en: 'Air Bike', sv: 'Air Bike' },
 };
 
 export function ErgometerFieldTestForm({
@@ -84,6 +104,8 @@ export function ErgometerFieldTestForm({
   defaultErgometer = 'CONCEPT2_ROW',
   onTestComplete,
 }: ErgometerFieldTestFormProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = COPY[locale];
   const [selectedErgometer, setSelectedErgometer] = useState<ErgometerType>(defaultErgometer);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ErgometerTestResult | null>(null);
@@ -117,7 +139,7 @@ export function ErgometerFieldTestForm({
       }
     } catch (err) {
       console.error('Ergometer test submission failed:', err);
-      setError(err instanceof Error ? err.message : 'Test submission failed');
+      setError(err instanceof Error ? err.message : copy.submissionFailed);
     } finally {
       setSubmitting(false);
     }
@@ -135,10 +157,10 @@ export function ErgometerFieldTestForm({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Timer className="h-5 w-5" />
-            Ergometer Konditionstest
+            {copy.title}
           </CardTitle>
           <CardDescription>
-            Registrera falttest for att berakna troskeleffekt, zoner och benchmark-jamforelse
+            {copy.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -157,7 +179,7 @@ export function ErgometerFieldTestForm({
                   className="flex items-center gap-1 text-xs sm:text-sm"
                 >
                   {ERGOMETER_ICONS[type as ErgometerType]}
-                  <span className="hidden sm:inline">{label}</span>
+                  <span className="hidden sm:inline">{label[locale]}</span>
                 </TabsTrigger>
               ))}
             </TabsList>
