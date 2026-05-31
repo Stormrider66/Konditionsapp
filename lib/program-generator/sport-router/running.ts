@@ -4,6 +4,7 @@ import { getProgramStartDate, getProgramEndDate } from '../date-utils'
 import { generateBaseProgram, type ProgramGenerationParams } from '../index'
 import { calculatePhases } from '../periodization'
 import type { PaceProgression, SportProgramParams } from './types'
+import { resolveSportRouterLocale, text } from './locale'
 import { calculateProgressivePace, createProgressiveWeeks } from './progressive-weeks'
 import { estimateMarathonPace, calculateTargetPace, formatPaceMinKm } from './training-paces'
 
@@ -72,18 +73,19 @@ export function createCustomRunningProgram(
   params: SportProgramParams,
   client: Client
 ): CreateTrainingProgramDTO {
+  const locale = resolveSportRouterLocale(params.locale)
   const startDate = getProgramStartDate()
   const endDate = getProgramEndDate(startDate, params.durationWeeks)
 
-  const goalLabels: Record<string, string> = {
-    'marathon': 'Marathon',
-    'half-marathon': 'Halvmaraton',
-    '10k': '10K',
-    '5k': '5K',
-    'custom': 'Anpassad',
+  const goalLabels: Record<string, { en: string; sv: string }> = {
+    'marathon': { en: 'Marathon', sv: 'Maraton' },
+    'half-marathon': { en: 'Half marathon', sv: 'Halvmaraton' },
+    '10k': { en: '10K', sv: '10K' },
+    '5k': { en: '5K', sv: '5K' },
+    'custom': { en: 'Custom', sv: 'Anpassad' },
   }
 
-  const goalLabel = goalLabels[params.goal] || params.goal
+  const goalLabel = goalLabels[params.goal]?.[locale] || params.goal
 
   // Calculate current fitness pace from PB/recent race
   const currentFitnessPaceKmh = estimateMarathonPace(
@@ -147,7 +149,7 @@ export function createCustomRunningProgram(
     goalType: params.goal,
     startDate,
     endDate,
-    notes: params.notes || `Löpprogram för ${goalLabel.toLowerCase()}`,
+    notes: params.notes || text(locale, `Running program for ${goalLabel.toLowerCase()}`, `Löpprogram för ${goalLabel.toLowerCase()}`),
     weeks: createProgressiveWeeks(
       params.durationWeeks,
       startDate,
@@ -169,8 +171,8 @@ export function createCustomRunningProgram(
         currentWeeklyVolume: params.currentWeeklyVolume,
         recentRaceDistance: params.recentRaceDistance,
         recentRaceTime: params.recentRaceTime,
-      }
+      },
+      locale
     ),
   }
 }
-

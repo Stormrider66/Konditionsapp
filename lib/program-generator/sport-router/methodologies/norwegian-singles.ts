@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger'
 import type { CreateTrainingProgramDTO } from '@/types'
 import type { MethodologyPaces } from '../types'
 import { formatPaceMinKm } from '../training-paces'
+import { text, type SportRouterLocale } from '../locale'
 import { calculateVolumePercent } from './polarized'
 
 
@@ -14,7 +15,8 @@ export function createNorwegianSinglesWeeks(
   startDate: Date,
   sessionsPerWeek: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
   const weeks = []
 
@@ -49,8 +51,8 @@ export function createNorwegianSinglesWeeks(
       startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
       phase,
       volume: volumePercent,
-      focus: getNorwegianWeekFocus(phase),
-      days: createNorwegianSinglesDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh, goal),
+      focus: getNorwegianWeekFocus(phase, locale),
+      days: createNorwegianSinglesDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh, goal, locale),
     })
   }
 
@@ -60,12 +62,12 @@ export function createNorwegianSinglesWeeks(
 /**
  * Get Norwegian Singles week focus description
  */
-export function getNorwegianWeekFocus(phase: string): string {
+export function getNorwegianWeekFocus(phase: string, locale: SportRouterLocale = 'en'): string {
   const focusMap: Record<string, string> = {
-    'BASE': 'Aerob bas med sub-tröskelintervaller',
-    'BUILD': 'Progressiva tröskelpass',
-    'PEAK': 'Tävlingsspecifik intensitet',
-    'TAPER': 'Återhämtning med fartbehållning',
+    'BASE': text(locale, 'Aerobic base with sub-threshold intervals', 'Aerob bas med sub-tröskelintervaller'),
+    'BUILD': text(locale, 'Progressive threshold sessions', 'Progressiva tröskelpass'),
+    'PEAK': text(locale, 'Race-specific intensity', 'Tävlingsspecifik intensitet'),
+    'TAPER': text(locale, 'Recovery while preserving speed', 'Återhämtning med fartbehållning'),
   }
   return focusMap[phase] || 'Norwegian Singles'
 }
@@ -80,8 +82,11 @@ export function createNorwegianSinglesDays(
   weekInPhase: number,
   marathonPaceKmh: number,
   goal: string,
+  localeOrMethodologyPaces: SportRouterLocale | MethodologyPaces = 'en',
   methodologyPaces?: MethodologyPaces
 ) {
+  const locale = typeof localeOrMethodologyPaces === 'string' ? localeOrMethodologyPaces : 'en'
+  const resolvedMethodologyPaces = typeof localeOrMethodologyPaces === 'string' ? methodologyPaces : localeOrMethodologyPaces
   const days = []
 
   // Norwegian Singles: 2-3 quality sessions per week
@@ -105,23 +110,27 @@ export function createNorwegianSinglesDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Långpass - Green zone',
+        notes: text(locale, 'Long run - Green zone', 'Långpass - Green zone'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Långpass',
+          name: text(locale, 'Long run', 'Långpass'),
           intensity: 'EASY' as const,
           duration,
           distance,
-          instructions: `Långpass i Green zone (${formatPaceMinKm(easyPaceKmh)}/km). Strikt aerobt.`,
+          instructions: text(
+            locale,
+            `Long run in the Green zone (${formatPaceMinKm(easyPaceKmh)}/km). Strictly aerobic.`,
+            `Långpass i Green zone (${formatPaceMinKm(easyPaceKmh)}/km). Strikt aerobt.`
+          ),
           segments: [],
         }],
       })
     } else if (qualityDays.includes(dayNum)) {
       // Norwegian Singles quality session (sub-threshold intervals)
-      const workout = createNorwegianSinglesWorkout(phase, weekInPhase, marathonPaceKmh, goal, qualityDays.indexOf(dayNum) + 1, methodologyPaces)
+      const workout = createNorwegianSinglesWorkout(phase, weekInPhase, marathonPaceKmh, goal, qualityDays.indexOf(dayNum) + 1, locale, resolvedMethodologyPaces)
       days.push({
         dayNumber: dayNum,
-        notes: 'Sub-tröskelintervaller',
+        notes: text(locale, 'Sub-threshold intervals', 'Sub-tröskelintervaller'),
         workouts: [workout],
       })
     } else if (easyDays.includes(dayNum)) {
@@ -132,14 +141,18 @@ export function createNorwegianSinglesDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Lugn löpning - Green zone',
+        notes: text(locale, 'Easy run - Green zone', 'Lugn löpning - Green zone'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Lugn löpning',
+          name: text(locale, 'Easy run', 'Lugn löpning'),
           intensity: 'EASY' as const,
           duration,
           distance,
-          instructions: `Lätt löpning i Green zone (${formatPaceMinKm(easyPaceKmh)}/km). Återhämtning.`,
+          instructions: text(
+            locale,
+            `Easy running in the Green zone (${formatPaceMinKm(easyPaceKmh)}/km). Recovery focus.`,
+            `Lätt löpning i Green zone (${formatPaceMinKm(easyPaceKmh)}/km). Återhämtning.`
+          ),
           segments: [],
         }],
       })
@@ -147,7 +160,7 @@ export function createNorwegianSinglesDays(
       // Rest day
       days.push({
         dayNumber: dayNum,
-        notes: 'Vilodag',
+        notes: text(locale, 'Rest day', 'Vilodag'),
         workouts: [],
       })
     }
@@ -176,19 +189,22 @@ export function createNorwegianSinglesWorkout(
   marathonPaceKmh: number,
   goal: string,
   sessionNumber: number,
+  localeOrMethodologyPaces: SportRouterLocale | MethodologyPaces = 'en',
   methodologyPaces?: MethodologyPaces  // Optional: use actual LT2 from test
 ) {
+  const locale = typeof localeOrMethodologyPaces === 'string' ? localeOrMethodologyPaces : 'en'
+  const resolvedMethodologyPaces = typeof localeOrMethodologyPaces === 'string' ? methodologyPaces : localeOrMethodologyPaces
   // Use methodology-specific pacing if available (from lactate test)
   // Otherwise fall back to estimation from marathon pace
   let subThresholdPaceKmh: number
   let thresholdPaceKmh: number
   let easyPaceKmh: number
 
-  if (methodologyPaces?.subThresholdPaceKmh) {
+  if (resolvedMethodologyPaces?.subThresholdPaceKmh) {
     // Using actual LT2 data from lactate test - Norwegian gold standard!
-    subThresholdPaceKmh = methodologyPaces.subThresholdPaceKmh
-    thresholdPaceKmh = methodologyPaces.thresholdPaceKmh
-    easyPaceKmh = methodologyPaces.easyPaceKmh
+    subThresholdPaceKmh = resolvedMethodologyPaces.subThresholdPaceKmh
+    thresholdPaceKmh = resolvedMethodologyPaces.thresholdPaceKmh
+    easyPaceKmh = resolvedMethodologyPaces.easyPaceKmh
     logger.debug('[Norwegian Singles] Using LT2 from test', {
       thresholdPace: formatPaceMinKm(thresholdPaceKmh),
       subThresholdPace: formatPaceMinKm(subThresholdPaceKmh)
@@ -209,15 +225,19 @@ export function createNorwegianSinglesWorkout(
     // Build tolerance with shorter intervals
     if (weekInPhase <= 2) {
       reps = 5; workMin = 5; restMin = 1
-      name = '5x5 min sub-tröskel'
+      name = text(locale, '5x5 min sub-threshold', '5x5 min sub-tröskel')
     } else if (weekInPhase <= 4) {
       reps = 4; workMin = 6; restMin = 1
-      name = '4x6 min sub-tröskel'
+      name = text(locale, '4x6 min sub-threshold', '4x6 min sub-tröskel')
     } else {
       reps = 5; workMin = 6; restMin = 1
-      name = '5x6 min sub-tröskel'
+      name = text(locale, '5x6 min sub-threshold', '5x6 min sub-tröskel')
     }
-    description = `Sub-tröskelintervaller (${formatPaceMinKm(subThresholdPaceKmh)}/km). Strax under LT2, bör kännas kontrollerat.`
+    description = text(
+      locale,
+      `Sub-threshold intervals (${formatPaceMinKm(subThresholdPaceKmh)}/km). Just below LT2, should feel controlled.`,
+      `Sub-tröskelintervaller (${formatPaceMinKm(subThresholdPaceKmh)}/km). Strax under LT2, bör kännas kontrollerat.`
+    )
   } else if (phase === 'BUILD') {
     // Classic Norwegian Singles progression
     if (sessionNumber === 1) {
@@ -230,20 +250,32 @@ export function createNorwegianSinglesWorkout(
       reps = 3; workMin = 10; restMin = 1.5
       name = '3x10 min threshold minus'
     }
-    description = `Norwegian Singles (${formatPaceMinKm(subThresholdPaceKmh)}/km). Håll laktat strax under tröskel.`
+    description = text(
+      locale,
+      `Norwegian Singles (${formatPaceMinKm(subThresholdPaceKmh)}/km). Keep lactate just below threshold.`,
+      `Norwegian Singles (${formatPaceMinKm(subThresholdPaceKmh)}/km). Håll laktat strax under tröskel.`
+    )
   } else if (phase === 'PEAK') {
     // Race-specific with longer intervals
     const raceSpecificPace = goal === '5k' || goal === '10k'
       ? marathonPaceKmh * 1.12
       : marathonPaceKmh * 1.06
     reps = 4; workMin = 8; restMin = 1
-    name = 'Tävlingsspecifika intervaller'
-    description = `Tävlingsfart intervaller (${formatPaceMinKm(raceSpecificPace)}/km). Nära målrace-tempo.`
+    name = text(locale, 'Race-specific intervals', 'Tävlingsspecifika intervaller')
+    description = text(
+      locale,
+      `Race-pace intervals (${formatPaceMinKm(raceSpecificPace)}/km). Close to target race pace.`,
+      `Tävlingsfart intervaller (${formatPaceMinKm(raceSpecificPace)}/km). Nära målrace-tempo.`
+    )
   } else {
     // Taper - maintain with reduced volume
     reps = 3; workMin = 5; restMin = 1
-    name = 'Underhåll sub-tröskel'
-    description = 'Bibehåll känslan för tröskel utan att trötta ut dig.'
+    name = text(locale, 'Sub-threshold maintenance', 'Underhåll sub-tröskel')
+    description = text(
+      locale,
+      'Maintain threshold feel without fatiguing yourself.',
+      'Bibehåll känslan för tröskel utan att trötta ut dig.'
+    )
   }
 
   // Calculate total distance for the workout
@@ -264,7 +296,7 @@ export function createNorwegianSinglesWorkout(
     distance: undefined,
     targetPace: formatPaceMinKm(easyPaceKmh),
     targetHeartRateZone: 1,
-    notes: 'Uppvärmning - lätt jogg',
+    notes: text(locale, 'Warm-up - easy jog', 'Uppvärmning - lätt jogg'),
   })
 
   // Work/rest intervals
@@ -276,7 +308,7 @@ export function createNorwegianSinglesWorkout(
       distance: undefined,
       targetPace: i % 2 === 0 ? formatPaceMinKm(subThresholdPaceKmh) : undefined,
       targetHeartRateZone: i % 2 === 0 ? 3 : 1,
-      notes: i % 2 === 0 ? 'Sub-tröskel' : 'Vila (jogg)',
+      notes: i % 2 === 0 ? text(locale, 'Sub-threshold', 'Sub-tröskel') : text(locale, 'Recovery jog', 'Vila (jogg)'),
     })
   }
 
@@ -288,7 +320,7 @@ export function createNorwegianSinglesWorkout(
     distance: undefined,
     targetPace: formatPaceMinKm(easyPaceKmh),
     targetHeartRateZone: 1,
-    notes: 'Nedvarvning - lätt jogg',
+    notes: text(locale, 'Cool-down - easy jog', 'Nedvarvning - lätt jogg'),
   })
 
   return {
@@ -297,7 +329,11 @@ export function createNorwegianSinglesWorkout(
     intensity: 'THRESHOLD' as const,
     duration: (reps * workMin) + ((reps - 1) * restMin) + 20, // Add warmup/cooldown
     distance: totalDistanceKm,
-    instructions: `${reps}x${workMin} min med ${restMin} min vila. ${description}`,
+    instructions: text(
+      locale,
+      `${reps}x${workMin} min with ${restMin} min recovery. ${description}`,
+      `${reps}x${workMin} min med ${restMin} min vila. ${description}`
+    ),
     segments,
   }
 }
@@ -305,4 +341,3 @@ export function createNorwegianSinglesWorkout(
 // ============================================================================
 // NORWEGIAN DOUBLES METHODOLOGY
 // ============================================================================
-

@@ -160,7 +160,7 @@ export async function generateSportProgram(
   // Apply calendar constraints - remove workouts from blocked dates
   if (params.calendarConstraints) {
     logger.debug('[SPORT ROUTER] Applying calendar constraints to program')
-    program = applyCalendarConstraints(program, params.calendarConstraints)
+    program = applyCalendarConstraints(program, params.calendarConstraints, params.locale)
   }
 
   return program

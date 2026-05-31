@@ -1,5 +1,6 @@
 import type { CreateTrainingProgramDTO } from '@/types'
 import { formatPaceMinKm } from '../training-paces'
+import { text, type SportRouterLocale } from '../locale'
 
 /**
  * Create weeks with actual polarized workouts
@@ -9,7 +10,8 @@ export function createPolarizedWeeks(
   startDate: Date,
   sessionsPerWeek: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
   const weeks = []
 
@@ -45,8 +47,8 @@ export function createPolarizedWeeks(
       startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
       phase,
       volume: volumePercent,
-      focus: getWeekFocus(phase, goal),
-      days: createPolarizedDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh, goal),
+      focus: getWeekFocus(phase, goal, locale),
+      days: createPolarizedDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh, goal, locale),
     })
   }
 
@@ -79,12 +81,12 @@ export function calculateVolumePercent(
 /**
  * Get week focus description
  */
-export function getWeekFocus(phase: string, goal: string): string {
+export function getWeekFocus(phase: string, goal: string, locale: SportRouterLocale = 'en'): string {
   const focusMap: Record<string, string> = {
-    'BASE': 'Aerob bas och grundläggande uthållighet',
-    'BUILD': 'Progressiv volymökning och tempokörningar',
-    'PEAK': 'Tävlingsspecifik träning',
-    'TAPER': 'Återhämtning inför tävling',
+    'BASE': text(locale, 'Aerobic base and foundational endurance', 'Aerob bas och grundläggande uthållighet'),
+    'BUILD': text(locale, 'Progressive volume increase and tempo work', 'Progressiv volymökning och tempokörningar'),
+    'PEAK': text(locale, 'Race-specific training', 'Tävlingsspecifik träning'),
+    'TAPER': text(locale, 'Recovery before race day', 'Återhämtning inför tävling'),
   }
   return focusMap[phase] || 'General'
 }
@@ -97,7 +99,8 @@ export function createPolarizedDays(
   phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER',
   weekInPhase: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
   const days = []
 
@@ -120,23 +123,27 @@ export function createPolarizedDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Långpass - Zon 1, konversationstempo',
+        notes: text(locale, 'Long run - Zone 1, conversational pace', 'Långpass - Zon 1, konversationstempo'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Långpass',
+          name: text(locale, 'Long run', 'Långpass'),
           intensity: 'EASY' as const,
           duration: Math.min(duration, 150),
           distance,
-          instructions: `Lugnt långpass i Zon 1 (${formatPaceMinKm(easyPaceKmh)}/km). Ska kunna prata obehindrat.`,
+          instructions: text(
+            locale,
+            `Easy long run in Zone 1 (${formatPaceMinKm(easyPaceKmh)}/km). You should be able to talk comfortably.`,
+            `Lugnt långpass i Zon 1 (${formatPaceMinKm(easyPaceKmh)}/km). Ska kunna prata obehindrat.`
+          ),
           segments: [],
         }],
       })
     } else if (qualityDays.includes(dayNum)) {
       // Quality session (intervals)
-      const workout = createQualityWorkout(phase, weekInPhase, marathonPaceKmh, goal)
+      const workout = createQualityWorkout(phase, weekInPhase, marathonPaceKmh, goal, locale)
       days.push({
         dayNumber: dayNum,
-        notes: 'Kvalitetspass',
+        notes: text(locale, 'Quality session', 'Kvalitetspass'),
         workouts: [workout],
       })
     } else if (easyDays.includes(dayNum)) {
@@ -147,14 +154,18 @@ export function createPolarizedDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Lugn löpning',
+        notes: text(locale, 'Easy run', 'Lugn löpning'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Lugn löpning',
+          name: text(locale, 'Easy run', 'Lugn löpning'),
           intensity: 'EASY' as const,
           duration,
           distance,
-          instructions: `Lätt löpning i Zon 1 (${formatPaceMinKm(easyPaceKmh)}/km). Återhämtning.`,
+          instructions: text(
+            locale,
+            `Easy running in Zone 1 (${formatPaceMinKm(easyPaceKmh)}/km). Recovery focus.`,
+            `Lätt löpning i Zon 1 (${formatPaceMinKm(easyPaceKmh)}/km). Återhämtning.`
+          ),
           segments: [],
         }],
       })
@@ -162,7 +173,7 @@ export function createPolarizedDays(
       // Rest day
       days.push({
         dayNumber: dayNum,
-        notes: 'Vilodag',
+        notes: text(locale, 'Rest day', 'Vilodag'),
         workouts: [],
       })
     }
@@ -212,7 +223,8 @@ export function createQualityWorkout(
   phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER',
   weekInPhase: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
 
   // Seiler-style intervals that progress through phases
@@ -222,30 +234,30 @@ export function createQualityWorkout(
     // Start with shorter intervals, build up
     if (weekInPhase <= 2) {
       reps = 4; workMin = 4; restMin = 2
-      name = '4x4 min intervaller'
+      name = text(locale, '4x4 min intervals', '4x4 min intervaller')
     } else if (weekInPhase <= 4) {
       reps = 4; workMin = 5; restMin = 2
-      name = '4x5 min intervaller'
+      name = text(locale, '4x5 min intervals', '4x5 min intervaller')
     } else {
       reps = 4; workMin = 6; restMin = 2
-      name = '4x6 min intervaller'
+      name = text(locale, '4x6 min intervals', '4x6 min intervaller')
     }
   } else if (phase === 'BUILD') {
     // Classic 4x8 or 5x8
     if (weekInPhase <= 3) {
       reps = 4; workMin = 7; restMin = 2
-      name = '4x7 min intervaller'
+      name = text(locale, '4x7 min intervals', '4x7 min intervaller')
     } else {
       reps = 4; workMin = 8; restMin = 2
-      name = '4x8 min intervaller'
+      name = text(locale, '4x8 min intervals', '4x8 min intervaller')
     }
   } else if (phase === 'PEAK') {
     reps = 5; workMin = 5; restMin = 2
-    name = 'Tävlingsspecifika intervaller'
+    name = text(locale, 'Race-specific intervals', 'Tävlingsspecifika intervaller')
   } else {
     // Taper - reduced volume, maintain intensity
     reps = 3; workMin = 4; restMin = 2
-    name = 'Underhållsintervaller'
+    name = text(locale, 'Maintenance intervals', 'Underhållsintervaller')
   }
 
   // Calculate duration-appropriate interval pace (Daniels-based)
@@ -266,13 +278,29 @@ export function createQualityWorkout(
 
   // Generate description with the actual workout pace
   if (phase === 'BASE') {
-    description = `Seiler-intervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. VO2max-träning - hög intensitet men hållbar.`
+    description = text(
+      locale,
+      `Seiler intervals @ ${formatPaceMinKm(workoutPaceKmh)}/km. VO2max training - high intensity but sustainable.`,
+      `Seiler-intervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. VO2max-träning - hög intensitet men hållbar.`
+    )
   } else if (phase === 'BUILD') {
-    description = `Klassiska Seiler 4x${workMin} @ ${formatPaceMinKm(workoutPaceKmh)}/km. "Isoeffort" - håll samma känsla hela vägen.`
+    description = text(
+      locale,
+      `Classic Seiler 4x${workMin} @ ${formatPaceMinKm(workoutPaceKmh)}/km. "Isoeffort" - hold the same effort throughout.`,
+      `Klassiska Seiler 4x${workMin} @ ${formatPaceMinKm(workoutPaceKmh)}/km. "Isoeffort" - håll samma känsla hela vägen.`
+    )
   } else if (phase === 'PEAK') {
-    description = `Race-pace intervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. Förbered dig för tävling.`
+    description = text(
+      locale,
+      `Race-pace intervals @ ${formatPaceMinKm(workoutPaceKmh)}/km. Prepare for race day.`,
+      `Race-pace intervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. Förbered dig för tävling.`
+    )
   } else {
-    description = `Underhållsintervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. Håll farten utan att trötta ut dig.`
+    description = text(
+      locale,
+      `Maintenance intervals @ ${formatPaceMinKm(workoutPaceKmh)}/km. Keep the speed without fatiguing yourself.`,
+      `Underhållsintervaller @ ${formatPaceMinKm(workoutPaceKmh)}/km. Håll farten utan att trötta ut dig.`
+    )
   }
 
   // Calculate total distance for the workout using the actual workout pace
@@ -292,7 +320,7 @@ export function createQualityWorkout(
     distance: undefined,
     targetPace: formatPaceMinKm(easyPaceKmh),
     targetHeartRateZone: 1,
-    notes: 'Uppvärmning - lätt jogg',
+    notes: text(locale, 'Warm-up - easy jog', 'Uppvärmning - lätt jogg'),
   })
 
   // Work/rest intervals
@@ -304,7 +332,7 @@ export function createQualityWorkout(
       distance: undefined,
       targetPace: i % 2 === 0 ? formatPaceMinKm(workoutPaceKmh) : undefined,
       targetHeartRateZone: i % 2 === 0 ? 4 : 1,
-      notes: i % 2 === 0 ? 'Arbete' : 'Vila',
+      notes: i % 2 === 0 ? text(locale, 'Work', 'Arbete') : text(locale, 'Rest', 'Vila'),
     })
   }
 
@@ -316,7 +344,7 @@ export function createQualityWorkout(
     distance: undefined,
     targetPace: formatPaceMinKm(easyPaceKmh),
     targetHeartRateZone: 1,
-    notes: 'Nedvarvning - lätt jogg',
+    notes: text(locale, 'Cool-down - easy jog', 'Nedvarvning - lätt jogg'),
   })
 
   return {
@@ -325,8 +353,11 @@ export function createQualityWorkout(
     intensity: 'INTERVAL' as const,
     duration: (reps * workMin) + ((reps - 1) * restMin) + 20, // Add warmup/cooldown
     distance: totalDistanceKm,
-    instructions: `${reps}x${workMin} min med ${restMin} min vila. ${description}`,
+    instructions: text(
+      locale,
+      `${reps}x${workMin} min with ${restMin} min recovery. ${description}`,
+      `${reps}x${workMin} min med ${restMin} min vila. ${description}`
+    ),
     segments,
   }
 }
-

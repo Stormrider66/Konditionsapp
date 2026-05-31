@@ -1,6 +1,6 @@
-import { logger } from '@/lib/logger'
 import type { CreateTrainingProgramDTO } from '@/types'
 import type { SportProgramParams } from './types'
+import { resolveSportRouterLocale, text } from './locale'
 
 export function formatLocalDate(date: Date): string {
   const year = date.getFullYear()
@@ -32,11 +32,15 @@ export function isDateReduced(date: Date, reducedDates: string[]): boolean {
  */
 export function applyCalendarConstraints(
   program: CreateTrainingProgramDTO,
-  constraints: SportProgramParams['calendarConstraints']
+  constraints: SportProgramParams['calendarConstraints'],
+  localeInput?: SportProgramParams['locale']
 ): CreateTrainingProgramDTO {
   if (!constraints) return program
 
+  const locale = resolveSportRouterLocale(localeInput)
   const { blockedDates = [], reducedDates = [] } = constraints
+  const blockedNote = text(locale, 'Rest day (calendar block)', 'Vilodag (kalenderblockering)')
+  const reducedNote = text(locale, 'Reduced training capacity', 'Reducerad träningskapacitet')
 
   // Process each week and day
   const updatedWeeks = program.weeks?.map((week: any) => {
@@ -52,8 +56,8 @@ export function applyCalendarConstraints(
           ...day,
           workouts: [],
           notes: day.notes
-            ? `${day.notes}\n⚠️ Vilodag (kalenderblockering)`
-            : '⚠️ Vilodag (kalenderblockering)',
+            ? `${day.notes}\n${blockedNote}`
+            : blockedNote,
         }
       }
 
@@ -63,8 +67,8 @@ export function applyCalendarConstraints(
         return {
           ...day,
           notes: day.notes
-            ? `${day.notes}\n⚡ Reducerad träningskapacitet`
-            : '⚡ Reducerad träningskapacitet',
+            ? `${day.notes}\n${reducedNote}`
+            : reducedNote,
         }
       }
 
@@ -82,4 +86,3 @@ export function applyCalendarConstraints(
     weeks: updatedWeeks,
   }
 }
-

@@ -1,5 +1,6 @@
 import type { CreateTrainingProgramDTO } from '@/types'
 import { formatPaceMinKm } from '../training-paces'
+import { text, type SportRouterLocale } from '../locale'
 import { calculateVolumePercent, getIntervalPaceForDuration } from './polarized'
 
 // ============================================================================
@@ -13,7 +14,8 @@ export function createPyramidalWeeks(
   startDate: Date,
   sessionsPerWeek: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
   const weeks = []
   const baseWeeks = Math.max(Math.floor(durationWeeks * 0.4), 2)
@@ -45,10 +47,10 @@ export function createPyramidalWeeks(
       startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
       phase,
       volume: volumePercent,
-      focus: phase === 'BASE' ? 'Aerob bas (70/20/10)' :
-             phase === 'BUILD' ? 'Progressiv intensitet' :
-             phase === 'PEAK' ? 'Tävlingsspecifik' : 'Nedtrappning',
-      days: createPyramidalDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh, goal),
+      focus: phase === 'BASE' ? text(locale, 'Aerobic base (70/20/10)', 'Aerob bas (70/20/10)') :
+             phase === 'BUILD' ? text(locale, 'Progressive intensity', 'Progressiv intensitet') :
+             phase === 'PEAK' ? text(locale, 'Race-specific', 'Tävlingsspecifik') : text(locale, 'Taper', 'Nedtrappning'),
+      days: createPyramidalDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh, goal, locale),
     })
   }
 
@@ -64,7 +66,8 @@ export function createPyramidalDays(
   phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER',
   weekInPhase: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
   const days = []
   const easyPaceKmh = marathonPaceKmh * 0.85 // Daniels Easy pace
@@ -81,14 +84,18 @@ export function createPyramidalDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Långpass - Zon 1',
+        notes: text(locale, 'Long run - Zone 1', 'Långpass - Zon 1'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Långpass',
+          name: text(locale, 'Long run', 'Långpass'),
           intensity: 'EASY' as const,
           duration,
           distance,
-          instructions: `Långpass i Zon 1 (${formatPaceMinKm(easyPaceKmh)}/km). 70% av träningen.`,
+          instructions: text(
+            locale,
+            `Long run in Zone 1 (${formatPaceMinKm(easyPaceKmh)}/km). 70% of the training.`,
+            `Långpass i Zon 1 (${formatPaceMinKm(easyPaceKmh)}/km). 70% av träningen.`
+          ),
           segments: [],
         }],
       })
@@ -103,14 +110,18 @@ export function createPyramidalDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Tempopass - Zon 2',
+        notes: text(locale, 'Tempo session - Zone 2', 'Tempopass - Zon 2'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Tempopass',
+          name: text(locale, 'Tempo session', 'Tempopass'),
           intensity: 'THRESHOLD' as const,
           duration: totalDuration,
           distance: tempoTotalDistanceKm,
-          instructions: `Tempo: ${tempoMinutes} min @ ${formatPaceMinKm(tempoPaceKmh)}/km (Zon 2). Jämn ansträngning.`,
+          instructions: text(
+            locale,
+            `Tempo: ${tempoMinutes} min @ ${formatPaceMinKm(tempoPaceKmh)}/km (Zone 2). Steady effort.`,
+            `Tempo: ${tempoMinutes} min @ ${formatPaceMinKm(tempoPaceKmh)}/km (Zon 2). Jämn ansträngning.`
+          ),
           segments: [],
         }],
       })
@@ -127,14 +138,18 @@ export function createPyramidalDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'VO2max-intervaller - Zon 3',
+        notes: text(locale, 'VO2max intervals - Zone 3', 'VO2max-intervaller - Zon 3'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'VO2max-intervaller',
+          name: text(locale, 'VO2max intervals', 'VO2max-intervaller'),
           intensity: 'INTERVAL' as const,
           duration: 50,
           distance: vo2maxTotalDistanceKm,
-          instructions: `${reps}×${workMin} min @ ${formatPaceMinKm(intervalPaceKmh)}/km med 3 min vila. Hög intensitet (Zon 3).`,
+          instructions: text(
+            locale,
+            `${reps}x${workMin} min @ ${formatPaceMinKm(intervalPaceKmh)}/km with 3 min recovery. High intensity (Zone 3).`,
+            `${reps}×${workMin} min @ ${formatPaceMinKm(intervalPaceKmh)}/km med 3 min vila. Hög intensitet (Zon 3).`
+          ),
           segments: [],
         }],
       })
@@ -149,28 +164,32 @@ export function createPyramidalDays(
 
         days.push({
           dayNumber: dayNum,
-          notes: 'Lugn löpning - Zon 1',
+          notes: text(locale, 'Easy run - Zone 1', 'Lugn löpning - Zon 1'),
           workouts: [{
             type: 'RUNNING' as const,
-            name: 'Lugn löpning',
+            name: text(locale, 'Easy run', 'Lugn löpning'),
             intensity: 'EASY' as const,
             duration,
             distance,
-            instructions: `Lätt löpning (${formatPaceMinKm(easyPaceKmh)}/km). Del av 70% Zon 1.`,
+            instructions: text(
+              locale,
+              `Easy running (${formatPaceMinKm(easyPaceKmh)}/km). Part of the 70% Zone 1 volume.`,
+              `Lätt löpning (${formatPaceMinKm(easyPaceKmh)}/km). Del av 70% Zon 1.`
+            ),
             segments: [],
           }],
         })
       } else {
         days.push({
           dayNumber: dayNum,
-          notes: 'Vilodag',
+          notes: text(locale, 'Rest day', 'Vilodag'),
           workouts: [],
         })
       }
     } else {
       days.push({
         dayNumber: dayNum,
-        notes: 'Vilodag',
+        notes: text(locale, 'Rest day', 'Vilodag'),
         workouts: [],
       })
     }
@@ -178,4 +197,3 @@ export function createPyramidalDays(
 
   return days
 }
-

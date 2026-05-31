@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger'
 import type { CreateTrainingProgramDTO } from '@/types'
 import type { MethodologyPaces } from '../types'
 import { formatPaceMinKm } from '../training-paces'
+import { text, type SportRouterLocale } from '../locale'
 import { calculateVolumePercent } from './polarized'
 
 // ============================================================================
@@ -15,7 +16,8 @@ export function createNorwegianDoublesWeeks(
   startDate: Date,
   sessionsPerWeek: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
   const weeks = []
   const baseWeeks = Math.max(Math.floor(durationWeeks * 0.4), 2)
@@ -47,10 +49,10 @@ export function createNorwegianDoublesWeeks(
       startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
       phase,
       volume: volumePercent,
-      focus: phase === 'BASE' ? 'Dubbla tröskelpass - aerob bas' :
-             phase === 'BUILD' ? 'Intensifierade dubbeldagar' :
-             phase === 'PEAK' ? 'Tävlingsförberedelse' : 'Nedtrappning',
-      days: createNorwegianDoublesDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh),
+      focus: phase === 'BASE' ? text(locale, 'Double-threshold sessions - aerobic base', 'Dubbla tröskelpass - aerob bas') :
+             phase === 'BUILD' ? text(locale, 'Intensified double days', 'Intensifierade dubbeldagar') :
+             phase === 'PEAK' ? text(locale, 'Race preparation', 'Tävlingsförberedelse') : text(locale, 'Taper', 'Nedtrappning'),
+      days: createNorwegianDoublesDays(sessionsPerWeek, phase, weekInPhase, marathonPaceKmh, locale),
     })
   }
 
@@ -72,8 +74,11 @@ export function createNorwegianDoublesDays(
   phase: 'BASE' | 'BUILD' | 'PEAK' | 'TAPER',
   weekInPhase: number,
   marathonPaceKmh: number,
+  localeOrMethodologyPaces: SportRouterLocale | MethodologyPaces = 'en',
   methodologyPaces?: MethodologyPaces  // Optional: use actual LT2 from test
 ) {
+  const locale = typeof localeOrMethodologyPaces === 'string' ? localeOrMethodologyPaces : 'en'
+  const resolvedMethodologyPaces = typeof localeOrMethodologyPaces === 'string' ? methodologyPaces : localeOrMethodologyPaces
   const days = []
 
   // Use methodology-specific pacing if available (from lactate test)
@@ -82,12 +87,12 @@ export function createNorwegianDoublesDays(
   let highThresholdPace: number // PM session: 3-4 mmol/L
   let easyPaceKmh: number
 
-  if (methodologyPaces?.norwegianAmPaceKmh && methodologyPaces?.norwegianPmPaceKmh) {
+  if (resolvedMethodologyPaces?.norwegianAmPaceKmh && resolvedMethodologyPaces?.norwegianPmPaceKmh) {
     // Using actual LT2 data - Norwegian gold standard!
-    thresholdPaceKmh = methodologyPaces.thresholdPaceKmh
-    lowThresholdPace = methodologyPaces.norwegianAmPaceKmh   // 94% of LT2
-    highThresholdPace = methodologyPaces.norwegianPmPaceKmh  // 97% of LT2
-    easyPaceKmh = methodologyPaces.easyPaceKmh
+    thresholdPaceKmh = resolvedMethodologyPaces.thresholdPaceKmh
+    lowThresholdPace = resolvedMethodologyPaces.norwegianAmPaceKmh   // 94% of LT2
+    highThresholdPace = resolvedMethodologyPaces.norwegianPmPaceKmh  // 97% of LT2
+    easyPaceKmh = resolvedMethodologyPaces.easyPaceKmh
     logger.debug('[Norwegian Doubles] Using LT2 from test', {
       thresholdPace: formatPaceMinKm(thresholdPaceKmh),
       amPace: formatPaceMinKm(lowThresholdPace),
@@ -117,14 +122,18 @@ export function createNorwegianDoublesDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Långpass - Green zone',
+        notes: text(locale, 'Long run - Green zone', 'Långpass - Green zone'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Långpass',
+          name: text(locale, 'Long run', 'Långpass'),
           intensity: 'EASY' as const,
           duration,
           distance,
-          instructions: `Långpass i Green zone (${formatPaceMinKm(easyPaceKmh)}/km).`,
+          instructions: text(
+            locale,
+            `Long run in the Green zone (${formatPaceMinKm(easyPaceKmh)}/km).`,
+            `Långpass i Green zone (${formatPaceMinKm(easyPaceKmh)}/km).`
+          ),
           segments: [],
         }],
       })
@@ -142,14 +151,18 @@ export function createNorwegianDoublesDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Zone 4 HIT - Hög intensitet',
+        notes: text(locale, 'Zone 4 HIT - high intensity', 'Zone 4 HIT - Hög intensitet'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Backintervaller',
+          name: text(locale, 'Hill intervals', 'Backintervaller'),
           intensity: 'INTERVAL' as const,
           duration: hitTotalDurationMin,
           distance: hitTotalDistanceKm,
-          instructions: `10-15 × 30-45s backe med full vila. Avsluta med ${postIntervalRestMin} min vila innan nedjogg. Maximal intensitet (>6.0 mmol/L).`,
+          instructions: text(
+            locale,
+            `10-15 x 30-45s uphill with full recovery. Finish with ${postIntervalRestMin} min rest before the cool-down jog. Maximal intensity (>6.0 mmol/L).`,
+            `10-15 × 30-45s backe med full vila. Avsluta med ${postIntervalRestMin} min vila innan nedjogg. Maximal intensitet (>6.0 mmol/L).`
+          ),
           segments: [],
         }],
       })
@@ -171,24 +184,32 @@ export function createNorwegianDoublesDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Dubbel tröskeldag (FM + EM)',
+        notes: text(locale, 'Double-threshold day (AM + PM)', 'Dubbel tröskeldag (FM + EM)'),
         workouts: [
           {
             type: 'RUNNING' as const,
-            name: 'FM: Låg tröskel (2-3 mmol/L)',
+            name: text(locale, 'AM: Low threshold (2-3 mmol/L)', 'FM: Låg tröskel (2-3 mmol/L)'),
             intensity: 'THRESHOLD' as const,
             duration: 55,
             distance: amTotalDistanceKm,
-            instructions: `FM-pass: 5×6 min @ ${formatPaceMinKm(lowThresholdPace)}/km med 1 min vila. Håll laktat 2-3 mmol/L.`,
+            instructions: text(
+              locale,
+              `AM session: 5x6 min @ ${formatPaceMinKm(lowThresholdPace)}/km with 1 min recovery. Keep lactate at 2-3 mmol/L.`,
+              `FM-pass: 5×6 min @ ${formatPaceMinKm(lowThresholdPace)}/km med 1 min vila. Håll laktat 2-3 mmol/L.`
+            ),
             segments: [],
           },
           {
             type: 'RUNNING' as const,
-            name: 'EM: Hög tröskel (3-4 mmol/L)',
+            name: text(locale, 'PM: High threshold (3-4 mmol/L)', 'EM: Hög tröskel (3-4 mmol/L)'),
             intensity: 'THRESHOLD' as const,
             duration: 55,
             distance: pmTotalDistanceKm,
-            instructions: `EM-pass: 4×8 min @ ${formatPaceMinKm(highThresholdPace)}/km med 90s vila. Håll laktat 3-4 mmol/L.`,
+            instructions: text(
+              locale,
+              `PM session: 4x8 min @ ${formatPaceMinKm(highThresholdPace)}/km with 90s recovery. Keep lactate at 3-4 mmol/L.`,
+              `EM-pass: 4×8 min @ ${formatPaceMinKm(highThresholdPace)}/km med 90s vila. Håll laktat 3-4 mmol/L.`
+            ),
             segments: [],
           },
         ],
@@ -200,14 +221,18 @@ export function createNorwegianDoublesDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Lugn löpning - Green zone',
+        notes: text(locale, 'Easy run - Green zone', 'Lugn löpning - Green zone'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Lugn löpning',
+          name: text(locale, 'Easy run', 'Lugn löpning'),
           intensity: 'EASY' as const,
           duration,
           distance,
-          instructions: `Lätt löpning i Green zone (${formatPaceMinKm(easyPaceKmh)}/km).`,
+          instructions: text(
+            locale,
+            `Easy running in the Green zone (${formatPaceMinKm(easyPaceKmh)}/km).`,
+            `Lätt löpning i Green zone (${formatPaceMinKm(easyPaceKmh)}/km).`
+          ),
           segments: [],
         }],
       })
@@ -215,7 +240,7 @@ export function createNorwegianDoublesDays(
       // Rest day
       days.push({
         dayNumber: dayNum,
-        notes: 'Vilodag',
+        notes: text(locale, 'Rest day', 'Vilodag'),
         workouts: [],
       })
     }
@@ -227,4 +252,3 @@ export function createNorwegianDoublesDays(
 // ============================================================================
 // CANOVA METHODOLOGY (Marathon-specialist)
 // ============================================================================
-

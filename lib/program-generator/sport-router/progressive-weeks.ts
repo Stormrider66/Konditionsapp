@@ -9,6 +9,7 @@ import { createNorwegianSinglesDays, createNorwegianSinglesWorkout, getNorwegian
 import { createNorwegianDoublesDays } from './methodologies/norwegian-doubles'
 import { createCanovaDays, createCanovaQualityWorkout } from './methodologies/canova'
 import { createPyramidalDays } from './methodologies/pyramidal'
+import { text, type SportRouterLocale } from './locale'
 
 /**
  * Calculate progressive pace for a given week within a phase
@@ -87,7 +88,8 @@ export function createProgressiveWeeks(
   methodology: string,
   targetRaceDate?: Date,
   supplementaryTraining?: SupplementaryTraining,
-  methodologyContext?: MethodologyContext
+  methodologyContext?: MethodologyContext,
+  locale: SportRouterLocale = 'en'
 ) {
   const weeks = []
 
@@ -154,27 +156,27 @@ export function createProgressiveWeeks(
     const volumePercent = calculateVolumePercent(phase, weekInPhase, i, durationWeeks)
 
     // Get focus description based on methodology
-    const focus = getProgressiveFocus(phase, methodology, weekPaceKmh)
+    const focus = getProgressiveFocus(phase, methodology, weekPaceKmh, locale)
 
     // Generate days based on methodology (passing methodology-specific paces)
     let days
     switch (methodology) {
       case 'NORWEGIAN_SINGLE':
       case 'NORWEGIAN_SINGLES':
-        days = createNorwegianSinglesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal, methodologyPaces)
+        days = createNorwegianSinglesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal, locale, methodologyPaces)
         break
       case 'NORWEGIAN':
       case 'NORWEGIAN_DOUBLES':
-        days = createNorwegianDoublesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, methodologyPaces)
+        days = createNorwegianDoublesDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, locale, methodologyPaces)
         break
       case 'CANOVA':
-        days = createCanovaDays(sessionsPerWeek, phase, phase === 'BASE' ? 'FUNDAMENTAL' : phase === 'BUILD' ? 'SPECIAL' : 'COMPETITION', weekInPhase, weekPaceKmh, goal, methodologyPaces)
+        days = createCanovaDays(sessionsPerWeek, phase, phase === 'BASE' ? 'FUNDAMENTAL' : phase === 'BUILD' ? 'SPECIAL' : 'COMPETITION', weekInPhase, weekPaceKmh, goal, locale, methodologyPaces)
         break
       case 'PYRAMIDAL':
-        days = createPyramidalDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal)
+        days = createPyramidalDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal, locale)
         break
       default:
-        days = createPolarizedDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal)
+        days = createPolarizedDays(sessionsPerWeek, phase, weekInPhase, weekPaceKmh, goal, locale)
     }
 
     // Check if race day falls in this week and mark it appropriately
@@ -188,7 +190,7 @@ export function createProgressiveWeeks(
           // Replace this day with race day marker
           days[dayIdx] = {
             dayNumber: days[dayIdx].dayNumber,
-            notes: `🏁 TÄVLINGSDAG - ${goal.toUpperCase()}`,
+            notes: text(locale, `Race day - ${goal.toUpperCase()}`, `TÄVLINGSDAG - ${goal.toUpperCase()}`),
             workouts: [], // No workouts on race day - it's race day!
           }
         }
@@ -207,7 +209,7 @@ export function createProgressiveWeeks(
 
   // Add strength and core sessions if requested
   if (supplementaryTraining) {
-    addSupplementaryTraining(weeks, supplementaryTraining)
+    addSupplementaryTraining(weeks, supplementaryTraining, locale)
   }
 
   return weeks
@@ -218,7 +220,8 @@ export function createProgressiveWeeks(
  */
 export function addSupplementaryTraining(
   weeks: any[],
-  training: SupplementaryTraining
+  training: SupplementaryTraining,
+  locale: SportRouterLocale = 'en'
 ) {
   const { strengthSessionsPerWeek = 0, coreSessionsPerWeek = 0, scheduleStrengthAfterRunning = false, scheduleCoreAfterRunning = false } = training
 
@@ -232,7 +235,7 @@ export function addSupplementaryTraining(
 
     // Find rest days or light days for standalone sessions
     const restDays = week.days.filter((d: any) =>
-      !d.workouts || d.workouts.length === 0 || d.notes?.toLowerCase().includes('vila')
+      !d.workouts || d.workouts.length === 0 || d.notes?.toLowerCase().includes('vila') || d.notes?.toLowerCase().includes('rest')
     )
 
     // Add strength sessions
@@ -243,7 +246,7 @@ export function addSupplementaryTraining(
         for (let i = 0; i < Math.min(strengthSessionsPerWeek, runningDays.length); i++) {
           const day = runningDays[i]
           if (!day.workouts) day.workouts = []
-          day.workouts.push(createStrengthWorkout(week.phase, i === 0 ? 'full' : 'maintenance'))
+          day.workouts.push(createStrengthWorkout(week.phase, i === 0 ? 'full' : 'maintenance', locale))
           strengthAdded++
         }
       } else {
@@ -252,7 +255,7 @@ export function addSupplementaryTraining(
         for (let i = 0; i < Math.min(strengthSessionsPerWeek, availableDays.length); i++) {
           const day = availableDays[i % availableDays.length]
           if (!day.workouts) day.workouts = []
-          day.workouts.push(createStrengthWorkout(week.phase, i === 0 ? 'full' : 'maintenance'))
+          day.workouts.push(createStrengthWorkout(week.phase, i === 0 ? 'full' : 'maintenance', locale))
           strengthAdded++
         }
       }
@@ -265,7 +268,7 @@ export function addSupplementaryTraining(
         for (let i = 0; i < Math.min(coreSessionsPerWeek, runningDays.length); i++) {
           const day = runningDays[i]
           if (!day.workouts) day.workouts = []
-          day.workouts.push(createCoreWorkout(week.phase))
+          day.workouts.push(createCoreWorkout(week.phase, locale))
         }
       } else {
         // Add to rest days or any available day
@@ -274,7 +277,7 @@ export function addSupplementaryTraining(
           const dayIndex = (i + strengthAdded) % availableDays.length
           const day = availableDays[dayIndex]
           if (!day.workouts) day.workouts = []
-          day.workouts.push(createCoreWorkout(week.phase))
+          day.workouts.push(createCoreWorkout(week.phase, locale))
         }
       }
     }
@@ -284,7 +287,7 @@ export function addSupplementaryTraining(
 /**
  * Create a strength workout based on phase
  */
-export function createStrengthWorkout(phase: string, type: 'full' | 'maintenance'): any {
+export function createStrengthWorkout(phase: string, type: 'full' | 'maintenance', locale: SportRouterLocale = 'en'): any {
   const isFullSession = type === 'full'
   const duration = isFullSession ? 45 : 30
 
@@ -292,25 +295,25 @@ export function createStrengthWorkout(phase: string, type: 'full' | 'maintenance
   let focus: string
   let exercises: string
   if (phase === 'BASE') {
-    focus = 'Anatomisk anpassning'
-    exercises = 'Fokus: stabilitet, teknik, lägre belastning'
+    focus = text(locale, 'Anatomical adaptation', 'Anatomisk anpassning')
+    exercises = text(locale, 'Focus: stability, technique, lower load', 'Fokus: stabilitet, teknik, lägre belastning')
   } else if (phase === 'BUILD') {
-    focus = 'Maximal styrka'
-    exercises = 'Fokus: tyngre belastning, färre repetitioner'
+    focus = text(locale, 'Maximum strength', 'Maximal styrka')
+    exercises = text(locale, 'Focus: heavier load, fewer repetitions', 'Fokus: tyngre belastning, färre repetitioner')
   } else if (phase === 'PEAK') {
-    focus = 'Explosiv kraft'
-    exercises = 'Fokus: snabbhet, plyometrics'
+    focus = text(locale, 'Explosive power', 'Explosiv kraft')
+    exercises = text(locale, 'Focus: speed, plyometrics', 'Fokus: snabbhet, plyometrics')
   } else {
-    focus = 'Underhåll'
-    exercises = 'Fokus: bibehåll styrka utan utmattning'
+    focus = text(locale, 'Maintenance', 'Underhåll')
+    exercises = text(locale, 'Focus: preserve strength without fatigue', 'Fokus: bibehåll styrka utan utmattning')
   }
 
   return {
     type: 'STRENGTH' as const,
-    name: isFullSession ? 'Styrkepass' : 'Underhållsstyrka',
+    name: isFullSession ? text(locale, 'Strength session', 'Styrkepass') : text(locale, 'Maintenance strength', 'Underhållsstyrka'),
     intensity: phase === 'BUILD' ? 'THRESHOLD' as const : 'MODERATE' as const,
     duration,
-    instructions: `${focus}. ${exercises}. ${isFullSession ? 'Fullständigt pass med uppvärmning.' : 'Kortare underhållspass.'}`,
+    instructions: `${focus}. ${exercises}. ${isFullSession ? text(locale, 'Full session with warm-up.', 'Fullständigt pass med uppvärmning.') : text(locale, 'Shorter maintenance session.', 'Kortare underhållspass.')}`,
     segments: [],
   }
 }
@@ -318,13 +321,17 @@ export function createStrengthWorkout(phase: string, type: 'full' | 'maintenance
 /**
  * Create a core workout
  */
-export function createCoreWorkout(phase: string): any {
+export function createCoreWorkout(phase: string, locale: SportRouterLocale = 'en'): any {
   return {
     type: 'CORE' as const,
-    name: 'Core & stabilitet',
+    name: text(locale, 'Core & stability', 'Core & stabilitet'),
     intensity: 'MODERATE' as const,
     duration: 20,
-    instructions: 'Bålstabilitet för löpare. Fokus: plankor, sidoplankor, dead bugs, fågelräkning.',
+    instructions: text(
+      locale,
+      'Runner-focused trunk stability. Focus: planks, side planks, dead bugs, bird dogs.',
+      'Bålstabilitet för löpare. Fokus: plankor, sidoplankor, dead bugs, fågelräkning.'
+    ),
     segments: [],
   }
 }
@@ -332,43 +339,46 @@ export function createCoreWorkout(phase: string): any {
 /**
  * Get focus description with pace info
  */
-export function getProgressiveFocus(phase: string, methodology: string, paceKmh: number): string {
+export function getProgressiveFocus(phase: string, methodology: string, paceKmh: number, locale: SportRouterLocale = 'en'): string {
   const paceStr = formatPaceMinKm(paceKmh)
 
   const baseFocus: Record<string, Record<string, string>> = {
     'NORWEGIAN_SINGLE': {
-      'BASE': `Aerob bas - Sub-tröskel @ ~${paceStr}/km`,
-      'BUILD': `Progressiva tröskelpass @ ~${paceStr}/km`,
-      'PEAK': `Tävlingsspecifik @ ${paceStr}/km`,
-      'TAPER': `Nedtrappning - bibehåll ${paceStr}/km`,
+      'BASE': text(locale, `Aerobic base - sub-threshold @ ~${paceStr}/km`, `Aerob bas - Sub-tröskel @ ~${paceStr}/km`),
+      'BUILD': text(locale, `Progressive threshold sessions @ ~${paceStr}/km`, `Progressiva tröskelpass @ ~${paceStr}/km`),
+      'PEAK': text(locale, `Race-specific @ ${paceStr}/km`, `Tävlingsspecifik @ ${paceStr}/km`),
+      'TAPER': text(locale, `Taper - maintain ${paceStr}/km`, `Nedtrappning - bibehåll ${paceStr}/km`),
     },
     'NORWEGIAN': {
-      'BASE': `Dubbla tröskelpass @ ~${paceStr}/km`,
-      'BUILD': `Intensifierade dubbeldagar @ ~${paceStr}/km`,
-      'PEAK': `Tävlingsförberedelse @ ${paceStr}/km`,
-      'TAPER': `Nedtrappning`,
+      'BASE': text(locale, `Double-threshold sessions @ ~${paceStr}/km`, `Dubbla tröskelpass @ ~${paceStr}/km`),
+      'BUILD': text(locale, `Intensified double days @ ~${paceStr}/km`, `Intensifierade dubbeldagar @ ~${paceStr}/km`),
+      'PEAK': text(locale, `Race preparation @ ${paceStr}/km`, `Tävlingsförberedelse @ ${paceStr}/km`),
+      'TAPER': text(locale, 'Taper', 'Nedtrappning'),
     },
     'CANOVA': {
-      'BASE': `Grundläggande aerob @ ~${paceStr}/km`,
-      'BUILD': `Maratonspecifik @ ~${paceStr}/km`,
-      'PEAK': `Tävlingsförberedelse @ ${paceStr}/km`,
-      'TAPER': `Nedtrappning`,
+      'BASE': text(locale, `Foundational aerobic @ ~${paceStr}/km`, `Grundläggande aerob @ ~${paceStr}/km`),
+      'BUILD': text(locale, `Marathon-specific @ ~${paceStr}/km`, `Maratonspecifik @ ~${paceStr}/km`),
+      'PEAK': text(locale, `Race preparation @ ${paceStr}/km`, `Tävlingsförberedelse @ ${paceStr}/km`),
+      'TAPER': text(locale, 'Taper', 'Nedtrappning'),
     },
     'PYRAMIDAL': {
-      'BASE': `Aerob bas 70/20/10 @ ~${paceStr}/km`,
-      'BUILD': `Progressiv intensitet @ ~${paceStr}/km`,
-      'PEAK': `Tävlingsspecifik @ ${paceStr}/km`,
-      'TAPER': `Nedtrappning`,
+      'BASE': text(locale, `Aerobic base 70/20/10 @ ~${paceStr}/km`, `Aerob bas 70/20/10 @ ~${paceStr}/km`),
+      'BUILD': text(locale, `Progressive intensity @ ~${paceStr}/km`, `Progressiv intensitet @ ~${paceStr}/km`),
+      'PEAK': text(locale, `Race-specific @ ${paceStr}/km`, `Tävlingsspecifik @ ${paceStr}/km`),
+      'TAPER': text(locale, 'Taper', 'Nedtrappning'),
     },
     'POLARIZED': {
-      'BASE': `Aerob bas 80/20 @ ~${paceStr}/km`,
-      'BUILD': `Tempokörningar @ ~${paceStr}/km`,
-      'PEAK': `Tävlingsspecifik @ ${paceStr}/km`,
-      'TAPER': `Återhämtning`,
+      'BASE': text(locale, `Aerobic base 80/20 @ ~${paceStr}/km`, `Aerob bas 80/20 @ ~${paceStr}/km`),
+      'BUILD': text(locale, `Tempo work @ ~${paceStr}/km`, `Tempokörningar @ ~${paceStr}/km`),
+      'PEAK': text(locale, `Race-specific @ ${paceStr}/km`, `Tävlingsspecifik @ ${paceStr}/km`),
+      'TAPER': text(locale, 'Recovery', 'Återhämtning'),
     },
   }
 
-  const methodologyFocus = baseFocus[methodology] || baseFocus['POLARIZED']
+  const normalizedMethodology =
+    methodology === 'NORWEGIAN_SINGLES' ? 'NORWEGIAN_SINGLE' :
+    methodology === 'NORWEGIAN_DOUBLES' ? 'NORWEGIAN' :
+    methodology
+  const methodologyFocus = baseFocus[normalizedMethodology] || baseFocus['POLARIZED']
   return methodologyFocus[phase] || `${phase} @ ${paceStr}/km`
 }
-

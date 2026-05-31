@@ -2,6 +2,7 @@ import { logger } from '@/lib/logger'
 import type { CreateTrainingProgramDTO } from '@/types'
 import type { MethodologyPaces } from '../types'
 import { formatPaceMinKm } from '../training-paces'
+import { text, type SportRouterLocale } from '../locale'
 import { calculateVolumePercent } from './polarized'
 
 // ============================================================================
@@ -15,7 +16,8 @@ export function createCanovaWeeks(
   startDate: Date,
   sessionsPerWeek: number,
   marathonPaceKmh: number,
-  goal: string
+  goal: string,
+  locale: SportRouterLocale = 'en'
 ) {
   const weeks = []
 
@@ -49,9 +51,9 @@ export function createCanovaWeeks(
       startDate: new Date(startDate.getTime() + i * 7 * 24 * 60 * 60 * 1000),
       phase,
       volume: volumePercent,
-      focus: canovaPhase === 'FUNDAMENTAL' ? 'Grundläggande aerob kapacitet' :
-             canovaPhase === 'SPECIAL' ? 'Maratonspecifik träning' : 'Tävlingsförberedelse',
-      days: createCanovaDays(sessionsPerWeek, phase, canovaPhase, weekInPhase, marathonPaceKmh, goal),
+      focus: canovaPhase === 'FUNDAMENTAL' ? text(locale, 'Foundational aerobic capacity', 'Grundläggande aerob kapacitet') :
+             canovaPhase === 'SPECIAL' ? text(locale, 'Marathon-specific training', 'Maratonspecifik träning') : text(locale, 'Race preparation', 'Tävlingsförberedelse'),
+      days: createCanovaDays(sessionsPerWeek, phase, canovaPhase, weekInPhase, marathonPaceKmh, goal, locale),
     })
   }
 
@@ -78,8 +80,11 @@ export function createCanovaDays(
   weekInPhase: number,
   marathonPaceKmh: number,
   goal: string,
+  localeOrMethodologyPaces: SportRouterLocale | MethodologyPaces = 'en',
   methodologyPaces?: MethodologyPaces  // Optional: use calculated Canova zones
 ) {
+  const locale = typeof localeOrMethodologyPaces === 'string' ? localeOrMethodologyPaces : 'en'
+  const resolvedMethodologyPaces = typeof localeOrMethodologyPaces === 'string' ? methodologyPaces : localeOrMethodologyPaces
   const days = []
 
   // Use methodology-specific pacing if available
@@ -91,15 +96,15 @@ export function createCanovaDays(
   let specificPaceKmh: number
   let specialSpeedKmh: number
 
-  if (methodologyPaces?.canovaSpecificKmh) {
+  if (resolvedMethodologyPaces?.canovaSpecificKmh) {
     // Using Canova-calculated zones
-    mpPaceKmh = methodologyPaces.marathonPaceKmh
-    regenerationPaceKmh = methodologyPaces.canovaRegenerationKmh!  // 65% MP
-    fundamentalPaceKmh = methodologyPaces.canovaFundamentalKmh!   // 80% MP
-    generalEnduranceKmh = methodologyPaces.canovaGeneralEnduranceKmh!  // 87.5% MP
-    specialEnduranceKmh = methodologyPaces.canovaSpecialEnduranceKmh!  // 92.5% MP
-    specificPaceKmh = methodologyPaces.canovaSpecificKmh!  // 100% MP
-    specialSpeedKmh = methodologyPaces.canovaSpecialSpeedKmh!  // 107.5% MP
+    mpPaceKmh = resolvedMethodologyPaces.marathonPaceKmh
+    regenerationPaceKmh = resolvedMethodologyPaces.canovaRegenerationKmh!  // 65% MP
+    fundamentalPaceKmh = resolvedMethodologyPaces.canovaFundamentalKmh!   // 80% MP
+    generalEnduranceKmh = resolvedMethodologyPaces.canovaGeneralEnduranceKmh!  // 87.5% MP
+    specialEnduranceKmh = resolvedMethodologyPaces.canovaSpecialEnduranceKmh!  // 92.5% MP
+    specificPaceKmh = resolvedMethodologyPaces.canovaSpecificKmh!  // 100% MP
+    specialSpeedKmh = resolvedMethodologyPaces.canovaSpecialSpeedKmh!  // 107.5% MP
 
     logger.debug('[Canova] Using MP-based zones', {
       marathonPace: formatPaceMinKm(mpPaceKmh),
@@ -128,17 +133,27 @@ export function createCanovaDays(
       const distance = Math.round((duration / 60) * (easyPaceKmh * 0.85) * 10) / 10
 
       const longRunInstructions = canovaPhase === 'FUNDAMENTAL'
-        ? `Grundläggande långpass (${formatPaceMinKm(easyPaceKmh)}/km). Bygg aerob bas.`
+        ? text(
+            locale,
+            `Foundational long run (${formatPaceMinKm(easyPaceKmh)}/km). Build aerobic base.`,
+            `Grundläggande långpass (${formatPaceMinKm(easyPaceKmh)}/km). Bygg aerob bas.`
+          )
         : canovaPhase === 'SPECIAL'
-        ? `Progressivt långpass: Börja lugnt, avsluta sista 20-30 min @ MP (${formatPaceMinKm(mpPaceKmh)}/km).`
-        : `Tävlingsförberedande långpass med MP-segment.`
+        ? text(
+            locale,
+            `Progressive long run: start easy, finish the final 20-30 min @ MP (${formatPaceMinKm(mpPaceKmh)}/km).`,
+            `Progressivt långpass: Börja lugnt, avsluta sista 20-30 min @ MP (${formatPaceMinKm(mpPaceKmh)}/km).`
+          )
+        : text(locale, 'Race-preparation long run with MP segments.', 'Tävlingsförberedande långpass med MP-segment.')
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Canova Långpass',
+        notes: text(locale, 'Canova long run', 'Canova Långpass'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: canovaPhase === 'FUNDAMENTAL' ? 'Grundläggande långpass' : 'Progressivt långpass',
+          name: canovaPhase === 'FUNDAMENTAL'
+            ? text(locale, 'Foundational long run', 'Grundläggande långpass')
+            : text(locale, 'Progressive long run', 'Progressivt långpass'),
           intensity: 'EASY' as const,
           duration,
           distance,
@@ -148,18 +163,18 @@ export function createCanovaDays(
       })
     } else if (dayNum === 2) {
       // Tuesday: Quality session 1
-      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 1, methodologyPaces)
+      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 1, locale, resolvedMethodologyPaces)
       days.push({
         dayNumber: dayNum,
-        notes: 'Kvalitetspass 1',
+        notes: text(locale, 'Quality session 1', 'Kvalitetspass 1'),
         workouts: [workout],
       })
     } else if (dayNum === 4) {
       // Thursday: Quality session 2
-      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 2, methodologyPaces)
+      const workout = createCanovaQualityWorkout(canovaPhase, weekInPhase, marathonPaceKmh, goal, 2, locale, resolvedMethodologyPaces)
       days.push({
         dayNumber: dayNum,
-        notes: 'Kvalitetspass 2',
+        notes: text(locale, 'Quality session 2', 'Kvalitetspass 2'),
         workouts: [workout],
       })
     } else if (dayNum === 6 && sessionsPerWeek >= 6) {
@@ -169,14 +184,18 @@ export function createCanovaDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Medellångt pass',
+        notes: text(locale, 'Medium-long session', 'Medellångt pass'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Medellångt pass',
+          name: text(locale, 'Medium-long session', 'Medellångt pass'),
           intensity: 'MODERATE' as const,
           duration,
           distance,
-          instructions: `Medellångt pass med möjlig tempohöjning sista 15-20 min.`,
+          instructions: text(
+            locale,
+            'Medium-long session with an optional tempo lift during the final 15-20 min.',
+            'Medellångt pass med möjlig tempohöjning sista 15-20 min.'
+          ),
           segments: [],
         }],
       })
@@ -187,21 +206,25 @@ export function createCanovaDays(
 
       days.push({
         dayNumber: dayNum,
-        notes: 'Lugn löpning',
+        notes: text(locale, 'Easy run', 'Lugn löpning'),
         workouts: [{
           type: 'RUNNING' as const,
-          name: 'Lugn löpning',
+          name: text(locale, 'Easy run', 'Lugn löpning'),
           intensity: 'EASY' as const,
           duration,
           distance,
-          instructions: `Lätt löpning (${formatPaceMinKm(easyPaceKmh)}/km).`,
+          instructions: text(
+            locale,
+            `Easy running (${formatPaceMinKm(easyPaceKmh)}/km).`,
+            `Lätt löpning (${formatPaceMinKm(easyPaceKmh)}/km).`
+          ),
           segments: [],
         }],
       })
     } else {
       days.push({
         dayNumber: dayNum,
-        notes: 'Vilodag',
+        notes: text(locale, 'Rest day', 'Vilodag'),
         workouts: [],
       })
     }
@@ -224,8 +247,11 @@ export function createCanovaQualityWorkout(
   marathonPaceKmh: number,
   goal: string,
   sessionNumber: number,
+  localeOrMethodologyPaces: SportRouterLocale | MethodologyPaces = 'en',
   methodologyPaces?: MethodologyPaces
 ) {
+  const locale = typeof localeOrMethodologyPaces === 'string' ? localeOrMethodologyPaces : 'en'
+  const resolvedMethodologyPaces = typeof localeOrMethodologyPaces === 'string' ? methodologyPaces : localeOrMethodologyPaces
   // Use Canova zones if available
   let mpPaceKmh: number
   let fundamentalPaceKmh: number
@@ -234,13 +260,13 @@ export function createCanovaQualityWorkout(
   let specificPaceKmh: number
   let specialSpeedKmh: number
 
-  if (methodologyPaces?.canovaSpecificKmh) {
-    mpPaceKmh = methodologyPaces.marathonPaceKmh
-    fundamentalPaceKmh = methodologyPaces.canovaFundamentalKmh!
-    activeRecoveryPaceKmh = methodologyPaces.canovaGeneralEnduranceKmh!  // 87.5% MP
-    specialEnduranceKmh = methodologyPaces.canovaSpecialEnduranceKmh!
-    specificPaceKmh = methodologyPaces.canovaSpecificKmh!
-    specialSpeedKmh = methodologyPaces.canovaSpecialSpeedKmh!
+  if (resolvedMethodologyPaces?.canovaSpecificKmh) {
+    mpPaceKmh = resolvedMethodologyPaces.marathonPaceKmh
+    fundamentalPaceKmh = resolvedMethodologyPaces.canovaFundamentalKmh!
+    activeRecoveryPaceKmh = resolvedMethodologyPaces.canovaGeneralEnduranceKmh!  // 87.5% MP
+    specialEnduranceKmh = resolvedMethodologyPaces.canovaSpecialEnduranceKmh!
+    specificPaceKmh = resolvedMethodologyPaces.canovaSpecificKmh!
+    specialSpeedKmh = resolvedMethodologyPaces.canovaSpecialSpeedKmh!
   } else {
     mpPaceKmh = marathonPaceKmh
     fundamentalPaceKmh = mpPaceKmh * 0.80
@@ -257,33 +283,61 @@ export function createCanovaQualityWorkout(
   if (canovaPhase === 'FUNDAMENTAL') {
     // Fundamental: Build aerobic capacity at 80% MP with varied fartlek
     if (sessionNumber === 1) {
-      name = 'Varierad fartlek'
-      description = `Fartlek: 8-10 × 2-3 min @ ${formatPaceMinKm(fundamentalPaceKmh)}/km med ${formatPaceMinKm(activeRecoveryPaceKmh)}/km vila. Bygg aerob kapacitet.`
+      name = text(locale, 'Varied fartlek', 'Varierad fartlek')
+      description = text(
+        locale,
+        `Fartlek: 8-10 x 2-3 min @ ${formatPaceMinKm(fundamentalPaceKmh)}/km with ${formatPaceMinKm(activeRecoveryPaceKmh)}/km recovery. Build aerobic capacity.`,
+        `Fartlek: 8-10 × 2-3 min @ ${formatPaceMinKm(fundamentalPaceKmh)}/km med ${formatPaceMinKm(activeRecoveryPaceKmh)}/km vila. Bygg aerob kapacitet.`
+      )
       intensity = 'MODERATE'
     } else {
-      name = 'Progressiv tempo'
-      description = `Progressivt tempo: Börja @ ${formatPaceMinKm(fundamentalPaceKmh)}/km, avsluta @ ${formatPaceMinKm(specialEnduranceKmh)}/km.`
+      name = text(locale, 'Progressive tempo', 'Progressiv tempo')
+      description = text(
+        locale,
+        `Progressive tempo: start @ ${formatPaceMinKm(fundamentalPaceKmh)}/km, finish @ ${formatPaceMinKm(specialEnduranceKmh)}/km.`,
+        `Progressivt tempo: Börja @ ${formatPaceMinKm(fundamentalPaceKmh)}/km, avsluta @ ${formatPaceMinKm(specialEnduranceKmh)}/km.`
+      )
       intensity = 'THRESHOLD'
     }
   } else if (canovaPhase === 'SPECIAL') {
     // Special: Marathon-specific intervals with ACTIVE RECOVERY (85-90% MP)
     if (sessionNumber === 1) {
-      name = 'MP-intervaller'
+      name = text(locale, 'MP intervals', 'MP-intervaller')
       description = is10KorShorter
-        ? `6-8 × 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km med 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Aktiv vila!`
-        : `4-5 × 2000m @ ${formatPaceMinKm(specificPaceKmh)}/km med 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Marathon-specifik.`
+        ? text(
+            locale,
+            `6-8 x 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km with 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Active recovery.`,
+            `6-8 × 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km med 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Aktiv vila!`
+          )
+        : text(
+            locale,
+            `4-5 x 2000m @ ${formatPaceMinKm(specificPaceKmh)}/km with 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Marathon-specific.`,
+            `4-5 × 2000m @ ${formatPaceMinKm(specificPaceKmh)}/km med 400m @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km. Marathon-specifik.`
+          )
       intensity = 'THRESHOLD'
     } else {
       name = 'Canova Special Block'
-      description = `Special block: 3 × (3km @ ${formatPaceMinKm(specificPaceKmh)}/km + 1km @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km). Uthållighet vid MP.`
+      description = text(
+        locale,
+        `Special block: 3 x (3km @ ${formatPaceMinKm(specificPaceKmh)}/km + 1km @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km). Endurance at MP.`,
+        `Special block: 3 × (3km @ ${formatPaceMinKm(specificPaceKmh)}/km + 1km @ ${formatPaceMinKm(activeRecoveryPaceKmh)}/km). Uthållighet vid MP.`
+      )
       intensity = 'THRESHOLD'
     }
   } else {
     // Competition: Race-specific at Specific pace (100% MP)
-    name = 'Tävlingsförberedelse'
+    name = text(locale, 'Race preparation', 'Tävlingsförberedelse')
     description = is10KorShorter
-      ? `4-5 × 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km med full vila. Tävlingskänsla.`
-      : `2 × 3km @ ${formatPaceMinKm(specificPaceKmh)}/km med 5 min vila. Slipa formen.`
+      ? text(
+          locale,
+          `4-5 x 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km with full recovery. Race feel.`,
+          `4-5 × 1000m @ ${formatPaceMinKm(specialSpeedKmh)}/km med full vila. Tävlingskänsla.`
+        )
+      : text(
+          locale,
+          `2 x 3km @ ${formatPaceMinKm(specificPaceKmh)}/km with 5 min recovery. Sharpen form.`,
+          `2 × 3km @ ${formatPaceMinKm(specificPaceKmh)}/km med 5 min vila. Slipa formen.`
+        )
     intensity = 'INTERVAL'
   }
 
@@ -307,4 +361,3 @@ export function createCanovaQualityWorkout(
 // ============================================================================
 // PYRAMIDAL METHODOLOGY (70/20/10)
 // ============================================================================
-
