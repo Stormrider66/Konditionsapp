@@ -124,4 +124,18 @@ describe('generateCourtSportProgram through sport router', () => {
     expect(program.name).toContain('Handboll')
     expect(workoutText).toMatch(/Handbollsteknik|Kastkraft|Styrka och skadeprevention/)
   })
+
+  it('localizes imported prevention recommendations for English court-sport programs', async () => {
+    const params = {
+      ...paramsFor(sportCases[1]),
+      locale: 'en',
+    } as SportProgramParams
+
+    const program = await generateSportProgram(params, client)
+    const serialized = JSON.stringify(program)
+    const metadata = program.planningMetadata as { prevention?: string[] } | undefined
+
+    expect(serialized).not.toMatch(/[åäöÅÄÖ]|\b(Styrka|sida|ben|Kontrollerad|Djup|bål|Antirotation)\b/)
+    expect(metadata?.prevention).toContain('Band external rotation')
+  })
 })

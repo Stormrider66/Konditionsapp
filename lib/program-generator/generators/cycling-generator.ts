@@ -236,7 +236,7 @@ function createFallbackCyclingDays(input: {
     {
       day: 5,
       workout: cyclingWorkout({
-        name: 'VO2 / backintervaller',
+        name: t(input.locale, 'VO2 / hill intervals', 'VO2 / backintervaller'),
         intensity: 'INTERVAL',
         duration: Math.round(55 * loadFactor),
         zone: 5,

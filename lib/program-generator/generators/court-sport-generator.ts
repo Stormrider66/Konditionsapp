@@ -5,6 +5,7 @@ import {
   BASKETBALL_POSITION_PROFILES,
   getPositionRecommendations as getBasketballPositionRecommendations,
   getSeasonPhaseTraining as getBasketballSeasonPhaseTraining,
+  translateBasketballText,
   type BasketballPosition,
   type SeasonPhase as BasketballSeasonPhase,
 } from '@/lib/training-engine/basketball'
@@ -12,6 +13,7 @@ import {
   HANDBALL_POSITION_PROFILES,
   getPositionRecommendations as getHandballPositionRecommendations,
   getSeasonPhaseTraining as getHandballSeasonPhaseTraining,
+  translateHandballText,
   type HandballPosition,
   type SeasonPhase as HandballSeasonPhase,
 } from '@/lib/training-engine/handball'
@@ -19,6 +21,7 @@ import {
   FLOORBALL_POSITION_PROFILES,
   getPositionRecommendations as getFloorballPositionRecommendations,
   getSeasonPhaseTraining as getFloorballSeasonPhaseTraining,
+  translateFloorballText,
   type FloorballPosition,
   type SeasonPhase as FloorballSeasonPhase,
 } from '@/lib/training-engine/floorball'
@@ -26,6 +29,7 @@ import {
   VOLLEYBALL_POSITION_PROFILES,
   getPositionRecommendations as getVolleyballPositionRecommendations,
   getSeasonPhaseTraining as getVolleyballSeasonPhaseTraining,
+  translateVolleyballText,
   type VolleyballPosition,
   type SeasonPhase as VolleyballSeasonPhase,
 } from '@/lib/training-engine/volleyball'
@@ -33,6 +37,7 @@ import {
   TENNIS_PLAYSTYLE_PROFILES,
   getPlayStyleRecommendations as getTennisPlayStyleRecommendations,
   getSeasonPhaseTraining as getTennisSeasonPhaseTraining,
+  translateTennisText,
   type TennisPlayStyle,
   type SeasonPhase as TennisSeasonPhase,
 } from '@/lib/training-engine/tennis'
@@ -40,6 +45,7 @@ import {
   PADEL_POSITION_PROFILES,
   getPositionRecommendations as getPadelPositionRecommendations,
   getSeasonPhaseTraining as getPadelSeasonPhaseTraining,
+  translatePadelText,
   type PadelPosition,
   type SeasonPhase as PadelSeasonPhase,
 } from '@/lib/training-engine/padel'
@@ -95,6 +101,7 @@ type CourtSportConfig = {
   getProfile: (key: string) => CourtProfile
   getRecommendations: (key: string) => CourtExerciseRecommendation[]
   getPhaseTraining: (phase: CourtSeasonPhase) => CourtPhaseTraining
+  translateText: (locale: string, value: string) => string
   technicalLabel: string
   matchLabel: string
   conditioningLabel: string
@@ -115,6 +122,7 @@ const CONFIGS: Record<CourtSport, CourtSportConfig> = {
     getProfile: (key) => BASKETBALL_POSITION_PROFILES[(key as BasketballPosition)] || BASKETBALL_POSITION_PROFILES.small_forward,
     getRecommendations: (key) => getBasketballPositionRecommendations((key as BasketballPosition) in BASKETBALL_POSITION_PROFILES ? key as BasketballPosition : 'small_forward'),
     getPhaseTraining: (phase) => getBasketballSeasonPhaseTraining(phase as BasketballSeasonPhase),
+    translateText: translateBasketballText,
     technicalLabel: 'Basket skills och beslutsfattande',
     matchLabel: 'Match / game-speed scrimmage',
     conditioningLabel: 'Repeated sprint och court conditioning',
@@ -131,6 +139,7 @@ const CONFIGS: Record<CourtSport, CourtSportConfig> = {
     getProfile: (key) => HANDBALL_POSITION_PROFILES[(key as HandballPosition)] || HANDBALL_POSITION_PROFILES.back,
     getRecommendations: (key) => getHandballPositionRecommendations((key as HandballPosition) in HANDBALL_POSITION_PROFILES ? key as HandballPosition : 'back'),
     getPhaseTraining: (phase) => getHandballSeasonPhaseTraining(phase as HandballSeasonPhase),
+    translateText: translateHandballText,
     technicalLabel: 'Handbollsteknik, kast och genombrott',
     matchLabel: 'Match / speltempo',
     conditioningLabel: 'Repeated sprint och riktningsförändringar',
@@ -147,6 +156,7 @@ const CONFIGS: Record<CourtSport, CourtSportConfig> = {
     getProfile: (key) => FLOORBALL_POSITION_PROFILES[(key as FloorballPosition)] || FLOORBALL_POSITION_PROFILES.forward,
     getRecommendations: (key) => getFloorballPositionRecommendations((key as FloorballPosition) in FLOORBALL_POSITION_PROFILES ? key as FloorballPosition : 'forward'),
     getPhaseTraining: (phase) => getFloorballSeasonPhaseTraining(phase as FloorballSeasonPhase),
+    translateText: translateFloorballText,
     technicalLabel: 'Klubbteknik, avslut och spelvändningar',
     matchLabel: 'Match / byteslikt spel',
     conditioningLabel: 'Bytesintervaller och snabb återhämtning',
@@ -163,6 +173,7 @@ const CONFIGS: Record<CourtSport, CourtSportConfig> = {
     getProfile: (key) => VOLLEYBALL_POSITION_PROFILES[(key as VolleyballPosition)] || VOLLEYBALL_POSITION_PROFILES.outside_hitter,
     getRecommendations: (key) => getVolleyballPositionRecommendations((key as VolleyballPosition) in VOLLEYBALL_POSITION_PROFILES ? key as VolleyballPosition : 'outside_hitter'),
     getPhaseTraining: (phase) => getVolleyballSeasonPhaseTraining(phase as VolleyballSeasonPhase),
+    translateText: translateVolleyballText,
     technicalLabel: 'Volleybollteknik, approach och positionering',
     matchLabel: 'Match / setspel',
     conditioningLabel: 'Kort reaktion, landning och repeated jump tolerance',
@@ -179,6 +190,7 @@ const CONFIGS: Record<CourtSport, CourtSportConfig> = {
     getProfile: (key) => TENNIS_PLAYSTYLE_PROFILES[(key as TennisPlayStyle)] || TENNIS_PLAYSTYLE_PROFILES.all_court,
     getRecommendations: (key) => getTennisPlayStyleRecommendations((key as TennisPlayStyle) in TENNIS_PLAYSTYLE_PROFILES ? key as TennisPlayStyle : 'all_court'),
     getPhaseTraining: (phase) => getTennisSeasonPhaseTraining(phase as TennisSeasonPhase),
+    translateText: translateTennisText,
     technicalLabel: 'Tennisteknik, fotarbete och slagmönster',
     matchLabel: 'Matchplay / poängspel',
     conditioningLabel: 'Tennisintervaller och lateral uthållighet',
@@ -195,6 +207,7 @@ const CONFIGS: Record<CourtSport, CourtSportConfig> = {
     getProfile: (key) => PADEL_POSITION_PROFILES[(key as PadelPosition)] || PADEL_POSITION_PROFILES.all_court,
     getRecommendations: (key) => getPadelPositionRecommendations((key as PadelPosition) in PADEL_POSITION_PROFILES ? key as PadelPosition : 'all_court'),
     getPhaseTraining: (phase) => getPadelSeasonPhaseTraining(phase as PadelSeasonPhase),
+    translateText: translatePadelText,
     technicalLabel: 'Padelteknik, väggspel och positionering',
     matchLabel: 'Matchplay / taktiskt poängspel',
     conditioningLabel: 'Kort acceleration och sidledsarbete',
@@ -266,7 +279,9 @@ export async function generateCourtSportProgram(
   const profile = config.getProfile(profileKey)
   const profileLabel = getProfileLabel(profileKey, profile, locale)
   const phaseTraining = config.getPhaseTraining(phase)
-  const recommendations = config.getRecommendations(profileKey)
+  const recommendations = config
+    .getRecommendations(profileKey)
+    .map((recommendation) => localizeRecommendation(config, recommendation, locale))
   const sessionsPerWeek = Math.min(7, Math.max(2, getNumber(settings.sessionsPerWeek) || params.sessionsPerWeek || 4))
   const matchesPerWeek = Math.max(0, getNumber(settings.matchesPerWeek) ?? getNumber(settings.matchesThisWeek) ?? inferMatchesPerWeek(phase, params.goal))
 
@@ -631,6 +646,22 @@ function getSportDemandSummary(profile: CourtProfile, locale: AppLocale): string
   }
 
   return 'speed, change of direction, power, and repeat-effort capacity'
+}
+
+function localizeRecommendation(
+  config: CourtSportConfig,
+  recommendation: CourtExerciseRecommendation,
+  locale: AppLocale
+): CourtExerciseRecommendation {
+  if (locale === 'sv') return recommendation
+
+  return {
+    ...recommendation,
+    name: config.translateText(locale, recommendation.name),
+    category: config.translateText(locale, recommendation.category),
+    setsReps: config.translateText(locale, recommendation.setsReps),
+    notes: config.translateText(locale, recommendation.notes),
+  }
 }
 
 function getStrengthEmphasis(locale: AppLocale, phaseTraining: CourtPhaseTraining): string {

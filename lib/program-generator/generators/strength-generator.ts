@@ -143,7 +143,7 @@ function getStrengthWorkoutPlan(
       strengthWorkout(t(locale, 'Upper body and trunk strength', 'Överkropp och bålstyrka'), 'MODERATE', load, locale, [
         exercise(t(locale, 'Bench press or push press', 'Bench press eller push press'), load.sets, load.reps, t(locale, 'Pressing strength', 'Pressstyrka')),
         exercise(t(locale, 'Pull-up or row', 'Pull-up eller rodd'), load.sets, load.reps, t(locale, 'Pulling strength', 'Dragstyrka')),
-        exercise('Pallof press', 3, '10/side', 'Antirotation'),
+        exercise('Pallof press', 3, '10/side', t(locale, 'Anti-rotation', 'Antirotation')),
       ]),
     ]
   }
@@ -208,7 +208,7 @@ function strengthWorkout(
   exercises: Array<{ name: string; sets: number; reps: string; note: string }>
 ): CreateWorkoutDTO {
   return {
-    type: name.toLowerCase().includes('plyometrik') || name.toLowerCase().includes('power') ? 'PLYOMETRIC' : 'STRENGTH',
+    type: isPlyometricWorkoutName(name) ? 'PLYOMETRIC' : 'STRENGTH',
     name,
     intensity,
     duration: intensity === 'EASY' ? 40 : 50,
@@ -231,6 +231,11 @@ function strengthWorkout(
 
 function exercise(name: string, sets: number, reps: string, note: string) {
   return { name, sets, reps, note }
+}
+
+function isPlyometricWorkoutName(name: string): boolean {
+  const normalized = name.toLowerCase()
+  return normalized.includes('plyometric') || normalized.includes('plyometrik') || normalized.includes('power')
 }
 
 /**

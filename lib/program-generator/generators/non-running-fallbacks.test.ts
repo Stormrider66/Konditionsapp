@@ -60,6 +60,23 @@ describe('non-running fallback generators', () => {
     expect(program.notes).toContain('Custom cycling program')
   })
 
+  it('uses English labels for custom cycling VO2 hill intervals', async () => {
+    const program = await generateCyclingProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'custom',
+      durationWeeks: 4,
+      sessionsPerWeek: 6,
+      ftp: 260,
+      locale: 'en',
+    }, client)
+
+    const serialized = JSON.stringify(program)
+
+    expect(serialized).toContain('VO2 / hill intervals')
+    expect(serialized).not.toContain('backintervaller')
+  })
+
   it('keeps custom cycling fallback content Swedish for Swedish users', async () => {
     const program = await generateCyclingProgram({
       clientId: 'client-1',
@@ -165,6 +182,23 @@ describe('non-running fallback generators', () => {
     expect(JSON.stringify(program)).not.toMatch(swedishUserVisiblePattern)
     expect(program.name).toContain('General strength')
     expect(program.weeks?.[0].focus).toContain('Build foundational strength')
+  })
+
+  it('uses English anti-rotation notes and classifies English plyometrics', async () => {
+    const program = await generateStrengthProgram({
+      clientId: 'client-1',
+      coachId: 'coach-1',
+      goal: 'running-economy',
+      durationWeeks: 6,
+      sessionsPerWeek: 3,
+      locale: 'en',
+    }, client)
+
+    const serialized = JSON.stringify(program)
+    const workouts = program.weeks?.flatMap((week) => week.days.flatMap((day) => day.workouts)) ?? []
+
+    expect(serialized).not.toContain('Antirotation')
+    expect(workouts.some((workout) => workout.name === 'Plyometrics and stiffness' && workout.type === 'PLYOMETRIC')).toBe(true)
   })
 
   it('keeps strength program content Swedish for Swedish users', async () => {
