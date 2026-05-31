@@ -15,6 +15,7 @@ export interface TemplateExercise {
   restSeconds: number
   tempo?: string
   notes?: string
+  notesSv?: string
   section: 'WARMUP' | 'MAIN' | 'CORE' | 'COOLDOWN'
 }
 
@@ -30,12 +31,15 @@ export interface StrengthTemplate {
   estimatedDuration: number // minutes
   athleteLevel: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE'
   equipmentRequired: string[]
+  equipmentRequiredSv?: string[]
   includesWarmup: boolean
   includesCore: boolean
   includesCooldown: boolean
   exercises: TemplateExercise[]
   coachNotes?: string
+  coachNotesSv?: string
   tags: string[]
+  tagsSv?: string[]
 }
 
 /**
@@ -56,11 +60,13 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 2,
     estimatedDuration: 35,
     athleteLevel: 'BEGINNER',
-    equipmentRequired: ['Träningsmatta'],
+    equipmentRequired: ['Exercise mat'],
+    equipmentRequiredSv: ['Träningsmatta'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: true,
-    tags: ['nybörjare', 'löpare', 'kroppsvikt'],
+    tags: ['beginner', 'runner', 'bodyweight'],
+    tagsSv: ['nybörjare', 'löpare', 'kroppsvikt'],
     exercises: [
       // Warmup
       {
@@ -95,7 +101,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: 12,
         restSeconds: 60,
         tempo: '2-0-2-0',
-        notes: 'Kroppsvikt eller lätt vikt. Fokus på djup och teknik.',
+        notes: 'Bodyweight or light load. Focus on depth and technique.',
+        notesSv: 'Kroppsvikt eller lätt vikt. Fokus på djup och teknik.',
         section: 'MAIN',
       },
       {
@@ -105,7 +112,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: 10,
         restSeconds: 60,
         tempo: '3-0-1-0',
-        notes: 'Kroppsvikt eller hantlar. Känn stretch i hamstrings.',
+        notes: 'Bodyweight or dumbbells. Feel the stretch in the hamstrings.',
+        notesSv: 'Kroppsvikt eller hantlar. Känn stretch i hamstrings.',
         section: 'MAIN',
       },
       {
@@ -122,7 +130,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: 15,
         restSeconds: 30,
-        notes: 'Långsam kontrollerad rörelse',
+        notes: 'Slow, controlled movement.',
+        notesSv: 'Långsam kontrollerad rörelse',
         section: 'MAIN',
       },
       // Core
@@ -132,7 +141,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '8 per sida',
         restSeconds: 30,
-        notes: 'Tryck nedre ryggen mot golvet',
+        notes: 'Press the lower back toward the floor.',
+        notesSv: 'Tryck nedre ryggen mot golvet',
         section: 'CORE',
       },
       {
@@ -161,7 +171,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         section: 'COOLDOWN',
       },
     ],
-    coachNotes: 'Fokusera på teknik framför vikt. Öka reps först (till 15), sedan lägg till lätt belastning.',
+    coachNotes: 'Prioritize technique over load. Increase reps first (up to 15), then add light resistance.',
+    coachNotesSv: 'Fokusera på teknik framför vikt. Öka reps först (till 15), sedan lägg till lätt belastning.',
   },
 
   // ============================================
@@ -178,11 +189,13 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 2,
     estimatedDuration: 40,
     athleteLevel: 'INTERMEDIATE',
-    equipmentRequired: ['Hantlar', 'Träningsmatta'],
+    equipmentRequired: ['Dumbbells', 'Exercise mat'],
+    equipmentRequiredSv: ['Hantlar', 'Träningsmatta'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: true,
-    tags: ['maraton', 'löpare', 'underhåll', 'uthållighet'],
+    tags: ['marathon', 'runner', 'maintenance', 'endurance'],
+    tagsSv: ['maraton', 'löpare', 'underhåll', 'uthållighet'],
     exercises: [
       // Warmup
       {
@@ -217,7 +230,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: '8 per ben',
         restSeconds: 90,
         tempo: '3-0-1-0',
-        notes: 'Hantlar i händerna. Kontrollerad rörelse.',
+        notes: 'Hold dumbbells at your sides. Keep the movement controlled.',
+        notesSv: 'Hantlar i händerna. Kontrollerad rörelse.',
         section: 'MAIN',
       },
       {
@@ -227,7 +241,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: 8,
         restSeconds: 90,
         tempo: '3-1-1-0',
-        notes: 'Hantlar. Stark hamstring-aktivering.',
+        notes: 'Use dumbbells. Strong hamstring activation.',
+        notesSv: 'Hantlar. Stark hamstring-aktivering.',
         section: 'MAIN',
       },
       {
@@ -236,7 +251,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '10 per ben',
         restSeconds: 60,
-        notes: 'Hög bänk/låda. Fokus på framdrivning.',
+        notes: 'Use a high bench or box. Focus on driving upward.',
+        notesSv: 'Hög bänk/låda. Fokus på framdrivning.',
         section: 'MAIN',
       },
       {
@@ -246,7 +262,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: '12 per ben',
         restSeconds: 45,
         tempo: '2-1-2-1',
-        notes: 'Fullständig stretch i botten',
+        notes: 'Full stretch at the bottom.',
+        notesSv: 'Fullständig stretch i botten',
         section: 'MAIN',
       },
       // Core
@@ -264,7 +281,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '8 per sida',
         restSeconds: 30,
-        notes: 'Kontrollerad, stabilt bäcken',
+        notes: 'Controlled movement with a stable pelvis.',
+        notesSv: 'Kontrollerad, stabilt bäcken',
         section: 'CORE',
       },
       {
@@ -273,7 +291,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '10 per sida',
         restSeconds: 30,
-        notes: 'Motståndsband. Anti-rotation.',
+        notes: 'Use a resistance band. Anti-rotation focus.',
+        notesSv: 'Motståndsband. Anti-rotation.',
         section: 'CORE',
       },
       // Cooldown
@@ -294,7 +313,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         section: 'COOLDOWN',
       },
     ],
-    coachNotes: 'Kör detta pass 48+ timmar före kvalitetspass. Fokus på kontroll, inte maxvikt.',
+    coachNotes: 'Schedule this session 48+ hours before quality runs. Focus on control, not max load.',
+    coachNotesSv: 'Kör detta pass 48+ timmar före kvalitetspass. Fokus på kontroll, inte maxvikt.',
   },
 
   // ============================================
@@ -311,11 +331,13 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 3,
     estimatedDuration: 25,
     athleteLevel: 'BEGINNER',
-    equipmentRequired: ['Träningsmatta', 'Motståndsband'],
+    equipmentRequired: ['Exercise mat', 'Resistance band'],
+    equipmentRequiredSv: ['Träningsmatta', 'Motståndsband'],
     includesWarmup: false,
     includesCore: true,
     includesCooldown: false,
-    tags: ['skadeprevention', 'höft', 'hamstrings', 'ankel'],
+    tags: ['injury prevention', 'hip', 'hamstrings', 'ankle'],
+    tagsSv: ['skadeprevention', 'höft', 'hamstrings', 'ankel'],
     exercises: [
       // Main (focused on injury prevention)
       {
@@ -324,7 +346,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '15 per sida',
         restSeconds: 30,
-        notes: 'Motståndsband runt knäna. Aktiverar gluteus medius.',
+        notes: 'Resistance band around the knees. Activate the gluteus medius.',
+        notesSv: 'Motståndsband runt knäna. Aktiverar gluteus medius.',
         section: 'MAIN',
       },
       {
@@ -333,7 +356,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: '10 per ben',
         restSeconds: 45,
-        notes: 'Håll bäckenet stabilt',
+        notes: 'Keep the pelvis stable.',
+        notesSv: 'Håll bäckenet stabilt',
         section: 'MAIN',
       },
       {
@@ -342,7 +366,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: '5-8',
         restSeconds: 60,
-        notes: 'Kontrollerad excentrisk. Använd händerna för assistans om behövs.',
+        notes: 'Controlled eccentric phase. Use your hands for assistance if needed.',
+        notesSv: 'Kontrollerad excentrisk. Använd händerna för assistans om behövs.',
         section: 'MAIN',
       },
       {
@@ -352,7 +377,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: '10 per ben',
         restSeconds: 45,
         tempo: '1-0-3-1',
-        notes: 'Långsam nedgång (3 sek). Förebygger hälseneproblem.',
+        notes: 'Slow lowering phase (3 seconds). Helps prevent Achilles issues.',
+        notesSv: 'Långsam nedgång (3 sek). Förebygger hälseneproblem.',
         section: 'MAIN',
       },
       {
@@ -361,7 +387,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '8 per sida',
         restSeconds: 45,
-        notes: 'Sidoliggande. Stärker ljumskar.',
+        notes: 'Side-lying position. Strengthens the groin.',
+        notesSv: 'Sidoliggande. Stärker ljumskar.',
         section: 'MAIN',
       },
       // Core
@@ -382,7 +409,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         section: 'CORE',
       },
     ],
-    coachNotes: 'Kan köras som snabbpass före löpning eller som separat pass. Prioritera Nordic Hamstring och Copenhagen.',
+    coachNotes: 'Can be used as a quick session before running or as a standalone session. Prioritize Nordic Hamstring and Copenhagen plank.',
+    coachNotesSv: 'Kan köras som snabbpass före löpning eller som separat pass. Prioritera Nordic Hamstring och Copenhagen.',
   },
 
   // ============================================
@@ -399,11 +427,13 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 2,
     estimatedDuration: 45,
     athleteLevel: 'ADVANCED',
-    equipmentRequired: ['Plyo-låda', 'Skivstång', 'Träningsmatta'],
+    equipmentRequired: ['Plyo box', 'Barbell', 'Exercise mat'],
+    equipmentRequiredSv: ['Plyo-låda', 'Skivstång', 'Träningsmatta'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: true,
-    tags: ['kraft', 'plyometri', 'explosivitet', 'avancerad'],
+    tags: ['power', 'plyometrics', 'explosiveness', 'advanced'],
+    tagsSv: ['kraft', 'plyometri', 'explosivitet', 'avancerad'],
     exercises: [
       // Warmup
       {
@@ -428,7 +458,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: 20,
         restSeconds: 30,
-        notes: 'Snabb kontakt, stela anklar',
+        notes: 'Quick ground contact with stiff ankles.',
+        notesSv: 'Snabb kontakt, stela anklar',
         section: 'WARMUP',
       },
       // Main
@@ -438,7 +469,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 4,
         reps: 5,
         restSeconds: 120,
-        notes: 'Max explosion. Kliv ner, hoppa inte.',
+        notes: 'Maximum explosiveness. Step down from the box, do not jump down.',
+        notesSv: 'Max explosion. Kliv ner, hoppa inte.',
         section: 'MAIN',
       },
       {
@@ -447,7 +479,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 6,
         restSeconds: 90,
-        notes: 'Kroppsvikt eller lätt belastning. Max höjd.',
+        notes: 'Bodyweight or light load. Maximum height.',
+        notesSv: 'Kroppsvikt eller lätt belastning. Max höjd.',
         section: 'MAIN',
       },
       {
@@ -456,7 +489,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: '6 per ben',
         restSeconds: 90,
-        notes: 'Hög låda. Explosiv uppgång.',
+        notes: 'Use a high box. Explosive upward drive.',
+        notesSv: 'Hög låda. Explosiv uppgång.',
         section: 'MAIN',
       },
       {
@@ -465,7 +499,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: '5 per ben',
         restSeconds: 90,
-        notes: 'Max längd. Landning med kontroll.',
+        notes: 'Maximum distance. Land with control.',
+        notesSv: 'Max längd. Landning med kontroll.',
         section: 'MAIN',
       },
       // Core
@@ -475,7 +510,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 8,
         restSeconds: 45,
-        notes: 'Full kraft i varje kast',
+        notes: 'Full power on every throw.',
+        notesSv: 'Full kraft i varje kast',
         section: 'CORE',
       },
       {
@@ -484,7 +520,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '12 per sida',
         restSeconds: 30,
-        notes: 'Med medicinboll om tillgänglig',
+        notes: 'Use a medicine ball if available.',
+        notesSv: 'Med medicinboll om tillgänglig',
         section: 'CORE',
       },
       // Cooldown
@@ -505,7 +542,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         section: 'COOLDOWN',
       },
     ],
-    coachNotes: 'Kör INTE detta pass dagen före eller efter hårda löppass. Minst 48 timmars vila mellan.',
+    coachNotes: 'Do NOT schedule this session the day before or after hard running sessions. Keep at least 48 hours between them.',
+    coachNotesSv: 'Kör INTE detta pass dagen före eller efter hårda löppass. Minst 48 timmars vila mellan.',
   },
 
   // ============================================
@@ -522,11 +560,13 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 1,
     estimatedDuration: 30,
     athleteLevel: 'INTERMEDIATE',
-    equipmentRequired: ['Hantlar', 'Träningsmatta'],
+    equipmentRequired: ['Dumbbells', 'Exercise mat'],
+    equipmentRequiredSv: ['Hantlar', 'Träningsmatta'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: false,
-    tags: ['underhåll', 'tävlingssäsong', 'minimal'],
+    tags: ['maintenance', 'race season', 'minimal'],
+    tagsSv: ['underhåll', 'tävlingssäsong', 'minimal'],
     exercises: [
       // Warmup (abbreviated)
       {
@@ -545,7 +585,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: 5,
         restSeconds: 120,
         tempo: '2-0-1-0',
-        notes: 'Moderat-tung vikt. Bibehåll styrka.',
+        notes: 'Moderately heavy load. Maintain strength.',
+        notesSv: 'Moderat-tung vikt. Bibehåll styrka.',
         section: 'MAIN',
       },
       {
@@ -555,7 +596,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         reps: 5,
         restSeconds: 120,
         tempo: '3-0-1-0',
-        notes: 'Bibehåll senaste arbetsbelastning.',
+        notes: 'Maintain the latest working load.',
+        notesSv: 'Bibehåll senaste arbetsbelastning.',
         section: 'MAIN',
       },
       {
@@ -584,7 +626,8 @@ export const STRENGTH_TEMPLATES: StrengthTemplate[] = [
         section: 'CORE',
       },
     ],
-    coachNotes: 'Kör detta pass minst 48 timmar före tävling eller kvalitetspass. Fokus på att BIBEHÅLLA, inte öka.',
+    coachNotes: 'Schedule this session at least 48 hours before a race or quality session. Focus on MAINTAINING, not increasing.',
+    coachNotesSv: 'Kör detta pass minst 48 timmar före tävling eller kvalitetspass. Fokus på att BIBEHÅLLA, inte öka.',
   },
 ]
 
@@ -625,6 +668,7 @@ export function searchTemplates(query: string): StrengthTemplate[] {
       t.name.toLowerCase().includes(lowerQuery) ||
       t.nameSv.toLowerCase().includes(lowerQuery) ||
       t.tags.some((tag) => tag.includes(lowerQuery)) ||
+      t.tagsSv?.some((tag) => tag.includes(lowerQuery)) ||
       t.description.toLowerCase().includes(lowerQuery)
   )
 }

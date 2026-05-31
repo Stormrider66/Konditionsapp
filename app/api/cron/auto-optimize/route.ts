@@ -143,7 +143,7 @@ async function evaluateActiveVariant(
             .replace(/\{\{sessionsPerWeek\}\}/g, String(scenario.sessionsPerWeek))
             .replace(/\{\{experienceLevel\}\}/g, scenario.experienceLevel)
             .replace(/\{\{goal\}\}/g, scenario.goal)
-        : `${promptTemplate}\n\nSport: ${scenario.sport}\nMetodik: ${scenario.methodology}\nVeckor: ${scenario.totalWeeks}\nPass/vecka: ${scenario.sessionsPerWeek}\nMål: ${scenario.goal}`
+        : `${promptTemplate}\n\nSport: ${scenario.sport}\nMethodology: ${scenario.methodology}\nWeeks: ${scenario.totalWeeks}\nSessions/week: ${scenario.sessionsPerWeek}\nGoal: ${scenario.goal}`
 
       const result = await generateText({
         model: createModelInstance(model),

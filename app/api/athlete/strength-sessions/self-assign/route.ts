@@ -24,6 +24,14 @@ interface SelfAssignRequestBody {
 
 type AppLocale = 'en' | 'sv'
 
+function localizedNotes(locale: AppLocale, notes?: string, notesSv?: string): string | undefined {
+  return locale === 'sv' ? notesSv ?? notes : notes
+}
+
+function localizedTags(locale: AppLocale, tags: string[], tagsSv?: string[]): string[] {
+  return locale === 'sv' ? tagsSv ?? tags : tags
+}
+
 export async function POST(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest) {
             reps: ex.reps,
             restSeconds: ex.restSeconds,
             tempo: ex.tempo,
-            notes: locale === 'sv' ? ex.notes : undefined,
+            notes: localizedNotes(locale, ex.notes, ex.notesSv),
           })),
         warmupData: template.includesWarmup
           ? {
@@ -113,7 +121,7 @@ export async function POST(request: NextRequest) {
                   sets: ex.sets,
                   reps: ex.reps,
                   restSeconds: ex.restSeconds,
-                  notes: locale === 'sv' ? ex.notes : undefined,
+                  notes: localizedNotes(locale, ex.notes, ex.notesSv),
                 })),
             }
           : undefined,
@@ -129,7 +137,7 @@ export async function POST(request: NextRequest) {
                   sets: ex.sets,
                   reps: ex.reps,
                   restSeconds: ex.restSeconds,
-                  notes: locale === 'sv' ? ex.notes : undefined,
+                  notes: localizedNotes(locale, ex.notes, ex.notesSv),
                 })),
             }
           : undefined,
@@ -145,7 +153,7 @@ export async function POST(request: NextRequest) {
                   sets: ex.sets,
                   reps: ex.reps,
                   restSeconds: ex.restSeconds,
-                  notes: locale === 'sv' ? ex.notes : undefined,
+                  notes: localizedNotes(locale, ex.notes, ex.notesSv),
                 })),
             }
           : undefined,
@@ -153,7 +161,7 @@ export async function POST(request: NextRequest) {
         totalExercises: template.exercises.length,
         coachId: isCoachInAthleteMode ? user.id : client.userId, // Use athlete's coach or self
         isPublic: false,
-        tags: [...template.tags, `template:${template.id}`], // Store template reference in tags
+        tags: [...localizedTags(locale, template.tags, template.tagsSv), `template:${template.id}`], // Store template reference in tags
       },
     })
 

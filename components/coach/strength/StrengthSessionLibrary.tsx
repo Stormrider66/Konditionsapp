@@ -82,10 +82,12 @@ interface SystemTemplate {
   estimatedDuration: number;
   athleteLevel: string;
   equipmentRequired: string[];
+  equipmentRequiredSv?: string[];
   includesWarmup: boolean;
   includesCore: boolean;
   includesCooldown: boolean;
   tags: string[];
+  tagsSv?: string[];
   exerciseCount: number;
   isSystemTemplate: boolean;
 }
@@ -96,6 +98,14 @@ type LocalizedLabel = Record<AppLocale, string>;
 
 function copy(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en;
+}
+
+function localizedNotes(locale: AppLocale, notes?: string, notesSv?: string): string | undefined {
+  return locale === 'sv' ? notesSv ?? notes : notes;
+}
+
+function localizedTags(locale: AppLocale, tags: string[], tagsSv?: string[]): string[] {
+  return locale === 'sv' ? tagsSv ?? tags : tags;
 }
 
 const CATEGORY_LABELS: Record<string, { label: LocalizedLabel; icon: React.ElementType; color: string }> = {
@@ -268,7 +278,7 @@ export function StrengthSessionLibrary({
           estimatedDuration: template.estimatedDuration,
           exercises: fullTemplate.exercises
             .filter((e: { section: string }) => e.section === 'MAIN')
-            .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; tempo?: string; notes?: string }, idx: number) => ({
+            .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; tempo?: string; notes?: string; notesSv?: string }, idx: number) => ({
               exerciseId: `template-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
               exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
               order: idx,
@@ -276,19 +286,19 @@ export function StrengthSessionLibrary({
               reps: parseInt(e.reps) || 10,
               restSeconds: e.restSeconds || 90,
               tempo: e.tempo,
-              notes: e.notes,
+              notes: localizedNotes(locale, e.notes, e.notesSv),
             })),
           warmupData: template.includesWarmup ? {
             notes: copy(locale, 'Warm-up from template', 'Uppvärmning från mall'),
             duration: 8,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'WARMUP')
-              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; notes?: string }) => ({
+              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; notes?: string; notesSv?: string }) => ({
                 exerciseId: `template-warmup-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                 exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 sets: e.sets,
                 reps: e.reps,
-                notes: e.notes,
+                notes: localizedNotes(locale, e.notes, e.notesSv),
               })),
           } : undefined,
           coreData: template.includesCore ? {
@@ -296,13 +306,13 @@ export function StrengthSessionLibrary({
             duration: 5,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'CORE')
-              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; notes?: string }) => ({
+              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; notes?: string; notesSv?: string }) => ({
                 exerciseId: `template-core-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                 exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 sets: e.sets,
                 reps: e.reps,
                 restSeconds: e.restSeconds,
-                notes: e.notes,
+                notes: localizedNotes(locale, e.notes, e.notesSv),
               })),
           } : undefined,
           cooldownData: template.includesCooldown ? {
@@ -310,14 +320,14 @@ export function StrengthSessionLibrary({
             duration: 7,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'COOLDOWN')
-              .map((e: { exerciseName: string; exerciseNameSv: string; notes?: string }) => ({
+              .map((e: { exerciseName: string; exerciseNameSv: string; notes?: string; notesSv?: string }) => ({
                 exerciseId: `template-cooldown-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                 exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 duration: 30,
-                notes: e.notes,
+                notes: localizedNotes(locale, e.notes, e.notesSv),
               })),
           } : undefined,
-          tags: [...template.tags, `template:${template.id}`],
+          tags: [...localizedTags(locale, template.tags, template.tagsSv), `template:${template.id}`],
         }),
       });
 
