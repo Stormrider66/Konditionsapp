@@ -15,6 +15,7 @@
 export type PerformanceLevel = 'world_class' | 'elite' | 'advanced' | 'intermediate' | 'beginner'
 export type Gender = 'male' | 'female'
 export type Division = 'open' | 'pro' | 'doubles'
+export type HyroxLocale = 'en' | 'sv'
 
 export interface StationTimes {
   skierg: number | null      // 1000m time in seconds
@@ -42,6 +43,30 @@ export interface StrengthPRs {
   pullUps: number | null     // max strict reps
   barbellRow: number | null  // kg
   benchPress: number | null  // kg
+}
+
+function getHyroxLocale(locale?: string | null): HyroxLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: HyroxLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+const STATION_NAMES: Record<keyof StationTimes, Record<HyroxLocale, string>> = {
+  skierg: { en: 'SkiErg', sv: 'SkiErg' },
+  sledPush: { en: 'Sled Push', sv: 'Sled Push' },
+  sledPull: { en: 'Sled Pull', sv: 'Sled Pull' },
+  burpeeBroadJump: { en: 'Burpee Broad Jump', sv: 'Burpee längdhopp' },
+  rowing: { en: 'Rowing', sv: 'Rodd' },
+  farmersCarry: { en: "Farmer's Carry", sv: "Farmer's Carry" },
+  sandbagLunge: { en: 'Sandbag Lunge', sv: 'Sandsäck utfall' },
+  wallBalls: { en: 'Wall Balls', sv: 'Wall Balls' },
+  roxzone: { en: 'Roxzone', sv: 'Roxzone' },
+}
+
+function stationName(station: keyof StationTimes, locale: HyroxLocale): string {
+  return STATION_NAMES[station]?.[locale] || station
 }
 
 // ============================================================================
@@ -406,13 +431,15 @@ export const PERIODIZATION_PHASES = {
 export function analyzeStationWeaknesses(
   times: StationTimes,
   gender: Gender,
-  targetLevel: PerformanceLevel
+  targetLevel: PerformanceLevel,
+  localeInput: string = 'en'
 ): {
   weakStations: string[]
   strongStations: string[]
   recommendations: string[]
   estimatedRaceTime: number
 } {
+  const locale = getHyroxLocale(localeInput)
   // Map performance level to station benchmark level (world_class uses elite benchmarks)
   const benchmarkLevel = targetLevel === 'world_class' ? 'elite' : targetLevel
   const benchmarks = STATION_BENCHMARKS[gender][benchmarkLevel]
@@ -435,7 +462,11 @@ export function analyzeStationWeaknesses(
     // Compare to benchmark
     if (time > benchmark.max * 1.2) {
       weakStations.push(station)
-      recommendations.push(`${station}: Tid ${formatTime(time)} är över ${targetLevel} nivå. Prioritera denna station.`)
+      recommendations.push(text(
+        locale,
+        `${stationName(station, locale)}: time ${formatTime(time)} is above ${targetLevel} level. Prioritize this station.`,
+        `${stationName(station, locale)}: Tid ${formatTime(time)} är över ${targetLevel} nivå. Prioritera denna station.`
+      ))
     } else if (time < benchmark.min) {
       strongStations.push(station)
     }
@@ -448,7 +479,11 @@ export function analyzeStationWeaknesses(
   // Check for time sink stations
   for (const timeSink of TIME_SINK_STATIONS) {
     if (weakStations.includes(timeSink)) {
-      recommendations.unshift(`⚠️ ${timeSink} är en kritisk "time sink" - detta bör vara högsta prioritet!`)
+      recommendations.unshift(text(
+        locale,
+        `${stationName(timeSink, locale)} is a critical time sink - make this the top priority.`,
+        `${stationName(timeSink, locale)} är en kritisk "time sink" - detta bör vara högsta prioritet!`
+      ))
     }
   }
 
@@ -466,12 +501,14 @@ export function analyzeStationWeaknesses(
 export function getStrengthRequirements(
   gender: Gender,
   division: Division,
-  bodyweight: number
+  bodyweight: number,
+  localeInput: string = 'en'
 ): {
   deadliftMin: number
   squatMin: number
   recommendation: string
 } {
+  const locale = getHyroxLocale(localeInput)
   const benchmarks = STRENGTH_BENCHMARKS[gender]
   const floor = benchmarks.competitorFloor
 
@@ -481,14 +518,22 @@ export function getStrengthRequirements(
     return {
       deadliftMin: Math.max(proZone.deadlift.minAbsolute, bodyweight * proZone.deadlift.ratio),
       squatMin: Math.max(proZone.backSquat.minAbsolute, bodyweight * proZone.backSquat.ratio),
-      recommendation: `Pro Division kräver högre styrka. Rekommenderad marklyft: ${Math.round(bodyweight * proZone.deadlift.ratio)}kg`,
+      recommendation: text(
+        locale,
+        `Pro Division requires higher strength. Recommended deadlift: ${Math.round(bodyweight * proZone.deadlift.ratio)}kg`,
+        `Pro Division kräver högre styrka. Rekommenderad marklyft: ${Math.round(bodyweight * proZone.deadlift.ratio)}kg`
+      ),
     }
   }
 
   return {
     deadliftMin: bodyweight * floor.deadlift.ratio,
     squatMin: bodyweight * floor.backSquat.ratio,
-    recommendation: `Open Division minimum: Marklyft ${Math.round(bodyweight * floor.deadlift.ratio)}kg, Knäböj ${Math.round(bodyweight * floor.backSquat.ratio)}kg`,
+    recommendation: text(
+      locale,
+      `Open Division minimum: deadlift ${Math.round(bodyweight * floor.deadlift.ratio)}kg, back squat ${Math.round(bodyweight * floor.backSquat.ratio)}kg`,
+      `Open Division minimum: Marklyft ${Math.round(bodyweight * floor.deadlift.ratio)}kg, Knäböj ${Math.round(bodyweight * floor.backSquat.ratio)}kg`
+    ),
   }
 }
 

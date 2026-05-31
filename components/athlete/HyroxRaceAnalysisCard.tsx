@@ -120,7 +120,7 @@ export function HyroxRaceAnalysisCard({
     }
 
     // Analyze weaknesses against target level
-    const weaknessAnalysis = analyzeStationWeaknesses(times, gender, targetLevel)
+    const weaknessAnalysis = analyzeStationWeaknesses(times, gender, targetLevel, locale)
 
     // Estimate race time
     const raceEstimate = estimateRaceTime(times, averageRunPace || 300, 45)
@@ -138,7 +138,7 @@ export function HyroxRaceAnalysisCard({
       targetSeconds,
       timeDifference,
     }
-  }, [stationTimes, averageRunPace, gender, targetLevel, targetTime])
+  }, [stationTimes, averageRunPace, gender, targetLevel, targetTime, locale])
 
   if (!analysis) {
     return (

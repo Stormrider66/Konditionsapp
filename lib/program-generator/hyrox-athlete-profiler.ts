@@ -22,6 +22,8 @@ import { calculateVDOT } from '@/lib/training-engine/calculations/vdot'
 // TYPES
 // ============================================================================
 
+type AppLocale = 'en' | 'sv'
+
 export type RunnerType = 'FAST_RUNNER' | 'AVERAGE_RUNNER' | 'SLOW_RUNNER'
 export type StationType = 'STRONG_STATIONS' | 'AVERAGE_STATIONS' | 'WEAK_STATIONS'
 export type AthleteType = 'FAST_WEAK' | 'SLOW_STRONG' | 'BALANCED' | 'NEEDS_BOTH'
@@ -46,7 +48,7 @@ export interface HyroxAthleteProfile {
 
   // Overall profile
   athleteType: AthleteType
-  profileDescription: string           // Swedish description
+  profileDescription: string           // Localized description
   trainingFocus: string[]              // Priority training areas
 
   // Training capacity
@@ -59,7 +61,7 @@ export interface HyroxAthleteProfile {
   currentEstimatedTime: number | null
   timeGapSeconds: number | null        // How much faster they need to be
   isGoalRealistic: boolean
-  goalAssessment: string               // Swedish assessment
+  goalAssessment: string               // Localized assessment
 }
 
 export interface AthleteProfileInput {
@@ -73,11 +75,20 @@ export interface AthleteProfileInput {
 
   // Athlete info
   gender: Gender
+  locale?: AppLocale
   currentWeeklyKm?: number
   experienceLevel?: 'beginner' | 'intermediate' | 'advanced'
 
   // Goal
   goalTime?: string                    // H:MM:SS (target HYROX total time)
+}
+
+function getAppLocale(locale?: string | null): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 // ============================================================================
@@ -143,6 +154,8 @@ const WEEKLY_KM_RECOMMENDATIONS = {
  * Analyze athlete data and create a comprehensive profile
  */
 export function analyzeAthleteProfile(input: AthleteProfileInput): HyroxAthleteProfile {
+  const locale = getAppLocale(input.locale)
+
   // Calculate VDOT and running metrics
   const runningAnalysis = analyzeRunningAbility(input)
 
@@ -169,7 +182,7 @@ export function analyzeAthleteProfile(input: AthleteProfileInput): HyroxAthleteP
     input.goalTime,
     stationAnalysis.estimatedStationTime,
     runningAnalysis.pureRunPacePerKm,
-    input.gender
+    locale
   )
 
   // Generate profile description and training focus
@@ -177,7 +190,7 @@ export function analyzeAthleteProfile(input: AthleteProfileInput): HyroxAthleteP
     athleteType,
     runningAnalysis,
     stationAnalysis,
-    input.gender
+    locale
   )
 
   return {
@@ -379,7 +392,8 @@ function analyzeStationAbility(input: AthleteProfileInput): StationAnalysis {
   const analysis = analyzeStationWeaknesses(
     input.stationTimes,
     input.gender,
-    targetLevel
+    targetLevel,
+    input.locale
   )
 
   // Calculate total station time
@@ -557,7 +571,7 @@ function analyzeGoal(
   goalTime: string | undefined,
   estimatedStationTime: number | null,
   pureRunPacePerKm: number | null,
-  gender: Gender
+  locale: AppLocale
 ): GoalAnalysis {
   if (!goalTime) {
     return {
@@ -565,7 +579,7 @@ function analyzeGoal(
       currentEstimatedTime: null,
       timeGapSeconds: null,
       isGoalRealistic: true,
-      goalAssessment: 'Ingen mål-tid angiven',
+      goalAssessment: text(locale, 'No target time provided', 'Ingen mål-tid angiven'),
     }
   }
 
@@ -577,7 +591,7 @@ function analyzeGoal(
       currentEstimatedTime: null,
       timeGapSeconds: null,
       isGoalRealistic: true,
-      goalAssessment: 'Kunde inte tolka mål-tid',
+      goalAssessment: text(locale, 'Could not parse target time', 'Kunde inte tolka mål-tid'),
     }
   }
 
@@ -607,23 +621,47 @@ function analyzeGoal(
     const improvementPercent = (timeGapSeconds / (currentEstimatedTime || 1)) * 100
 
     if (timeGapSeconds <= 0) {
-      goalAssessment = `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under mål-tiden!`
+      goalAssessment = text(
+        locale,
+        `You are already ${formatTime(Math.abs(timeGapSeconds))} under the target time!`,
+        `Du är redan ${formatTime(Math.abs(timeGapSeconds))} under mål-tiden!`
+      )
       isGoalRealistic = true
     } else if (improvementPercent <= 5) {
-      goalAssessment = `Målet är nåbart - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%)`
+      goalAssessment = text(
+        locale,
+        `The goal is achievable - ${formatTime(timeGapSeconds)} to improve (${improvementPercent.toFixed(1)}%)`,
+        `Målet är nåbart - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%)`
+      )
       isGoalRealistic = true
     } else if (improvementPercent <= 10) {
-      goalAssessment = `Ambitiöst mål - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%). Möjligt med dedikerad träning.`
+      goalAssessment = text(
+        locale,
+        `Ambitious goal - ${formatTime(timeGapSeconds)} to improve (${improvementPercent.toFixed(1)}%). Possible with dedicated training.`,
+        `Ambitiöst mål - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%). Möjligt med dedikerad träning.`
+      )
       isGoalRealistic = true
     } else if (improvementPercent <= 15) {
-      goalAssessment = `Mycket ambitiöst - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%). Kan kräva längre förberedelse.`
+      goalAssessment = text(
+        locale,
+        `Very ambitious - ${formatTime(timeGapSeconds)} to improve (${improvementPercent.toFixed(1)}%). May require a longer preparation period.`,
+        `Mycket ambitiöst - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%). Kan kräva längre förberedelse.`
+      )
       isGoalRealistic = false
     } else {
-      goalAssessment = `Orealistiskt mål - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%). Överväg ett närmare delmål.`
+      goalAssessment = text(
+        locale,
+        `Unrealistic goal - ${formatTime(timeGapSeconds)} to improve (${improvementPercent.toFixed(1)}%). Consider a closer intermediate target.`,
+        `Orealistiskt mål - ${formatTime(timeGapSeconds)} att förbättra (${improvementPercent.toFixed(1)}%). Överväg ett närmare delmål.`
+      )
       isGoalRealistic = false
     }
   } else {
-    goalAssessment = `Mål-tid: ${formatTime(goalTimeSeconds)}. Ange stationstider för fullständig analys.`
+    goalAssessment = text(
+      locale,
+      `Target time: ${formatTime(goalTimeSeconds)}. Enter station times for a full analysis.`,
+      `Mål-tid: ${formatTime(goalTimeSeconds)}. Ange stationstider för fullständig analys.`
+    )
   }
 
   return {
@@ -648,62 +686,120 @@ function generateProfileInsights(
   athleteType: AthleteType,
   runningAnalysis: RunningAnalysis,
   stationAnalysis: StationAnalysis,
-  gender: Gender
+  locale: AppLocale
 ): ProfileInsights {
-  const descriptions: Record<AthleteType, string> = {
-    FAST_WEAK: 'Din löpkapacitet är stark, men stationerna bromsar dig. Fokusera på stationsträning och "kompromisslöpning" efter stationer.',
-    SLOW_STRONG: 'Dina stationer är effektiva, men löpningen begränsar din totaltid. Öka löpvolymen och laktattröskelträning.',
-    BALANCED: 'Du har en balanserad profil. Fortsätt utveckla båda områdena parallellt.',
-    NEEDS_BOTH: 'Både löpning och stationer behöver utvecklas. Bygg gradvis upp kapacitet på båda fronterna.',
+  const descriptions: Record<AthleteType, Record<AppLocale, string>> = {
+    FAST_WEAK: {
+      en: 'Your running capacity is strong, but the stations are slowing you down. Focus on station training and compromised running after stations.',
+      sv: 'Din löpkapacitet är stark, men stationerna bromsar dig. Fokusera på stationsträning och "kompromisslöpning" efter stationer.',
+    },
+    SLOW_STRONG: {
+      en: 'Your stations are efficient, but running limits your total time. Increase running volume and lactate-threshold training.',
+      sv: 'Dina stationer är effektiva, men löpningen begränsar din totaltid. Öka löpvolymen och laktattröskelträning.',
+    },
+    BALANCED: {
+      en: 'You have a balanced profile. Keep developing both areas in parallel.',
+      sv: 'Du har en balanserad profil. Fortsätt utveckla båda områdena parallellt.',
+    },
+    NEEDS_BOTH: {
+      en: 'Both running and stations need development. Build capacity gradually on both fronts.',
+      sv: 'Både löpning och stationer behöver utvecklas. Bygg gradvis upp kapacitet på båda fronterna.',
+    },
   }
 
-  const focusAreas: Record<AthleteType, string[]> = {
-    FAST_WEAK: [
-      'Stationsspecifik uthållighetsträning',
-      'Kompromisslöpning (löpning direkt efter stationer)',
-      'Sled push/pull teknik och styrka',
-      stationAnalysis.weakStations.length > 0
-        ? `Prioritera: ${stationAnalysis.weakStations.join(', ')}`
-        : 'Wall balls och Sled Pull (vanliga time sinks)',
-    ],
-    SLOW_STRONG: [
-      'Öka löpvolym (+15-20% gradvis)',
-      'Tröskelintervaller (4-8 x 1km @ LT2)',
-      'Långpass med ökad distans',
-      'Bibehåll stationsstyrka 1x/vecka',
-    ],
-    BALANCED: [
-      'Fortsätt balanserad träning',
-      'Periodisera löp- och stationsträning',
-      'Race-simuleringar för att vänja kroppen vid HYROX-formatet',
-      'Fokusera på övergångar (roxzone-effektivitet)',
-    ],
-    NEEDS_BOTH: [
-      'Bygg aerob bas (Zone 2 löpning)',
-      'Grundläggande styrka för alla stationer',
-      'Gradvis öka både volym och intensitet',
-      'Fokusera på teknik innan intensitet',
-    ],
+  const focusAreas: Record<AthleteType, Record<AppLocale, string[]>> = {
+    FAST_WEAK: {
+      en: [
+        'Station-specific endurance training',
+        'Compromised running (running directly after stations)',
+        'Sled push/pull technique and strength',
+        stationAnalysis.weakStations.length > 0
+          ? `Prioritize: ${stationAnalysis.weakStations.join(', ')}`
+          : 'Wall Balls and Sled Pull (common time sinks)',
+      ],
+      sv: [
+        'Stationsspecifik uthållighetsträning',
+        'Kompromisslöpning (löpning direkt efter stationer)',
+        'Sled push/pull teknik och styrka',
+        stationAnalysis.weakStations.length > 0
+          ? `Prioritera: ${stationAnalysis.weakStations.join(', ')}`
+          : 'Wall balls och Sled Pull (vanliga time sinks)',
+      ],
+    },
+    SLOW_STRONG: {
+      en: [
+        'Increase running volume (+15-20% gradually)',
+        'Threshold intervals (4-8 x 1km @ LT2)',
+        'Long runs with increased distance',
+        'Maintain station strength 1x/week',
+      ],
+      sv: [
+        'Öka löpvolym (+15-20% gradvis)',
+        'Tröskelintervaller (4-8 x 1km @ LT2)',
+        'Långpass med ökad distans',
+        'Bibehåll stationsstyrka 1x/vecka',
+      ],
+    },
+    BALANCED: {
+      en: [
+        'Continue balanced training',
+        'Periodize running and station training',
+        'Race simulations to adapt the body to the HYROX format',
+        'Focus on transitions (roxzone efficiency)',
+      ],
+      sv: [
+        'Fortsätt balanserad träning',
+        'Periodisera löp- och stationsträning',
+        'Race-simuleringar för att vänja kroppen vid HYROX-formatet',
+        'Fokusera på övergångar (roxzone-effektivitet)',
+      ],
+    },
+    NEEDS_BOTH: {
+      en: [
+        'Build an aerobic base (Zone 2 running)',
+        'Fundamental strength for all stations',
+        'Gradually increase both volume and intensity',
+        'Focus on technique before intensity',
+      ],
+      sv: [
+        'Bygg aerob bas (Zone 2 löpning)',
+        'Grundläggande styrka för alla stationer',
+        'Gradvis öka både volym och intensitet',
+        'Fokusera på teknik innan intensitet',
+      ],
+    },
   }
 
   // Add weak stations to focus if any
-  const trainingFocus = [...focusAreas[athleteType]]
+  const trainingFocus = [...focusAreas[athleteType][locale]]
 
   // Add pace degradation insight
   if (runningAnalysis.paceDegradationLevel) {
-    const degradationInsights: Record<PaceDegradationLevel, string> = {
-      ELITE: 'Utmärkt återhämtning mellan stationer',
-      ADVANCED: 'Bra återhämtning, fokusera på specifik kondition',
-      INTERMEDIATE: 'Förbättra stationsuthållighet för snabbare återhämtning',
-      BEGINNER: 'Bygg upp kondition för att återhämta snabbare mellan stationer',
+    const degradationInsights: Record<PaceDegradationLevel, Record<AppLocale, string>> = {
+      ELITE: {
+        en: 'Excellent recovery between stations',
+        sv: 'Utmärkt återhämtning mellan stationer',
+      },
+      ADVANCED: {
+        en: 'Good recovery; focus on specific conditioning',
+        sv: 'Bra återhämtning, fokusera på specifik kondition',
+      },
+      INTERMEDIATE: {
+        en: 'Improve station endurance for faster recovery',
+        sv: 'Förbättra stationsuthållighet för snabbare återhämtning',
+      },
+      BEGINNER: {
+        en: 'Build conditioning to recover faster between stations',
+        sv: 'Bygg upp kondition för att återhämta snabbare mellan stationer',
+      },
     }
     if (runningAnalysis.paceDegradationLevel !== 'ELITE') {
-      trainingFocus.push(degradationInsights[runningAnalysis.paceDegradationLevel])
+      trainingFocus.push(degradationInsights[runningAnalysis.paceDegradationLevel][locale])
     }
   }
 
   return {
-    profileDescription: descriptions[athleteType],
+    profileDescription: descriptions[athleteType][locale],
     trainingFocus,
   }
 }

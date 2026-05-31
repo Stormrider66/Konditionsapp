@@ -81,7 +81,8 @@ export async function generateHyroxProgram(
       weaknessAnalysis = analyzeStationWeaknesses(
         stationTimes,
         params.hyroxGender as Gender,
-        targetLevel
+        targetLevel,
+        locale
       )
 
       logger.debug('[HYROX Generator] Weakness analysis completed', {
@@ -141,7 +142,8 @@ export async function generateHyroxProgram(
     strengthRequirements = getStrengthRequirements(
       params.hyroxGender as Gender,
       (params.hyroxDivision || 'open') as Division,
-      params.hyroxBodyweight
+      params.hyroxBodyweight,
+      locale
     )
 
     const strengthLogContext: Record<string, unknown> = {
@@ -193,6 +195,7 @@ export async function generateHyroxProgram(
 
     const profileInput: AthleteProfileInput = {
       gender: params.hyroxGender as Gender,
+      locale,
       experienceLevel: params.experienceLevel,
       currentWeeklyKm: params.currentWeeklyKm,
       goalTime: params.goalTime,
