@@ -8,14 +8,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { recordLactate } from '@/lib/interval-session/lactate-service'
 import { recordLactateSchema } from '@/lib/interval-session/validation'
+import {
+  resolveLocale,
+  t,
+  translateIntervalSessionError,
+  type AppLocale,
+} from '@/lib/interval-session/api-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
     const { id } = await context.params
 
     const body = await req.json()
@@ -23,7 +31,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -39,17 +47,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
     )
 
     if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 })
+      return NextResponse.json({ error: translateIntervalSessionError(locale, result.error) }, { status: 400 })
     }
 
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error recording lactate:', error)
     return NextResponse.json(
-      { error: 'Failed to record lactate' },
+      { error: t(locale, 'Failed to record lactate', 'Kunde inte registrera laktat') },
       { status: 500 }
     )
   }

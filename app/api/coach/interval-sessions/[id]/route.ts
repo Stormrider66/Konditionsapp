@@ -14,6 +14,7 @@ import {
   deleteSession,
   getAvailableClients,
 } from '@/lib/interval-session/session-service'
+import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
 import { UpdateIntervalSessionInput } from '@/lib/interval-session/types'
 
 interface RouteContext {
@@ -21,18 +22,20 @@ interface RouteContext {
 }
 
 export async function GET(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
     const { id } = await context.params
 
     const session = await getSession(id)
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     const availableClients = await getAvailableClients(id, user.id)
@@ -40,19 +43,21 @@ export async function GET(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ session, availableClients })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error getting interval session:', error)
     return NextResponse.json(
-      { error: 'Failed to get session' },
+      { error: t(locale, 'Failed to get session', 'Kunde inte hämta passet') },
       { status: 500 }
     )
   }
 }
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
     const { id } = await context.params
 
     const body: UpdateIntervalSessionInput = await req.json()
@@ -60,41 +65,43 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
     const session = await updateSession(id, user.id, body)
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json({ session })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error updating interval session:', error)
     return NextResponse.json(
-      { error: 'Failed to update session' },
+      { error: t(locale, 'Failed to update session', 'Kunde inte uppdatera passet') },
       { status: 500 }
     )
   }
 }
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
     const { id } = await context.params
 
     const deleted = await deleteSession(id, user.id)
 
     if (!deleted) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error deleting interval session:', error)
     return NextResponse.json(
-      { error: 'Failed to delete session' },
+      { error: t(locale, 'Failed to delete session', 'Kunde inte ta bort passet') },
       { status: 500 }
     )
   }

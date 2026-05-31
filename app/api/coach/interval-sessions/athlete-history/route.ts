@@ -7,10 +7,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
 
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
 
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('clientId')
@@ -18,7 +21,7 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50')
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientId required', 'clientId är obligatoriskt') }, { status: 400 })
     }
 
     // Verify coach owns this client
@@ -28,7 +31,7 @@ export async function GET(req: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     const participations = await prisma.intervalSessionParticipant.findMany({
@@ -98,9 +101,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ clientName: client.name, sessions })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error fetching athlete interval history:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch athlete interval history', 'Kunde inte hämta atletens intervallhistorik') }, { status: 500 })
   }
 }

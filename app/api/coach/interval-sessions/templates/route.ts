@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
 
 const createTemplateSchema = z.object({
   name: z.string().min(1).max(200),
@@ -22,8 +23,10 @@ const createTemplateSchema = z.object({
 })
 
 export async function GET() {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
 
     const templates = await prisma.intervalSessionTemplate.findMany({
       where: { coachId: user.id },
@@ -34,23 +37,25 @@ export async function GET() {
     return NextResponse.json({ templates })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error listing templates:', error)
-    return NextResponse.json({ error: 'Failed to list templates' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to list templates', 'Kunde inte hämta mallarna') }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
 
     const body = await req.json()
     const parsed = createTemplateSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -67,9 +72,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ template }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error creating template:', error)
-    return NextResponse.json({ error: 'Failed to create template' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create template', 'Kunde inte skapa mallen') }, { status: 500 })
   }
 }

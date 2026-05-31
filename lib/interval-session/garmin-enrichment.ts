@@ -63,7 +63,7 @@ export async function syncGarminForSession(
       // Check if athlete has Garmin connected
       const hasConnection = await hasGarminConnection(clientId)
       if (!hasConnection) {
-        results.push({ clientId, clientName, matched: false, error: 'Ingen Garmin-koppling' })
+        results.push({ clientId, clientName, matched: false, error: 'No Garmin connection' })
         continue
       }
 
@@ -71,7 +71,7 @@ export async function syncGarminForSession(
       const activities = await getGarminActivities(clientId, searchStart, searchEnd)
 
       if (!activities || activities.length === 0) {
-        results.push({ clientId, clientName, matched: false, error: 'Ingen aktivitet hittad' })
+        results.push({ clientId, clientName, matched: false, error: 'No activity found' })
         continue
       }
 
@@ -79,7 +79,7 @@ export async function syncGarminForSession(
       const bestActivity = findBestMatch(activities, sessionStart, sessionEnd)
 
       if (!bestActivity) {
-        results.push({ clientId, clientName, matched: false, error: 'Ingen matchande aktivitet' })
+        results.push({ clientId, clientName, matched: false, error: 'No matching activity' })
         continue
       }
 
@@ -121,7 +121,7 @@ export async function syncGarminForSession(
       })
     } catch (error) {
       logger.error('Garmin enrichment failed', { sessionId, clientId, error })
-      results.push({ clientId, clientName, matched: false, error: 'API-fel' })
+      results.push({ clientId, clientName, matched: false, error: 'API error' })
     }
   }
 

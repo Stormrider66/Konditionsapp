@@ -12,10 +12,13 @@ import {
   listCoachSessions,
 } from '@/lib/interval-session/session-service'
 import { createSessionSchema } from '@/lib/interval-session/validation'
+import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
 
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
 
     const { searchParams } = new URL(req.url)
     const includeEnded = searchParams.get('includeEnded') === 'true'
@@ -25,26 +28,28 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ sessions })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error listing interval sessions:', error)
     return NextResponse.json(
-      { error: 'Failed to list sessions' },
+      { error: t(locale, 'Failed to list sessions', 'Kunde inte hämta passen') },
       { status: 500 }
     )
   }
 }
 
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
 
     const body = await req.json()
     const parsed = createSessionSchema.safeParse(body)
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -54,11 +59,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ session }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error creating interval session:', error)
     return NextResponse.json(
-      { error: 'Failed to create session' },
+      { error: t(locale, 'Failed to create session', 'Kunde inte skapa passet') },
       { status: 500 }
     )
   }
