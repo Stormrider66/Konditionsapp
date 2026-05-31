@@ -5,8 +5,8 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { MyCoachClient } from '@/components/athlete/MyCoachClient'
 
 export const metadata = {
-  title: 'Min Coach | Atlet',
-  description: 'Hantera din coachrelation',
+  title: 'My Coach | Athlete',
+  description: 'Manage your coach relationship',
 }
 
 interface BusinessMyCoachPageProps {

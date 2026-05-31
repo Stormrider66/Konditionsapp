@@ -226,7 +226,7 @@ export function serializeFieldTest(
   return {
     id: test.id,
     type: 'FIELD_TEST',
-    title: `Fälttest: ${test.testType.replace(/_/g, ' ')}`,
+    title: `Field test: ${test.testType.replace(/_/g, ' ')}`,
     description: itemsMode === 'light' ? null : (t.notes ?? null),
     date: test.date,
     status: test.valid ? 'VALID' : 'INVALID',

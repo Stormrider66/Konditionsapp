@@ -23,64 +23,64 @@ export interface FeatureCostEstimate {
 export const AI_FEATURES: FeatureCostEstimate[] = [
   {
     id: 'chat',
-    name: 'AI-chatt (ett meddelande)',
-    description: 'Frågor om träning, kost, återhämtning',
+    name: 'AI chat (one message)',
+    description: 'Questions about training, nutrition, and recovery',
     inputTokens: 2000,
     outputTokens: 800,
     automatic: false,
   },
   {
     id: 'wod',
-    name: 'Dagens pass (WOD)',
-    description: 'Generera ett dagligt träningspass',
+    name: 'Daily workout (WOD)',
+    description: 'Generate a daily training session',
     inputTokens: 3000,
     outputTokens: 1500,
     automatic: false,
   },
   {
     id: 'program',
-    name: 'Programgenerering',
-    description: 'Komplett träningsprogram (4–16 veckor)',
+    name: 'Program generation',
+    description: 'Complete training program (4-16 weeks)',
     inputTokens: 5000,
     outputTokens: 8000,
     automatic: false,
   },
   {
     id: 'nutrition',
-    name: 'Nutritionsplanering',
-    description: 'Kostplan baserad på träning och mål',
+    name: 'Nutrition planning',
+    description: 'Nutrition plan based on training and goals',
     inputTokens: 3000,
     outputTokens: 3000,
     automatic: false,
   },
   {
     id: 'briefing',
-    name: 'Morgonbriefing',
-    description: 'Daglig sammanfattning med readiness och tips',
+    name: 'Morning briefing',
+    description: 'Daily summary with readiness and tips',
     inputTokens: 2000,
     outputTokens: 600,
     automatic: true,
   },
   {
     id: 'memory',
-    name: 'Minnesextraktion',
-    description: 'Extraherar nyckelinfo från konversationer',
+    name: 'Memory extraction',
+    description: 'Extracts key info from conversations',
     inputTokens: 1500,
     outputTokens: 400,
     automatic: true,
   },
   {
     id: 'analysis',
-    name: 'Prestationsanalys',
-    description: 'Trendanalys av träningsdata',
+    name: 'Performance analysis',
+    description: 'Trend analysis of training data',
     inputTokens: 4000,
     outputTokens: 2000,
     automatic: false,
   },
   {
     id: 'video',
-    name: 'Videoanalys',
-    description: 'Löpteknik, skidteknik, HYROX-analys',
+    name: 'Video analysis',
+    description: 'Running technique, skiing technique, HYROX analysis',
     inputTokens: 5000,
     outputTokens: 2000,
     automatic: false,
@@ -100,8 +100,8 @@ export interface UsageProfile {
 export const USAGE_PROFILES: UsageProfile[] = [
   {
     id: 'light',
-    name: 'Lätt användare',
-    description: 'Grundläggande AI-användning',
+    name: 'Light user',
+    description: 'Basic AI usage',
     usage: {
       chat: 10,
       wod: 5,
@@ -115,8 +115,8 @@ export const USAGE_PROFILES: UsageProfile[] = [
   },
   {
     id: 'normal',
-    name: 'Normal användare',
-    description: 'Regelbunden AI-användning',
+    name: 'Normal user',
+    description: 'Regular AI usage',
     usage: {
       chat: 30,
       wod: 20,
@@ -130,8 +130,8 @@ export const USAGE_PROFILES: UsageProfile[] = [
   },
   {
     id: 'heavy',
-    name: 'Aktiv användare',
-    description: 'Intensiv AI-användning',
+    name: 'Active user',
+    description: 'Intensive AI usage',
     usage: {
       chat: 80,
       wod: 30,
@@ -155,16 +155,16 @@ export interface TierFeature {
 }
 
 export const ATHLETE_TIER_FEATURES: TierFeature[] = [
-  { name: 'AI-krediter', free: 'Begränsad test', standard: 'Daglig användning', pro: 'Större kreditpott' },
-  { name: 'Dagliga pass (WOD)', free: false, standard: true, pro: true },
-  { name: 'Programgenerering', free: false, standard: false, pro: true },
-  { name: 'Nutritionsplanering', free: false, standard: false, pro: true },
-  { name: 'Morgonbriefing', free: false, standard: true, pro: true },
-  { name: 'Videoanalys', free: false, standard: false, pro: true },
+  { name: 'AI credits', free: 'Limited trial', standard: 'Daily use', pro: 'Larger credit pool' },
+  { name: 'Daily workouts (WOD)', free: false, standard: true, pro: true },
+  { name: 'Program generation', free: false, standard: false, pro: true },
+  { name: 'Nutrition planning', free: false, standard: false, pro: true },
+  { name: 'Morning briefing', free: false, standard: true, pro: true },
+  { name: 'Video analysis', free: false, standard: false, pro: true },
   { name: 'Strava-sync', free: false, standard: false, pro: true },
   { name: 'Garmin-sync', free: false, standard: false, pro: true },
-  { name: 'Träningslogg', free: false, standard: true, pro: true },
-  { name: 'Prestationsanalys', free: false, standard: false, pro: true },
+  { name: 'Training log', free: false, standard: true, pro: true },
+  { name: 'Performance analysis', free: false, standard: false, pro: true },
 ]
 
 // ─── Cost Calculation Helpers ───────────────────────────────────────────────

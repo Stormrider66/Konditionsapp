@@ -42,7 +42,7 @@ export function TrialBadge({
       if (daysRemaining === 1) return '1 day left in trial'
       return `${daysRemaining} days left in trial`
     }
-    return formatTrialDaysRemaining(daysRemaining)
+    return formatTrialDaysRemaining(daysRemaining, locale)
   }
 
   const badgeContent = (

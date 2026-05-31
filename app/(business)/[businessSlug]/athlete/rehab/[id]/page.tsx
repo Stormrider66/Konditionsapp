@@ -17,8 +17,8 @@ export async function generateMetadata({ params }: PageProps) {
   })
 
   return {
-    title: program?.name || 'Rehabprogram',
-    description: 'Visa och logga ditt rehabiliteringsprogram',
+    title: program?.name || 'Rehab program',
+    description: 'View and log your rehab program',
   }
 }
 

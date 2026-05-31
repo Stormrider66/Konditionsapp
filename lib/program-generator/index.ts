@@ -649,18 +649,18 @@ function calculateVolumeTargets(
  */
 function generateProgramName(goalType: string, weeks: number): string {
   const goalNames: Record<string, string> = {
-    'marathon': 'Maratonprogram',
-    'half-marathon': 'Halvmaratonprogram',
-    '10k': '10K-program',
-    '5k': '5K-program',
-    'fitness': 'Konditionsprogram',
-    'cycling': 'Cykelprogram',
-    'skiing': 'Skidprogram',
-    'custom': 'Träningsprogram',
+    'marathon': 'Marathon program',
+    'half-marathon': 'Half marathon program',
+    '10k': '10K program',
+    '5k': '5K program',
+    'fitness': 'Fitness program',
+    'cycling': 'Cycling program',
+    'skiing': 'Skiing program',
+    'custom': 'Training program',
   }
 
-  const name = goalNames[goalType] || 'Träningsprogram'
-  return `${name} (${weeks} veckor)`
+  const name = goalNames[goalType] || 'Training program'
+  return `${name} (${weeks} weeks)`
 }
 
 /**

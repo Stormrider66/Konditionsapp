@@ -105,7 +105,17 @@ export function isTrialExpiringSoon(
 /**
  * Format trial days remaining for display
  */
-export function formatTrialDaysRemaining(daysRemaining: number): string {
+export function formatTrialDaysRemaining(daysRemaining: number, locale: 'en' | 'sv' = 'en'): string {
+  if (locale === 'en') {
+    if (daysRemaining === 0) {
+      return 'Trial expires today'
+    }
+    if (daysRemaining === 1) {
+      return '1 day left in trial'
+    }
+    return `${daysRemaining} days left in trial`
+  }
+
   if (daysRemaining === 0) {
     return 'Provperioden går ut idag'
   }

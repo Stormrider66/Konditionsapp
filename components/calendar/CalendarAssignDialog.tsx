@@ -66,6 +66,8 @@ export function CalendarAssignDialog({
   const locale = useLocale()
   const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
+  const fallbackAthleteName = appLocale === 'sv' ? 'Atlet' : 'Athlete'
+  const fallbackCoachName = appLocale === 'sv' ? 'Jag' : 'Me'
   const [athleteName, setAthleteName] = useState<string>('')
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
@@ -96,16 +98,16 @@ export function CalendarAssignDialog({
           const data = await res.json()
           // /api/clients/[id] returns { success: true, data: { ...client } }
           const name = data?.data?.name ?? data?.name
-          setAthleteName(name || 'Atlet')
+          setAthleteName(name || fallbackAthleteName)
         }
       } catch {
         // Fallback name
-        if (!cancelled) setAthleteName('Atlet')
+        if (!cancelled) setAthleteName(fallbackAthleteName)
       }
     }
-    fetchClient()
+    void fetchClient()
     return () => { cancelled = true }
-  }, [open, clientId])
+  }, [open, clientId, fallbackAthleteName])
 
   // Fetch coach list (for "Ansvarig coach" selector). Defaults to current user.
   useEffect(() => {
@@ -140,7 +142,7 @@ export function CalendarAssignDialog({
           const data = await res.json()
           const me = data?.data || data
           if (!cancelled && me?.id) {
-            setCoaches([{ id: me.id, name: me.name || 'Jag', email: me.email }])
+            setCoaches([{ id: me.id, name: me.name || fallbackCoachName, email: me.email }])
             setSelectedCoach(me.id)
           }
         }
@@ -148,9 +150,9 @@ export function CalendarAssignDialog({
         /* non-critical */
       }
     }
-    fetchCoaches()
+    void fetchCoaches()
     return () => { cancelled = true }
-  }, [open, businessId])
+  }, [open, businessId, fallbackCoachName])
 
   const formattedDate = (() => {
     try {
