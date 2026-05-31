@@ -38,9 +38,9 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun * 0.7,
       weeklyVolumeKm: volumes.start,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass', details: 'Zon 2-3' },
-        { type: 'easy', description: 'Lugnt löppass', details: 'Zon 1-2' },
-        { type: 'tempo', description: 'Tempopass', details: '20 min Zon 3-4' },
+        { type: 'long', description: 'Long run', details: 'Zone 2-3' },
+        { type: 'easy', description: 'Easy run', details: 'Zone 1-2' },
+        { type: 'tempo', description: 'Tempo run', details: '20 min Zone 3-4' },
       ],
     },
     {
@@ -49,9 +49,9 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun * 0.8,
       weeklyVolumeKm: volumes.start * 1.15,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass', details: 'Zon 2-3' },
-        { type: 'intervals', description: 'Tröskell-intervaller', details: '6×4 min Zon 4' },
-        { type: 'easy', description: 'Återhämtningslöpning', details: 'Zon 1-2' },
+        { type: 'long', description: 'Long run', details: 'Zone 2-3' },
+        { type: 'intervals', description: 'Threshold intervals', details: '6 x 4 min Zone 4' },
+        { type: 'easy', description: 'Recovery run', details: 'Zone 1-2' },
       ],
     },
     {
@@ -60,9 +60,9 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun * 0.9,
       weeklyVolumeKm: volumes.start * 1.25,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass', details: 'Zon 2-3' },
-        { type: 'tempo', description: 'Tempopass', details: '25 min Zon 4' },
-        { type: 'vo2max', description: 'VO2max-intervaller', details: '8×2 min Zon 5' },
+        { type: 'long', description: 'Long run', details: 'Zone 2-3' },
+        { type: 'tempo', description: 'Tempo run', details: '25 min Zone 4' },
+        { type: 'vo2max', description: 'VO2max intervals', details: '8 x 2 min Zone 5' },
       ],
     },
 
@@ -73,8 +73,8 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun * 0.65, // Recovery week
       weeklyVolumeKm: volumes.start * 1.0,
       keyWorkouts: [
-        { type: 'long', description: 'Måttligt långpass', details: 'Nedtrappning' },
-        { type: 'easy', description: 'Lätt jogg', details: 'Återhämtning' },
+        { type: 'long', description: 'Moderate long run', details: 'Taper' },
+        { type: 'easy', description: 'Easy jog', details: 'Recovery' },
       ],
     },
     {
@@ -83,9 +83,9 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun,
       weeklyVolumeKm: volumes.peak * 0.85,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass med tempo', details: 'Sista 5 km i 10K-tempo' },
-        { type: 'vo2max', description: 'VO2max-intervaller', details: '10×3 min Zon 5' },
-        { type: 'race-pace', description: '10K-tempopass', details: '5 km i 10K-tempo' },
+        { type: 'long', description: 'Long run with tempo', details: 'Last 5 km at 10K pace' },
+        { type: 'vo2max', description: 'VO2max intervals', details: '10 x 3 min Zone 5' },
+        { type: 'race-pace', description: '10K pace session', details: '5 km at 10K pace' },
       ],
     },
     {
@@ -94,9 +94,9 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun,
       weeklyVolumeKm: volumes.peak,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass', details: 'Zon 2-3' },
-        { type: 'intervals', description: '1 km-intervaller', details: '5×1 km i 10K-tempo' },
-        { type: 'tempo', description: 'Tempopass', details: '30 min Zon 4' },
+        { type: 'long', description: 'Long run', details: 'Zone 2-3' },
+        { type: 'intervals', description: '1 km intervals', details: '5 x 1 km at 10K pace' },
+        { type: 'tempo', description: 'Tempo run', details: '30 min Zone 4' },
       ],
     },
 
@@ -107,9 +107,9 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun * 0.6,
       weeklyVolumeKm: volumes.peak * 0.7,
       keyWorkouts: [
-        { type: 'easy', description: 'Måttligt pass', details: 'Zon 2' },
-        { type: 'vo2max', description: 'Korta intervaller', details: '6×2 min Zon 5' },
-        { type: 'easy', description: 'Lätt jogg', details: 'Zon 1-2' },
+        { type: 'easy', description: 'Moderate session', details: 'Zone 2' },
+        { type: 'vo2max', description: 'Short intervals', details: '6 x 2 min Zone 5' },
+        { type: 'easy', description: 'Easy jog', details: 'Zone 1-2' },
       ],
     },
     {
@@ -118,9 +118,9 @@ export function get8Week10KTemplate(
       longRunKm: volumes.longRun * 0.4,
       weeklyVolumeKm: volumes.peak * 0.5,
       keyWorkouts: [
-        { type: 'easy', description: 'Kort och lätt', details: 'Zon 1-2' },
-        { type: 'race-pace', description: 'Kort 10K-tempo', details: '2 km i tävlingstempo + stegringar' },
-        { type: 'race-pace', description: 'TÄVLINGSDAG!', details: '10K-lopp' },
+        { type: 'easy', description: 'Short and easy', details: 'Zone 1-2' },
+        { type: 'race-pace', description: 'Short 10K pace', details: '2 km at race pace + strides' },
+        { type: 'race-pace', description: 'RACE DAY!', details: '10K race' },
       ],
     },
   ]
@@ -149,9 +149,9 @@ export function get6Week5KTemplate(
       longRunKm: volumes.longRun * 0.7,
       weeklyVolumeKm: volumes.start,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass', details: 'Zon 2-3' },
-        { type: 'tempo', description: 'Tempopass', details: '20 min Zon 4' },
-        { type: 'vo2max', description: 'VO2max-intervaller', details: '6×2 min Zon 5' },
+        { type: 'long', description: 'Long run', details: 'Zone 2-3' },
+        { type: 'tempo', description: 'Tempo run', details: '20 min Zone 4' },
+        { type: 'vo2max', description: 'VO2max intervals', details: '6 x 2 min Zone 5' },
       ],
     },
     {
@@ -160,9 +160,9 @@ export function get6Week5KTemplate(
       longRunKm: volumes.longRun * 0.85,
       weeklyVolumeKm: volumes.start * 1.2,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass', details: 'Zon 2-3' },
-        { type: 'intervals', description: 'Snabba intervaller', details: '8×400m i 5K-tempo' },
-        { type: 'easy', description: 'Återhämtningslöpning', details: 'Zon 1-2' },
+        { type: 'long', description: 'Long run', details: 'Zone 2-3' },
+        { type: 'intervals', description: 'Fast intervals', details: '8 x 400 m at 5K pace' },
+        { type: 'easy', description: 'Recovery run', details: 'Zone 1-2' },
       ],
     },
 
@@ -173,9 +173,9 @@ export function get6Week5KTemplate(
       longRunKm: volumes.longRun,
       weeklyVolumeKm: volumes.peak * 0.85,
       keyWorkouts: [
-        { type: 'long', description: 'Långpass med tempo', details: 'Sista 2 km i 5K-tempo' },
-        { type: 'vo2max', description: 'VO2max-intervaller', details: '10×1 min Zon 5' },
-        { type: 'race-pace', description: '5K-tempopass', details: '3 km i 5K-tempo' },
+        { type: 'long', description: 'Long run with tempo', details: 'Last 2 km at 5K pace' },
+        { type: 'vo2max', description: 'VO2max intervals', details: '10 x 1 min Zone 5' },
+        { type: 'race-pace', description: '5K pace session', details: '3 km at 5K pace' },
       ],
     },
     {
@@ -184,8 +184,8 @@ export function get6Week5KTemplate(
       longRunKm: volumes.longRun * 0.6, // Recovery week
       weeklyVolumeKm: volumes.peak * 0.65,
       keyWorkouts: [
-        { type: 'easy', description: 'Måttligt pass', details: 'Nedtrappning' },
-        { type: 'tempo', description: 'Lätt tempo', details: '15 min Zon 3-4' },
+        { type: 'easy', description: 'Moderate session', details: 'Taper' },
+        { type: 'tempo', description: 'Light tempo', details: '15 min Zone 3-4' },
       ],
     },
 
@@ -196,9 +196,9 @@ export function get6Week5KTemplate(
       longRunKm: volumes.longRun,
       weeklyVolumeKm: volumes.peak,
       keyWorkouts: [
-        { type: 'long', description: 'Sista långa', details: 'Zon 2-3' },
-        { type: 'intervals', description: '1 km-intervaller', details: '4×1 km i 5K-tempo' },
-        { type: 'vo2max', description: 'Maxintervaller', details: '12×1 min Zon 5' },
+        { type: 'long', description: 'Last long run', details: 'Zone 2-3' },
+        { type: 'intervals', description: '1 km intervals', details: '4 x 1 km at 5K pace' },
+        { type: 'vo2max', description: 'Max intervals', details: '12 x 1 min Zone 5' },
       ],
     },
     {
@@ -207,9 +207,9 @@ export function get6Week5KTemplate(
       longRunKm: volumes.longRun * 0.4,
       weeklyVolumeKm: volumes.peak * 0.5,
       keyWorkouts: [
-        { type: 'easy', description: 'Kort och lätt', details: 'Zon 1-2' },
-        { type: 'race-pace', description: 'Korta stegringar', details: '1 km + 6×100m stegringar' },
-        { type: 'race-pace', description: 'TÄVLINGSDAG!', details: '5K-lopp' },
+        { type: 'easy', description: 'Short and easy', details: 'Zone 1-2' },
+        { type: 'race-pace', description: 'Short strides', details: '1 km + 6 x 100 m strides' },
+        { type: 'race-pace', description: 'RACE DAY!', details: '5K race' },
       ],
     },
   ]
@@ -226,28 +226,28 @@ export function getVO2maxWorkouts(): {
 }[] {
   return [
     {
-      name: '400m-repetitioner',
-      description: 'Klassiska kortintervaller',
-      workout: '12-16×400m i 5K-tempo, 200m jogg-vila',
-      purpose: 'Utvecklar VO2max och snabbuthållighet',
+      name: '400 m repetitions',
+      description: 'Classic short intervals',
+      workout: '12-16 x 400 m at 5K pace, 200 m jog recovery',
+      purpose: 'Develops VO2max and speed endurance',
     },
     {
-      name: '1000m-intervaller',
-      description: 'Längre VO2max-arbete',
-      workout: '5-6×1000m i 5K-10K-tempo, 2 min vila',
-      purpose: 'Ökar syreupptagningsförmågan',
+      name: '1000 m intervals',
+      description: 'Longer VO2max work',
+      workout: '5-6 x 1000 m at 5K-10K pace, 2 min recovery',
+      purpose: 'Improves oxygen uptake capacity',
     },
     {
-      name: 'Pyramid-intervaller',
-      description: 'Varierad intervalltränning',
-      workout: '400-800-1200-1600-1200-800-400m, jogg-vila',
-      purpose: 'Allsidig utveckling av aerob kraft',
+      name: 'Pyramid intervals',
+      description: 'Varied interval training',
+      workout: '400-800-1200-1600-1200-800-400 m, jog recovery',
+      purpose: 'Broad development of aerobic power',
     },
     {
       name: 'Fartlek',
-      description: 'Fri intervallträning',
-      workout: '45 min med 2-4 min hårda partier (Zon 5), 2 min vila',
-      purpose: 'Rolig och varierad VO2max-träning',
+      description: 'Unstructured interval training',
+      workout: '45 min with 2-4 min hard sections (Zone 5), 2 min recovery',
+      purpose: 'Fun and varied VO2max training',
     },
   ]
 }
@@ -262,23 +262,23 @@ export function getShortRaceWeekProtocol(distance: '5k' | '10k'): {
 }[] {
   if (distance === '5k') {
     return [
-      { day: 1, activity: 'Lätt jogg 25 min', notes: 'Zon 1-2' },
-      { day: 2, activity: 'Korta intervaller', notes: '5×1 min Zon 5, behåll skärpan' },
-      { day: 3, activity: 'Vila eller promenad', notes: 'Aktiv återhämtning' },
-      { day: 4, activity: 'Kort jogg 15 min + stegringar', notes: '4-6×100m stegringar' },
-      { day: 5, activity: 'Vila', notes: 'Total vila' },
-      { day: 6, activity: 'Kort jogg 10 min', notes: 'Bara hålla igång' },
-      { day: 7, activity: 'TÄVLINGSDAG', notes: '5K-lopp - kör på!' },
+      { day: 1, activity: 'Easy jog 25 min', notes: 'Zone 1-2' },
+      { day: 2, activity: 'Short intervals', notes: '5 x 1 min Zone 5, stay sharp' },
+      { day: 3, activity: 'Rest or walk', notes: 'Active recovery' },
+      { day: 4, activity: 'Short jog 15 min + strides', notes: '4-6 x 100 m strides' },
+      { day: 5, activity: 'Rest', notes: 'Full rest' },
+      { day: 6, activity: 'Short jog 10 min', notes: 'Just keep the legs moving' },
+      { day: 7, activity: 'RACE DAY', notes: '5K race - go for it!' },
     ]
   } else {
     return [
-      { day: 1, activity: 'Lätt jogg 30 min', notes: 'Zon 1-2' },
-      { day: 2, activity: 'Korta intervaller', notes: '6×1 min Zon 5' },
-      { day: 3, activity: 'Lätt jogg 25 min', notes: 'Zon 2' },
-      { day: 4, activity: 'Vila eller promenad', notes: 'Aktiv återhämtning' },
-      { day: 5, activity: 'Kort jogg 20 min + stegringar', notes: '4×100m stegringar' },
-      { day: 6, activity: 'Vila eller kort jogg', notes: 'Kort 10 min jogg om du vill' },
-      { day: 7, activity: 'TÄVLINGSDAG', notes: '10K-lopp - lycka till!' },
+      { day: 1, activity: 'Easy jog 30 min', notes: 'Zone 1-2' },
+      { day: 2, activity: 'Short intervals', notes: '6 x 1 min Zone 5' },
+      { day: 3, activity: 'Easy jog 25 min', notes: 'Zone 2' },
+      { day: 4, activity: 'Rest or walk', notes: 'Active recovery' },
+      { day: 5, activity: 'Short jog 20 min + strides', notes: '4 x 100 m strides' },
+      { day: 6, activity: 'Rest or short jog', notes: 'Optional 10 min easy jog' },
+      { day: 7, activity: 'RACE DAY', notes: '10K race - good luck!' },
     ]
   }
 }
@@ -293,16 +293,16 @@ export function getRacePaceStrategy(distance: '5k' | '10k'): {
 }[] {
   if (distance === '5k') {
     return [
-      { segment: 'Första kilometern', strategy: 'Starta kontrollerat', pacing: '2-3 sek/km långsammare än måltempo' },
-      { segment: 'Kilometer 2-4', strategy: 'Hitta rytmen', pacing: 'Måltempo, jämnt och stabilt' },
-      { segment: 'Sista kilometern', strategy: 'Ge allt!', pacing: 'Öka tempot, sprint sista 400m' },
+      { segment: 'First kilometer', strategy: 'Start controlled', pacing: '2-3 sec/km slower than target pace' },
+      { segment: 'Kilometers 2-4', strategy: 'Find the rhythm', pacing: 'Target pace, even and steady' },
+      { segment: 'Last kilometer', strategy: 'Empty the tank', pacing: 'Increase pace, sprint the final 400 m' },
     ]
   } else {
     return [
-      { segment: 'Första 2 km', strategy: 'Starta kontrollerat', pacing: '2-3 sek/km långsammare än måltempo' },
-      { segment: 'Kilometer 3-7', strategy: 'Håll jämnt tempo', pacing: 'Måltempo, fokusera på form' },
-      { segment: 'Kilometer 8-9', strategy: 'Öka gradvis', pacing: 'Börja öka tempot lite' },
-      { segment: 'Sista kilometern', strategy: 'Sprint!', pacing: 'Ge allt du har kvar' },
+      { segment: 'First 2 km', strategy: 'Start controlled', pacing: '2-3 sec/km slower than target pace' },
+      { segment: 'Kilometers 3-7', strategy: 'Hold even pace', pacing: 'Target pace, focus on form' },
+      { segment: 'Kilometers 8-9', strategy: 'Build gradually', pacing: 'Start lifting the pace slightly' },
+      { segment: 'Last kilometer', strategy: 'Sprint', pacing: 'Give everything you have left' },
     ]
   }
 }
