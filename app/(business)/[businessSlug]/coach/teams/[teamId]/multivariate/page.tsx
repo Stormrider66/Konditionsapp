@@ -5,6 +5,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { checkCoachSubscriptionStatus } from '@/lib/subscription/feature-access'
 import { loadLatestModel, loadLatestPLSModel } from '@/lib/mva/model-storage'
 import { MVAAnalysisClient } from '@/components/mva/MVAAnalysisClient'
+import { TeamAnalysisSubNav } from '@/components/coach/teams/TeamAnalysisSubNav'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
@@ -70,10 +71,12 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-4">
         <h1 className="text-3xl font-bold dark:text-white">{t('title')}</h1>
         <Badge variant="secondary">{team.name}</Badge>
       </div>
+
+      <TeamAnalysisSubNav base={`/${businessSlug}/coach/teams/${teamId}`} />
 
       <MVAAnalysisClient
         teamId={teamId}

@@ -5,6 +5,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { Badge } from '@/components/ui/badge'
 import { BarChart3 } from 'lucide-react'
 import { TeamAnalysisClient } from '@/components/coach/teams/TeamAnalysisClient'
+import { TeamAnalysisSubNav } from '@/components/coach/teams/TeamAnalysisSubNav'
 import { getTranslations } from '@/i18n/server'
 
 interface AnalysisPageProps {
@@ -31,6 +32,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
   }
 
   const basePath = `/${businessSlug}/coach`
+  const teamBase = `/${businessSlug}/coach/teams/${teamId}`
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -42,6 +44,8 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
       <p className="text-sm text-muted-foreground mb-6">
         {t('description')}
       </p>
+
+      <TeamAnalysisSubNav base={teamBase} />
 
       <TeamAnalysisClient teamId={teamId} basePath={basePath} businessSlug={businessSlug} />
     </div>
