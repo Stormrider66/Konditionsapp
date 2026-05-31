@@ -19,8 +19,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
 } from 'recharts';
 import {
   GlassCard,
@@ -40,6 +38,7 @@ import {
   Flame,
   Route,
 } from 'lucide-react';
+import { useLocale } from '@/i18n/client';
 
 interface YearlySummary {
   id: string;
@@ -72,6 +71,8 @@ interface YearlyTrainingOverviewProps {
   variant?: 'default' | 'compact' | 'glass';
 }
 
+type AppLocale = 'en' | 'sv';
+
 const ZONE_COLORS = {
   zone1: '#22c55e',
   zone2: '#3b82f6',
@@ -80,28 +81,49 @@ const ZONE_COLORS = {
   zone5: '#ef4444',
 };
 
-const MONTH_NAMES = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'
-];
-
-function formatHours(minutes: number): string {
-  const hours = Math.round(minutes / 60);
-  return `${hours}h`;
-}
-
-function formatDetailedHours(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = Math.round(minutes % 60);
-  if (hours === 0) return `${mins}m`;
-  if (mins === 0) return `${hours}h`;
-  return `${hours}h ${mins}m`;
-}
+const COPY: Record<AppLocale, {
+  monthNames: string[];
+  yearlyOverview: string;
+  noYearlyData: string;
+  summaryForYear: (year: number) => string;
+  totalTime: string;
+  sessions: string;
+  timePerZone: string;
+  zone: string;
+  monthlyDistribution: string;
+  averagePolarization: string;
+}> = {
+  en: {
+    monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    yearlyOverview: 'Yearly overview',
+    noYearlyData: 'No yearly data available yet',
+    summaryForYear: (year) => `Training summary for ${year}`,
+    totalTime: 'Total time',
+    sessions: 'Sessions',
+    timePerZone: 'Time per zone',
+    zone: 'Zone',
+    monthlyDistribution: 'Monthly distribution',
+    averagePolarization: 'Average polarization',
+  },
+  sv: {
+    monthNames: ['Jan', 'Feb', 'Mar', 'Apr', 'Maj', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dec'],
+    yearlyOverview: 'Årsöversikt',
+    noYearlyData: 'Ingen årsdata tillgänglig ännu',
+    summaryForYear: (year) => `Träningssammanfattning för ${year}`,
+    totalTime: 'Total tid',
+    sessions: 'Pass',
+    timePerZone: 'Tid per zon',
+    zone: 'Zon',
+    monthlyDistribution: 'Månadsfördelning',
+    averagePolarization: 'Genomsnittlig polarisering',
+  },
+};
 
 export function YearlyTrainingOverview({
   clientId,
-  variant = 'default',
 }: YearlyTrainingOverviewProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
+  const copy = COPY[locale];
   const [summaries, setSummaries] = useState<YearlySummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
@@ -125,7 +147,7 @@ export function YearlyTrainingOverview({
   }, [clientId]);
 
   useEffect(() => {
-    fetchSummaries();
+    void fetchSummaries();
   }, [fetchSummaries]);
 
   const currentSummary = useMemo(() => {
@@ -136,7 +158,7 @@ export function YearlyTrainingOverview({
     if (!currentSummary?.monthlyZoneDistribution) return [];
 
     return currentSummary.monthlyZoneDistribution.map((m) => ({
-      month: MONTH_NAMES[m.month - 1],
+      month: copy.monthNames[m.month - 1],
       zone1: Math.round(m.zone1 / 60),
       zone2: Math.round(m.zone2 / 60),
       zone3: Math.round(m.zone3 / 60),
@@ -144,7 +166,7 @@ export function YearlyTrainingOverview({
       zone5: Math.round(m.zone5 / 60),
       total: Math.round((m.zone1 + m.zone2 + m.zone3 + m.zone4 + m.zone5) / 60),
     }));
-  }, [currentSummary]);
+  }, [copy.monthNames, currentSummary]);
 
   const totalHours = currentSummary
     ? Math.round(currentSummary.totalDuration / 60)
@@ -159,11 +181,6 @@ export function YearlyTrainingOverview({
         zone5: Math.round(currentSummary.zone5Minutes / 60),
       }
     : { zone1: 0, zone2: 0, zone3: 0, zone4: 0, zone5: 0 };
-
-  const cardClass =
-    variant === 'glass'
-      ? 'backdrop-blur-sm bg-white/80 dark:bg-gray-900/80 border-white/20'
-      : '';
 
   if (isLoading) {
     return (
@@ -185,14 +202,14 @@ export function YearlyTrainingOverview({
         <GlassCardHeader>
           <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
             <Calendar className="h-4 w-4 text-slate-500" />
-            Arsoversikt
+            {copy.yearlyOverview}
           </GlassCardTitle>
         </GlassCardHeader>
         <GlassCardContent>
           <div className="text-center py-8">
             <Activity className="h-8 w-8 mx-auto text-slate-500 dark:text-slate-400 mb-2" />
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              Ingen arsdata tillganglig annu
+              {copy.noYearlyData}
             </p>
           </div>
         </GlassCardContent>
@@ -207,10 +224,10 @@ export function YearlyTrainingOverview({
           <div>
             <GlassCardTitle className="text-base flex items-center gap-2 text-slate-900 dark:text-white">
               <Calendar className="h-4 w-4 text-blue-500" />
-              Arsoversikt
+              {copy.yearlyOverview}
             </GlassCardTitle>
             <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-              Traningssammanfattning for {selectedYear}
+              {copy.summaryForYear(selectedYear)}
             </GlassCardDescription>
           </div>
           <Select
@@ -237,7 +254,7 @@ export function YearlyTrainingOverview({
           <div className="text-center p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/40 rounded-lg">
             <Clock className="h-5 w-5 mx-auto text-blue-500 mb-1" />
             <p className="text-xl font-bold text-slate-900 dark:text-white">{totalHours}h</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Total tid</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{copy.totalTime}</p>
           </div>
           <div className="text-center p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/40 rounded-lg">
             <Route className="h-5 w-5 mx-auto text-green-500 mb-1" />
@@ -256,13 +273,13 @@ export function YearlyTrainingOverview({
           <div className="text-center p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/50 dark:border-slate-800/40 rounded-lg">
             <Activity className="h-5 w-5 mx-auto text-purple-500 mb-1" />
             <p className="text-xl font-bold text-slate-900 dark:text-white">{currentSummary.workoutCount}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Pass</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{copy.sessions}</p>
           </div>
         </div>
 
         {/* Zone breakdown */}
         <div>
-          <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-3">Tid per zon</h4>
+          <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-3">{copy.timePerZone}</h4>
           <div className="space-y-2">
             {Object.entries(zoneHours).map(([zone, hours]) => {
               const zoneNum = parseInt(zone.replace('zone', ''), 10);
@@ -277,7 +294,7 @@ export function YearlyTrainingOverview({
                       className="w-full justify-center bg-transparent border-slate-200 dark:border-white/10"
                       style={{ borderColor: color, color: color }}
                     >
-                      Zon {zoneNum}
+                      {copy.zone} {zoneNum}
                     </Badge>
                   </div>
                   <div className="flex-1 h-6 bg-slate-100 dark:bg-slate-950/40 rounded-full overflow-hidden">
@@ -304,7 +321,7 @@ export function YearlyTrainingOverview({
         {/* Monthly chart */}
         {monthlyChartData.length > 0 && (
           <div>
-            <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-3">Manadsfordelning</h4>
+            <h4 className="text-sm font-medium text-slate-800 dark:text-slate-200 mb-3">{copy.monthlyDistribution}</h4>
             <div className="h-48">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
@@ -332,11 +349,11 @@ export function YearlyTrainingOverview({
                     }}
                     formatter={(value: number, name: string) => {
                       const zoneNames: Record<string, string> = {
-                        zone1: 'Zon 1',
-                        zone2: 'Zon 2',
-                        zone3: 'Zon 3',
-                        zone4: 'Zon 4',
-                        zone5: 'Zon 5',
+                        zone1: `${copy.zone} 1`,
+                        zone2: `${copy.zone} 2`,
+                        zone3: `${copy.zone} 3`,
+                        zone4: `${copy.zone} 4`,
+                        zone5: `${copy.zone} 5`,
                       };
                       return [`${value}h`, zoneNames[name] || name];
                     }}
@@ -357,7 +374,7 @@ export function YearlyTrainingOverview({
           <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-950/40 border border-slate-200/55 dark:border-white/5 rounded-lg">
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-              <span className="text-sm text-slate-800 dark:text-slate-200">Genomsnittlig polarisering</span>
+              <span className="text-sm text-slate-800 dark:text-slate-200">{copy.averagePolarization}</span>
             </div>
             <div className="text-right">
               <span className="font-mono font-bold text-slate-900 dark:text-white">

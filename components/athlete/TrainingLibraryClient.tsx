@@ -218,7 +218,7 @@ export function TrainingLibraryClient({
               {historyCategory === 'alla' && (
                 <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4 flex items-center gap-2">
                   <Sparkles className="h-5 w-5 text-emerald-500" />
-                  AI-Pass
+                  {t('categories.aiWorkouts')}
                 </h2>
               )}
               <WODHistorySection wodHistory={wodHistory} basePath={basePath} />
