@@ -18,6 +18,13 @@ ACWR-anpassning, näringsoptimering, återhämtning, medicininteraktioner och r�
 Fokuserar på praktisk, bemyndigande coaching som betonar vad atleten KAN göra.
 `
 
+export const CROHNS_KNOWLEDGE_DESCRIPTION_EN = `
+Evidence-based guide for adapting training and nutrition strategy for athletes with Crohn's disease
+and inflammatory bowel disease (IBD). Covers physiological impact, programming, ACWR adjustments,
+nutrition optimization, recovery, medication interactions, and red flags. Focuses on practical,
+empowering coaching that emphasizes what the athlete CAN do.
+`
+
 export const CROHNS_KNOWLEDGE_KEYWORDS = [
   // Swedish
   'crohn', 'ibd', 'inflammatorisk', 'tarmsjukdom', 'tarm', 'mag',
@@ -203,6 +210,144 @@ Mål: 2-5 dl vätska per måltid + 7 dl per träningstimme.
 Risken med inaktivitet överväger avsevärt risken med strukturerad aktivitet för Crohn-patienter. Med en "begränsningsstyrd" approach till träning och "malabsorptionsmedveten" approach till näring kan atleter med Crohns sjukdom inte bara delta i sport utan utmärka sig på högsta nivåer.
 `
 
+export const CROHNS_KNOWLEDGE_CONTENT_EN = `
+# Training & Nutrition for Athletes with Inflammatory Bowel Disease - Evidence-Based Coaching Guide
+
+## 1. Physiological Impact on Training
+
+### Energy metabolism and oxygen uptake
+Athletes with IBD can have reduced energy availability because of small-intestine malabsorption and the increased metabolic cost of chronic inflammation. The small intestine absorbs the macro- and micronutrients that support the citric acid cycle and electron transport chain. When the gut barrier is compromised, carbohydrate and fat oxidation can become less efficient, which may lead to an earlier shift toward anaerobic glycolysis.
+
+Cardiorespiratory fitness can be lower in IBD populations because of fatigue and systemic inflammation, even during remission. Trials using high-intensity interval training show that VO2peak can still improve meaningfully, which suggests that the cardiovascular system keeps strong adaptive potential when the stimulus is timed well.
+
+### Muscle recovery and adaptation
+IBD-related sarcopenia, lower skeletal muscle index, and reduced muscle quality are driven partly by systemic cytokines that interfere with mTOR signaling. Chronic inflammation combined with protein-energy malnutrition can delay recovery after hard endurance or strength training.
+
+Training can also have anti-inflammatory effects. Muscle contractions release myokines, especially IL-6 in an exercise context, that stimulate IL-10 and IL-1ra while reducing TNF-alpha. This exercise-induced anti-inflammatory cascade may support gut mucosa and reduce symptomatic flare frequency when load is appropriate.
+
+### Inflammatory markers and training effects
+- TNF-alpha: key driver of gut inflammation that may be inhibited by muscle-derived IL-6 during training.
+- IL-6: systemic inflammatory marker that is transiently modulated by exercise.
+- IL-10: anti-inflammatory cytokine that increases after structured training.
+- CRP: systemic inflammatory-load marker that can decrease with regular activity.
+- Fecal calprotectin: local gut inflammation marker that is usually stable or lower with moderate activity.
+
+### Fatigue management
+Distinguish training-related fatigue from disease-related fatigue. Training fatigue is usually local to working muscles and improves with standard recovery in 24-48 hours. IBD-related fatigue can be multidimensional, with psychological, central, and peripheral components, and it does not always correlate neatly with inflammatory markers.
+
+During flares, the athlete may experience pain-related insomnia, urgency-related sleep loss, and a marked drop in power production. During remission, performance can approach healthy peers, but recovery needs to be monitored more carefully.
+
+### Iron deficiency, thermoregulation, and hydration
+Iron deficiency is a serious complication for IBD athletes, caused by occult blood loss, malabsorption, and inflammation-blocked iron utilization. Low ferritin and hemoglobin reduce oxygen transport capacity, increasing heart rate and lactate accumulation at lower workloads.
+
+Chronic diarrhea and malabsorption can create baseline dehydration, reducing plasma volume and sweat response. A 2% loss of total body water can raise core temperature and heart rate enough to reduce maximal work capacity. Proactive scheduled hydration is safer than relying on thirst alone.
+
+## 2. Training Adaptation and Programming
+
+### Intensity guidelines by inflammation status
+During remission:
+- Aerobic work: 3-5 days per week, 20-60 minutes at roughly 60-85% VO2max or HRmax.
+- Strength training: 2-3 times per week, usually 60-80% of 1RM.
+- HIIT intervals are often tolerated and may produce stronger fitness gains than moderate continuous training.
+
+During an active flare:
+- Focus on low-intensity movement in Zone 1, such as walking or gentle swimming.
+- Prioritize mobility, relaxation, and recovery.
+- Reduce high mechanical-load training until symptoms stabilize.
+
+### ACWR adjustments for IBD athletes
+ACWR can guide load management:
+- Below 0.8: detraining/recovery range. Appropriate during flares, but a detraining risk during stable periods.
+- 0.8-1.3: optimal sweet spot for building fitness while limiting flare and injury risk.
+- 1.3-1.5: overload range. Monitor IBD symptoms closely and prioritize sleep.
+- Above 1.5: danger zone with higher risk of injury or symptom aggravation.
+
+When returning from a flare, chronic load is often reduced. Use gradual progression rather than trying to catch up quickly.
+
+### Polarized training adaptation
+- Low intensity: keep strictly in Zone 1-2 to preserve gut blood flow and keep systemic stress low.
+- High intensity: short HIIT intervals can be better tolerated than sustained threshold work because recovery intervals limit prolonged intestinal ischemia.
+- Threshold warning: long efforts near lactate threshold may reduce mesenteric blood flow and trigger GI symptoms.
+
+### Recovery and IBD-specific readiness
+- Sleep quality is the primary defense against IBD-related fatigue.
+- Stress management through mindfulness, breathing, or yoga can improve performance through the gut-brain axis.
+- Strength-training rest periods of 2-3 minutes are often appropriate to manage central fatigue.
+- Monitor stool quality, nocturnal urgency, abdominal pain, and subjective fatigue alongside HRV and sleep.
+- Pain above 3/10 during training should pause or modify the session.
+
+### Medication periodization
+- Biologics such as infliximab or adalimumab can create systemic fatigue 24-48 hours after infusion. Schedule hard sessions during the best part of the medication cycle when possible.
+- Corticosteroids increase tendon and bone risk. Use higher repetitions, lower load, and avoid aggressive plyometrics.
+- Immunosuppressants increase infection risk. Prefer well-ventilated environments and strong hygiene routines.
+
+### Strength training for bone density
+Low bone density is common in Crohn's disease, making strength training an important part of care:
+- Multi-joint loading such as squats, lunges, and deadlifts stimulates bone adaptation.
+- Trunk and pelvic-floor stability can support pelvic control and confidence.
+- Bands and low-joint-load options can preserve muscle during periods of peripheral arthritis.
+
+## 3. Nutrition Strategy
+
+### Macronutrients
+- Protein: about 1.2-1.5 g/kg during remission, and 1.8-2.0 g/kg during recovery from a flare. Whey can work well, but lactose-free or plant isolates are often better tolerated during symptoms.
+- Carbohydrates: use lower-fiber, higher-glucose or maltodextrin sources before training. Limit fructose if malabsorption is suspected.
+- Fat: omega-3-rich foods may support an anti-inflammatory pattern. Avoid high-fat meals immediately before and during training.
+
+### Common micronutrient risks
+- Vitamin B12: higher risk with ileal disease or surgery. Sublingual or injected forms may be needed.
+- Iron: higher risk with active bleeding. Pair with vitamin C and avoid taking it with dairy.
+- Vitamin D: higher risk with corticosteroids. Supplement to clinician-guided targets.
+- Zinc, calcium, and magnesium losses can increase with diarrhea, lactose intolerance, steroid exposure, or reduced intake.
+
+### Meal timing and hydration
+- Pre-training: low-fiber carbohydrate about 60 minutes before training.
+- During training longer than 60 minutes: liquid carbohydrate at 5-8% concentration or low-fructose gels, taken in small regular doses.
+- Post-training: a blended recovery option with whey or pea protein and banana can reduce digestive load.
+- Use electrolytes or oral rehydration strategies during flares or heavy sweating.
+
+### Anti-inflammatory nutrition patterns
+- Mediterranean-style eating has the strongest long-term health evidence when fiber is tolerated.
+- Crohn's Disease Exclusion Diet can reduce specific additives and problematic fibers under professional guidance.
+- Specific Carbohydrate Diet can help some people, but athletes must watch for unintended weight loss and low energy availability.
+
+## 4. Psychological and Practical Coaching
+
+### Communication principles
+- Use empowering language: "your body is prioritizing internal healing, so we adapt the training focus to support that process."
+- Focus on what the athlete can do today.
+- Be honest when holding back is necessary for long-term progress.
+- Frame rest as a proactive training choice, not a failure.
+- Avoid overemphasizing the diagnosis; focus on individualized coaching adjustments.
+
+### Practical logistics
+- Bathroom access is often the main barrier. Plan looped routes with short options.
+- Choose gyms and training venues with clean accessible bathrooms.
+- A small emergency kit with wipes, clothes, and electrolytes increases confidence for longer sessions.
+
+## 5. Red Flags and Medical Boundaries
+
+Stop training and seek medical guidance for:
+- New or increased rectal bleeding, severe abdominal pain, or persistent vomiting.
+- Fever, night sweats, or unexplained weight loss.
+- Fainting, severe dizziness, chest pain, or disproportionate breathlessness.
+
+Consult a gastroenterologist when:
+- Symptoms do not normalize within 48 hours after reducing load.
+- Resting heart rate stays elevated or HRV stays suppressed despite rest.
+- The athlete plans new ergogenic supplements or NSAID use.
+
+## 6. Evidence Base
+
+Key themes from current evidence:
+- HIIT can be safe and effective in inflammatory disease when symptoms are stable and load is controlled.
+- Higher protein plus supervised exercise can support surgical preparation and recovery.
+- Crohn's patients may have lower absolute power but can still adapt to training.
+- Research gaps remain for female-specific RED-S interaction, microbiome responses, and long-distance endurance safety.
+
+Expert consensus: the risk of inactivity is usually greater than the risk of structured activity when the athlete is monitored. With constraint-led training and malabsorption-aware nutrition, athletes with Crohn's disease can participate meaningfully and, in some cases, perform at high levels.
+`
+
 /**
  * Short AI instruction text for the athlete's Client.aiInstructions field.
  * Discreet, coaching-focused — does not over-emphasize the diagnosis.
@@ -223,3 +368,20 @@ KOMMUNIKATION:
 - Undvik att ständigt nämna sjukdomen — behandla anpassningarna som en naturlig del av individualiserad coaching
 - Använd positiv inramning: "vi optimerar din näringsplan" istället för "du behöver specialkost pga din sjukdom"
 - Vid behov av medicinsk rådgivning → hänvisa till gastroenterolog`
+
+export const CROHNS_AI_INSTRUCTIONS_EN = `This athlete has chronic inflammatory bowel disease (IBD/Crohn's disease).
+
+IMPORTANT ADAPTATIONS:
+- Adapt nutrition advice for GI sensitivity: lower fiber before training, avoid fructose if poorly tolerated, prioritize anti-inflammatory eating patterns
+- Watch for signs of iron deficiency or anemia, such as unusual fatigue or high heart rate at low workloads
+- During possible flare signals such as increased fatigue, GI symptoms, or nocturnal urgency, recommend reducing intensity to Zone 1-2
+- Use more conservative ACWR thresholds and flag caution earlier, around >1.3
+- Biologic medication can cause fatigue for 24-48 hours after infusion; avoid planning hard sessions then
+- Strength training for bone density is especially important, particularly with corticosteroid exposure
+- Hydration needs extra attention; recommend electrolytes or oral rehydration strategies when appropriate
+
+COMMUNICATION:
+- Focus on adaptations and smart choices, not the diagnosis
+- Avoid repeatedly mentioning the disease; treat adjustments as a normal part of individualized coaching
+- Use positive framing such as "we are optimizing your nutrition plan" instead of "you need a special diet because of your disease"
+- When medical advice is needed, refer to a gastroenterologist`

@@ -21,9 +21,12 @@ import {
   CROHNS_KNOWLEDGE_DOCUMENT_NAME,
   CROHNS_KNOWLEDGE_DOCUMENT_NAME_EN,
   CROHNS_KNOWLEDGE_DESCRIPTION,
+  CROHNS_KNOWLEDGE_DESCRIPTION_EN,
   CROHNS_KNOWLEDGE_KEYWORDS,
   CROHNS_KNOWLEDGE_CONTENT,
+  CROHNS_KNOWLEDGE_CONTENT_EN,
   CROHNS_AI_INSTRUCTIONS,
+  CROHNS_AI_INSTRUCTIONS_EN,
 } from '@/lib/ai/knowledge/crohns-training-nutrition'
 
 // Allow up to 5 minutes for embedding generation
@@ -33,12 +36,33 @@ interface SkillPackage {
   documentName: string
   documentNameEn: string
   description: string
+  descriptionEn: string
   keywords: string[]
   content: string
+  contentEn: string
   aiInstructions: string
+  aiInstructionsEn: string
   categories: KnowledgeCategory[]
   maxChunks: number
   priority: number
+}
+
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function localizeSkillPackage(pkg: SkillPackage, locale: AppLocale): SkillPackage {
+  if (locale === 'sv') return pkg
+
+  return {
+    ...pkg,
+    documentName: pkg.documentNameEn,
+    description: pkg.descriptionEn,
+    content: pkg.contentEn,
+    aiInstructions: pkg.aiInstructionsEn,
+  }
 }
 
 const SKILL_PACKAGES: Record<string, SkillPackage> = {
@@ -46,9 +70,12 @@ const SKILL_PACKAGES: Record<string, SkillPackage> = {
     documentName: CROHNS_KNOWLEDGE_DOCUMENT_NAME,
     documentNameEn: CROHNS_KNOWLEDGE_DOCUMENT_NAME_EN,
     description: CROHNS_KNOWLEDGE_DESCRIPTION,
+    descriptionEn: CROHNS_KNOWLEDGE_DESCRIPTION_EN,
     keywords: CROHNS_KNOWLEDGE_KEYWORDS,
     content: CROHNS_KNOWLEDGE_CONTENT,
+    contentEn: CROHNS_KNOWLEDGE_CONTENT_EN,
     aiInstructions: CROHNS_AI_INSTRUCTIONS,
+    aiInstructionsEn: CROHNS_AI_INSTRUCTIONS_EN,
     categories: [KnowledgeCategory.PHYSIOLOGY, KnowledgeCategory.NUTRITION],
     maxChunks: 5,
     priority: 5,
@@ -72,14 +99,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const pkg = SKILL_PACKAGES[skillKey]
+    const basePkg = SKILL_PACKAGES[skillKey]
+    const pkg = localizeSkillPackage(basePkg, resolveLocale(user.language))
 
-    // Check if already seeded (by document name)
+    // Check if already seeded (by document name or stable system URL)
     const existingDoc = await prisma.coachDocument.findFirst({
       where: {
         coachId: user.id,
-        name: pkg.documentName,
         isSystem: true,
+        OR: [
+          { name: basePkg.documentName },
+          { name: basePkg.documentNameEn },
+          { fileUrl: `system://knowledge/${skillKey}` },
+        ],
       },
     })
 
