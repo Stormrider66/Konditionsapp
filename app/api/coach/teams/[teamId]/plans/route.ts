@@ -17,6 +17,12 @@ interface RouteContext {
   params: Promise<{ teamId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const blockSchema = z.object({
   title: z.string().trim().min(1).max(120),
   focus: z.string().trim().max(160).optional().nullable(),
@@ -69,14 +75,17 @@ function planSelect() {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(request)
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const activeOnly = new URL(request.url).searchParams.get('active') === 'true'
@@ -94,25 +103,34 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     return NextResponse.json({ success: true, data: plans })
   } catch (error) {
+    if (error instanceof Error && ['Unauthorized', 'Not authenticated'].includes(error.message)) {
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    }
+    if (error instanceof Error && ['Forbidden', 'Access denied'].includes(error.message)) {
+      return NextResponse.json({ success: false, error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
+    }
     return handleApiError(error)
   }
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(request)
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
 
     if (!team) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const parsed = createPlanSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Validation failed', details: parsed.error.flatten() },
+        { success: false, error: t(locale, 'Validation failed', 'Valideringen misslyckades'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -120,7 +138,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const startDate = parseDate(parsed.data.startDate)
     const endDate = parseDate(parsed.data.endDate)
     if (!startDate || !endDate || endDate < startDate) {
-      return NextResponse.json({ success: false, error: 'Invalid plan dates' }, { status: 400 })
+      return NextResponse.json({ success: false, error: t(locale, 'Invalid plan dates', 'Ogiltiga plandatum') }, { status: 400 })
     }
 
     const blocks = parsed.data.blocks.map((block) => {
@@ -169,7 +187,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true, data: plan }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Invalid block dates') {
-      return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+      return NextResponse.json({ success: false, error: t(locale, 'Invalid block dates', 'Ogiltiga blockdatum') }, { status: 400 })
+    }
+    if (error instanceof Error && ['Unauthorized', 'Not authenticated'].includes(error.message)) {
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    }
+    if (error instanceof Error && ['Forbidden', 'Access denied'].includes(error.message)) {
+      return NextResponse.json({ success: false, error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
     }
     return handleApiError(error)
   }
