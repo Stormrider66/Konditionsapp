@@ -4,7 +4,7 @@ export interface FuelingTargetIntensity {
   targetPaceMinKm?: number | null
 }
 
-export function formatFuelingTargetIntensity(target: FuelingTargetIntensity, locale: string = 'sv'): string | null {
+export function formatFuelingTargetIntensity(target: FuelingTargetIntensity, locale: string = 'en'): string | null {
   const parts = [
     target.targetSpeedKmh != null ? `${formatNumber(target.targetSpeedKmh, locale)} km/h` : null,
     target.targetPaceMinKm != null ? `${formatPace(target.targetPaceMinKm)} min/km` : null,

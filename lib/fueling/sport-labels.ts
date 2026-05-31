@@ -28,6 +28,6 @@ const FUELING_SPORT_LABELS_EN: Record<string, string> = {
   NUTRITION: 'Nutrition',
 }
 
-export function fuelingSportLabel(sport: string, locale: string = 'sv'): string {
+export function fuelingSportLabel(sport: string, locale: string = 'en'): string {
   return (locale === 'en' ? FUELING_SPORT_LABELS_EN : FUELING_SPORT_LABELS)[sport] ?? sport
 }

@@ -613,7 +613,7 @@ export function calculateWeeklyMatchLoad(matches: MatchData[]): number {
 }
 
 // Get load recommendation based on position
-export function getLoadRecommendation(weeklyMinutes: number, position: PadelPosition, locale: string = 'sv'): string {
+export function getLoadRecommendation(weeklyMinutes: number, position: PadelPosition, locale: string = 'en'): string {
   const thresholds: Record<PadelPosition, { low: number; high: number }> = {
     right_side: { low: 180, high: 480 },
     left_side: { low: 200, high: 520 },
@@ -628,7 +628,7 @@ export function getLoadRecommendation(weeklyMinutes: number, position: PadelPosi
 }
 
 // Partner synergy tips
-export function getPartnerSynergyTips(position: PadelPosition, locale: string = 'sv'): string[] {
+export function getPartnerSynergyTips(position: PadelPosition, locale: string = 'en'): string[] {
   const tips: Record<PadelPosition, string[]> = {
     right_side: [
       'Kommunicera tydligt med din partner om vem som tar lobben',

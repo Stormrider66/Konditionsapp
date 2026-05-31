@@ -73,7 +73,7 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
     targetSpeedKmh: selectedStage?.speed,
     targetPowerWatts: selectedStage?.power,
     targetPaceMinKm: selectedStage?.pace,
-  })
+  }, locale)
   const raceDayPlan = buildRaceDayFuelingPlan(estimate.recommendedCarbsPerHour, estimate.estimatedDurationMinutes, locale)
   const buildUpPlan = buildFuelingBuildUpPlan({
     raceTargetGPerHour: estimate.recommendedCarbsPerHour,
