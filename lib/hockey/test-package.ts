@@ -35,7 +35,9 @@ export interface HockeyTestPackageItem {
   id: string
   metricKey: HockeyTestMetricKey
   label: string
+  labelSv?: string | null
   unit: string
+  unitSv?: string | null
   category: 'strength' | 'power' | 'jump' | 'endurance' | 'ice'
   lowerIsBetter?: boolean
   linkedExerciseId?: string | null
@@ -43,11 +45,13 @@ export interface HockeyTestPackageItem {
   aliases: string[]
   enabled: boolean
   notes?: string | null
+  notesSv?: string | null
 }
 
 export interface HockeyTestPackage {
   version: 1
   name: string
+  nameSv?: string | null
   items: HockeyTestPackageItem[]
 }
 
@@ -91,32 +95,38 @@ export const HOCKEY_SCALAR_METRIC_KEYS: HockeyTestMetricKey[] = Array.from(HOCKE
 
 export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
   version: 1,
-  name: 'Hockey standardtest',
+  name: 'Hockey standard test',
+  nameSv: 'Hockey standardtest',
   items: [
     {
       id: 'back-squat-1rm',
       metricKey: 'backSquat1RM',
-      label: 'Knäböj full depth 1RM',
+      label: 'Back squat full-depth 1RM',
+      labelSv: 'Knäböj full depth 1RM',
       unit: 'kg',
       category: 'strength',
       aliases: ['knäböj', 'benböj', 'back squat', 'squat', 'bs'],
       enabled: true,
-      notes: 'Full depth enligt styrkelyftsregler. Separeras från quarter squat / jump squat.',
+      notes: 'Full depth according to powerlifting standards. Kept separate from quarter squat / jump squat.',
+      notesSv: 'Full depth enligt styrkelyftsregler. Separeras från quarter squat / jump squat.',
     },
     {
       id: 'power-clean-1rm',
       metricKey: 'powerClean1RM',
-      label: 'Power clean / frivändning 1RM',
+      label: 'Power clean 1RM',
+      labelSv: 'Power clean / frivändning 1RM',
       unit: 'kg',
       category: 'strength',
       aliases: ['frivändning', 'power clean', 'pc'],
       enabled: true,
-      notes: 'Standard power clean. Hang clean ska vara en egen test om laget vill använda det.',
+      notes: 'Standard power clean. Hang clean should be a separate test if the team wants to use it.',
+      notesSv: 'Standard power clean. Hang clean ska vara en egen test om laget vill använda det.',
     },
     {
       id: 'bench-press-1rm',
       metricKey: 'benchPress1RM',
-      label: 'Bänkpress 1RM',
+      label: 'Bench press 1RM',
+      labelSv: 'Bänkpress 1RM',
       unit: 'kg',
       category: 'strength',
       aliases: ['bänkpress', 'bench press', 'bench', 'bp'],
@@ -125,17 +135,20 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
     {
       id: 'pull-up-1rm',
       metricKey: 'pullUp1RM',
-      label: 'Chins 1RM extra vikt',
+      label: 'Weighted pull-up 1RM',
+      labelSv: 'Chins 1RM extra vikt',
       unit: 'kg',
       category: 'strength',
       aliases: ['chins', 'pull-up', 'pullup', 'pull ups', 'weighted pull-up'],
       enabled: true,
-      notes: 'Värdet avser extra vikt, inte kroppsvikt + extra vikt.',
+      notes: 'The value refers to extra load, not bodyweight plus extra load.',
+      notesSv: 'Värdet avser extra vikt, inte kroppsvikt + extra vikt.',
     },
     {
       id: 'standing-long-jump',
       metricKey: 'standingLongJump',
-      label: 'Stående längdhopp',
+      label: 'Standing long jump',
+      labelSv: 'Stående längdhopp',
       unit: 'cm',
       category: 'jump',
       aliases: ['stående längdhopp', 'standing broad jump', 'standing long jump', 'slj'],
@@ -144,7 +157,8 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
     {
       id: 'three-jump-left',
       metricKey: 'threeJumpLeft',
-      label: '3-steg vänster',
+      label: 'Triple jump left',
+      labelSv: '3-steg vänster',
       unit: 'cm',
       category: 'jump',
       aliases: ['3-steg vänster', 'tresteg vänster', 'triple jump left'],
@@ -153,7 +167,8 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
     {
       id: 'three-jump-right',
       metricKey: 'threeJumpRight',
-      label: '3-steg höger',
+      label: 'Triple jump right',
+      labelSv: '3-steg höger',
       unit: 'cm',
       category: 'jump',
       aliases: ['3-steg höger', 'tresteg höger', 'triple jump right'],
@@ -163,7 +178,8 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
       id: 'beep-test',
       metricKey: 'beepTestLevel',
       label: 'Beep test',
-      unit: 'nivå',
+      unit: 'level',
+      unitSv: 'nivå',
       category: 'endurance',
       aliases: ['beep', 'beep test', 'bleep test', 'multi-stage fitness test', 'multistage fitness test'],
       enabled: true,
@@ -171,12 +187,14 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
     {
       id: 'wingate-30s-average-power',
       metricKey: 'wingate30sAveragePower',
-      label: 'Wingate 30 sek',
+      label: 'Wingate 30 sec',
+      labelSv: 'Wingate 30 sek',
       unit: 'W',
       category: 'power',
       aliases: ['wingate', 'wingate 30s', 'wingate 30 sek', '30 second wingate', '30s sprint'],
       enabled: true,
-      notes: 'Ange snitteffekt över 30 sekunder.',
+      notes: 'Enter average power over 30 seconds.',
+      notesSv: 'Ange snitteffekt över 30 sekunder.',
     },
     {
       id: 'vo2max',
@@ -190,7 +208,8 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
     {
       id: 'sprint-10m-ice',
       metricKey: 'sprint10m',
-      label: '10 m is',
+      label: '10 m on-ice sprint',
+      labelSv: '10 m is',
       unit: 's',
       category: 'ice',
       lowerIsBetter: true,
@@ -200,7 +219,8 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
     {
       id: 'sprint-20m-ice',
       metricKey: 'sprint20m',
-      label: '20 m is',
+      label: '20 m on-ice sprint',
+      labelSv: '20 m is',
       unit: 's',
       category: 'ice',
       lowerIsBetter: true,
@@ -210,7 +230,8 @@ export const DEFAULT_HOCKEY_TEST_PACKAGE: HockeyTestPackage = {
     {
       id: 'sprint-30m-ice',
       metricKey: 'sprint30m',
-      label: '30 m is',
+      label: '30 m on-ice sprint',
+      labelSv: '30 m is',
       unit: 's',
       category: 'ice',
       lowerIsBetter: true,
@@ -224,6 +245,33 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === 'string' && value ? value : undefined
+}
+
+function normalizeLocalizedValue(
+  rawValue: unknown,
+  rawValueSv: unknown,
+  fallbackValue: string | undefined,
+  fallbackValueSv: string | null | undefined
+) {
+  const value = stringOrUndefined(rawValue)
+  const valueSv = stringOrUndefined(rawValueSv)
+  const isLegacyDefaultSv = !!value && !!fallbackValueSv && value === fallbackValueSv
+  const isDefaultEn = !!value && !!fallbackValue && value === fallbackValue
+
+  return {
+    value: isLegacyDefaultSv ? fallbackValue ?? value : value ?? fallbackValue ?? '',
+    valueSv: valueSv ?? (
+      isLegacyDefaultSv
+        ? value
+        : isDefaultEn || !value
+          ? fallbackValueSv ?? null
+          : null
+    ),
+  }
+}
+
 function normalizeItem(value: unknown): HockeyTestPackageItem | null {
   if (!isRecord(value)) return null
   const metricKey = typeof value.metricKey === 'string' && isHockeyTestMetricKey(value.metricKey)
@@ -232,11 +280,16 @@ function normalizeItem(value: unknown): HockeyTestPackageItem | null {
   if (!metricKey) return null
 
   const fallback = DEFAULT_HOCKEY_TEST_PACKAGE.items.find((item) => item.metricKey === metricKey)
+  const label = normalizeLocalizedValue(value.label, value.labelSv, fallback?.label, fallback?.labelSv)
+  const unit = normalizeLocalizedValue(value.unit, value.unitSv, fallback?.unit, fallback?.unitSv)
+  const notes = normalizeLocalizedValue(value.notes, value.notesSv, fallback?.notes ?? undefined, fallback?.notesSv)
   return {
     id: typeof value.id === 'string' && value.id ? value.id : fallback?.id ?? metricKey,
     metricKey,
-    label: typeof value.label === 'string' && value.label ? value.label : fallback?.label ?? metricKey,
-    unit: typeof value.unit === 'string' && value.unit ? value.unit : fallback?.unit ?? '',
+    label: label.value || metricKey,
+    labelSv: label.valueSv,
+    unit: unit.value,
+    unitSv: unit.valueSv,
     category: ['strength', 'power', 'jump', 'endurance', 'ice'].includes(String(value.category))
       ? value.category as HockeyTestPackageItem['category']
       : fallback?.category ?? 'strength',
@@ -247,7 +300,8 @@ function normalizeItem(value: unknown): HockeyTestPackageItem | null {
       ? value.aliases.filter((alias): alias is string => typeof alias === 'string')
       : fallback?.aliases ?? [],
     enabled: typeof value.enabled === 'boolean' ? value.enabled : true,
-    notes: typeof value.notes === 'string' ? value.notes : fallback?.notes ?? null,
+    notes: notes.value || null,
+    notesSv: notes.valueSv,
   }
 }
 
@@ -270,7 +324,8 @@ export function normalizeHockeyTestPackage(value: unknown): HockeyTestPackage {
 
   return {
     version: 1,
-    name: typeof value.name === 'string' && value.name ? value.name : DEFAULT_HOCKEY_TEST_PACKAGE.name,
+    name: normalizeLocalizedValue(value.name, value.nameSv, DEFAULT_HOCKEY_TEST_PACKAGE.name, DEFAULT_HOCKEY_TEST_PACKAGE.nameSv).value,
+    nameSv: normalizeLocalizedValue(value.name, value.nameSv, DEFAULT_HOCKEY_TEST_PACKAGE.name, DEFAULT_HOCKEY_TEST_PACKAGE.nameSv).valueSv,
     items: itemsWithDefaults,
   }
 }
@@ -279,11 +334,29 @@ export function hockeyTestPackageToJson(pkg: HockeyTestPackage): Prisma.InputJso
   return {
     version: 1,
     name: pkg.name,
+    nameSv: pkg.nameSv ?? null,
     items: pkg.items.map((item) => ({
       ...item,
       linkedExerciseId: item.linkedExerciseId ?? null,
       linkedExerciseName: item.linkedExerciseName ?? null,
       notes: item.notes ?? null,
+      notesSv: item.notesSv ?? null,
+      labelSv: item.labelSv ?? null,
+      unitSv: item.unitSv ?? null,
+    })),
+  }
+}
+
+export function localizeHockeyTestPackage(pkg: HockeyTestPackage, locale: 'en' | 'sv'): HockeyTestPackage {
+  if (locale !== 'sv') return pkg
+  return {
+    ...pkg,
+    name: pkg.nameSv ?? pkg.name,
+    items: pkg.items.map((item) => ({
+      ...item,
+      label: item.labelSv ?? item.label,
+      unit: item.unitSv ?? item.unit,
+      notes: item.notesSv ?? item.notes ?? null,
     })),
   }
 }
@@ -301,7 +374,7 @@ export function findPackageItemByInput(pkg: HockeyTestPackage, input: string) {
   const target = normalizeName(input)
   if (!target) return null
   return pkg.items.find((item) => {
-    const candidates = [item.label, item.metricKey, ...item.aliases]
+    const candidates = [item.label, item.labelSv ?? '', item.metricKey, ...item.aliases]
     return candidates.some((candidate) => {
       const normalized = normalizeName(candidate)
       return normalized === target || normalized.startsWith(target) || target.startsWith(normalized)

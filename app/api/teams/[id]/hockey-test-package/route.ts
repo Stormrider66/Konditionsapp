@@ -7,6 +7,7 @@ import { jsonWithPerfDebug, startPerfDebug } from '@/lib/api/perf-debug'
 import {
   DEFAULT_HOCKEY_TEST_PACKAGE,
   hockeyTestPackageToJson,
+  localizeHockeyTestPackage,
   normalizeHockeyTestPackage,
   type HockeyTestPackage,
   type HockeyTestPackageItem,
@@ -59,7 +60,7 @@ async function getExerciseCandidates() {
   })
   const candidates = exercises.map((exercise) => ({
     ...exercise,
-    names: [exercise.name, exercise.nameSv ?? ''].filter(Boolean).map(normalizeName),
+    names: [exercise.name, exercise.nameSv ?? '', exercise.nameEn ?? ''].filter(Boolean).map(normalizeName),
   }))
   exerciseCandidateCache = {
     expiresAt: now + EXERCISE_CANDIDATE_TTL_MS,
@@ -89,7 +90,7 @@ async function hydrateLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale)
 
   const items = pkg.items.map((item): HockeyTestPackageItem => {
     if (item.linkedExerciseId || item.category !== 'strength') return item
-    const aliases = [item.label, ...item.aliases].map(normalizeName)
+    const aliases = [item.label, item.labelSv ?? '', ...item.aliases].map(normalizeName)
     const match = candidates.find((exercise) => (
       exercise.names.some((name) => aliases.some((alias) => name === alias))
     )) ?? candidates.find((exercise) => (
@@ -105,7 +106,7 @@ async function hydrateLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale)
       : item
   })
 
-  return { ...pkg, items }
+  return localizeHockeyTestPackage({ ...pkg, items }, locale)
 }
 
 export async function GET(

@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import {
   DEFAULT_HOCKEY_TEST_PACKAGE,
+  localizeHockeyTestPackage,
   normalizeHockeyTestPackage,
   type HockeyTestMetricKey,
   type HockeyTestPackage,
@@ -44,14 +45,14 @@ export async function hydrateHockeyPackageLinkedExercises(pkg: HockeyTestPackage
   })
   const candidates = exercises.map((exercise) => ({
     ...exercise,
-    names: [exercise.name, exercise.nameSv ?? ''].filter(Boolean).map(normalizeName),
+    names: [exercise.name, exercise.nameSv ?? '', exercise.nameEn ?? ''].filter(Boolean).map(normalizeName),
   }))
 
-  return {
+  return localizeHockeyTestPackage({
     ...pkg,
     items: pkg.items.map((item): HockeyTestPackageItem => {
       if (item.linkedExerciseId || item.category !== 'strength') return item
-      const aliases = [item.label, ...item.aliases].map(normalizeName)
+      const aliases = [item.label, item.labelSv ?? '', ...item.aliases].map(normalizeName)
       const match = candidates.find((exercise) => (
         exercise.names.some((name) => aliases.some((alias) => name === alias))
       )) ?? candidates.find((exercise) => (
@@ -65,7 +66,7 @@ export async function hydrateHockeyPackageLinkedExercises(pkg: HockeyTestPackage
           }
         : item
     }),
-  }
+  }, locale)
 }
 
 export async function loadHockeyPackageForClient(clientId: string, locale: AppLocale = 'en') {

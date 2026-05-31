@@ -5,6 +5,7 @@ import { getWritableTeam } from '@/lib/coach/team-access'
 import {
   DEFAULT_HOCKEY_TEST_PACKAGE,
   HOCKEY_SCALAR_METRIC_KEYS,
+  localizeHockeyTestPackage,
   normalizeHockeyTestPackage,
   type HockeyTestPackage,
   type HockeyTestPackageItem,
@@ -70,14 +71,14 @@ async function hydrateLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale)
   })
   const candidates = exercises.map((exercise) => ({
     ...exercise,
-    names: [exercise.name, exercise.nameSv ?? ''].filter(Boolean).map(normalizeName),
+    names: [exercise.name, exercise.nameSv ?? '', exercise.nameEn ?? ''].filter(Boolean).map(normalizeName),
   }))
 
-  return {
+  return localizeHockeyTestPackage({
     ...pkg,
     items: pkg.items.map((item): HockeyTestPackageItem => {
       if (item.linkedExerciseId || item.category !== 'strength') return item
-      const aliases = [item.label, ...item.aliases].map(normalizeName)
+      const aliases = [item.label, item.labelSv ?? '', ...item.aliases].map(normalizeName)
       const match = candidates.find((exercise) => (
         exercise.names.some((name) => aliases.some((alias) => name === alias))
       )) ?? candidates.find((exercise) => (
@@ -91,7 +92,7 @@ async function hydrateLinkedExercises(pkg: HockeyTestPackage, locale: AppLocale)
           }
         : item
     }),
-  }
+  }, locale)
 }
 function parseEntries(value: unknown): ResultEntry[] {
   if (!Array.isArray(value)) return []
