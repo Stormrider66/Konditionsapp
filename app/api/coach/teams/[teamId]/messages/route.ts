@@ -21,25 +21,32 @@ function resolveLocale(language: string | null | undefined): AppLocale {
   return language === 'sv' ? 'sv' : 'en'
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function teamMessageSubject(teamName: string, locale: AppLocale): string {
   return locale === 'sv' ? `Lagmeddelande: ${teamName}` : `Team message: ${teamName}`
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = resolveLocale(user.language)
     const scope = getRequestedBusinessScope(request)
     const { teamId } = await context.params
 
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
     if (!team) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const parsed = sendTeamMessageSchema.safeParse(await request.json().catch(() => ({})))
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid input', details: parsed.error.flatten() },
+        { success: false, error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -125,7 +132,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const receiverIds = Array.from(new Set(recipients.map(member => member.athleteAccount!.userId)))
     if (receiverIds.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'No athlete accounts matched this target' },
+        { success: false, error: t(locale, 'No athlete accounts matched this target', 'Inga atletkonton matchade målgruppen') },
         { status: 400 }
       )
     }
@@ -149,9 +156,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Failed to send team message', {}, error)
-    return NextResponse.json({ success: false, error: 'Failed to send team message' }, { status: 500 })
+    return NextResponse.json({ success: false, error: t(locale, 'Failed to send team message', 'Kunde inte skicka lagmeddelandet') }, { status: 500 })
   }
 }

@@ -15,20 +15,29 @@ interface RouteContext {
   params: Promise<{ teamId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function generateInviteCode(): string {
   return randomBytes(4).toString('hex').toUpperCase() // 8 chars, e.g. "A3F2B1C9"
 }
 
 export async function GET(_req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
 
     // Verify coach owns team
     const team = await prisma.team.findFirst({
       where: { id: teamId, userId: user.id },
     })
-    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!team) return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
 
     // Get business context
     const membership = await prisma.businessMember.findFirst({
@@ -53,15 +62,18 @@ export async function GET(_req: NextRequest, context: RouteContext) {
     return NextResponse.json({ invite })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch invite link', 'Kunde inte hämta inbjudningslänken') }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId } = await context.params
 
     // Verify coach owns team
@@ -69,7 +81,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
       where: { id: teamId, userId: user.id },
       select: { id: true, name: true },
     })
-    if (!team) return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+    if (!team) return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
@@ -110,9 +122,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ invite }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Invite creation error:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create invite link', 'Kunde inte skapa inbjudningslänken') }, { status: 500 })
   }
 }
