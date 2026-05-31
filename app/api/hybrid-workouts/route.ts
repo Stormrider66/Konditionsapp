@@ -75,6 +75,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const tagFilters = searchParams.getAll('tag').filter(Boolean);
+    if (tagFilters.length > 0) {
+      andFilters.push({ tags: { hasSome: tagFilters } });
+    }
+
     const where: Prisma.HybridWorkoutWhereInput = { AND: andFilters };
 
     const [workouts, total] = await Promise.all([

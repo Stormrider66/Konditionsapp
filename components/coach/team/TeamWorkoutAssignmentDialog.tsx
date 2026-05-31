@@ -73,7 +73,7 @@ interface Team {
 
 interface TeamWorkoutAssignmentDialogProps {
   /** Pre-chosen workout. Omit all three to show the in-dialog workout picker. */
-  workoutType?: 'strength' | 'cardio' | 'hybrid'
+  workoutType?: 'strength' | 'cardio' | 'hybrid' | 'agility'
   workoutId?: string
   workoutName?: string
   /** Fix the dialog to a single team (skips the team selector). */
@@ -431,6 +431,7 @@ export function TeamWorkoutAssignmentDialog({
               value={pickedWorkout}
               onChange={setPickedWorkout}
               locale={locale}
+              teamId={selectedTeamId}
             />
           </div>
         )}

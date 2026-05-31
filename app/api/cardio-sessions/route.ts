@@ -64,6 +64,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    const tagFilters = searchParams.getAll('tag').filter(Boolean);
+    if (tagFilters.length > 0) {
+      andFilters.push({ tags: { hasSome: tagFilters } });
+    }
+
     const where: Prisma.CardioSessionWhereInput = { AND: andFilters };
 
     const [sessions, total] = await Promise.all([
