@@ -12,6 +12,9 @@
 
 import { ErgometerType } from '@prisma/client';
 
+type AppLocale = 'en' | 'sv';
+type ExperienceLevel = 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE';
+
 export interface TrainingLoadData {
   ctl: number;           // Chronic Training Load (fitness)
   atl: number;           // Acute Training Load (fatigue)
@@ -71,13 +74,28 @@ const MAX_ANNUAL_IMPROVEMENT = {
   ELITE: 3,
 };
 
+const EXPERIENCE_LABELS: Record<ExperienceLevel, Record<AppLocale, string>> = {
+  BEGINNER: { en: 'beginner', sv: 'nybörjare' },
+  INTERMEDIATE: { en: 'intermediate', sv: 'medel' },
+  ADVANCED: { en: 'advanced', sv: 'avancerad' },
+  ELITE: { en: 'elite', sv: 'elit' },
+};
+
+function resolveLocale(locale?: string | null): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 /**
  * Determine experience level based on training history
  */
 function determineExperienceLevel(
   historicalTests: HistoricalTest[],
   monthsTraining?: number
-): 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE' {
+): ExperienceLevel {
   // If explicit training months provided
   if (monthsTraining !== undefined) {
     if (monthsTraining < 6) return 'BEGINNER';
@@ -102,7 +120,7 @@ function determineExperienceLevel(
 /**
  * Analyze training load impact on improvement
  */
-function analyzeTrainingImpact(trainingLoad: TrainingLoadData): {
+function analyzeTrainingImpact(trainingLoad: TrainingLoadData, locale: AppLocale): {
   multiplier: number;
   factors: ImprovementFactor[];
 } {
@@ -113,17 +131,25 @@ function analyzeTrainingImpact(trainingLoad: TrainingLoadData): {
   if (trainingLoad.ctl > 80) {
     multiplier *= 1.15;
     factors.push({
-      name: 'Hög träningsbelastning',
+      name: text(locale, 'High training load', 'Hög träningsbelastning'),
       impact: 0.5,
-      description: `CTL på ${Math.round(trainingLoad.ctl)} indikerar stark träningsanpassning`,
+      description: text(
+        locale,
+        `CTL of ${Math.round(trainingLoad.ctl)} indicates strong training adaptation`,
+        `CTL på ${Math.round(trainingLoad.ctl)} indikerar stark träningsanpassning`
+      ),
       category: 'training',
     });
   } else if (trainingLoad.ctl < 40) {
     multiplier *= 0.7;
     factors.push({
-      name: 'Låg träningsbelastning',
+      name: text(locale, 'Low training load', 'Låg träningsbelastning'),
       impact: -0.4,
-      description: 'Ökad träningsvolym rekommenderas för snabbare framsteg',
+      description: text(
+        locale,
+        'Increased training volume is recommended for faster progress',
+        'Ökad träningsvolym rekommenderas för snabbare framsteg'
+      ),
       category: 'training',
     });
   }
@@ -132,17 +158,25 @@ function analyzeTrainingImpact(trainingLoad: TrainingLoadData): {
   if (trainingLoad.consistency > 0.85) {
     multiplier *= 1.2;
     factors.push({
-      name: 'Utmärkt träningskonsistens',
+      name: text(locale, 'Excellent training consistency', 'Utmärkt träningskonsistens'),
       impact: 0.6,
-      description: `${Math.round(trainingLoad.consistency * 100)}% konsistens - optimal för anpassning`,
+      description: text(
+        locale,
+        `${Math.round(trainingLoad.consistency * 100)}% consistency - optimal for adaptation`,
+        `${Math.round(trainingLoad.consistency * 100)}% konsistens - optimal för anpassning`
+      ),
       category: 'training',
     });
   } else if (trainingLoad.consistency < 0.6) {
     multiplier *= 0.6;
     factors.push({
-      name: 'Inkonsekvent träning',
+      name: text(locale, 'Inconsistent training', 'Inkonsekvent träning'),
       impact: -0.5,
-      description: 'Oregelbunden träning begränsar framsteg',
+      description: text(
+        locale,
+        'Irregular training limits progress',
+        'Oregelbunden träning begränsar framsteg'
+      ),
       category: 'training',
     });
   }
@@ -151,16 +185,24 @@ function analyzeTrainingImpact(trainingLoad: TrainingLoadData): {
   if (trainingLoad.tsb < -20) {
     multiplier *= 0.9;
     factors.push({
-      name: 'Hög trötthet',
+      name: text(locale, 'High fatigue', 'Hög trötthet'),
       impact: -0.3,
-      description: 'Negativ form - prestation kan vara undertryckt',
+      description: text(
+        locale,
+        'Negative form - performance may be suppressed',
+        'Negativ form - prestation kan vara undertryckt'
+      ),
       category: 'recovery',
     });
   } else if (trainingLoad.tsb > 10) {
     factors.push({
-      name: 'God form',
+      name: text(locale, 'Good form', 'God form'),
       impact: 0.2,
-      description: 'Positiv form - redo för prestation',
+      description: text(
+        locale,
+        'Positive form - ready to perform',
+        'Positiv form - redo för prestation'
+      ),
       category: 'recovery',
     });
   }
@@ -171,7 +213,7 @@ function analyzeTrainingImpact(trainingLoad: TrainingLoadData): {
 /**
  * Analyze historical test progression
  */
-function analyzeHistoricalProgression(tests: HistoricalTest[]): {
+function analyzeHistoricalProgression(tests: HistoricalTest[], locale: AppLocale): {
   trend: 'improving' | 'stable' | 'declining';
   monthlyRate: number;
   factors: ImprovementFactor[];
@@ -205,25 +247,37 @@ function analyzeHistoricalProgression(tests: HistoricalTest[]): {
   if (monthlyRate > 0.5) {
     trend = 'improving';
     factors.push({
-      name: 'Positiv trend',
+      name: text(locale, 'Positive trend', 'Positiv trend'),
       impact: 0.4,
-      description: `CP har ökat med ${monthlyRate.toFixed(1)}%/månad`,
+      description: text(
+        locale,
+        `CP has increased by ${monthlyRate.toFixed(1)}%/month`,
+        `CP har ökat med ${monthlyRate.toFixed(1)}%/månad`
+      ),
       category: 'physiological',
     });
   } else if (monthlyRate < -0.5) {
     trend = 'declining';
     factors.push({
-      name: 'Negativ trend',
+      name: text(locale, 'Negative trend', 'Negativ trend'),
       impact: -0.6,
-      description: 'CP har minskat - överväg träningsanpassningar',
+      description: text(
+        locale,
+        'CP has decreased - consider training adjustments',
+        'CP har minskat - överväg träningsanpassningar'
+      ),
       category: 'physiological',
     });
   } else {
     trend = 'stable';
     factors.push({
-      name: 'Stabil prestation',
+      name: text(locale, 'Stable performance', 'Stabil prestation'),
       impact: 0,
-      description: 'CP är relativt oförändrad',
+      description: text(
+        locale,
+        'CP is relatively unchanged',
+        'CP är relativt oförändrad'
+      ),
       category: 'physiological',
     });
   }
@@ -263,9 +317,11 @@ export function projectImprovement(
     historicalTests?: HistoricalTest[];
     monthsTraining?: number;
     athleteWeight?: number;
+    locale?: AppLocale;
   } = {}
 ): ImprovementProjection {
-  const { trainingLoad, historicalTests = [], monthsTraining, athleteWeight } = options;
+  const { trainingLoad, historicalTests = [], monthsTraining } = options;
+  const locale = resolveLocale(options.locale);
 
   // Determine experience level
   const experienceLevel = determineExperienceLevel(historicalTests, monthsTraining);
@@ -281,27 +337,27 @@ export function projectImprovement(
 
   // Add experience factor
   allFactors.push({
-    name: `Erfarenhetsnivå: ${experienceLevel}`,
+    name: `${text(locale, 'Experience level', 'Erfarenhetsnivå')}: ${EXPERIENCE_LABELS[experienceLevel][locale]}`,
     impact: experienceLevel === 'BEGINNER' ? 0.5 : experienceLevel === 'ELITE' ? -0.3 : 0,
     description: experienceLevel === 'BEGINNER'
-      ? 'Nybörjare har störst potential för snabba framsteg'
+      ? text(locale, 'Beginners have the greatest potential for fast progress', 'Nybörjare har störst potential för snabba framsteg')
       : experienceLevel === 'ELITE'
-        ? 'Elitutövare har begränsad förbättringspotential'
-        : 'Normal förbättringspotential för nivån',
+        ? text(locale, 'Elite athletes have limited improvement potential', 'Elitutövare har begränsad förbättringspotential')
+        : text(locale, 'Normal improvement potential for this level', 'Normal förbättringspotential för nivån'),
     category: 'experience',
   });
 
   // Apply training load adjustments
   let trainingMultiplier = 1.0;
   if (trainingLoad) {
-    const { multiplier, factors } = analyzeTrainingImpact(trainingLoad);
+    const { multiplier, factors } = analyzeTrainingImpact(trainingLoad, locale);
     trainingMultiplier = multiplier;
     allFactors.push(...factors);
   }
 
   // Apply historical trend adjustments
   if (historicalTests.length >= 2) {
-    const { trend, factors } = analyzeHistoricalProgression(historicalTests);
+    const { trend, factors } = analyzeHistoricalProgression(historicalTests, locale);
     allFactors.push(...factors);
 
     if (trend === 'improving') trainingMultiplier *= 1.1;
@@ -347,16 +403,16 @@ export function projectImprovement(
   const recommendations: string[] = [];
 
   if (trainingLoad && trainingLoad.consistency < 0.7) {
-    recommendations.push('Öka träningskonsistensen för bättre resultat');
+    recommendations.push(text(locale, 'Increase training consistency for better results', 'Öka träningskonsistensen för bättre resultat'));
   }
   if (trainingLoad && trainingLoad.ctl < 50) {
-    recommendations.push('Bygg gradvis upp träningsvolymen');
+    recommendations.push(text(locale, 'Build training volume gradually', 'Bygg gradvis upp träningsvolymen'));
   }
   if (experienceLevel === 'BEGINNER') {
-    recommendations.push('Fokusera på grundläggande teknik och regelbunden träning');
+    recommendations.push(text(locale, 'Focus on fundamental technique and regular training', 'Fokusera på grundläggande teknik och regelbunden träning'));
   }
   if (historicalTests.length < 3) {
-    recommendations.push('Genomför regelbundna tester (var 6-8 vecka) för bättre uppföljning');
+    recommendations.push(text(locale, 'Complete regular tests every 6-8 weeks for better follow-up', 'Genomför regelbundna tester (var 6-8 vecka) för bättre uppföljning'));
   }
 
   // Calculate 2K time predictions for Concept2
@@ -405,6 +461,8 @@ export function generateProjectionCurve(
     trainingLoad?: TrainingLoadData;
     historicalTests?: HistoricalTest[];
     monthsTraining?: number;
+    athleteWeight?: number;
+    locale?: AppLocale;
   } = {}
 ): Array<{ week: number; projectedCP: number; projectedWPrime: number }> {
   const weeks = [4, 8, 12, 16, 20, 24];

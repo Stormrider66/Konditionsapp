@@ -9,8 +9,18 @@
  * Reference: Monod & Scherrer (1965), Vanhatalo et al. (2007)
  */
 
-import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
-import { estimatePowerForDuration, estimateTimeToExhaustion } from '../calculations/critical-power';
+import { ErgometerType } from '@prisma/client';
+import { estimatePowerForDuration } from '../calculations/critical-power';
+
+type AppLocale = 'en' | 'sv';
+
+function resolveLocale(locale?: string | null): AppLocale {
+  return locale === 'sv' ? 'sv' : 'en';
+}
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
 
 export interface PowerPredictionInput {
   criticalPower: number;      // CP in Watts
@@ -72,15 +82,6 @@ const CONCEPT2_DISTANCES = [
 function wattsToPace(watts: number): number {
   if (watts <= 0) return Infinity;
   return 500 * Math.pow(2.80 / watts, 1 / 3);
-}
-
-/**
- * Convert pace to watts (Concept2 formula)
- * watts = 2.80 / (pace/500)³
- */
-function paceToWatts(paceSeconds: number): number {
-  const pacePerMeter = paceSeconds / 500;
-  return 2.80 / Math.pow(pacePerMeter, 3);
 }
 
 /**
@@ -150,7 +151,6 @@ export function predictPowerForDuration(
 
   // Determine confidence based on duration relative to W' depletion
   let confidence: PowerPrediction['confidence'] = 'HIGH';
-  const tte = estimateTimeToExhaustion(predictedPower, criticalPower, wPrime);
 
   if (targetDuration > 1800) {
     // Very long durations - lower confidence as model assumptions weaken
@@ -259,13 +259,15 @@ export function generateDistancePredictions(
  */
 export function analyzePerformance(
   predicted: PowerPrediction,
-  actualPower: number
+  actualPower: number,
+  localeInput: string = 'en'
 ): {
   difference: number;
   differencePercent: number;
   assessment: 'exceeded' | 'met' | 'below';
   insights: string[];
 } {
+  const locale = resolveLocale(localeInput);
   const difference = actualPower - predicted.predictedPower;
   const differencePercent = (difference / predicted.predictedPower) * 100;
 
@@ -274,19 +276,19 @@ export function analyzePerformance(
 
   if (differencePercent > 3) {
     assessment = 'exceeded';
-    insights.push('Presterade bättre än förväntat - överväg att uppdatera CP-modell');
+    insights.push(text(locale, 'Performed better than expected - consider updating the CP model', 'Presterade bättre än förväntat - överväg att uppdatera CP-modell'));
     if (differencePercent > 10) {
-      insights.push('Stor avvikelse kan indikera att CP eller W\' behöver omkalibreras');
+      insights.push(text(locale, 'A large deviation may indicate that CP or W\' needs recalibration', 'Stor avvikelse kan indikera att CP eller W\' behöver omkalibreras'));
     }
   } else if (differencePercent < -3) {
     assessment = 'below';
-    insights.push('Presterade under förväntan');
+    insights.push(text(locale, 'Performed below expectation', 'Presterade under förväntan'));
     if (differencePercent < -10) {
-      insights.push('Kontrollera återhämtning, motivation, eller om testet paceades korrekt');
+      insights.push(text(locale, 'Check recovery, motivation, or whether the test was paced correctly', 'Kontrollera återhämtning, motivation, eller om testet paceades korrekt'));
     }
   } else {
     assessment = 'met';
-    insights.push('Presterade enligt förväntan - CP-modell är välkalibrerad');
+    insights.push(text(locale, 'Performed as expected - the CP model is well calibrated', 'Presterade enligt förväntan - CP-modell är välkalibrerad'));
   }
 
   return {

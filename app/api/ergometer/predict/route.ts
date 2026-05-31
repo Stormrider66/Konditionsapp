@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { createClient } from '@/lib/supabase/server';
+import { getCurrentUser } from '@/lib/auth-utils';
 import { ErgometerType } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 import {
@@ -18,16 +18,22 @@ import {
   generateProjectionCurve,
 } from '@/lib/training-engine/ergometer/predictions';
 
+type AppLocale = 'en' | 'sv';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en';
+
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const user = await getCurrentUser();
+    locale = user?.language === 'sv' ? 'sv' : 'en';
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       );
     }
@@ -46,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     if (!clientId || !ergometerType) {
       return NextResponse.json(
-        { success: false, error: 'clientId and ergometerType are required' },
+        { success: false, error: t(locale, 'clientId and ergometerType are required', 'clientId och ergometerType krävs') },
         { status: 400 }
       );
     }
@@ -65,7 +71,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'No CP data found. Perform a threshold test first.',
+          error: t(locale, 'No CP data found. Perform a threshold test first.', 'Ingen CP-data hittades. Genomför ett tröskeltest först.'),
           code: 'NO_CP_DATA',
         },
         { status: 404 }
@@ -105,7 +111,7 @@ export async function POST(request: NextRequest) {
       if (timePrediction) {
         response.timePrediction = timePrediction;
       } else {
-        response.timePredictionError = 'Distance prediction only available for Concept2 machines';
+        response.timePredictionError = t(locale, 'Distance prediction is only available for Concept2 machines', 'Distansprognos är endast tillgänglig för Concept2-maskiner');
       }
     }
 
@@ -179,6 +185,7 @@ export async function POST(request: NextRequest) {
             criticalPower: t.criticalPower!,
             wPrime: t.wPrime || 20000,
           })),
+          locale,
         }
       );
 
@@ -197,6 +204,7 @@ export async function POST(request: NextRequest) {
               criticalPower: t.criticalPower!,
               wPrime: t.wPrime || 20000,
             })),
+            locale,
           }
         );
       }
@@ -206,7 +214,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('Error generating prediction:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to generate prediction' },
+      { success: false, error: t(locale, 'Failed to generate prediction', 'Kunde inte skapa prognos') },
       { status: 500 }
     );
   }
