@@ -18,7 +18,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 4,
     experienceLevel: 'beginner',
-    goal: 'Förbättra 10 km-tid från 55 till 50 min',
+    goal: 'Improve 10 km time from 55 to 50 minutes',
     hasTestData: false,
   },
   {
@@ -29,7 +29,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 16,
     sessionsPerWeek: 7,
     experienceLevel: 'advanced',
-    goal: 'Halvmaraton under 1:20',
+    goal: 'Half marathon under 1:20',
     hasTestData: true,
   },
   {
@@ -40,7 +40,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 20,
     sessionsPerWeek: 6,
     experienceLevel: 'intermediate',
-    goal: 'Maraton under 3:15',
+    goal: 'Marathon under 3:15',
     hasTestData: true,
   },
   {
@@ -51,7 +51,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 8,
     sessionsPerWeek: 5,
     experienceLevel: 'intermediate',
-    goal: 'Öka FTP med 10% inför Vätternrundan',
+    goal: 'Increase FTP by 10% before Vätternrundan',
     hasTestData: true,
   },
 
@@ -65,7 +65,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 16,
     sessionsPerWeek: 8,
     experienceLevel: 'intermediate',
-    goal: 'Olympisk distans triathlon under 2:30',
+    goal: 'Olympic-distance triathlon under 2:30',
     hasTestData: false,
   },
   {
@@ -76,7 +76,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 4,
     experienceLevel: 'beginner',
-    goal: 'Simma 1500m i öppet vatten',
+    goal: 'Swim 1500 m in open water',
     hasTestData: false,
   },
   {
@@ -87,7 +87,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 24,
     sessionsPerWeek: 6,
     experienceLevel: 'advanced',
-    goal: 'Vasaloppet under 7 timmar',
+    goal: 'Vasaloppet under 7 hours',
     hasTestData: true,
   },
 
@@ -101,7 +101,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 5,
     experienceLevel: 'intermediate',
-    goal: 'HYROX-tävling under 1:30 (Pro division)',
+    goal: 'HYROX race under 1:30 (Pro division)',
     hasTestData: false,
   },
   {
@@ -112,7 +112,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 8,
     sessionsPerWeek: 4,
     experienceLevel: 'beginner',
-    goal: 'Bygga grundstyrka, lära sig baslyft',
+    goal: 'Build foundational strength and learn the basic lifts',
     hasTestData: false,
   },
 
@@ -126,7 +126,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 16,
     sessionsPerWeek: 5,
     experienceLevel: 'intermediate',
-    goal: 'Försäsongsförberedelse: kondition + styrka + explosivitet',
+    goal: 'Pre-season preparation: conditioning, strength, and explosiveness',
     hasTestData: true,
   },
 
@@ -140,7 +140,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 4,
     experienceLevel: 'intermediate',
-    goal: 'Bygga muskelmassa, fokus på överkropp och ben',
+    goal: 'Build muscle mass with focus on upper body and legs',
     hasTestData: false,
   },
   {
@@ -151,7 +151,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 8,
     sessionsPerWeek: 5,
     experienceLevel: 'advanced',
-    goal: 'Maximera styrka i SBD (squat, bänk, mark)',
+    goal: 'Maximize strength in SBD (squat, bench, deadlift)',
     hasTestData: false,
   },
   {
@@ -162,7 +162,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 8,
     sessionsPerWeek: 3,
     experienceLevel: 'beginner',
-    goal: 'Komma igång med träning, gå ner 5 kg',
+    goal: 'Get started with training and lose 5 kg',
     hasTestData: false,
   },
   {
@@ -173,7 +173,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 4,
     experienceLevel: 'intermediate',
-    goal: 'Förbättra kondition och styrka parallellt',
+    goal: 'Improve conditioning and strength in parallel',
     hasTestData: false,
   },
   {
@@ -184,7 +184,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 5,
     experienceLevel: 'intermediate',
-    goal: 'Förbättra benchmarks (pull-ups, snatch, clean & jerk)',
+    goal: 'Improve benchmarks (pull-ups, snatch, clean and jerk)',
     hasTestData: false,
   },
   {
@@ -206,14 +206,14 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 8,
     sessionsPerWeek: 3,
     experienceLevel: 'intermediate',
-    goal: 'Träna runt axelskada, behålla styrka i underkropp',
+    goal: 'Train around a shoulder injury while maintaining lower-body strength',
     injuries: [
       {
         type: 'shoulder_impingement',
         painLevel: 5,
-        bodyPart: 'axel',
+        bodyPart: 'shoulder',
         status: 'recovering',
-        notes: 'Smärta vid press ovanför huvudet och bänkpress med bred grepp',
+        notes: 'Pain with overhead pressing and wide-grip bench press',
       },
     ],
     hasTestData: false,
@@ -226,7 +226,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 8,
     sessionsPerWeek: 3,
     experienceLevel: 'beginner',
-    goal: 'Träna hemma med hantlar och kroppsvikt',
+    goal: 'Train at home with dumbbells and bodyweight',
     hasTestData: false,
   },
 
@@ -240,14 +240,14 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 4,
     experienceLevel: 'intermediate',
-    goal: 'Återkomst efter knäskada, bygga upp till 10 km',
+    goal: 'Return after knee injury and build up to 10 km',
     injuries: [
       {
         type: 'patellofemoral_syndrome',
         painLevel: 4,
-        bodyPart: 'knä',
+        bodyPart: 'knee',
         status: 'recovering',
-        notes: 'Smärta vid löpning i nerförsbacke, OK på plan mark',
+        notes: 'Pain when running downhill, OK on flat ground',
       },
     ],
     hasTestData: false,
@@ -260,7 +260,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 12,
     sessionsPerWeek: 5,
     experienceLevel: 'intermediate',
-    goal: 'Halvmaraton under 1:45',
+    goal: 'Half marathon under 1:45',
     calendarConstraints: {
       blockedDates: ['2026-04-10', '2026-04-11', '2026-04-12', '2026-04-13'],
       reducedDates: ['2026-05-01', '2026-05-02'],
@@ -276,7 +276,7 @@ export const TEST_SCENARIOS: TestScenario[] = [
     totalWeeks: 4,
     sessionsPerWeek: 4,
     experienceLevel: 'intermediate',
-    goal: 'Kort upptrappning inför tävling om 4 veckor',
+    goal: 'Short race build-up for a competition in 4 weeks',
     hasTestData: false,
   },
 ]

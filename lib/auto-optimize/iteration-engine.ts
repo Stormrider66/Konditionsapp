@@ -227,13 +227,13 @@ function buildPromptFromTemplate(template: string, scenario: TestScenario): stri
     if (beforeSub === afterSub) {
       const scenarioContext = [
         `Sport: ${scenario.sport}`,
-        `Metodik: ${scenario.methodology}`,
-        `Programlängd: ${scenario.totalWeeks} veckor`,
-        `Pass per vecka: ${scenario.sessionsPerWeek}`,
-        `Erfarenhetsnivå: ${scenario.experienceLevel}`,
-        `Mål: ${scenario.goal}`,
+        `Methodology: ${scenario.methodology}`,
+        `Program length: ${scenario.totalWeeks} weeks`,
+        `Sessions per week: ${scenario.sessionsPerWeek}`,
+        `Experience level: ${scenario.experienceLevel}`,
+        `Goal: ${scenario.goal}`,
         scenario.injuries?.length
-          ? `Skador: ${scenario.injuries.map(i => `${i.bodyPart} (smärta ${i.painLevel})`).join(', ')}`
+          ? `Injuries: ${scenario.injuries.map(i => `${i.bodyPart} (pain ${i.painLevel})`).join(', ')}`
           : null,
       ].filter(Boolean).join('\n')
 
