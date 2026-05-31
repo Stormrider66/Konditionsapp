@@ -9,6 +9,12 @@ interface RouteContext {
   params: Promise<{ teamId: string }>
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 const noteTags = ['TRAINING', 'TEST', 'MATCH', 'ROSTER', 'OTHER'] as const
 const noteWriterRoles = new Set(['OWNER', 'ADMIN', 'COACH', 'ASSISTANT_COACH', 'PHYSICAL_TRAINER'])
 
@@ -34,14 +40,17 @@ const teamNoteSelect = {
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(request)
     const { teamId } = await context.params
 
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)
     if (!team) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
 
     const notes = await prisma.teamNote.findMany({
@@ -54,16 +63,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true, notes })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Failed to fetch team notes', {}, error)
-    return NextResponse.json({ success: false, error: 'Failed to fetch team notes' }, { status: 500 })
+    return NextResponse.json({ success: false, error: t(locale, 'Failed to fetch team notes', 'Kunde inte hämta laganteckningar') }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(request)
     const { teamId } = await context.params
 
@@ -73,16 +85,16 @@ export async function POST(request: NextRequest, context: RouteContext) {
     ])
 
     if (!team) {
-      return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
     }
     if (!membership || !noteWriterRoles.has(membership.role)) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ success: false, error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
     }
 
     const parsed = noteSchema.safeParse(await request.json().catch(() => ({})))
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid input', details: parsed.error.flatten() },
+        { success: false, error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -100,9 +112,9 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true, note }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Failed to create team note', {}, error)
-    return NextResponse.json({ success: false, error: 'Failed to create team note' }, { status: 500 })
+    return NextResponse.json({ success: false, error: t(locale, 'Failed to create team note', 'Kunde inte skapa laganteckningen') }, { status: 500 })
   }
 }
