@@ -11,7 +11,7 @@ export interface SkiingTemplateWorkout {
   technique: 'classic' | 'skating' | 'both' | 'any'
   surface: 'snow' | 'roller_ski' | 'running' | 'any'
   paceZone: number // Primary zone (1-5)
-  structure?: string // Interval structure like "4x8min @threshold"
+  structure?: string // Interval structure like "4 x 8 min @ threshold"
 }
 
 export interface SkiingTemplateWeek {
@@ -37,14 +37,14 @@ export function get8WeekThresholdBuilder(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Bygg aerob grund och återvänd till snökänsla',
+      focus: 'Build aerobic base and regain snow feel',
       weeklyHours: weeklyHours,
       keyWorkouts: getBaseSkiingWorkouts(1, hourMultiplier),
     },
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Fortsätt grundträning med tekniskt fokus',
+      focus: 'Continue base training with a technical focus',
       weeklyHours: weeklyHours,
       keyWorkouts: getBaseSkiingWorkouts(2, hourMultiplier),
     },
@@ -53,14 +53,14 @@ export function get8WeekThresholdBuilder(
     {
       week: 3,
       phase: 'BUILD',
-      focus: 'Introducera tempopass under tröskel',
+      focus: 'Introduce sub-threshold tempo sessions',
       weeklyHours: weeklyHours,
       keyWorkouts: getTempoSkiingWorkouts(3, hourMultiplier),
     },
     {
       week: 4,
       phase: 'RECOVERY',
-      focus: 'Återhämtningsvecka - teknikfokus',
+      focus: 'Recovery week - technique focus',
       weeklyHours: Math.round(weeklyHours * 0.6),
       keyWorkouts: getRecoverySkiingWorkouts(hourMultiplier),
     },
@@ -69,14 +69,14 @@ export function get8WeekThresholdBuilder(
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Tröskelintervaller klassisk teknik',
+      focus: 'Threshold intervals in classic technique',
       weeklyHours: weeklyHours,
       keyWorkouts: getThresholdSkiingWorkouts(5, 'classic', hourMultiplier),
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Tröskelintervaller skating',
+      focus: 'Threshold intervals in skating',
       weeklyHours: weeklyHours,
       keyWorkouts: getThresholdSkiingWorkouts(6, 'skating', hourMultiplier),
     },
@@ -85,14 +85,14 @@ export function get8WeekThresholdBuilder(
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'VO2max-intervaller och fartlek',
+      focus: 'VO2max intervals and fartlek',
       weeklyHours: weeklyHours,
       keyWorkouts: getPeakSkiingWorkouts(hourMultiplier),
     },
     {
       week: 8,
       phase: 'RECOVERY',
-      focus: 'Taper inför tävling',
+      focus: 'Taper before racing',
       weeklyHours: Math.round(weeklyHours * 0.5),
       keyWorkouts: getTaperSkiingWorkouts(hourMultiplier),
     },
@@ -116,22 +116,22 @@ export function get12WeekPrepBuilder(
     let workouts: SkiingTemplateWorkout[] = []
 
     if (week <= 3) {
-      focus = 'Grundläggande aerob utveckling - rullskidor och löpning'
+      focus = 'Basic aerobic development - roller skiing and running'
       workouts = getPrepBaseWorkouts(week, hourMultiplier)
     } else if (week === 4 || week === 8) {
       phase = 'RECOVERY'
-      focus = 'Återhämtningsvecka - lätt träning'
+      focus = 'Recovery week - easy training'
       workouts = getRecoverySkiingWorkouts(hourMultiplier * 0.7)
     } else if (week <= 7) {
-      focus = 'Bygg volym med rullskidor'
+      focus = 'Build volume with roller skiing'
       workouts = getPrepVolumeWorkouts(week, hourMultiplier)
     } else if (week <= 11) {
       phase = 'BUILD'
-      focus = 'Ökad intensitet - tempoträning'
+      focus = 'Increased intensity - tempo training'
       workouts = getPrepBuildWorkouts(week, hourMultiplier)
     } else {
       phase = 'RECOVERY'
-      focus = 'Utvärdering inför säsongstart'
+      focus = 'Evaluation before season start'
       workouts = getEvaluationWorkouts(hourMultiplier)
     }
 
@@ -164,26 +164,26 @@ export function get16WeekVasaloppetPrep(
     let workouts: SkiingTemplateWorkout[] = []
 
     if (week <= 4) {
-      focus = 'Bygg grunduthållighet med långa pass'
+      focus = 'Build base endurance with long sessions'
       workouts = getDistanceBaseWorkouts(week, hourMultiplier)
     } else if (week === 5 || week === 9 || week === 13) {
       phase = 'RECOVERY'
-      focus = 'Återhämtningsvecka'
+      focus = 'Recovery week'
       workouts = getRecoverySkiingWorkouts(hourMultiplier * 0.6)
     } else if (week <= 8) {
-      focus = 'Ökad distans - backträning klassisk'
+      focus = 'Increased distance - classic hill training'
       workouts = getDistanceBuildWorkouts(week, 'classic', hourMultiplier)
     } else if (week <= 12) {
       phase = 'BUILD'
-      focus = 'Race-specifik träning - långpass med tempo'
+      focus = 'Race-specific training - long sessions with tempo'
       workouts = getVasaloppetSpecificWorkouts(week, hourMultiplier)
     } else if (week <= 15) {
       phase = 'PEAK'
-      focus = 'Finjusteringar och simuleringar'
+      focus = 'Fine-tuning and simulations'
       workouts = getRaceSimulationWorkouts(week, hourMultiplier)
     } else {
       phase = 'RECOVERY'
-      focus = 'Taper inför Vasaloppet'
+      focus = 'Taper before Vasaloppet'
       workouts = getVasaloppetTaperWorkouts(hourMultiplier)
     }
 
@@ -207,8 +207,8 @@ function getBaseSkiingWorkouts(week: number, multiplier: number): SkiingTemplate
   return [
     {
       type: 'endurance',
-      name: 'Långt distanspass',
-      description: 'Lugnt tempo i Z2. Fokus på avslappnad teknik.',
+      name: 'Long distance session',
+      description: 'Easy pace in Z2. Focus on relaxed technique.',
       duration: Math.round(90 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -216,8 +216,8 @@ function getBaseSkiingWorkouts(week: number, multiplier: number): SkiingTemplate
     },
     {
       type: 'endurance',
-      name: 'Grundpass skating',
-      description: 'Medellångt pass i Z2. Jobba med glidkänsla.',
+      name: 'Base skating session',
+      description: 'Medium-long session in Z2. Work on glide feel.',
       duration: Math.round(60 * multiplier),
       technique: 'skating',
       surface: 'snow',
@@ -225,8 +225,8 @@ function getBaseSkiingWorkouts(week: number, multiplier: number): SkiingTemplate
     },
     {
       type: 'technique',
-      name: 'Teknikpass',
-      description: `Övningar och drills för ${week === 1 ? 'klassisk' : 'skating'} teknik.`,
+      name: 'Technique session',
+      description: `Exercises and drills for ${week === 1 ? 'classic' : 'skating'} technique.`,
       duration: Math.round(45 * multiplier),
       technique: week === 1 ? 'classic' : 'skating',
       surface: 'snow',
@@ -234,8 +234,8 @@ function getBaseSkiingWorkouts(week: number, multiplier: number): SkiingTemplate
     },
     {
       type: 'recovery',
-      name: 'Återhämtningspass',
-      description: 'Mycket lätt tempo. Stretching efteråt.',
+      name: 'Recovery session',
+      description: 'Very easy pace. Stretch afterward.',
       duration: Math.round(30 * multiplier),
       technique: 'any',
       surface: 'any',
@@ -248,18 +248,18 @@ function getTempoSkiingWorkouts(week: number, multiplier: number): SkiingTemplat
   return [
     {
       type: 'tempo',
-      name: 'Tempopass klassisk',
-      description: 'Kontrollerat tempo i Z3. Håll jämn rytm.',
+      name: 'Classic tempo session',
+      description: 'Controlled tempo in Z3. Hold an even rhythm.',
       duration: Math.round(75 * multiplier),
       technique: 'classic',
       surface: 'snow',
       paceZone: 3,
-      structure: '30 min uppvärmning + 30 min Z3 + 15 min nedvarvning',
+      structure: '30 min warm-up + 30 min Z3 + 15 min cool-down',
     },
     {
       type: 'endurance',
-      name: 'Långpass',
-      description: 'Distanspass i varierad terräng.',
+      name: 'Long session',
+      description: 'Distance session on varied terrain.',
       duration: Math.round(100 * multiplier),
       technique: 'both',
       surface: 'snow',
@@ -267,18 +267,18 @@ function getTempoSkiingWorkouts(week: number, multiplier: number): SkiingTemplat
     },
     {
       type: 'threshold',
-      name: 'Korta tröskelintervaller',
-      description: 'Introduktion till tröskelarbete.',
+      name: 'Short threshold intervals',
+      description: 'Introduction to threshold work.',
       duration: Math.round(60 * multiplier),
       technique: 'skating',
       surface: 'snow',
       paceZone: 4,
-      structure: '4x4 min @Z4 med 3 min vila',
+      structure: '4 x 4 min @ Z4 with 3 min recovery',
     },
     {
       type: 'recovery',
-      name: 'Lätt pass',
-      description: 'Aktiv återhämtning.',
+      name: 'Easy session',
+      description: 'Active recovery.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'snow',
@@ -295,18 +295,18 @@ function getThresholdSkiingWorkouts(
   return [
     {
       type: 'threshold',
-      name: `Tröskelintervaller ${technique === 'classic' ? 'klassisk' : 'skating'}`,
-      description: `Intervaller vid laktattröskel i ${technique === 'classic' ? 'klassisk' : 'skating'} teknik.`,
+      name: `Threshold intervals ${technique === 'classic' ? 'classic' : 'skating'}`,
+      description: `Intervals at lactate threshold in ${technique === 'classic' ? 'classic' : 'skating'} technique.`,
       duration: Math.round(75 * multiplier),
       technique,
       surface: 'snow',
       paceZone: 4,
-      structure: week === 5 ? '4x8 min @Z4 med 4 min vila' : '3x12 min @Z4 med 5 min vila',
+      structure: week === 5 ? '4 x 8 min @ Z4 with 4 min recovery' : '3 x 12 min @ Z4 with 5 min recovery',
     },
     {
       type: 'endurance',
-      name: 'Distanspass',
-      description: 'Långt pass i kuperad terräng.',
+      name: 'Distance session',
+      description: 'Long session on hilly terrain.',
       duration: Math.round(120 * multiplier),
       technique: 'both',
       surface: 'snow',
@@ -315,17 +315,17 @@ function getThresholdSkiingWorkouts(
     {
       type: 'tempo',
       name: 'Fartlek',
-      description: 'Lekfullt tempo med naturliga variationer.',
+      description: 'Playful tempo with natural variation.',
       duration: Math.round(60 * multiplier),
       technique: technique === 'classic' ? 'skating' : 'classic',
       surface: 'snow',
       paceZone: 3,
-      structure: 'Variera tempo efter terräng, 1-3 min snabbare i backar',
+      structure: 'Vary pace with the terrain, 1-3 min faster on climbs',
     },
     {
       type: 'recovery',
-      name: 'Återhämtning',
-      description: 'Lätt pass med teknikfokus.',
+      name: 'Recovery',
+      description: 'Easy session with a technique focus.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'snow',
@@ -338,28 +338,28 @@ function getPeakSkiingWorkouts(multiplier: number): SkiingTemplateWorkout[] {
   return [
     {
       type: 'vo2max',
-      name: 'VO2max-intervaller',
-      description: 'Hög intensitet för maximal syreupptagning.',
+      name: 'VO2max intervals',
+      description: 'High intensity for maximum oxygen uptake.',
       duration: Math.round(60 * multiplier),
       technique: 'skating',
       surface: 'snow',
       paceZone: 5,
-      structure: '5x3 min @Z5 med 3 min vila',
+      structure: '5 x 3 min @ Z5 with 3 min recovery',
     },
     {
       type: 'threshold',
-      name: 'Over/under intervaller',
-      description: 'Växla mellan strax över och under tröskel.',
+      name: 'Over/under intervals',
+      description: 'Alternate just above and below threshold.',
       duration: Math.round(70 * multiplier),
       technique: 'classic',
       surface: 'snow',
       paceZone: 4,
-      structure: '4x(2 min @Z5 + 4 min @Z3) med 4 min vila',
+      structure: '4 x (2 min @ Z5 + 4 min @ Z3) with 4 min recovery',
     },
     {
       type: 'distance',
-      name: 'Långpass med inslag',
-      description: 'Distanspass med tempoökningar.',
+      name: 'Long session with surges',
+      description: 'Distance session with tempo increases.',
       duration: Math.round(100 * multiplier),
       technique: 'both',
       surface: 'snow',
@@ -368,8 +368,8 @@ function getPeakSkiingWorkouts(multiplier: number): SkiingTemplateWorkout[] {
     },
     {
       type: 'recovery',
-      name: 'Lätt pass',
-      description: 'Aktiv vila.',
+      name: 'Easy session',
+      description: 'Active rest.',
       duration: Math.round(30 * multiplier),
       technique: 'any',
       surface: 'snow',
@@ -382,8 +382,8 @@ function getRecoverySkiingWorkouts(multiplier: number): SkiingTemplateWorkout[] 
   return [
     {
       type: 'technique',
-      name: 'Teknikpass klassisk',
-      description: 'Fokus på diagonalgång och dubbelstakning.',
+      name: 'Classic technique session',
+      description: 'Focus on diagonal stride and double poling.',
       duration: Math.round(45 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -391,8 +391,8 @@ function getRecoverySkiingWorkouts(multiplier: number): SkiingTemplateWorkout[] 
     },
     {
       type: 'technique',
-      name: 'Teknikpass skating',
-      description: 'Fokus på V1, V2 och paddling.',
+      name: 'Skating technique session',
+      description: 'Focus on V1, V2, and paddling.',
       duration: Math.round(45 * multiplier),
       technique: 'skating',
       surface: 'snow',
@@ -400,8 +400,8 @@ function getRecoverySkiingWorkouts(multiplier: number): SkiingTemplateWorkout[] 
     },
     {
       type: 'recovery',
-      name: 'Lätt distans',
-      description: 'Avslappnad åkning i vacker terräng.',
+      name: 'Easy distance',
+      description: 'Relaxed skiing on beautiful terrain.',
       duration: Math.round(50 * multiplier),
       technique: 'any',
       surface: 'snow',
@@ -414,18 +414,18 @@ function getTaperSkiingWorkouts(multiplier: number): SkiingTemplateWorkout[] {
   return [
     {
       type: 'threshold',
-      name: 'Korta öppnare',
-      description: 'Några korta intervaller för att hålla skärpan.',
+      name: 'Short openers',
+      description: 'A few short intervals to stay sharp.',
       duration: Math.round(40 * multiplier),
       technique: 'skating',
       surface: 'snow',
       paceZone: 4,
-      structure: '3x3 min @Z4 med 3 min vila',
+      structure: '3 x 3 min @ Z4 with 3 min recovery',
     },
     {
       type: 'endurance',
-      name: 'Lätt distans',
-      description: 'Håll benen i gång utan att trötta ut dig.',
+      name: 'Easy distance',
+      description: 'Keep the legs moving without tiring yourself out.',
       duration: Math.round(45 * multiplier),
       technique: 'both',
       surface: 'snow',
@@ -433,13 +433,13 @@ function getTaperSkiingWorkouts(multiplier: number): SkiingTemplateWorkout[] {
     },
     {
       type: 'recovery',
-      name: 'Aktivering',
-      description: 'Kort pass dagen före tävling.',
+      name: 'Activation',
+      description: 'Short session the day before racing.',
       duration: Math.round(25 * multiplier),
       technique: 'any',
       surface: 'snow',
       paceZone: 1,
-      structure: 'Inkludera 4x30 sek snabbt',
+      structure: 'Include 4 x 30 s fast',
     },
   ]
 }
@@ -449,8 +449,8 @@ function getPrepBaseWorkouts(week: number, multiplier: number): SkiingTemplateWo
   return [
     {
       type: 'endurance',
-      name: 'Rullskidor distans',
-      description: 'Långt pass på asfalt eller grusväg.',
+      name: 'Roller-ski distance',
+      description: 'Long session on asphalt or gravel road.',
       duration: Math.round(80 * multiplier),
       technique: 'classic',
       surface: 'roller_ski',
@@ -458,8 +458,8 @@ function getPrepBaseWorkouts(week: number, multiplier: number): SkiingTemplateWo
     },
     {
       type: 'endurance',
-      name: 'Löpning kuperat',
-      description: 'Löppass i kuperad terräng.',
+      name: 'Hilly running',
+      description: 'Running session on hilly terrain.',
       duration: Math.round(60 * multiplier),
       technique: 'any',
       surface: 'running',
@@ -467,8 +467,8 @@ function getPrepBaseWorkouts(week: number, multiplier: number): SkiingTemplateWo
     },
     {
       type: 'technique',
-      name: 'Teknikpass rullskidor',
-      description: 'Drills och övningar för att förbättra tekniken.',
+      name: 'Roller-ski technique session',
+      description: 'Drills and exercises to improve technique.',
       duration: Math.round(45 * multiplier),
       technique: 'both',
       surface: 'roller_ski',
@@ -476,8 +476,8 @@ function getPrepBaseWorkouts(week: number, multiplier: number): SkiingTemplateWo
     },
     {
       type: 'recovery',
-      name: 'Lätt cykling/löpning',
-      description: 'Aktiv återhämtning.',
+      name: 'Easy cycling/running',
+      description: 'Active recovery.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'any',
@@ -490,8 +490,8 @@ function getPrepVolumeWorkouts(week: number, multiplier: number): SkiingTemplate
   return [
     {
       type: 'endurance',
-      name: 'Långt rullskidspass',
-      description: 'Bygg volym med längre pass.',
+      name: 'Long roller-ski session',
+      description: 'Build volume with longer sessions.',
       duration: Math.round(100 * multiplier),
       technique: 'classic',
       surface: 'roller_ski',
@@ -499,8 +499,8 @@ function getPrepVolumeWorkouts(week: number, multiplier: number): SkiingTemplate
     },
     {
       type: 'endurance',
-      name: 'Skating rullskidor',
-      description: 'Fokus på skating-teknik.',
+      name: 'Skating roller-skiing',
+      description: 'Focus on skating technique.',
       duration: Math.round(70 * multiplier),
       technique: 'skating',
       surface: 'roller_ski',
@@ -508,18 +508,18 @@ function getPrepVolumeWorkouts(week: number, multiplier: number): SkiingTemplate
     },
     {
       type: 'tempo',
-      name: 'Backrepetitioner',
-      description: 'Intervaller i backe för kraft och teknik.',
+      name: 'Hill repeats',
+      description: 'Hill intervals for power and technique.',
       duration: Math.round(60 * multiplier),
       technique: 'classic',
       surface: 'roller_ski',
       paceZone: 3,
-      structure: '8-10x2 min backe med vila ner',
+      structure: '8-10 x 2 min uphill with recovery downhill',
     },
     {
       type: 'recovery',
-      name: 'Lätt löpning',
-      description: 'Avslappnad löpning.',
+      name: 'Easy running',
+      description: 'Relaxed running.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'running',
@@ -532,18 +532,18 @@ function getPrepBuildWorkouts(week: number, multiplier: number): SkiingTemplateW
   return [
     {
       type: 'threshold',
-      name: 'Tröskelpass rullskidor',
-      description: 'Intervaller vid laktattröskel.',
+      name: 'Roller-ski threshold session',
+      description: 'Intervals at lactate threshold.',
       duration: Math.round(75 * multiplier),
       technique: 'skating',
       surface: 'roller_ski',
       paceZone: 4,
-      structure: '4x8 min @Z4 med 4 min vila',
+      structure: '4 x 8 min @ Z4 with 4 min recovery',
     },
     {
       type: 'endurance',
-      name: 'Långpass varierat',
-      description: 'Växla mellan klassisk och skating.',
+      name: 'Varied long session',
+      description: 'Alternate between classic and skating.',
       duration: Math.round(120 * multiplier),
       technique: 'both',
       surface: 'roller_ski',
@@ -551,8 +551,8 @@ function getPrepBuildWorkouts(week: number, multiplier: number): SkiingTemplateW
     },
     {
       type: 'tempo',
-      name: 'Fartlek löpning',
-      description: 'Varierat tempo i terräng.',
+      name: 'Fartlek running',
+      description: 'Varied pace on trails.',
       duration: Math.round(50 * multiplier),
       technique: 'any',
       surface: 'running',
@@ -560,8 +560,8 @@ function getPrepBuildWorkouts(week: number, multiplier: number): SkiingTemplateW
     },
     {
       type: 'recovery',
-      name: 'Lätt pass',
-      description: 'Aktiv återhämtning.',
+      name: 'Easy session',
+      description: 'Active recovery.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'any',
@@ -574,18 +574,18 @@ function getEvaluationWorkouts(multiplier: number): SkiingTemplateWorkout[] {
   return [
     {
       type: 'threshold',
-      name: 'Tröskeltest',
-      description: '30-min maxtest för att utvärdera framsteg.',
+      name: 'Threshold test',
+      description: '30-minute max test to evaluate progress.',
       duration: Math.round(60 * multiplier),
       technique: 'classic',
       surface: 'roller_ski',
       paceZone: 4,
-      structure: 'Uppvärmning 20 min + 30 min all-out + nedvarvning',
+      structure: '20 min warm-up + 30 min all-out + cool-down',
     },
     {
       type: 'endurance',
-      name: 'Avslutande distans',
-      description: 'Sista långpasset före säsongsstart.',
+      name: 'Final distance session',
+      description: 'Last long session before the season starts.',
       duration: Math.round(90 * multiplier),
       technique: 'both',
       surface: 'roller_ski',
@@ -599,8 +599,8 @@ function getDistanceBaseWorkouts(week: number, multiplier: number): SkiingTempla
   return [
     {
       type: 'distance',
-      name: 'Superslangt distanspass',
-      description: 'Bygg uthållighet för Vasaloppet.',
+      name: 'Super-long distance session',
+      description: 'Build endurance for Vasaloppet.',
       duration: Math.round(150 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -608,8 +608,8 @@ function getDistanceBaseWorkouts(week: number, multiplier: number): SkiingTempla
     },
     {
       type: 'endurance',
-      name: 'Medeldistans',
-      description: 'Standard långpass.',
+      name: 'Medium distance',
+      description: 'Standard long session.',
       duration: Math.round(90 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -617,8 +617,8 @@ function getDistanceBaseWorkouts(week: number, multiplier: number): SkiingTempla
     },
     {
       type: 'technique',
-      name: 'Dubbelstakning',
-      description: 'Fokus på dubbelstakningsteknik.',
+      name: 'Double poling',
+      description: 'Focus on double-poling technique.',
       duration: Math.round(60 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -626,8 +626,8 @@ function getDistanceBaseWorkouts(week: number, multiplier: number): SkiingTempla
     },
     {
       type: 'recovery',
-      name: 'Lätt pass',
-      description: 'Aktiv vila.',
+      name: 'Easy session',
+      description: 'Active rest.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'any',
@@ -640,8 +640,8 @@ function getDistanceBuildWorkouts(week: number, technique: 'classic' | 'skating'
   return [
     {
       type: 'distance',
-      name: 'Långpass med backar',
-      description: 'Kuperad bana för att bygga backstyrka.',
+      name: 'Long session with hills',
+      description: 'Hilly course to build climbing strength.',
       duration: Math.round(180 * multiplier),
       technique,
       surface: 'snow',
@@ -649,18 +649,18 @@ function getDistanceBuildWorkouts(week: number, technique: 'classic' | 'skating'
     },
     {
       type: 'tempo',
-      name: 'Tempopass i backe',
-      description: 'Specifik backträning.',
+      name: 'Hill tempo session',
+      description: 'Specific hill training.',
       duration: Math.round(70 * multiplier),
       technique,
       surface: 'snow',
       paceZone: 3,
-      structure: '10x3 min backe med vila ner',
+      structure: '10 x 3 min uphill with recovery downhill',
     },
     {
       type: 'endurance',
-      name: 'Medelpass',
-      description: 'Standard uthållighetspass.',
+      name: 'Medium session',
+      description: 'Standard endurance session.',
       duration: Math.round(90 * multiplier),
       technique,
       surface: 'snow',
@@ -668,8 +668,8 @@ function getDistanceBuildWorkouts(week: number, technique: 'classic' | 'skating'
     },
     {
       type: 'recovery',
-      name: 'Återhämtning',
-      description: 'Lätt pass.',
+      name: 'Recovery',
+      description: 'Easy session.',
       duration: Math.round(45 * multiplier),
       technique: 'any',
       surface: 'snow',
@@ -682,28 +682,28 @@ function getVasaloppetSpecificWorkouts(week: number, multiplier: number): Skiing
   return [
     {
       type: 'distance',
-      name: 'Race-simulering',
-      description: 'Simulera tävlingsdistans och tempo.',
+      name: 'Race simulation',
+      description: 'Simulate race distance and pace.',
       duration: Math.round(210 * multiplier),
       technique: 'classic',
       surface: 'snow',
       paceZone: 2,
-      structure: 'Tänk dig in i tävling, öva dryck/mat',
+      structure: 'Visualize the race, practice drink/food intake',
     },
     {
       type: 'threshold',
-      name: 'Tempoväxlingar',
-      description: 'Öva tempohöjningar som i tävling.',
+      name: 'Pace changes',
+      description: 'Practice race-like pace surges.',
       duration: Math.round(90 * multiplier),
       technique: 'classic',
       surface: 'snow',
       paceZone: 3,
-      structure: 'Varje 20 min: öka tempo i 5 min',
+      structure: 'Every 20 min: increase pace for 5 min',
     },
     {
       type: 'endurance',
-      name: 'Långpass dubbelstakningsfokus',
-      description: 'Mycket dubbelstakning för Vasaloppet.',
+      name: 'Long session with double-poling focus',
+      description: 'Lots of double poling for Vasaloppet.',
       duration: Math.round(120 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -711,8 +711,8 @@ function getVasaloppetSpecificWorkouts(week: number, multiplier: number): Skiing
     },
     {
       type: 'recovery',
-      name: 'Lätt pass',
-      description: 'Återhämtning.',
+      name: 'Easy session',
+      description: 'Recovery.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'snow',
@@ -725,8 +725,8 @@ function getRaceSimulationWorkouts(week: number, multiplier: number): SkiingTemp
   return [
     {
       type: 'distance',
-      name: 'Sista långa passet',
-      description: 'Sista riktigt långa passet innan tävling.',
+      name: 'Last long session',
+      description: 'Last truly long session before racing.',
       duration: Math.round(180 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -735,17 +735,17 @@ function getRaceSimulationWorkouts(week: number, multiplier: number): SkiingTemp
     {
       type: 'tempo',
       name: 'Shakeout',
-      description: 'Behåll känslan utan att trötta.',
+      description: 'Keep the feel without creating fatigue.',
       duration: Math.round(60 * multiplier),
       technique: 'classic',
       surface: 'snow',
       paceZone: 2,
-      structure: 'Inkludera 4-5x1 min i tävlingstempo',
+      structure: 'Include 4-5 x 1 min at race pace',
     },
     {
       type: 'recovery',
-      name: 'Lätt pass',
-      description: 'Vila inför tävling.',
+      name: 'Easy session',
+      description: 'Rest before racing.',
       duration: Math.round(40 * multiplier),
       technique: 'any',
       surface: 'snow',
@@ -758,8 +758,8 @@ function getVasaloppetTaperWorkouts(multiplier: number): SkiingTemplateWorkout[]
   return [
     {
       type: 'endurance',
-      name: 'Medellångt pass',
-      description: 'Behåll baskondition.',
+      name: 'Medium-long session',
+      description: 'Maintain base fitness.',
       duration: Math.round(60 * multiplier),
       technique: 'classic',
       surface: 'snow',
@@ -767,23 +767,23 @@ function getVasaloppetTaperWorkouts(multiplier: number): SkiingTemplateWorkout[]
     },
     {
       type: 'tempo',
-      name: 'Öppnare',
-      description: 'Korta tempoökningar.',
+      name: 'Openers',
+      description: 'Short tempo surges.',
       duration: Math.round(40 * multiplier),
       technique: 'classic',
       surface: 'snow',
       paceZone: 3,
-      structure: '5x1 min race-tempo med full vila',
+      structure: '5 x 1 min race pace with full recovery',
     },
     {
       type: 'recovery',
-      name: 'Aktivering',
-      description: 'Dagen före Vasaloppet.',
+      name: 'Activation',
+      description: 'The day before Vasaloppet.',
       duration: Math.round(20 * multiplier),
       technique: 'classic',
       surface: 'snow',
       paceZone: 1,
-      structure: '15 min lätt + 4x30 sek snabbt',
+      structure: '15 min easy + 4 x 30 s fast',
     },
   ]
 }
@@ -791,20 +791,20 @@ function getVasaloppetTaperWorkouts(multiplier: number): SkiingTemplateWorkout[]
 // Export all skiing templates
 export const SKIING_TEMPLATES = {
   'threshold-builder-8week': {
-    name: 'Tröskeltempo-byggare (8 veckor)',
-    description: 'Utveckla ditt tröskeltempo för tävlingssäsongen.',
+    name: 'Threshold pace builder (8 weeks)',
+    description: 'Develop your threshold pace for the racing season.',
     duration: 8,
     generator: get8WeekThresholdBuilder,
   },
   'prep-phase-12week': {
-    name: 'Förberedelsefas (12 veckor)',
-    description: 'Sommar/höst-program med rullskidor och löpning.',
+    name: 'Preparation phase (12 weeks)',
+    description: 'Summer/fall program with roller skiing and running.',
     duration: 12,
     generator: get12WeekPrepBuilder,
   },
   'vasaloppet-16week': {
-    name: 'Vasaloppet-förberedelse (16 veckor)',
-    description: 'Komplett förberedelse för Vasaloppet eller annan långlopp.',
+    name: 'Vasaloppet preparation (16 weeks)',
+    description: 'Complete preparation for Vasaloppet or another long-distance race.',
     duration: 16,
     generator: get16WeekVasaloppetPrep,
   },
