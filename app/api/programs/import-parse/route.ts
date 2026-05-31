@@ -65,6 +65,16 @@ const parseCache = createDistributedJsonCache<{
   modelDisplayName: string
 }>('programs:import-parse:v2') // bump when SYSTEM_PROMPT meaningfully changes
 
+type AppLocale = 'en' | 'sv'
+
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function text(locale: AppLocale, enText: string, svText: string): string {
+  return locale === 'sv' ? svText : enText
+}
+
 function computeCacheKey(
   body: string,
   imageBuffer: Buffer | undefined,
@@ -86,10 +96,12 @@ export async function POST(request: NextRequest) {
     let callerUserId: string
     let aiKeyOwnerId: string
     let athleteClientId: string | null = null
+    let locale: AppLocale = 'en'
     try {
       const coach = await requireCoach()
       callerUserId = coach.id
       aiKeyOwnerId = coach.id
+      locale = resolveLocale(coach.language)
     } catch {
       const resolved = await resolveAthleteClientId()
       if (!resolved) {
@@ -97,6 +109,7 @@ export async function POST(request: NextRequest) {
       }
       callerUserId = resolved.user.id
       athleteClientId = resolved.clientId
+      locale = resolveLocale(resolved.user.language)
       // AI keys for athletes live on their coach record. Direct athletes
       // (no coach) can't use the importer — fail loudly rather than silently
       // falling back to the athlete's own (empty) key set.
@@ -328,7 +341,11 @@ export async function POST(request: NextRequest) {
       // attempt to retry fresh (possibly at a higher tier).
       if (result.finishReason === 'length') {
         warningsFromGen.push(
-          'The model ran out of output tokens and truncated the program mid-way. Try "Fixa format" to re-run at a higher tier, or split the source into smaller chunks.'
+          text(
+            locale,
+            'The model ran out of output tokens and truncated the program mid-way. Try "Fix format" to re-run at a higher tier, or split the source into smaller chunks.',
+            'Modellen fick slut på svarstokens och kapade programmet mitt i. Kör "Fixa format" för att försöka igen på en högre nivå, eller dela upp källan i mindre delar.'
+          )
         )
       } else {
         const expiresAt = Date.now() + PARSE_CACHE_TTL_MS
@@ -342,7 +359,7 @@ export async function POST(request: NextRequest) {
 
     // Validate the result is actually parseable so we don't hand the editor
     // something it will choke on. We don't block on validation failure — the
-    // editor has a "Fixa format" recovery path — but we do surface warnings.
+    // editor has a "Fix format" recovery path — but we do surface warnings.
     const parsed = parseAIProgram(aiOutput)
 
     const warnings: string[] = [...warningsFromGen]
@@ -365,7 +382,11 @@ export async function POST(request: NextRequest) {
     if (cleaned.placeholdersStripped > 0) {
       aiOutput = cleaned.aiOutput
       warnings.push(
-        `Modellen returnerade ${cleaned.placeholdersStripped} platshållarnamn (t.ex. "Övning 1") istället för de riktiga namnen — kör "Fixa format" för att försöka igen, eller mappa manuellt i panelen.`
+        text(
+          locale,
+          `The model returned ${cleaned.placeholdersStripped} placeholder name${cleaned.placeholdersStripped === 1 ? '' : 's'} (for example "Exercise 1") instead of the real names. Try "Fix format" to run it again, or map them manually in the panel.`,
+          `Modellen returnerade ${cleaned.placeholdersStripped} platshållarnamn (t.ex. "Övning 1") istället för de riktiga namnen. Kör "Fixa format" för att försöka igen, eller mappa manuellt i panelen.`
+        )
       )
     }
 
@@ -392,7 +413,11 @@ export async function POST(request: NextRequest) {
       // right.
       const msg =
         e instanceof Error && /does not exist|P2021|42P01/i.test(e.message)
-          ? 'Övningsbiblioteket är inte initialiserat på den här miljön — kör senaste Prisma-migrationerna (npx prisma migrate deploy) innan du försöker igen. Du kan fortfarande publicera programmet utan att länka övningar.'
+          ? text(
+              locale,
+              'The exercise library is not initialized in this environment. Run the latest Prisma migrations (npx prisma migrate deploy) before trying again. You can still publish the program without linking exercises.',
+              'Övningsbiblioteket är inte initialiserat på den här miljön. Kör senaste Prisma-migrationerna (npx prisma migrate deploy) innan du försöker igen. Du kan fortfarande publicera programmet utan att länka övningar.'
+            )
           : 'Exercise auto-matching was unavailable; you can map exercises manually in the review panel.'
       warnings.push(msg)
     }

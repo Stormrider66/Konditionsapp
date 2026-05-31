@@ -6,6 +6,10 @@ function dateLocale(locale: SportContextLocale): string {
   return locale === 'sv' ? 'sv-SE' : 'en-US'
 }
 
+function t(locale: SportContextLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Build Strava integration context (PRO tier only)
  *
@@ -14,8 +18,8 @@ function dateLocale(locale: SportContextLocale): string {
 export function buildStravaContext(activities: StravaActivityData[], locale: SportContextLocale = 'en'): string {
   if (!activities || activities.length === 0) return '';
 
-  let context = `\n## STRAVA-DATA (Senaste 14 dagarna)\n`;
-  context += `*Automatiskt synkad träningsdata för bättre AI-analys*\n\n`;
+  let context = `\n## ${t(locale, 'STRAVA DATA (last 14 days)', 'STRAVA-DATA (Senaste 14 dagarna)')}\n`;
+  context += `*${t(locale, 'Automatically synced training data for better AI analysis', 'Automatiskt synkad träningsdata för bättre AI-analys')}*\n\n`;
 
   // Calculate summary stats
   const recentActivities = activities.slice(0, 20);
@@ -35,23 +39,23 @@ export function buildStravaContext(activities: StravaActivityData[], locale: Spo
     byType[type].time += (activity.movingTime || 0) / 3600;
   }
 
-  context += `### Träningsöversikt (${recentActivities.length} aktiviteter)\n`;
-  context += `- **Total distans**: ${totalDistance.toFixed(1)} km\n`;
-  context += `- **Total tid**: ${totalTime.toFixed(1)} timmar\n`;
-  context += `- **Ackumulerad TSS**: ${Math.round(totalTSS)}\n`;
-  context += `- **Genomsnittlig TSS/dag**: ${Math.round(totalTSS / 14)}\n\n`;
+  context += `### ${t(locale, `Training overview (${recentActivities.length} activities)`, `Träningsöversikt (${recentActivities.length} aktiviteter)`)}\n`;
+  context += `- **${t(locale, 'Total distance', 'Total distans')}**: ${totalDistance.toFixed(1)} km\n`;
+  context += `- **${t(locale, 'Total time', 'Total tid')}**: ${totalTime.toFixed(1)} ${t(locale, 'hours', 'timmar')}\n`;
+  context += `- **${t(locale, 'Accumulated TSS', 'Ackumulerad TSS')}**: ${Math.round(totalTSS)}\n`;
+  context += `- **${t(locale, 'Average TSS/day', 'Genomsnittlig TSS/dag')}**: ${Math.round(totalTSS / 14)}\n\n`;
 
   // Per-type breakdown
-  context += `### Fördelning per typ\n`;
-  context += `| Typ | Antal | Distans | Tid |\n`;
+  context += `### ${t(locale, 'Distribution by type', 'Fördelning per typ')}\n`;
+  context += `| ${t(locale, 'Type', 'Typ')} | ${t(locale, 'Count', 'Antal')} | ${t(locale, 'Distance', 'Distans')} | ${t(locale, 'Time', 'Tid')} |\n`;
   context += `|-----|-------|---------|-----|\n`;
   for (const [type, data] of Object.entries(byType)) {
-    const typeName = translateActivityType(type);
+    const typeName = translateActivityType(type, locale);
     context += `| ${typeName} | ${data.count} | ${data.distance.toFixed(1)} km | ${data.time.toFixed(1)}h |\n`;
   }
 
   // Recent activities list
-  context += `\n### Senaste aktiviteter\n`;
+  context += `\n### ${t(locale, 'Recent activities', 'Senaste aktiviteter')}\n`;
   for (const activity of recentActivities.slice(0, 5)) {
     const date = new Date(activity.startDate).toLocaleDateString(dateLocale(locale));
     const distance = activity.distance ? `${(activity.distance / 1000).toFixed(1)} km` : '';
@@ -59,7 +63,7 @@ export function buildStravaContext(activities: StravaActivityData[], locale: Spo
     const hr = activity.averageHeartrate ? `${Math.round(activity.averageHeartrate)} bpm` : '';
 
     context += `- **${date}** ${activity.name} (${activity.type}): ${distance} ${time}`;
-    if (hr) context += ` | Puls: ${hr}`;
+    if (hr) context += ` | ${t(locale, 'HR', 'Puls')}: ${hr}`;
     if (activity.tss) context += ` | TSS: ${activity.tss}`;
     context += '\n';
   }
@@ -68,16 +72,16 @@ export function buildStravaContext(activities: StravaActivityData[], locale: Spo
   const avgDailyTSS = totalTSS / 14;
   let loadStatus = '';
   if (avgDailyTSS < 30) {
-    loadStatus = 'Låg belastning - utrymme för ökning';
+    loadStatus = t(locale, 'Low load - room to increase', 'Låg belastning - utrymme för ökning');
   } else if (avgDailyTSS < 50) {
-    loadStatus = 'Måttlig belastning - bra bas';
+    loadStatus = t(locale, 'Moderate load - good base', 'Måttlig belastning - bra bas');
   } else if (avgDailyTSS < 70) {
-    loadStatus = 'Hög belastning - övervaka återhämtning';
+    loadStatus = t(locale, 'High load - monitor recovery', 'Hög belastning - övervaka återhämtning');
   } else {
-    loadStatus = 'Mycket hög belastning - risk för överträning';
+    loadStatus = t(locale, 'Very high load - overtraining risk', 'Mycket hög belastning - risk för överträning');
   }
-  context += `\n### Belastningsanalys\n`;
-  context += `- **Status**: ${loadStatus}\n`;
+  context += `\n### ${t(locale, 'Load analysis', 'Belastningsanalys')}\n`;
+  context += `- **${t(locale, 'Status', 'Status')}**: ${loadStatus}\n`;
 
   return context;
 }
@@ -90,8 +94,8 @@ export function buildStravaContext(activities: StravaActivityData[], locale: Spo
 export function buildGarminContext(metrics: GarminMetricsData, locale: SportContextLocale = 'en'): string {
   if (!metrics) return '';
 
-  let context = `\n## GARMIN HÄLSODATA (Senaste 7 dagarna)\n`;
-  context += `*Automatiskt synkad hälsodata för bättre beredskapsanalys*\n\n`;
+  let context = `\n## ${t(locale, 'GARMIN HEALTH DATA (last 7 days)', 'GARMIN HÄLSODATA (Senaste 7 dagarna)')}\n`;
+  context += `*${t(locale, 'Automatically synced health data for better readiness analysis', 'Automatiskt synkad hälsodata för bättre beredskapsanalys')}*\n\n`;
 
   // Calculate averages
   const recentDays = metrics.recentDays || [];
@@ -107,46 +111,46 @@ export function buildGarminContext(metrics: GarminMetricsData, locale: SportCont
   const avgStress = recentDays.filter(d => d.stressLevel !== null).reduce((sum, d) => sum + (d.stressLevel || 0), 0) /
                     (recentDays.filter(d => d.stressLevel !== null).length || 1);
 
-  context += `### Genomsnittliga hälsometriker\n`;
-  context += `| Metrik | Värde | Status |\n`;
+  context += `### ${t(locale, 'Average health metrics', 'Genomsnittliga hälsometriker')}\n`;
+  context += `| ${t(locale, 'Metric', 'Metrik')} | ${t(locale, 'Value', 'Värde')} | ${t(locale, 'Status', 'Status')} |\n`;
   context += `|--------|-------|--------|\n`;
-  context += `| Sömn | ${avgSleep.toFixed(1)} tim | ${getSleepStatus(avgSleep)} |\n`;
-  context += `| Sömnkvalitet | ${avgSleepQuality.toFixed(1)}/10 | ${getQualityStatus(avgSleepQuality)} |\n`;
+  context += `| ${t(locale, 'Sleep', 'Sömn')} | ${avgSleep.toFixed(1)} ${t(locale, 'h', 'tim')} | ${getSleepStatus(avgSleep, locale)} |\n`;
+  context += `| ${t(locale, 'Sleep quality', 'Sömnkvalitet')} | ${avgSleepQuality.toFixed(1)}/10 | ${getQualityStatus(avgSleepQuality, locale)} |\n`;
   if (avgHRV > 0) {
-    context += `| HRV | ${avgHRV.toFixed(0)} ms | ${getHRVStatus(avgHRV)} |\n`;
+    context += `| HRV | ${avgHRV.toFixed(0)} ms | ${getHRVStatus(avgHRV, locale)} |\n`;
   }
   if (avgRHR > 0) {
-    context += `| Vilopuls | ${avgRHR.toFixed(0)} bpm | ${getRHRStatus(avgRHR)} |\n`;
+    context += `| ${t(locale, 'Resting heart rate', 'Vilopuls')} | ${avgRHR.toFixed(0)} bpm | ${getRHRStatus(avgRHR, locale)} |\n`;
   }
-  context += `| Dagliga steg | ${Math.round(avgSteps).toLocaleString()} | ${getStepsStatus(avgSteps)} |\n`;
+  context += `| ${t(locale, 'Daily steps', 'Dagliga steg')} | ${Math.round(avgSteps).toLocaleString()} | ${getStepsStatus(avgSteps, locale)} |\n`;
   if (avgStress > 0) {
-    context += `| Stressnivå | ${avgStress.toFixed(1)}/10 | ${getStressStatus(avgStress)} |\n`;
+    context += `| ${t(locale, 'Stress level', 'Stressnivå')} | ${avgStress.toFixed(1)}/10 | ${getStressStatus(avgStress, locale)} |\n`;
   }
 
   // Readiness score
   if (metrics.readinessScore !== null) {
-    context += `\n### Beredskapspoäng\n`;
-    context += `- **Dagens beredskap**: ${metrics.readinessScore}/100`;
+    context += `\n### ${t(locale, 'Readiness score', 'Beredskapspoäng')}\n`;
+    context += `- **${t(locale, "Today's readiness", 'Dagens beredskap')}**: ${metrics.readinessScore}/100`;
     if (metrics.readinessScore < 40) {
-      context += ' ⚠️ Vila rekommenderas\n';
+      context += ` ⚠️ ${t(locale, 'Rest recommended', 'Vila rekommenderas')}\n`;
     } else if (metrics.readinessScore < 60) {
-      context += ' ⚡ Lätt träning\n';
+      context += ` ⚡ ${t(locale, 'Light training', 'Lätt träning')}\n`;
     } else if (metrics.readinessScore < 80) {
-      context += ' ✅ Normal träning\n';
+      context += ` ✅ ${t(locale, 'Normal training', 'Normal träning')}\n`;
     } else {
-      context += ' 🔥 Optimal för hård träning\n';
+      context += ` 🔥 ${t(locale, 'Optimal for hard training', 'Optimal för hård träning')}\n`;
     }
   }
 
   // Weekly TSS from Garmin activities
   if (metrics.weeklyTSS > 0) {
-    context += `\n### Veckobelastning (Garmin)\n`;
+    context += `\n### ${t(locale, 'Weekly load (Garmin)', 'Veckobelastning (Garmin)')}\n`;
     context += `- **Total TSS**: ${Math.round(metrics.weeklyTSS)}\n`;
   }
 
   // Daily breakdown table
-  context += `\n### Daglig översikt\n`;
-  context += `| Datum | Sömn | HRV | RHR | Steg |\n`;
+  context += `\n### ${t(locale, 'Daily overview', 'Daglig översikt')}\n`;
+  context += `| ${t(locale, 'Date', 'Datum')} | ${t(locale, 'Sleep', 'Sömn')} | HRV | RHR | ${t(locale, 'Steps', 'Steg')} |\n`;
   context += `|-------|------|-----|-----|------|\n`;
   for (const day of recentDays.slice(0, 7)) {
     const date = new Date(day.date).toLocaleDateString(dateLocale(locale), { weekday: 'short', day: 'numeric' });
@@ -158,78 +162,78 @@ export function buildGarminContext(metrics: GarminMetricsData, locale: SportCont
   }
 
   // Recommendations based on data
-  context += `\n### AI-rekommendationer baserat på Garmin-data\n`;
+  context += `\n### ${t(locale, 'AI recommendations based on Garmin data', 'AI-rekommendationer baserat på Garmin-data')}\n`;
   if (avgSleep < 6.5) {
-    context += `- ⚠️ Sömnbrist detekterad - prioritera återhämtning\n`;
+    context += `- ⚠️ ${t(locale, 'Sleep deficit detected - prioritize recovery', 'Sömnbrist detekterad - prioritera återhämtning')}\n`;
   }
   if (avgHRV > 0 && avgHRV < 40) {
-    context += `- ⚠️ Låg HRV - överväg att minska intensitet\n`;
+    context += `- ⚠️ ${t(locale, 'Low HRV - consider reducing intensity', 'Låg HRV - överväg att minska intensitet')}\n`;
   }
   if (avgStress > 6) {
-    context += `- ⚠️ Hög stressnivå - inkludera avslappning\n`;
+    context += `- ⚠️ ${t(locale, 'High stress level - include relaxation', 'Hög stressnivå - inkludera avslappning')}\n`;
   }
   if (avgSleep >= 7 && avgSleepQuality >= 7) {
-    context += `- ✅ God sömn - redo för kvalitetspass\n`;
+    context += `- ✅ ${t(locale, 'Good sleep - ready for quality sessions', 'God sömn - redo för kvalitetspass')}\n`;
   }
 
   return context;
 }
 
 // Helper functions for Garmin status
-export function getSleepStatus(hours: number): string {
-  if (hours >= 7.5) return '✅ Utmärkt';
-  if (hours >= 7) return '✅ Bra';
-  if (hours >= 6) return '⚡ Acceptabel';
-  return '⚠️ Otillräcklig';
+export function getSleepStatus(hours: number, locale: SportContextLocale = 'en'): string {
+  if (hours >= 7.5) return t(locale, '✅ Excellent', '✅ Utmärkt');
+  if (hours >= 7) return t(locale, '✅ Good', '✅ Bra');
+  if (hours >= 6) return t(locale, '⚡ Acceptable', '⚡ Acceptabel');
+  return t(locale, '⚠️ Insufficient', '⚠️ Otillräcklig');
 }
 
-export function getQualityStatus(quality: number): string {
-  if (quality >= 8) return '✅ Utmärkt';
-  if (quality >= 6) return '✅ Bra';
-  if (quality >= 4) return '⚡ Medel';
-  return '⚠️ Låg';
+export function getQualityStatus(quality: number, locale: SportContextLocale = 'en'): string {
+  if (quality >= 8) return t(locale, '✅ Excellent', '✅ Utmärkt');
+  if (quality >= 6) return t(locale, '✅ Good', '✅ Bra');
+  if (quality >= 4) return t(locale, '⚡ Average', '⚡ Medel');
+  return t(locale, '⚠️ Low', '⚠️ Låg');
 }
 
-export function getHRVStatus(hrv: number): string {
-  if (hrv >= 60) return '✅ Hög';
-  if (hrv >= 45) return '✅ Normal';
-  if (hrv >= 30) return '⚡ Låg-normal';
-  return '⚠️ Låg';
+export function getHRVStatus(hrv: number, locale: SportContextLocale = 'en'): string {
+  if (hrv >= 60) return t(locale, '✅ High', '✅ Hög');
+  if (hrv >= 45) return t(locale, '✅ Normal', '✅ Normal');
+  if (hrv >= 30) return t(locale, '⚡ Low-normal', '⚡ Låg-normal');
+  return t(locale, '⚠️ Low', '⚠️ Låg');
 }
 
-export function getRHRStatus(rhr: number): string {
-  if (rhr <= 55) return '✅ Utmärkt';
-  if (rhr <= 65) return '✅ Bra';
-  if (rhr <= 75) return '⚡ Normal';
-  return '⚠️ Förhöjd';
+export function getRHRStatus(rhr: number, locale: SportContextLocale = 'en'): string {
+  if (rhr <= 55) return t(locale, '✅ Excellent', '✅ Utmärkt');
+  if (rhr <= 65) return t(locale, '✅ Good', '✅ Bra');
+  if (rhr <= 75) return t(locale, '⚡ Normal', '⚡ Normal');
+  return t(locale, '⚠️ Elevated', '⚠️ Förhöjd');
 }
 
-export function getStepsStatus(steps: number): string {
-  if (steps >= 10000) return '✅ Aktiv';
-  if (steps >= 7000) return '✅ Bra';
-  if (steps >= 5000) return '⚡ Medel';
-  return '⚠️ Stillasittande';
+export function getStepsStatus(steps: number, locale: SportContextLocale = 'en'): string {
+  if (steps >= 10000) return t(locale, '✅ Active', '✅ Aktiv');
+  if (steps >= 7000) return t(locale, '✅ Good', '✅ Bra');
+  if (steps >= 5000) return t(locale, '⚡ Average', '⚡ Medel');
+  return t(locale, '⚠️ Sedentary', '⚠️ Stillasittande');
 }
 
-export function getStressStatus(stress: number): string {
-  if (stress <= 3) return '✅ Låg';
-  if (stress <= 5) return '⚡ Medel';
-  if (stress <= 7) return '⚠️ Hög';
-  return '🔴 Mycket hög';
+export function getStressStatus(stress: number, locale: SportContextLocale = 'en'): string {
+  if (stress <= 3) return t(locale, '✅ Low', '✅ Låg');
+  if (stress <= 5) return t(locale, '⚡ Average', '⚡ Medel');
+  if (stress <= 7) return t(locale, '⚠️ High', '⚠️ Hög');
+  return t(locale, '🔴 Very high', '🔴 Mycket hög');
 }
 
-export function translateActivityType(type: string): string {
-  const translations: Record<string, string> = {
-    RUNNING: 'Löpning',
-    CYCLING: 'Cykling',
-    SWIMMING: 'Simning',
-    CROSS_TRAINING: 'Korsträning',
-    STRENGTH: 'Styrka',
-    SKIING: 'Skidåkning',
-    RECOVERY: 'Återhämtning',
-    OTHER: 'Övrigt',
+export function translateActivityType(type: string, locale: SportContextLocale = 'en'): string {
+  const translations: Record<string, Record<SportContextLocale, string>> = {
+    RUNNING: { en: 'Running', sv: 'Löpning' },
+    CYCLING: { en: 'Cycling', sv: 'Cykling' },
+    SWIMMING: { en: 'Swimming', sv: 'Simning' },
+    CROSS_TRAINING: { en: 'Cross-training', sv: 'Korsträning' },
+    STRENGTH: { en: 'Strength', sv: 'Styrka' },
+    SKIING: { en: 'Skiing', sv: 'Skidåkning' },
+    RECOVERY: { en: 'Recovery', sv: 'Återhämtning' },
+    OTHER: { en: 'Other', sv: 'Övrigt' },
   };
-  return translations[type] || type;
+  return translations[type]?.[locale] || type;
 }
 
 export function formatDuration(seconds: number): string {
