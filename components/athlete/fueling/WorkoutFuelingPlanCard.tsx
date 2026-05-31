@@ -12,6 +12,7 @@ import {
 } from '@/lib/fueling/product-plan'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
+import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
 import { useLocale } from '@/i18n/client'
 
 type WorkoutFuelingPrescription = {
@@ -75,6 +76,11 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
     : null
   const executionPlan = buildRaceDayFuelingPlan(targetHourly, inferredDurationMinutes, locale)
   const planContext = formatFuelingPlanContext(prescription.plan, { includeName: true, locale })
+  const fuelingInstructions = buildFuelingInstructionText({
+    locale,
+    targetCarbsGPerHour: prescription.targetCarbsGPerHour,
+    targetCarbsTotalG: prescription.targetCarbsTotalG,
+  })
 
   return (
     <GlassCard className="mb-8 border-orange-200 bg-orange-50/70 dark:border-orange-500/20 dark:bg-orange-500/5 transition-colors">
@@ -129,13 +135,13 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
           />
         </div>
 
-        {prescription.instructionsSv && (
+        {fuelingInstructions && (
           <div className="rounded-2xl border border-orange-200 bg-white/70 p-4 dark:border-orange-500/20 dark:bg-slate-950/30">
             <p className="text-[9px] font-black uppercase tracking-widest text-orange-700 dark:text-orange-300">
               {text(locale, 'Instruktion', 'Instruction')}
             </p>
             <p className="mt-2 text-sm font-semibold leading-relaxed text-slate-800 dark:text-slate-100">
-              {prescription.instructionsSv}
+              {fuelingInstructions}
             </p>
           </div>
         )}

@@ -2,8 +2,8 @@ import type { PrismaClient, WorkoutIntensity, WorkoutType } from '@prisma/client
 import {
   adaptCarbTargetFromFeedback,
   getFuelingFeedbackSummary,
-  type FuelingFeedbackSummary,
 } from '@/lib/fueling/feedback-summary'
+import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
 import { sortFuelingPlansForDisplay } from '@/lib/fueling/plan-ordering'
 
 interface ProgramForFueling {
@@ -154,7 +154,12 @@ async function upsertFuelingPrescriptionsForProgram(
             targetCarbsGPerHour,
             targetCarbsTotalG: durationHours > 0 ? Math.round(targetCarbsGPerHour * durationHours) : null,
             hydrationMl: durationHours > 0 ? Math.round(500 * durationHours) : null,
-            instructionsSv: buildFuelingInstructions(targetCarbsGPerHour, durationHours, feedbackSummary.status),
+            instructionsSv: buildFuelingInstructionText({
+              locale: 'en',
+              targetCarbsGPerHour,
+              durationHours,
+              feedbackStatus: feedbackSummary.status,
+            }),
           }
         })
     )
@@ -277,38 +282,4 @@ function goalMatchesSport(goal: string, sport: string): boolean {
   if (sport === 'TEAM_BASKETBALL') return /basket|basketball/.test(goal)
   if (sport === 'TEAM_VOLLEYBALL') return /volley|volleyball/.test(goal)
   return goal.includes(sport.toLowerCase())
-}
-
-function buildFuelingInstructions(
-  targetCarbsGPerHour: number,
-  durationHours: number,
-  feedbackStatus: FuelingFeedbackSummary['status']
-): string {
-  const every20 = Math.round(targetCarbsGPerHour / 3)
-  const total = durationHours > 0 ? Math.round(targetCarbsGPerHour * durationHours) : null
-
-  return [
-    `Gut training: aim for ${targetCarbsGPerHour} g carbohydrates/hour.`,
-    `Practical setup: about ${every20} g every 20 minutes.`,
-    total ? `Total for the session: about ${total} g carbohydrates.` : null,
-    feedbackHint(feedbackStatus),
-    targetCarbsGPerHour > 60 ? 'Prefer a glucose/fructose mix because the target is above 60 g/hour.' : null,
-    'Use products intended for racing and note gut response after the session.',
-  ].filter(Boolean).join(' ')
-}
-
-function feedbackHint(status: FuelingFeedbackSummary['status']): string | null {
-  if (status === 'REDUCE') {
-    return 'The latest gut response suggests backing off slightly and prioritizing stable tolerance before increasing.'
-  }
-
-  if (status === 'HOLD') {
-    return 'Repeat this level until intake and gut response are stable before the next increase.'
-  }
-
-  if (status === 'READY_TO_PROGRESS') {
-    return 'Tolerance looks stable, so the level can be increased carefully.'
-  }
-
-  return null
 }

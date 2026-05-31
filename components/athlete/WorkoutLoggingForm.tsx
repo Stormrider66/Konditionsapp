@@ -31,6 +31,7 @@ import { Loader2, Upload, Clock, MapPin, Heart, Zap, Gauge, Mountain, Activity, 
 import { useToast } from '@/hooks/use-toast'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { buildFuelingSessionFeedback } from '@/lib/fueling/session-feedback'
+import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
 import {
   buildRaceFuelingProductItems,
   summarizeRaceFuelingProductItems,
@@ -573,6 +574,13 @@ export function WorkoutLoggingForm({
   const shouldShowFuelingFeedback = Boolean(workout.fuelingPrescription || existingLog?.fuelingLog)
   const plannedCarbsGPerHour = workout.fuelingPrescription?.targetCarbsGPerHour ?? null
   const plannedCarbsTotalG = workout.fuelingPrescription?.targetCarbsTotalG ?? null
+  const fuelingInstructions = workout.fuelingPrescription
+    ? buildFuelingInstructionText({
+        locale,
+        targetCarbsGPerHour: workout.fuelingPrescription.targetCarbsGPerHour,
+        targetCarbsTotalG: workout.fuelingPrescription.targetCarbsTotalG,
+      })
+    : null
   const carbsDelta = actualCarbsTotalG != null && plannedCarbsTotalG != null
     ? Math.round(actualCarbsTotalG - plannedCarbsTotalG)
     : null
@@ -641,9 +649,9 @@ export function WorkoutLoggingForm({
                           ? localText(locale, `, totalt cirka ${Math.round(workout.fuelingPrescription.targetCarbsTotalG)} g under passet.`, `, about ${Math.round(workout.fuelingPrescription.targetCarbsTotalG)} g total during the session.`)
                           : '.'}
                       </p>
-                      {workout.fuelingPrescription.instructionsSv && (
+                      {fuelingInstructions && (
                         <p className="mt-2 text-amber-900/80 dark:text-amber-100/80">
-                          {workout.fuelingPrescription.instructionsSv}
+                          {fuelingInstructions}
                         </p>
                       )}
                     </div>

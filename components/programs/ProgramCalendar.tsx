@@ -19,6 +19,7 @@ import Link from 'next/link'
 import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } from '@/types/prisma-types'
 import { PushToGarminButton } from '@/components/programs/PushToGarminButton'
 import { FuelingPrescriptionBadge } from '@/components/programs/FuelingPrescriptionBadge'
+import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
 
 interface ProgramCalendarProps {
   program: ProgramWithWeeks
@@ -285,6 +286,13 @@ function DayCard({ day, date, clientId, locale }: DayCardProps) {
         const isExpanded = expandedWorkouts.has(workout.id)
         const fuelingPrescription = getFuelingPrescription(workout)
         const fuelingLog = getLatestFuelingLog(workout)
+        const fuelingInstructions = fuelingPrescription
+          ? buildFuelingInstructionText({
+              locale,
+              targetCarbsGPerHour: fuelingPrescription.targetCarbsGPerHour,
+              targetCarbsTotalG: fuelingPrescription.targetCarbsTotalG,
+            })
+          : null
         return (
           <div
             key={workout.id}
@@ -311,9 +319,9 @@ function DayCard({ day, date, clientId, locale }: DayCardProps) {
                 {workout.instructions && (
                   <p className="text-sm text-slate-600 dark:text-slate-300">{workout.instructions}</p>
                 )}
-                {fuelingPrescription?.instructionsSv && (
+                {fuelingInstructions && (
                   <p className="text-sm font-medium text-orange-700 dark:text-orange-200">
-                    {fuelingPrescription.instructionsSv}
+                    {fuelingInstructions}
                   </p>
                 )}
               </div>

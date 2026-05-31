@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { FuelingPrescriptionBadge } from '@/components/programs/FuelingPrescriptionBadge'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
 
 interface AthleteProgramCalendarProps {
   program: any
@@ -313,6 +314,7 @@ interface DayCardProps {
 function DayCard({ day, date, isGlass = false, basePath = '' }: DayCardProps) {
   const t = useTranslations('components.athleteProgramCalendar')
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'en' ? enUS : sv
   const dayNames = [
     t('days.monday'),
@@ -360,6 +362,13 @@ function DayCard({ day, date, isGlass = false, basePath = '' }: DayCardProps) {
         const isCompleted = workout.logs && workout.logs.length > 0 && workout.logs[0].completed
         const fuelingPrescription = workout.fuelingPrescription ?? null
         const fuelingLog = workout.logs?.find((log: any) => log.fuelingLog)?.fuelingLog ?? null
+        const fuelingInstructions = fuelingPrescription
+          ? buildFuelingInstructionText({
+              locale: appLocale,
+              targetCarbsGPerHour: fuelingPrescription.targetCarbsGPerHour,
+              targetCarbsTotalG: fuelingPrescription.targetCarbsTotalG,
+            })
+          : null
 
         return (
           <div key={workout.id} className="relative flex items-start gap-6 group">
@@ -406,9 +415,9 @@ function DayCard({ day, date, isGlass = false, basePath = '' }: DayCardProps) {
                       &quot;{workout.instructions}&quot;
                     </p>
                   )}
-                  {fuelingPrescription?.instructionsSv && (
+                  {fuelingInstructions && (
                     <p className="text-xs font-bold leading-relaxed text-orange-700 dark:text-orange-200 transition-colors">
-                      {fuelingPrescription.instructionsSv}
+                      {fuelingInstructions}
                     </p>
                   )}
 

@@ -21,6 +21,7 @@ import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-n
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
 import { extractApiErrorMessage } from '@/lib/fueling/api-error'
+import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
 import { useLocale } from '@/i18n/client'
 
 interface RaceDayPlan {
@@ -963,6 +964,11 @@ function FuelingPrescriptionRow({ prescription, raceDate, locale }: { prescripti
   const productsUsed = normalizeRaceFuelingProductItems(latestLog?.productsUsed)
   const workoutDate = prescription.workout.day.date ? new Date(prescription.workout.day.date) : null
   const daysToRace = workoutDate && raceDate ? differenceInDays(new Date(raceDate), workoutDate) : null
+  const instructions = buildFuelingInstructionText({
+    locale,
+    targetCarbsGPerHour: prescription.targetCarbsGPerHour,
+    targetCarbsTotalG: prescription.targetCarbsTotalG,
+  })
 
   return (
     <div className="rounded-md border px-3 py-3 text-sm">
@@ -992,8 +998,8 @@ function FuelingPrescriptionRow({ prescription, raceDate, locale }: { prescripti
         </div>
       </div>
 
-      {prescription.instructionsSv && (
-        <p className="mt-2 text-xs text-muted-foreground">{prescription.instructionsSv}</p>
+      {instructions && (
+        <p className="mt-2 text-xs text-muted-foreground">{instructions}</p>
       )}
 
       {latestLog && (
