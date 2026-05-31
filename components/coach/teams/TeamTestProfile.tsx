@@ -433,15 +433,17 @@ function ProfileSummary({ scores, compareScores, compareLabel, locale }: { score
 function TestSelectorView({ groups, membersTotal, locale }: { groups: MetricGroup[]; membersTotal: number; locale: Locale }) {
   const allMetrics = groups.flatMap((g) => g.metrics)
   const [sel, setSel] = useState(allMetrics[0]?.key ?? '')
-  const detailRef = useRef<HTMLDivElement>(null)
+  const sectionRef = useRef<HTMLDivElement>(null)
   const metric = allMetrics.find((m) => m.key === sel) ?? allMetrics[0]
   const pick = (key: string) => {
     setSel(key)
-    requestAnimationFrame(() => detailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    // Scroll the selector + bar back to the top whenever a new test is picked.
+    requestAnimationFrame(() => sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
   return (
-    <div className="space-y-4">
-      <div className="sticky top-0 z-20 -mx-1 border-b bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+    // scroll-mt / sticky top clear the global header + team tab nav (~132px).
+    <div ref={sectionRef} className="scroll-mt-[150px] space-y-4">
+      <div className="sticky top-[132px] z-30 -mx-1 border-b bg-background/95 px-1 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         {groups.map((g) => (
           <div key={g.id} className="flex items-start gap-3 py-1">
             <span className="mt-1.5 flex w-20 shrink-0 items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -461,7 +463,7 @@ function TestSelectorView({ groups, membersTotal, locale }: { groups: MetricGrou
           </div>
         ))}
       </div>
-      <div ref={detailRef} className="scroll-mt-28 space-y-4">
+      <div className="space-y-4">
         {metric && (
           <>
             <MiniCounts metric={metric} membersTotal={membersTotal} locale={locale} />
@@ -651,7 +653,8 @@ function TestAnalysisSection({ seasons, membersTotal, locale, controlledView }: 
 
   return (
     <div className="space-y-4">
-      {header}
+      {/* The "Adaptiva teststaplar" header + team profile live on the Matris tab only. */}
+      {activeView === 'matrix' && header}
 
       {seasons.length > 1 && (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border bg-muted/20 px-4 py-3">
@@ -660,7 +663,9 @@ function TestAnalysisSection({ seasons, membersTotal, locale, controlledView }: 
         </div>
       )}
 
-      <ProfileSummary scores={selected.scores} compareScores={compareSeason?.scores ?? null} compareLabel={compareSeason?.label ?? null} locale={locale} />
+      {activeView === 'matrix' && (
+        <ProfileSummary scores={selected.scores} compareScores={compareSeason?.scores ?? null} compareLabel={compareSeason?.label ?? null} locale={locale} />
+      )}
 
       {!controlledView && (
         <div className="flex flex-wrap gap-2">
