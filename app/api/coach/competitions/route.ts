@@ -2,9 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
@@ -49,13 +58,16 @@ export async function GET() {
 
     return NextResponse.json({ competitions })
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const body = await request.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -64,7 +76,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business found', 'Ingen verksamhet hittades') }, { status: 400 })
     }
 
     const competition = await prisma.competition.create({
@@ -96,18 +108,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ competition })
   } catch {
-    return NextResponse.json({ error: 'Failed to create competition' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create competition', 'Kunde inte skapa tävlingen') }, { status: 500 })
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const body = await request.json()
     const { id, ...updates } = body
 
     if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'id required', 'id är obligatoriskt') }, { status: 400 })
     }
 
     const membership = await prisma.businessMember.findFirst({
@@ -116,7 +131,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business found', 'Ingen verksamhet hittades') }, { status: 400 })
     }
 
     const existing = await prisma.competition.findFirst({
@@ -124,7 +139,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!existing) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Competition not found', 'Tävlingen hittades inte') }, { status: 404 })
     }
 
     const data: Record<string, unknown> = {}
@@ -196,6 +211,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ competition })
   } catch {
-    return NextResponse.json({ error: 'Failed to update competition' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update competition', 'Kunde inte uppdatera tävlingen') }, { status: 500 })
   }
 }

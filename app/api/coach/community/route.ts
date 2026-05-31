@@ -3,9 +3,18 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { sendBroadcast } from '@/lib/broadcast/send-broadcast'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
@@ -45,13 +54,16 @@ export async function GET() {
 
     return NextResponse.json({ posts, currentUserId: user.id })
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const body = await request.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -60,7 +72,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business found', 'Ingen verksamhet hittades') }, { status: 400 })
     }
 
     if (body.action === 'comment') {
@@ -151,6 +163,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ post })
   } catch {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to save community update', 'Kunde inte spara community-inlägget') }, { status: 500 })
   }
 }
