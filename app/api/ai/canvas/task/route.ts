@@ -50,7 +50,10 @@ export async function POST(request: NextRequest) {
 
     const membership = await validateBusinessMembership(user.id, parsed.data.businessSlug)
     if (!membership) {
-      return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
+      return NextResponse.json(
+        { error: t(locale, 'Business not found or access denied', 'Verksamheten hittades inte eller saknar behörighet') },
+        { status: 404 }
+      )
     }
 
     const task = await prisma.coachTask.create({
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, task })
   } catch (error) {
     if (isNextRedirectError(error) || (error instanceof Error && error.message === 'Unauthorized')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     logger.error('Create AI canvas task failed', {}, error)

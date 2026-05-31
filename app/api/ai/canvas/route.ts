@@ -100,8 +100,11 @@ function blockPayload(block: {
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:list', user.id, {
       limit: 60,
@@ -112,12 +115,15 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const businessSlug = searchParams.get('businessSlug')
     if (!businessSlug) {
-      return NextResponse.json({ error: 'businessSlug is required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'businessSlug is required', 'businessSlug krävs') }, { status: 400 })
     }
 
     const membership = await validateBusinessMembership(user.id, businessSlug)
     if (!membership) {
-      return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
+      return NextResponse.json(
+        { error: t(locale, 'Business not found or access denied', 'Verksamheten hittades inte eller saknar behörighet') },
+        { status: 404 }
+      )
     }
 
     const canvases = await prisma.aICanvas.findMany({
@@ -151,18 +157,20 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     if (isNextRedirectError(error) || (error instanceof Error && error.message === 'Unauthorized')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     logger.error('List AI canvases failed', {}, error)
-    return NextResponse.json({ error: 'Failed to list canvases' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to list canvases', 'Kunde inte hämta canvasar') }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:create', user.id, {
       limit: 30,
@@ -180,7 +188,10 @@ export async function POST(request: NextRequest) {
 
     const membership = await validateBusinessMembership(user.id, parsed.data.businessSlug)
     if (!membership) {
-      return NextResponse.json({ error: 'Business not found or access denied' }, { status: 404 })
+      return NextResponse.json(
+        { error: t(locale, 'Business not found or access denied', 'Verksamheten hittades inte eller saknar behörighet') },
+        { status: 404 }
+      )
     }
 
     const canvas = await prisma.aICanvas.create({
@@ -218,10 +229,10 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     if (isNextRedirectError(error) || (error instanceof Error && error.message === 'Unauthorized')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     logger.error('Create AI canvas failed', {}, error)
-    return NextResponse.json({ error: 'Failed to save canvas' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to save canvas', 'Kunde inte spara canvasen') }, { status: 500 })
   }
 }

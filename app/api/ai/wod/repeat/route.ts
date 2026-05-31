@@ -17,13 +17,22 @@ interface RequestBody {
   wodId: string
 }
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { user, clientId } = resolved
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:wod:repeat', user.id, {
       limit: 20,
@@ -36,7 +45,7 @@ export async function POST(request: NextRequest) {
 
     if (!wodId) {
       return NextResponse.json(
-        { error: 'wodId is required' },
+        { error: t(locale, 'wodId is required', 'wodId krävs') },
         { status: 400 }
       )
     }
@@ -51,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (!originalWOD) {
       return NextResponse.json(
-        { error: 'Original WOD not found' },
+        { error: t(locale, 'Original WOD not found', 'Originalpasset hittades inte') },
         { status: 404 }
       )
     }
@@ -83,17 +92,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       newWodId: newWOD.id,
-      message: 'WOD duplicated successfully',
+      message: t(locale, 'WOD duplicated successfully', 'Dagens pass har kopierats'),
     })
   } catch (error) {
     logger.error('WOD repeat error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to repeat WOD' },
+      { error: t(locale, 'Failed to repeat WOD', 'Kunde inte upprepa dagens pass') },
       { status: 500 }
     )
   }

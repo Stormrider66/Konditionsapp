@@ -103,8 +103,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:get', user.id, {
       limit: 80,
@@ -115,7 +118,7 @@ export async function GET(
     const { id } = await params
     const canvas = await findOwnedCanvas(id, user.id)
     if (!canvas || canvas.status === 'ARCHIVED') {
-      return NextResponse.json({ error: 'Canvas not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Canvas not found', 'Canvasen hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -130,11 +133,11 @@ export async function GET(
     })
   } catch (error) {
     if (isNextRedirectError(error) || (error instanceof Error && error.message === 'Unauthorized')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     logger.error('Get AI canvas failed', {}, error)
-    return NextResponse.json({ error: 'Failed to load canvas' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to load canvas', 'Kunde inte läsa in canvasen') }, { status: 500 })
   }
 }
 
@@ -142,9 +145,11 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:update', user.id, {
       limit: 40,
@@ -163,7 +168,7 @@ export async function PUT(
 
     const existing = await findOwnedCanvas(id, user.id)
     if (!existing) {
-      return NextResponse.json({ error: 'Canvas not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Canvas not found', 'Canvasen hittades inte') }, { status: 404 })
     }
 
     const canvas = await prisma.$transaction(async (tx) => {
@@ -211,11 +216,11 @@ export async function PUT(
     })
   } catch (error) {
     if (isNextRedirectError(error) || (error instanceof Error && error.message === 'Unauthorized')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     logger.error('Update AI canvas failed', {}, error)
-    return NextResponse.json({ error: 'Failed to save canvas' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to save canvas', 'Kunde inte spara canvasen') }, { status: 500 })
   }
 }
 
@@ -223,8 +228,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:archive', user.id, {
       limit: 20,
@@ -235,7 +243,7 @@ export async function DELETE(
     const { id } = await params
     const existing = await findOwnedCanvas(id, user.id)
     if (!existing) {
-      return NextResponse.json({ error: 'Canvas not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Canvas not found', 'Canvasen hittades inte') }, { status: 404 })
     }
 
     await prisma.aICanvas.update({
@@ -246,10 +254,10 @@ export async function DELETE(
     return NextResponse.json({ success: true })
   } catch (error) {
     if (isNextRedirectError(error) || (error instanceof Error && error.message === 'Unauthorized')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     logger.error('Archive AI canvas failed', {}, error)
-    return NextResponse.json({ error: 'Failed to archive canvas' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to archive canvas', 'Kunde inte arkivera canvasen') }, { status: 500 })
   }
 }
