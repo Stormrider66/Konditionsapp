@@ -4,6 +4,7 @@ import type {
 } from '@/lib/coach/command-center'
 
 type OperatorTone = 'risk' | 'watch' | 'steady'
+type CoachOperatorLocale = 'en' | 'sv'
 
 export interface CoachOperatorBriefItem {
   id: string
@@ -58,17 +59,29 @@ export interface CoachOperatorBriefData {
   aiContext: CoachOperatorAIContext
 }
 
-const categoryLabels: Record<CommandCenterQueueItem['category'], string> = {
-  readiness: 'beredskap',
-  load: 'belastning',
-  injury: 'skada',
-  feedback: 'feedback',
-  program: 'program',
-  testing: 'tester',
-  alert: 'alerts',
+const categoryLabels: Record<CommandCenterQueueItem['category'], Record<CoachOperatorLocale, string>> = {
+  readiness: { en: 'readiness', sv: 'beredskap' },
+  load: { en: 'load', sv: 'belastning' },
+  injury: { en: 'injury', sv: 'skada' },
+  feedback: { en: 'feedback', sv: 'feedback' },
+  program: { en: 'program', sv: 'program' },
+  testing: { en: 'testing', sv: 'tester' },
+  alert: { en: 'alerts', sv: 'alerts' },
 }
 
-export function buildCoachOperatorBriefData(data: CoachCommandCenterData): CoachOperatorBriefData {
+function getCoachOperatorLocale(locale?: string | null): CoachOperatorLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function operatorText(locale: CoachOperatorLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+export function buildCoachOperatorBriefData(
+  data: CoachCommandCenterData,
+  localeInput: string = 'en'
+): CoachOperatorBriefData {
+  const locale = getCoachOperatorLocale(localeInput)
   const topItems = data.queueItems.slice(0, 3).map(item => ({
     id: item.id,
     title: item.title,
@@ -89,18 +102,34 @@ export function buildCoachOperatorBriefData(data: CoachCommandCenterData): Coach
   const tone: OperatorTone = urgentCount > 0 ? 'risk' : queueCount > 0 || activeAlerts > 0 ? 'watch' : 'steady'
 
   const headline = urgentCount > 0
-    ? `${urgentCount} akuta coachärenden kräver uppmärksamhet`
+    ? operatorText(
+      locale,
+      `${urgentCount} urgent coach ${urgentCount === 1 ? 'case needs' : 'cases need'} attention`,
+      urgentCount === 1
+        ? '1 akut coachärende kräver uppmärksamhet'
+        : `${urgentCount} akuta coachärenden kräver uppmärksamhet`
+    )
     : queueCount > 0
-      ? `${queueCount} coachärenden ligger i arbetskön`
-      : 'Coachoperatorn ser ett stabilt läge'
+      ? operatorText(
+        locale,
+        `${queueCount} coach ${queueCount === 1 ? 'case is' : 'cases are'} in the work queue`,
+        queueCount === 1
+          ? '1 coachärende ligger i arbetskön'
+          : `${queueCount} coachärenden ligger i arbetskön`
+      )
+      : operatorText(locale, 'The coach operator sees a stable situation', 'Coachoperatorn ser ett stabilt läge')
 
   const subheadline = topItems[0]?.description ??
     (recommendationCount > 0
       ? data.recommendations[0]?.recommendation
-      : 'Fortsätt följa readiness, belastning och väntande feedback.')
+      : operatorText(
+        locale,
+        'Keep monitoring readiness, load, and pending feedback.',
+        'Fortsätt följa readiness, belastning och väntande feedback.'
+      ))
 
-  const focusAreas = getFocusAreas(data.queueItems)
-  const promptSuggestions = buildPromptSuggestions({ queueCount, urgentCount, focusAreas })
+  const focusAreas = getFocusAreas(data.queueItems, locale)
+  const promptSuggestions = buildPromptSuggestions({ queueCount, urgentCount, focusAreas, locale })
   const summary = {
     urgentCount,
     reviewCount,
@@ -140,7 +169,7 @@ export function buildCoachOperatorBriefData(data: CoachCommandCenterData): Coach
   }
 }
 
-function getFocusAreas(items: CommandCenterQueueItem[]) {
+function getFocusAreas(items: CommandCenterQueueItem[], locale: CoachOperatorLocale) {
   const counts = new Map<CommandCenterQueueItem['category'], number>()
   for (const item of items) {
     counts.set(item.category, (counts.get(item.category) ?? 0) + 1)
@@ -149,45 +178,71 @@ function getFocusAreas(items: CommandCenterQueueItem[]) {
   return [...counts.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
-    .map(([category, count]) => `${categoryLabels[category]} (${count})`)
+    .map(([category, count]) => `${categoryLabels[category][locale]} (${count})`)
 }
 
 function buildPromptSuggestions({
   queueCount,
   urgentCount,
   focusAreas,
+  locale,
 }: {
   queueCount: number
   urgentCount: number
   focusAreas: string[]
+  locale: CoachOperatorLocale
 }): CoachOperatorPrompt[] {
-  const focusText = focusAreas.length > 0 ? ` Fokusområden: ${focusAreas.join(', ')}.` : ''
+  const focusText = focusAreas.length > 0
+    ? operatorText(locale, ` Focus areas: ${focusAreas.join(', ')}.`, ` Fokusområden: ${focusAreas.join(', ')}.`)
+    : ''
 
   if (queueCount === 0) {
     return [
       {
-        label: 'Veckosummering',
-        prompt: 'Gör en kort proaktiv veckosummering från coachdashboardens operatorläge. Lyft stabila signaler, saker att fortsätta bevaka och ett konkret nästa steg.',
+        label: operatorText(locale, 'Weekly summary', 'Veckosummering'),
+        prompt: operatorText(
+          locale,
+          'Create a short proactive weekly summary from the coach dashboard operator view. Highlight stable signals, things to keep monitoring, and one concrete next step.',
+          'Gör en kort proaktiv veckosummering från coachdashboardens operatorläge. Lyft stabila signaler, saker att fortsätta bevaka och ett konkret nästa steg.'
+        ),
       },
       {
-        label: 'Planera framåt',
-        prompt: 'Utifrån coachdashboardens operatorläge: vilka tre saker bör jag kontrollera innan nästa träningsvecka planeras?',
+        label: operatorText(locale, 'Plan ahead', 'Planera framåt'),
+        prompt: operatorText(
+          locale,
+          'From the coach dashboard operator view: what three things should I check before planning the next training week?',
+          'Utifrån coachdashboardens operatorläge: vilka tre saker bör jag kontrollera innan nästa träningsvecka planeras?'
+        ),
       },
     ]
   }
 
   return [
     {
-      label: urgentCount > 0 ? 'Akut brief' : 'Operatorbrief',
-      prompt: `Gör en proaktiv coach-operator brief från dashboardens arbetskö. Prioritera akuta risker, följ upp feedback och ge mig en tydlig ordning för vad jag ska göra först.${focusText}`,
+      label: urgentCount > 0
+        ? operatorText(locale, 'Urgent brief', 'Akut brief')
+        : operatorText(locale, 'Operator brief', 'Operatorbrief'),
+      prompt: operatorText(
+        locale,
+        `Create a proactive coach-operator brief from the dashboard work queue. Prioritize urgent risks, follow up feedback, and give me a clear order for what to do first.${focusText}`,
+        `Gör en proaktiv coach-operator brief från dashboardens arbetskö. Prioritera akuta risker, följ upp feedback och ge mig en tydlig ordning för vad jag ska göra först.${focusText}`
+      ),
     },
     {
-      label: 'Förbered uppföljning',
-      prompt: `Föreslå en uppföljningsplan för coachärendena i operator-kön. Om ett meddelande till atlet eller lag behövs, förbered bara ett utkast med bekräftelse.${focusText}`,
+      label: operatorText(locale, 'Prepare follow-up', 'Förbered uppföljning'),
+      prompt: operatorText(
+        locale,
+        `Suggest a follow-up plan for the coach cases in the operator queue. If a message to an athlete or team is needed, only prepare a draft with confirmation.${focusText}`,
+        `Föreslå en uppföljningsplan för coachärendena i operator-kön. Om ett meddelande till atlet eller lag behövs, förbered bara ett utkast med bekräftelse.${focusText}`
+      ),
     },
     {
-      label: 'Riskkontroll',
-      prompt: 'Granska operator-kön för readiness, ACWR, skada och missade pass. Separera säkerhetsrisker från vanlig planeringsadmin och föreslå nästa app-vy att öppna.',
+      label: operatorText(locale, 'Risk check', 'Riskkontroll'),
+      prompt: operatorText(
+        locale,
+        'Review the operator queue for readiness, ACWR, injury, and missed sessions. Separate safety risks from normal planning admin and suggest the next app view to open.',
+        'Granska operator-kön för readiness, ACWR, skada och missade pass. Separera säkerhetsrisker från vanlig planeringsadmin och föreslå nästa app-vy att öppna.'
+      ),
     },
   ]
 }

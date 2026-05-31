@@ -410,7 +410,7 @@ describe('Fitness Level Estimation', () => {
       })
 
       expect(result.warnings.length).toBeGreaterThan(0)
-      expect(result.warnings.some(w => w.includes('smal'))).toBe(true)
+      expect(result.warnings.some(w => w.includes('narrow'))).toBe(true)
     })
 
     it('should add warning for untrained athletes', () => {
@@ -421,7 +421,7 @@ describe('Fitness Level Estimation', () => {
       })
 
       expect(result.warnings.length).toBeGreaterThan(0)
-      expect(result.warnings.some(w => w.includes('gång/löp'))).toBe(true)
+      expect(result.warnings.some(w => w.includes('walk/run'))).toBe(true)
     })
 
     it('should add low confidence warning when no good data', () => {
@@ -429,6 +429,17 @@ describe('Fitness Level Estimation', () => {
         age: 35,
         gender: 'MALE'
         // No VDOT, race time, or experience level
+      })
+
+      expect(result.fitnessEstimate.confidence).toBe('LOW')
+      expect(result.warnings.some(w => w.includes('low confidence'))).toBe(true)
+    })
+
+    it('should preserve Swedish warnings when Swedish locale is requested', () => {
+      const result = getEstimatedZonesForAthlete({
+        locale: 'sv',
+        age: 35,
+        gender: 'MALE'
       })
 
       expect(result.fitnessEstimate.confidence).toBe('LOW')
@@ -499,21 +510,36 @@ describe('Fitness Level Estimation', () => {
 
   describe('Display Helpers', () => {
     describe('getFitnessLevelDisplayName', () => {
-      it('should return Swedish names for all levels', () => {
-        expect(getFitnessLevelDisplayName('UNTRAINED')).toBe('Otränad')
-        expect(getFitnessLevelDisplayName('BEGINNER')).toBe('Nybörjare')
-        expect(getFitnessLevelDisplayName('RECREATIONAL')).toBe('Motionär')
-        expect(getFitnessLevelDisplayName('TRAINED')).toBe('Tränad')
-        expect(getFitnessLevelDisplayName('WELL_TRAINED')).toBe('Vältränad')
-        expect(getFitnessLevelDisplayName('ELITE')).toBe('Elit')
+      it('should return English names by default', () => {
+        expect(getFitnessLevelDisplayName('UNTRAINED')).toBe('Untrained')
+        expect(getFitnessLevelDisplayName('BEGINNER')).toBe('Beginner')
+        expect(getFitnessLevelDisplayName('RECREATIONAL')).toBe('Recreational')
+        expect(getFitnessLevelDisplayName('TRAINED')).toBe('Trained')
+        expect(getFitnessLevelDisplayName('WELL_TRAINED')).toBe('Well trained')
+        expect(getFitnessLevelDisplayName('ELITE')).toBe('Elite')
+      })
+
+      it('should return Swedish names for Swedish locale', () => {
+        expect(getFitnessLevelDisplayName('UNTRAINED', 'sv')).toBe('Otränad')
+        expect(getFitnessLevelDisplayName('BEGINNER', 'sv')).toBe('Nybörjare')
+        expect(getFitnessLevelDisplayName('RECREATIONAL', 'sv')).toBe('Motionär')
+        expect(getFitnessLevelDisplayName('TRAINED', 'sv')).toBe('Tränad')
+        expect(getFitnessLevelDisplayName('WELL_TRAINED', 'sv')).toBe('Vältränad')
+        expect(getFitnessLevelDisplayName('ELITE', 'sv')).toBe('Elit')
       })
     })
 
     describe('getConfidenceDisplayName', () => {
-      it('should return Swedish names for confidence levels', () => {
-        expect(getConfidenceDisplayName('HIGH')).toBe('Hög')
-        expect(getConfidenceDisplayName('MEDIUM')).toBe('Medel')
-        expect(getConfidenceDisplayName('LOW')).toBe('Låg')
+      it('should return English names by default', () => {
+        expect(getConfidenceDisplayName('HIGH')).toBe('High')
+        expect(getConfidenceDisplayName('MEDIUM')).toBe('Medium')
+        expect(getConfidenceDisplayName('LOW')).toBe('Low')
+      })
+
+      it('should return Swedish names for Swedish locale', () => {
+        expect(getConfidenceDisplayName('HIGH', 'sv')).toBe('Hög')
+        expect(getConfidenceDisplayName('MEDIUM', 'sv')).toBe('Medel')
+        expect(getConfidenceDisplayName('LOW', 'sv')).toBe('Låg')
       })
     })
   })

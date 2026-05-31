@@ -30,7 +30,8 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   const t = await getTranslations('coach')
   const tNav = await getTranslations('nav')
   const locale = await getLocale()
-  const dateLocale = locale === 'sv' ? sv : enUS
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const dateLocale = appLocale === 'sv' ? sv : enUS
   const user = await requireCoach()
 
   // Validate business membership
@@ -619,7 +620,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
     })
     : null
   const operatorBriefData = commandCenterData
-    ? buildCoachOperatorBriefData(commandCenterData)
+    ? buildCoachOperatorBriefData(commandCenterData, appLocale)
     : null
 
   const dashboardSignals: string[] = []
@@ -655,6 +656,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   }
 
   const dashboardAIContext: CoachDashboardAIContextData = {
+    locale: appLocale,
     mode,
     businessName: membership.business.name,
     metrics: {

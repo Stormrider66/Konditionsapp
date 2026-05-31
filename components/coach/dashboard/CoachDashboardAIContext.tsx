@@ -6,6 +6,7 @@ import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
 import type { CoachOperatorAIContext } from '@/lib/coach/proactive-operator'
 
 export interface CoachDashboardAIContextData {
+  locale: 'en' | 'sv'
   mode: 'TEAM' | 'PT' | 'GYM'
   businessName: string
   metrics: {
@@ -63,6 +64,10 @@ interface CoachDashboardAIContextProps {
   data: CoachDashboardAIContextData
 }
 
+function contextText(locale: CoachDashboardAIContextData['locale'], en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export function CoachDashboardAIContext({ data }: CoachDashboardAIContextProps) {
   const pageContextApi = usePageContextOptional()
   const setPageContext = pageContextApi?.setPageContext
@@ -71,9 +76,11 @@ export function CoachDashboardAIContext({ data }: CoachDashboardAIContextProps) 
     type: 'coach-dashboard',
     title: 'Coach Dashboard',
     summary:
-      `Aktuell coachdashboard for ${data.businessName}. ` +
-      `Lage: ${data.mode}. ` +
-      'Innehaller aggregerade signaler for prioritering, utan individidentifierande atletdata.',
+      contextText(
+        data.locale,
+        `Current coach dashboard for ${data.businessName}. Mode: ${data.mode}. Includes aggregated prioritization signals without personally identifying athlete data.`,
+        `Aktuell coachdashboard för ${data.businessName}. Läge: ${data.mode}. Innehåller aggregerade signaler för prioritering, utan individidentifierande atletdata.`
+      ),
     conceptKeys: ['readiness', 'tss', 'acwr', 'coachAlerts'],
     data: { dashboard: data },
   }), [data])

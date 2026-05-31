@@ -67,6 +67,16 @@ export type RaceDistance =
   | 'HALF_MARATHON'
   | 'MARATHON'
 
+export type FitnessEstimationLocale = 'en' | 'sv'
+
+function getFitnessLocale(locale?: string | null): FitnessEstimationLocale {
+  return locale === 'sv' ? 'sv' : 'en'
+}
+
+function fitnessText(locale: FitnessEstimationLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ============================================
 // Constants
 // ============================================
@@ -454,6 +464,7 @@ export interface EstimatedZonesResult {
  * fitness-adjusted training zones.
  */
 export function getEstimatedZonesForAthlete(params: {
+  locale?: FitnessEstimationLocale
   age: number
   gender: Gender
   weight?: number  // kg - needed for FTP/kg calculation
@@ -469,6 +480,8 @@ export function getEstimatedZonesForAthlete(params: {
   weeklyTrainingHours?: number
   restingHR?: number
 }): EstimatedZonesResult {
+  const locale = getFitnessLocale(params.locale)
+
   // 1. Estimate fitness level
   const fitnessEstimate = estimateFitnessLevel({
     age: params.age,
@@ -517,20 +530,29 @@ export function getEstimatedZonesForAthlete(params: {
 
   if (fitnessEstimate.level === 'UNTRAINED') {
     warnings.push(
-      'Din zon 2 är mycket smal. För att hålla dig i rätt intensitet, ' +
-      'rekommenderas gång/löp-intervaller (t.ex. 2 min löpning, 1 min gång).'
+      fitnessText(
+        locale,
+        'Your Zone 2 is very narrow. To stay at the right intensity, walk/run intervals are recommended (for example 2 min running, 1 min walking).',
+        'Din zon 2 är mycket smal. För att hålla dig i rätt intensitet, rekommenderas gång/löp-intervaller (t.ex. 2 min löpning, 1 min gång).'
+      )
     )
   } else if (fitnessEstimate.level === 'BEGINNER') {
     warnings.push(
-      'Zon 2 är relativt smal. Överväg att använda gång/löp-intervaller ' +
-      'för att hålla dig i den lätta zonen.'
+      fitnessText(
+        locale,
+        'Zone 2 is relatively narrow. Consider using walk/run intervals to stay in the easy zone.',
+        'Zon 2 är relativt smal. Överväg att använda gång/löp-intervaller för att hålla dig i den lätta zonen.'
+      )
     )
   }
 
   if (fitnessEstimate.confidence === 'LOW') {
     warnings.push(
-      'Zonerna är uppskattade med låg säkerhet. Överväg att göra ett ' +
-      'fälttest eller lakttatest för mer exakta zoner.'
+      fitnessText(
+        locale,
+        'The zones are estimated with low confidence. Consider doing a field test or lactate test for more accurate zones.',
+        'Zonerna är uppskattade med låg säkerhet. Överväg att göra ett fälttest eller laktattest för mer exakta zoner.'
+      )
     )
   }
 
@@ -546,28 +568,36 @@ export function getEstimatedZonesForAthlete(params: {
 // ============================================
 
 /**
- * Get Swedish display name for fitness level
+ * Get localized display name for fitness level.
  */
-export function getFitnessLevelDisplayName(level: FitnessLevel): string {
-  const names: Record<FitnessLevel, string> = {
-    UNTRAINED: 'Otränad',
-    BEGINNER: 'Nybörjare',
-    RECREATIONAL: 'Motionär',
-    TRAINED: 'Tränad',
-    WELL_TRAINED: 'Vältränad',
-    ELITE: 'Elit'
+export function getFitnessLevelDisplayName(
+  level: FitnessLevel,
+  localeInput: FitnessEstimationLocale = 'en'
+): string {
+  const locale = getFitnessLocale(localeInput)
+  const names: Record<FitnessLevel, Record<FitnessEstimationLocale, string>> = {
+    UNTRAINED: { en: 'Untrained', sv: 'Otränad' },
+    BEGINNER: { en: 'Beginner', sv: 'Nybörjare' },
+    RECREATIONAL: { en: 'Recreational', sv: 'Motionär' },
+    TRAINED: { en: 'Trained', sv: 'Tränad' },
+    WELL_TRAINED: { en: 'Well trained', sv: 'Vältränad' },
+    ELITE: { en: 'Elite', sv: 'Elit' }
   }
-  return names[level]
+  return names[level][locale]
 }
 
 /**
- * Get Swedish display name for confidence level
+ * Get localized display name for confidence level.
  */
-export function getConfidenceDisplayName(confidence: FitnessConfidence): string {
-  const names: Record<FitnessConfidence, string> = {
-    HIGH: 'Hög',
-    MEDIUM: 'Medel',
-    LOW: 'Låg'
+export function getConfidenceDisplayName(
+  confidence: FitnessConfidence,
+  localeInput: FitnessEstimationLocale = 'en'
+): string {
+  const locale = getFitnessLocale(localeInput)
+  const names: Record<FitnessConfidence, Record<FitnessEstimationLocale, string>> = {
+    HIGH: { en: 'High', sv: 'Hög' },
+    MEDIUM: { en: 'Medium', sv: 'Medel' },
+    LOW: { en: 'Low', sv: 'Låg' }
   }
-  return names[confidence]
+  return names[confidence][locale]
 }
