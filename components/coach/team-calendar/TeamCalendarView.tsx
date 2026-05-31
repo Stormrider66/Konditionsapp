@@ -517,9 +517,21 @@ export function TeamCalendarView({
       return false
     }
   })
+  const [planningMode, setPlanningMode] = useState(false)
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
+  // Pad the month's days into whole Monday-start weeks for the normal calendar grid.
+  const monthGridDays: Array<Date | null> = (() => {
+    const first = monthDates[0]
+    if (!first) return []
+    const lead = (first.getDay() + 6) % 7 // Monday = 0 … Sunday = 6
+    const cells: Array<Date | null> = []
+    for (let i = 0; i < lead; i += 1) cells.push(null)
+    monthDates.forEach((d) => cells.push(d))
+    while (cells.length % 7 !== 0) cells.push(null)
+    return cells
+  })()
   const creatableTypes = calendarPermissions?.creatableTypes ?? []
   const assignableContentTypes = calendarPermissions?.assignableContentTypes ?? []
   const isStaffPlanningView = creatableTypes.length > 0 || assignableContentTypes.length > 0
@@ -728,6 +740,28 @@ export function TeamCalendarView({
     setLoading(true)
   }
 
+  const selectViewMode = (mode: CalendarViewMode) => {
+    setPlanningMode(false)
+    if (mode !== viewMode) {
+      setViewMode(mode)
+      setLoading(true)
+    }
+  }
+
+  const enterPlanningMode = () => {
+    setPlanningMode(true)
+    // The planning spreadsheet is month-scoped; only refetch if we weren't already on the month range.
+    if (viewMode !== 'month') {
+      setViewMode('month')
+      setLoading(true)
+    }
+  }
+
+  const exitPlanningMode = () => {
+    // Stay on the month — now rendered as the normal calendar — so no refetch is needed.
+    setPlanningMode(false)
+  }
+
   const viewLabel = viewMode === 'month'
     ? weekBase.toLocaleDateString(dateLocale(locale), { month: 'long', year: 'numeric' })
     : viewMode === 'day'
@@ -880,13 +914,10 @@ export function TeamCalendarView({
               <Button
                 key={mode}
                 type="button"
-                variant={viewMode === mode ? 'default' : 'ghost'}
+                variant={viewMode === mode && !planningMode ? 'default' : 'ghost'}
                 size="sm"
                 className="h-7 px-3"
-                onClick={() => {
-                  setViewMode(mode)
-                  setLoading(true)
-                }}
+                onClick={() => selectViewMode(mode)}
               >
                 {label}
               </Button>
@@ -898,27 +929,21 @@ export function TeamCalendarView({
               AI-brief
             </Button>
           )}
-          {isStaffPlanningView && viewMode !== 'month' && (
+          {isStaffPlanningView && !planningMode && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                setViewMode('month')
-                setLoading(true)
-              }}
+              onClick={enterPlanningMode}
             >
               <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
               {text(locale, 'Planeringsläge', 'Planning mode')}
             </Button>
           )}
-          {isStaffPlanningView && viewMode === 'month' && (
+          {isStaffPlanningView && planningMode && (
             <Button
               variant="default"
               size="sm"
-              onClick={() => {
-                setViewMode('week')
-                setLoading(true)
-              }}
+              onClick={exitPlanningMode}
             >
               <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
               {text(locale, 'Stäng planering', 'Close planning')}
@@ -1594,7 +1619,7 @@ export function TeamCalendarView({
             )}
           </div>
         </div>
-      ) : viewMode === 'month' ? (
+      ) : planningMode ? (
         <div className="overflow-x-auto rounded-lg border bg-background">
           <table className="w-full min-w-[1280px] table-fixed border-collapse text-sm">
             <colgroup>
@@ -1754,6 +1779,93 @@ export function TeamCalendarView({
               })}
             </tbody>
           </table>
+        </div>
+      ) : viewMode === 'month' ? (
+        <div className="rounded-lg border bg-background p-2 sm:p-3">
+          <div className="mb-1 grid grid-cols-7 gap-1">
+            {weekDates.map((d) => (
+              <div
+                key={`month-header-${d.getDay()}`}
+                className={cn(
+                  'px-1 py-1 text-center text-[11px] font-medium uppercase text-muted-foreground',
+                  d.getDay() === 0 && 'text-red-600'
+                )}
+              >
+                {d.toLocaleDateString(dateLocale(locale), { weekday: 'short' })}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {monthGridDays.map((date, idx) => {
+              if (!date) {
+                return <div key={`month-pad-${idx}`} className="min-h-[96px] rounded-md border border-dashed border-muted bg-muted/10" />
+              }
+              const dayEvents = visibleEvents
+                .filter((e) => isSameDay(new Date(e.startDate), date))
+                .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+              const isToday = isSameDay(date, today)
+              const isWeekend = date.getDay() === 0 || date.getDay() === 6
+              const planBlock = activeTeamPlan ? planBlockForDate(activeTeamPlan.blocks, date) : null
+              const planBlockIndex = planBlock && activeTeamPlan
+                ? activeTeamPlan.blocks.findIndex((block) => block.id === planBlock.id)
+                : -1
+              const planBlockColor = planBlockIndex >= 0 ? getPlanBlockColor(planBlockIndex) : null
+              return (
+                <div
+                  key={date.toISOString()}
+                  className={cn(
+                    'min-h-[96px] rounded-md border p-1',
+                    planBlockColor ? planBlockColor.row : isWeekend ? 'bg-muted/30' : 'bg-background'
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      className={cn(
+                        'inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-medium',
+                        isToday
+                          ? 'bg-primary text-primary-foreground'
+                          : date.getDay() === 0
+                            ? 'text-red-600'
+                            : 'text-foreground'
+                      )}
+                    >
+                      {date.getDate()}
+                    </span>
+                    {planBlockColor && <span className={cn('h-2 w-2 shrink-0 rounded-full', planBlockColor.marker)} />}
+                  </div>
+                  <div className="mt-1 space-y-0.5">
+                    {dayEvents.slice(0, 3).map((event) => {
+                      const typeConf = getTypeConfig(event.type, locale)
+                      return (
+                        <button
+                          key={event.id}
+                          type="button"
+                          onClick={() => setSelectedEvent(event)}
+                          className="flex w-full items-center gap-1 rounded-sm px-1 py-0.5 text-left text-[11px] hover:bg-muted"
+                          title={`${formatTime(event.startDate, locale)} · ${event.title}`}
+                        >
+                          <span className={`inline-block h-1.5 w-1.5 shrink-0 rounded-full ${typeConf.color}`} />
+                          <span className="truncate">{event.title}</span>
+                        </button>
+                      )
+                    })}
+                    {dayEvents.length > 3 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setWeekBase(date)
+                          selectViewMode('day')
+                        }}
+                        className="w-full rounded-sm px-1 text-left text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        +{dayEvents.length - 3} {text(locale, 'fler', 'more')}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
         </div>
       ) : (
         <div className="space-y-1">
