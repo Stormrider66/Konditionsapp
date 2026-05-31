@@ -9,9 +9,22 @@ import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getBusinessMembership } from '@/lib/coach/team-access'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const scope = getRequestedBusinessScope(request)
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
@@ -116,10 +129,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     // Handle redirect from requireCoach
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     console.error('Error fetching coach alerts:', error)
-    return NextResponse.json({ error: 'Failed to fetch alerts' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch alerts', 'Kunde inte hämta varningar') }, { status: 500 })
   }
 }

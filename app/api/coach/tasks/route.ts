@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
 
     // Get business membership
     const membership = await prisma.businessMember.findFirst({
@@ -54,13 +67,16 @@ export async function GET() {
 
     return NextResponse.json({ tasks })
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const body = await request.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -69,7 +85,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business membership' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business membership', 'Inget verksamhetsmedlemskap') }, { status: 400 })
     }
 
     const task = await prisma.coachTask.create({
@@ -101,18 +117,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ task })
   } catch {
-    return NextResponse.json({ error: 'Failed to create task' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create task', 'Kunde inte skapa uppgiften') }, { status: 500 })
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const body = await request.json()
     const { id, ...updates } = body
 
     if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'id required', 'id är obligatoriskt') }, { status: 400 })
     }
 
     // Verify the task belongs to user's business
@@ -122,7 +141,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business membership' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business membership', 'Inget verksamhetsmedlemskap') }, { status: 400 })
     }
 
     const existing = await prisma.coachTask.findFirst({
@@ -130,7 +149,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!existing) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Task not found', 'Uppgiften hittades inte') }, { status: 404 })
     }
 
     // Only creator, assignee, or owner/admin can update
@@ -141,7 +160,7 @@ export async function PATCH(request: NextRequest) {
       membership.role === 'ADMIN'
 
     if (!canUpdate) {
-      return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Not authorized', 'Saknar behörighet') }, { status: 403 })
     }
 
     const data: Record<string, unknown> = {}
@@ -182,17 +201,20 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ task })
   } catch {
-    return NextResponse.json({ error: 'Failed to update task' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update task', 'Kunde inte uppdatera uppgiften') }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const { id } = await request.json()
 
     if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'id required', 'id är obligatoriskt') }, { status: 400 })
     }
 
     const membership = await prisma.businessMember.findFirst({
@@ -201,7 +223,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business membership' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business membership', 'Inget verksamhetsmedlemskap') }, { status: 400 })
     }
 
     const existing = await prisma.coachTask.findFirst({
@@ -209,7 +231,7 @@ export async function DELETE(request: NextRequest) {
     })
 
     if (!existing) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Task not found', 'Uppgiften hittades inte') }, { status: 404 })
     }
 
     const canDelete =
@@ -218,13 +240,13 @@ export async function DELETE(request: NextRequest) {
       membership.role === 'ADMIN'
 
     if (!canDelete) {
-      return NextResponse.json({ error: 'Not authorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Not authorized', 'Saknar behörighet') }, { status: 403 })
     }
 
     await prisma.coachTask.delete({ where: { id } })
 
     return NextResponse.json({ success: true })
   } catch {
-    return NextResponse.json({ error: 'Failed to delete task' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to delete task', 'Kunde inte ta bort uppgiften') }, { status: 500 })
   }
 }

@@ -14,12 +14,25 @@ const updateSchema = z.object({
   note: z.string().optional(),
 })
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const { id } = await params
 
     // Verify alert belongs to this coach
@@ -31,7 +44,7 @@ export async function PATCH(
     })
 
     if (!alert) {
-      return NextResponse.json({ error: 'Alert not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Alert not found', 'Varningen hittades inte') }, { status: 404 })
     }
 
     // Parse and validate body
@@ -40,7 +53,7 @@ export async function PATCH(
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.errors },
+        { error: t(locale, 'Invalid request', 'Ogiltig förfrågan'), details: validation.error.errors },
         { status: 400 }
       )
     }
@@ -87,11 +100,11 @@ export async function PATCH(
   } catch (error) {
     // Handle redirect from requireCoach
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     console.error('Error updating coach alert:', error)
-    return NextResponse.json({ error: 'Failed to update alert' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update alert', 'Kunde inte uppdatera varningen') }, { status: 500 })
   }
 }
 
@@ -99,8 +112,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const { id } = await params
 
     const alert = await prisma.coachAlert.findFirst({
@@ -125,16 +141,16 @@ export async function GET(
     })
 
     if (!alert) {
-      return NextResponse.json({ error: 'Alert not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Alert not found', 'Varningen hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json({ alert })
   } catch (error) {
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     console.error('Error fetching coach alert:', error)
-    return NextResponse.json({ error: 'Failed to fetch alert' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch alert', 'Kunde inte hämta varningen') }, { status: 500 })
   }
 }
