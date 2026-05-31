@@ -10,7 +10,7 @@ export interface SwimmingTemplateWorkout {
   duration: number // minutes
   distance: number // meters
   swimZone: number // Primary zone (1-5)
-  structure?: string // Set structure like "8x100m @CSS"
+  structure?: string // Set structure like "8 x 100 m @ CSS"
   strokeFocus?: 'freestyle' | 'backstroke' | 'breaststroke' | 'butterfly' | 'im' | 'mixed'
 }
 
@@ -39,7 +39,7 @@ export function get8WeekCssBuilder(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Bygg aerob grund och testa utgångspunkt',
+      focus: 'Build aerobic base and test the starting point',
       weeklyDistance: Math.round(weeklyDistance * 0.8),
       weeklyHours: Math.round((weeklyDistance / 15000) * 5),
       keyWorkouts: getBaseSwimWorkouts(1, distanceMultiplier),
@@ -47,7 +47,7 @@ export function get8WeekCssBuilder(
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Fortsätt aerob utveckling med längre pass',
+      focus: 'Continue aerobic development with longer sessions',
       weeklyDistance: Math.round(weeklyDistance * 0.9),
       weeklyHours: Math.round((weeklyDistance / 15000) * 5.5),
       keyWorkouts: getBaseSwimWorkouts(2, distanceMultiplier),
@@ -57,7 +57,7 @@ export function get8WeekCssBuilder(
     {
       week: 3,
       phase: 'BUILD',
-      focus: 'Introducera CSS-intervaller',
+      focus: 'Introduce CSS intervals',
       weeklyDistance: weeklyDistance,
       weeklyHours: Math.round((weeklyDistance / 15000) * 6),
       keyWorkouts: getThresholdSwimWorkouts(3, distanceMultiplier),
@@ -65,7 +65,7 @@ export function get8WeekCssBuilder(
     {
       week: 4,
       phase: 'RECOVERY',
-      focus: 'Återhämtningsvecka - minska volym 40%',
+      focus: 'Recovery week - reduce volume by 40%',
       weeklyDistance: Math.round(weeklyDistance * 0.6),
       weeklyHours: Math.round((weeklyDistance / 15000) * 3.5),
       keyWorkouts: getRecoverySwimWorkouts(distanceMultiplier),
@@ -75,7 +75,7 @@ export function get8WeekCssBuilder(
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Längre CSS-intervaller för tröskelhöjning',
+      focus: 'Longer CSS intervals to raise threshold',
       weeklyDistance: Math.round(weeklyDistance * 1.1),
       weeklyHours: Math.round((weeklyDistance / 15000) * 6.5),
       keyWorkouts: getIntensiveThresholdWorkouts(5, distanceMultiplier),
@@ -83,7 +83,7 @@ export function get8WeekCssBuilder(
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Peak tröskelvecka - max adaptation',
+      focus: 'Peak threshold week - max adaptation',
       weeklyDistance: Math.round(weeklyDistance * 1.15),
       weeklyHours: Math.round((weeklyDistance / 15000) * 7),
       keyWorkouts: getIntensiveThresholdWorkouts(6, distanceMultiplier),
@@ -93,7 +93,7 @@ export function get8WeekCssBuilder(
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'VO2max-intervaller och fartlek',
+      focus: 'VO2max intervals and fartlek',
       weeklyDistance: weeklyDistance,
       weeklyHours: Math.round((weeklyDistance / 15000) * 6),
       keyWorkouts: getPeakSwimWorkouts(distanceMultiplier),
@@ -101,7 +101,7 @@ export function get8WeekCssBuilder(
     {
       week: 8,
       phase: 'RECOVERY',
-      focus: 'Taper och CSS-retest',
+      focus: 'Taper and CSS retest',
       weeklyDistance: Math.round(weeklyDistance * 0.5),
       weeklyHours: Math.round((weeklyDistance / 15000) * 3),
       keyWorkouts: getTestWeekSwimWorkouts(distanceMultiplier),
@@ -128,22 +128,22 @@ export function get12WeekDistanceProgram(
     let volumeMultiplier = 1
 
     if (week <= 3) {
-      focus = 'Grundläggande aerob utveckling'
+      focus = 'Basic aerobic development'
       volumeMultiplier = 0.7 + (week * 0.1)
     } else if (week === 4 || week === 8) {
       phase = 'RECOVERY'
-      focus = 'Återhämtningsvecka'
+      focus = 'Recovery week'
       volumeMultiplier = 0.6
     } else if (week <= 7) {
-      focus = 'Bygg volym och uthållighet'
+      focus = 'Build volume and endurance'
       volumeMultiplier = 0.9 + ((week - 4) * 0.05)
     } else if (week <= 11) {
       phase = 'BUILD'
-      focus = 'Tävlingsspecifik träning'
+      focus = 'Race-specific training'
       volumeMultiplier = 1.0 + ((week - 8) * 0.05)
     } else {
       phase = 'RECOVERY'
-      focus = 'Taper inför tävling'
+      focus = 'Taper before race day'
       volumeMultiplier = 0.5
     }
 
@@ -177,7 +177,7 @@ export function get8WeekSprintProgram(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Teknikfokus och aerob grund',
+      focus: 'Technique focus and aerobic base',
       weeklyDistance: Math.round(weeklyDistance * 0.8),
       weeklyHours: Math.round((weeklyDistance / 15000) * 4.5),
       keyWorkouts: getTechniqueWorkouts(distanceMultiplier),
@@ -185,7 +185,7 @@ export function get8WeekSprintProgram(
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Bygg grundfart och effektivitet',
+      focus: 'Build base speed and efficiency',
       weeklyDistance: Math.round(weeklyDistance * 0.9),
       weeklyHours: Math.round((weeklyDistance / 15000) * 5),
       keyWorkouts: getSprintBaseWorkouts(distanceMultiplier),
@@ -195,7 +195,7 @@ export function get8WeekSprintProgram(
     {
       week: 3,
       phase: 'BUILD',
-      focus: 'Introducera sprintintervaller',
+      focus: 'Introduce sprint intervals',
       weeklyDistance: weeklyDistance,
       weeklyHours: Math.round((weeklyDistance / 15000) * 5),
       keyWorkouts: getSprintDevelopmentWorkouts(3, distanceMultiplier, targetEvent),
@@ -203,7 +203,7 @@ export function get8WeekSprintProgram(
     {
       week: 4,
       phase: 'RECOVERY',
-      focus: 'Återhämtningsvecka',
+      focus: 'Recovery week',
       weeklyDistance: Math.round(weeklyDistance * 0.6),
       weeklyHours: Math.round((weeklyDistance / 15000) * 3),
       keyWorkouts: getRecoverySwimWorkouts(distanceMultiplier),
@@ -213,7 +213,7 @@ export function get8WeekSprintProgram(
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Tävlingstempo och race pace-intervaller',
+      focus: 'Race pace and race-pace intervals',
       weeklyDistance: weeklyDistance,
       weeklyHours: Math.round((weeklyDistance / 15000) * 5),
       keyWorkouts: getRacePaceWorkouts(5, distanceMultiplier, targetEvent),
@@ -221,7 +221,7 @@ export function get8WeekSprintProgram(
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Peak sprintträning',
+      focus: 'Peak sprint training',
       weeklyDistance: Math.round(weeklyDistance * 1.1),
       weeklyHours: Math.round((weeklyDistance / 15000) * 5.5),
       keyWorkouts: getRacePaceWorkouts(6, distanceMultiplier, targetEvent),
@@ -231,7 +231,7 @@ export function get8WeekSprintProgram(
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'Skärpa och race starts',
+      focus: 'Sharpness and race starts',
       weeklyDistance: Math.round(weeklyDistance * 0.8),
       weeklyHours: Math.round((weeklyDistance / 15000) * 4),
       keyWorkouts: getSprintPeakWorkouts(distanceMultiplier, targetEvent),
@@ -239,7 +239,7 @@ export function get8WeekSprintProgram(
     {
       week: 8,
       phase: 'PEAK',
-      focus: 'Tävlingsvecka!',
+      focus: 'Race week!',
       weeklyDistance: Math.round(weeklyDistance * 0.4),
       weeklyHours: Math.round((weeklyDistance / 15000) * 2),
       keyWorkouts: getSprintTaperWorkouts(distanceMultiplier, targetEvent),
@@ -263,33 +263,33 @@ export function getOpenWaterPrep(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Bygg uthållighetsgrund i pool',
+      focus: 'Build endurance base in the pool',
       weeklyDistance: Math.round(weeklyDistance * 0.8),
       weeklyHours: Math.round((weeklyDistance / 20000) * 5),
       keyWorkouts: [
         {
           type: 'endurance',
-          name: 'Långpass',
-          description: 'Uthållig simning i jämn fart',
+          name: 'Long swim',
+          description: 'Endurance swimming at an even pace',
           duration: 60,
           distance: Math.round(3000 * distanceMultiplier),
           swimZone: 2,
-          structure: 'Kontinuerlig simning i Z2',
+          structure: 'Continuous swimming in Z2',
           strokeFocus: 'freestyle',
         },
         {
           type: 'threshold',
-          name: 'CSS-intervaller',
-          description: 'Bygg tröskelhållbarhet',
+          name: 'CSS intervals',
+          description: 'Build threshold durability',
           duration: 50,
           distance: Math.round(2500 * distanceMultiplier),
           swimZone: 3,
-          structure: '5x400m @CSS, 30s vila',
+          structure: '5 x 400 m @ CSS, 30 s recovery',
         },
         {
           type: 'technique',
-          name: 'Simtagsteknik',
-          description: 'Fokus på effektivitet',
+          name: 'Stroke technique',
+          description: 'Focus on efficiency',
           duration: 45,
           distance: Math.round(2000 * distanceMultiplier),
           swimZone: 2,
@@ -300,79 +300,79 @@ export function getOpenWaterPrep(
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Öka distans och introducera öppet vatten-specifik träning',
+      focus: 'Increase distance and introduce open-water-specific training',
       weeklyDistance: Math.round(weeklyDistance * 0.9),
       weeklyHours: Math.round((weeklyDistance / 20000) * 5.5),
       keyWorkouts: [
         {
           type: 'endurance',
-          name: 'Långpass med temposkiften',
-          description: 'Simulera öppet vatten-förhållanden',
+          name: 'Long swim with pace changes',
+          description: 'Simulate open-water conditions',
           duration: 70,
           distance: Math.round(3500 * distanceMultiplier),
           swimZone: 2,
-          structure: '5x(500m Z2 + 100m Z3)',
+          structure: '5 x (500 m Z2 + 100 m Z3)',
         },
         {
           type: 'openwater',
-          name: 'Siktning & navigering',
-          description: 'Lär dig sikta under simning',
+          name: 'Sighting & navigation',
+          description: 'Learn to sight while swimming',
           duration: 45,
           distance: Math.round(2000 * distanceMultiplier),
           swimZone: 2,
-          structure: 'Inkludera siktning var 6:e simtag',
+          structure: 'Include sighting every 6th stroke',
         },
         {
           type: 'threshold',
-          name: 'Pyramidpass',
-          description: 'Varierande distans-intervaller',
+          name: 'Pyramid session',
+          description: 'Variable-distance intervals',
           duration: 55,
           distance: Math.round(2800 * distanceMultiplier),
           swimZone: 3,
-          structure: '200-400-600-400-200m @CSS',
+          structure: '200-400-600-400-200 m @ CSS',
         },
       ],
     },
     {
       week: 3,
       phase: 'BUILD',
-      focus: 'Öka intensitet och simulera tävling',
+      focus: 'Increase intensity and simulate racing',
       weeklyDistance: weeklyDistance,
       weeklyHours: Math.round((weeklyDistance / 20000) * 6),
       keyWorkouts: [
         {
           type: 'endurance',
-          name: 'Ultralångpass',
-          description: `${Math.round(eventDistanceKm * 0.7)}km kontinuerlig`,
+          name: 'Ultra-long swim',
+          description: `${Math.round(eventDistanceKm * 0.7)} km continuous`,
           duration: Math.round(45 * eventMultiplier),
           distance: Math.round(eventDistanceKm * 700),
           swimZone: 2,
-          structure: 'Inkludera tempo-block',
+          structure: 'Include tempo blocks',
         },
         {
           type: 'openwater',
-          name: 'Massstart-simulering',
-          description: 'Öva start och positionering',
+          name: 'Mass-start simulation',
+          description: 'Practice starts and positioning',
           duration: 50,
           distance: Math.round(2500 * distanceMultiplier),
           swimZone: 3,
-          structure: '10x100m race pace start + 150m steady',
+          structure: '10 x 100 m race-pace start + 150 m steady',
         },
         {
           type: 'threshold',
           name: 'Race pace-block',
-          description: 'Tävlingstempo med korta viloperioder',
+          description: 'Race pace with short recovery periods',
           duration: 55,
           distance: Math.round(3000 * distanceMultiplier),
           swimZone: 3,
-          structure: '3x800m @target race pace, 45s vila',
+          structure: '3 x 800 m @ target race pace, 45 s recovery',
         },
       ],
     },
     {
       week: 4,
       phase: 'RECOVERY',
-      focus: 'Återhämtning och supercompensation',
+      focus: 'Recovery and supercompensation',
       weeklyDistance: Math.round(weeklyDistance * 0.6),
       weeklyHours: Math.round((weeklyDistance / 20000) * 3.5),
       keyWorkouts: getRecoverySwimWorkouts(distanceMultiplier),
@@ -380,86 +380,86 @@ export function getOpenWaterPrep(
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Peak volym - längsta passet',
+      focus: 'Peak volume - longest session',
       weeklyDistance: Math.round(weeklyDistance * 1.1),
       weeklyHours: Math.round((weeklyDistance / 20000) * 6.5),
       keyWorkouts: [
         {
           type: 'openwater',
-          name: 'Tävlingssimulering',
-          description: `Full ${eventDistanceKm}km simulering`,
+          name: 'Race simulation',
+          description: `Full ${eventDistanceKm} km simulation`,
           duration: Math.round(60 * eventMultiplier),
           distance: Math.round(eventDistanceKm * 1000),
           swimZone: 3,
-          structure: 'Inkludera siktning, temposkiften, final sprint',
+          structure: 'Include sighting, pace changes, final sprint',
         },
         {
           type: 'vo2max',
-          name: 'VO2max-intervaller',
-          description: 'Bygger topkapacitet',
+          name: 'VO2max intervals',
+          description: 'Builds top-end capacity',
           duration: 45,
           distance: Math.round(2000 * distanceMultiplier),
           swimZone: 4,
-          structure: '8x100m @90% effort, 30s vila',
+          structure: '8 x 100 m @ 90% effort, 30 s recovery',
         },
         {
           type: 'technique',
-          name: 'Bilateral andning',
-          description: 'Öva andning åt båda håll för öppet vatten',
+          name: 'Bilateral breathing',
+          description: 'Practice breathing to both sides for open water',
           duration: 40,
           distance: Math.round(1800 * distanceMultiplier),
           swimZone: 2,
-          structure: 'Alternera: 3-andning, höger, vänster',
+          structure: 'Alternate: 3-stroke breathing, right, left',
         },
       ],
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Specifik tävlingsförberedelse',
+      focus: 'Specific race preparation',
       weeklyDistance: weeklyDistance,
       weeklyHours: Math.round((weeklyDistance / 20000) * 6),
       keyWorkouts: [
         {
           type: 'openwater',
-          name: 'Öppet vatten-pass',
-          description: 'Träna i öppen vattenomgivning om möjligt',
+          name: 'Open-water session',
+          description: 'Train in an open-water environment if possible',
           duration: 60,
           distance: Math.round(3000 * distanceMultiplier),
           swimZone: 2,
-          structure: 'Inkludera navigation och tempokontroll',
+          structure: 'Include navigation and pace control',
         },
         {
           type: 'threshold',
-          name: 'Negative split-övning',
-          description: 'Lär dig fördela kraften rätt',
+          name: 'Negative split drill',
+          description: 'Learn to distribute effort correctly',
           duration: 55,
           distance: Math.round(2800 * distanceMultiplier),
           swimZone: 3,
-          structure: '2x1000m med andra 500m snabbare',
+          structure: '2 x 1000 m with the second 500 m faster',
         },
         {
           type: 'sprint',
-          name: 'Spurtar',
-          description: 'Öva målspurt',
+          name: 'Finishing sprints',
+          description: 'Practice the finishing kick',
           duration: 40,
           distance: Math.round(1500 * distanceMultiplier),
           swimZone: 5,
-          structure: '10x50m all-out, 45s vila',
+          structure: '10 x 50 m all-out, 45 s recovery',
         },
       ],
     },
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'Skärpa utan trötthet',
+      focus: 'Sharpness without fatigue',
       weeklyDistance: Math.round(weeklyDistance * 0.75),
       weeklyHours: Math.round((weeklyDistance / 20000) * 4.5),
       keyWorkouts: [
         {
           type: 'endurance',
-          name: 'Steady-pass',
-          description: 'Håll simkänslan',
+          name: 'Steady session',
+          description: 'Keep swim feel sharp',
           duration: 50,
           distance: Math.round(2500 * distanceMultiplier),
           swimZone: 2,
@@ -467,16 +467,16 @@ export function getOpenWaterPrep(
         {
           type: 'openwater',
           name: 'Opener',
-          description: 'Race-tempo-block',
+          description: 'Race-pace blocks',
           duration: 40,
           distance: Math.round(1800 * distanceMultiplier),
           swimZone: 3,
-          structure: '3x400m @race pace',
+          structure: '3 x 400 m @ race pace',
         },
         {
           type: 'recovery',
-          name: 'Lätt simning',
-          description: 'Aktiv vila',
+          name: 'Easy swimming',
+          description: 'Active rest',
           duration: 30,
           distance: Math.round(1200 * distanceMultiplier),
           swimZone: 1,
@@ -486,31 +486,31 @@ export function getOpenWaterPrep(
     {
       week: 8,
       phase: 'PEAK',
-      focus: 'Tävlingsvecka!',
+      focus: 'Race week!',
       weeklyDistance: Math.round(weeklyDistance * 0.4),
       weeklyHours: Math.round((weeklyDistance / 20000) * 2.5),
       keyWorkouts: [
         {
           type: 'recovery',
-          name: 'Lätt simning',
-          description: 'Håll benen fräscha',
+          name: 'Easy swimming',
+          description: 'Keep the body fresh',
           duration: 30,
           distance: 1500,
           swimZone: 1,
         },
         {
           type: 'threshold',
-          name: 'Aktivering',
-          description: 'Kort race-tempo dagen före',
+          name: 'Activation',
+          description: 'Short race-pace work the day before',
           duration: 25,
           distance: 1000,
           swimZone: 3,
-          structure: '4x100m @race pace med full vila',
+          structure: '4 x 100 m @ race pace with full recovery',
         },
         {
           type: 'openwater',
-          name: 'TÄVLINGSDAG!',
-          description: `Öppet vatten ${eventDistanceKm} km`,
+          name: 'RACE DAY!',
+          description: `Open water ${eventDistanceKm} km`,
           duration: Math.round(eventDistanceKm * 20),
           distance: eventDistanceKm * 1000,
           swimZone: 3,
@@ -526,8 +526,8 @@ function getBaseSwimWorkouts(week: number, multiplier: number): SwimmingTemplate
   return [
     {
       type: 'endurance',
-      name: 'Långpass',
-      description: 'Bygg aerob grund med jämn simning',
+      name: 'Long swim',
+      description: 'Build aerobic base with steady swimming',
       duration: Math.round((45 + week * 10) * multiplier),
       distance: Math.round((2500 + week * 500) * multiplier),
       swimZone: 2,
@@ -535,8 +535,8 @@ function getBaseSwimWorkouts(week: number, multiplier: number): SwimmingTemplate
     },
     {
       type: 'technique',
-      name: 'Teknikpass',
-      description: 'Fokus på simeffektivitet och SWOLF',
+      name: 'Technique session',
+      description: 'Focus on swim efficiency and SWOLF',
       duration: Math.round(40 * multiplier),
       distance: Math.round(2000 * multiplier),
       swimZone: 2,
@@ -545,17 +545,17 @@ function getBaseSwimWorkouts(week: number, multiplier: number): SwimmingTemplate
     },
     {
       type: 'endurance',
-      name: 'Intervaller med vila',
-      description: 'Bygg aerob kapacitet med korta viloperioder',
+      name: 'Intervals with recovery',
+      description: 'Build aerobic capacity with short recovery periods',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2500 * multiplier),
       swimZone: 2,
-      structure: '10x200m @Z2, 15s vila',
+      structure: '10 x 200 m @ Z2, 15 s recovery',
     },
     {
       type: 'recovery',
-      name: 'Aktiv återhämtning',
-      description: 'Lätt simning, blanda simtag',
+      name: 'Active recovery',
+      description: 'Easy swimming, mix strokes',
       duration: 30,
       distance: 1500,
       swimZone: 1,
@@ -568,17 +568,17 @@ function getThresholdSwimWorkouts(week: number, multiplier: number): SwimmingTem
   return [
     {
       type: 'threshold',
-      name: 'CSS-intervaller',
-      description: 'Huvudpass för tröskelhöjning',
+      name: 'CSS intervals',
+      description: 'Main session for raising threshold',
       duration: Math.round(50 * multiplier),
       distance: Math.round(2800 * multiplier),
       swimZone: 3,
-      structure: week === 3 ? '6x300m @CSS, 20s vila' : '8x300m @CSS, 20s vila',
+      structure: week === 3 ? '6 x 300 m @ CSS, 20 s recovery' : '8 x 300 m @ CSS, 20 s recovery',
     },
     {
       type: 'endurance',
-      name: 'Långpass',
-      description: 'Steady aerob simning',
+      name: 'Long swim',
+      description: 'Steady aerobic swimming',
       duration: Math.round(60 * multiplier),
       distance: Math.round(3200 * multiplier),
       swimZone: 2,
@@ -586,20 +586,20 @@ function getThresholdSwimWorkouts(week: number, multiplier: number): SwimmingTem
     {
       type: 'threshold',
       name: 'Broken 1000',
-      description: 'Tävlingsliknande intensitet med korta pauser',
+      description: 'Race-like intensity with short pauses',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2500 * multiplier),
       swimZone: 3,
-      structure: '2x(5x200m @CSS, 10s vila) med 60s mellan block',
+      structure: '2 x (5 x 200 m @ CSS, 10 s recovery) with 60 s between blocks',
     },
     {
       type: 'recovery',
-      name: 'Teknik & vila',
-      description: 'Lätt simning med fokus på teknik',
+      name: 'Technique & recovery',
+      description: 'Easy swimming with a technique focus',
       duration: 35,
       distance: 1800,
       swimZone: 1,
-      structure: 'Drills och lätt simning',
+      structure: 'Drills and easy swimming',
     },
   ]
 }
@@ -610,35 +610,35 @@ function getIntensiveThresholdWorkouts(week: number, multiplier: number): Swimmi
   return [
     {
       type: 'threshold',
-      name: 'Långa CSS-intervaller',
-      description: 'Maximera tiden vid tröskel',
+      name: 'Long CSS intervals',
+      description: 'Maximize time at threshold',
       duration: Math.round(55 * multiplier),
       distance: Math.round(3000 * multiplier),
       swimZone: 3,
-      structure: `6x${intervalLength}m @CSS, 20-30s vila`,
+      structure: `6 x ${intervalLength} m @ CSS, 20-30 s recovery`,
     },
     {
       type: 'vo2max',
       name: 'VO2max-set',
-      description: 'Höj maximal syreupptagning',
+      description: 'Raise maximum oxygen uptake',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2200 * multiplier),
       swimZone: 4,
-      structure: '8x100m @90-95% max, 20s vila',
+      structure: '8 x 100 m @ 90-95% max, 20 s recovery',
     },
     {
       type: 'endurance',
       name: 'Pyramid',
-      description: 'Varierande distans för mental uthållighet',
+      description: 'Variable distance for mental endurance',
       duration: Math.round(60 * multiplier),
       distance: Math.round(3500 * multiplier),
       swimZone: 2,
-      structure: '100-200-300-400-500-400-300-200-100m @Z2-3',
+      structure: '100-200-300-400-500-400-300-200-100 m @ Z2-3',
     },
     {
       type: 'recovery',
       name: 'Recovery swim',
-      description: 'Aktiv återhämtning',
+      description: 'Active recovery',
       duration: 30,
       distance: 1500,
       swimZone: 1,
@@ -650,38 +650,38 @@ function getPeakSwimWorkouts(multiplier: number): SwimmingTemplateWorkout[] {
   return [
     {
       type: 'vo2max',
-      name: 'VO2max-intervaller',
-      description: 'Toppa din kapacitet',
+      name: 'VO2max intervals',
+      description: 'Peak your capacity',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2200 * multiplier),
       swimZone: 4,
-      structure: '5x200m @95% max, 30s vila',
+      structure: '5 x 200 m @ 95% max, 30 s recovery',
     },
     {
       type: 'threshold',
       name: 'Over-Under',
-      description: 'Lär dig hantera temposkiften',
+      description: 'Learn to handle pace changes',
       duration: Math.round(50 * multiplier),
       distance: Math.round(2800 * multiplier),
       swimZone: 3,
-      structure: '4x(200m @105% CSS + 200m @90% CSS)',
+      structure: '4 x (200 m @ 105% CSS + 200 m @ 90% CSS)',
     },
     {
       type: 'endurance',
-      name: 'Steady längdpass',
-      description: 'Återhämtning mellan hårda pass',
+      name: 'Steady distance session',
+      description: 'Recovery between hard sessions',
       duration: Math.round(50 * multiplier),
       distance: Math.round(2800 * multiplier),
       swimZone: 2,
     },
     {
       type: 'sprint',
-      name: 'Sprintintervaller',
-      description: 'Neuromuskulär aktivering',
+      name: 'Sprint intervals',
+      description: 'Neuromuscular activation',
       duration: Math.round(35 * multiplier),
       distance: Math.round(1500 * multiplier),
       swimZone: 5,
-      structure: '10x50m all-out, 45s vila',
+      structure: '10 x 50 m all-out, 45 s recovery',
     },
   ]
 }
@@ -690,8 +690,8 @@ function getRecoverySwimWorkouts(multiplier: number): SwimmingTemplateWorkout[] 
   return [
     {
       type: 'recovery',
-      name: 'Aktiv återhämtning',
-      description: 'Lätt simning, blanda simtag',
+      name: 'Active recovery',
+      description: 'Easy swimming, mix strokes',
       duration: 40,
       distance: 2000,
       swimZone: 1,
@@ -699,17 +699,17 @@ function getRecoverySwimWorkouts(multiplier: number): SwimmingTemplateWorkout[] 
     },
     {
       type: 'technique',
-      name: 'Teknikpass',
-      description: 'Fokus på effektivitet',
+      name: 'Technique session',
+      description: 'Focus on efficiency',
       duration: 35,
       distance: 1800,
       swimZone: 1,
-      structure: 'Drills och lätt simning',
+      structure: 'Drills and easy swimming',
     },
     {
       type: 'endurance',
-      name: 'Lätt uthållighet',
-      description: 'Steady Z2, njut av simningen',
+      name: 'Easy endurance',
+      description: 'Steady Z2, enjoy the swimming',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2500 * multiplier),
       swimZone: 2,
@@ -717,12 +717,12 @@ function getRecoverySwimWorkouts(multiplier: number): SwimmingTemplateWorkout[] 
   ]
 }
 
-function getTestWeekSwimWorkouts(multiplier: number): SwimmingTemplateWorkout[] {
+function getTestWeekSwimWorkouts(_multiplier: number): SwimmingTemplateWorkout[] {
   return [
     {
       type: 'recovery',
-      name: 'Lätt simning',
-      description: 'Vila inför test',
+      name: 'Easy swimming',
+      description: 'Rest before the test',
       duration: 30,
       distance: 1500,
       swimZone: 1,
@@ -730,16 +730,16 @@ function getTestWeekSwimWorkouts(multiplier: number): SwimmingTemplateWorkout[] 
     {
       type: 'threshold',
       name: 'CSS-TEST!',
-      description: '400m + 200m tidstest för CSS-beräkning',
+      description: '400 m + 200 m time trial for CSS calculation',
       duration: 45,
       distance: 1800,
       swimZone: 3,
-      structure: '400m TT, 10 min vila, 200m TT',
+      structure: '400 m TT, 10 min recovery, 200 m TT',
     },
     {
       type: 'recovery',
       name: 'Recovery',
-      description: 'Vila och fira din nya CSS!',
+      description: 'Rest and celebrate your new CSS!',
       duration: 25,
       distance: 1200,
       swimZone: 1,
@@ -754,34 +754,34 @@ function getDistanceWorkouts(week: number, multiplier: number, eventMultiplier: 
   return [
     {
       type: 'endurance',
-      name: 'Långpass',
-      description: 'Huvudpass för aerob utveckling',
+      name: 'Long swim',
+      description: 'Main session for aerobic development',
       duration: Math.round(baseDuration * multiplier * eventMultiplier),
       distance: Math.round(baseDistance * multiplier * eventMultiplier),
       swimZone: 2,
     },
     {
       type: 'threshold',
-      name: 'CSS-intervaller',
-      description: 'Tröskelhöjande pass',
+      name: 'CSS intervals',
+      description: 'Threshold-raising session',
       duration: Math.round(50 * multiplier),
       distance: Math.round(2800 * multiplier),
       swimZone: 3,
-      structure: '6x400m @CSS, 20s vila',
+      structure: '6 x 400 m @ CSS, 20 s recovery',
     },
     {
       type: 'technique',
-      name: 'Teknik & effektivitet',
-      description: 'Bygg bättre SWOLF',
+      name: 'Technique & efficiency',
+      description: 'Build better SWOLF',
       duration: 40,
       distance: 2000,
       swimZone: 2,
-      structure: 'Fokuera på simtagslängd och kadans',
+      structure: 'Focus on stroke length and cadence',
     },
     {
       type: 'recovery',
-      name: 'Aktiv vila',
-      description: 'Lätt simning',
+      name: 'Active rest',
+      description: 'Easy swimming',
       duration: 30,
       distance: 1500,
       swimZone: 1,
@@ -793,8 +793,8 @@ function getTechniqueWorkouts(multiplier: number): SwimmingTemplateWorkout[] {
   return [
     {
       type: 'technique',
-      name: 'Grundteknik',
-      description: 'Fokus på vattenkänsla och simtagsteknik',
+      name: 'Fundamental technique',
+      description: 'Focus on water feel and stroke technique',
       duration: 45,
       distance: Math.round(2000 * multiplier),
       swimZone: 2,
@@ -803,25 +803,25 @@ function getTechniqueWorkouts(multiplier: number): SwimmingTemplateWorkout[] {
     },
     {
       type: 'endurance',
-      name: 'Aerob bas',
-      description: 'Steady simning',
+      name: 'Aerobic base',
+      description: 'Steady swimming',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2500 * multiplier),
       swimZone: 2,
     },
     {
       type: 'technique',
-      name: 'Vändningar & starter',
-      description: 'Förbättra turn-teknik',
+      name: 'Turns & starts',
+      description: 'Improve turn technique',
       duration: 40,
       distance: Math.round(1800 * multiplier),
       swimZone: 2,
-      structure: '16x50m med fokus på vändning',
+      structure: '16 x 50 m with a focus on turns',
     },
     {
       type: 'recovery',
-      name: 'Aktiv vila',
-      description: 'Lätt simning, alla simtag',
+      name: 'Active rest',
+      description: 'Easy swimming, all strokes',
       duration: 30,
       distance: 1500,
       swimZone: 1,
@@ -834,25 +834,25 @@ function getSprintBaseWorkouts(multiplier: number): SwimmingTemplateWorkout[] {
   return [
     {
       type: 'endurance',
-      name: 'Aerob grund',
-      description: 'Bygg baskapacitet',
+      name: 'Aerobic base',
+      description: 'Build base capacity',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2500 * multiplier),
       swimZone: 2,
     },
     {
       type: 'threshold',
-      name: 'Fartleksimning',
-      description: 'Varierande tempo',
+      name: 'Fartlek swim',
+      description: 'Variable pace',
       duration: Math.round(40 * multiplier),
       distance: Math.round(2200 * multiplier),
       swimZone: 3,
-      structure: '16x100m (snabb/lugn)',
+      structure: '16 x 100 m (fast/easy)',
     },
     {
       type: 'technique',
-      name: 'Startteknik',
-      description: 'Poolstart och undervattensarbete',
+      name: 'Start technique',
+      description: 'Pool starts and underwater work',
       duration: 35,
       distance: 1500,
       swimZone: 2,
@@ -860,8 +860,8 @@ function getSprintBaseWorkouts(multiplier: number): SwimmingTemplateWorkout[] {
     },
     {
       type: 'recovery',
-      name: 'Lätt simning',
-      description: 'Aktiv återhämtning',
+      name: 'Easy swimming',
+      description: 'Active recovery',
       duration: 30,
       distance: 1500,
       swimZone: 1,
@@ -875,35 +875,35 @@ function getSprintDevelopmentWorkouts(week: number, multiplier: number, targetEv
   return [
     {
       type: 'sprint',
-      name: 'Sprintintervaller',
-      description: 'Bygg maxfart',
+      name: 'Sprint intervals',
+      description: 'Build maximum speed',
       duration: Math.round(40 * multiplier),
       distance: Math.round(1800 * multiplier),
       swimZone: 5,
-      structure: `12x${intervalDistance}m @95%, 45s vila`,
+      structure: `12 x ${intervalDistance} m @ 95%, 45 s recovery`,
     },
     {
       type: 'threshold',
       name: 'Lactate tolerance',
-      description: 'Lär dig tolerera mjölksyra',
+      description: 'Learn to tolerate lactate',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2200 * multiplier),
       swimZone: 4,
-      structure: '8x100m @85-90%, 20s vila',
+      structure: '8 x 100 m @ 85-90%, 20 s recovery',
     },
     {
       type: 'technique',
-      name: 'Raceteknik',
-      description: 'Vändningar och finisher',
+      name: 'Race technique',
+      description: 'Turns and finishes',
       duration: 35,
       distance: 1500,
       swimZone: 2,
-      structure: 'Fokus på effektiva vändningar och finish-touch',
+      structure: 'Focus on efficient turns and finish touches',
     },
     {
       type: 'endurance',
-      name: 'Aerob bas',
-      description: 'Återhämtning och volym',
+      name: 'Aerobic base',
+      description: 'Recovery and volume',
       duration: Math.round(40 * multiplier),
       distance: Math.round(2300 * multiplier),
       swimZone: 2,
@@ -915,35 +915,35 @@ function getRacePaceWorkouts(week: number, multiplier: number, targetEvent: numb
   return [
     {
       type: 'sprint',
-      name: 'Race pace-intervaller',
-      description: 'Simulera tävlingstempo',
+      name: 'Race-pace intervals',
+      description: 'Simulate race pace',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2000 * multiplier),
       swimZone: 5,
-      structure: `6x${targetEvent}m @race pace, full vila`,
+      structure: `6 x ${targetEvent} m @ race pace, full recovery`,
     },
     {
       type: 'vo2max',
       name: 'VO2max-set',
-      description: 'Höj syreupptagningsförmåga',
+      description: 'Raise oxygen uptake capacity',
       duration: Math.round(40 * multiplier),
       distance: Math.round(1800 * multiplier),
       swimZone: 4,
-      structure: '8x75m @max effort, 30s vila',
+      structure: '8 x 75 m @ max effort, 30 s recovery',
     },
     {
       type: 'threshold',
       name: 'Descending set',
-      description: 'Negative split-övning',
+      description: 'Negative split drill',
       duration: Math.round(45 * multiplier),
       distance: Math.round(2400 * multiplier),
       swimZone: 3,
-      structure: '4x300m descending (varje snabbare än förra)',
+      structure: '4 x 300 m descending, each faster than the previous one',
     },
     {
       type: 'recovery',
-      name: 'Lätt simning',
-      description: 'Aktiv vila',
+      name: 'Easy swimming',
+      description: 'Active rest',
       duration: 30,
       distance: 1500,
       swimZone: 1,
@@ -956,29 +956,29 @@ function getSprintPeakWorkouts(multiplier: number, targetEvent: number): Swimmin
     {
       type: 'sprint',
       name: 'Race-starts',
-      description: 'Öva tävlingsstart',
+      description: 'Practice race starts',
       duration: 35,
       distance: Math.round(1200 * multiplier),
       swimZone: 5,
-      structure: `8x${targetEvent <= 100 ? 25 : 50}m race start, full vila`,
+      structure: `8 x ${targetEvent <= 100 ? 25 : 50} m race start, full recovery`,
     },
     {
       type: 'threshold',
-      name: 'Opener-pass',
-      description: 'Aktivera systemen',
+      name: 'Opener session',
+      description: 'Activate the systems',
       duration: 40,
       distance: Math.round(1800 * multiplier),
       swimZone: 3,
-      structure: '4x200m @85% med full vila',
+      structure: '4 x 200 m @ 85% with full recovery',
     },
     {
       type: 'technique',
       name: 'Race prep',
-      description: 'Mental och fysisk förberedelse',
+      description: 'Mental and physical preparation',
       duration: 30,
       distance: 1200,
       swimZone: 2,
-      structure: 'Visualisering + lätta drill',
+      structure: 'Visualization + easy drills',
     },
   ]
 }
@@ -987,25 +987,25 @@ function getSprintTaperWorkouts(multiplier: number, targetEvent: number): Swimmi
   return [
     {
       type: 'recovery',
-      name: 'Lätt simning',
-      description: 'Håll simkänslan',
+      name: 'Easy swimming',
+      description: 'Keep swim feel sharp',
       duration: 25,
       distance: 1200,
       swimZone: 1,
     },
     {
       type: 'sprint',
-      name: 'Aktivering',
-      description: 'Kort race-tempo',
+      name: 'Activation',
+      description: 'Short race-pace work',
       duration: 25,
       distance: 800,
       swimZone: 5,
-      structure: `4x${targetEvent <= 100 ? 25 : 50}m @race pace, full vila`,
+      structure: `4 x ${targetEvent <= 100 ? 25 : 50} m @ race pace, full recovery`,
     },
     {
       type: 'sprint',
-      name: 'TÄVLINGSDAG!',
-      description: `${targetEvent}m sprint`,
+      name: 'RACE DAY!',
+      description: `${targetEvent} m sprint`,
       duration: Math.round(targetEvent / 25),
       distance: targetEvent,
       swimZone: 5,
@@ -1014,44 +1014,44 @@ function getSprintTaperWorkouts(multiplier: number, targetEvent: number): Swimmi
 }
 
 /**
- * Get swimming workout type descriptions in Swedish
+ * Get swimming workout type descriptions
  */
 export function getSwimmingWorkoutTypeDescriptions(): Record<SwimmingTemplateWorkout['type'], { name: string; description: string; zoneRange: string }> {
   return {
     endurance: {
-      name: 'Uthållighet',
-      description: 'Låg intensitet för aerob bas. Bekväm simning med jämnt tempo.',
-      zoneRange: 'Zon 2 (83-93% CSS)',
+      name: 'Endurance',
+      description: 'Low intensity for aerobic base. Comfortable swimming at an even pace.',
+      zoneRange: 'Zone 2 (83-93% CSS)',
     },
     threshold: {
-      name: 'Tröskel (CSS)',
-      description: 'Vid eller strax under CSS. Maximal hållbar fart i ~30 min.',
-      zoneRange: 'Zon 3 (93-102% CSS)',
+      name: 'Threshold (CSS)',
+      description: 'At or just below CSS. Maximum sustainable pace for about 30 minutes.',
+      zoneRange: 'Zone 3 (93-102% CSS)',
     },
     vo2max: {
       name: 'VO2max',
-      description: 'Hög intensitet intervaller. Andningen blir tung.',
-      zoneRange: 'Zon 4 (102-111% CSS)',
+      description: 'High-intensity intervals. Breathing becomes heavy.',
+      zoneRange: 'Zone 4 (102-111% CSS)',
     },
     sprint: {
       name: 'Sprint',
-      description: 'Maximal ansträngning, korta intervaller. Full återhämtning mellan.',
-      zoneRange: 'Zon 5 (111%+ CSS)',
+      description: 'Maximal effort, short intervals. Full recovery between reps.',
+      zoneRange: 'Zone 5 (111%+ CSS)',
     },
     recovery: {
-      name: 'Återhämtning',
-      description: 'Mycket lätt simning för aktiv vila.',
-      zoneRange: 'Zon 1 (74-83% CSS)',
+      name: 'Recovery',
+      description: 'Very easy swimming for active rest.',
+      zoneRange: 'Zone 1 (74-83% CSS)',
     },
     technique: {
-      name: 'Teknik',
-      description: 'Fokus på simeffektivitet, drills och SWOLF-förbättring.',
-      zoneRange: 'Zon 1-2',
+      name: 'Technique',
+      description: 'Focus on swim efficiency, drills, and SWOLF improvement.',
+      zoneRange: 'Zone 1-2',
     },
     openwater: {
-      name: 'Öppet vatten',
-      description: 'Specifik träning för öppet vatten-simning.',
-      zoneRange: 'Varierar',
+      name: 'Open water',
+      description: 'Specific training for open-water swimming.',
+      zoneRange: 'Varies',
     },
   }
 }
@@ -1073,10 +1073,10 @@ export function getRecommendedWeeklyDistance(
   const range = distanceRanges[fitnessLevel][goal]
 
   const descriptions = {
-    beginner: 'Bygg försiktigt och fokusera på teknik',
-    intermediate: 'Balansera volym med kvalitet (3:1 ratio)',
-    advanced: 'Kan hantera högre volymer med rätt periodisering',
-    elite: 'Maximala anpassningar kräver maximal belastning och vila',
+    beginner: 'Build cautiously and focus on technique',
+    intermediate: 'Balance volume with quality using a 3:1 ratio',
+    advanced: 'Can handle higher volumes with proper periodization',
+    elite: 'Maximum adaptations require maximum load and recovery',
   }
 
   return {
