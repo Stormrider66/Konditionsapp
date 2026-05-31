@@ -89,6 +89,11 @@ describe('knowledge skill controls', () => {
     const englishCatalog = formatKnowledgeSkillCatalog(skills, 'en')
     expect(englishCatalog).toContain('AVAILABLE AI KNOWLEDGE SKILLS')
     expect(englishCatalog).toContain('Use Norwegian Double Threshold and Lactate Threshold Testing')
+    expect(englishCatalog).toContain('Norwegian Double Threshold')
+    expect(englishCatalog).toContain('Lactate Threshold Testing')
+    expect(englishCatalog).not.toContain('Norsk Dubbeltröskelmetod')
+    expect(englishCatalog).not.toContain('Laktattröskeltest')
+    expect(englishCatalog).not.toContain('dubbeltröskel')
   })
 
   it('resolves explicitly named skills by Swedish name, English name, and keyword', async () => {

@@ -180,6 +180,24 @@ export async function resolveKnowledgeSkillsByIds(
 
 type AppLocale = 'en' | 'sv'
 
+const SWEDISH_CHARS = /[åäöÅÄÖ]/
+
+function formatSkillCatalogLine(skill: KnowledgeSkillSummary, locale: AppLocale): string {
+  if (locale === 'sv') {
+    const englishName = skill.nameEn && skill.nameEn !== skill.name ? ` / ${skill.nameEn}` : ''
+    const keywords = skill.keywords.slice(0, 5).join(', ')
+    return `- ${skill.name}${englishName}${keywords ? ` (${keywords})` : ''}`
+  }
+
+  const displayName = skill.nameEn || skill.name
+  const keywords = skill.keywords
+    .filter((keyword) => !SWEDISH_CHARS.test(keyword))
+    .slice(0, 5)
+    .join(', ')
+
+  return `- ${displayName}${keywords ? ` (${keywords})` : ''}`
+}
+
 export function formatKnowledgeSkillCatalog(
   skills: KnowledgeSkillSummary[],
   locale: AppLocale = 'en'
@@ -191,11 +209,7 @@ export function formatKnowledgeSkillCatalog(
   }, {})
 
   const lines = Object.entries(grouped).map(([category, categorySkills]) => {
-    const skillLines = categorySkills.map((skill) => {
-      const englishName = skill.nameEn && skill.nameEn !== skill.name ? ` / ${skill.nameEn}` : ''
-      const keywords = skill.keywords.slice(0, 5).join(', ')
-      return `- ${skill.name}${englishName}${keywords ? ` (${keywords})` : ''}`
-    })
+    const skillLines = categorySkills.map((skill) => formatSkillCatalogLine(skill, locale))
     return `### ${category}\n${skillLines.join('\n')}`
   })
 
