@@ -9,9 +9,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const { searchParams } = new URL(req.url)
     const teamId = searchParams.get('teamId')
@@ -45,16 +54,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ drills })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to load drills', 'Kunde inte läsa in övningar') }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: 'en' | 'sv' = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const body = await req.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -63,7 +74,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business found', 'Ingen verksamhet hittades') }, { status: 400 })
     }
 
     const drill = await prisma.teamDrill.create({
@@ -86,9 +97,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ drill }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error creating drill:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to save drill', 'Kunde inte spara övningen') }, { status: 500 })
   }
 }

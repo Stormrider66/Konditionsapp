@@ -16,9 +16,11 @@ function t(locale: AppLocale, en: string, sv: string): string {
 }
 
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const body = await req.json()
     const { imageBase64, mimeType } = body
@@ -48,9 +50,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(result)
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const message = error instanceof Error ? error.message : 'Analysis failed'
+    const message = error instanceof Error ? error.message : t(locale, 'Analysis failed', 'Analysen misslyckades')
     console.error('Drill analysis error:', error)
     return NextResponse.json({ error: message }, { status: 500 })
   }
