@@ -4,8 +4,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { Badge } from '@/components/ui/badge'
 import { Activity } from 'lucide-react'
-import { TeamTestsClient } from '@/components/coach/teams/TeamTestsClient'
-import { TeamTestProfile } from '@/components/coach/teams/TeamTestProfile'
+import { TeamTestTabs } from '@/components/coach/teams/TeamTestTabs'
 import { TeamAnalysisSubNav } from '@/components/coach/teams/TeamAnalysisSubNav'
 import { getTranslations } from '@/i18n/server'
 
@@ -48,10 +47,7 @@ export default async function TeamTestsPage({ params }: TestsPageProps) {
 
       <TeamAnalysisSubNav base={teamBase} />
 
-      <div className="space-y-8">
-        <TeamTestProfile teamId={teamId} businessSlug={businessSlug} />
-        <TeamTestsClient teamId={teamId} teamName={team.name} basePath={basePath} />
-      </div>
+      <TeamTestTabs teamId={teamId} teamName={team.name} basePath={basePath} businessSlug={businessSlug} />
     </div>
   )
 }

@@ -77,6 +77,8 @@ interface SeasonAnalysis {
 interface TeamTestProfileProps {
   teamId: string
   businessSlug?: string
+  /** Lock to a single view (driven by outer tabs). Omit to show the in-component toggle. */
+  view?: 'selector' | 'matrix'
 }
 
 // ---------------------------------------------------------------------------
@@ -618,10 +620,11 @@ function EmptyState({ title, text }: { title: string; text: string }) {
   )
 }
 
-function TestAnalysisSection({ seasons, membersTotal, locale }: { seasons: SeasonAnalysis[]; membersTotal: number; locale: Locale }) {
+function TestAnalysisSection({ seasons, membersTotal, locale, controlledView }: { seasons: SeasonAnalysis[]; membersTotal: number; locale: Locale; controlledView?: 'selector' | 'matrix' }) {
   const [seasonIdx, setSeasonIdx] = useState(0)
   const [compareIdx, setCompareIdx] = useState<number | null>(null)
   const [view, setView] = useState<'selector' | 'matrix'>('selector')
+  const activeView = controlledView ?? view
 
   const header = (
     <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -659,14 +662,16 @@ function TestAnalysisSection({ seasons, membersTotal, locale }: { seasons: Seaso
 
       <ProfileSummary scores={selected.scores} compareScores={compareSeason?.scores ?? null} compareLabel={compareSeason?.label ?? null} locale={locale} />
 
-      <div className="flex flex-wrap gap-2">
-        <button onClick={() => setView('selector')} className={cn('flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors', view === 'selector' ? 'border-blue-600 bg-blue-600 text-white' : 'bg-background hover:bg-muted')}><LayoutList className="h-4 w-4" /> {copy(locale, 'Selector', 'Väljare')}</button>
-        <button onClick={() => setView('matrix')} className={cn('flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors', view === 'matrix' ? 'border-blue-600 bg-blue-600 text-white' : 'bg-background hover:bg-muted')}><Grid3x3 className="h-4 w-4" /> {copy(locale, 'Matrix', 'Matris')}</button>
-      </div>
+      {!controlledView && (
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setView('selector')} className={cn('flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors', activeView === 'selector' ? 'border-blue-600 bg-blue-600 text-white' : 'bg-background hover:bg-muted')}><LayoutList className="h-4 w-4" /> {copy(locale, 'Selector', 'Väljare')}</button>
+          <button onClick={() => setView('matrix')} className={cn('flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors', activeView === 'matrix' ? 'border-blue-600 bg-blue-600 text-white' : 'bg-background hover:bg-muted')}><Grid3x3 className="h-4 w-4" /> {copy(locale, 'Matrix', 'Matris')}</button>
+        </div>
+      )}
 
       {selected.metricGroups.length === 0 ? (
         <EmptyState title={copy(locale, 'No data for this season', 'Ingen data för säsongen')} text={copy(locale, 'Pick another season above.', 'Välj en annan säsong ovan.')} />
-      ) : view === 'selector' ? (
+      ) : activeView === 'selector' ? (
         <TestSelectorView groups={selected.metricGroups} membersTotal={membersTotal} locale={locale} />
       ) : (
         <MatrixView groups={selected.metricGroups} membersTotal={membersTotal} scores={selected.scores} seasonLabel={selected.label} compare={compareSeason ? { label: compareSeason.label, groups: compareSeason.metricGroups, scores: compareSeason.scores } : null} locale={locale} />
@@ -684,7 +689,7 @@ interface SummaryData {
   members: Array<{ clientId: string }>
 }
 
-export function TeamTestProfile({ teamId, businessSlug }: TeamTestProfileProps) {
+export function TeamTestProfile({ teamId, businessSlug, view }: TeamTestProfileProps) {
   const locale: Locale = useLocale() === 'sv' ? 'sv' : 'en'
   const [data, setData] = useState<SummaryData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -727,5 +732,5 @@ export function TeamTestProfile({ teamId, businessSlug }: TeamTestProfileProps) 
     return <div className="py-12 text-center text-destructive">{error ?? copy(locale, 'No data available', 'Inget data tillgängligt')}</div>
   }
 
-  return <TestAnalysisSection seasons={data.seasons} membersTotal={data.members.length} locale={locale} />
+  return <TestAnalysisSection seasons={data.seasons} membersTotal={data.members.length} locale={locale} controlledView={view} />
 }
