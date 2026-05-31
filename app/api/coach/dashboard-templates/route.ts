@@ -19,13 +19,24 @@ import { prisma } from '@/lib/prisma'
 import { upsertCoachTemplateSchema } from '@/lib/validations/dashboard-preferences'
 import type { SportType } from '@prisma/client'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: Request) {
   const user = await requireCoach()
+  const locale = getUserLocale(user.language)
   const url = new URL(request.url)
   const businessId = url.searchParams.get('businessId')
 
   if (!businessId) {
-    return NextResponse.json({ error: 'businessId required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'businessId required', 'businessId är obligatoriskt') }, { status: 400 })
   }
 
   // Verify the coach belongs to this business
@@ -33,7 +44,7 @@ export async function GET(request: Request) {
     where: { businessId, userId: user.id, isActive: true },
   })
   if (!membership) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
   }
 
   const templates = await prisma.coachDashboardTemplate.findMany({
@@ -46,11 +57,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   const user = await requireCoach()
+  const locale = getUserLocale(user.language)
   const url = new URL(request.url)
   const businessId = url.searchParams.get('businessId')
 
   if (!businessId) {
-    return NextResponse.json({ error: 'businessId required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'businessId required', 'businessId är obligatoriskt') }, { status: 400 })
   }
 
   const membership = await prisma.businessMember.findFirst({
@@ -58,14 +70,14 @@ export async function POST(request: Request) {
     select: { role: true },
   })
   if (!membership) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
   }
 
   const body = await request.json()
   const parsed = upsertCoachTemplateSchema.safeParse(body)
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Invalid body', details: parsed.error.flatten() },
+      { error: t(locale, 'Invalid body', 'Ogiltigt innehåll'), details: parsed.error.flatten() },
       { status: 400 }
     )
   }
@@ -84,7 +96,7 @@ export async function POST(request: Request) {
       })
       if (!team) {
         return NextResponse.json(
-          { error: 'Team not found or not owned by this coach' },
+          { error: t(locale, 'Team not found or not owned by this coach', 'Teamet hittades inte eller ägs inte av den här coachen') },
           { status: 403 }
         )
       }
@@ -95,7 +107,7 @@ export async function POST(request: Request) {
       })
       if (!client) {
         return NextResponse.json(
-          { error: 'Athlete not found or not coached by this coach' },
+          { error: t(locale, 'Athlete not found or not coached by this coach', 'Atleten hittades inte eller coachas inte av den här coachen') },
           { status: 403 }
         )
       }

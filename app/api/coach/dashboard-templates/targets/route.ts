@@ -8,13 +8,24 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: Request) {
   const user = await requireCoach()
+  const locale = getUserLocale(user.language)
   const url = new URL(request.url)
   const businessId = url.searchParams.get('businessId')
 
   if (!businessId) {
-    return NextResponse.json({ error: 'businessId required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'businessId required', 'businessId är obligatoriskt') }, { status: 400 })
   }
 
   const membership = await prisma.businessMember.findFirst({
@@ -22,7 +33,7 @@ export async function GET(request: Request) {
     select: { role: true },
   })
   if (!membership) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
   }
 
   const coachIds = await getCoachScopedIds(user.id, businessId, membership.role)

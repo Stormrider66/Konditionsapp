@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
@@ -47,13 +60,16 @@ export async function GET() {
 
     return NextResponse.json({ posts })
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const body = await request.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -62,7 +78,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business', 'Ingen verksamhet') }, { status: 400 })
     }
 
     const post = await prisma.socialPost.create({
@@ -89,18 +105,21 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ post })
   } catch {
-    return NextResponse.json({ error: 'Failed to create post' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create post', 'Kunde inte skapa inlägget') }, { status: 500 })
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const body = await request.json()
     const { id, ...updates } = body
 
     if (!id) {
-      return NextResponse.json({ error: 'id required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'id required', 'id är obligatoriskt') }, { status: 400 })
     }
 
     const membership = await prisma.businessMember.findFirst({
@@ -109,7 +128,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!membership) {
-      return NextResponse.json({ error: 'No business' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No business', 'Ingen verksamhet') }, { status: 400 })
     }
 
     const existing = await prisma.socialPost.findFirst({
@@ -117,7 +136,7 @@ export async function PATCH(request: NextRequest) {
     })
 
     if (!existing) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Post not found', 'Inlägget hittades inte') }, { status: 404 })
     }
 
     const data: Record<string, unknown> = {}
@@ -147,6 +166,6 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ post })
   } catch {
-    return NextResponse.json({ error: 'Failed to update post' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update post', 'Kunde inte uppdatera inlägget') }, { status: 500 })
   }
 }

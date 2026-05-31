@@ -2,9 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function getUserLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
@@ -30,13 +43,16 @@ export async function GET() {
 
     return NextResponse.json({ accounts })
   } catch {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = getUserLocale(user.language)
     const body = await request.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -45,7 +61,10 @@ export async function POST(request: NextRequest) {
     })
 
     if (!membership || (membership.role !== 'OWNER' && membership.role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'Only owner/admin can manage accounts' }, { status: 403 })
+      return NextResponse.json(
+        { error: t(locale, 'Only owner/admin can manage accounts', 'Endast ägare/admin kan hantera konton') },
+        { status: 403 }
+      )
     }
 
     const account = await prisma.socialMediaAccount.upsert({
@@ -83,6 +102,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ account })
   } catch {
-    return NextResponse.json({ error: 'Failed to save account' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to save account', 'Kunde inte spara kontot') }, { status: 500 })
   }
 }
