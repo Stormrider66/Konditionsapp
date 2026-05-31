@@ -427,7 +427,7 @@ export function YoYoTestForm({ clients, onTestSaved, defaultSport }: YoYoTestFor
                 <div className="mt-4 p-4 bg-muted/50 rounded-lg">
                   <p className="text-sm font-medium mb-3 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4" />
-                    Resultat
+                    {locale === 'sv' ? 'Resultat' : 'Result'}
                   </p>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>

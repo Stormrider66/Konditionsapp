@@ -142,8 +142,8 @@ export async function compareTests(
               weeks: context.trainingBetween.weekCount,
               totalSessions: context.trainingBetween.totalSessions,
               avgWeeklyVolume: `${context.trainingBetween.avgWeeklyDistance.toFixed(0)} km`,
-              dominantTrainingType: getDominantTrainingType(context.trainingBetween),
-              zoneDistributionSummary: getZoneDistributionSummary(context.trainingBetween),
+              dominantTrainingType: getDominantTrainingType(context.trainingBetween, locale),
+              zoneDistributionSummary: getZoneDistributionSummary(context.trainingBetween, locale),
             }
           : undefined,
       },
@@ -259,14 +259,15 @@ function getDominantTrainingType(trainingContext: {
     intervals: number
     recovery: number
   }
-}): string {
+}, locale: PerformanceAnalysisLocale = 'en'): string {
+  const isSv = locale === 'sv'
   const types = trainingContext.trainingTypeDistribution
   const entries = [
-    { name: 'Lugna löpningar', count: types.easyRuns },
-    { name: 'Långpass', count: types.longRuns },
-    { name: 'Tempopass', count: types.tempoRuns },
-    { name: 'Intervaller', count: types.intervals },
-    { name: 'Återhämtning', count: types.recovery },
+    { name: isSv ? 'Lugna löpningar' : 'Easy runs', count: types.easyRuns },
+    { name: isSv ? 'Långpass' : 'Long runs', count: types.longRuns },
+    { name: isSv ? 'Tempopass' : 'Tempo sessions', count: types.tempoRuns },
+    { name: isSv ? 'Intervaller' : 'Intervals', count: types.intervals },
+    { name: isSv ? 'Återhämtning' : 'Recovery', count: types.recovery },
   ]
 
   const dominant = entries.reduce((max, entry) => (entry.count > max.count ? entry : max))
@@ -284,19 +285,20 @@ function getZoneDistributionSummary(trainingContext: {
     zone4Percent: number
     zone5Percent: number
   }
-}): string {
+}, locale: PerformanceAnalysisLocale = 'en'): string {
+  const isSv = locale === 'sv'
   const zones = trainingContext.zoneDistribution
   const lowIntensity = zones.zone1Percent + zones.zone2Percent
   const highIntensity = zones.zone4Percent + zones.zone5Percent
 
   if (lowIntensity >= 75 && highIntensity >= 15) {
-    return 'Polariserad (80/20)'
+    return isSv ? 'Polariserad (80/20)' : 'Polarized (80/20)'
   } else if (zones.zone3Percent >= 30) {
-    return 'Terskelbaserad'
+    return isSv ? 'Tröskelbaserad' : 'Threshold-based'
   } else if (lowIntensity >= 80) {
-    return 'Volymfokuserad'
+    return isSv ? 'Volymfokuserad' : 'Volume-focused'
   } else {
-    return 'Blandad fördelning'
+    return isSv ? 'Blandad fördelning' : 'Mixed distribution'
   }
 }
 
