@@ -70,12 +70,12 @@ export async function GET(req: NextRequest) {
 
     // Goal predictions
     if ((type === 'all' || type === 'goals') && distance) {
-      result.goalPrediction = await generatePredictiveGoals(clientId, distance)
+      result.goalPrediction = await generatePredictiveGoals(clientId, distance, locale)
     }
 
     // Race time predictions
     if (type === 'all' || type === 'race-times') {
-      const racePredictions = await predictRaceTimes(clientId, trainingWeeks)
+      const racePredictions = await predictRaceTimes(clientId, trainingWeeks, locale)
       result.racePredictions = racePredictions
 
       // Data Moat: Log race time predictions
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const goalPrediction = await generatePredictiveGoals(clientId, targetDistance)
+    const goalPrediction = await generatePredictiveGoals(clientId, targetDistance, locale)
 
     // Data Moat: Log goal prediction
     if (goalPrediction) {

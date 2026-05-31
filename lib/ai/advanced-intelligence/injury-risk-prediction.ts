@@ -3,6 +3,12 @@
 
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export interface InjuryRiskAssessment {
   overallRisk: 'low' | 'moderate' | 'high' | 'very_high'
   riskScore: number // 0-100
@@ -64,7 +70,10 @@ export interface WeeklyRiskPrediction {
 /**
  * Calculate comprehensive injury risk assessment
  */
-export async function calculateInjuryRisk(clientId: string): Promise<InjuryRiskAssessment> {
+export async function calculateInjuryRisk(
+  clientId: string,
+  locale: AppLocale = 'en'
+): Promise<InjuryRiskAssessment> {
   // Fetch all relevant data
   const [
     trainingLoads,
@@ -103,10 +112,10 @@ export async function calculateInjuryRisk(clientId: string): Promise<InjuryRiskA
   const loadAnalysis = analyzeLoadPatterns(trainingLoads)
 
   // Identify risk factors
-  const riskFactors = identifyRiskFactors(trainingLoads, checkIns, workoutLogs, loadAnalysis)
+  const riskFactors = identifyRiskFactors(trainingLoads, checkIns, workoutLogs, loadAnalysis, locale)
 
   // Identify protective factors
-  const protectiveFactors = identifyProtectiveFactors(checkIns, workoutLogs, bodyComposition)
+  const protectiveFactors = identifyProtectiveFactors(checkIns, workoutLogs, bodyComposition, locale)
 
   // Calculate historical context
   const historicalContext = analyzeHistoricalContext(injuryHistory, trainingLoads)
@@ -115,10 +124,10 @@ export async function calculateInjuryRisk(clientId: string): Promise<InjuryRiskA
   const { overallRisk, riskScore } = calculateOverallRisk(riskFactors, protectiveFactors, loadAnalysis)
 
   // Generate recommendations
-  const recommendations = generatePreventionRecommendations(riskFactors, loadAnalysis, overallRisk)
+  const recommendations = generatePreventionRecommendations(riskFactors, loadAnalysis, overallRisk, locale)
 
   // Predict next week risk
-  const nextWeekPrediction = predictNextWeekRisk(loadAnalysis, riskFactors, checkIns)
+  const nextWeekPrediction = predictNextWeekRisk(loadAnalysis, riskFactors, checkIns, locale)
 
   return {
     overallRisk,
@@ -200,7 +209,8 @@ function identifyRiskFactors(
   trainingLoads: { dailyLoad: number; acwr: number | null }[],
   checkIns: { fatigue: number; soreness: number; sleepQuality: number; readinessScore: number | null }[],
   workoutLogs: { perceivedEffort: number | null }[],
-  loadAnalysis: LoadAnalysis
+  loadAnalysis: LoadAnalysis,
+  locale: AppLocale
 ): InjuryRiskFactor[] {
   const factors: InjuryRiskFactor[] = []
 
@@ -210,7 +220,7 @@ function identifyRiskFactors(
       loadAnalysis.acwrStatus === 'risky' ? 'moderate' : 'low'
 
     factors.push({
-      name: 'ACWR (Belastningskvot)',
+      name: text(locale, 'ACWR (Load ratio)', 'ACWR (Belastningskvot)'),
       category: 'load',
       severity,
       currentValue: loadAnalysis.acwr.toFixed(2),
@@ -224,11 +234,15 @@ function identifyRiskFactors(
   // Load spike risk
   if (loadAnalysis.loadSpikesLast4Weeks > 0) {
     factors.push({
-      name: 'Belastningstoppar',
+      name: text(locale, 'Load spikes', 'Belastningstoppar'),
       category: 'load',
       severity: loadAnalysis.loadSpikesLast4Weeks >= 2 ? 'high' : 'moderate',
-      currentValue: `${loadAnalysis.loadSpikesLast4Weeks} toppar senaste 4 v`,
-      thresholdValue: '0 toppar',
+      currentValue: text(
+        locale,
+        `${loadAnalysis.loadSpikesLast4Weeks} spikes in the last 4 weeks`,
+        `${loadAnalysis.loadSpikesLast4Weeks} toppar senaste 4 v`
+      ),
+      thresholdValue: text(locale, '0 spikes', '0 toppar'),
       contribution: loadAnalysis.loadSpikesLast4Weeks * 10,
       trend: 'worsening',
     })
@@ -238,7 +252,7 @@ function identifyRiskFactors(
   const avgFatigue = checkIns.reduce((sum, c) => sum + c.fatigue, 0) / checkIns.length || 5
   if (avgFatigue > 6) {
     factors.push({
-      name: 'Ackumulerad trötthet',
+      name: text(locale, 'Accumulated fatigue', 'Ackumulerad trötthet'),
       category: 'recovery',
       severity: avgFatigue > 7.5 ? 'high' : 'moderate',
       currentValue: `${avgFatigue.toFixed(1)}/10`,
@@ -252,7 +266,7 @@ function identifyRiskFactors(
   const avgSoreness = checkIns.reduce((sum, c) => sum + c.soreness, 0) / checkIns.length || 5
   if (avgSoreness > 6) {
     factors.push({
-      name: 'Muskelömhet',
+      name: text(locale, 'Muscle soreness', 'Muskelömhet'),
       category: 'recovery',
       severity: avgSoreness > 7.5 ? 'high' : 'moderate',
       currentValue: `${avgSoreness.toFixed(1)}/10`,
@@ -266,10 +280,10 @@ function identifyRiskFactors(
   const avgSleep = checkIns.reduce((sum, c) => sum + c.sleepQuality, 0) / checkIns.length || 6
   if (avgSleep < 6) {
     factors.push({
-      name: 'Sömnbrist',
+      name: text(locale, 'Sleep deficit', 'Sömnbrist'),
       category: 'lifestyle',
       severity: avgSleep < 5 ? 'high' : 'moderate',
-      currentValue: `${avgSleep.toFixed(1)}/10 kvalitet`,
+      currentValue: text(locale, `${avgSleep.toFixed(1)}/10 quality`, `${avgSleep.toFixed(1)}/10 kvalitet`),
       thresholdValue: '> 6/10',
       contribution: (7 - avgSleep) * 5,
       trend: calculateTrend(checkIns.slice(0, 7).map(c => c.sleepQuality), checkIns.slice(7, 14).map(c => c.sleepQuality)),
@@ -284,7 +298,7 @@ function identifyRiskFactors(
 
   if (avgReadiness < 60) {
     factors.push({
-      name: 'Låg träningsberedskap',
+      name: text(locale, 'Low training readiness', 'Låg träningsberedskap'),
       category: 'recovery',
       severity: avgReadiness < 50 ? 'high' : 'moderate',
       currentValue: `${avgReadiness.toFixed(0)}%`,
@@ -302,7 +316,7 @@ function identifyRiskFactors(
 
   if (avgRPE > 7.5) {
     factors.push({
-      name: 'Hög upplevd ansträngning',
+      name: text(locale, 'High perceived exertion', 'Hög upplevd ansträngning'),
       category: 'load',
       severity: avgRPE > 8.5 ? 'high' : 'moderate',
       currentValue: `${avgRPE.toFixed(1)}/10 RPE`,
@@ -318,7 +332,8 @@ function identifyRiskFactors(
 function identifyProtectiveFactors(
   checkIns: { sleepQuality: number; readinessScore: number | null }[],
   workoutLogs: { completed: boolean }[],
-  bodyComposition: { weightKg: number | null; muscleMassKg: number | null } | null
+  bodyComposition: { weightKg: number | null; muscleMassKg: number | null } | null,
+  locale: AppLocale
 ): ProtectiveFactor[] {
   const factors: ProtectiveFactor[] = []
 
@@ -326,9 +341,13 @@ function identifyProtectiveFactors(
   const avgSleep = checkIns.reduce((sum, c) => sum + c.sleepQuality, 0) / checkIns.length || 5
   if (avgSleep >= 7) {
     factors.push({
-      name: 'God sömnkvalitet',
+      name: text(locale, 'Good sleep quality', 'God sömnkvalitet'),
       impact: 15,
-      description: `Genomsnittlig sömnkvalitet ${avgSleep.toFixed(1)}/10`,
+      description: text(
+        locale,
+        `Average sleep quality ${avgSleep.toFixed(1)}/10`,
+        `Genomsnittlig sömnkvalitet ${avgSleep.toFixed(1)}/10`
+      ),
     })
   }
 
@@ -340,9 +359,13 @@ function identifyProtectiveFactors(
 
   if (avgReadiness >= 75) {
     factors.push({
-      name: 'Hög träningsberedskap',
+      name: text(locale, 'High training readiness', 'Hög träningsberedskap'),
       impact: 15,
-      description: `Genomsnittlig beredskap ${avgReadiness.toFixed(0)}%`,
+      description: text(
+        locale,
+        `Average readiness ${avgReadiness.toFixed(0)}%`,
+        `Genomsnittlig beredskap ${avgReadiness.toFixed(0)}%`
+      ),
     })
   }
 
@@ -350,9 +373,13 @@ function identifyProtectiveFactors(
   const completionRate = workoutLogs.filter(w => w.completed).length / workoutLogs.length * 100
   if (completionRate >= 85) {
     factors.push({
-      name: 'Konsekvent träning',
+      name: text(locale, 'Consistent training', 'Konsekvent träning'),
       impact: 10,
-      description: `${completionRate.toFixed(0)}% genomförda pass`,
+      description: text(
+        locale,
+        `${completionRate.toFixed(0)}% completed sessions`,
+        `${completionRate.toFixed(0)}% genomförda pass`
+      ),
     })
   }
 
@@ -361,9 +388,9 @@ function identifyProtectiveFactors(
     const musclePercent = (bodyComposition.muscleMassKg / bodyComposition.weightKg) * 100
     if (musclePercent > 40) {
       factors.push({
-        name: 'God muskelmassa',
+        name: text(locale, 'Good muscle mass', 'God muskelmassa'),
         impact: 10,
-        description: `${musclePercent.toFixed(1)}% muskelmassa`,
+        description: text(locale, `${musclePercent.toFixed(1)}% muscle mass`, `${musclePercent.toFixed(1)}% muskelmassa`),
       })
     }
   }
@@ -448,7 +475,8 @@ function calculateOverallRisk(
 function generatePreventionRecommendations(
   riskFactors: InjuryRiskFactor[],
   loadAnalysis: LoadAnalysis,
-  overallRisk: InjuryRiskAssessment['overallRisk']
+  overallRisk: InjuryRiskAssessment['overallRisk'],
+  locale: AppLocale
 ): InjuryPreventionRecommendation[] {
   const recommendations: InjuryPreventionRecommendation[] = []
 
@@ -456,9 +484,13 @@ function generatePreventionRecommendations(
   if (overallRisk === 'very_high') {
     recommendations.push({
       priority: 'immediate',
-      action: 'Reducera träningsvolym med 40-50%',
-      rationale: 'Mycket hög skaderisk kräver omedelbar belastningsreduktion',
-      timeframe: 'Omedelbart - nästa 7 dagar',
+      action: text(locale, 'Reduce training volume by 40-50%', 'Reducera träningsvolym med 40-50%'),
+      rationale: text(
+        locale,
+        'Very high injury risk requires immediate load reduction',
+        'Mycket hög skaderisk kräver omedelbar belastningsreduktion'
+      ),
+      timeframe: text(locale, 'Immediately - next 7 days', 'Omedelbart - nästa 7 dagar'),
     })
   }
 
@@ -466,9 +498,17 @@ function generatePreventionRecommendations(
   if (loadAnalysis.acwrStatus === 'dangerous' || loadAnalysis.acwrStatus === 'risky') {
     recommendations.push({
       priority: 'immediate',
-      action: `Minska veckobelastning till ${loadAnalysis.sustainableLoadRange.min}-${loadAnalysis.sustainableLoadRange.max} TSS`,
-      rationale: `ACWR på ${loadAnalysis.acwr} indikerar förhöjd skaderisk`,
-      timeframe: 'Denna vecka',
+      action: text(
+        locale,
+        `Reduce weekly load to ${loadAnalysis.sustainableLoadRange.min}-${loadAnalysis.sustainableLoadRange.max} TSS`,
+        `Minska veckobelastning till ${loadAnalysis.sustainableLoadRange.min}-${loadAnalysis.sustainableLoadRange.max} TSS`
+      ),
+      rationale: text(
+        locale,
+        `ACWR of ${loadAnalysis.acwr} indicates elevated injury risk`,
+        `ACWR på ${loadAnalysis.acwr} indikerar förhöjd skaderisk`
+      ),
+      timeframe: text(locale, 'This week', 'Denna vecka'),
     })
   }
 
@@ -478,18 +518,18 @@ function generatePreventionRecommendations(
       if (factor.category === 'recovery') {
         recommendations.push({
           priority: 'high',
-          action: factor.name === 'Sömnbrist'
-            ? 'Prioritera 8+ timmar sömn per natt'
-            : 'Lägg till extra vilodag per vecka',
+          action: factor.name === text(locale, 'Sleep deficit', 'Sömnbrist')
+            ? text(locale, 'Prioritize 8+ hours of sleep per night', 'Prioritera 8+ timmar sömn per natt')
+            : text(locale, 'Add an extra rest day per week', 'Lägg till extra vilodag per vecka'),
           rationale: factor.name,
-          timeframe: 'Omedelbart',
+          timeframe: text(locale, 'Immediately', 'Omedelbart'),
         })
       } else if (factor.category === 'load') {
         recommendations.push({
           priority: 'high',
-          action: 'Undvik belastningsökningar > 10% per vecka',
+          action: text(locale, 'Avoid load increases above 10% per week', 'Undvik belastningsökningar > 10% per vecka'),
           rationale: factor.name,
-          timeframe: 'Pågående',
+          timeframe: text(locale, 'Ongoing', 'Pågående'),
         })
       }
     }
@@ -499,18 +539,30 @@ function generatePreventionRecommendations(
   if (loadAnalysis.loadSpikesLast4Weeks > 0) {
     recommendations.push({
       priority: 'medium',
-      action: 'Planera gradvis belastningsökning med 10% regel',
-      rationale: `${loadAnalysis.loadSpikesLast4Weeks} belastningstoppar senaste 4 veckorna`,
-      timeframe: 'Planering för kommande veckor',
+      action: text(locale, 'Plan gradual load increases using the 10% rule', 'Planera gradvis belastningsökning med 10% regel'),
+      rationale: text(
+        locale,
+        `${loadAnalysis.loadSpikesLast4Weeks} load spikes in the last 4 weeks`,
+        `${loadAnalysis.loadSpikesLast4Weeks} belastningstoppar senaste 4 veckorna`
+      ),
+      timeframe: text(locale, 'Planning for upcoming weeks', 'Planering för kommande veckor'),
     })
   }
 
   // Always recommend strength training
   recommendations.push({
     priority: 'low',
-    action: 'Inkludera 2x styrketräning/vecka för skadeprevention',
-    rationale: 'Stärker muskulatur och senor för ökad belastningstolerans',
-    timeframe: 'Pågående',
+    action: text(
+      locale,
+      'Include strength training 2x/week for injury prevention',
+      'Inkludera 2x styrketräning/vecka för skadeprevention'
+    ),
+    rationale: text(
+      locale,
+      'Strengthens muscles and tendons for greater load tolerance',
+      'Stärker muskulatur och senor för ökad belastningstolerans'
+    ),
+    timeframe: text(locale, 'Ongoing', 'Pågående'),
   })
 
   return recommendations.sort((a, b) => {
@@ -522,7 +574,8 @@ function generatePreventionRecommendations(
 function predictNextWeekRisk(
   loadAnalysis: LoadAnalysis,
   riskFactors: InjuryRiskFactor[],
-  checkIns: { readinessScore: number | null }[]
+  checkIns: { readinessScore: number | null }[],
+  locale: AppLocale
 ): WeeklyRiskPrediction {
   // Predict based on current state and trends
   const worseningFactors = riskFactors.filter(f => f.trend === 'worsening')
@@ -548,13 +601,13 @@ function predictNextWeekRisk(
   // Preventive actions
   const preventiveActions: string[] = []
   if (predictedRisk === 'high') {
-    preventiveActions.push('Reducera planerad belastning med 20-30%')
-    preventiveActions.push('Prioritera vila och återhämtning')
+    preventiveActions.push(text(locale, 'Reduce planned load by 20-30%', 'Reducera planerad belastning med 20-30%'))
+    preventiveActions.push(text(locale, 'Prioritize rest and recovery', 'Prioritera vila och återhämtning'))
   } else if (predictedRisk === 'moderate') {
-    preventiveActions.push('Undvik intensitetsökning')
-    preventiveActions.push('Lägg till extra uppvärmning')
+    preventiveActions.push(text(locale, 'Avoid increasing intensity', 'Undvik intensitetsökning'))
+    preventiveActions.push(text(locale, 'Add extra warm-up', 'Lägg till extra uppvärmning'))
   }
-  preventiveActions.push('Monitorera daglig beredskap')
+  preventiveActions.push(text(locale, 'Monitor daily readiness', 'Monitorera daglig beredskap'))
 
   return {
     predictedRisk,

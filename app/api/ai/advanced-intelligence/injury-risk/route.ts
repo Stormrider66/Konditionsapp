@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     const denied = await requireFeatureAccess(clientId, 'advanced_intelligence')
     if (denied) return denied
 
-    const riskAssessment = await calculateInjuryRisk(clientId)
+    const riskAssessment = await calculateInjuryRisk(clientId, locale)
 
     // Data Moat: Log injury risk prediction for validation
     logPrediction({

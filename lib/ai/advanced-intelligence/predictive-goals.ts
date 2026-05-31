@@ -3,6 +3,12 @@
 
 import { prisma } from '@/lib/prisma'
 
+type AppLocale = 'en' | 'sv'
+
+function text(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // VDOT tables (Jack Daniels) - key race times in seconds
 const VDOT_TABLES: Record<number, { fiveK: number; tenK: number; half: number; marathon: number }> = {
   30: { fiveK: 1860, tenK: 3900, half: 8640, marathon: 18000 },
@@ -66,7 +72,8 @@ export interface TrainingReadiness {
  */
 export async function generatePredictiveGoals(
   clientId: string,
-  targetDistance: '5K' | '10K' | 'HALF' | 'MARATHON'
+  targetDistance: '5K' | '10K' | 'HALF' | 'MARATHON',
+  locale: AppLocale = 'en'
 ): Promise<GoalPrediction> {
   // Fetch athlete data
   const [races, fieldTests, workoutLogs, checkIns, raceResults] = await Promise.all([
@@ -101,7 +108,7 @@ export async function generatePredictiveGoals(
   const currentVDOT = calculateCurrentVDOT(races, fieldTests, raceResults)
 
   // Analyze training factors
-  const factors = analyzeGoalFactors(workoutLogs, checkIns, races)
+  const factors = analyzeGoalFactors(workoutLogs, checkIns, races, locale)
 
   // Calculate confidence based on data availability
   const confidence = calculateGoalConfidence(races, fieldTests, workoutLogs)
@@ -111,10 +118,10 @@ export async function generatePredictiveGoals(
   const { lower, upper } = calculateConfidenceInterval(predictedSeconds, confidence, factors)
 
   // Estimate time to achieve goal
-  const achievableIn = estimateTimeToGoal(currentVDOT, targetDistance, factors)
+  const achievableIn = estimateTimeToGoal(currentVDOT, targetDistance, factors, locale)
 
   // Generate training recommendations
-  const recommendations = generateTrainingRecommendations(targetDistance, factors, currentVDOT)
+  const recommendations = generateTrainingRecommendations(targetDistance, factors, currentVDOT, locale)
 
   return {
     distance: targetDistance,
@@ -136,7 +143,8 @@ export async function generatePredictiveGoals(
  */
 export async function predictRaceTimes(
   clientId: string,
-  trainingWeeks: number = 12
+  trainingWeeks: number = 12,
+  locale: AppLocale = 'en'
 ): Promise<RaceTimePrediction[]> {
   const [races, fieldTests, workoutLogs, trainingLoads, raceResults] = await Promise.all([
     prisma.race.findMany({
@@ -184,7 +192,11 @@ export async function predictRaceTimes(
       trainedPrediction: formatSecondsToTime(projectedSeconds),
       improvementPercent: Math.round(improvement * 10) / 10,
       confidence: calculatePredictionConfidence(trainingWeeks, workoutLogs.length),
-      methodology: 'VDOT-baserad prediktion med träningsprogressionsanalys',
+      methodology: text(
+        locale,
+        'VDOT-based prediction with training progression analysis',
+        'VDOT-baserad prediktion med träningsprogressionsanalys'
+      ),
     }
   })
 }
@@ -366,7 +378,8 @@ function projectVDOTImprovement(
 function analyzeGoalFactors(
   workoutLogs: { perceivedEffort: number | null; duration: number | null }[],
   checkIns: { readinessScore: number | null; sleepQuality: number }[],
-  races: { assessment: string | null }[]
+  races: { assessment: string | null }[],
+  locale: AppLocale
 ): GoalFactor[] {
   const factors: GoalFactor[] = []
 
@@ -374,16 +387,24 @@ function analyzeGoalFactors(
   const weeklyWorkouts = workoutLogs.length / 4 // Assume 4 weeks
   if (weeklyWorkouts >= 5) {
     factors.push({
-      name: 'Träningskonsistens',
+      name: text(locale, 'Training consistency', 'Träningskonsistens'),
       impact: 'positive',
-      description: `${weeklyWorkouts.toFixed(1)} pass/vecka - utmärkt konsistens`,
+      description: text(
+        locale,
+        `${weeklyWorkouts.toFixed(1)} sessions/week - excellent consistency`,
+        `${weeklyWorkouts.toFixed(1)} pass/vecka - utmärkt konsistens`
+      ),
       weight: 0.2,
     })
   } else if (weeklyWorkouts < 3) {
     factors.push({
-      name: 'Träningskonsistens',
+      name: text(locale, 'Training consistency', 'Träningskonsistens'),
       impact: 'negative',
-      description: `Endast ${weeklyWorkouts.toFixed(1)} pass/vecka - behöver öka`,
+      description: text(
+        locale,
+        `Only ${weeklyWorkouts.toFixed(1)} sessions/week - needs to increase`,
+        `Endast ${weeklyWorkouts.toFixed(1)} pass/vecka - behöver öka`
+      ),
       weight: 0.2,
     })
   }
@@ -395,16 +416,20 @@ function analyzeGoalFactors(
 
   if (avgReadiness >= 75) {
     factors.push({
-      name: 'Återhämtning',
+      name: text(locale, 'Recovery', 'Återhämtning'),
       impact: 'positive',
-      description: 'Bra återhämtning mellan pass',
+      description: text(locale, 'Good recovery between sessions', 'Bra återhämtning mellan pass'),
       weight: 0.15,
     })
   } else if (avgReadiness < 60) {
     factors.push({
-      name: 'Återhämtning',
+      name: text(locale, 'Recovery', 'Återhämtning'),
       impact: 'negative',
-      description: 'Låg genomsnittlig beredskap - prioritera vila',
+      description: text(
+        locale,
+        'Low average readiness - prioritize rest',
+        'Låg genomsnittlig beredskap - prioritera vila'
+      ),
       weight: 0.15,
     })
   }
@@ -413,9 +438,13 @@ function analyzeGoalFactors(
   const completedRaces = races.filter(r => r.assessment).length
   if (completedRaces >= 3) {
     factors.push({
-      name: 'Tävlingserfarenhet',
+      name: text(locale, 'Race experience', 'Tävlingserfarenhet'),
       impact: 'positive',
-      description: `${completedRaces} genomförda lopp - god erfarenhet`,
+      description: text(
+        locale,
+        `${completedRaces} completed races - good experience`,
+        `${completedRaces} genomförda lopp - god erfarenhet`
+      ),
       weight: 0.1,
     })
   }
@@ -427,16 +456,16 @@ function analyzeGoalFactors(
 
   if (avgSleep >= 7) {
     factors.push({
-      name: 'Sömnkvalitet',
+      name: text(locale, 'Sleep quality', 'Sömnkvalitet'),
       impact: 'positive',
-      description: 'Genomgående god sömn',
+      description: text(locale, 'Consistently good sleep', 'Genomgående god sömn'),
       weight: 0.1,
     })
   } else if (avgSleep < 5) {
     factors.push({
-      name: 'Sömnkvalitet',
+      name: text(locale, 'Sleep quality', 'Sömnkvalitet'),
       impact: 'negative',
-      description: 'Sömnkvalitet behöver förbättras',
+      description: text(locale, 'Sleep quality needs to improve', 'Sömnkvalitet behöver förbättras'),
       weight: 0.1,
     })
   }
@@ -486,7 +515,8 @@ function calculateConfidenceInterval(
 function estimateTimeToGoal(
   currentVDOT: number,
   distance: '5K' | '10K' | 'HALF' | 'MARATHON',
-  factors: GoalFactor[]
+  factors: GoalFactor[],
+  locale: AppLocale
 ): string {
   // Base time estimates
   const baseTimes: Record<string, number> = {
@@ -512,49 +542,50 @@ function estimateTimeToGoal(
 
   weeks = Math.max(8, Math.min(32, weeks))
 
-  return `${weeks} veckor`
+  return text(locale, `${weeks} weeks`, `${weeks} veckor`)
 }
 
 function generateTrainingRecommendations(
   distance: '5K' | '10K' | 'HALF' | 'MARATHON',
   factors: GoalFactor[],
-  vdot: number
+  vdot: number,
+  locale: AppLocale
 ): string[] {
   const recommendations: string[] = []
 
   // Distance-specific recommendations
   if (distance === '5K') {
-    recommendations.push('Fokusera på intervallträning för 5K: 400m-1000m intervaller')
-    recommendations.push('Bygg en stark aerob bas med 80% lågintensiv träning')
+    recommendations.push(text(locale, 'Focus on 5K interval training: 400m-1000m repeats', 'Fokusera på intervallträning för 5K: 400m-1000m intervaller'))
+    recommendations.push(text(locale, 'Build a strong aerobic base with 80% low-intensity training', 'Bygg en stark aerob bas med 80% lågintensiv träning'))
   } else if (distance === '10K') {
-    recommendations.push('Balansera tempointervaller och längre uthållighetspass')
-    recommendations.push('Inkludera ett längre pass/vecka (90+ min)')
+    recommendations.push(text(locale, 'Balance tempo intervals with longer endurance sessions', 'Balansera tempointervaller och längre uthållighetspass'))
+    recommendations.push(text(locale, 'Include one longer session per week (90+ min)', 'Inkludera ett längre pass/vecka (90+ min)'))
   } else if (distance === 'HALF') {
-    recommendations.push('Bygg gradvis upp till 90+ km/vecka')
-    recommendations.push('Genomför specifika halvmaraton-tempopass')
+    recommendations.push(text(locale, 'Build gradually toward 90+ km/week', 'Bygg gradvis upp till 90+ km/vecka'))
+    recommendations.push(text(locale, 'Complete specific half-marathon tempo sessions', 'Genomför specifika halvmaraton-tempopass'))
   } else {
-    recommendations.push('Prioritera volym och långa pass (30+ km)')
-    recommendations.push('Träna på målmaraton-fart regelbundet')
+    recommendations.push(text(locale, 'Prioritize volume and long runs (30+ km)', 'Prioritera volym och långa pass (30+ km)'))
+    recommendations.push(text(locale, 'Practice target marathon pace regularly', 'Träna på målmaraton-fart regelbundet'))
   }
 
   // Factor-based recommendations
   factors.forEach(factor => {
     if (factor.impact === 'negative') {
-      if (factor.name === 'Sömnkvalitet') {
-        recommendations.push('Prioritera 7-9 timmars sömn för optimal återhämtning')
-      } else if (factor.name === 'Träningskonsistens') {
-        recommendations.push('Öka gradvis antal träningspass per vecka')
-      } else if (factor.name === 'Återhämtning') {
-        recommendations.push('Lägg till en extra vilodag eller lätt pass per vecka')
+      if (factor.name === text(locale, 'Sleep quality', 'Sömnkvalitet')) {
+        recommendations.push(text(locale, 'Prioritize 7-9 hours of sleep for optimal recovery', 'Prioritera 7-9 timmars sömn för optimal återhämtning'))
+      } else if (factor.name === text(locale, 'Training consistency', 'Träningskonsistens')) {
+        recommendations.push(text(locale, 'Gradually increase the number of training sessions per week', 'Öka gradvis antal träningspass per vecka'))
+      } else if (factor.name === text(locale, 'Recovery', 'Återhämtning')) {
+        recommendations.push(text(locale, 'Add one extra rest day or easy session per week', 'Lägg till en extra vilodag eller lätt pass per vecka'))
       }
     }
   })
 
   // VDOT-based recommendations
   if (vdot < 40) {
-    recommendations.push('Fokusera på att bygga aerob kapacitet innan intensiva pass')
+    recommendations.push(text(locale, 'Focus on building aerobic capacity before intensive sessions', 'Fokusera på att bygga aerob kapacitet innan intensiva pass'))
   } else if (vdot > 55) {
-    recommendations.push('Inkludera specifik fartträning för att underhålla toppform')
+    recommendations.push(text(locale, 'Include specific speed work to maintain peak form', 'Inkludera specifik fartträning för att underhålla toppform'))
   }
 
   return recommendations.slice(0, 5) // Max 5 recommendations
