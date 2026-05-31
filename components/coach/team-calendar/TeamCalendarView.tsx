@@ -509,6 +509,14 @@ export function TeamCalendarView({
   const [calendarPermissions, setCalendarPermissions] = useState<TeamCalendarPermissions | null>(null)
   const [assigningEventId, setAssigningEventId] = useState<string | null>(null)
   const [launchingEventId, setLaunchingEventId] = useState<string | null>(null)
+  const [overviewOpen, setOverviewOpen] = useState(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      return window.localStorage.getItem('team-calendar-overview-open') === 'true'
+    } catch {
+      return false
+    }
+  })
 
   const weekDates = getWeekDates(weekBase)
   const monthDates = getMonthDates(weekBase)
@@ -528,6 +536,11 @@ export function TeamCalendarView({
     const end = new Date(plan.endDate)
     return plan.status === 'ACTIVE' && start <= today && end >= today
   }) ?? null
+  const currentPlanBlock = activeTeamPlan ? planBlockForDate(activeTeamPlan.blocks, today) : null
+  const currentPlanBlockIndex = currentPlanBlock && activeTeamPlan
+    ? activeTeamPlan.blocks.findIndex((block) => block.id === currentPlanBlock.id)
+    : -1
+  const currentPlanBlockColor = currentPlanBlockIndex >= 0 ? getPlanBlockColor(currentPlanBlockIndex) : null
 
   // Stabilize the ISO strings outside the dep array — react-hooks v6
   // requires deps to be simple expressions (no method calls).
@@ -684,6 +697,18 @@ export function TeamCalendarView({
   useEffect(() => {
     void fetchEvents()
   }, [fetchEvents])
+
+  const toggleOverview = () => {
+    setOverviewOpen((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem('team-calendar-overview-open', String(next))
+      } catch {
+        // ignore unavailable storage
+      }
+      return next
+    })
+  }
 
   const navigateWeek = (direction: number) => {
     const next = new Date(weekBase)
@@ -964,8 +989,46 @@ export function TeamCalendarView({
         </div>
       )}
 
-      {isStaffPlanningView && viewMode === 'week' && (
-        <div className="rounded-lg border bg-background p-4">
+      {isStaffPlanningView && (viewMode === 'week' || activeTeamPlan) && (
+        <div className="rounded-lg border bg-background">
+          <button
+            type="button"
+            onClick={toggleOverview}
+            aria-expanded={overviewOpen}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-muted/40"
+          >
+            <ChevronRight className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', overviewOpen && 'rotate-90')} />
+            <Activity className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm font-semibold">{text(locale, 'Veckoöversikt & plan', 'Weekly overview & plan')}</span>
+            {!overviewOpen && (
+              <div className="ml-auto flex flex-wrap items-center justify-end gap-1.5">
+                {currentPlanBlock && (
+                  <Badge variant="outline" className="gap-1.5 text-[11px] font-normal">
+                    {currentPlanBlockColor && <span className={cn('h-2 w-2 rounded-full', currentPlanBlockColor.marker)} />}
+                    <span>{currentPlanBlock.title}</span>
+                    {activeTeamPlan && currentPlanBlockIndex >= 0 && (
+                      <span className="opacity-60">{currentPlanBlockIndex + 1}/{activeTeamPlan.blocks.length}</span>
+                    )}
+                  </Badge>
+                )}
+                {viewMode === 'week' && (
+                  <Badge variant="outline" className={cn('text-[11px] font-normal', loadLevelClassName(weeklyLoadLevel))}>
+                    {text(locale, 'Belastning', 'Load')}: {loadLevelLabel(weeklyLoadLevel, locale)}
+                  </Badge>
+                )}
+                {viewMode === 'week' && orchestrationWarnings.length > 0 && (
+                  <Badge variant="outline" className="gap-1 border-amber-200 bg-amber-50 text-[11px] font-normal text-amber-900">
+                    <TriangleAlert className="h-3 w-3" />
+                    {text(locale, `${orchestrationWarnings.length} signaler`, `${orchestrationWarnings.length} signals`)}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </button>
+          {overviewOpen && (
+            <div className="space-y-4 border-t p-4">
+              {viewMode === 'week' && (
+                <div>
           <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
@@ -1093,25 +1156,28 @@ export function TeamCalendarView({
               </div>
             </div>
           )}
+                </div>
+              )}
+              {activeTeamPlan && (
+                <AthletePlanSummaryCard
+                  plan={activeTeamPlan}
+                  now={today}
+                  variant="team"
+                  action={
+                    <CreateTeamPlanDialog
+                      teamId={teamId}
+                      teamName={teamName}
+                      businessSlug={businessSlug}
+                      initialPlan={activeTeamPlan}
+                      onSaved={(plan) => setTeamPlans((current) => current.map((item) => item.id === plan.id ? plan : item))}
+                      trigger={<Button variant="outline" size="sm">{text(locale, 'Redigera', 'Edit')}</Button>}
+                    />
+                  }
+                />
+              )}
+            </div>
+          )}
         </div>
-      )}
-
-      {isStaffPlanningView && activeTeamPlan && (
-        <AthletePlanSummaryCard
-          plan={activeTeamPlan}
-          now={today}
-          variant="team"
-          action={
-            <CreateTeamPlanDialog
-              teamId={teamId}
-              teamName={teamName}
-              businessSlug={businessSlug}
-              initialPlan={activeTeamPlan}
-              onSaved={(plan) => setTeamPlans((current) => current.map((item) => item.id === plan.id ? plan : item))}
-              trigger={<Button variant="outline" size="sm">{text(locale, 'Redigera', 'Edit')}</Button>}
-            />
-          }
-        />
       )}
 
       {isStaffPlanningView && !activeTeamPlan && (
