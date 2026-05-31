@@ -155,10 +155,10 @@ export const calculateZonesTool = tool({
     if (zoneSystem === '5_ZONE' && baseMetric === 'MAX_HR') {
       const maxHR = baseValue;
       zones = [
-        { zone: 'Z1', min: Math.round(maxHR * 0.50), max: Math.round(maxHR * 0.60), description: 'Aktiv vila' },
-        { zone: 'Z2', min: Math.round(maxHR * 0.60), max: Math.round(maxHR * 0.70), description: 'Aerob bas' },
+        { zone: 'Z1', min: Math.round(maxHR * 0.50), max: Math.round(maxHR * 0.60), description: 'Active recovery' },
+        { zone: 'Z2', min: Math.round(maxHR * 0.60), max: Math.round(maxHR * 0.70), description: 'Aerobic base' },
         { zone: 'Z3', min: Math.round(maxHR * 0.70), max: Math.round(maxHR * 0.80), description: 'Tempo' },
-        { zone: 'Z4', min: Math.round(maxHR * 0.80), max: Math.round(maxHR * 0.90), description: 'Tröskel' },
+        { zone: 'Z4', min: Math.round(maxHR * 0.80), max: Math.round(maxHR * 0.90), description: 'Threshold' },
         { zone: 'Z5', min: Math.round(maxHR * 0.90), max: maxHR, description: 'VO2max' },
       ];
     }

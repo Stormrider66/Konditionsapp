@@ -180,10 +180,12 @@ export async function lookupOrGenerateExercise(
   if (!existing) {
     const newExercise = await prisma.exercise.create({
       data: {
-        name: exerciseNameSv,
+        name: exerciseNameEn,
+        nameSv: exerciseNameSv,
+        nameEn: exerciseNameEn,
         category: 'STRENGTH', // Default fallback
         muscleGroup: muscleGroups.join(', '),
-        description: `AI-genererad övning för ${exerciseNameSv}`,
+        description: `AI-generated exercise for ${exerciseNameEn}`,
         imageUrls: generatedImageUrls,
         primaryImageIndex: 0,
         isPublic: true,
@@ -203,7 +205,7 @@ export async function lookupOrGenerateExercise(
 
   return {
     id: savedExerciseId as string,
-    name: exerciseNameSv,
+    name: exerciseNameEn,
     imageUrls: generatedImageUrls,
     isNew: !existing
   }

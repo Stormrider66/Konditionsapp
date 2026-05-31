@@ -851,7 +851,7 @@ function convertSegmentsToDbFormat(
       type: 'warmup',
       duration: 15,
       zone: 1,
-      description: 'Uppvärmning',
+      description: 'Warm-up',
     });
 
     // Add interval segments
@@ -863,7 +863,7 @@ function convertSegmentsToDbFormat(
         duration: Math.round(interval.workDuration / 60), // Convert seconds to minutes (Int)
         zone: parseInt(interval.workIntensity) || 4,
         reps: interval.repetitions,
-        description: `Intervall ${idx + 1}`,
+        description: `Interval ${idx + 1}`,
       });
 
       // Rest segment (if not last)
@@ -873,7 +873,7 @@ function convertSegmentsToDbFormat(
           type: 'rest',
           duration: Math.round(interval.restDuration / 60),
           zone: 1,
-          description: 'Vila',
+          description: 'Rest',
         });
       }
     });
@@ -884,7 +884,7 @@ function convertSegmentsToDbFormat(
       type: 'cooldown',
       duration: 10,
       zone: 1,
-      description: 'Nedvarvning',
+      description: 'Cool-down',
     });
 
     return segments;
@@ -902,7 +902,7 @@ function convertSegmentsToDbFormat(
       duration: 10,
       zone: 1,
       pace: undefined,
-      description: 'Uppvärmning',
+      description: 'Warm-up',
     });
 
     // Main work
@@ -925,7 +925,7 @@ function convertSegmentsToDbFormat(
       type: 'cooldown',
       duration: 10,
       zone: 1,
-      description: 'Nedvarvning',
+      description: 'Cool-down',
     });
   } else {
     // For strength/other workouts, single work segment

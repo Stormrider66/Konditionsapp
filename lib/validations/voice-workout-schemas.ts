@@ -29,7 +29,7 @@ export const voiceWorkoutStatusSchema = z.enum([
  */
 export const voiceWorkoutTargetSchema = z.object({
   type: voiceWorkoutTargetTypeSchema,
-  name: z.string().min(1, 'Namn krävs'),
+  name: z.string().min(1, 'Name is required'),
   resolvedId: z.string().uuid().optional(),
   alternatives: z
     .array(
@@ -102,7 +102,7 @@ export const cardioSegmentSchema = z.object({
  * Cardio session data
  */
 export const cardioSessionDataSchema = z.object({
-  name: z.string().min(1, 'Namn krävs'),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   sport: z.string(),
   segments: z.array(cardioSegmentSchema),
@@ -130,7 +130,7 @@ export const strengthExerciseDataSchema = z.object({
  * Strength session data
  */
 export const strengthSessionDataSchema = z.object({
-  name: z.string().min(1, 'Namn krävs'),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   phase: z.string().optional(),
   exercises: z.array(strengthExerciseDataSchema),
@@ -184,7 +184,7 @@ export const hybridMovementDataSchema = z.object({
  * Hybrid workout data
  */
 export const hybridWorkoutDataSchema = z.object({
-  name: z.string().min(1, 'Namn krävs'),
+  name: z.string().min(1, 'Name is required'),
   description: z.string().optional(),
   format: z.string().min(1), // AMRAP, FOR_TIME, EMOM, etc.
   timeCap: z.number().nonnegative().optional(),
