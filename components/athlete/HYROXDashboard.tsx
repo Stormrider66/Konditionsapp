@@ -320,7 +320,7 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
             {text(locale, 'Stationsöversikt', 'Station overview')}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
-            {text(locale, 'Dina tider vs måltider för', 'Your times vs target times for')} {EXPERIENCE_LABELS[settings.experienceLevel]?.[locale].toLowerCase()}-{text(locale, 'nivå', 'level')}
+            {text(locale, 'Dina tider vs riktider för', 'Your times vs target times for')} {EXPERIENCE_LABELS[settings.experienceLevel]?.[locale].toLowerCase()}-{text(locale, 'nivå', 'level')}
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -752,14 +752,14 @@ export function ConfigurationForm({
               name="targetTime"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t(locale, 'Måltid för tävling', 'Race goal time')}</FormLabel>
+                  <FormLabel>{t(locale, 'Mål-tid för tävling', 'Race goal time')}</FormLabel>
                   <FormControl>
                     <Input
                       placeholder={
-                        goal === 'marathon' ? 'H:MM:SS (t.ex. 3:30:00)' :
-                        goal === 'half-marathon' ? 'H:MM:SS (t.ex. 1:45:00)' :
-                        goal === '10k' ? 'MM:SS (t.ex. 45:00)' :
-                        goal === '5k' ? 'MM:SS (t.ex. 22:00)' :
+                        goal === 'marathon' ? t(locale, 'H:MM:SS (t.ex. 3:30:00)', 'H:MM:SS (e.g. 3:30:00)') :
+                        goal === 'half-marathon' ? t(locale, 'H:MM:SS (t.ex. 1:45:00)', 'H:MM:SS (e.g. 1:45:00)') :
+                        goal === '10k' ? t(locale, 'MM:SS (t.ex. 45:00)', 'MM:SS (e.g. 45:00)') :
+                        goal === '5k' ? t(locale, 'MM:SS (t.ex. 22:00)', 'MM:SS (e.g. 22:00)') :
                         'H:MM:SS'
                       }
                       {...field}

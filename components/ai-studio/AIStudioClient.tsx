@@ -433,7 +433,7 @@ const COPY = {
     length: 'Längd',
     weeks: 'veckor',
     sessionsPerWeek: 'Pass/vecka',
-    targetTime: 'Måltid',
+    targetTime: 'Mål-tid',
     methodology: 'Metodik',
     strength: 'Styrka',
     timesPerWeek: 'x/vecka',

@@ -291,7 +291,7 @@ export function FunctionalFitnessDashboard({ settings }: FunctionalFitnessDashbo
           <CardDescription style={{ color: theme.colors.textMuted }}>
             {text(
               locale,
-              `Dina tider vs måltider för ${experienceLabel.toLowerCase()}-nivå`,
+              `Dina tider vs riktider för ${experienceLabel.toLowerCase()}-nivå`,
               `Your times vs targets for ${experienceLabel.toLowerCase()} level`
             )}
           </CardDescription>
