@@ -165,47 +165,47 @@ describe('stripConditionalBlocks', () => {
 describe('ENRICHED_BASELINE_TEMPLATE with conditional blocks', () => {
   it('produces content with STRENGTH_GYM blocks for STRENGTH sport', () => {
     const result = stripConditionalBlocks(ENRICHED_BASELINE_TEMPLATE, 'STRENGTH')
-    expect(result).toContain('STYRKETRÄNING')
-    expect(result).toContain('Volymlandmärken')
-    expect(result).toContain('RPE/RIR-skala')
-    expect(result).toContain('Splitrekommendationer')
-    expect(result).not.toContain('KONDITIONSTRÄNING & ZONER')
-    expect(result).not.toContain('POLARISERAD METODIK')
+    expect(result).toContain('STRENGTH TRAINING')
+    expect(result).toContain('Volume landmarks')
+    expect(result).toContain('RPE/RIR scale')
+    expect(result).toContain('Split recommendations')
+    expect(result).not.toContain('ENDURANCE TRAINING & ZONES')
+    expect(result).not.toContain('POLARIZED METHODOLOGY')
   })
 
   it('produces content with ENDURANCE blocks for RUNNING sport', () => {
     const result = stripConditionalBlocks(ENRICHED_BASELINE_TEMPLATE, 'RUNNING', 'POLARIZED')
-    expect(result).toContain('KONDITIONSTRÄNING & ZONER')
-    expect(result).toContain('POLARISERAD METODIK')
-    expect(result).not.toContain('STYRKETRÄNING & GYMPROGRAM')
-    expect(result).not.toContain('Volymlandmärken')
+    expect(result).toContain('ENDURANCE TRAINING & ZONES')
+    expect(result).toContain('POLARIZED METHODOLOGY')
+    expect(result).not.toContain('STRENGTH TRAINING & GYM PROGRAMS')
+    expect(result).not.toContain('Volume landmarks')
     expect(result).not.toContain('CONCURRENT TRAINING')
   })
 
   it('produces content with both GYM and ENDURANCE blocks for HYROX', () => {
     const result = stripConditionalBlocks(ENRICHED_BASELINE_TEMPLATE, 'HYROX', 'POLARIZED')
-    expect(result).toContain('STYRKETRÄNING')
-    expect(result).toContain('KONDITIONSTRÄNING')
+    expect(result).toContain('STRENGTH TRAINING')
+    expect(result).toContain('ENDURANCE TRAINING')
     expect(result).toContain('CONCURRENT TRAINING')
-    expect(result).toContain('HYROX-specifikt')
+    expect(result).toContain('HYROX-specific')
     expect(result).toContain('compromised running')
   })
 
   it('produces content with TEAM_SPORT blocks for TEAM_FOOTBALL', () => {
     const result = stripConditionalBlocks(ENRICHED_BASELINE_TEMPLATE, 'TEAM_FOOTBALL')
-    expect(result).toContain('LAGSPORT-PERIODISERING')
-    expect(result).toContain('Match-day periodisering')
-    expect(result).not.toContain('STYRKETRÄNING & GYMPROGRAM')
-    expect(result).not.toContain('KONDITIONSTRÄNING & ZONER')
+    expect(result).toContain('TEAM SPORT PERIODIZATION')
+    expect(result).toContain('Match-day periodization')
+    expect(result).not.toContain('STRENGTH TRAINING & GYM PROGRAMS')
+    expect(result).not.toContain('ENDURANCE TRAINING & ZONES')
   })
 
   it('always includes universal sections', () => {
     const sports = ['RUNNING', 'STRENGTH', 'HYROX', 'TEAM_FOOTBALL']
     for (const sport of sports) {
       const result = stripConditionalBlocks(ENRICHED_BASELINE_TEMPLATE, sport)
-      expect(result).toContain('PERIODISERINGSPRINCIPER')
-      expect(result).toContain('SKADEPREVENTION')
-      expect(result).toContain('RAMP UPPVÄRMNING')
+      expect(result).toContain('PERIODIZATION PRINCIPLES')
+      expect(result).toContain('INJURY PREVENTION')
+      expect(result).toContain('RAMP WARM-UP')
       expect(result).toContain('OUTPUT FORMAT')
       expect(result).toContain('{{sport}}')
     }
