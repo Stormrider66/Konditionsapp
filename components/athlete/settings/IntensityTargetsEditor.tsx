@@ -217,7 +217,7 @@ export function IntensityTargetsEditor({
         methodology: selectedMethodology,
         label: selectedMethodology === 'CUSTOM'
           ? `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`
-          : METHODOLOGY_PRESETS[selectedMethodology].label,
+          : selectedMethodologyLabel,
       })
       setHasChanges(false)
     } catch (error) {

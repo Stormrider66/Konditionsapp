@@ -39,6 +39,7 @@ import {
   getTargetStatus,
   getRecommendedTargets,
   getVolumeCategory,
+  formatMethodology,
 } from '@/lib/training/intensity-targets';
 import { useLocale, useTranslations } from '@/i18n/client';
 
@@ -215,6 +216,7 @@ export function WeeklyTrainingSummaryCard({
 }: WeeklyTrainingSummaryCardProps) {
   const t = useTranslations('components.weeklyTrainingSummaryCard');
   const locale = useLocale();
+  const appLocale = locale === 'sv' ? 'sv' : 'en';
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
   const [previousSummary, setPreviousSummary] = useState<WeeklySummary | null>(null);
   const [zoneData, setZoneData] = useState<ZoneDistribution | null>(null);
@@ -338,8 +340,13 @@ export function WeeklyTrainingSummaryCard({
     activeSport,
     intensityTargets,
     weeklyHours,
-    estimatedSessions
+    estimatedSessions,
+    appLocale
   );
+  const targetLabel =
+    targets.methodology && targets.methodology !== 'CUSTOM'
+      ? formatMethodology(targets.methodology, appLocale)
+      : targets.label || `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`;
 
   // Calculate actual percentages
   const actualEasyPercent = totalIntensityMinutes > 0 ? (summary.easyMinutes / totalIntensityMinutes) * 100 : 0;
@@ -515,7 +522,7 @@ export function WeeklyTrainingSummaryCard({
               <div className="text-right flex flex-col gap-1">
                 <Badge className={isDistributionOnTarget ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'}>
                   <Zap className="h-3 w-3 mr-1" />
-                  {targets.label || `${targets.easyPercent}/${targets.moderatePercent}/${targets.hardPercent}`}
+                  {targetLabel}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground">
                   {getVolumeCategoryLabel(volumeCategory, t)}

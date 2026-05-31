@@ -33,6 +33,12 @@ export type IntensityMethodology =
  */
 export type VolumeCategory = 'VERY_LOW' | 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
 
+export type IntensityTargetLocale = 'en' | 'sv'
+
+function labelText(locale: IntensityTargetLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * Frequency category for the "Rule of 6" logic gates
  */
@@ -71,28 +77,28 @@ export const SPORT_INTENSITY_DEFAULTS: Record<SportType, IntensityTargets> = {
     moderatePercent: 5,
     hardPercent: 15,
     methodology: 'POLARIZED',
-    label: '80/20 Polariserad',
+    label: '80/20 Polarized',
   },
   CYCLING: {
     easyPercent: 80,
     moderatePercent: 5,
     hardPercent: 15,
     methodology: 'POLARIZED',
-    label: '80/20 Polariserad',
+    label: '80/20 Polarized',
   },
   SKIING: {
     easyPercent: 80,
     moderatePercent: 5,
     hardPercent: 15,
     methodology: 'POLARIZED',
-    label: '80/20 Polariserad',
+    label: '80/20 Polarized',
   },
   SWIMMING: {
     easyPercent: 80,
     moderatePercent: 5,
     hardPercent: 15,
     methodology: 'POLARIZED',
-    label: '80/20 Polariserad',
+    label: '80/20 Polarized',
   },
   TRIATHLON: {
     easyPercent: 75,
@@ -115,21 +121,21 @@ export const SPORT_INTENSITY_DEFAULTS: Record<SportType, IntensityTargets> = {
     moderatePercent: 25,
     hardPercent: 20,
     methodology: 'BALANCED',
-    label: 'CrossFit Balanserad',
+    label: 'CrossFit Balanced',
   },
   GENERAL_FITNESS: {
     easyPercent: 55,
     moderatePercent: 25,
     hardPercent: 20,
     methodology: 'BALANCED',
-    label: 'Allmän Fitness',
+    label: 'General Fitness',
   },
   STRENGTH: {
     easyPercent: 50,
     moderatePercent: 30,
     hardPercent: 20,
     methodology: 'BALANCED',
-    label: 'Styrketräning',
+    label: 'Strength Training',
   },
 
   // Team Sports - Balanced/Pyramidal
@@ -138,42 +144,42 @@ export const SPORT_INTENSITY_DEFAULTS: Record<SportType, IntensityTargets> = {
     moderatePercent: 20,
     hardPercent: 15,
     methodology: 'PYRAMIDAL',
-    label: 'Fotboll',
+    label: 'Football',
   },
   TEAM_ICE_HOCKEY: {
     easyPercent: 65,
     moderatePercent: 20,
     hardPercent: 15,
     methodology: 'PYRAMIDAL',
-    label: 'Ishockey',
+    label: 'Ice Hockey',
   },
   TEAM_HANDBALL: {
     easyPercent: 65,
     moderatePercent: 20,
     hardPercent: 15,
     methodology: 'PYRAMIDAL',
-    label: 'Handboll',
+    label: 'Handball',
   },
   TEAM_FLOORBALL: {
     easyPercent: 65,
     moderatePercent: 20,
     hardPercent: 15,
     methodology: 'PYRAMIDAL',
-    label: 'Innebandy',
+    label: 'Floorball',
   },
   TEAM_BASKETBALL: {
     easyPercent: 65,
     moderatePercent: 20,
     hardPercent: 15,
     methodology: 'PYRAMIDAL',
-    label: 'Basket',
+    label: 'Basketball',
   },
   TEAM_VOLLEYBALL: {
     easyPercent: 65,
     moderatePercent: 20,
     hardPercent: 15,
     methodology: 'PYRAMIDAL',
-    label: 'Volleyboll',
+    label: 'Volleyball',
   },
 
   // Racket Sports - Balanced
@@ -197,7 +203,7 @@ export const SPORT_INTENSITY_DEFAULTS: Record<SportType, IntensityTargets> = {
     moderatePercent: 0,
     hardPercent: 0,
     methodology: 'BALANCED',
-    label: 'Kost',
+    label: 'Nutrition',
   },
 }
 
@@ -210,14 +216,14 @@ export const METHODOLOGY_PRESETS: Record<IntensityMethodology, IntensityTargets>
     moderatePercent: 5,
     hardPercent: 15,
     methodology: 'POLARIZED',
-    label: '80/20 Polariserad',
+    label: '80/20 Polarized',
   },
   THRESHOLD_FOCUSED: {
     easyPercent: 60,
     moderatePercent: 25,
     hardPercent: 15,
     methodology: 'THRESHOLD_FOCUSED',
-    label: 'Tröskel-fokuserad',
+    label: 'Threshold-focused',
   },
   PYRAMIDAL: {
     easyPercent: 70,
@@ -231,21 +237,21 @@ export const METHODOLOGY_PRESETS: Record<IntensityMethodology, IntensityTargets>
     moderatePercent: 25,
     hardPercent: 20,
     methodology: 'BALANCED',
-    label: 'Balanserad',
+    label: 'Balanced',
   },
   HIGH_INTENSITY: {
     easyPercent: 30,
     moderatePercent: 20,
     hardPercent: 50,
     methodology: 'HIGH_INTENSITY',
-    label: 'Högintensiv',
+    label: 'High intensity',
   },
   CUSTOM: {
     easyPercent: 70,
     moderatePercent: 15,
     hardPercent: 15,
     methodology: 'CUSTOM',
-    label: 'Anpassad',
+    label: 'Custom',
   },
 }
 
@@ -268,7 +274,7 @@ export const VOLUME_ADJUSTED_TARGETS: Record<VolumeCategory, IntensityTargets> =
     moderatePercent: 20,
     hardPercent: 50,
     methodology: 'HIGH_INTENSITY',
-    label: 'Högintensiv (<3h)',
+    label: 'High intensity (<3h)',
   },
   /**
    * 3-5 hours/week: Pyramidal
@@ -292,7 +298,7 @@ export const VOLUME_ADJUSTED_TARGETS: Record<VolumeCategory, IntensityTargets> =
     moderatePercent: 5,
     hardPercent: 15,
     methodology: 'POLARIZED',
-    label: 'Polariserad (5-9h)',
+    label: 'Polarized (5-9h)',
   },
   /**
    * 9-15 hours/week: Polarized
@@ -304,7 +310,7 @@ export const VOLUME_ADJUSTED_TARGETS: Record<VolumeCategory, IntensityTargets> =
     moderatePercent: 5,
     hardPercent: 10,
     methodology: 'POLARIZED',
-    label: 'Polariserad (9-15h)',
+    label: 'Polarized (9-15h)',
   },
   /**
    * > 15 hours/week: Advanced Polarized
@@ -316,8 +322,19 @@ export const VOLUME_ADJUSTED_TARGETS: Record<VolumeCategory, IntensityTargets> =
     moderatePercent: 5,
     hardPercent: 5,
     methodology: 'POLARIZED',
-    label: 'Avancerad Polariserad (>15h)',
+    label: 'Advanced Polarized (>15h)',
   },
+}
+
+function getVolumeAdjustedLabel(category: VolumeCategory, locale: IntensityTargetLocale): string {
+  const labels: Record<VolumeCategory, string> = {
+    VERY_LOW: labelText(locale, 'High intensity (<3h)', 'Högintensiv (<3h)'),
+    LOW: 'Pyramidal (3-5h)',
+    MODERATE: labelText(locale, 'Polarized (5-9h)', 'Polariserad (5-9h)'),
+    HIGH: labelText(locale, 'Polarized (9-15h)', 'Polariserad (9-15h)'),
+    VERY_HIGH: labelText(locale, 'Advanced Polarized (>15h)', 'Avancerad Polariserad (>15h)'),
+  }
+  return labels[category]
 }
 
 /**
@@ -367,6 +384,7 @@ export interface VolumeAdjustedContext {
   sessionsPerWeek: number
   sport?: SportType
   customTargets?: IntensityTargets | null
+  locale?: IntensityTargetLocale
 }
 
 /**
@@ -382,7 +400,7 @@ export interface VolumeAdjustedContext {
  * 4. Sport default (fallback)
  */
 export function getVolumeAdjustedTargets(context: VolumeAdjustedContext): IntensityTargets {
-  const { weeklyHours, sessionsPerWeek, sport, customTargets } = context
+  const { weeklyHours, sessionsPerWeek, customTargets, locale = 'en' } = context
 
   // Priority 1: Custom targets always win
   if (customTargets) {
@@ -398,7 +416,7 @@ export function getVolumeAdjustedTargets(context: VolumeAdjustedContext): Intens
   if (frequencyCategory === 'HIGH' && weeklyHours < 6) {
     return {
       ...VOLUME_ADJUSTED_TARGETS.MODERATE, // Polarized
-      label: 'Polariserad (hög frekvens)',
+      label: labelText(locale, 'Polarized (high frequency)', 'Polariserad (hög frekvens)'),
     }
   }
 
@@ -410,25 +428,26 @@ export function getVolumeAdjustedTargets(context: VolumeAdjustedContext): Intens
     if (volumeCategory === 'MODERATE' || volumeCategory === 'HIGH') {
       return {
         ...VOLUME_ADJUSTED_TARGETS.LOW, // Pyramidal
-        label: 'Pyramidal (låg frekvens)',
+        label: labelText(locale, 'Pyramidal (low frequency)', 'Pyramidal (låg frekvens)'),
       }
     }
     // Very low volume + low frequency = maximize each session
     if (volumeCategory === 'VERY_LOW') {
-      return VOLUME_ADJUSTED_TARGETS.VERY_LOW
+      return {
+        ...VOLUME_ADJUSTED_TARGETS.VERY_LOW,
+        label: getVolumeAdjustedLabel('VERY_LOW', locale),
+      }
     }
   }
 
   // Default: Use volume-based distribution
   const volumeBasedTargets = VOLUME_ADJUSTED_TARGETS[volumeCategory]
 
-  // For very high volume, return as-is
-  if (volumeCategory === 'VERY_HIGH') {
-    return volumeBasedTargets
-  }
-
   // For moderate/high frequency with adequate volume, use volume-based
-  return volumeBasedTargets
+  return {
+    ...volumeBasedTargets,
+    label: getVolumeAdjustedLabel(volumeCategory, locale),
+  }
 }
 
 /**
@@ -459,7 +478,8 @@ export function getRecommendedTargets(
   sport: SportType,
   customTargets: IntensityTargets | null | undefined,
   weeklyHours: number,
-  sessionsPerWeek: number = 4
+  sessionsPerWeek: number = 4,
+  locale: IntensityTargetLocale = 'en'
 ): RecommendedTargetsResult {
   const sportDefault = getDefaultTargetsForSport(sport)
   const activeTargets = customTargets || sportDefault
@@ -468,6 +488,7 @@ export function getRecommendedTargets(
     weeklyHours,
     sessionsPerWeek,
     sport,
+    locale,
   })
 
   const volumeCategory = getVolumeCategory(weeklyHours)
@@ -481,9 +502,17 @@ export function getRecommendedTargets(
 
   if (!matchesRecommendation) {
     if (weeklyHours < 5 && activeTargets.easyPercent > 70) {
-      advice = `Med ${weeklyHours.toFixed(1)}h/vecka kan du ha nytta av mer intensiv träning. Pyramidal (70/20/10) rekommenderas för att maximera anpassning.`
+      advice = labelText(
+        locale,
+        `With ${weeklyHours.toFixed(1)}h/week, you may benefit from more intensive training. Pyramidal (70/20/10) is recommended to maximize adaptation.`,
+        `Med ${weeklyHours.toFixed(1)}h/vecka kan du ha nytta av mer intensiv träning. Pyramidal (70/20/10) rekommenderas för att maximera anpassning.`
+      )
     } else if (weeklyHours >= 9 && activeTargets.easyPercent < 80) {
-      advice = `Med ${weeklyHours.toFixed(1)}h/vecka bör du polarisera mer (80-90% låg intensitet) för att skydda återhämtningen.`
+      advice = labelText(
+        locale,
+        `With ${weeklyHours.toFixed(1)}h/week, you should polarize more (80-90% low intensity) to protect recovery.`,
+        `Med ${weeklyHours.toFixed(1)}h/vecka bör du polarisera mer (80-90% låg intensitet) för att skydda återhämtningen.`
+      )
     }
   }
 
@@ -528,7 +557,7 @@ export function getTargetsFromSettings(
       moderatePercent: customTargets.moderatePercent,
       hardPercent: customTargets.hardPercent,
       methodology: customTargets.methodology || 'CUSTOM',
-      label: customTargets.label || 'Anpassad',
+      label: customTargets.label || 'Custom',
     }
   }
 
@@ -635,16 +664,19 @@ export function getTargetStatus(
 /**
  * Format methodology for display
  */
-export function formatMethodology(methodology: IntensityMethodology | undefined): string {
+export function formatMethodology(
+  methodology: IntensityMethodology | undefined,
+  locale: IntensityTargetLocale = 'en'
+): string {
   const labels: Record<IntensityMethodology, string> = {
-    POLARIZED: 'Polariserad',
-    THRESHOLD_FOCUSED: 'Tröskel-fokuserad',
+    POLARIZED: labelText(locale, 'Polarized', 'Polariserad'),
+    THRESHOLD_FOCUSED: labelText(locale, 'Threshold-focused', 'Tröskel-fokuserad'),
     PYRAMIDAL: 'Pyramidal',
-    BALANCED: 'Balanserad',
-    HIGH_INTENSITY: 'Högintensiv',
-    CUSTOM: 'Anpassad',
+    BALANCED: labelText(locale, 'Balanced', 'Balanserad'),
+    HIGH_INTENSITY: labelText(locale, 'High intensity', 'Högintensiv'),
+    CUSTOM: labelText(locale, 'Custom', 'Anpassad'),
   }
-  return methodology ? labels[methodology] : 'Standard'
+  return methodology ? labels[methodology] : labelText(locale, 'Standard', 'Standard')
 }
 
 /**
