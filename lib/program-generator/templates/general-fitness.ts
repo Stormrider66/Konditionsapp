@@ -34,7 +34,7 @@ export function getWeightLossProgram(
   level: FitnessLevel,
   daysPerWeek: 3 | 4 | 5 | 6
 ): GeneralFitnessWeek[] {
-  const intensity = getLevelIntensity(level)
+  const _intensity = getLevelIntensity(level)
   const baseDuration = getLevelDuration(level)
 
   return [
@@ -42,40 +42,40 @@ export function getWeightLossProgram(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Bygg träningsvanor och grundkondition',
+      focus: 'Build training habits and base fitness',
       weeklyVolume: `${daysPerWeek * baseDuration} min`,
       targetCalorieBurn: 1500,
       workouts: getWeightLossWeekWorkouts(1, level, daysPerWeek),
       tips: [
-        'Fokusera på att skapa rutiner, inte perfektion',
-        'Drick minst 2 liter vatten per dag',
-        'Gå 7000+ steg dagligen utöver träning',
+        'Focus on building routines, not perfection',
+        'Drink at least 2 liters of water per day',
+        'Walk 7000+ steps daily in addition to training',
       ],
     },
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Öka aktivitetsnivån gradvis',
+      focus: 'Increase activity level gradually',
       weeklyVolume: `${daysPerWeek * (baseDuration + 5)} min`,
       targetCalorieBurn: 1800,
       workouts: getWeightLossWeekWorkouts(2, level, daysPerWeek),
       tips: [
-        'Lägg till en extra promenad per dag',
-        'Byt ut hiss mot trappor',
-        'Planera veckans måltider i förväg',
+        'Add one extra walk per day',
+        'Swap elevators for stairs',
+        'Plan the week\'s meals in advance',
       ],
     },
     {
       week: 3,
       phase: 'BASE',
-      focus: 'Etablera NEAT (vardagsaktivitet)',
+      focus: 'Establish NEAT (daily activity)',
       weeklyVolume: `${daysPerWeek * (baseDuration + 10)} min`,
       targetCalorieBurn: 2000,
       workouts: getWeightLossWeekWorkouts(3, level, daysPerWeek),
       tips: [
         'NEAT = Non-Exercise Activity Thermogenesis',
-        'Små rörelser hela dagen ökar förbränningen',
-        'Ta pauser från sittande varje timme',
+        'Small movements throughout the day increase calorie burn',
+        'Take breaks from sitting every hour',
       ],
     },
 
@@ -83,40 +83,40 @@ export function getWeightLossProgram(
     {
       week: 4,
       phase: 'BUILD',
-      focus: 'Återhämtningsvecka - konsolidera framsteg',
+      focus: 'Recovery week - consolidate progress',
       weeklyVolume: `${(daysPerWeek - 1) * baseDuration} min`,
       targetCalorieBurn: 1500,
       workouts: getWeightLossWeekWorkouts(4, level, Math.max(3, daysPerWeek - 1) as 3 | 4 | 5 | 6),
       tips: [
-        'Lyssna på kroppen - vila är viktigt',
-        'Fokusera på sömnkvalitet',
-        'Ät näringsrik mat, inte mindre mat',
+        'Listen to the body - rest matters',
+        'Focus on sleep quality',
+        'Eat nutrient-dense food, not less food',
       ],
     },
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Introducera HIIT för metabolisk boost',
+      focus: 'Introduce HIIT for a metabolic boost',
       weeklyVolume: `${daysPerWeek * (baseDuration + 10)} min`,
       targetCalorieBurn: 2200,
       workouts: getWeightLossWeekWorkouts(5, level, daysPerWeek),
       tips: [
-        'HIIT ökar efterförbränningen (EPOC)',
-        'Max 2-3 HIIT-pass per vecka',
-        'Blanda med lugn träning för balans',
+        'HIIT increases afterburn (EPOC)',
+        'Max 2-3 HIIT sessions per week',
+        'Mix with easy training for balance',
       ],
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Maximera förbränningen',
+      focus: 'Maximize calorie burn',
       weeklyVolume: `${daysPerWeek * (baseDuration + 15)} min`,
       targetCalorieBurn: 2500,
       workouts: getWeightLossWeekWorkouts(6, level, daysPerWeek),
       tips: [
-        'Kombinera styrka + kondition samma pass',
-        'Supersets och circuits ökar puls',
-        'Spåra matintag några dagar för medvetenhet',
+        'Combine strength + cardio in the same session',
+        'Supersets and circuits raise heart rate',
+        'Track food intake for a few days to build awareness',
       ],
     },
 
@@ -124,40 +124,40 @@ export function getWeightLossProgram(
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'Högintensiv fas - push boundaries',
+      focus: 'High-intensity phase - push boundaries',
       weeklyVolume: `${daysPerWeek * (baseDuration + 15)} min`,
       targetCalorieBurn: 2800,
       workouts: getWeightLossWeekWorkouts(7, level, daysPerWeek),
       tips: [
-        'Detta är den tuffaste veckan - du klarar det!',
-        'Ät tillräckligt med protein (2g/kg)',
-        'Sov minst 7 timmar',
+        'This is the toughest week - you can do it!',
+        'Eat enough protein (2 g/kg)',
+        'Sleep at least 7 hours',
       ],
     },
     {
       week: 8,
       phase: 'PEAK',
-      focus: 'Håll intensiteten',
+      focus: 'Hold the intensity',
       weeklyVolume: `${daysPerWeek * (baseDuration + 15)} min`,
       targetCalorieBurn: 2800,
       workouts: getWeightLossWeekWorkouts(8, level, daysPerWeek),
       tips: [
-        'Mät framsteg - vikt, mått, energinivå',
-        'Fira små vinster',
-        'Visualisera ditt mål',
+        'Measure progress - weight, measurements, energy level',
+        'Celebrate small wins',
+        'Visualize your goal',
       ],
     },
     {
       week: 9,
       phase: 'PEAK',
-      focus: 'Avlastning innan sista pushen',
+      focus: 'Deload before the final push',
       weeklyVolume: `${daysPerWeek * baseDuration} min`,
       targetCalorieBurn: 2000,
       workouts: getWeightLossWeekWorkouts(9, level, daysPerWeek),
       tips: [
-        'Minska volym men behåll intensitet',
-        'Extra fokus på återhämtning',
-        'Förbered dig mentalt för slutspurten',
+        'Reduce volume but keep intensity',
+        'Extra focus on recovery',
+        'Prepare mentally for the final push',
       ],
     },
 
@@ -165,40 +165,40 @@ export function getWeightLossProgram(
     {
       week: 10,
       phase: 'PEAK',
-      focus: 'Slutspurt - allt du lärt dig',
+      focus: 'Final push - everything you have learned',
       weeklyVolume: `${daysPerWeek * (baseDuration + 20)} min`,
       targetCalorieBurn: 3000,
       workouts: getWeightLossWeekWorkouts(10, level, daysPerWeek),
       tips: [
-        'Kombinera alla tekniker du lärt dig',
-        'Fokusera på att avsluta starkt',
-        'Tänk på nya vanor, inte bara siffror',
+        'Combine all the techniques you have learned',
+        'Focus on finishing strong',
+        'Think about new habits, not only numbers',
       ],
     },
     {
       week: 11,
       phase: 'PEAK',
-      focus: 'Maximala ansträngningen',
+      focus: 'Maximum effort',
       weeklyVolume: `${daysPerWeek * (baseDuration + 20)} min`,
       targetCalorieBurn: 3000,
       workouts: getWeightLossWeekWorkouts(11, level, daysPerWeek),
       tips: [
-        'Denna vecka visar vad du är kapabel till',
-        'Push dig själv - du är starkare än du tror',
-        'Dokumentera din resa',
+        'This week shows what you are capable of',
+        'Push yourself - you are stronger than you think',
+        'Document your journey',
       ],
     },
     {
       week: 12,
       phase: 'RECOVERY',
-      focus: 'Utvärdering och långsiktig plan',
+      focus: 'Evaluation and long-term plan',
       weeklyVolume: `${daysPerWeek * baseDuration} min`,
       targetCalorieBurn: 2000,
       workouts: getWeightLossWeekWorkouts(12, level, daysPerWeek),
       tips: [
-        'Jämför före/efter - fira dina framsteg!',
-        'Planera nästa fas av din resa',
-        'Vanorna du byggt är viktigast',
+        'Compare before/after - celebrate your progress!',
+        'Plan the next phase of your journey',
+        'The habits you built matter most',
       ],
     },
   ]
@@ -221,8 +221,8 @@ function getWeightLossWeekWorkouts(
       if (i % 2 === 0) {
         workouts.push({
           type: 'cardio',
-          name: 'Lätt konditionspass',
-          description: 'Lugn promenad, cykling eller simning',
+          name: 'Easy cardio session',
+          description: 'Easy walking, cycling, or swimming',
           duration: d - 10,
           intensity: 'low',
           caloriesBurnEstimate: 150,
@@ -230,8 +230,8 @@ function getWeightLossWeekWorkouts(
       } else {
         workouts.push({
           type: 'mobility',
-          name: 'Rörlighet och stretching',
-          description: 'Yoga-inspirerad stretching och andningsövningar',
+          name: 'Mobility and stretching',
+          description: 'Yoga-inspired stretching and breathing exercises',
           duration: 30,
           intensity: 'low',
           caloriesBurnEstimate: 80,
@@ -242,28 +242,28 @@ function getWeightLossWeekWorkouts(
       if (i % 3 === 0) {
         workouts.push({
           type: 'hiit',
-          name: 'HIIT Förbränning',
-          description: '30 sek arbete / 15 sek vila × 20-30 omgångar',
+          name: 'HIIT Burn',
+          description: '30 s work / 15 s rest x 20-30 rounds',
           duration: d + 10,
           intensity: 'very_high',
           caloriesBurnEstimate: 400,
-          equipment: ['Matta', 'Timer'],
+          equipment: ['Mat', 'Timer'],
         })
       } else if (i % 3 === 1) {
         workouts.push({
           type: 'circuit',
           name: 'Metabolisk circuit',
-          description: 'Styrka + kondition i kombination för maximal förbränning',
+          description: 'Strength + cardio combined for maximum calorie burn',
           duration: d + 15,
           intensity: 'high',
           caloriesBurnEstimate: 350,
-          equipment: ['Hantlar', 'Matta'],
+          equipment: ['Dumbbells', 'Mat'],
         })
       } else {
         workouts.push({
           type: 'cardio',
-          name: 'Steady state kondition',
-          description: 'Måttligt tempo för uthållighet och fettförbränning',
+          name: 'Steady state cardio',
+          description: 'Moderate pace for endurance and fat burning',
           duration: d + 20,
           intensity: 'moderate',
           caloriesBurnEstimate: 300,
@@ -274,8 +274,8 @@ function getWeightLossWeekWorkouts(
       if (i % 3 === 0) {
         workouts.push({
           type: 'cardio',
-          name: 'Konditionspass',
-          description: 'Löpning, cykling, promenad eller simning',
+          name: 'Cardio session',
+          description: 'Running, cycling, walking, or swimming',
           duration: d,
           intensity: week > 5 ? 'moderate' : 'low',
           caloriesBurnEstimate: 250,
@@ -283,20 +283,20 @@ function getWeightLossWeekWorkouts(
       } else if (i % 3 === 1) {
         workouts.push({
           type: 'strength',
-          name: 'Helkroppsstyrka',
-          description: 'Fokus på stora muskelgrupper för ökad metabolism',
+          name: 'Full-body strength',
+          description: 'Focus on large muscle groups for increased metabolism',
           duration: d + 5,
           intensity: 'moderate',
           caloriesBurnEstimate: 200,
-          equipment: ['Hantlar eller kroppsvikt'],
+          equipment: ['Dumbbells or bodyweight'],
         })
       } else {
         workouts.push({
           type: week > 4 ? 'hiit' : 'cardio',
-          name: week > 4 ? 'HIIT/Intervaller' : 'Aktiv promenad',
+          name: week > 4 ? 'HIIT/Intervals' : 'Active walk',
           description: week > 4
-            ? 'Korta högintensiva intervaller'
-            : 'Rask promenad i naturlig miljö',
+            ? 'Short high-intensity intervals'
+            : 'Brisk walk in a natural environment',
           duration: d,
           intensity: week > 4 ? 'high' : 'moderate',
           caloriesBurnEstimate: week > 4 ? 350 : 180,
@@ -317,44 +317,44 @@ export function getStrengthBuildingProgram(
   daysPerWeek: 3 | 4 | 5 | 6,
   hasGymAccess: boolean
 ): GeneralFitnessWeek[] {
-  const baseDuration = getLevelDuration(level)
+  const _baseDuration = getLevelDuration(level)
 
   return [
     // Phase 1: Anatomical Adaptation (Weeks 1-3)
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Lär dig teknik och bygga grund',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Learn technique and build the foundation',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(1, level, daysPerWeek, hasGymAccess),
       tips: [
-        'Fokusera på TEKNIK, inte vikt',
-        'Filma dig själv för att kontrollera form',
-        'Börja lätt - det finns tid att öka',
+        'Focus on TECHNIQUE, not weight',
+        'Film yourself to check form',
+        'Start easy - there is time to increase',
       ],
     },
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Etablera rörelsebanor',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Establish movement patterns',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(2, level, daysPerWeek, hasGymAccess),
       tips: [
-        'Konsistent träning > perfekt träning',
-        'Ät 2g protein per kg kroppsvikt',
-        'Sov 7-9 timmar för optimal återhämtning',
+        'Consistent training > perfect training',
+        'Eat 2 g protein per kg bodyweight',
+        'Sleep 7-9 hours for optimal recovery',
       ],
     },
     {
       week: 3,
       phase: 'BASE',
-      focus: 'Öka volymen försiktigt',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Increase volume cautiously',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(3, level, daysPerWeek, hasGymAccess),
       tips: [
-        'Lägg till ett set per övning',
-        'Börja spåra dina vikter i en loggbok',
-        'Varm upp ordentligt innan tunga lyft',
+        'Add one set per exercise',
+        'Start tracking your weights in a logbook',
+        'Warm up properly before heavy lifts',
       ],
     },
 
@@ -362,49 +362,49 @@ export function getStrengthBuildingProgram(
     {
       week: 4,
       phase: 'BUILD',
-      focus: 'Deload - lätt vecka för återhämtning',
-      weeklyVolume: `${Math.max(2, daysPerWeek - 1)} pass`,
+      focus: 'Deload - easy week for recovery',
+      weeklyVolume: `${Math.max(2, daysPerWeek - 1)} sessions`,
       workouts: getStrengthWeekWorkouts(4, level, Math.max(3, daysPerWeek - 1) as 3 | 4 | 5 | 6, hasGymAccess),
       tips: [
-        'Minska vikten med 40-50%',
-        'Fokusera på rörlighet och teknik',
-        'Extra vila och återhämtning',
+        'Reduce weight by 40-50%',
+        'Focus on mobility and technique',
+        'Extra rest and recovery',
       ],
     },
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Hypertrofi-fokus börjar',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Hypertrophy focus begins',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(5, level, daysPerWeek, hasGymAccess),
       tips: [
-        '8-12 reps för muskelväxt',
-        '60-90 sek vila mellan set',
-        'Kontrollerad negativ fas (sänkning)',
+        '8-12 reps for muscle growth',
+        '60-90 s rest between sets',
+        'Controlled eccentric phase (lowering)',
       ],
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Progressiv överbelastning',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Progressive overload',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(6, level, daysPerWeek, hasGymAccess),
       tips: [
-        'Öka vikten 2.5-5kg på sammansatta övningar',
-        'Eller lägg till 1-2 reps per set',
-        'Muskelkontakt > vikt',
+        'Increase weight 2.5-5 kg on compound exercises',
+        'Or add 1-2 reps per set',
+        'Muscle connection > weight',
       ],
     },
     {
       week: 7,
       phase: 'BUILD',
-      focus: 'Volymökning',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Volume increase',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(7, level, daysPerWeek, hasGymAccess),
       tips: [
-        'Lägg till ett extra set på svaga muskelgrupper',
-        'Dropsets på sista setet för extra stimulus',
-        'Håll proteinintaget högt',
+        'Add an extra set for weak muscle groups',
+        'Use dropsets on the final set for extra stimulus',
+        'Keep protein intake high',
       ],
     },
 
@@ -412,37 +412,37 @@ export function getStrengthBuildingProgram(
     {
       week: 8,
       phase: 'PEAK',
-      focus: 'Deload före styrkeblock',
-      weeklyVolume: `${Math.max(2, daysPerWeek - 1)} pass`,
+      focus: 'Deload before strength block',
+      weeklyVolume: `${Math.max(2, daysPerWeek - 1)} sessions`,
       workouts: getStrengthWeekWorkouts(8, level, Math.max(3, daysPerWeek - 1) as 3 | 4 | 5 | 6, hasGymAccess),
       tips: [
-        'Lätt vecka - kroppen förbereder sig',
-        'Mental förberedelse för tunga lyft',
-        'Visualisera dina mål',
+        'Easy week - the body is preparing',
+        'Mental preparation for heavy lifts',
+        'Visualize your goals',
       ],
     },
     {
       week: 9,
       phase: 'PEAK',
-      focus: 'Styrkeblock - tyngre vikter',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Strength block - heavier weights',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(9, level, daysPerWeek, hasGymAccess),
       tips: [
-        '4-6 reps för maxstyrka',
-        '2-3 min vila mellan tunga set',
-        'Fokusera på de stora lyften',
+        '4-6 reps for max strength',
+        '2-3 min rest between heavy sets',
+        'Focus on the big lifts',
       ],
     },
     {
       week: 10,
       phase: 'PEAK',
-      focus: 'Push mot nya PRs',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Push toward new PRs',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(10, level, daysPerWeek, hasGymAccess),
       tips: [
-        'Testa nya personliga rekord',
-        'Ha en spotter vid tunga lyft',
-        'Fira dina framsteg!',
+        'Test new personal records',
+        'Use a spotter for heavy lifts',
+        'Celebrate your progress!',
       ],
     },
 
@@ -450,25 +450,25 @@ export function getStrengthBuildingProgram(
     {
       week: 11,
       phase: 'PEAK',
-      focus: 'Testa maxstyrka',
-      weeklyVolume: `${Math.max(3, daysPerWeek - 1)} pass`,
+      focus: 'Test max strength',
+      weeklyVolume: `${Math.max(3, daysPerWeek - 1)} sessions`,
       workouts: getStrengthWeekWorkouts(11, level, Math.max(3, daysPerWeek - 1) as 3 | 4 | 5 | 6, hasGymAccess),
       tips: [
-        'Testa 1RM eller 3RM på huvudövningar',
-        'Varm upp grundligt',
-        'Dokumentera alla resultat',
+        'Test 1RM or 3RM on main exercises',
+        'Warm up thoroughly',
+        'Document all results',
       ],
     },
     {
       week: 12,
       phase: 'RECOVERY',
-      focus: 'Återhämtning och planering',
-      weeklyVolume: `${daysPerWeek} pass`,
+      focus: 'Recovery and planning',
+      weeklyVolume: `${daysPerWeek} sessions`,
       workouts: getStrengthWeekWorkouts(12, level, daysPerWeek, hasGymAccess),
       tips: [
-        'Lätt träning för återhämtning',
-        'Utvärdera programmet - vad fungerade?',
-        'Planera nästa träningscykel',
+        'Easy training for recovery',
+        'Evaluate the program - what worked?',
+        'Plan the next training cycle',
       ],
     },
   ]
@@ -492,29 +492,29 @@ function getStrengthWeekWorkouts(
     for (let i = 0; i < daysPerWeek; i++) {
       workouts.push({
         type: 'strength',
-        name: `Helkroppsstyrka ${i + 1}`,
+        name: `Full-body strength ${i + 1}`,
         description: hasGym
-          ? 'Knäböj, bänkpress, rodd, marklyft, axelpress'
-          : 'Luftknäböj, armhävningar, utfall, planka, dips',
+          ? 'Squat, bench press, row, deadlift, shoulder press'
+          : 'Air squats, push-ups, lunges, plank, dips',
         duration: isDeload ? d - 15 : d + 10,
         intensity: isDeload ? 'low' : isStrengthPhase ? 'very_high' : 'high',
-        equipment: hasGym ? ['Skivstång', 'Hantlar', 'Rack'] : ['Matta', 'Eventuellt hantlar'],
+        equipment: hasGym ? ['Barbell', 'Dumbbells', 'Rack'] : ['Mat', 'Optional dumbbells'],
       })
     }
   } else if (daysPerWeek === 4) {
     // Upper/Lower split
-    const splitNames = ['Överkropp A', 'Underkropp A', 'Överkropp B', 'Underkropp B']
+    const splitNames = ['Upper Body A', 'Lower Body A', 'Upper Body B', 'Lower Body B']
     const splitDescriptions = hasGym
       ? [
-          'Bänkpress, rodd, axelpress, biceps, triceps',
-          'Knäböj, rumänsk marklyft, utfall, vadpress',
-          'Hantelpress, chinups, laterala höjningar, curls',
-          'Marklyft, benpress, benspark, hamstrings',
+          'Bench press, row, shoulder press, biceps, triceps',
+          'Squat, Romanian deadlift, lunges, calf raises',
+          'Dumbbell press, chin-ups, lateral raises, curls',
+          'Deadlift, leg press, leg extension, hamstrings',
         ]
       : [
-          'Armhävningar, rows, pike press, dips',
-          'Knäböj, single-leg RDL, utfall, vadresp',
-          'Diamond pushups, chinups/rows, lateralt',
+          'Push-ups, rows, pike press, dips',
+          'Squats, single-leg RDL, lunges, calf raises',
+          'Diamond push-ups, chin-ups/rows, lateral work',
           'Hip thrust, pistol squats, hamstring curls',
         ]
 
@@ -525,25 +525,25 @@ function getStrengthWeekWorkouts(
         description: splitDescriptions[i],
         duration: isDeload ? d - 10 : d + 5,
         intensity: isDeload ? 'low' : isStrengthPhase ? 'very_high' : 'high',
-        equipment: hasGym ? ['Skivstång', 'Hantlar', 'Kablar'] : ['Matta', 'Eventuellt resistance band'],
+        equipment: hasGym ? ['Barbell', 'Dumbbells', 'Cables'] : ['Mat', 'Optional resistance band'],
       })
     }
   } else {
     // Push/Pull/Legs or 5-day split
-    const splitNames = ['Push', 'Pull', 'Ben', 'Push B', 'Pull B', 'Ben B']
+    const splitNames = ['Push', 'Pull', 'Legs', 'Push B', 'Pull B', 'Legs B']
     const splitDescriptions = hasGym
       ? [
-          'Bänkpress, axelpress, dips, triceps',
-          'Rodd, chinups, face pulls, biceps',
-          'Knäböj, marklyft, utfall, vad',
-          'Hantelpress, lateralhöjningar, flyes',
-          'Kabelrodd, pulldowns, rear delts, curls',
-          'Benspark, leg curl, hip thrust, vad',
+          'Bench press, shoulder press, dips, triceps',
+          'Rows, chin-ups, face pulls, biceps',
+          'Squat, deadlift, lunges, calves',
+          'Dumbbell press, lateral raises, flyes',
+          'Cable row, pulldowns, rear delts, curls',
+          'Leg extension, leg curl, hip thrust, calves',
         ]
       : [
-          'Armhävningar varianter, pike press, dips',
+          'Push-up variations, pike press, dips',
           'Chinups/rows, face pulls, curls',
-          'Knäböj, utfall, hip thrust, vad',
+          'Squats, lunges, hip thrust, calves',
           'Diamond pushups, shoulder press',
           'Rows, chinups, rear delt',
           'Pistols, nordic curls, glute bridge',
@@ -556,7 +556,7 @@ function getStrengthWeekWorkouts(
         description: splitDescriptions[i % splitDescriptions.length],
         duration: isDeload ? d - 10 : d,
         intensity: isDeload ? 'low' : isStrengthPhase ? 'very_high' : 'high',
-        equipment: hasGym ? ['Skivstång', 'Hantlar', 'Maskiner'] : ['Matta', 'Pullup bar'],
+        equipment: hasGym ? ['Barbell', 'Dumbbells', 'Machines'] : ['Mat', 'Pullup bar'],
       })
     }
   }
@@ -576,97 +576,97 @@ export function getFlexibilityProgram(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Kartlägg din rörlighet',
+      focus: 'Map your mobility',
       weeklyVolume: `${daysPerWeek * 30} min`,
       workouts: getFlexibilityWeekWorkouts(1, level, daysPerWeek),
       tips: [
-        'Ta bilder/filma för att se startpunkt',
-        'Notera vilka områden som är strama',
-        'Andas djupt under stretching',
+        'Take photos/video to see the starting point',
+        'Note which areas feel tight',
+        'Breathe deeply during stretching',
       ],
     },
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Dynamisk rörlighet',
+      focus: 'Dynamic mobility',
       weeklyVolume: `${daysPerWeek * 35} min`,
       workouts: getFlexibilityWeekWorkouts(2, level, daysPerWeek),
       tips: [
-        'Dynamisk stretching före aktivitet',
-        'Kontrollerade rörelser, inga ryck',
-        'Fokusera på höfter och bröstrygg',
+        'Dynamic stretching before activity',
+        'Controlled movements, no jerking',
+        'Focus on hips and thoracic spine',
       ],
     },
     {
       week: 3,
       phase: 'BASE',
-      focus: 'Statisk stretching',
+      focus: 'Static stretching',
       weeklyVolume: `${daysPerWeek * 40} min`,
       workouts: getFlexibilityWeekWorkouts(3, level, daysPerWeek),
       tips: [
-        'Håll stretchar 30-60 sekunder',
-        'Andas ut och slappna av i positionen',
-        'Aldrig stretcha till smärta',
+        'Hold stretches for 30-60 seconds',
+        'Exhale and relax into the position',
+        'Never stretch into pain',
       ],
     },
     {
       week: 4,
       phase: 'BUILD',
-      focus: 'Yoga-grunder',
+      focus: 'Yoga basics',
       weeklyVolume: `${daysPerWeek * 45} min`,
       workouts: getFlexibilityWeekWorkouts(4, level, daysPerWeek),
       tips: [
-        'Sun salutation är en bra grund',
-        'Koppla andning till rörelse',
-        'Modifiera positioner efter behov',
+        'Sun salutation is a good foundation',
+        'Connect breath to movement',
+        'Modify positions as needed',
       ],
     },
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Progressiv rörlighet',
+      focus: 'Progressive mobility',
       weeklyVolume: `${daysPerWeek * 45} min`,
       workouts: getFlexibilityWeekWorkouts(5, level, daysPerWeek),
       tips: [
-        'Öka range of motion gradvis',
-        'Loaded stretching för vissa muskler',
+        'Increase range of motion gradually',
+        'Loaded stretching for selected muscles',
         'Myofascial release (foam rolling)',
       ],
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Fokuserade sessioner',
+      focus: 'Focused sessions',
       weeklyVolume: `${daysPerWeek * 50} min`,
       workouts: getFlexibilityWeekWorkouts(6, level, daysPerWeek),
       tips: [
-        'En dag per kroppsområde',
-        'Extra tid på problemområden',
-        'Kombinera med andningsövningar',
+        'One day per body area',
+        'Extra time on problem areas',
+        'Combine with breathing exercises',
       ],
     },
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'Avancerade tekniker',
+      focus: 'Advanced techniques',
       weeklyVolume: `${daysPerWeek * 50} min`,
       workouts: getFlexibilityWeekWorkouts(7, level, daysPerWeek),
       tips: [
-        'PNF-stretching för extra effekt',
-        'Partner-stretching om möjligt',
-        'Testa dina förbättringar',
+        'PNF stretching for extra effect',
+        'Partner stretching if possible',
+        'Test your improvements',
       ],
     },
     {
       week: 8,
       phase: 'RECOVERY',
-      focus: 'Underhåll och rutin',
+      focus: 'Maintenance and routine',
       weeklyVolume: `${daysPerWeek * 40} min`,
       workouts: getFlexibilityWeekWorkouts(8, level, daysPerWeek),
       tips: [
-        'Skapa en hållbar daglig rutin',
-        'Dokumentera dina framsteg',
-        'Planera fortsatt rörlighetsarbete',
+        'Create a sustainable daily routine',
+        'Document your progress',
+        'Plan continued mobility work',
       ],
     },
   ]
@@ -680,12 +680,12 @@ function getFlexibilityWeekWorkouts(
   const workouts: GeneralFitnessWorkout[] = []
 
   const focusAreas = [
-    { area: 'Höfter & Baksida lår', description: 'Pigeon pose, framåtfällning, hamstring stretch' },
-    { area: 'Bröstrygg & Axlar', description: 'Thoracic rotation, cat-cow, chest opener' },
-    { area: 'Helkropp', description: 'Sun salutation, full body flow' },
-    { area: 'Nedre rygg & Core', description: 'Child pose, sphinx, core rotation' },
-    { area: 'Ben & Vader', description: 'Quad stretch, calf stretch, ankle mobility' },
-    { area: 'Nacke & Överkropp', description: 'Neck rolls, shoulder circles, arm stretches' },
+    { area: 'Hips & Hamstrings', description: 'Pigeon pose, forward fold, hamstring stretch' },
+    { area: 'Thoracic Spine & Shoulders', description: 'Thoracic rotation, cat-cow, chest opener' },
+    { area: 'Full Body', description: 'Sun salutation, full body flow' },
+    { area: 'Lower Back & Core', description: 'Child pose, sphinx, core rotation' },
+    { area: 'Legs & Calves', description: 'Quad stretch, calf stretch, ankle mobility' },
+    { area: 'Neck & Upper Body', description: 'Neck rolls, shoulder circles, arm stretches' },
   ]
 
   for (let i = 0; i < daysPerWeek; i++) {
@@ -694,8 +694,8 @@ function getFlexibilityWeekWorkouts(
     if (week <= 2) {
       workouts.push({
         type: 'mobility',
-        name: `Dynamisk rörlighet: ${focus.area}`,
-        description: `Dynamiska övningar för ${focus.area.toLowerCase()}`,
+        name: `Dynamic mobility: ${focus.area}`,
+        description: `Dynamic exercises for ${focus.area.toLowerCase()}`,
         duration: 30 + (week * 5),
         intensity: 'low',
       })
@@ -710,8 +710,8 @@ function getFlexibilityWeekWorkouts(
     } else {
       workouts.push({
         type: 'mobility',
-        name: `Avancerad rörlighet: ${focus.area}`,
-        description: `PNF och loaded stretching för ${focus.area.toLowerCase()}`,
+        name: `Advanced mobility: ${focus.area}`,
+        description: `PNF and loaded stretching for ${focus.area.toLowerCase()}`,
         duration: 45 + (week * 2),
         intensity: 'moderate',
       })
@@ -733,97 +733,97 @@ export function getStressReliefProgram(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Introducera mindful rörelse',
+      focus: 'Introduce mindful movement',
       weeklyVolume: `${daysPerWeek * 25} min`,
       workouts: getStressReliefWeekWorkouts(1, level, daysPerWeek),
       tips: [
-        'Stäng av telefonen under träning',
-        'Fokusera på andningen',
-        'Ingen prestation - bara närvaro',
+        'Turn off the phone during training',
+        'Focus on breathing',
+        'No performance pressure - only presence',
       ],
     },
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Bygga andningsmedvetenhet',
+      focus: 'Build breathing awareness',
       weeklyVolume: `${daysPerWeek * 30} min`,
       workouts: getStressReliefWeekWorkouts(2, level, daysPerWeek),
       tips: [
-        'Öva 4-7-8 andning dagligen',
-        'Börja och avsluta dagen med stillhet',
-        'Notera hur kroppen reagerar på stress',
+        'Practice 4-7-8 breathing daily',
+        'Start and end the day with stillness',
+        'Notice how the body reacts to stress',
       ],
     },
     {
       week: 3,
       phase: 'BASE',
-      focus: 'Naturens läkande kraft',
+      focus: 'The healing power of nature',
       weeklyVolume: `${daysPerWeek * 35} min`,
       workouts: getStressReliefWeekWorkouts(3, level, daysPerWeek),
       tips: [
-        'Träna utomhus när möjligt',
-        'Skogsbad (shinrin-yoku) har forskad effekt',
-        'Lämna tekniken hemma ibland',
+        'Train outdoors when possible',
+        'Forest bathing (shinrin-yoku) has researched benefits',
+        'Leave technology at home sometimes',
       ],
     },
     {
       week: 4,
       phase: 'BUILD',
-      focus: 'Yoga och meditation',
+      focus: 'Yoga and meditation',
       weeklyVolume: `${daysPerWeek * 40} min`,
       workouts: getStressReliefWeekWorkouts(4, level, daysPerWeek),
       tips: [
-        'Yin yoga för djup avslappning',
-        'Guidad meditation för nybörjare',
-        'Kvällsrutin för bättre sömn',
+        'Yin yoga for deep relaxation',
+        'Guided meditation for beginners',
+        'Evening routine for better sleep',
       ],
     },
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Rörelse som meditation',
+      focus: 'Movement as meditation',
       weeklyVolume: `${daysPerWeek * 40} min`,
       workouts: getStressReliefWeekWorkouts(5, level, daysPerWeek),
       tips: [
-        'Tai Chi eller Qigong',
-        'Mindful walking - fokusera på varje steg',
-        'Kropp och sinne i synk',
+        'Tai Chi or Qigong',
+        'Mindful walking - focus on every step',
+        'Body and mind in sync',
       ],
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Kombinera tekniker',
+      focus: 'Combine techniques',
       weeklyVolume: `${daysPerWeek * 45} min`,
       workouts: getStressReliefWeekWorkouts(6, level, daysPerWeek),
       tips: [
-        'Yoga + meditation + promenad',
-        'Skapa din personliga rutin',
-        'Vad fungerar bäst för dig?',
+        'Yoga + meditation + walking',
+        'Create your personal routine',
+        'What works best for you?',
       ],
     },
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'Fördjupad praktik',
+      focus: 'Deepened practice',
       weeklyVolume: `${daysPerWeek * 50} min`,
       workouts: getStressReliefWeekWorkouts(7, level, daysPerWeek),
       tips: [
-        'Längre meditationssessioner',
+        'Longer meditation sessions',
         'Restorative yoga',
-        'Journaling efter praktik',
+        'Journaling after practice',
       ],
     },
     {
       week: 8,
       phase: 'RECOVERY',
-      focus: 'Livsstilsintegration',
+      focus: 'Lifestyle integration',
       weeklyVolume: `${daysPerWeek * 40} min`,
       workouts: getStressReliefWeekWorkouts(8, level, daysPerWeek),
       tips: [
-        'Gör mindfulness till en vana',
-        'Micro-pauser under dagen',
-        'Planera fortsatt praktik',
+        'Make mindfulness a habit',
+        'Micro-breaks during the day',
+        'Plan continued practice',
       ],
     },
   ]
@@ -837,12 +837,12 @@ function getStressReliefWeekWorkouts(
   const workouts: GeneralFitnessWorkout[] = []
 
   const activities = [
-    { name: 'Morgonyoga', type: 'yoga' as const, desc: 'Gentle yoga för att starta dagen' },
-    { name: 'Mindful promenad', type: 'active-rest' as const, desc: 'Fokuserad promenad i naturen' },
-    { name: 'Yin Yoga', type: 'yoga' as const, desc: 'Djup stretching och avslappning' },
-    { name: 'Andningsövningar', type: 'mobility' as const, desc: 'Pranayama och breathwork' },
-    { name: 'Kvällsmeditation', type: 'active-rest' as const, desc: 'Guidad meditation för vila' },
-    { name: 'Restorative session', type: 'yoga' as const, desc: 'Stöttad avslappning med props' },
+    { name: 'Morning yoga', type: 'yoga' as const, desc: 'Gentle yoga to start the day' },
+    { name: 'Mindful walk', type: 'active-rest' as const, desc: 'Focused walk in nature' },
+    { name: 'Yin Yoga', type: 'yoga' as const, desc: 'Deep stretching and relaxation' },
+    { name: 'Breathing exercises', type: 'mobility' as const, desc: 'Pranayama and breathwork' },
+    { name: 'Evening meditation', type: 'active-rest' as const, desc: 'Guided meditation for rest' },
+    { name: 'Restorative session', type: 'yoga' as const, desc: 'Supported relaxation with props' },
   ]
 
   for (let i = 0; i < daysPerWeek; i++) {
@@ -875,49 +875,49 @@ export function getEnduranceProgram(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Bygg aerob grund',
+      focus: 'Build aerobic base',
       weeklyVolume: `${daysPerWeek * baseDuration} min`,
       workouts: getEnduranceWeekWorkouts(1, level, daysPerWeek, preferredActivities),
       tips: [
-        'All träning i Zon 2 (kan prata)',
-        'Bygger mitokondrier och kapillärer',
-        'Tålamod - basen tar tid',
+        'All training in Zone 2 (can talk)',
+        'Builds mitochondria and capillaries',
+        'Patience - the base takes time',
       ],
     },
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Öka volym försiktigt',
+      focus: 'Increase volume cautiously',
       weeklyVolume: `${daysPerWeek * (baseDuration + 5)} min`,
       workouts: getEnduranceWeekWorkouts(2, level, daysPerWeek, preferredActivities),
       tips: [
-        'Max 10% volymökning per vecka',
-        'Lyssna på kroppen',
-        'Kvalitet före kvantitet',
+        'Max 10% volume increase per week',
+        'Listen to the body',
+        'Quality before quantity',
       ],
     },
     {
       week: 3,
       phase: 'BASE',
-      focus: 'Etablera konsistens',
+      focus: 'Establish consistency',
       weeklyVolume: `${daysPerWeek * (baseDuration + 10)} min`,
       workouts: getEnduranceWeekWorkouts(3, level, daysPerWeek, preferredActivities),
       tips: [
-        'Rutiner skapar resultat',
-        'Variera aktiviteter för att undvika skador',
-        'Spåra din vilopuls',
+        'Routines create results',
+        'Vary activities to avoid injuries',
+        'Track your resting heart rate',
       ],
     },
     {
       week: 4,
       phase: 'BASE',
-      focus: 'Återhämtningsvecka',
+      focus: 'Recovery week',
       weeklyVolume: `${(daysPerWeek - 1) * baseDuration} min`,
       workouts: getEnduranceWeekWorkouts(4, level, Math.max(3, daysPerWeek - 1) as 3 | 4 | 5 | 6, preferredActivities),
       tips: [
-        'Minska volym 30-40%',
-        'Behåll frekvens, minska duration',
-        'Kroppen supercompenserar',
+        'Reduce volume by 30-40%',
+        'Keep frequency, reduce duration',
+        'The body supercompensates',
       ],
     },
 
@@ -925,37 +925,37 @@ export function getEnduranceProgram(
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Introducera tempo',
+      focus: 'Introduce tempo',
       weeklyVolume: `${daysPerWeek * (baseDuration + 15)} min`,
       workouts: getEnduranceWeekWorkouts(5, level, daysPerWeek, preferredActivities),
       tips: [
-        'Ett tempopass per vecka',
-        'Zon 3 - "comfortably hard"',
-        'Resten fortfarande lätt',
+        'One tempo session per week',
+        'Zone 3 - "comfortably hard"',
+        'The rest remains easy',
       ],
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Bygg tröskel',
+      focus: 'Build threshold',
       weeklyVolume: `${daysPerWeek * (baseDuration + 20)} min`,
       workouts: getEnduranceWeekWorkouts(6, level, daysPerWeek, preferredActivities),
       tips: [
-        'Tröskelpas bygger uthållighet',
-        '20-40 min i Zon 4',
-        'Utmanande men hållbart',
+        'Threshold sessions build endurance',
+        '20-40 min in Zone 4',
+        'Challenging but sustainable',
       ],
     },
     {
       week: 7,
       phase: 'BUILD',
-      focus: 'Längre pass',
+      focus: 'Longer sessions',
       weeklyVolume: `${daysPerWeek * (baseDuration + 25)} min`,
       workouts: getEnduranceWeekWorkouts(7, level, daysPerWeek, preferredActivities),
       tips: [
-        'Ett långpass per vecka',
-        'Bygg upp till 90+ min',
-        'Träna näringsintag under längre pass',
+        'One long session per week',
+        'Build up to 90+ min',
+        'Practice fueling during longer sessions',
       ],
     },
     {
@@ -965,9 +965,9 @@ export function getEnduranceProgram(
       weeklyVolume: `${(daysPerWeek - 1) * baseDuration} min`,
       workouts: getEnduranceWeekWorkouts(8, level, Math.max(3, daysPerWeek - 1) as 3 | 4 | 5 | 6, preferredActivities),
       tips: [
-        'Återhämtning inför peak-fasen',
-        'Lätt och rolig träning',
-        'Mental vila också',
+        'Recovery before the peak phase',
+        'Easy and enjoyable training',
+        'Mental rest too',
       ],
     },
 
@@ -975,13 +975,13 @@ export function getEnduranceProgram(
     {
       week: 9,
       phase: 'PEAK',
-      focus: 'Intensitet ökar',
+      focus: 'Intensity increases',
       weeklyVolume: `${daysPerWeek * (baseDuration + 20)} min`,
       workouts: getEnduranceWeekWorkouts(9, level, daysPerWeek, preferredActivities),
       tips: [
-        'Två kvalitetspass per vecka',
-        'Tempo + intervaller',
-        'Vila mellan hårda pass',
+        'Two quality sessions per week',
+        'Tempo + intervals',
+        'Rest between hard sessions',
       ],
     },
     {
@@ -991,21 +991,21 @@ export function getEnduranceProgram(
       weeklyVolume: `${daysPerWeek * (baseDuration + 25)} min`,
       workouts: getEnduranceWeekWorkouts(10, level, daysPerWeek, preferredActivities),
       tips: [
-        'Din starkaste vecka',
-        'Push dig själv',
-        'Extra fokus på återhämtning',
+        'Your strongest week',
+        'Push yourself',
+        'Extra focus on recovery',
       ],
     },
     {
       week: 11,
       phase: 'PEAK',
-      focus: 'Testa din kapacitet',
+      focus: 'Test your capacity',
       weeklyVolume: `${daysPerWeek * (baseDuration + 15)} min`,
       workouts: getEnduranceWeekWorkouts(11, level, daysPerWeek, preferredActivities),
       tips: [
-        'Time trial eller test',
-        'Mät dina framsteg',
-        'Fira resultaten!',
+        'Time trial or test',
+        'Measure your progress',
+        'Celebrate the results!',
       ],
     },
 
@@ -1013,13 +1013,13 @@ export function getEnduranceProgram(
     {
       week: 12,
       phase: 'RECOVERY',
-      focus: 'Utvärdering och planering',
+      focus: 'Evaluation and planning',
       weeklyVolume: `${daysPerWeek * baseDuration} min`,
       workouts: getEnduranceWeekWorkouts(12, level, daysPerWeek, preferredActivities),
       tips: [
-        'Lätt träning',
-        'Analysera vad som fungerade',
-        'Planera nästa block',
+        'Easy training',
+        'Analyze what worked',
+        'Plan the next block',
       ],
     },
   ]
@@ -1039,17 +1039,17 @@ function getEnduranceWeekWorkouts(
 
   // Map preferred activities to workout types
   const activityMap: Record<string, string> = {
-    running: 'Löpning',
-    cycling: 'Cykling',
-    swimming: 'Simning',
-    walking: 'Promenad/Power walk',
-    rowing: 'Rodd',
-    hiking: 'Vandring',
+    running: 'Running',
+    cycling: 'Cycling',
+    swimming: 'Swimming',
+    walking: 'Walking/Power walk',
+    rowing: 'Rowing',
+    hiking: 'Hiking',
   }
 
   const activities = preferredActivities.length > 0
     ? preferredActivities.map(a => activityMap[a] || a)
-    : ['Löpning', 'Cykling', 'Promenad']
+    : ['Running', 'Cycling', 'Walking']
 
   for (let i = 0; i < daysPerWeek; i++) {
     const activity = activities[i % activities.length]
@@ -1057,8 +1057,8 @@ function getEnduranceWeekWorkouts(
     if (isRecoveryWeek) {
       workouts.push({
         type: 'cardio',
-        name: `Lätt ${activity}`,
-        description: 'Återhämtning - mycket lätt tempo (Zon 1-2)',
+        name: `Easy ${activity}`,
+        description: 'Recovery - very easy pace (Zone 1-2)',
         duration: d - 10,
         intensity: 'low',
       })
@@ -1068,8 +1068,8 @@ function getEnduranceWeekWorkouts(
         type: 'cardio',
         name: week >= 9 ? `Intervall ${activity}` : `Tempo ${activity}`,
         description: week >= 9
-          ? '5×5 min i Zon 4 med 2 min vila'
-          : '20-30 min i Zon 3-4',
+          ? '5 x 5 min in Zone 4 with 2 min recovery'
+          : '20-30 min in Zone 3-4',
         duration: d + 10,
         intensity: 'high',
       })
@@ -1077,8 +1077,8 @@ function getEnduranceWeekWorkouts(
       // Long session at end of week
       workouts.push({
         type: 'cardio',
-        name: `Långpass ${activity}`,
-        description: 'Byggpass - längre duration i Zon 2',
+        name: `Long session ${activity}`,
+        description: 'Build session - longer duration in Zone 2',
         duration: d + 30,
         intensity: 'moderate',
       })
@@ -1086,8 +1086,8 @@ function getEnduranceWeekWorkouts(
       // Easy sessions
       workouts.push({
         type: 'cardio',
-        name: `${activity} Zon 2`,
-        description: 'Lätt kondition - bygg aerob bas',
+        name: `${activity} Zone 2`,
+        description: 'Easy cardio - build aerobic base',
         duration: d + (week * 2),
         intensity: 'low',
       })
@@ -1111,97 +1111,97 @@ export function getGeneralHealthProgram(
     {
       week: 1,
       phase: 'BASE',
-      focus: 'Etablera balanserad rutin',
+      focus: 'Establish a balanced routine',
       weeklyVolume: `${daysPerWeek * d} min`,
       workouts: getGeneralHealthWeekWorkouts(1, level, daysPerWeek),
       tips: [
-        'Mix av kondition, styrka och rörlighet',
-        'Börja med vad du tycker om',
-        'Regelbundenhet > intensitet',
+        'Mix cardio, strength, and mobility',
+        'Start with what you enjoy',
+        'Consistency > intensity',
       ],
     },
     {
       week: 2,
       phase: 'BASE',
-      focus: 'Bygg dagliga vanor',
+      focus: 'Build daily habits',
       weeklyVolume: `${daysPerWeek * (d + 5)} min`,
       workouts: getGeneralHealthWeekWorkouts(2, level, daysPerWeek),
       tips: [
-        'Lägg till promenader mellan pass',
-        'Drick mer vatten',
-        'Gå och lägg dig 15 min tidigare',
+        'Add walks between sessions',
+        'Drink more water',
+        'Go to bed 15 min earlier',
       ],
     },
     {
       week: 3,
       phase: 'BASE',
-      focus: 'Öka vardagsaktivitet',
+      focus: 'Increase daily activity',
       weeklyVolume: `${daysPerWeek * (d + 10)} min`,
       workouts: getGeneralHealthWeekWorkouts(3, level, daysPerWeek),
       tips: [
-        '10 000 steg/dag som mål',
-        'Stå upp varje timme',
-        'Aktiv transport när möjligt',
+        'Aim for 10,000 steps/day',
+        'Stand up every hour',
+        'Use active transportation when possible',
       ],
     },
     {
       week: 4,
       phase: 'BUILD',
-      focus: 'Konsolidering',
+      focus: 'Consolidation',
       weeklyVolume: `${daysPerWeek * d} min`,
       workouts: getGeneralHealthWeekWorkouts(4, level, daysPerWeek),
       tips: [
-        'Lättare vecka - behåll vanor',
-        'Utvärdera vad som fungerar',
-        'Njut av processen',
+        'Easier week - keep the habits',
+        'Evaluate what works',
+        'Enjoy the process',
       ],
     },
     {
       week: 5,
       phase: 'BUILD',
-      focus: 'Lägg till utmaning',
+      focus: 'Add challenge',
       weeklyVolume: `${daysPerWeek * (d + 10)} min`,
       workouts: getGeneralHealthWeekWorkouts(5, level, daysPerWeek),
       tips: [
-        'Ett pass med högre intensitet',
-        'Prova en ny aktivitet',
-        'Utmana dig lagom',
+        'One higher-intensity session',
+        'Try a new activity',
+        'Challenge yourself appropriately',
       ],
     },
     {
       week: 6,
       phase: 'BUILD',
-      focus: 'Varierad träning',
+      focus: 'Varied training',
       weeklyVolume: `${daysPerWeek * (d + 15)} min`,
       workouts: getGeneralHealthWeekWorkouts(6, level, daysPerWeek),
       tips: [
-        'Blanda aktiviteter för helhetshälsa',
-        'Prova gruppträning',
-        'Träna med en vän',
+        'Mix activities for overall health',
+        'Try group training',
+        'Train with a friend',
       ],
     },
     {
       week: 7,
       phase: 'PEAK',
-      focus: 'Maximal variation',
+      focus: 'Maximum variation',
       weeklyVolume: `${daysPerWeek * (d + 15)} min`,
       workouts: getGeneralHealthWeekWorkouts(7, level, daysPerWeek),
       tips: [
-        'Denna vecka - prova allt!',
-        'Vad tycker du mest om?',
-        'Dokumentera hur du mår',
+        'This week - try everything!',
+        'What do you enjoy most?',
+        'Document how you feel',
       ],
     },
     {
       week: 8,
       phase: 'RECOVERY',
-      focus: 'Livsstilsplan',
+      focus: 'Lifestyle plan',
       weeklyVolume: `${daysPerWeek * d} min`,
       workouts: getGeneralHealthWeekWorkouts(8, level, daysPerWeek),
       tips: [
-        'Skapa din hållbara rutin',
-        'Vad ska du fortsätta med?',
-        'Hälsa är en livsstil, inte ett mål',
+        'Create your sustainable routine',
+        'What will you continue with?',
+        'Health is a lifestyle, not a goal',
       ],
     },
   ]
@@ -1216,12 +1216,12 @@ function getGeneralHealthWeekWorkouts(
   const workouts: GeneralFitnessWorkout[] = []
 
   const weeklyPattern = [
-    { type: 'cardio' as const, name: 'Konditionspass' },
-    { type: 'strength' as const, name: 'Styrkepass' },
-    { type: 'mobility' as const, name: 'Rörlighet/Yoga' },
-    { type: 'active-rest' as const, name: 'Aktiv vila' },
-    { type: 'cardio' as const, name: 'Varierat kondition' },
-    { type: 'core' as const, name: 'Core och balans' },
+    { type: 'cardio' as const, name: 'Cardio session' },
+    { type: 'strength' as const, name: 'Strength session' },
+    { type: 'mobility' as const, name: 'Mobility/Yoga' },
+    { type: 'active-rest' as const, name: 'Active rest' },
+    { type: 'cardio' as const, name: 'Varied cardio' },
+    { type: 'core' as const, name: 'Core and balance' },
   ]
 
   for (let i = 0; i < daysPerWeek; i++) {
@@ -1241,28 +1241,28 @@ function getGeneralHealthWeekWorkouts(
 function getGeneralHealthDescription(type: string, week: number): string {
   const descriptions: Record<string, string[]> = {
     cardio: [
-      'Promenad, cykling eller simning i lugnt tempo',
-      'Valfri konditionsträning - hitta något du gillar',
+      'Walking, cycling, or swimming at an easy pace',
+      'Optional cardio - find something you enjoy',
     ],
     strength: [
-      'Grundläggande styrkeövningar för hela kroppen',
-      'Fokus på funktionell styrka för vardagen',
+      'Basic strength exercises for the whole body',
+      'Focus on functional strength for daily life',
     ],
     mobility: [
-      'Stretching och rörlighetsövningar',
-      'Yoga eller Pilates-inspirerat',
+      'Stretching and mobility exercises',
+      'Yoga or Pilates-inspired',
     ],
     'active-rest': [
-      'Lätt aktivitet - promenad, lek, trädgård',
-      'Vila aktivt - rör på dig men stressa inte',
+      'Light activity - walking, play, gardening',
+      'Rest actively - move but do not stress',
     ],
     core: [
       'Planka, bird-dog, dead bug',
-      'Stabilitet och balansträning',
+      'Stability and balance training',
     ],
   }
 
-  const options = descriptions[type] || ['Balanserad träning']
+  const options = descriptions[type] || ['Balanced training']
   return options[week % options.length]
 }
 
@@ -1356,7 +1356,7 @@ export function getProgramDescription(goal: FitnessGoal): {
       description: 'High-intensity metabolic training combined with strength to maximize calorie burn',
       descriptionSv: 'Högintensiv metabolisk träning kombinerad med styrka för maximal kaloriförbränning',
       duration: 12,
-      focusAreas: ['HIIT', 'Circuits', 'Styrka', 'NEAT'],
+      focusAreas: ['HIIT', 'Circuits', 'Strength', 'NEAT'],
     },
     strength: {
       title: 'Strength Building Program',
@@ -1364,7 +1364,7 @@ export function getProgramDescription(goal: FitnessGoal): {
       description: 'Progressive overload training to build muscle and increase strength',
       descriptionSv: 'Progressiv överbelastning för att bygga muskler och öka styrka',
       duration: 12,
-      focusAreas: ['Styrka', 'Hypertrofi', 'Power', 'Progression'],
+      focusAreas: ['Strength', 'Hypertrophy', 'Power', 'Progression'],
     },
     endurance: {
       title: 'Endurance Program',
@@ -1372,7 +1372,7 @@ export function getProgramDescription(goal: FitnessGoal): {
       description: 'Build aerobic capacity and cardiovascular fitness',
       descriptionSv: 'Bygg aerob kapacitet och kardiovaskulär fitness',
       duration: 12,
-      focusAreas: ['Zon 2', 'Tempo', 'Långpass', 'Intervaller'],
+      focusAreas: ['Zone 2', 'Tempo', 'Long sessions', 'Intervals'],
     },
     general_health: {
       title: 'General Health Program',
@@ -1380,7 +1380,7 @@ export function getProgramDescription(goal: FitnessGoal): {
       description: 'Balanced training for overall wellbeing and sustainable fitness',
       descriptionSv: 'Balanserad träning för övergripande välmående och hållbar fitness',
       duration: 8,
-      focusAreas: ['Kondition', 'Styrka', 'Rörlighet', 'Livsstil'],
+      focusAreas: ['Cardio', 'Strength', 'Mobility', 'Lifestyle'],
     },
     flexibility: {
       title: 'Flexibility & Mobility Program',
@@ -1396,7 +1396,7 @@ export function getProgramDescription(goal: FitnessGoal): {
       description: 'Mindful movement and relaxation techniques',
       descriptionSv: 'Mindful rörelse och avslappningstekniker',
       duration: 8,
-      focusAreas: ['Yoga', 'Meditation', 'Andning', 'Mindfulness'],
+      focusAreas: ['Yoga', 'Meditation', 'Breathing', 'Mindfulness'],
     },
   }
 
