@@ -29,8 +29,11 @@ const recordResultSchema = z.object({
 })
 
 export async function GET(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
-    await requireCoach()
+    const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: protocolId } = await context.params
 
     const results = await prisma.customTestResult.findMany({
@@ -46,16 +49,18 @@ export async function GET(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ results })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch test results', 'Kunde inte hämta testresultat') }, { status: 500 })
   }
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const { id: protocolId } = await context.params
     const body = await req.json()
     const parsed = recordResultSchema.safeParse(body)
@@ -79,8 +84,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ result }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to record test result', 'Kunde inte registrera testresultatet') }, { status: 500 })
   }
 }

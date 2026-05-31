@@ -13,9 +13,18 @@ import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { getBusinessMembership } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 
+type AppLocale = 'en' | 'sv'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
     const scope = getRequestedBusinessScope(req)
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
     const previewRole = await getStaffRolePreview(user.id)
@@ -120,8 +129,9 @@ export async function GET(req: NextRequest) {
 
     // Group stats by team
     const teamStats = new Map<string, { vo2maxValues: number[]; maxHRValues: number[]; maxLactateValues: number[] }>()
+    const noTeamLabel = t(locale, 'No team', 'Inget lag')
     for (const test of tests) {
-      const teamName = test.client.team?.name || 'Inget lag'
+      const teamName = test.client.team?.name || noTeamLabel
       if (!teamStats.has(teamName)) {
         teamStats.set(teamName, { vo2maxValues: [], maxHRValues: [], maxLactateValues: [] })
       }
@@ -137,7 +147,7 @@ export async function GET(req: NextRequest) {
       const max = (arr: number[]) => arr.length > 0 ? Math.max(...arr) : null
       return {
         teamName,
-        athleteCount: new Set(tests.filter((t) => (t.client.team?.name || 'Inget lag') === teamName).map((t) => t.clientId)).size,
+        athleteCount: new Set(tests.filter((t) => (t.client.team?.name || noTeamLabel) === teamName).map((t) => t.clientId)).size,
         vo2max: { avg: avg(stats.vo2maxValues), min: min(stats.vo2maxValues), max: max(stats.vo2maxValues) },
         maxHR: { avg: avg(stats.maxHRValues), min: min(stats.maxHRValues), max: max(stats.maxHRValues) },
         maxLactate: { avg: avg(stats.maxLactateValues), min: min(stats.maxLactateValues), max: max(stats.maxLactateValues) },
@@ -176,9 +186,9 @@ export async function GET(req: NextRequest) {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error fetching test overview:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch test overview', 'Kunde inte hämta testöversikten') }, { status: 500 })
   }
 }

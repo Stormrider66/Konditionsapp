@@ -38,8 +38,11 @@ const createProtocolSchema = z.object({
 })
 
 export async function GET() {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = user.language === 'sv' ? 'sv' : 'en'
 
     const membership = await prisma.businessMember.findFirst({
       where: { userId: user.id, isActive: true },
@@ -66,9 +69,9 @@ export async function GET() {
     return NextResponse.json({ protocols })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch test protocols', 'Kunde inte hämta testprotokoll') }, { status: 500 })
   }
 }
 
@@ -109,9 +112,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ protocol }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error creating test protocol:', error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create test protocol', 'Kunde inte skapa testprotokollet') }, { status: 500 })
   }
 }
