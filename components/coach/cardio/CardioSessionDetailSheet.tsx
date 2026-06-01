@@ -244,6 +244,14 @@ function formatChildTarget(targetType?: string, targetValue?: string): string | 
   }
 }
 
+// Render a relative power target ("80% of opener" / "88% FTP"). Null when incomplete.
+function formatRelativeTarget(percent?: number, ref?: string, locale: AppLocale = 'en'): string | null {
+  if (!percent || percent <= 0) return null;
+  if (ref === 'FTP' || ref === 'CP') return `${percent}% ${ref}`;
+  const opener = locale === 'sv' ? 'prolog' : 'opener';
+  return locale === 'sv' ? `${percent}% av ${opener}` : `${percent}% of ${opener}`;
+}
+
 type SavedCardioExportSegment = Omit<CardioSegment, 'type'> & {
   type?: string;
   heartRate?: string;
@@ -561,6 +569,11 @@ export function CardioSessionDetailSheet({
                                     <Badge className={`${stepColor} text-white text-xs`}>
                                       {stepLabel}
                                     </Badge>
+                                    {step.isBenchmark ? (
+                                      <Badge variant="outline" className="text-xs">
+                                        {locale === 'sv' ? 'Prolog' : 'Opener'}
+                                      </Badge>
+                                    ) : null}
                                     {step.duration ? (
                                       <span className="text-xs" style={{ color: theme.colors.textMuted }}>
                                         {formatDuration(step.duration as number)}
@@ -574,6 +587,11 @@ export function CardioSessionDetailSheet({
                                     {formatChildTarget(step.targetType as string, step.targetValue as string) ? (
                                       <span className="text-xs font-medium" style={{ color: theme.colors.textMuted }}>
                                         {formatChildTarget(step.targetType as string, step.targetValue as string)}
+                                      </span>
+                                    ) : null}
+                                    {formatRelativeTarget(step.targetRelPercent as number, step.targetRelTo as string, locale) ? (
+                                      <span className="text-xs font-medium" style={{ color: theme.colors.textMuted }}>
+                                        {formatRelativeTarget(step.targetRelPercent as number, step.targetRelTo as string, locale)}
                                       </span>
                                     ) : null}
                                     {step.notes ? (
@@ -608,6 +626,11 @@ export function CardioSessionDetailSheet({
                               Z{segment.zone}
                             </Badge>
                           )}
+                          {segment.isBenchmark && (
+                            <Badge variant="outline" className="text-xs">
+                              {locale === 'sv' ? 'Prolog' : 'Opener'}
+                            </Badge>
+                          )}
                         </div>
                         <div className="mt-1" style={{ color: theme.colors.textMuted }}>
                           {segment.duration && formatDuration(segment.duration)}
@@ -615,6 +638,7 @@ export function CardioSessionDetailSheet({
                           {segment.pace && ` @ ${segment.pace}`}
                           {segment.power && ` • ${segment.power} W`}
                           {segment.cadence && ` • ${segment.cadence} rpm`}
+                          {segment.powerRelPercent ? ` • ${formatRelativeTarget(segment.powerRelPercent, segment.powerRelTo, locale)}` : ''}
                         </div>
                         {exercises.length > 0 && (
                           <ul className="mt-2 space-y-1">

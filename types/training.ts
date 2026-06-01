@@ -578,6 +578,10 @@ export interface CardioSegment {
   pace?: string
   power?: string // watt target, e.g. "250" or "240-260" (power-based equipment)
   cadence?: string // RPM target, e.g. "90"
+  // Relative power target: % of a reference (OPENER benchmark result / FTP / CP)
+  powerRelPercent?: number
+  powerRelTo?: 'OPENER' | 'FTP' | 'CP'
+  isBenchmark?: boolean // all-out opener whose result anchors relative targets
   equipment?: string
   zone?: number
   notes?: string

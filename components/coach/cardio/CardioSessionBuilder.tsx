@@ -63,12 +63,20 @@ type CardioFlatSegment = {
   heartRate?: string // "145-155 bpm"
   power?: string // watt target, e.g. "250" or "240-260" (power-based equipment)
   cadence?: string // RPM target, e.g. "90"
+  // Relative power target: when set, the power target is a % of a reference
+  // (the benchmark/opener result, or the athlete's FTP/CP) instead of absolute watts.
+  powerRelPercent?: number // e.g. 80
+  powerRelTo?: CardioRelativeRef // OPENER | FTP | CP
+  isBenchmark?: boolean // marks the all-out opener whose result anchors relative targets
   notes?: string
   equipment?: string
   repeats?: number // for intervals
   restDuration?: number // min, for interval repeats
   distanceUnit?: 'km' | 'm'
 }
+
+// What a relative power/intensity target is expressed as a percentage of.
+type CardioRelativeRef = 'OPENER' | 'FTP' | 'CP'
 
 type AppLocale = 'en' | 'sv'
 
@@ -125,6 +133,11 @@ type CardioChildStep = {
   equipment?: string
   targetType?: 'power' | 'pace' | 'cadence' | 'hr' | 'none'
   targetValue?: string // "250", "62", "2:05"
+  // Relative target (only meaningful when targetType === 'power'): when set,
+  // the watt target is a % of a reference instead of the absolute targetValue.
+  targetRelPercent?: number // e.g. 80
+  targetRelTo?: CardioRelativeRef // OPENER | FTP | CP
+  isBenchmark?: boolean // marks an all-out opener step whose result anchors relative targets
 }
 
 const EQUIPMENT_OPTIONS: { value: string; label: string; labelSv?: string }[] = [
@@ -152,6 +165,11 @@ function equipmentLabel(
 const POWER_EQUIPMENT = new Set(['BIKE', 'WATTBIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'ROW', 'SKI_ERG'])
 function equipmentUsesPower(equipment?: string): boolean {
   return !!equipment && POWER_EQUIPMENT.has(equipment)
+}
+
+// Work-effort segment types that can serve as a benchmark/opener anchor.
+function isWorkEffort(type: string): boolean {
+  return type === 'INTERVAL' || type === 'STEADY' || type === 'HILL'
 }
 
 type CardioRepeatGroup = {
@@ -441,6 +459,9 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                 equipment: step.equipment || '',
                 targetType: step.targetType || 'none',
                 targetValue: step.targetValue || '',
+                targetRelPercent: step.targetRelPercent ?? undefined,
+                targetRelTo: step.targetRelTo ?? undefined,
+                isBenchmark: step.isBenchmark ?? undefined,
                 distanceUnit: (step.distance && step.distance < 1000) ? 'm' : 'km',
               })),
             } as CardioRepeatGroup
@@ -456,6 +477,9 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
             heartRate: s.heartRate || '',
             power: s.power || '',
             cadence: s.cadence || '',
+            powerRelPercent: s.powerRelPercent ?? undefined,
+            powerRelTo: s.powerRelTo ?? undefined,
+            isBenchmark: s.isBenchmark ?? undefined,
             notes: s.notes || '',
             equipment: s.equipment || '',
             repeats: s.repeats || undefined,
@@ -595,6 +619,9 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
               equipment: step.equipment || undefined,
               targetType: step.targetType && step.targetType !== 'none' ? step.targetType : undefined,
               targetValue: step.targetValue || undefined,
+              targetRelPercent: step.targetRelPercent || undefined,
+              targetRelTo: step.targetRelTo || undefined,
+              isBenchmark: step.isBenchmark || undefined,
             })),
           }
         }
@@ -626,6 +653,9 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
           heartRate: s.heartRate || undefined,
           power: s.power || undefined,
           cadence: s.cadence || undefined,
+          powerRelPercent: s.powerRelPercent || undefined,
+          powerRelTo: s.powerRelTo || undefined,
+          isBenchmark: s.isBenchmark || undefined,
           notes: s.notes || undefined,
           equipment: s.equipment || undefined,
           repeats: s.repeats && s.repeats > 1 ? s.repeats : undefined,
@@ -820,6 +850,23 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
     }))
   }
 
+  // Switch a child step's power target between absolute watts ('abs') and a
+  // relative % of a reference ('OPENER' | 'FTP' | 'CP'). Clears the other fields
+  // so the two modes never coexist.
+  const setStepPowerMode = (groupId: string, stepId: string, mode: string) => {
+    setSegments(segments.map(s => {
+      if (s.id !== groupId || !isRepeatGroup(s)) return s
+      return {
+        ...s,
+        steps: s.steps.map(step => {
+          if (step.id !== stepId) return step
+          if (mode === 'abs') return { ...step, targetRelTo: undefined, targetRelPercent: undefined }
+          return { ...step, targetRelTo: mode as CardioRelativeRef, targetValue: '' }
+        }),
+      }
+    }))
+  }
+
   const addChildStep = (groupId: string) => {
     setSegments(segments.map(s => {
       if (s.id !== groupId || !isRepeatGroup(s)) return s
@@ -929,6 +976,16 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
       }
 
       return updated
+    }))
+  }
+
+  // Switch a flat segment's power target between absolute watts ('abs') and a
+  // relative % of a reference ('OPENER' | 'FTP' | 'CP'). Clears the other fields.
+  const setSegmentPowerMode = (id: string, mode: string) => {
+    setSegments(segments.map(s => {
+      if (s.id !== id || isRepeatGroup(s) || isExerciseBlock(s)) return s
+      if (mode === 'abs') return { ...s, powerRelTo: undefined, powerRelPercent: undefined }
+      return { ...s, powerRelTo: mode as CardioRelativeRef, power: undefined }
     }))
   }
 
@@ -1144,6 +1201,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                             onRemove={() => removeSegment(segment.id)}
                             onUpdateGroup={updateRepeatGroup}
                             onUpdateStep={updateChildStep}
+                            onSetStepPowerMode={setStepPowerMode}
                             onAddStep={addChildStep}
                             onRemoveStep={removeChildStep}
                             onAddRestAfter={addRestAfterStep}
@@ -1167,6 +1225,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                             locale={locale}
                             onRemove={() => removeSegment(segment.id)}
                             onUpdate={updateSegment}
+                            onSetPowerMode={setSegmentPowerMode}
                             onCalculate={calculateSegment}
                           />
                         )
@@ -1187,7 +1246,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                             const badgeClass = seg.type === 'PREHAB' ? 'bg-teal-500' : seg.type === 'PLYOMETRIC' ? 'bg-amber-500' : 'bg-purple-500'
                             return <div className={`bg-card border-2 ${borderClass} rounded-md p-3 shadow-lg`}><Badge className={`${badgeClass} text-white`}>{label}</Badge></div>
                           }
-                            return <SortableSegmentItem segment={seg} locale={locale} onRemove={() => {}} onUpdate={() => {}} onCalculate={() => {}} isOverlay />
+                            return <SortableSegmentItem segment={seg} locale={locale} onRemove={() => {}} onUpdate={() => {}} onSetPowerMode={() => {}} onCalculate={() => {}} isOverlay />
                         })()}
                       </div>
                     ) : null}
@@ -1344,6 +1403,7 @@ function SortableSegmentItem({
   locale,
   onRemove,
   onUpdate,
+  onSetPowerMode,
   onCalculate,
   isOverlay = false
 }: {
@@ -1351,6 +1411,7 @@ function SortableSegmentItem({
   locale: AppLocale
   onRemove: () => void
   onUpdate: (id: string, field: keyof CardioFlatSegment, value: any) => void
+  onSetPowerMode: (id: string, mode: string) => void
   onCalculate: (id: string, field: keyof CardioFlatSegment) => void
   isOverlay?: boolean
 }) {
@@ -1404,6 +1465,19 @@ function SortableSegmentItem({
                         <span className="text-xs text-muted-foreground">{text(locale, 'min:sek', 'min:sec')}</span>
                     </div>
                  </div>
+            )}
+            {isWorkEffort(segment.type) && (
+              <Button
+                type="button"
+                variant={segment.isBenchmark ? 'default' : 'outline'}
+                size="sm"
+                className="h-6 px-2 text-xs ml-1"
+                onClick={() => onUpdate(segment.id, 'isBenchmark', !segment.isBenchmark)}
+                title={text(locale, 'Markera som prolog – resultatet blir referens för %-mål (t.ex. 80% av prolog)', 'Mark as opener – its result anchors % targets (e.g. 80% of opener)')}
+              >
+                <Target className="h-3 w-3 mr-1" />
+                {text(locale, 'Prolog', 'Opener')}
+              </Button>
             )}
           </div>
           <Button variant="ghost" size="sm" onClick={onRemove} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
@@ -1486,15 +1560,39 @@ function SortableSegmentItem({
           {equipmentUsesPower(segment.equipment) ? (
             <>
               <div>
-                <Label className="text-xs text-muted-foreground">Watt</Label>
-                <div className="flex items-center">
-                  <Zap className="h-3 w-3 mr-1 text-muted-foreground" />
-                  <Input
-                    value={segment.power || ''}
-                    onChange={(e) => onUpdate(segment.id, 'power', e.target.value)}
-                    className="h-7 text-sm"
-                    placeholder="250"
-                  />
+                <Label className="text-xs text-muted-foreground">{text(locale, 'Effektmål', 'Power target')}</Label>
+                <div className="flex items-center gap-1">
+                  <Zap className="h-3 w-3 text-muted-foreground" />
+                  <Select value={segment.powerRelTo ?? 'abs'} onValueChange={(v) => onSetPowerMode(segment.id, v)}>
+                    <SelectTrigger className="h-7 w-[92px] text-xs px-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="abs">Watt</SelectItem>
+                      <SelectItem value="OPENER">% {text(locale, 'prolog', 'opener')}</SelectItem>
+                      <SelectItem value="FTP">% FTP</SelectItem>
+                      <SelectItem value="CP">% CP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {segment.powerRelTo ? (
+                    <div className="relative flex-1">
+                      <Input
+                        type="number"
+                        value={segment.powerRelPercent ?? ''}
+                        onChange={(e) => onUpdate(segment.id, 'powerRelPercent', parseInt(e.target.value) || undefined)}
+                        className="h-7 text-sm pr-5"
+                        placeholder="80"
+                      />
+                      <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">%</span>
+                    </div>
+                  ) : (
+                    <Input
+                      value={segment.power || ''}
+                      onChange={(e) => onUpdate(segment.id, 'power', e.target.value)}
+                      className="h-7 text-sm flex-1"
+                      placeholder="250"
+                    />
+                  )}
                 </div>
               </div>
               <div>
@@ -1733,6 +1831,7 @@ function SortableRepeatGroupItem({
   onRemove,
   onUpdateGroup,
   onUpdateStep,
+  onSetStepPowerMode,
   onAddStep,
   onRemoveStep,
   onAddRestAfter,
@@ -1742,6 +1841,7 @@ function SortableRepeatGroupItem({
   onRemove: () => void
   onUpdateGroup: (groupId: string, field: 'repeats' | 'restBetweenRounds', value: number) => void
   onUpdateStep: (groupId: string, stepId: string, field: string, value: any) => void
+  onSetStepPowerMode: (groupId: string, stepId: string, mode: string) => void
   onAddStep: (groupId: string) => void
   onRemoveStep: (groupId: string, stepId: string) => void
   onAddRestAfter: (groupId: string, afterStepId: string) => void
@@ -1795,6 +1895,7 @@ function SortableRepeatGroupItem({
             stepIndex={idx + 1}
             groupId={group.id}
             onUpdate={onUpdateStep}
+            onSetPowerMode={onSetStepPowerMode}
             onRemove={() => onRemoveStep(group.id, step.id)}
             onAddRestAfter={() => onAddRestAfter(group.id, step.id)}
             canRemove={group.steps.length > 1}
@@ -1821,6 +1922,7 @@ function ChildStepRow({
   groupId,
   locale,
   onUpdate,
+  onSetPowerMode,
   onRemove,
   onAddRestAfter,
   canRemove,
@@ -1830,6 +1932,7 @@ function ChildStepRow({
   groupId: string
   locale: AppLocale
   onUpdate: (groupId: string, stepId: string, field: string, value: any) => void
+  onSetPowerMode: (groupId: string, stepId: string, mode: string) => void
   onRemove: () => void
   onAddRestAfter: () => void
   canRemove: boolean
@@ -1888,13 +1991,48 @@ function ChildStepRow({
                   <SelectItem value="hr">{text(locale, 'Puls', 'Heart rate')}</SelectItem>
                 </SelectContent>
               </Select>
-              {step.targetType && step.targetType !== 'none' && (
-                <Input
-                  className="h-6 w-20 text-xs px-1"
-                  value={step.targetValue || ''}
-                  onChange={(e) => onUpdate(groupId, step.id, 'targetValue', e.target.value)}
-                  placeholder={step.targetType === 'power' ? '250' : step.targetType === 'cadence' ? '62' : step.targetType === 'pace' ? '2:05' : '145-155'}
-                />
+              {step.targetType === 'power' ? (
+                <>
+                  <Select value={step.targetRelTo ?? 'abs'} onValueChange={(v) => onSetPowerMode(groupId, step.id, v)}>
+                    <SelectTrigger className="h-6 w-[84px] text-xs px-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="abs">Watt</SelectItem>
+                      <SelectItem value="OPENER">% {text(locale, 'prolog', 'opener')}</SelectItem>
+                      <SelectItem value="FTP">% FTP</SelectItem>
+                      <SelectItem value="CP">% CP</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {step.targetRelTo ? (
+                    <div className="flex items-center">
+                      <Input
+                        type="number"
+                        className="h-6 w-12 text-xs px-1"
+                        value={step.targetRelPercent ?? ''}
+                        onChange={(e) => onUpdate(groupId, step.id, 'targetRelPercent', parseInt(e.target.value) || undefined)}
+                        placeholder="80"
+                      />
+                      <span className="text-xs text-muted-foreground ml-0.5">%</span>
+                    </div>
+                  ) : (
+                    <Input
+                      className="h-6 w-16 text-xs px-1"
+                      value={step.targetValue || ''}
+                      onChange={(e) => onUpdate(groupId, step.id, 'targetValue', e.target.value)}
+                      placeholder="250"
+                    />
+                  )}
+                </>
+              ) : (
+                step.targetType && step.targetType !== 'none' && (
+                  <Input
+                    className="h-6 w-20 text-xs px-1"
+                    value={step.targetValue || ''}
+                    onChange={(e) => onUpdate(groupId, step.id, 'targetValue', e.target.value)}
+                    placeholder={step.targetType === 'cadence' ? '62' : step.targetType === 'pace' ? '2:05' : '145-155'}
+                  />
+                )
               )}
             </div>
 
@@ -1911,6 +2049,19 @@ function ChildStepRow({
                 ))}
               </SelectContent>
             </Select>
+
+            {step.type === 'INTERVAL' && (
+              <Button
+                type="button"
+                variant={step.isBenchmark ? 'default' : 'outline'}
+                size="sm"
+                className="h-6 px-1.5 text-xs"
+                onClick={() => onUpdate(groupId, step.id, 'isBenchmark', !step.isBenchmark)}
+                title={text(locale, 'Markera som prolog – resultatet blir referens för %-mål', 'Mark as opener – its result anchors % targets')}
+              >
+                <Target className="h-3 w-3" />
+              </Button>
+            )}
           </>
         )}
 
