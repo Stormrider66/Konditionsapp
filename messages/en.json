@@ -9710,9 +9710,11 @@
         "distance": "Distance (km)",
         "avgHeartRate": "Avg heart rate",
         "maxHeartRate": "Max heart rate",
+        "avgPower": "Avg watts",
         "notes": "Notes (optional)",
         "notesPlaceholder": "How did the segment feel?"
       },
+      "openerHint": "Enter your average watts — the rest of the session calculates from this.",
       "actions": {
         "skip": "Skip",
         "complete": "Complete"

@@ -2,6 +2,8 @@ import type { CardioSegmentType, Prisma } from '@prisma/client'
 
 export type AppLocale = 'en' | 'sv'
 
+export type CardioRelativeRef = 'OPENER' | 'FTP' | 'CP'
+
 export interface CardioSegmentData {
   id?: string
   type?: string
@@ -11,6 +13,11 @@ export interface CardioSegmentData {
   pace?: string
   zone?: number
   notes?: string
+  power?: string
+  cadence?: string
+  powerRelPercent?: number
+  powerRelTo?: CardioRelativeRef
+  isBenchmark?: boolean
   exercises?: Array<{
     name?: string
     sets?: number
@@ -34,6 +41,9 @@ interface CardioChildStepData {
   notes?: string
   targetType?: string
   targetValue?: string
+  targetRelPercent?: number
+  targetRelTo?: CardioRelativeRef
+  isBenchmark?: boolean
 }
 
 interface SegmentLogData {
@@ -44,6 +54,8 @@ interface SegmentLogData {
   actualPace: number | null
   actualAvgHR: number | null
   actualMaxHR: number | null
+  actualAvgPower?: number | null
+  actualMaxPower?: number | null
   completed: boolean
   skipped: boolean
 }
@@ -57,12 +69,18 @@ export interface FocusModeSegment {
   plannedDistance?: number
   plannedPace?: number
   plannedZone?: number
+  plannedPower?: number // absolute watt target (parsed)
+  powerRelPercent?: number // relative power target, e.g. 80
+  powerRelTo?: CardioRelativeRef // what the % is relative to (OPENER/FTP/CP)
+  isBenchmark?: boolean // opener/prolog whose logged result anchors relative targets
   notes?: string
   actualDuration?: number
   actualDistance?: number
   actualPace?: number
   actualAvgHR?: number
   actualMaxHR?: number
+  actualAvgPower?: number
+  actualMaxPower?: number
   completed: boolean
   skipped: boolean
   logId?: string
@@ -129,6 +147,33 @@ export function parsePaceToSeconds(pace: string | undefined): number | undefined
   return undefined
 }
 
+// Parse a power string ("250", "240-260") into an absolute watt number (first integer).
+export function parsePowerToWatts(power: string | undefined): number | undefined {
+  if (!power) return undefined
+  const match = power.match(/\d+/)
+  return match ? parseInt(match[0], 10) : undefined
+}
+
+// Structured power-target fields for a focus-mode segment.
+function powerFields(opts: {
+  absolute?: string
+  relPercent?: number
+  relTo?: CardioRelativeRef
+  isBenchmark?: boolean
+}): {
+  plannedPower?: number
+  powerRelPercent?: number
+  powerRelTo?: CardioRelativeRef
+  isBenchmark?: boolean
+} {
+  return {
+    plannedPower: parsePowerToWatts(opts.absolute),
+    powerRelPercent: opts.relPercent || undefined,
+    powerRelTo: opts.relPercent ? opts.relTo : undefined,
+    isBenchmark: opts.isBenchmark || undefined,
+  }
+}
+
 function segmentTypeName(type: string, fallback: string | undefined, locale: AppLocale): string {
   return SEGMENT_TYPE_NAMES[locale][type] || fallback || type
 }
@@ -155,6 +200,8 @@ function logValues(log: SegmentLogData | undefined) {
     actualPace: log?.actualPace ?? undefined,
     actualAvgHR: log?.actualAvgHR ?? undefined,
     actualMaxHR: log?.actualMaxHR ?? undefined,
+    actualAvgPower: log?.actualAvgPower ?? undefined,
+    actualMaxPower: log?.actualMaxPower ?? undefined,
     completed: log?.completed ?? false,
     skipped: log?.skipped ?? false,
     logId: log?.id,
@@ -203,6 +250,12 @@ export function buildCardioFocusModeSegments({
             plannedPace: parsePaceToSeconds(step.pace),
             plannedZone: step.zone,
             notes: noteParts.join(' - '),
+            ...powerFields({
+              absolute: step.targetType === 'power' ? step.targetValue : undefined,
+              relPercent: step.targetRelPercent,
+              relTo: step.targetRelTo,
+              isBenchmark: step.isBenchmark,
+            }),
             ...logValues(log),
           })
           globalIndex++
@@ -243,6 +296,12 @@ export function buildCardioFocusModeSegments({
           plannedPace: parsePaceToSeconds(seg.pace),
           plannedZone: seg.zone,
           notes: noteParts.join(' - '),
+          ...powerFields({
+            absolute: seg.power,
+            relPercent: seg.powerRelPercent,
+            relTo: seg.powerRelTo,
+            isBenchmark: seg.isBenchmark,
+          }),
           ...logValues(log),
         })
         globalIndex++
@@ -287,6 +346,12 @@ export function buildCardioFocusModeSegments({
       plannedPace: parsePaceToSeconds(seg.pace),
       plannedZone: seg.zone,
       notes: noteParts.join(' - ') || seg.notes,
+      ...powerFields({
+        absolute: seg.power,
+        relPercent: seg.powerRelPercent,
+        relTo: seg.powerRelTo,
+        isBenchmark: seg.isBenchmark,
+      }),
       ...logValues(log),
     })
     globalIndex++

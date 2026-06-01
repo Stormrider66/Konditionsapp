@@ -22,6 +22,7 @@ import {
   Timer,
   Route,
   Gauge,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
@@ -43,6 +44,10 @@ interface IntervalTimerProps {
   targetZone?: number
   /** Target distance in km (optional) */
   targetDistance?: number
+  /** Resolved target power in watts (optional) */
+  targetPower?: number
+  /** Label for a relative power target not yet resolved, e.g. "80% prolog" (optional) */
+  targetPowerPending?: string
   /** Called when timer completes */
   onComplete: () => void
   /** Called when user skips segment */
@@ -154,6 +159,8 @@ export function IntervalTimer({
   targetPace,
   targetZone,
   targetDistance,
+  targetPower,
+  targetPowerPending,
   onComplete,
   onSkip,
   autoStart = false,
@@ -362,6 +369,17 @@ export function IntervalTimer({
             <span className="font-medium">{targetDistance.toFixed(2)} km</span>
           </div>
         )}
+        {targetPower != null ? (
+          <div className="flex items-center gap-2 text-sm">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <span className="font-bold">{targetPower} W</span>
+          </div>
+        ) : targetPowerPending ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Zap className="h-4 w-4" />
+            <span className="font-medium">{targetPowerPending}</span>
+          </div>
+        ) : null}
       </div>
 
       {/* Circular Timer */}

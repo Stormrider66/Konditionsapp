@@ -10077,9 +10077,11 @@
         "distance": "Distans (km)",
         "avgHeartRate": "Snitt puls",
         "maxHeartRate": "Max puls",
+        "avgPower": "Snitt-watt",
         "notes": "Anteckningar (valfritt)",
         "notesPlaceholder": "Hur kändes segmentet?"
       },
+      "openerHint": "Ange dina snitt-watt — resten av passet räknas ut från detta.",
       "actions": {
         "skip": "Hoppa över",
         "complete": "Slutför"

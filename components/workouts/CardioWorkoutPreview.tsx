@@ -30,12 +30,18 @@ interface CardioFocusApiSegment {
   plannedDistance?: number
   plannedPace?: number
   plannedZone?: number
+  plannedPower?: number
+  powerRelPercent?: number
+  powerRelTo?: 'OPENER' | 'FTP' | 'CP'
+  isBenchmark?: boolean
   notes?: string
   actualDuration?: number
   actualDistance?: number
   actualPace?: number
   actualAvgHR?: number
   actualMaxHR?: number
+  actualAvgPower?: number
+  actualMaxPower?: number
   completed: boolean
   skipped: boolean
   logId?: string
@@ -326,12 +332,18 @@ export function CardioWorkoutPreview({
           plannedDistance: s.plannedDistance,
           plannedPace: s.plannedPace,
           plannedZone: s.plannedZone,
+          plannedPower: s.plannedPower,
+          powerRelPercent: s.powerRelPercent,
+          powerRelTo: s.powerRelTo,
+          isBenchmark: s.isBenchmark,
           notes: s.notes,
           actualDuration: s.actualDuration,
           actualDistance: s.actualDistance,
           actualPace: s.actualPace,
           actualAvgHR: s.actualAvgHR,
           actualMaxHR: s.actualMaxHR,
+          actualAvgPower: s.actualAvgPower,
+          actualMaxPower: s.actualMaxPower,
           completed: s.completed,
           skipped: s.skipped,
           logId: s.logId,

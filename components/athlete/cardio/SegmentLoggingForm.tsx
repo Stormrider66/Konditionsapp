@@ -20,6 +20,7 @@ import {
   Heart,
   Check,
   SkipForward,
+  Zap,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
@@ -34,6 +35,9 @@ interface SegmentLoggingFormProps {
   plannedDistance?: number
   plannedPace?: number
   plannedZone?: number
+  plannedPower?: number
+  showPower?: boolean
+  isBenchmark?: boolean
   timerDuration?: number // Actual time from timer
   onSubmit: (data: {
     actualDuration?: number
@@ -41,6 +45,8 @@ interface SegmentLoggingFormProps {
     actualPace?: number
     actualAvgHR?: number
     actualMaxHR?: number
+    actualAvgPower?: number
+    actualMaxPower?: number
     completed: boolean
     skipped: boolean
     notes?: string
@@ -69,6 +75,9 @@ export function SegmentLoggingForm({
   plannedDistance,
   plannedPace,
   plannedZone,
+  plannedPower,
+  showPower = false,
+  isBenchmark = false,
   timerDuration,
   onSubmit,
   onSkip,
@@ -80,6 +89,7 @@ export function SegmentLoggingForm({
   const [actualDistance, setActualDistance] = useState<string>('')
   const [actualAvgHR, setActualAvgHR] = useState<string>('')
   const [actualMaxHR, setActualMaxHR] = useState<string>('')
+  const [actualAvgPower, setActualAvgPower] = useState<string>('')
   const [notes, setNotes] = useState<string>('')
 
   // Format time for display
@@ -106,6 +116,7 @@ export function SegmentLoggingForm({
       actualDistance: actualDistance ? parseFloat(actualDistance) : undefined,
       actualAvgHR: actualAvgHR ? parseInt(actualAvgHR) : undefined,
       actualMaxHR: actualMaxHR ? parseInt(actualMaxHR) : undefined,
+      actualAvgPower: actualAvgPower ? parseInt(actualAvgPower) : undefined,
       completed: true,
       skipped: false,
       notes: notes || undefined,
@@ -157,8 +168,34 @@ export function SegmentLoggingForm({
                 {t('zone', { zone: plannedZone })}
               </div>
             )}
+            {plannedPower != null && (
+              <div className="flex items-center gap-1">
+                <Zap className="h-3 w-3 text-muted-foreground" />
+                {plannedPower} W
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Opener (benchmark) watts — anchors every "% of opener" target */}
+        {showPower && isBenchmark && (
+          <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-500/30 dark:bg-amber-900/20">
+            <Label htmlFor="avgPower" className="flex items-center gap-1 text-sm font-semibold text-foreground">
+              <Zap className="h-3 w-3 text-amber-500" /> {t('fields.avgPower')}
+            </Label>
+            <Input
+              id="avgPower"
+              type="number"
+              inputMode="numeric"
+              placeholder="-"
+              value={actualAvgPower}
+              onChange={(e) => setActualAvgPower(e.target.value)}
+              onFocus={(e) => e.currentTarget.select()}
+              className="h-12 bg-white/70 text-lg font-semibold text-foreground dark:bg-black/20"
+            />
+            <p className="text-xs text-muted-foreground">{t('openerHint')}</p>
+          </div>
+        )}
 
         {/* Actual values form */}
         <div className="grid grid-cols-2 gap-4">
@@ -226,6 +263,24 @@ export function SegmentLoggingForm({
               className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
             />
           </div>
+
+          {showPower && !isBenchmark && (
+            <div className="space-y-2">
+              <Label htmlFor="avgPower" className="text-sm font-medium text-foreground flex items-center gap-1">
+                <Zap className="h-3 w-3" /> {t('fields.avgPower')}
+              </Label>
+              <Input
+                id="avgPower"
+                type="number"
+                inputMode="numeric"
+                placeholder={plannedPower != null ? String(plannedPower) : '-'}
+                value={actualAvgPower}
+                onChange={(e) => setActualAvgPower(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
+              />
+            </div>
+          )}
         </div>
 
         {/* Notes */}

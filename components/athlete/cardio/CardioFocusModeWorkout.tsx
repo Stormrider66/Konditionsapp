@@ -58,12 +58,18 @@ interface FocusModeSegment {
   plannedDistance?: number
   plannedPace?: number
   plannedZone?: number
+  plannedPower?: number
+  powerRelPercent?: number
+  powerRelTo?: 'OPENER' | 'FTP' | 'CP'
+  isBenchmark?: boolean
   notes?: string
   actualDuration?: number
   actualDistance?: number
   actualPace?: number
   actualAvgHR?: number
   actualMaxHR?: number
+  actualAvgPower?: number
+  actualMaxPower?: number
   completed: boolean
   skipped: boolean
   logId?: string
@@ -87,6 +93,8 @@ interface CardioFocusModeWorkoutProps {
       actualPace?: number
       actualAvgHR?: number
       actualMaxHR?: number
+      actualAvgPower?: number
+      actualMaxPower?: number
       completed: boolean
       skipped: boolean
       notes?: string
@@ -192,6 +200,24 @@ export function CardioFocusModeWorkout({
   const completedCount = segments.filter((s) => s.completed || s.skipped).length
   const progressPercent = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
 
+  // The opener (benchmark) segment's logged average watts — anchors relative % targets.
+  const openerPower = segments.find((s) => s.isBenchmark)?.actualAvgPower
+
+  // Resolve the current segment's power target to absolute watts when possible:
+  // absolute target, or % of the opener once the opener's watts are logged.
+  const currentTargetPower =
+    currentSegment?.plannedPower ??
+    (currentSegment?.powerRelPercent && currentSegment.powerRelTo === 'OPENER' && openerPower
+      ? Math.round((openerPower * currentSegment.powerRelPercent) / 100)
+      : undefined)
+
+  // Relative target that can't resolve yet (opener not logged / FTP-CP not available):
+  // show a label like "80% prolog" so the athlete still knows the intent.
+  const currentTargetPowerPending =
+    currentTargetPower === undefined && currentSegment?.powerRelPercent
+      ? `${currentSegment.powerRelPercent}% ${currentSegment.powerRelTo === 'OPENER' ? 'prolog' : currentSegment.powerRelTo}`
+      : undefined
+
   // Announce segment on transition (basic voice — skip when live coach active)
   useEffect(() => {
     if (liveCoachActive) return
@@ -242,6 +268,8 @@ export function CardioFocusModeWorkout({
     actualPace?: number
     actualAvgHR?: number
     actualMaxHR?: number
+    actualAvgPower?: number
+    actualMaxPower?: number
     completed: boolean
     skipped: boolean
     notes?: string
@@ -434,6 +462,8 @@ export function CardioFocusModeWorkout({
             targetPace={currentSegment.plannedPace}
             targetZone={currentSegment.plannedZone}
             targetDistance={currentSegment.plannedDistance}
+            targetPower={currentTargetPower}
+            targetPowerPending={currentTargetPowerPending}
             notes={currentSegment.notes}
             onComplete={handleTimerComplete}
             onSkip={handleTimerSkip}
@@ -477,6 +507,13 @@ export function CardioFocusModeWorkout({
             plannedDistance={currentSegment.plannedDistance}
             plannedPace={currentSegment.plannedPace}
             plannedZone={currentSegment.plannedZone}
+            plannedPower={currentTargetPower}
+            showPower={
+              currentSegment.isBenchmark === true ||
+              currentSegment.powerRelPercent != null ||
+              currentSegment.plannedPower != null
+            }
+            isBenchmark={currentSegment.isBenchmark}
             timerDuration={timerElapsed}
             onSubmit={handleSegmentSubmit}
             onSkip={handleSegmentSkip}
