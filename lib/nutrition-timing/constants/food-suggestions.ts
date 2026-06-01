@@ -947,15 +947,15 @@ function isSwedishLocale(locale: FoodSuggestionLocale): boolean {
   return typeof locale === 'string' && locale.startsWith('sv')
 }
 
-export function foodSuggestionName(food: FoodSuggestion, locale: FoodSuggestionLocale = 'sv'): string {
+export function foodSuggestionName(food: FoodSuggestion, locale: FoodSuggestionLocale = 'en'): string {
   return isSwedishLocale(locale) ? food.nameSv : food.nameEn
 }
 
-export function foodSuggestionPortion(food: FoodSuggestion, locale: FoodSuggestionLocale = 'sv'): string {
+export function foodSuggestionPortion(food: FoodSuggestion, locale: FoodSuggestionLocale = 'en'): string {
   return isSwedishLocale(locale) ? food.portion : food.portionEn ?? food.portion
 }
 
-export function formatFoodSuggestion(food: FoodSuggestion, locale: FoodSuggestionLocale = 'sv'): string {
+export function formatFoodSuggestion(food: FoodSuggestion, locale: FoodSuggestionLocale = 'en'): string {
   const macros: string[] = []
   if (food.carbsG) macros.push(`${food.carbsG}g ${isSwedishLocale(locale) ? 'kolhydrater' : 'carbs'}`)
   if (food.proteinG) macros.push(`${food.proteinG}g protein`)

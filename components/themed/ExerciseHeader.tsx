@@ -6,7 +6,7 @@
  * A styled header for exercise display that matches the AI-generated image aesthetic:
  * - Dark gradient background
  * - Orange/red glow effect on text
- * - Displays Swedish name (primary) + English name (secondary)
+ * - Displays the current locale name first, with the alternate language as subtitle
  * - Matches the exercise image width
  */
 
@@ -42,7 +42,7 @@ export function ExerciseHeader({
   nameSv,
   nameEn,
   name,
-  locale = 'sv',
+  locale = 'en',
   size = 'lg',
   className = '',
   showSubtitle = true,
@@ -139,7 +139,7 @@ export function ExerciseDisplay({
   nameSv,
   nameEn,
   name,
-  locale = 'sv',
+  locale = 'en',
   imageUrls,
   exerciseId,
   iconCategory,

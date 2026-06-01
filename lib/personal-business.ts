@@ -11,15 +11,19 @@
 import type { Prisma } from '@prisma/client'
 
 export type PersonalBusinessRole = 'COACH' | 'PHYSIO'
+export type PersonalBusinessLocale = 'en' | 'sv'
 
 /** Build a default business name from the user's name + role. */
 export function defaultPersonalBusinessName(
   userName: string,
-  role: PersonalBusinessRole
+  role: PersonalBusinessRole,
+  locale: PersonalBusinessLocale = 'en'
 ): string {
-  const trimmed = userName.trim() || 'Min'
-  if (role === 'PHYSIO') return `${trimmed}s praktik`
-  return `${trimmed}s coaching`
+  const trimmed = userName.trim() || (locale === 'sv' ? 'Min' : 'My')
+  if (role === 'PHYSIO') {
+    return locale === 'sv' ? `${trimmed}s praktik` : `${trimmed}'s practice`
+  }
+  return locale === 'sv' ? `${trimmed}s coaching` : `${trimmed}'s coaching`
 }
 
 /**
@@ -74,9 +78,10 @@ export async function createPersonalBusinessTx(
     userId: string
     userName: string
     role: PersonalBusinessRole
+    locale?: PersonalBusinessLocale
   }
 ): Promise<{ id: string; slug: string; name: string; created: boolean }> {
-  const { userId, userName, role } = params
+  const { userId, userName, role, locale = 'en' } = params
 
   // Already a member of an active business? Reuse it.
   const existing = await tx.businessMember.findFirst({
@@ -88,7 +93,7 @@ export async function createPersonalBusinessTx(
     return { ...existing.business, created: false }
   }
 
-  const name = defaultPersonalBusinessName(userName, role)
+  const name = defaultPersonalBusinessName(userName, role, locale)
   const slug = await resolveUniqueSlugTx(tx, sluggifyBusinessName(name))
 
   const business = await tx.business.create({

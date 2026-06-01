@@ -16,6 +16,14 @@ describe('food suggestion localization', () => {
     expect(foodSuggestionPortion(toast!, 'en')).toBe('2 slices')
   })
 
+  it('defaults to English names and portions', () => {
+    const toast = CARB_SOURCES.find((food) => food.nameEn === 'White toast')
+
+    expect(toast).toBeDefined()
+    expect(foodSuggestionName(toast!)).toBe('White toast')
+    expect(foodSuggestionPortion(toast!)).toBe('2 slices')
+  })
+
   it('keeps Swedish names and portions for Swedish UI', () => {
     const toast = CARB_SOURCES.find((food) => food.nameEn === 'White toast')
 
