@@ -10,11 +10,14 @@ import { createClient } from '@/lib/supabase/server'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { rejectAction } from '@/lib/agent/execution'
 import { logAgentAudit } from '@/lib/agent/gdpr/audit-logger'
+import { actionAlreadyMessage, resolveLocale, t, type AppLocale } from '@/lib/agent/api-locale'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id } = await params
     const supabase = await createClient()
@@ -23,8 +26,14 @@ export async function POST(
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    const coachUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { language: true },
+    })
+    locale = resolveLocale(coachUser?.language)
 
     const scope = getRequestedBusinessScope(request)
     const body = await request.json().catch(() => ({}))
@@ -32,7 +41,7 @@ export async function POST(
 
     if (!reason) {
       return NextResponse.json(
-        { error: 'Rejection reason is required' },
+        { error: t(locale, 'Rejection reason is required', 'Avvisningsorsak krävs') },
         { status: 400 }
       )
     }
@@ -54,12 +63,12 @@ export async function POST(
     })
 
     if (!action) {
-      return NextResponse.json({ error: 'Action not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Action not found', 'Åtgärden hittades inte') }, { status: 404 })
     }
 
     if (action.status !== 'PROPOSED') {
       return NextResponse.json(
-        { error: `Action already ${action.status.toLowerCase()}` },
+        { error: actionAlreadyMessage(locale, action.status) },
         { status: 400 }
       )
     }
@@ -88,7 +97,7 @@ export async function POST(
   } catch (error) {
     console.error('Error rejecting action:', error)
     return NextResponse.json(
-      { error: 'Failed to reject action' },
+      { error: t(locale, 'Failed to reject action', 'Kunde inte avvisa åtgärden') },
       { status: 500 }
     )
   }

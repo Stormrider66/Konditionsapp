@@ -8,9 +8,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
+import { resolveLocale, t, type AppLocale } from '@/lib/agent/api-locale'
 import type { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const supabase = await createClient()
     const {
@@ -18,8 +21,14 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    const coachUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { language: true },
+    })
+    locale = resolveLocale(coachUser?.language)
 
     const searchParams = request.nextUrl.searchParams
     const scope = getRequestedBusinessScope(request)
@@ -174,7 +183,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error getting agent metrics:', error)
     return NextResponse.json(
-      { error: 'Failed to get metrics' },
+      { error: t(locale, 'Failed to get metrics', 'Kunde inte hämta mätvärden') },
       { status: 500 }
     )
   }

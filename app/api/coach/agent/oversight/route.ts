@@ -10,9 +10,12 @@ import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { safeParseInt } from '@/lib/utils/parse'
+import { resolveLocale, t, type AppLocale } from '@/lib/agent/api-locale'
 import type { AgentActionStatus, Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = 'en'
+
   try {
     const supabase = await createClient()
     const {
@@ -20,7 +23,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -32,11 +35,12 @@ export async function GET(request: NextRequest) {
     // Get coach's user record
     const coachUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { id: true, role: true },
+      select: { id: true, role: true, language: true },
     })
+    locale = resolveLocale(coachUser?.language)
 
     if (!coachUser || coachUser.role !== 'COACH') {
-      return NextResponse.json({ error: 'Not a coach' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Not a coach', 'Inte coach') }, { status: 403 })
     }
 
     const clientWhere: Prisma.ClientWhereInput = {
@@ -61,7 +65,7 @@ export async function GET(request: NextRequest) {
         select: { id: true },
       })
       if (!hasAccess || !inBusiness) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
       }
       where.clientId = clientId
     }
@@ -145,7 +149,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error getting oversight queue:', error)
     return NextResponse.json(
-      { error: 'Failed to get oversight queue' },
+      { error: t(locale, 'Failed to get oversight queue', 'Kunde inte hämta agentkön') },
       { status: 500 }
     )
   }
