@@ -39,6 +39,7 @@ import { ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2, ExternalL
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import { cn } from '@/lib/utils'
+import { getOptionalExerciseDisplayName } from '@/lib/exercises/display-name'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
 import {
   Select,
@@ -256,7 +257,7 @@ export default function BusinessClientDetailPage() {
     aiAnalysis: string | null
     issuesDetected: Array<{ issue: string; severity: string; description: string }> | null
     recommendations: Array<{ priority: number; recommendation: string; explanation: string }> | null
-    exercise: { name: string; nameSv: string | null } | null
+    exercise: { name: string; nameSv: string | null; nameEn?: string | null } | null
   }) => {
     if (!pageContextApi?.setPageContext) {
       toast({
@@ -267,27 +268,28 @@ export default function BusinessClientDetailPage() {
       return
     }
 
+    const exerciseName = getOptionalExerciseDisplayName(analysis.exercise, locale)
     const context: PageContext = {
       type: 'video-analysis',
-      title: t('aiContext.title', { exercise: analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType }),
+      title: t('aiContext.title', { exercise: exerciseName || analysis.videoType }),
       data: {
         analysisId: analysis.id,
         videoType: analysis.videoType,
         formScore: analysis.formScore,
-        exercise: analysis.exercise?.nameSv || analysis.exercise?.name,
+        exercise: exerciseName,
         issues: analysis.issuesDetected,
         recommendations: analysis.recommendations,
       },
       summary: t('aiContext.summary', {
         athlete: client?.name || t('aiContext.athleteFallback'),
-        exercise: analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType,
+        exercise: exerciseName || analysis.videoType,
         score: analysis.formScore ?? t('aiContext.notAssessed'),
         count: analysis.issuesDetected?.length || 0,
       }),
     }
 
     pageContextApi.setPageContext(context)
-  }, [pageContextApi, client?.name, t, toast])
+  }, [pageContextApi, client?.name, locale, t, toast])
 
   const fetchClient = useCallback(async () => {
     try {

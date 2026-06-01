@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/select'
 import { Loader2, Check, X, AlertCircle, Upload } from 'lucide-react'
 import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface Member {
   id: string
@@ -51,6 +52,7 @@ interface Exercise {
   id: string
   name: string
   nameSv: string | null
+  nameEn?: string | null
 }
 
 interface ParsedRow {
@@ -110,12 +112,15 @@ function pickMember(input: string, members: Member[]): Member | null {
 function pickExercise(input: string, exercises: Exercise[]): Exercise | null {
   const target = normalize(input)
   if (!target) return null
-  // Search nameSv first (Swedish UI), then name. Same exact → starts → contains ladder.
+  // Match both localized names. Exact wins, then startsWith, then contains.
   const ladder = [
+    (e: Exercise) => normalize(e.nameEn ?? '') === target,
     (e: Exercise) => normalize(e.nameSv ?? '') === target,
     (e: Exercise) => normalize(e.name) === target,
+    (e: Exercise) => normalize(e.nameEn ?? '').startsWith(target),
     (e: Exercise) => normalize(e.nameSv ?? '').startsWith(target),
     (e: Exercise) => normalize(e.name).startsWith(target),
+    (e: Exercise) => normalize(e.nameEn ?? '').includes(target),
     (e: Exercise) => normalize(e.nameSv ?? '').includes(target),
     (e: Exercise) => normalize(e.name).includes(target),
   ]
@@ -127,7 +132,7 @@ function pickExercise(input: string, exercises: Exercise[]): Exercise | null {
 }
 
 function exerciseDisplayName(exercise: Exercise, locale: AppLocale): string {
-  return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name
+  return getExerciseDisplayName(exercise, locale)
 }
 
 function parseRows(
@@ -232,10 +237,11 @@ export function BulkPRImportDialog({
           const list = Array.isArray(body) ? body : body.exercises ?? []
           if (!cancelled) {
             setExercises(
-              list.map((e: { id: string; name: string; nameSv: string | null }) => ({
+              list.map((e: { id: string; name: string; nameSv: string | null; nameEn?: string | null }) => ({
                 id: e.id,
                 name: e.name,
                 nameSv: e.nameSv,
+                nameEn: e.nameEn,
               }))
             )
           }

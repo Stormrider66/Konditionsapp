@@ -65,6 +65,7 @@ import {
   parseAiAllowanceError,
 } from '@/lib/ai/billing/client-errors'
 import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 // Context loading removed to prevent infinite render loops
 
 interface Issue {
@@ -98,7 +99,7 @@ interface VideoAnalysis {
   recommendations: Recommendation[] | null
   createdAt: string
   athlete: { id: string; name: string; height?: number | null; weight?: number | null } | null
-  exercise: { id: string; name: string; nameSv: string | null } | null
+  exercise: { id: string; name: string; nameSv: string | null; nameEn?: string | null } | null
   skiingTechniqueAnalysis?: Record<string, unknown> | null
   hyroxStationAnalysis?: Record<string, unknown> | null
   poseDataSummary?: PoseDataSummary | null
@@ -750,7 +751,7 @@ export function VideoAnalysisCard({
           </div>
           <div class="meta-item">
             <label>${t(locale, 'Exercise', 'Övning')}</label>
-            <p>${escapeHtml((locale === 'sv' ? analysis.exercise?.nameSv : null) || analysis.exercise?.name || t(locale, 'Not specified', 'Ej angiven'))}</p>
+            <p>${escapeHtml(getExerciseDisplayName(analysis.exercise, locale, t(locale, 'Not specified', 'Ej angiven')))}</p>
           </div>
           <div class="meta-item">
             <label>${t(locale, 'Date', 'Datum')}</label>
@@ -881,7 +882,7 @@ export function VideoAnalysisCard({
               {analysis.exercise && (
                 <div className="flex items-center gap-1 text-muted-foreground">
                   <Dumbbell className="h-3 w-3" />
-                  {(locale === 'sv' ? analysis.exercise.nameSv : null) || analysis.exercise.name}
+                  {getExerciseDisplayName(analysis.exercise, locale)}
                 </div>
               )}
             </div>

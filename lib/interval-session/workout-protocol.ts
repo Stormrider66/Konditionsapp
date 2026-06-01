@@ -14,7 +14,7 @@ type CardioSegment = {
 }
 
 type HybridMovement = {
-  exercise?: { name?: string | null; nameSv?: string | null; standardAbbreviation?: string | null } | null
+  exercise?: { name?: string | null; nameSv?: string | null; nameEn?: string | null; standardAbbreviation?: string | null } | null
   exerciseName?: string
   movementName?: string
   reps?: number | null
@@ -180,7 +180,7 @@ export function buildIntervalProtocolFromHybridWorkout(workout: {
   const steps: IntervalProtocolStep[] = []
   for (let round = 0; round < rounds; round += 1) {
     for (const movement of viableMovements) {
-      const name = movement.exercise?.standardAbbreviation || movement.exercise?.nameSv || movement.exercise?.name || movement.exerciseName || movement.movementName || 'Station'
+      const name = movement.exercise?.standardAbbreviation || movement.exercise?.nameEn || movement.exercise?.name || movement.exercise?.nameSv || movement.exerciseName || movement.movementName || 'Station'
       const distanceMeters = movement.distance ? normaliseDistanceMeters(movement.distance) : undefined
       const calories = movement.calories ?? undefined
       const targetDurationSeconds = movement.duration ?? undefined

@@ -31,6 +31,7 @@ import { HYROXPerformanceForm } from '@/components/athlete/performance/HYROXPerf
 import { SkiingPerformanceForm } from '@/components/athlete/performance/SkiingPerformanceForm'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface PerformanceTabProps {
   data: AthleteProfileData
@@ -520,7 +521,7 @@ export function PerformanceTab({ data, viewMode: _viewMode, variant = 'default' 
                       .map((prog) => (
                         <TableRow key={prog.id} className={isGlass ? "border-slate-200 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5" : ""}>
                           <TableCell className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "")}>
-                            {locale === 'sv' ? prog.exercise.nameSv || prog.exercise.name : prog.exercise.name}
+                            {getExerciseDisplayName(prog.exercise, locale)}
                           </TableCell>
                           <TableCell className={cn("font-black text-xs", isGlass ? "text-slate-400" : "")}>
                             {prog.sets}x{prog.repsCompleted} @ {prog.actualLoad} kg
@@ -614,6 +615,7 @@ function StrengthPRCard({
     exerciseId: string
     exerciseName: string
     exerciseNameSv: string | null
+    exerciseNameEn: string | null
     estimated1RM: number
     date: Date
     pillar: string
@@ -635,7 +637,10 @@ function StrengthPRCard({
           "font-black uppercase tracking-widest text-[10px]",
           isGlass ? "text-red-500" : "text-red-800"
         )}>
-          {locale === 'sv' ? pr.exerciseNameSv || pr.exerciseName : pr.exerciseName}
+          {getExerciseDisplayName(
+            { name: pr.exerciseName, nameSv: pr.exerciseNameSv, nameEn: pr.exerciseNameEn },
+            locale
+          )}
         </span>
         <Zap className={cn("h-4 w-4", isGlass ? "text-red-500/50" : "text-red-600")} />
       </div>
@@ -693,6 +698,7 @@ function getStrengthPRs(
   exerciseId: string
   exerciseName: string
   exerciseNameSv: string | null
+  exerciseNameEn: string | null
   estimated1RM: number
   date: Date
   pillar: string
@@ -701,6 +707,7 @@ function getStrengthPRs(
     exerciseId: string
     exerciseName: string
     exerciseNameSv: string | null
+    exerciseNameEn: string | null
     estimated1RM: number
     date: Date
     pillar: string
@@ -716,6 +723,7 @@ function getStrengthPRs(
         exerciseId: prog.exercise.id,
         exerciseName: prog.exercise.name,
         exerciseNameSv: prog.exercise.nameSv,
+        exerciseNameEn: prog.exercise.nameEn,
         estimated1RM: prog.estimated1RM,
         date: prog.date,
         pillar: prog.exercise.biomechanicalPillar,
@@ -731,6 +739,7 @@ function getStrengthPRs(
         exerciseId: rec.exercise.id,
         exerciseName: rec.exercise.name,
         exerciseNameSv: rec.exercise.nameSv,
+        exerciseNameEn: rec.exercise.nameEn,
         estimated1RM: rec.oneRepMax,
         date: rec.date,
         pillar: '', // history doesn't have pillar

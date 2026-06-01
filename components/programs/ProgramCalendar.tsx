@@ -20,6 +20,7 @@ import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } 
 import { PushToGarminButton } from '@/components/programs/PushToGarminButton'
 import { FuelingPrescriptionBadge } from '@/components/programs/FuelingPrescriptionBadge'
 import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface ProgramCalendarProps {
   program: ProgramWithWeeks
@@ -343,7 +344,7 @@ function DayCard({ day, date, clientId, locale }: DayCardProps) {
                     return (
                       <div key={segment.id} className="flex items-center gap-2 flex-wrap">
                         <Badge variant="secondary" className="text-xs">
-                          {segment.exercise?.name || segment.exercise?.nameSv || formatSegmentType(segment.type, locale)}
+                          {getExerciseDisplayName(segment.exercise, locale, formatSegmentType(segment.type, locale))}
                         </Badge>
                         <span className="text-slate-600 dark:text-slate-300">
                           {segment.description}

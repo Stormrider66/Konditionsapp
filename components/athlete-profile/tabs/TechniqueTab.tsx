@@ -12,6 +12,7 @@ import { TechniqueProgressionChart } from '@/components/coach/video-analysis/Tec
 import { VideoComparisonView } from '@/components/coach/video-analysis/VideoComparisonView'
 import type { AthleteProfileData } from '@/lib/athlete-profile/data-fetcher'
 import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface TechniqueTabProps {
   data: AthleteProfileData
@@ -305,7 +306,7 @@ function VideoAnalysisCard({
           </div>
           <div>
             <p className="font-medium">
-              {(locale === 'sv' ? analysis.exercise?.nameSv : analysis.exercise?.name) || analysis.exercise?.name || analysis.exercise?.nameSv || getVideoTypeLabel(analysis.videoType, locale)}
+              {getExerciseDisplayName(analysis.exercise, locale, getVideoTypeLabel(analysis.videoType, locale))}
             </p>
             <p className="text-sm text-gray-500">
               {format(new Date(analysis.createdAt), 'd MMM yyyy', { locale: dateLocale })}

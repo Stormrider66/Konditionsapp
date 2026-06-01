@@ -24,6 +24,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { TrendingUp, TrendingDown, Minus, Target } from 'lucide-react'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface VideoAnalysis {
   id: string
@@ -33,6 +34,7 @@ interface VideoAnalysis {
   exercise?: {
     name: string
     nameSv: string | null
+    nameEn?: string | null
   } | null
 }
 
@@ -109,9 +111,7 @@ export function TechniqueProgressionChart({
         fullDate: format(new Date(a.createdAt), 'd MMMM yyyy', { locale: dateLocale }),
         score: a.formScore,
         type: a.videoType,
-        exercise: locale === 'sv'
-          ? a.exercise?.nameSv || a.exercise?.name || a.videoType
-          : a.exercise?.name || a.videoType,
+        exercise: getExerciseDisplayName(a.exercise, locale, a.videoType),
       }))
   }, [analyses, dateLocale, locale])
 

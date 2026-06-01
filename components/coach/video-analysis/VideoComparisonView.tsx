@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface VideoAnalysis {
   id: string
@@ -26,6 +27,7 @@ interface VideoAnalysis {
   exercise?: {
     name: string
     nameSv: string | null
+    nameEn?: string | null
   } | null
   issuesDetected?: Array<{
     issue: string
@@ -159,9 +161,7 @@ export function VideoComparisonView({
   const leftVideo = sortedAnalyses.find((a) => a.id === leftVideoId)
   const rightVideo = sortedAnalyses.find((a) => a.id === rightVideoId)
   const getExerciseName = (analysis: VideoAnalysis) =>
-    locale === 'sv'
-      ? analysis.exercise?.nameSv || analysis.exercise?.name || analysis.videoType
-      : analysis.exercise?.name || analysis.videoType
+    getExerciseDisplayName(analysis.exercise, locale, analysis.videoType)
 
   // Calculate improvement
   const improvement = useMemo(() => {

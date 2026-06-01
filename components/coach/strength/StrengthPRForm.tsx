@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2, Search } from 'lucide-react'
 import { PR_UNITS, PR_UNIT_LABELS, type PrUnit } from '@/lib/strength/units'
 import { useLocale } from 'next-intl'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 type AppLocale = 'en' | 'sv'
 
@@ -40,6 +41,7 @@ interface Exercise {
   id: string
   name: string
   nameSv: string | null
+  nameEn?: string | null
   biomechanicalPillar: string
 }
 
@@ -214,7 +216,7 @@ export function StrengthPRForm({ clientId, clientName: _clientName, onSuccess, o
                       </div>
                       {exs.map((ex) => (
                         <SelectItem key={ex.id} value={ex.id}>
-                          {locale === 'sv' ? ex.nameSv || ex.name : ex.name}
+                          {getExerciseDisplayName(ex, locale)}
                         </SelectItem>
                       ))}
                     </div>

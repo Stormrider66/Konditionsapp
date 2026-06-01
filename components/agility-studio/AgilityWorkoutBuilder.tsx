@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,8 @@ import {
   WorkoutTeamYearFields,
 } from '@/components/workouts/WorkoutLibraryMetadataFields'
 
+type AppLocale = 'en' | 'sv'
+
 interface AgilityWorkoutBuilderProps {
   drills: AgilityDrill[]
   initialWorkout?: Partial<AgilityWorkout>
@@ -96,6 +98,11 @@ const normalizeDrillName = (value: string) =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim()
 
+const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
+
+const getDrillDisplayName = (drill: AgilityDrill, locale: AppLocale) =>
+  locale === 'sv' ? drill.nameSv || drill.name : drill.name
+
 const drillMatchesBlueprint = (
   drill: AgilityDrill,
   blueprint: HockeyAgilityPreset['drillBlueprints'][number]
@@ -118,6 +125,7 @@ export function AgilityWorkoutBuilder({
   businessId,
 }: AgilityWorkoutBuilderProps) {
   const t = useTranslations('agilityStudio')
+  const locale = getAppLocale(useLocale())
   const pathname = usePathname()
   const businessHeaders = useMemo(() => ({
     ...(getBusinessScopeHeaders(pathname) ?? {}),
@@ -567,7 +575,7 @@ export function AgilityWorkoutBuilder({
                       className="flex items-center justify-between p-2 border rounded hover:bg-muted"
                     >
                       <div>
-                        <p className="text-sm font-medium">{drill.nameSv || drill.name}</p>
+                        <p className="text-sm font-medium">{getDrillDisplayName(drill, locale)}</p>
                         <p className="text-xs text-muted-foreground">
                           {t(`categories.${drill.category}`)}
                         </p>
@@ -604,7 +612,7 @@ export function AgilityWorkoutBuilder({
                         <GripVertical className="h-4 w-4 mt-1 text-muted-foreground cursor-grab" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium">{item.drill.nameSv || item.drill.name}</p>
+                            <p className="text-sm font-medium">{getDrillDisplayName(item.drill, locale)}</p>
                             <Button
                               size="sm"
                               variant="ghost"

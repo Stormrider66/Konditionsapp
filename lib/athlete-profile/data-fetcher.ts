@@ -233,6 +233,7 @@ interface ProgressionTrackingData {
     id: string
     name: string
     nameSv: string | null
+    nameEn: string | null
     biomechanicalPillar: string
   }
 }
@@ -248,6 +249,7 @@ interface OneRepMaxHistoryData {
     id: string
     name: string
     nameSv: string | null
+    nameEn: string | null
   }
 }
 
@@ -412,6 +414,7 @@ interface VideoAnalysisData {
     id: string
     name: string
     nameSv: string | null
+    nameEn: string | null
   } | null
 }
 
@@ -535,7 +538,7 @@ export async function fetchAthleteProfileData(clientId: string): Promise<Athlete
       where: { clientId },
       include: {
         exercise: {
-          select: { id: true, name: true, nameSv: true, biomechanicalPillar: true },
+          select: { id: true, name: true, nameSv: true, nameEn: true, biomechanicalPillar: true },
         },
       },
       orderBy: { date: 'desc' },
@@ -546,7 +549,7 @@ export async function fetchAthleteProfileData(clientId: string): Promise<Athlete
       where: { clientId },
       include: {
         exercise: {
-          select: { id: true, name: true, nameSv: true },
+          select: { id: true, name: true, nameSv: true, nameEn: true },
         },
       },
       orderBy: { date: 'desc' },
@@ -664,7 +667,7 @@ export async function fetchAthleteProfileData(clientId: string): Promise<Athlete
         aiAnalysis: true,
         aiPoseAnalysis: true,
         exercise: {
-          select: { id: true, name: true, nameSv: true },
+          select: { id: true, name: true, nameSv: true, nameEn: true },
         },
       },
       orderBy: { createdAt: 'desc' },

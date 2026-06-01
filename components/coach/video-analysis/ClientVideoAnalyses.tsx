@@ -34,6 +34,7 @@ import { usePathname } from 'next/navigation'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { escapeHtml } from '@/lib/sanitize'
 import { useLocale } from '@/i18n/client'
+import { getOptionalExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface VideoAnalysis {
   id: string
@@ -54,7 +55,7 @@ interface VideoAnalysis {
     explanation: string
   }> | null
   createdAt: string
-  exercise: { id: string; name: string; nameSv: string | null } | null
+  exercise: { id: string; name: string; nameSv: string | null; nameEn?: string | null } | null
 }
 
 interface ClientVideoAnalysesProps {
@@ -168,10 +169,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
 
     const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC
     const typeLabel = typeInfo.label[locale]
-    const exerciseName =
-      locale === 'sv'
-        ? analysis.exercise?.nameSv || analysis.exercise?.name
-        : analysis.exercise?.name || analysis.exercise?.nameSv
+    const exerciseName = getOptionalExerciseDisplayName(analysis.exercise, locale)
     const issues = analysis.issuesDetected || []
     const recommendations = analysis.recommendations || []
 
@@ -349,10 +347,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
         {analyses.map((analysis) => {
           const typeInfo = VIDEO_TYPE_INFO[analysis.videoType as keyof typeof VIDEO_TYPE_INFO] || VIDEO_TYPE_INFO.SPORT_SPECIFIC
           const typeLabel = typeInfo.label[locale]
-          const exerciseName =
-            locale === 'sv'
-              ? analysis.exercise?.nameSv || analysis.exercise?.name
-              : analysis.exercise?.name || analysis.exercise?.nameSv
+          const exerciseName = getOptionalExerciseDisplayName(analysis.exercise, locale)
           const TypeIcon = typeInfo.icon
           const issueCount = analysis.issuesDetected?.length || 0
 
@@ -369,7 +364,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium">
-                        {exerciseName || typeLabel}
+                {exerciseName || typeLabel}
                       </span>
                       <Badge
                         variant={analysis.status === 'COMPLETED' ? 'default' : 'secondary'}
