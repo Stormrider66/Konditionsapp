@@ -582,6 +582,9 @@ export interface CardioSegment {
   powerRelPercent?: number
   powerRelTo?: 'OPENER' | 'FTP' | 'CP'
   isBenchmark?: boolean // all-out opener whose result anchors relative targets
+  optional?: boolean // "only if needed"
+  repeats?: number // repeat count (min when repeatsMax is set)
+  repeatsMax?: number // optional upper bound, e.g. 8-10x
   equipment?: string
   zone?: number
   notes?: string

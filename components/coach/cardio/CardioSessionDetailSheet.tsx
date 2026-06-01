@@ -541,12 +541,14 @@ export function CardioSessionDetailSheet({
                     const group = segment as unknown as Record<string, unknown>;
                     const groupSteps = group.steps as Array<Record<string, unknown>>;
                     const reps = (group.repeats as number) || 1;
+                    const repsMax = group.repeatsMax as number | undefined;
+                    const repsLabel = repsMax && repsMax > reps ? `${reps}–${repsMax}` : `${reps}`;
                     const restBetween = group.restBetweenRounds as number;
                     return (
                       <li key={segment.id || i}>
                         <div className="flex items-center gap-2 mb-2">
                           <Badge className="bg-indigo-500 text-white text-xs">
-                            {t.repeatBlock} ×{reps}
+                            {t.repeatBlock} ×{repsLabel}
                           </Badge>
                           {restBetween && (
                             <span className="text-xs" style={{ color: theme.colors.textMuted }}>
@@ -572,6 +574,11 @@ export function CardioSessionDetailSheet({
                                     {step.isBenchmark ? (
                                       <Badge variant="outline" className="text-xs">
                                         {locale === 'sv' ? 'Prolog' : 'Opener'}
+                                      </Badge>
+                                    ) : null}
+                                    {step.optional ? (
+                                      <Badge variant="outline" className="text-xs">
+                                        {locale === 'sv' ? 'Valfritt' : 'Optional'}
                                       </Badge>
                                     ) : null}
                                     {step.duration ? (
@@ -631,6 +638,11 @@ export function CardioSessionDetailSheet({
                               {locale === 'sv' ? 'Prolog' : 'Opener'}
                             </Badge>
                           )}
+                          {segment.optional && (
+                            <Badge variant="outline" className="text-xs">
+                              {locale === 'sv' ? 'Valfritt' : 'Optional'}
+                            </Badge>
+                          )}
                         </div>
                         <div className="mt-1" style={{ color: theme.colors.textMuted }}>
                           {segment.duration && formatDuration(segment.duration)}
@@ -639,6 +651,7 @@ export function CardioSessionDetailSheet({
                           {segment.power && ` • ${segment.power} W`}
                           {segment.cadence && ` • ${segment.cadence} rpm`}
                           {segment.powerRelPercent ? ` • ${formatRelativeTarget(segment.powerRelPercent, segment.powerRelTo, locale)}` : ''}
+                          {segment.repeats && segment.repeats > 1 ? ` • ×${segment.repeats}${segment.repeatsMax && segment.repeatsMax > segment.repeats ? `–${segment.repeatsMax}` : ''}` : ''}
                         </div>
                         {exercises.length > 0 && (
                           <ul className="mt-2 space-y-1">

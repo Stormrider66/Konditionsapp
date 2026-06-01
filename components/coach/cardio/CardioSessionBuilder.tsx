@@ -68,9 +68,11 @@ type CardioFlatSegment = {
   powerRelPercent?: number // e.g. 80
   powerRelTo?: CardioRelativeRef // OPENER | FTP | CP
   isBenchmark?: boolean // marks the all-out opener whose result anchors relative targets
+  optional?: boolean // "only if needed" — e.g. an extra recovery in the back half of a session
   notes?: string
   equipment?: string
-  repeats?: number // for intervals
+  repeats?: number // for intervals (the planned/minimum count when repeatsMax is set)
+  repeatsMax?: number // optional upper bound, e.g. "8-10x" → repeats=8, repeatsMax=10
   restDuration?: number // min, for interval repeats
   distanceUnit?: 'km' | 'm'
 }
@@ -138,6 +140,7 @@ type CardioChildStep = {
   targetRelPercent?: number // e.g. 80
   targetRelTo?: CardioRelativeRef // OPENER | FTP | CP
   isBenchmark?: boolean // marks an all-out opener step whose result anchors relative targets
+  optional?: boolean // "only if needed" step
 }
 
 const EQUIPMENT_OPTIONS: { value: string; label: string; labelSv?: string }[] = [
@@ -175,7 +178,8 @@ function isWorkEffort(type: string): boolean {
 type CardioRepeatGroup = {
   id: string
   type: 'REPEAT_GROUP'
-  repeats: number
+  repeats: number // rounds (the planned/minimum count when repeatsMax is set)
+  repeatsMax?: number // optional upper bound, e.g. "8-10 rounds"
   restBetweenRounds?: number // minutes
   steps: CardioChildStep[]
 }
@@ -445,6 +449,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
               id: s.id || generateId(),
               type: 'REPEAT_GROUP' as const,
               repeats: s.repeats || 1,
+              repeatsMax: s.repeatsMax ?? undefined,
               restBetweenRounds: s.restBetweenRounds ? s.restBetweenRounds / 60 : undefined,
               steps: (s.steps || []).map((step: any) => ({
                 id: step.id || generateId(),
@@ -462,6 +467,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                 targetRelPercent: step.targetRelPercent ?? undefined,
                 targetRelTo: step.targetRelTo ?? undefined,
                 isBenchmark: step.isBenchmark ?? undefined,
+                optional: step.optional ?? undefined,
                 distanceUnit: (step.distance && step.distance < 1000) ? 'm' : 'km',
               })),
             } as CardioRepeatGroup
@@ -480,9 +486,11 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
             powerRelPercent: s.powerRelPercent ?? undefined,
             powerRelTo: s.powerRelTo ?? undefined,
             isBenchmark: s.isBenchmark ?? undefined,
+            optional: s.optional ?? undefined,
             notes: s.notes || '',
             equipment: s.equipment || '',
             repeats: s.repeats || undefined,
+            repeatsMax: s.repeatsMax ?? undefined,
             restDuration: s.restDuration ? s.restDuration / 60 : undefined,
             distanceUnit: (s.distance && s.distance < 1000) ? 'm' : 'km',
           } as CardioFlatSegment
@@ -605,6 +613,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
             id: s.id,
             type: 'REPEAT_GROUP',
             repeats: s.repeats,
+            repeatsMax: s.repeatsMax && s.repeatsMax > s.repeats ? s.repeatsMax : undefined,
             restBetweenRounds: s.restBetweenRounds ? Math.round(s.restBetweenRounds * 60) : undefined,
             steps: s.steps.map((step) => ({
               id: step.id,
@@ -622,6 +631,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
               targetRelPercent: step.targetRelPercent || undefined,
               targetRelTo: step.targetRelTo || undefined,
               isBenchmark: step.isBenchmark || undefined,
+              optional: step.optional || undefined,
             })),
           }
         }
@@ -656,9 +666,11 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
           powerRelPercent: s.powerRelPercent || undefined,
           powerRelTo: s.powerRelTo || undefined,
           isBenchmark: s.isBenchmark || undefined,
+          optional: s.optional || undefined,
           notes: s.notes || undefined,
           equipment: s.equipment || undefined,
           repeats: s.repeats && s.repeats > 1 ? s.repeats : undefined,
+          repeatsMax: s.repeatsMax && s.repeatsMax > (s.repeats || 1) ? s.repeatsMax : undefined,
           restDuration: s.restDuration ? Math.round(s.restDuration * 60) : undefined,
         }
       })
@@ -826,7 +838,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
   }
 
   // Repeat group helpers
-  const updateRepeatGroup = (groupId: string, field: 'repeats' | 'restBetweenRounds', value: number) => {
+  const updateRepeatGroup = (groupId: string, field: 'repeats' | 'repeatsMax' | 'restBetweenRounds', value: number | undefined) => {
     setSegments(segments.map(s => {
       if (s.id !== groupId || !isRepeatGroup(s)) return s
       return { ...s, [field]: value }
@@ -1446,12 +1458,22 @@ function SortableSegmentItem({
                  <div className="flex items-center gap-4 ml-2">
                     <div className="flex items-center gap-1">
                         <Label className="text-xs text-muted-foreground">{text(locale, 'Upprepa:', 'Repeat:')}</Label>
-                        <Input 
-                            type="number" 
+                        <Input
+                            type="number"
                             min={1}
-                            className="h-6 w-12 text-xs px-1" 
+                            className="h-6 w-12 text-xs px-1"
                             value={segment.repeats || 1}
                             onChange={(e) => onUpdate(segment.id, 'repeats', parseInt(e.target.value) || 1)}
+                        />
+                        <span className="text-xs text-muted-foreground">–</span>
+                        <Input
+                            type="number"
+                            min={segment.repeats || 1}
+                            className="h-6 w-12 text-xs px-1"
+                            value={segment.repeatsMax ?? ''}
+                            onChange={(e) => onUpdate(segment.id, 'repeatsMax', parseInt(e.target.value) || undefined)}
+                            placeholder={text(locale, 'max', 'max')}
+                            title={text(locale, 'Övre gräns (valfritt) – t.ex. 8–10 ggr', 'Upper bound (optional) – e.g. 8–10x')}
                         />
                         <span className="text-xs text-muted-foreground">{text(locale, 'ggr', 'x')}</span>
                     </div>
@@ -1479,6 +1501,16 @@ function SortableSegmentItem({
                 {text(locale, 'Prolog', 'Opener')}
               </Button>
             )}
+            <Button
+              type="button"
+              variant={segment.optional ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => onUpdate(segment.id, 'optional', !segment.optional)}
+              title={text(locale, 'Valfritt – genomförs bara vid behov', 'Optional – only performed if needed')}
+            >
+              {text(locale, 'Valfritt', 'Optional')}
+            </Button>
           </div>
           <Button variant="ghost" size="sm" onClick={onRemove} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
             <Trash2 className="h-4 w-4" />
@@ -1839,7 +1871,7 @@ function SortableRepeatGroupItem({
   group: CardioRepeatGroup
   locale: AppLocale
   onRemove: () => void
-  onUpdateGroup: (groupId: string, field: 'repeats' | 'restBetweenRounds', value: number) => void
+  onUpdateGroup: (groupId: string, field: 'repeats' | 'repeatsMax' | 'restBetweenRounds', value: number | undefined) => void
   onUpdateStep: (groupId: string, stepId: string, field: string, value: any) => void
   onSetStepPowerMode: (groupId: string, stepId: string, mode: string) => void
   onAddStep: (groupId: string) => void
@@ -1868,6 +1900,16 @@ function SortableRepeatGroupItem({
             className="h-6 w-14 text-xs px-1"
             value={group.repeats}
             onChange={(e) => onUpdateGroup(group.id, 'repeats', parseInt(e.target.value) || 1)}
+          />
+          <span className="text-xs text-muted-foreground">–</span>
+          <Input
+            type="number"
+            min={group.repeats}
+            className="h-6 w-14 text-xs px-1"
+            value={group.repeatsMax ?? ''}
+            onChange={(e) => onUpdateGroup(group.id, 'repeatsMax', parseInt(e.target.value) || undefined)}
+            placeholder={text(locale, 'max', 'max')}
+            title={text(locale, 'Övre gräns (valfritt) – t.ex. 8–10 rundor', 'Upper bound (optional) – e.g. 8–10 rounds')}
           />
         </div>
         <div className="flex items-center gap-1">
@@ -2062,6 +2104,16 @@ function ChildStepRow({
                 <Target className="h-3 w-3" />
               </Button>
             )}
+            <Button
+              type="button"
+              variant={step.optional ? 'secondary' : 'outline'}
+              size="sm"
+              className="h-6 px-1.5 text-xs"
+              onClick={() => onUpdate(groupId, step.id, 'optional', !step.optional)}
+              title={text(locale, 'Valfritt steg – bara vid behov', 'Optional step – only if needed')}
+            >
+              {text(locale, 'Valfri', 'Opt')}
+            </Button>
           </>
         )}
 
