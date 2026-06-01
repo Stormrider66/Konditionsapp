@@ -77,6 +77,7 @@ import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calenda
 import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog';
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
+import { getExerciseDisplayName } from '@/lib/exercises/display-name';
 import {
   useTeamNameLookup,
   useWorkoutLibraryTeams,
@@ -97,6 +98,7 @@ interface HybridMovement {
     id: string;
     name: string;
     nameSv?: string;
+    nameEn?: string | null;
     standardAbbreviation?: string;
     equipmentTypes: string[];
   };
@@ -467,7 +469,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
     return movements
       .slice(0, 3)
-      .map((m) => (appLocale === 'sv' ? m.exercise.nameSv : null) || m.exercise.name)
+      .map((m) => getExerciseDisplayName(m.exercise, appLocale))
       .join(', ') + (movements.length > 3 ? ` +${movements.length - 3}` : '');
   }
 

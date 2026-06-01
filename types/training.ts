@@ -426,6 +426,7 @@ export interface HybridMovementData {
     id: string
     name: string
     nameSv?: string
+    nameEn?: string | null
     standardAbbreviation?: string
     equipmentTypes: string[]
     // Icon fields

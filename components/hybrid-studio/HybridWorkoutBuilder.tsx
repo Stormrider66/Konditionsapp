@@ -84,6 +84,7 @@ interface Exercise {
   id: string;
   name: string;
   nameSv?: string;
+  nameEn?: string | null;
   standardAbbreviation?: string;
   movementCategory?: string;
   equipmentTypes: string[];
@@ -481,7 +482,9 @@ function formatSecondsLabel(seconds?: number) {
 }
 
 function getExerciseDisplayName(exercise: Exercise, locale: AppLocale) {
-  return (locale === 'sv' ? exercise.nameSv : null) || exercise.name;
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.name || exercise.nameEn || 'Övning'
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise';
 }
 
 function movementToMetconPayload(movement: WorkoutMovement, order: number, locale: AppLocale) {

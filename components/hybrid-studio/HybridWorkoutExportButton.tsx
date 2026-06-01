@@ -20,6 +20,7 @@ import type { HybridWorkoutWithSections } from '@/types';
 import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider';
 import type { ThemeId } from '@/lib/themes/types';
 import { useLocale } from '@/i18n/client';
+import { getExerciseDisplayName } from '@/lib/exercises/display-name';
 
 interface HybridWorkoutExportButtonProps {
   workout: HybridWorkoutWithSections;
@@ -64,7 +65,7 @@ export function HybridWorkoutExportButton({
         repScheme: workout.repScheme,
         scalingLevel: workout.scalingLevel,
         movements: workout.movements.map((m) => ({
-          exerciseName: locale === 'sv' ? m.exercise.nameSv || m.exercise.name : m.exercise.name || m.exercise.nameSv || '',
+          exerciseName: getExerciseDisplayName(m.exercise, locale, ''),
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,
@@ -118,7 +119,7 @@ export function HybridWorkoutExportButton({
         repScheme: workout.repScheme,
         scalingLevel: workout.scalingLevel,
         movements: workout.movements.map((m) => ({
-          exerciseName: locale === 'sv' ? m.exercise.nameSv || m.exercise.name : m.exercise.name || m.exercise.nameSv || '',
+          exerciseName: getExerciseDisplayName(m.exercise, locale, ''),
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,

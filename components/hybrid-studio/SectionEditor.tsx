@@ -45,6 +45,7 @@ interface Exercise {
   id: string;
   name: string;
   nameSv?: string;
+  nameEn?: string | null;
   standardAbbreviation?: string;
   movementCategory?: string;
   equipmentTypes: string[];
@@ -155,6 +156,12 @@ const COPY: Record<AppLocale, {
     timeMinutes: 'Tid (min)',
   },
 };
+
+function getExerciseDisplayName(exercise: Exercise, locale: AppLocale) {
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.name || exercise.nameEn || 'Övning'
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise';
+}
 
 // Sortable movement card for sections
 interface SortableSectionMovementProps {
@@ -383,7 +390,7 @@ export function SectionEditor({
   function addMovement(exercise: Exercise) {
     const newMovement: HybridSectionMovement = {
       exerciseId: exercise.id,
-      exerciseName: (locale === 'sv' ? exercise.nameSv : null) || exercise.name,
+      exerciseName: getExerciseDisplayName(exercise, locale),
       order: (data?.movements?.length || 0) + 1,
       reps: exercise.defaultReps,
       weightMale: exercise.defaultWeightMale,
@@ -561,7 +568,7 @@ export function SectionEditor({
                               onClick={() => addMovement(exercise)}
                               title={exercise.name}
                             >
-                              {(locale === 'sv' ? exercise.nameSv : null) || exercise.name}
+                              {getExerciseDisplayName(exercise, locale)}
                             </Button>
                           ))}
                         </div>

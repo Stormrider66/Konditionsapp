@@ -52,6 +52,7 @@ import { ExerciseIcon } from '@/components/themed';
 import { useLocale } from '@/i18n/client';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 import { visibleWorkoutTags } from '@/lib/workouts/business-tags';
+import { getExerciseDisplayName } from '@/lib/exercises/display-name';
 
 interface WorkoutDetailSheetProps {
   workout: HybridWorkoutWithSections | null;
@@ -492,7 +493,7 @@ export function WorkoutDetailSheet({
                       />
                       <div>
                         <span className="font-medium" style={{ color: theme.colors.textPrimary }}>
-                          {appLocale === 'sv' ? m.exercise.nameSv || m.exercise.name : m.exercise.name || m.exercise.nameSv}
+                          {getExerciseDisplayName(m.exercise, appLocale)}
                         </span>
                         <span className="ml-2" style={{ color: theme.colors.textMuted }}>
                           {/* Show scheme reps if workout has a descending/ascending scheme */}
