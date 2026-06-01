@@ -29,8 +29,11 @@ import {
   Edit2,
   ChevronDown,
   ChevronUp,
+  Copy,
+  Minus,
+  Plus,
 } from 'lucide-react'
-import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import type { ParsedStrengthExercise, ParsedStrengthSet, ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { formatParsedWorkoutDistanceKm, getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
@@ -79,6 +82,127 @@ const INTENSITY_LABELS: Record<string, string> = {
   MAX: 'max',
 }
 
+type EditableSet = {
+  setNumber: number
+  weight: string
+  repsCompleted: string
+  repsTarget?: number
+  rpe: string
+  defaultReps: string
+}
+
+type EditableStrengthExercise = ParsedStrengthExercise & {
+  actualSetsDraft: EditableSet[]
+}
+
+function clampSetCount(value: unknown, fallback = 1): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.min(20, Math.max(1, Math.round(parsed)))
+}
+
+function parseOptionalNumber(value: string): number | undefined {
+  if (value.trim() === '') return undefined
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+function defaultRepsText(reps: ParsedStrengthExercise['reps']): string {
+  if (typeof reps === 'number' && Number.isFinite(reps)) return String(reps)
+  if (typeof reps !== 'string') return ''
+  const match = reps.match(/\d+/)
+  return match ? match[0] : ''
+}
+
+function createEditableSet(
+  exercise: ParsedStrengthExercise,
+  setNumber: number,
+  actualSet?: ParsedStrengthSet
+): EditableSet {
+  const fallbackReps = defaultRepsText(exercise.reps)
+  const targetReps = parseOptionalNumber(fallbackReps)
+
+  return {
+    setNumber,
+    weight:
+      actualSet?.weight !== undefined
+        ? String(actualSet.weight)
+        : exercise.weight !== undefined
+          ? String(exercise.weight)
+          : '',
+    repsCompleted:
+      actualSet?.repsCompleted !== undefined
+        ? String(actualSet.repsCompleted)
+        : fallbackReps,
+    repsTarget: actualSet?.repsTarget ?? targetReps,
+    rpe: actualSet?.rpe !== undefined ? String(actualSet.rpe) : '',
+    defaultReps: fallbackReps,
+  }
+}
+
+function buildEditableStrengthExercises(
+  exercises: ParsedStrengthExercise[] | undefined
+): EditableStrengthExercise[] {
+  return (exercises || []).map((exercise) => {
+    const existingSets = Array.isArray(exercise.actualSets) ? exercise.actualSets : []
+    const setCount = clampSetCount(exercise.sets, existingSets.length || 1)
+
+    return {
+      ...exercise,
+      actualSetsDraft: Array.from({ length: setCount }, (_, index) =>
+        createEditableSet(exercise, index + 1, existingSets[index])
+      ),
+    }
+  })
+}
+
+function materializeActualSets(exercise: EditableStrengthExercise): ParsedStrengthSet[] {
+  const actualSets: ParsedStrengthSet[] = []
+
+  for (const setRow of exercise.actualSetsDraft) {
+    const weight = parseOptionalNumber(setRow.weight)
+    const rpe = parseOptionalNumber(setRow.rpe)
+    const reps = parseOptionalNumber(setRow.repsCompleted)
+    const defaultReps = parseOptionalNumber(setRow.defaultReps)
+    const repsChanged = reps !== undefined && (defaultReps === undefined || reps !== defaultReps)
+    const hasActualData = weight !== undefined || rpe !== undefined || repsChanged
+
+    if (!hasActualData) continue
+
+    const actualSet: ParsedStrengthSet = {
+      setNumber: setRow.setNumber,
+    }
+    const repsTarget = setRow.repsTarget ?? defaultReps
+
+    if (weight !== undefined) actualSet.weight = weight
+    if (reps !== undefined || defaultReps !== undefined) actualSet.repsCompleted = reps ?? defaultReps
+    if (repsTarget !== undefined) actualSet.repsTarget = repsTarget
+    if (rpe !== undefined) actualSet.rpe = Math.max(1, Math.min(10, Math.round(rpe)))
+
+    actualSets.push(actualSet)
+  }
+
+  return actualSets
+}
+
+function materializeStrengthExercises(
+  exercises: EditableStrengthExercise[]
+): ParsedStrengthExercise[] {
+  return exercises.map((editableExercise) => {
+    const { actualSetsDraft: _actualSetsDraft, ...exercise } = editableExercise
+    const actualSets = materializeActualSets(editableExercise)
+    const nextExercise: ParsedStrengthExercise = { ...exercise }
+
+    if (actualSets.length > 0) {
+      nextExercise.actualSets = actualSets
+    } else {
+      delete nextExercise.actualSets
+    }
+
+    return nextExercise
+  })
+}
+
 export function WorkoutReview({
   parsedWorkout,
   onConfirm,
@@ -88,6 +212,12 @@ export function WorkoutReview({
   const t = useTranslations('components.adHocWorkoutReview')
   const [editMode, setEditMode] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
+  const [expandedExerciseIndex, setExpandedExerciseIndex] = useState<number | null>(() =>
+    parsedWorkout.strengthExercises?.length ? 0 : null
+  )
+  const [strengthExercises, setStrengthExercises] = useState<EditableStrengthExercise[]>(() =>
+    buildEditableStrengthExercises(parsedWorkout.strengthExercises)
+  )
 
   // Editable fields
   const [duration, setDuration] = useState(parsedWorkout.duration?.toString() || '')
@@ -103,6 +233,83 @@ export function WorkoutReview({
 
   const typeInfo = TYPE_LABELS[parsedWorkout.type] || TYPE_LABELS.MIXED
   const confidencePercent = Math.round((parsedWorkout.confidence || 0) * 100)
+  const reviewedStrengthExercises = materializeStrengthExercises(strengthExercises)
+  const hasStrengthSetEdits =
+    JSON.stringify(reviewedStrengthExercises.map((exercise) => exercise.actualSets || [])) !==
+    JSON.stringify((parsedWorkout.strengthExercises || []).map((exercise) => exercise.actualSets || []))
+
+  const updateSetValue = (
+    exerciseIndex: number,
+    setIndex: number,
+    field: 'weight' | 'repsCompleted' | 'rpe',
+    value: string
+  ) => {
+    setStrengthExercises((prev) =>
+      prev.map((exercise, currentExerciseIndex) => {
+        if (currentExerciseIndex !== exerciseIndex) return exercise
+
+        return {
+          ...exercise,
+          actualSetsDraft: exercise.actualSetsDraft.map((setRow, currentSetIndex) =>
+            currentSetIndex === setIndex ? { ...setRow, [field]: value } : setRow
+          ),
+        }
+      })
+    )
+  }
+
+  const addSet = (exerciseIndex: number) => {
+    setStrengthExercises((prev) =>
+      prev.map((exercise, currentExerciseIndex) => {
+        if (currentExerciseIndex !== exerciseIndex || exercise.actualSetsDraft.length >= 20) {
+          return exercise
+        }
+
+        return {
+          ...exercise,
+          sets: exercise.actualSetsDraft.length + 1,
+          actualSetsDraft: [
+            ...exercise.actualSetsDraft,
+            createEditableSet(exercise, exercise.actualSetsDraft.length + 1),
+          ],
+        }
+      })
+    )
+  }
+
+  const removeSet = (exerciseIndex: number) => {
+    setStrengthExercises((prev) =>
+      prev.map((exercise, currentExerciseIndex) => {
+        if (currentExerciseIndex !== exerciseIndex || exercise.actualSetsDraft.length <= 1) {
+          return exercise
+        }
+
+        return {
+          ...exercise,
+          sets: exercise.actualSetsDraft.length - 1,
+          actualSetsDraft: exercise.actualSetsDraft.slice(0, -1),
+        }
+      })
+    )
+  }
+
+  const copyFirstWeightToAllSets = (exerciseIndex: number) => {
+    setStrengthExercises((prev) =>
+      prev.map((exercise, currentExerciseIndex) => {
+        if (currentExerciseIndex !== exerciseIndex) return exercise
+        const firstWeight = exercise.actualSetsDraft[0]?.weight ?? ''
+        if (!firstWeight) return exercise
+
+        return {
+          ...exercise,
+          actualSetsDraft: exercise.actualSetsDraft.map((setRow) => ({
+            ...setRow,
+            weight: firstWeight,
+          })),
+        }
+      })
+    )
+  }
 
   const handleConfirm = async () => {
     const selectedFeeling = getValidFeeling(feeling)
@@ -110,6 +317,10 @@ export function WorkoutReview({
       ...parsedWorkout,
       duration: duration ? parseInt(duration) : parsedWorkout.duration,
       distance: distance ? Math.round(parseFloat(distance) * 1000) : parsedWorkout.distance,
+      strengthExercises:
+        reviewedStrengthExercises.length > 0
+          ? reviewedStrengthExercises
+          : parsedWorkout.strengthExercises,
       perceivedEffort: rpe,
       notes,
     }
@@ -130,7 +341,7 @@ export function WorkoutReview({
       notes,
     }
 
-    if (editMode) {
+    if (editMode || hasStrengthSetEdits) {
       payload.parsedStructure = updatedWorkout
     }
 
@@ -246,32 +457,147 @@ export function WorkoutReview({
         </div>
 
         {/* Strength exercises */}
-        {parsedWorkout.strengthExercises && parsedWorkout.strengthExercises.length > 0 && (
+        {strengthExercises.length > 0 && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Dumbbell className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">{t('strength.exercises')}</span>
             </div>
             <div className="grid gap-2">
-              {parsedWorkout.strengthExercises.map((ex, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-2 rounded border bg-background"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{ex.exerciseName}</span>
-                    {ex.isCustom && (
-                      <Badge variant="outline" className="text-xs">
-                        {t('strength.newExercise')}
-                      </Badge>
+              {strengthExercises.map((ex, i) => {
+                const isExpanded = expandedExerciseIndex === i
+                const actualSetsCount = materializeActualSets(ex).length
+
+                return (
+                  <div
+                    key={`${ex.exerciseId || ex.exerciseName}-${i}`}
+                    className="rounded border bg-background"
+                  >
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-3 p-2 text-left"
+                      onClick={() => setExpandedExerciseIndex(isExpanded ? null : i)}
+                      aria-expanded={isExpanded}
+                    >
+                      <span className="min-w-0">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="truncate font-medium">{ex.exerciseName}</span>
+                          {ex.isCustom && (
+                            <Badge variant="outline" className="shrink-0 text-xs">
+                              {t('strength.newExercise')}
+                            </Badge>
+                          )}
+                        </span>
+                        {actualSetsCount > 0 && (
+                          <span className="mt-1 block text-xs text-muted-foreground">
+                            {t('strength.loggedSets', { count: actualSetsCount })}
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground">
+                        {ex.sets}x{ex.reps ?? '?'}
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </span>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="space-y-3 border-t p-2">
+                        <div className="grid grid-cols-[42px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2 px-1 text-xs text-muted-foreground">
+                          <span>{t('strength.set')}</span>
+                          <span>{t('strength.weightKg')}</span>
+                          <span>{t('strength.reps')}</span>
+                          <span>{t('strength.rpe')}</span>
+                        </div>
+
+                        <div className="space-y-2">
+                          {ex.actualSetsDraft.map((setRow, setIndex) => (
+                            <div
+                              key={setRow.setNumber}
+                              className="grid grid-cols-[42px_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-2"
+                            >
+                              <div className="flex h-10 items-center justify-center rounded-md bg-muted/50 text-sm font-medium">
+                                {setRow.setNumber}
+                              </div>
+                              <Input
+                                type="number"
+                                inputMode="decimal"
+                                min="0"
+                                step="0.5"
+                                value={setRow.weight}
+                                onChange={(event) => updateSetValue(i, setIndex, 'weight', event.target.value)}
+                                aria-label={t('strength.weightForSet', { number: setRow.setNumber })}
+                                placeholder="0"
+                              />
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min="0"
+                                step="1"
+                                value={setRow.repsCompleted}
+                                onChange={(event) => updateSetValue(i, setIndex, 'repsCompleted', event.target.value)}
+                                aria-label={t('strength.repsForSet', { number: setRow.setNumber })}
+                                placeholder={setRow.defaultReps || '0'}
+                              />
+                              <Input
+                                type="number"
+                                inputMode="numeric"
+                                min="1"
+                                max="10"
+                                step="1"
+                                value={setRow.rpe}
+                                onChange={(event) => updateSetValue(i, setIndex, 'rpe', event.target.value)}
+                                aria-label={t('strength.rpeForSet', { number: setRow.setNumber })}
+                                placeholder="-"
+                              />
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => copyFirstWeightToAllSets(i)}
+                            disabled={!ex.actualSetsDraft[0]?.weight}
+                          >
+                            <Copy className="mr-2 h-4 w-4" />
+                            {t('strength.copyFirstWeight')}
+                          </Button>
+                          <div className="ml-auto flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => removeSet(i)}
+                              disabled={ex.actualSetsDraft.length <= 1}
+                              aria-label={t('strength.removeSet')}
+                              title={t('strength.removeSet')}
+                            >
+                              <Minus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="icon"
+                              onClick={() => addSet(i)}
+                              disabled={ex.actualSetsDraft.length >= 20}
+                              aria-label={t('strength.addSet')}
+                              title={t('strength.addSet')}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
-                  <span className="text-sm text-muted-foreground">
-                    {ex.sets}x{ex.reps}
-                    {ex.weight && ` @ ${ex.weight}kg`}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}

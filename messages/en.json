@@ -13609,7 +13609,18 @@
       },
       "strength": {
         "exercises": "Exercises",
-        "newExercise": "New exercise"
+        "newExercise": "New exercise",
+        "set": "Set",
+        "weightKg": "Kg",
+        "reps": "Reps",
+        "rpe": "RPE",
+        "loggedSets": "{count} sets with load/reps",
+        "weightForSet": "Weight for set {number}",
+        "repsForSet": "Reps for set {number}",
+        "rpeForSet": "RPE for set {number}",
+        "copyFirstWeight": "Same weight",
+        "removeSet": "Remove set",
+        "addSet": "Add set"
       },
       "edit": {
         "title": "Edit details",

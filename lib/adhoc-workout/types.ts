@@ -145,8 +145,28 @@ export interface ParsedStrengthExercise {
   rpe?: number
   /** Notes for this exercise */
   notes?: string
+  /** Actual logged sets entered during review */
+  actualSets?: ParsedStrengthSet[]
   /** Whether this is a custom/unmatched exercise */
   isCustom: boolean
+}
+
+/**
+ * Actual set data entered by the athlete while reviewing a parsed strength workout.
+ */
+export interface ParsedStrengthSet {
+  /** Set number within the exercise */
+  setNumber: number
+  /** Actual weight used in kg */
+  weight?: number
+  /** Actual reps completed */
+  repsCompleted?: number
+  /** Target reps from the parsed workout */
+  repsTarget?: number
+  /** Set-level perceived exertion */
+  rpe?: number
+  /** Optional notes for this set */
+  notes?: string
 }
 
 /**

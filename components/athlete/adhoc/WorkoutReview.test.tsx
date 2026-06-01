@@ -77,4 +77,53 @@ describe('WorkoutReview', () => {
       notes: 'Cirkelträningspass med 6 övningar.',
     })
   })
+
+  it('includes entered set weights when confirming a strength workout', async () => {
+    const user = userEvent.setup()
+    const { onConfirm } = renderReview({
+      ...baseWorkout,
+      type: 'STRENGTH',
+      name: 'Styrka 1',
+      strengthExercises: [
+        {
+          exerciseName: 'Frontböj',
+          sets: 2,
+          reps: '8-10',
+          isCustom: false,
+        },
+      ],
+    })
+
+    await user.type(screen.getByLabelText('Vikt för set 1'), '80')
+    await user.type(screen.getByLabelText('Vikt för set 2'), '85')
+    await user.click(screen.getByRole('button', { name: /bekräfta/i }))
+
+    expect(onConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parsedStructure: expect.objectContaining({
+          strengthExercises: [
+            expect.objectContaining({
+              exerciseName: 'Frontböj',
+              actualSets: [
+                {
+                  setNumber: 1,
+                  weight: 80,
+                  repsCompleted: 8,
+                  repsTarget: 8,
+                },
+                {
+                  setNumber: 2,
+                  weight: 85,
+                  repsCompleted: 8,
+                  repsTarget: 8,
+                },
+              ],
+            }),
+          ],
+        }),
+        perceivedEffort: 7,
+        notes: 'Cirkelträningspass med 6 övningar.',
+      })
+    )
+  })
 })

@@ -13969,7 +13969,18 @@
       },
       "strength": {
         "exercises": "Övningar",
-        "newExercise": "Ny övning"
+        "newExercise": "Ny övning",
+        "set": "Set",
+        "weightKg": "Kg",
+        "reps": "Reps",
+        "rpe": "RPE",
+        "loggedSets": "{count} set med vikt/reps",
+        "weightForSet": "Vikt för set {number}",
+        "repsForSet": "Reps för set {number}",
+        "rpeForSet": "RPE för set {number}",
+        "copyFirstWeight": "Samma vikt",
+        "removeSet": "Ta bort set",
+        "addSet": "Lägg till set"
       },
       "edit": {
         "title": "Redigera uppgifter",
