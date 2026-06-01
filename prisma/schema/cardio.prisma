@@ -148,6 +148,8 @@ model CardioSessionLog {
   actualDistance Float? // total km
   avgHeartRate   Int?
   maxHeartRate   Int?
+  avgPower       Int? // average watts (power-based equipment)
+  maxPower       Int? // peak watts
 
   // Segment logs
   segmentLogs CardioSegmentLog[]
@@ -181,6 +183,7 @@ model CardioSegmentLog {
   plannedDistance Float? // km
   plannedPace     Int? // sec/km
   plannedZone     Int? // 1-5
+  plannedPower    Int? // watts (absolute target, or the resolved value of a relative target)
 
   // Actual values logged
   actualDuration Int? // seconds
@@ -188,6 +191,8 @@ model CardioSegmentLog {
   actualPace     Int? // sec/km
   actualAvgHR    Int?
   actualMaxHR    Int?
+  actualAvgPower Int? // average watts — the benchmark/opener's value anchors relative % targets
+  actualMaxPower Int? // peak watts
 
   // Status
   completed Boolean @default(false)
