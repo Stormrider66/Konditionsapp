@@ -264,6 +264,81 @@ const decimalToPace = (decimal: number): string => {
   return `${min}:${sec.toString().padStart(2, '0')}`
 }
 
+// Parse a duration typed as "m:ss" (or "mm:ss", or plain minutes) into minutes (float).
+// "2:40" -> 2.6667, "0:40" -> 0.6667, "10" -> 10, "10.5" -> 10.5. Empty/invalid -> undefined.
+const durationStringToMinutes = (raw: string): number | undefined => {
+  const s = raw.trim()
+  if (!s) return undefined
+  if (s.includes(':')) {
+    const [minPart, secPart = ''] = s.split(':')
+    const min = parseInt(minPart || '0', 10)
+    const sec = parseInt(secPart || '0', 10)
+    if (isNaN(min) && isNaN(sec)) return undefined
+    return (isNaN(min) ? 0 : min) + (isNaN(sec) ? 0 : sec) / 60
+  }
+  const min = parseFloat(s)
+  return isNaN(min) ? undefined : min
+}
+
+// Format minutes (float) as "m:ss". 10 -> "10:00", 2.6667 -> "2:40", 0.6667 -> "0:40".
+const minutesToDurationString = (minutes?: number): string => {
+  if (minutes === undefined || minutes === null || isNaN(minutes)) return ''
+  const totalSeconds = Math.round(minutes * 60)
+  const min = Math.floor(totalSeconds / 60)
+  const sec = totalSeconds % 60
+  return `${min}:${sec.toString().padStart(2, '0')}`
+}
+
+/**
+ * Time input that accepts "m:ss" (e.g. 2:40, 0:40) or plain minutes (10, 10.5) while
+ * emitting the value in minutes (float). Keeps the rest of the builder — and the
+ * seconds-based DB conversion (min * 60) — unchanged; only the entry/display widens
+ * from whole minutes to min:sec. Mirrors the existing Pace field (5:30) in the form.
+ */
+function DurationInput({
+  valueMinutes,
+  onChangeMinutes,
+  onBlur,
+  className,
+  placeholder = '0:00',
+}: {
+  valueMinutes?: number
+  onChangeMinutes: (minutes: number | undefined) => void
+  onBlur?: () => void
+  className?: string
+  placeholder?: string
+}) {
+  const [raw, setRaw] = useState(() => minutesToDurationString(valueMinutes))
+  const [focused, setFocused] = useState(false)
+
+  // Re-sync from the source of truth when it changes externally (e.g. pace/distance
+  // auto-calc), but never clobber what the coach is actively typing.
+  useEffect(() => {
+    if (!focused) setRaw(minutesToDurationString(valueMinutes))
+  }, [valueMinutes, focused])
+
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      className={className}
+      value={raw}
+      placeholder={placeholder}
+      onFocus={() => setFocused(true)}
+      onChange={(e) => {
+        setRaw(e.target.value)
+        onChangeMinutes(durationStringToMinutes(e.target.value))
+      }}
+      onBlur={() => {
+        setFocused(false)
+        const minutes = durationStringToMinutes(raw)
+        setRaw(minutesToDurationString(minutes))
+        onBlur?.()
+      }}
+    />
+  )
+}
+
 interface CardioSessionBuilderProps {
   initialData?: CardioSessionData | null
   onSaved?: (sessionId?: string, sessionName?: string) => void
@@ -1173,7 +1248,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">{text(locale, 'Total tid:', 'Total time:')}</span>
               <span className="font-medium">
-                {segments.reduce((acc, s) => {
+                {minutesToDurationString(segments.reduce((acc, s) => {
                   if (isRepeatGroup(s)) {
                     const stepsDur = s.steps.reduce((sum, step) => sum + (step.duration || 0), 0)
                     const roundRest = s.restBetweenRounds || 0
@@ -1184,7 +1259,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                   const dur = (s.duration || 0) * reps
                   const rest = (s.restDuration || 0) * (reps > 1 ? reps - 1 : 0)
                   return acc + dur + rest
-                }, 0)} min
+                }, 0))} {text(locale, 'min:sek', 'min:sec')}
               </span>
             </div>
             <div className="flex justify-between text-sm">
@@ -1308,16 +1383,12 @@ function SortableSegmentItem({
                     </div>
                     <div className="flex items-center gap-1">
                         <Label className="text-xs text-muted-foreground">{text(locale, 'Vila:', 'Rest:')}</Label>
-                        <Input 
-                            type="number"
-                            min={0}
-                            step={0.5}
-                            className="h-6 w-14 text-xs px-1" 
-                            value={segment.restDuration || ''}
-                            onChange={(e) => onUpdate(segment.id, 'restDuration', parseFloat(e.target.value))}
-                            placeholder="min"
+                        <DurationInput
+                            valueMinutes={segment.restDuration}
+                            onChangeMinutes={(v) => onUpdate(segment.id, 'restDuration', v)}
+                            className="h-6 w-14 text-xs px-1"
                         />
-                        <span className="text-xs text-muted-foreground">min</span>
+                        <span className="text-xs text-muted-foreground">{text(locale, 'min:sek', 'min:sec')}</span>
                     </div>
                  </div>
             )}
@@ -1345,16 +1416,14 @@ function SortableSegmentItem({
             </Select>
           </div>
           <div>
-            <Label className="text-xs text-muted-foreground">{text(locale, 'Tid (min)', 'Time (min)')}</Label>
+            <Label className="text-xs text-muted-foreground">{text(locale, 'Tid (min:sek)', 'Time (min:sec)')}</Label>
             <div className="flex items-center">
               <Timer className="h-3 w-3 mr-1 text-muted-foreground" />
-              <Input
-                type="number"
-                value={segment.duration || ''}
-                onChange={(e) => onUpdate(segment.id, 'duration', parseFloat(e.target.value))}
+              <DurationInput
+                valueMinutes={segment.duration}
+                onChangeMinutes={(v) => onUpdate(segment.id, 'duration', v)}
                 onBlur={() => onCalculate(segment.id, 'duration')}
                 className="h-7 text-sm"
-                placeholder="min"
               />
             </div>
           </div>
@@ -1504,15 +1573,12 @@ function SortableExerciseBlockItem({
         </Badge>
         <div className="ml-auto flex items-center gap-2">
           <Label className="text-xs text-muted-foreground">{text(locale, 'Tid', 'Time')}</Label>
-          <Input
-            type="number"
-            min={0}
+          <DurationInput
+            valueMinutes={block.duration}
+            onChangeMinutes={(v) => onUpdateBlock(block.id, 'duration', v || 0)}
             className="h-7 w-16 text-sm"
-            value={block.duration || ''}
-            onChange={(e) => onUpdateBlock(block.id, 'duration', parseFloat(e.target.value) || 0)}
-            placeholder="min"
           />
-          <span className="text-xs text-muted-foreground">min</span>
+          <span className="text-xs text-muted-foreground">{text(locale, 'min:sek', 'min:sec')}</span>
           <Button variant="ghost" size="sm" onClick={onRemove} className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive">
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -1664,16 +1730,12 @@ function SortableRepeatGroupItem({
         </div>
         <div className="flex items-center gap-1">
           <Label className="text-xs text-muted-foreground">{text(locale, 'Vila mellan rundor:', 'Rest between rounds:')}</Label>
-          <Input
-            type="number"
-            min={0}
-            step={0.5}
+          <DurationInput
+            valueMinutes={group.restBetweenRounds}
+            onChangeMinutes={(v) => onUpdateGroup(group.id, 'restBetweenRounds', v || 0)}
             className="h-6 w-14 text-xs px-1"
-            value={group.restBetweenRounds || ''}
-            onChange={(e) => onUpdateGroup(group.id, 'restBetweenRounds', parseFloat(e.target.value) || 0)}
-            placeholder="min"
           />
-          <span className="text-xs text-muted-foreground">min</span>
+          <span className="text-xs text-muted-foreground">{text(locale, 'min:sek', 'min:sec')}</span>
         </div>
         <div className="ml-auto">
           <Button variant="ghost" size="sm" onClick={onRemove} className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive">
@@ -1750,14 +1812,12 @@ function ChildStepRow({
 
         <div className="flex items-center gap-1">
           <Timer className="h-3 w-3 text-muted-foreground" />
-          <Input
-            type="number"
+          <DurationInput
+            valueMinutes={step.duration}
+            onChangeMinutes={(v) => onUpdate(groupId, step.id, 'duration', v)}
             className="h-6 w-14 text-xs px-1"
-            value={step.duration || ''}
-            onChange={(e) => onUpdate(groupId, step.id, 'duration', parseFloat(e.target.value))}
-            placeholder="min"
           />
-          <span className="text-xs text-muted-foreground">min</span>
+          <span className="text-xs text-muted-foreground">{text(locale, 'min:sek', 'min:sec')}</span>
         </div>
 
         {!isRest && (
