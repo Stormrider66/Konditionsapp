@@ -36,6 +36,7 @@ import {
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
 import { SegmentLoggingForm } from './SegmentLoggingForm'
+import { resolveSegmentPower } from '@/lib/cardio/focus-mode-segments'
 import {
   useVoiceCoach,
   buildSegmentStartCue,
@@ -203,20 +204,12 @@ export function CardioFocusModeWorkout({
   // The opener (benchmark) segment's logged average watts — anchors relative % targets.
   const openerPower = segments.find((s) => s.isBenchmark)?.actualAvgPower
 
-  // Resolve the current segment's power target to absolute watts when possible:
-  // absolute target, or % of the opener once the opener's watts are logged.
-  const currentTargetPower =
-    currentSegment?.plannedPower ??
-    (currentSegment?.powerRelPercent && currentSegment.powerRelTo === 'OPENER' && openerPower
-      ? Math.round((openerPower * currentSegment.powerRelPercent) / 100)
-      : undefined)
-
-  // Relative target that can't resolve yet (opener not logged / FTP-CP not available):
-  // show a label like "80% prolog" so the athlete still knows the intent.
-  const currentTargetPowerPending =
-    currentTargetPower === undefined && currentSegment?.powerRelPercent
-      ? `${currentSegment.powerRelPercent}% ${currentSegment.powerRelTo === 'OPENER' ? 'prolog' : currentSegment.powerRelTo}`
-      : undefined
+  // Resolve the current segment's power target (absolute, or % of the logged opener).
+  const resolvedPower = currentSegment
+    ? resolveSegmentPower(currentSegment, openerPower)
+    : {}
+  const currentTargetPower = resolvedPower.watts
+  const currentTargetPowerPending = resolvedPower.pendingLabel
 
   // Announce segment on transition (basic voice — skip when live coach active)
   useEffect(() => {

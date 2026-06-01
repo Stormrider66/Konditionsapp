@@ -174,6 +174,28 @@ function powerFields(opts: {
   }
 }
 
+/**
+ * Resolve a focus-mode segment's power target to absolute watts.
+ * - Absolute target (plannedPower) → that value.
+ * - Relative to the OPENER → round(openerActualWatts × percent / 100), once the opener is logged.
+ * - Relative but unresolved (opener not logged yet, or an FTP/CP ref we can't resolve) →
+ *   a pendingLabel like "80% prolog" so the athlete still sees the intent.
+ */
+export function resolveSegmentPower(
+  segment: Pick<FocusModeSegment, 'plannedPower' | 'powerRelPercent' | 'powerRelTo'>,
+  openerActualWatts: number | undefined,
+): { watts?: number; pendingLabel?: string } {
+  if (segment.plannedPower != null) return { watts: segment.plannedPower }
+  if (segment.powerRelPercent) {
+    if (segment.powerRelTo === 'OPENER' && openerActualWatts) {
+      return { watts: Math.round((openerActualWatts * segment.powerRelPercent) / 100) }
+    }
+    const ref = !segment.powerRelTo || segment.powerRelTo === 'OPENER' ? 'prolog' : segment.powerRelTo
+    return { pendingLabel: `${segment.powerRelPercent}% ${ref}` }
+  }
+  return {}
+}
+
 function segmentTypeName(type: string, fallback: string | undefined, locale: AppLocale): string {
   return SEGMENT_TYPE_NAMES[locale][type] || fallback || type
 }
