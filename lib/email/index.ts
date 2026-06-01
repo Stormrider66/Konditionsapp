@@ -379,7 +379,7 @@ export async function sendApplicationApprovedEmail(
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
       <h2>${content.heading}</h2>
       <p>${content.approvedLine}</p>
-      <p>${locale === 'sv' ? 'Klicka på knappen nedan för att skapa ditt konto och ta över din verksamhet:' : 'Click the button below to create your account and take over your account:'}</p>
+      <p>${locale === 'sv' ? 'Klicka på knappen nedan för att skapa ditt konto och ta över din verksamhet:' : 'Click the button below to create your account and claim your organization:'}</p>
       <div style="text-align: center; margin: 32px 0;">
         <a href="${claimUrl}" style="background: ${buttonColor}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
           ${content.cta}

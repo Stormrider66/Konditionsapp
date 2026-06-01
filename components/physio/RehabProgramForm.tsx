@@ -18,6 +18,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 type AthleteOption = {
   id: string
@@ -27,7 +28,7 @@ type AthleteOption = {
 
 type ProgramExercise = {
   id: string
-  exercise?: { name: string; nameSv?: string | null }
+  exercise?: { name: string; nameSv?: string | null; nameEn?: string | null }
   sets?: number | null
   reps?: string | null
   frequency?: string | null
@@ -404,9 +405,7 @@ export function RehabProgramForm({
               <div className="mt-3 flex flex-wrap gap-2">
                 {exercises.map((exercise) => (
                   <Badge key={exercise.id} variant="outline" className="border-blue-500/30 text-blue-300">
-                    {locale === 'sv'
-                      ? exercise.exercise?.nameSv || exercise.exercise?.name || t('exercises.fallbackName')
-                      : exercise.exercise?.name || exercise.exercise?.nameSv || t('exercises.fallbackName')}
+                    {getExerciseDisplayName(exercise.exercise, locale, t('exercises.fallbackName'))}
                   </Badge>
                 ))}
               </div>

@@ -420,13 +420,13 @@ export async function getVBTProgressionSummary(
   const loggedExercises = loggedExerciseIds.length > 0
     ? await prisma.exercise.findMany({
         where: { id: { in: loggedExerciseIds } },
-        select: { id: true, name: true, nameSv: true },
+        select: { id: true, name: true, nameSv: true, nameEn: true },
       })
     : [];
   const loggedExerciseNames = new Map(
     loggedExercises.map((exercise) => [
       exercise.id,
-      exercise.nameSv || exercise.name,
+      exercise.nameEn || exercise.name || exercise.nameSv,
     ])
   );
 

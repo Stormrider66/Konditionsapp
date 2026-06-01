@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Loader2, Search, X, Plus } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 export interface PickedExercise {
   id: string
@@ -26,10 +28,6 @@ interface MultiExercisePickerProps {
   noneSelectedText: string
 }
 
-function displayName(ex: ExerciseResult): string {
-  return ex.nameSv || ex.nameEn || ex.name
-}
-
 /**
  * Search the exercise library and accumulate a set of selected exercises
  * (shown as removable chips). Used by the physio restriction form to populate
@@ -42,6 +40,7 @@ export function MultiExercisePicker({
   emptyText,
   noneSelectedText,
 }: MultiExercisePickerProps) {
+  const locale = useLocale()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ExerciseResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -79,7 +78,7 @@ export function MultiExercisePicker({
 
   function add(ex: ExerciseResult) {
     if (selectedIds.has(ex.id)) return
-    onChange([...value, { id: ex.id, name: displayName(ex) }])
+    onChange([...value, { id: ex.id, name: getExerciseDisplayName(ex, locale) }])
     setQuery('')
     setResults([])
   }
@@ -120,7 +119,7 @@ export function MultiExercisePicker({
                   className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm text-slate-200 hover:bg-white/5 disabled:opacity-40"
                 >
                   <span className="truncate">
-                    {displayName(ex)}
+                    {getExerciseDisplayName(ex, locale)}
                     {ex.muscleGroup && <span className="ml-2 text-xs text-slate-500">{ex.muscleGroup}</span>}
                   </span>
                   {!already && <Plus className="h-3.5 w-3.5 shrink-0 text-emerald-400" />}

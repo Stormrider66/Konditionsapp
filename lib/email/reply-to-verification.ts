@@ -15,7 +15,7 @@ type AppLocale = 'en' | 'sv'
 interface SendOptions {
   businessId: string
   newReplyToEmail: string
-  /** Display name to greet the recipient (`name` field on Business) — falls back to "där" */
+  /** Display name to greet the recipient (`name` field on Business). */
   businessName: string
   locale?: EmailLocale
 }

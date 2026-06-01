@@ -16,7 +16,8 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/components/ui/use-toast'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 import { MultiExercisePicker, type PickedExercise } from './MultiExercisePicker'
 
 type AthleteOption = {
@@ -87,6 +88,7 @@ export function RestrictionForm({
   const router = useRouter()
   const { toast } = useToast()
   const t = useTranslations('components.restrictionForm')
+  const locale = useLocale()
   const [loading, setLoading] = useState(Boolean(restrictionId))
   const [saving, setSaving] = useState(false)
   const [athletes, setAthletes] = useState<AthleteOption[]>([])
@@ -147,7 +149,7 @@ export function RestrictionForm({
                 setSelectedExercises(
                   exerciseIds.map((id) => {
                     const e = byId.get(id)
-                    return { id, name: e ? e.nameSv || e.nameEn || e.name : id }
+                    return { id, name: e ? getExerciseDisplayName(e, locale) : id }
                   })
                 )
               }
@@ -177,7 +179,7 @@ export function RestrictionForm({
     return () => {
       cancelled = true
     }
-  }, [restrictionId, t, toast])
+  }, [locale, restrictionId, t, toast])
 
   const selectedAthlete = useMemo(
     () => athletes.find((athlete) => athlete.id === clientId),

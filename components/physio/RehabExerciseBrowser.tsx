@@ -51,7 +51,8 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface RehabExerciseBrowserProps {
   onSelectExercise?: (exercise: Exercise) => void
@@ -97,6 +98,7 @@ export function RehabExerciseBrowser({
 }: RehabExerciseBrowserProps) {
   const { toast } = useToast()
   const t = useTranslations('components.physioRehabExerciseBrowser')
+  const locale = useLocale()
 
   const phaseLabels: Record<RehabPhase, string> = useMemo(
     () => ({
@@ -292,7 +294,7 @@ export function RehabExerciseBrowser({
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <CardTitle className="text-sm truncate text-white">
-                {exercise.nameSv || exercise.name}
+                {getExerciseDisplayName(exercise, locale)}
               </CardTitle>
               <p className="text-xs text-slate-400 mt-1 truncate">
                 {exercise.targetBodyParts?.join(', ') || exercise.muscleGroup}
@@ -362,7 +364,7 @@ export function RehabExerciseBrowser({
 
             <div className="flex-1 grid grid-cols-5 gap-4">
               <div className="col-span-2">
-                <p className="font-semibold text-white">{exercise.nameSv || exercise.name}</p>
+                <p className="font-semibold text-white">{getExerciseDisplayName(exercise, locale)}</p>
                 <p className="text-sm text-slate-400">{exercise.targetBodyParts?.join(', ')}</p>
               </div>
 
@@ -408,7 +410,7 @@ export function RehabExerciseBrowser({
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
         <DialogContent className="max-w-3xl max-h-[90vh] bg-slate-900 border-white/10 text-white">
           <DialogHeader>
-            <DialogTitle>{selectedExercise.nameSv || selectedExercise.name}</DialogTitle>
+            <DialogTitle>{getExerciseDisplayName(selectedExercise, locale)}</DialogTitle>
             <DialogDescription className="text-slate-400">
               {selectedExercise.targetBodyParts?.join(', ') || selectedExercise.muscleGroup}
             </DialogDescription>
@@ -499,7 +501,7 @@ export function RehabExerciseBrowser({
                       <CardContent className="p-3 flex items-center gap-2">
                         <TrendingDown className="h-4 w-4 text-blue-400" />
                         <span className="text-sm text-slate-300">
-                          {t('progression.easier')}: {selectedExercise.regressionExercise.nameSv || selectedExercise.regressionExercise.name}
+                          {t('progression.easier')}: {getExerciseDisplayName(selectedExercise.regressionExercise, locale)}
                         </span>
                       </CardContent>
                     </Card>
@@ -507,7 +509,7 @@ export function RehabExerciseBrowser({
                   <Card className="bg-blue-500/10 border-blue-500/30">
                     <CardContent className="p-3 flex items-center gap-2">
                       <span className="text-sm font-semibold text-white">
-                        {t('progression.current')}: {selectedExercise.nameSv || selectedExercise.name}
+                        {t('progression.current')}: {getExerciseDisplayName(selectedExercise, locale)}
                       </span>
                     </CardContent>
                   </Card>
@@ -516,7 +518,7 @@ export function RehabExerciseBrowser({
                       <CardContent className="p-3 flex items-center gap-2">
                         <TrendingUp className="h-4 w-4 text-green-400" />
                         <span className="text-sm text-slate-300">
-                          {t('progression.harder')}: {selectedExercise.progressionExercise.nameSv || selectedExercise.progressionExercise.name}
+                          {t('progression.harder')}: {getExerciseDisplayName(selectedExercise.progressionExercise, locale)}
                         </span>
                       </CardContent>
                     </Card>
