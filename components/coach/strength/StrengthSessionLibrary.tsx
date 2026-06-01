@@ -104,6 +104,14 @@ function localizedNotes(locale: AppLocale, notes?: string, notesSv?: string): st
   return locale === 'sv' ? notesSv ?? notes : notes;
 }
 
+function localizedReps(
+  locale: AppLocale,
+  reps: number | string,
+  repsSv?: number | string
+): number | string {
+  return locale === 'sv' ? repsSv ?? reps : reps;
+}
+
 function localizedTags(locale: AppLocale, tags: string[], tagsSv?: string[]): string[] {
   return locale === 'sv' ? tagsSv ?? tags : tags;
 }
@@ -278,12 +286,12 @@ export function StrengthSessionLibrary({
           estimatedDuration: template.estimatedDuration,
           exercises: fullTemplate.exercises
             .filter((e: { section: string }) => e.section === 'MAIN')
-            .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; tempo?: string; notes?: string; notesSv?: string }, idx: number) => ({
+            .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: number | string; repsSv?: number | string; restSeconds?: number; tempo?: string; notes?: string; notesSv?: string }, idx: number) => ({
               exerciseId: `template-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
               exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
               order: idx,
               sets: e.sets,
-              reps: parseInt(e.reps) || 10,
+              reps: parseInt(String(localizedReps(locale, e.reps, e.repsSv))) || 10,
               restSeconds: e.restSeconds || 90,
               tempo: e.tempo,
               notes: localizedNotes(locale, e.notes, e.notesSv),
@@ -293,11 +301,11 @@ export function StrengthSessionLibrary({
             duration: 8,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'WARMUP')
-              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; notes?: string; notesSv?: string }) => ({
+              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: number | string; repsSv?: number | string; notes?: string; notesSv?: string }) => ({
                 exerciseId: `template-warmup-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                 exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 sets: e.sets,
-                reps: e.reps,
+                reps: localizedReps(locale, e.reps, e.repsSv),
                 notes: localizedNotes(locale, e.notes, e.notesSv),
               })),
           } : undefined,
@@ -306,11 +314,11 @@ export function StrengthSessionLibrary({
             duration: 5,
             exercises: fullTemplate.exercises
               .filter((e: { section: string }) => e.section === 'CORE')
-              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: string; restSeconds?: number; notes?: string; notesSv?: string }) => ({
+              .map((e: { exerciseName: string; exerciseNameSv: string; sets: number; reps: number | string; repsSv?: number | string; restSeconds?: number; notes?: string; notesSv?: string }) => ({
                 exerciseId: `template-core-${e.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                 exerciseName: localizedValue(locale, e.exerciseName, e.exerciseNameSv),
                 sets: e.sets,
-                reps: e.reps,
+                reps: localizedReps(locale, e.reps, e.repsSv),
                 restSeconds: e.restSeconds,
                 notes: localizedNotes(locale, e.notes, e.notesSv),
               })),

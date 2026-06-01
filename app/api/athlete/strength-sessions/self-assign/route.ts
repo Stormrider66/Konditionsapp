@@ -28,6 +28,14 @@ function localizedNotes(locale: AppLocale, notes?: string, notesSv?: string): st
   return locale === 'sv' ? notesSv ?? notes : notes
 }
 
+function localizedReps(
+  locale: AppLocale,
+  reps: number | string,
+  repsSv?: number | string
+): number | string {
+  return locale === 'sv' ? repsSv ?? reps : reps
+}
+
 function localizedTags(locale: AppLocale, tags: string[], tagsSv?: string[]): string[] {
   return locale === 'sv' ? tagsSv ?? tags : tags
 }
@@ -104,7 +112,7 @@ export async function POST(request: NextRequest) {
             exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
             order: idx,
             sets: ex.sets,
-            reps: ex.reps,
+            reps: localizedReps(locale, ex.reps, ex.repsSv),
             restSeconds: ex.restSeconds,
             tempo: ex.tempo,
             notes: localizedNotes(locale, ex.notes, ex.notesSv),
@@ -119,7 +127,7 @@ export async function POST(request: NextRequest) {
                   exerciseId: `template-warmup-${ex.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                   exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
                   sets: ex.sets,
-                  reps: ex.reps,
+                  reps: localizedReps(locale, ex.reps, ex.repsSv),
                   restSeconds: ex.restSeconds,
                   notes: localizedNotes(locale, ex.notes, ex.notesSv),
                 })),
@@ -135,7 +143,7 @@ export async function POST(request: NextRequest) {
                   exerciseId: `template-core-${ex.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                   exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
                   sets: ex.sets,
-                  reps: ex.reps,
+                  reps: localizedReps(locale, ex.reps, ex.repsSv),
                   restSeconds: ex.restSeconds,
                   notes: localizedNotes(locale, ex.notes, ex.notesSv),
                 })),
@@ -151,7 +159,7 @@ export async function POST(request: NextRequest) {
                   exerciseId: `template-cooldown-${ex.exerciseName.toLowerCase().replace(/\s+/g, '-')}`,
                   exerciseName: locale === 'sv' ? ex.exerciseNameSv : ex.exerciseName,
                   sets: ex.sets,
-                  reps: ex.reps,
+                  reps: localizedReps(locale, ex.reps, ex.repsSv),
                   restSeconds: ex.restSeconds,
                   notes: localizedNotes(locale, ex.notes, ex.notesSv),
                 })),

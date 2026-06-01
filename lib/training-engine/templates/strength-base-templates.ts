@@ -12,7 +12,7 @@
  * - ELITE: High-volume periodized strength with advanced techniques
  */
 
-import type { StrengthTemplate, TemplateExercise } from '@/lib/training-engine/templates/strength-templates'
+import type { StrengthTemplate } from '@/lib/training-engine/templates/strength-templates'
 
 /**
  * General strength base-building templates
@@ -34,11 +34,13 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 2,
     estimatedDuration: 40,
     athleteLevel: 'BEGINNER',
-    equipmentRequired: ['Hantlar', 'Träningsmatta'],
+    equipmentRequired: ['Dumbbells', 'Exercise mat'],
+    equipmentRequiredSv: ['Hantlar', 'Träningsmatta'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: true,
-    tags: ['grundstyrka', 'nybörjare', 'helkropp', 'compound'],
+    tags: ['strength base', 'beginner', 'full body', 'compound'],
+    tagsSv: ['grundstyrka', 'nybörjare', 'helkropp', 'compound'],
     exercises: [
       // Warmup
       {
@@ -47,7 +49,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 1,
         reps: 10,
         restSeconds: 0,
-        notes: 'Kontrollerad rörelse genom hela ryggraden.',
+        notes: 'Controlled movement through the full spine.',
+        notesSv: 'Kontrollerad rörelse genom hela ryggraden.',
         section: 'WARMUP',
       },
       {
@@ -62,7 +65,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Arm Circles',
         exerciseNameSv: 'Armcirklar',
         sets: 1,
-        reps: '10 per håll',
+        reps: '10 per direction',
+        repsSv: '10 per håll',
         restSeconds: 0,
         section: 'WARMUP',
       },
@@ -74,7 +78,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 12,
         restSeconds: 60,
         tempo: '2-0-2-0',
-        notes: 'Lätt hantel. Armbågarna innanför knäna i botten. Rakt ryggläge.',
+        notes: 'Light dumbbell. Elbows inside the knees at the bottom. Keep the back straight.',
+        notesSv: 'Lätt hantel. Armbågarna innanför knäna i botten. Rakt ryggläge.',
         section: 'MAIN',
       },
       {
@@ -84,7 +89,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 10,
         restSeconds: 60,
         tempo: '3-0-1-0',
-        notes: 'Hantlar längs låren. Mjukt i knäna, känn stretch i hamstrings.',
+        notes: 'Dumbbells along the thighs. Keep the knees soft and feel the hamstring stretch.',
+        notesSv: 'Hantlar längs låren. Mjukt i knäna, känn stretch i hamstrings.',
         section: 'MAIN',
       },
       {
@@ -94,7 +100,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 10,
         restSeconds: 60,
         tempo: '2-1-1-0',
-        notes: 'Ligg på golvet. Armbågarna vilar i botten. Kontrollerad rörelse.',
+        notes: 'Lie on the floor. Elbows rest at the bottom. Controlled movement.',
+        notesSv: 'Ligg på golvet. Armbågarna vilar i botten. Kontrollerad rörelse.',
         section: 'MAIN',
       },
       {
@@ -104,7 +111,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: '10 per arm',
         restSeconds: 60,
         tempo: '2-1-1-0',
-        notes: 'Stöd med handen på bänk. Dra till höften. Kontrollera nedsläpp.',
+        notes: 'Support one hand on a bench. Pull toward the hip. Control the lowering phase.',
+        notesSv: 'Stöd med handen på bänk. Dra till höften. Kontrollera nedsläpp.',
         section: 'MAIN',
       },
       {
@@ -113,7 +121,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: 10,
         restSeconds: 60,
-        notes: 'Sittande med ryggstöd. Tryck rakt upp. Kontrollerad nedfällning.',
+        notes: 'Seated with back support. Press straight up. Controlled lowering.',
+        notesSv: 'Sittande med ryggstöd. Tryck rakt upp. Kontrollerad nedfällning.',
         section: 'MAIN',
       },
       // Core
@@ -121,18 +130,22 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Plank',
         exerciseNameSv: 'Plankan',
         sets: 2,
-        reps: '30 sek',
+        reps: '30 sec',
+        repsSv: '30 sek',
         restSeconds: 30,
-        notes: 'Rak linje från huvud till hälar. Dra in naveln.',
+        notes: 'Straight line from head to heels. Draw the navel inward.',
+        notesSv: 'Rak linje från huvud till hälar. Dra in naveln.',
         section: 'CORE',
       },
       {
         exerciseName: 'Dead Bug',
         exerciseNameSv: 'Dead Bug',
         sets: 2,
-        reps: '8 per sida',
+        reps: '8 per side',
+        repsSv: '8 per sida',
         restSeconds: 30,
-        notes: 'Tryck nedre ryggen mot golvet hela tiden.',
+        notes: 'Keep the lower back pressed toward the floor throughout.',
+        notesSv: 'Tryck nedre ryggen mot golvet hela tiden.',
         section: 'CORE',
       },
       // Cooldown
@@ -140,7 +153,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Chest Stretch (Doorway)',
         exerciseNameSv: 'Bröststretch (dörrkarm)',
         sets: 1,
-        reps: '45 sek per sida',
+        reps: '45 sec per side',
+        repsSv: '45 sek per sida',
         restSeconds: 0,
         section: 'COOLDOWN',
       },
@@ -148,12 +162,15 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Hamstring Stretch',
         exerciseNameSv: 'Hamstringstretch',
         sets: 1,
-        reps: '45 sek per sida',
+        reps: '45 sec per side',
+        repsSv: '45 sek per sida',
         restSeconds: 0,
         section: 'COOLDOWN',
       },
     ],
     coachNotes:
+      'Focus on technique in every lift. Increase reps to 15 before increasing load. Movements should feel controlled and pain-free.',
+    coachNotesSv:
       'Fokus på teknik i alla lyft. Öka reps till 15 innan vikten höjs. Rörelser ska kännas kontrollerade och smärtfria.',
   },
 
@@ -173,11 +190,13 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 3,
     estimatedDuration: 50,
     athleteLevel: 'INTERMEDIATE',
-    equipmentRequired: ['Skivstång', 'Hantlar', 'Bänk', 'Rack'],
+    equipmentRequired: ['Barbell', 'Dumbbells', 'Bench', 'Rack'],
+    equipmentRequiredSv: ['Skivstång', 'Hantlar', 'Bänk', 'Rack'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: true,
-    tags: ['grundstyrka', 'medel', 'skivstång', 'compound', 'helkropp'],
+    tags: ['strength base', 'intermediate', 'barbell', 'compound', 'full body'],
+    tagsSv: ['grundstyrka', 'medel', 'skivstång', 'compound', 'helkropp'],
     exercises: [
       // Warmup
       {
@@ -186,7 +205,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 1,
         reps: '5 min',
         restSeconds: 0,
-        notes: 'Rulla quad, hamstrings, övre rygg och lats.',
+        notes: 'Roll quads, hamstrings, upper back, and lats.',
+        notesSv: 'Rulla quad, hamstrings, övre rygg och lats.',
         section: 'WARMUP',
       },
       {
@@ -203,7 +223,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: 15,
         restSeconds: 30,
-        notes: 'Aktiverar övre rygg och bakre axel.',
+        notes: 'Activates the upper back and rear delts.',
+        notesSv: 'Aktiverar övre rygg och bakre axel.',
         section: 'WARMUP',
       },
       // Main
@@ -214,7 +235,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 6,
         restSeconds: 120,
         tempo: '2-0-1-0',
-        notes: 'Uppvärmningsset: tom stång x 10, 50% x 5, 70% x 3. Arbetsset 80-85% av 1RM.',
+        notes: 'Warm-up sets: empty bar x 10, 50% x 5, 70% x 3. Working sets at 80-85% of 1RM.',
+        notesSv: 'Uppvärmningsset: tom stång x 10, 50% x 5, 70% x 3. Arbetsset 80-85% av 1RM.',
         section: 'MAIN',
       },
       {
@@ -224,7 +246,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 6,
         restSeconds: 120,
         tempo: '2-1-1-0',
-        notes: 'Skulderbladen ihopdragna. Fötterna i golvet. Kontrollerad nedfällning.',
+        notes: 'Shoulder blades pulled together. Feet on the floor. Controlled lowering.',
+        notesSv: 'Skulderbladen ihopdragna. Fötterna i golvet. Kontrollerad nedfällning.',
         section: 'MAIN',
       },
       {
@@ -234,7 +257,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 8,
         restSeconds: 90,
         tempo: '1-1-2-0',
-        notes: '45-graders vinkel i överkroppen. Dra till nedre bröstkorgen.',
+        notes: 'Torso at a 45-degree angle. Pull toward the lower chest.',
+        notesSv: '45-graders vinkel i överkroppen. Dra till nedre bröstkorgen.',
         section: 'MAIN',
       },
       {
@@ -243,7 +267,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 8,
         restSeconds: 90,
-        notes: 'Stående med skivstång. Tight bål. Tryck rakt upp.',
+        notes: 'Standing with a barbell. Tight core. Press straight up.',
+        notesSv: 'Stående med skivstång. Tight bål. Tryck rakt upp.',
         section: 'MAIN',
       },
       {
@@ -253,7 +278,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 8,
         restSeconds: 90,
         tempo: '3-0-1-0',
-        notes: 'Skivstång. Fokus på hamstring-stretch under kontroll.',
+        notes: 'Use a barbell. Focus on a controlled hamstring stretch.',
+        notesSv: 'Skivstång. Fokus på hamstring-stretch under kontroll.',
         section: 'MAIN',
       },
       // Core
@@ -263,16 +289,19 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 8,
         restSeconds: 45,
-        notes: 'Från knäna. Kontrollerad förlängning. Undvik att svanka.',
+        notes: 'From the knees. Controlled extension. Avoid arching the lower back.',
+        notesSv: 'Från knäna. Kontrollerad förlängning. Undvik att svanka.',
         section: 'CORE',
       },
       {
         exerciseName: 'Pallof Press',
         exerciseNameSv: 'Pallof Press',
         sets: 2,
-        reps: '10 per sida',
+        reps: '10 per side',
+        repsSv: '10 per sida',
         restSeconds: 30,
-        notes: 'Anti-rotation med kabel eller band.',
+        notes: 'Anti-rotation with cable or band.',
+        notesSv: 'Anti-rotation med kabel eller band.',
         section: 'CORE',
       },
       // Cooldown
@@ -280,7 +309,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Lat Stretch (Doorway)',
         exerciseNameSv: 'Latstretch (dörrkarm)',
         sets: 1,
-        reps: '45 sek per sida',
+        reps: '45 sec per side',
+        repsSv: '45 sek per sida',
         restSeconds: 0,
         section: 'COOLDOWN',
       },
@@ -288,12 +318,15 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Hip Flexor Stretch',
         exerciseNameSv: 'Höftböjarstretch',
         sets: 1,
-        reps: '45 sek per sida',
+        reps: '45 sec per side',
+        repsSv: '45 sek per sida',
         restSeconds: 0,
         section: 'COOLDOWN',
       },
     ],
     coachNotes:
+      'Progress load by 2.5 kg per week in squat/deadlift and 1.25 kg in bench/overhead press. Deload every 4th week (-40% volume). Alternate between A (squat focus) and B (deadlift focus) sessions.',
+    coachNotesSv:
       'Progridera vikt med 2.5 kg per vecka i knäböj/marklyft och 1.25 kg i bänk/axelpress. Deload var 4:e vecka (-40% volym). Variera mellan A (squat-fokus) och B (deadlift-fokus) pass.',
   },
 
@@ -313,11 +346,13 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 3,
     estimatedDuration: 60,
     athleteLevel: 'ADVANCED',
-    equipmentRequired: ['Skivstång', 'Hantlar', 'Bänk', 'Rack', 'Kabel-maskin'],
+    equipmentRequired: ['Barbell', 'Dumbbells', 'Bench', 'Rack', 'Cable machine'],
+    equipmentRequiredSv: ['Skivstång', 'Hantlar', 'Bänk', 'Rack', 'Kabel-maskin'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: true,
-    tags: ['grundstyrka', 'avancerad', 'periodisering', 'tung', 'compound'],
+    tags: ['strength base', 'advanced', 'periodization', 'heavy', 'compound'],
+    tagsSv: ['grundstyrka', 'avancerad', 'periodisering', 'tung', 'compound'],
     exercises: [
       // Warmup
       {
@@ -326,7 +361,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 1,
         reps: '5 min',
         restSeconds: 0,
-        notes: 'Fokusera på problemområden: thorax, höftböjare, lats.',
+        notes: 'Focus on problem areas: thoracic spine, hip flexors, lats.',
+        notesSv: 'Fokusera på problemområden: thorax, höftböjare, lats.',
         section: 'WARMUP',
       },
       {
@@ -335,7 +371,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: 8,
         restSeconds: 30,
-        notes: 'Uppvärmning med lätt vikt. Öppna höfterna.',
+        notes: 'Warm up with light load. Open the hips.',
+        notesSv: 'Uppvärmning med lätt vikt. Öppna höfterna.',
         section: 'WARMUP',
       },
       {
@@ -344,7 +381,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '10 + 10',
         restSeconds: 30,
-        notes: 'Aktivera bakre axel och mobilisera axelled.',
+        notes: 'Activate the rear delts and mobilize the shoulder joint.',
+        notesSv: 'Aktivera bakre axel och mobilisera axelled.',
         section: 'WARMUP',
       },
       // Main
@@ -354,7 +392,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 5,
         reps: 4,
         restSeconds: 180,
-        notes: '85-90% av 1RM. Uppvärmningsrampen: stång x 5, 50% x 5, 70% x 3, 80% x 2.',
+        notes: '85-90% of 1RM. Warm-up ramp: bar x 5, 50% x 5, 70% x 3, 80% x 2.',
+        notesSv: '85-90% av 1RM. Uppvärmningsrampen: stång x 5, 50% x 5, 70% x 3, 80% x 2.',
         section: 'MAIN',
       },
       {
@@ -364,7 +403,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 4,
         restSeconds: 150,
         tempo: '2-2-1-0',
-        notes: '2 sek paus mot bröstet. 82-87% av 1RM.',
+        notes: '2 sec pause on the chest. 82-87% of 1RM.',
+        notesSv: '2 sek paus mot bröstet. 82-87% av 1RM.',
         section: 'MAIN',
       },
       {
@@ -373,7 +413,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 4,
         reps: 6,
         restSeconds: 120,
-        notes: 'Tilläggsvikt med bälte eller hantel mellan fötterna.',
+        notes: 'Add load with a belt or a dumbbell between the feet.',
+        notesSv: 'Tilläggsvikt med bälte eller hantel mellan fötterna.',
         section: 'MAIN',
       },
       {
@@ -382,7 +423,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 4,
         reps: 3,
         restSeconds: 180,
-        notes: '85-92% av 1RM. Varje rep från golvet. Ingen studs.',
+        notes: '85-92% of 1RM. Every rep starts from the floor. No bouncing.',
+        notesSv: '85-92% av 1RM. Varje rep från golvet. Ingen studs.',
         section: 'MAIN',
       },
       {
@@ -392,7 +434,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         reps: 8,
         restSeconds: 90,
         tempo: '2-0-1-0',
-        notes: '30-45 graders lutning. Kompletterande pressövning.',
+        notes: '30-45 degree incline. Accessory pressing exercise.',
+        notesSv: '30-45 graders lutning. Kompletterande pressövning.',
         section: 'MAIN',
       },
       {
@@ -401,7 +444,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 15,
         restSeconds: 45,
-        notes: 'Kabel eller band. Extern rotation i slutposition. Axelhälsa.',
+        notes: 'Cable or band. External rotation at the finish. Shoulder health.',
+        notesSv: 'Kabel eller band. Extern rotation i slutposition. Axelhälsa.',
         section: 'MAIN',
       },
       // Core
@@ -411,7 +455,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 10,
         restSeconds: 45,
-        notes: 'Raka eller böjda ben. Kontrollerad rörelse utan svaj.',
+        notes: 'Straight or bent legs. Controlled movement without swinging.',
+        notesSv: 'Raka eller böjda ben. Kontrollerad rörelse utan svaj.',
         section: 'CORE',
       },
       {
@@ -420,7 +465,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: '30m',
         restSeconds: 60,
-        notes: 'Tunga hantlar. Upprät hållning. Stärker grepp och helkroppsstabilitet.',
+        notes: 'Heavy dumbbells. Upright posture. Builds grip and full-body stability.',
+        notesSv: 'Tunga hantlar. Upprät hållning. Stärker grepp och helkroppsstabilitet.',
         section: 'CORE',
       },
       // Cooldown
@@ -428,7 +474,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Thoracic Spine Extension (Foam Roller)',
         exerciseNameSv: 'Bröstryggsextension (foamroller)',
         sets: 1,
-        reps: '60 sek',
+        reps: '60 sec',
+        repsSv: '60 sek',
         restSeconds: 0,
         section: 'COOLDOWN',
       },
@@ -436,13 +483,17 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Hip 90/90 Stretch',
         exerciseNameSv: 'Höft 90/90 stretch',
         sets: 1,
-        reps: '45 sek per sida',
+        reps: '45 sec per side',
+        repsSv: '45 sek per sida',
         restSeconds: 0,
-        notes: 'Förbättrar höftrotation.',
+        notes: 'Improves hip rotation.',
+        notesSv: 'Förbättrar höftrotation.',
         section: 'COOLDOWN',
       },
     ],
     coachNotes:
+      'Periodization: Weeks 1-3 progressively increase intensity, week 4 deload (-50% volume). Test new max loads every 6-8 weeks. Rotate main lifts across sessions (A: Squat+Bench, B: Deadlift+OHP, C: Front Squat+Close-grip Bench).',
+    coachNotesSv:
       'Periodisering: Vecka 1-3 progressivt ökande intensitet, vecka 4 deload (-50% volym). Testa nya maxvikter var 6-8:e vecka. Variera huvudlyft mellan pass (A: Squat+Bench, B: Deadlift+OHP, C: Front Squat+Close-grip Bench).',
   },
 
@@ -462,11 +513,13 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
     sessionsPerWeek: 3,
     estimatedDuration: 70,
     athleteLevel: 'ELITE',
-    equipmentRequired: ['Skivstång', 'Hantlar', 'Bänk', 'Rack', 'Kabel-maskin', 'Kettlebells'],
+    equipmentRequired: ['Barbell', 'Dumbbells', 'Bench', 'Rack', 'Cable machine', 'Kettlebells'],
+    equipmentRequiredSv: ['Skivstång', 'Hantlar', 'Bänk', 'Rack', 'Kabel-maskin', 'Kettlebells'],
     includesWarmup: true,
     includesCore: true,
     includesCooldown: true,
-    tags: ['grundstyrka', 'elit', 'periodisering', 'vågbelastning', 'compound'],
+    tags: ['strength base', 'elite', 'periodization', 'wave loading', 'compound'],
+    tagsSv: ['grundstyrka', 'elit', 'periodisering', 'vågbelastning', 'compound'],
     exercises: [
       // Warmup
       {
@@ -475,16 +528,19 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 1,
         reps: '8 min',
         restSeconds: 0,
-        notes: 'Världens bästa stretch x 5/sida, inchworms x 5, band pull-aparts x 15, goblet squat x 8.',
+        notes: 'World\'s greatest stretch x 5/side, inchworms x 5, band pull-aparts x 15, goblet squat x 8.',
+        notesSv: 'Världens bästa stretch x 5/sida, inchworms x 5, band pull-aparts x 15, goblet squat x 8.',
         section: 'WARMUP',
       },
       {
         exerciseName: 'Barbell Complex (Empty Bar)',
         exerciseNameSv: 'Skivstångskomplex (tom stång)',
         sets: 2,
-        reps: '5 av varje',
+        reps: '5 of each',
+        repsSv: '5 av varje',
         restSeconds: 30,
-        notes: 'Marklyft + rodd + fällning + press + knäböj. Flödar mellan övningarna.',
+        notes: 'Deadlift + row + hinge + press + squat. Flow between the exercises.',
+        notesSv: 'Marklyft + rodd + fällning + press + knäböj. Flödar mellan övningarna.',
         section: 'WARMUP',
       },
       // Main
@@ -494,7 +550,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 6,
         reps: '3/2/1/3/2/1',
         restSeconds: 180,
-        notes: 'Våg 1: 87%/90%/93%. Våg 2: 89%/92%/95%. Fullständig vila mellan set.',
+        notes: 'Wave 1: 87%/90%/93%. Wave 2: 89%/92%/95%. Full rest between sets.',
+        notesSv: 'Våg 1: 87%/90%/93%. Våg 2: 89%/92%/95%. Fullständig vila mellan set.',
         section: 'MAIN',
       },
       {
@@ -503,7 +560,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 4,
         reps: '2+2+2',
         restSeconds: 180,
-        notes: '88-92% 1RM. 15 sek intra-set vila. Total 6 reps per set med hög kvalitet.',
+        notes: '88-92% 1RM. 15 sec intra-set rest. Total 6 high-quality reps per set.',
+        notesSv: '88-92% 1RM. 15 sek intra-set vila. Total 6 reps per set med hög kvalitet.',
         section: 'MAIN',
       },
       {
@@ -512,7 +570,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 4,
         reps: 5,
         restSeconds: 120,
-        notes: 'Progressivt ökande tilläggsvikt. Fullständig ROM.',
+        notes: 'Progressively increasing added load. Full ROM.',
+        notesSv: 'Progressivt ökande tilläggsvikt. Fullständig ROM.',
         section: 'MAIN',
       },
       {
@@ -521,7 +580,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 4,
         restSeconds: 150,
-        notes: 'Kompletterar bakre knäböj. 75-80% av back squat 1RM.',
+        notes: 'Complements the back squat. 75-80% of back squat 1RM.',
+        notesSv: 'Kompletterar bakre knäböj. 75-80% av back squat 1RM.',
         section: 'MAIN',
       },
       {
@@ -530,7 +590,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 8,
         restSeconds: 90,
-        notes: 'Tung belastning. Full höftextension i toppen. 2 sek paus.',
+        notes: 'Heavy load. Full hip extension at the top. 2 sec pause.',
+        notesSv: 'Tung belastning. Full höftextension i toppen. 2 sek paus.',
         section: 'MAIN',
       },
       {
@@ -539,7 +600,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 2,
         reps: '12 per arm',
         restSeconds: 60,
-        notes: 'Tung med kontrollerad form. Lite kroppsengelska tillåten.',
+        notes: 'Heavy with controlled form. A little body English is allowed.',
+        notesSv: 'Tung med kontrollerad form. Lite kroppsengelska tillåten.',
         section: 'MAIN',
       },
       // Core
@@ -549,7 +611,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: 6,
         restSeconds: 60,
-        notes: 'Kontrollerad excentrisk fas. Kroppen rak. Avancerad bålövning.',
+        notes: 'Controlled eccentric phase. Body straight. Advanced core exercise.',
+        notesSv: 'Kontrollerad excentrisk fas. Kroppen rak. Avancerad bålövning.',
         section: 'CORE',
       },
       {
@@ -558,7 +621,8 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         sets: 3,
         reps: '40m',
         restSeconds: 90,
-        notes: '50%+ kroppsvikt per hand. Upprät hållning. Greppstyrka.',
+        notes: '50%+ bodyweight per hand. Upright posture. Grip strength.',
+        notesSv: '50%+ kroppsvikt per hand. Upprät hållning. Greppstyrka.',
         section: 'CORE',
       },
       // Cooldown
@@ -566,22 +630,28 @@ export const STRENGTH_BASE_TEMPLATES: StrengthTemplate[] = [
         exerciseName: 'Thoracic Spine Rotation',
         exerciseNameSv: 'Bröstryggsrotation',
         sets: 1,
-        reps: '8 per sida',
+        reps: '8 per side',
+        repsSv: '8 per sida',
         restSeconds: 0,
-        notes: 'Sidoliggande. Öppna bröstryggen efter tunga pressrörelser.',
+        notes: 'Side-lying. Open the thoracic spine after heavy pressing movements.',
+        notesSv: 'Sidoliggande. Öppna bröstryggen efter tunga pressrörelser.',
         section: 'COOLDOWN',
       },
       {
         exerciseName: 'Deep Squat Hold',
         exerciseNameSv: 'Djup knäböjshåll',
         sets: 1,
-        reps: '60 sek',
+        reps: '60 sec',
+        repsSv: '60 sek',
         restSeconds: 0,
-        notes: 'Håll i botten av knäböj. Öppna höfter och anklar.',
+        notes: 'Hold the bottom of the squat. Open the hips and ankles.',
+        notesSv: 'Håll i botten av knäböj. Öppna höfter och anklar.',
         section: 'COOLDOWN',
       },
     ],
     coachNotes:
+      'Macrocycle: 4 weeks accumulation (high reps), 3 weeks intensification (wave loading/clusters), 1 week realization (max testing), 1 week deload. Adapt accessory selection based on individual weaknesses. Monitor load, sleep, and nutrition carefully.',
+    coachNotesSv:
       'Makrocykel: 4 veckor ackumulation (höga reps), 3 veckor intensifiering (vågbelastning/kluster), 1 vecka realisering (maxtest), 1 vecka deload. Anpassa tillbehörsval baserat på individuella svagheter. Övervaka belastning/sömn/näringsintag noggrant.',
   },
 ]
