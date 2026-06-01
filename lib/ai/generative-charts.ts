@@ -387,6 +387,44 @@ Respond with a valid chart configuration matching the schema.`;
 export const CHART_TEMPLATES = {
   trainingLoadTrend: {
     chartType: 'area' as const,
+    title: 'Training load over time',
+    xAxisLabel: 'Date',
+    yAxisLabel: 'TSS',
+  },
+  acwrTrend: {
+    chartType: 'composed' as const,
+    title: 'ACWR trend',
+    xAxisLabel: 'Date',
+    yAxisLabel: 'ACWR',
+    annotations: [
+      { type: 'line' as const, value: 1.5, label: 'Risk zone', color: '#ef4444' },
+      { type: 'line' as const, value: 0.8, label: 'Undertraining', color: '#f59e0b' },
+    ],
+  },
+  readinessVsFatigue: {
+    chartType: 'line' as const,
+    title: 'Readiness vs fatigue',
+    xAxisLabel: 'Date',
+    yAxisLabel: 'Readiness (%)',
+    yAxis2Label: 'Fatigue (1-10)',
+  },
+  performanceProgression: {
+    chartType: 'line' as const,
+    title: 'Performance progression',
+    xAxisLabel: 'Date',
+    yAxisLabel: 'VDOT',
+  },
+  intensityDistribution: {
+    chartType: 'pie' as const,
+    title: 'Intensity distribution',
+    xAxisLabel: 'Zone',
+    yAxisLabel: 'Percent',
+  },
+};
+
+export const CHART_TEMPLATES_SV = {
+  trainingLoadTrend: {
+    chartType: 'area' as const,
     title: 'Träningsbelastning över tid',
     xAxisLabel: 'Datum',
     yAxisLabel: 'TSS',
@@ -423,43 +461,5 @@ export const CHART_TEMPLATES = {
 };
 
 export function getChartTemplates(locale: 'en' | 'sv' = 'en') {
-  if (locale === 'sv') return CHART_TEMPLATES;
-
-  return {
-    trainingLoadTrend: {
-      chartType: 'area' as const,
-      title: 'Training load over time',
-      xAxisLabel: 'Date',
-      yAxisLabel: 'TSS',
-    },
-    acwrTrend: {
-      chartType: 'composed' as const,
-      title: 'ACWR trend',
-      xAxisLabel: 'Date',
-      yAxisLabel: 'ACWR',
-      annotations: [
-        { type: 'line' as const, value: 1.5, label: 'Risk zone', color: '#ef4444' },
-        { type: 'line' as const, value: 0.8, label: 'Undertraining', color: '#f59e0b' },
-      ],
-    },
-    readinessVsFatigue: {
-      chartType: 'line' as const,
-      title: 'Readiness vs fatigue',
-      xAxisLabel: 'Date',
-      yAxisLabel: 'Readiness (%)',
-      yAxis2Label: 'Fatigue (1-10)',
-    },
-    performanceProgression: {
-      chartType: 'line' as const,
-      title: 'Performance progression',
-      xAxisLabel: 'Date',
-      yAxisLabel: 'VDOT',
-    },
-    intensityDistribution: {
-      chartType: 'pie' as const,
-      title: 'Intensity distribution',
-      xAxisLabel: 'Zone',
-      yAxisLabel: 'Percent',
-    },
-  };
+  return locale === 'sv' ? CHART_TEMPLATES_SV : CHART_TEMPLATES;
 }
