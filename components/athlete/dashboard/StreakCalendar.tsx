@@ -10,16 +10,24 @@
 
 import { cn } from '@/lib/utils'
 import type { CheckInDay } from '@/types/streak'
+import { useLocale } from '@/i18n/client'
 
 interface StreakCalendarProps {
   checkInHistory: CheckInDay[]
   hasCheckedInToday: boolean
 }
 
-// Swedish day abbreviations
-const DAY_LABELS = ['M', 'T', 'O', 'T', 'F', 'L', 'S']
+type AppLocale = 'en' | 'sv'
+
+const DAY_LABELS: Record<AppLocale, string[]> = {
+  en: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+  sv: ['M', 'T', 'O', 'T', 'F', 'L', 'S'],
+}
 
 export function StreakCalendar({ checkInHistory, hasCheckedInToday }: StreakCalendarProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const dayLabels = DAY_LABELS[locale]
+
   // Get today's date string for comparison
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -41,7 +49,7 @@ export function StreakCalendar({ checkInHistory, hasCheckedInToday }: StreakCale
     <div className="space-y-1">
       {/* Day labels header */}
       <div className="grid grid-cols-7 gap-1 mb-1">
-        {DAY_LABELS.map((day, i) => (
+        {dayLabels.map((day, i) => (
           <div
             key={i}
             className="text-[10px] text-muted-foreground text-center font-medium"
