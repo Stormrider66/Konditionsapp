@@ -17,7 +17,7 @@ import {
 } from '@/lib/fueling/product-plan'
 import { buildFuelingCoachingRecommendation } from '@/lib/fueling/coaching-recommendation'
 import { buildFuelingBuildUpPlan, type FuelingBuildUpPlan } from '@/lib/fueling/build-up-plan'
-import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
+import { extractSavedFuelingProductPlanNote, formatSavedFuelingProductPlanSummary } from '@/lib/fueling/product-plan-note'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { buildFuelingSyncResultCopy } from '@/lib/fueling/sync-result'
 import { extractApiErrorMessage } from '@/lib/fueling/api-error'
@@ -647,7 +647,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
           ) : savedProductPlanNote && (
             <div className="rounded-lg border bg-emerald-50/70 p-3 text-sm text-emerald-950 dark:bg-emerald-900/10 dark:border-emerald-900/30 dark:text-emerald-100">
               <p className="font-medium">{text(locale, 'Sparad produktplan i anteckning', 'Saved product plan in note')}</p>
-              <p className="mt-1">{formatProductSummary(savedProductPlanNote.summary, locale) ?? text(locale, 'Produkter sparade i anteckning.', 'Products saved in note.')}</p>
+              <p className="mt-1">{formatSavedFuelingProductPlanSummary(savedProductPlanNote.summary, locale) ?? text(locale, 'Produkter sparade i anteckning.', 'Products saved in note.')}</p>
               <div className="mt-2 flex flex-wrap gap-2 text-xs">
                 <span>{text(locale, 'Packat', 'Packed')} {formatGrams(savedProductPlanNote.packedCarbsG)}</span>
                 <span>{text(locale, 'Mål', 'Target')} {formatGrams(savedProductPlanNote.targetCarbsG)}</span>
@@ -1381,14 +1381,6 @@ function raceDayNote(note: string, locale: AppLocale): string {
     'För lopp över tre timmar: planera även salt/vätska separat utifrån värme och svettförlust.': 'For races over three hours, also plan sodium/fluid separately based on heat and sweat loss.',
   }
   return notes[note] ?? note
-}
-
-function formatProductSummary(summary: string | null | undefined, locale: AppLocale): string | null {
-  if (!summary) return null
-  if (locale === 'sv') return summary
-  return summary
-    .replaceAll(' à ', ' at ')
-    .replaceAll('flaskor sportdryck', 'sports drink bottles')
 }
 
 function localizeRecommendation(

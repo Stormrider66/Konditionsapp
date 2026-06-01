@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extractSavedFuelingProductPlanNote } from './product-plan-note'
+import { extractSavedFuelingProductPlanNote, formatSavedFuelingProductPlanSummary } from './product-plan-note'
 
 describe('extractSavedFuelingProductPlanNote', () => {
   it('extracts the latest saved product plan block', () => {
@@ -55,5 +55,21 @@ describe('extractSavedFuelingProductPlanNote', () => {
 
   it('returns null when no product plan exists', () => {
     expect(extractSavedFuelingProductPlanNote('Vanlig anteckning')).toBeNull()
+  })
+})
+
+describe('formatSavedFuelingProductPlanSummary', () => {
+  it('localizes Swedish saved summaries for English UI', () => {
+    expect(formatSavedFuelingProductPlanSummary(
+      '6 gel à 25 g, 1 flaskor sportdryck à 40 g, 2 flaskor sportdryck à 30 g',
+      'en'
+    )).toBe('6 gel at 25 g, 1 sports drink bottle at 40 g, 2 sports drink bottles at 30 g')
+  })
+
+  it('keeps Swedish saved summaries for Swedish UI', () => {
+    expect(formatSavedFuelingProductPlanSummary(
+      '6 gel à 25 g, 1 flaskor sportdryck à 40 g',
+      'sv'
+    )).toBe('6 gel à 25 g, 1 flaskor sportdryck à 40 g')
   })
 })

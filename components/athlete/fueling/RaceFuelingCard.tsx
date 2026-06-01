@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { normalizeRaceFuelingProductPlan, summarizeRaceFuelingProductPlan } from '@/lib/fueling/product-plan'
-import { extractSavedFuelingProductPlanNote } from '@/lib/fueling/product-plan-note'
+import { extractSavedFuelingProductPlanNote, formatSavedFuelingProductPlanSummary } from '@/lib/fueling/product-plan-note'
 import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
 import { formatFuelingPlanContext } from '@/lib/fueling/plan-context'
 import { useLocale } from '@/i18n/client'
@@ -102,7 +102,7 @@ export function RaceFuelingCard({
   const hasSavedProductPlan = Boolean(structuredProductPlan || savedProductPlanNote)
   const savedProductPlanSummary = structuredProductPlan
     ? summarizeRaceFuelingProductPlan(structuredProductPlan, locale)
-    : savedProductPlanNote?.summary
+    : formatSavedFuelingProductPlanSummary(savedProductPlanNote?.summary, locale)
   const savedPackedCarbs = structuredProductPlan?.totalCarbsG ?? savedProductPlanNote?.packedCarbsG ?? null
   const planContext = formatFuelingPlanContext(plan, { includeRaceDate: true, locale })
 

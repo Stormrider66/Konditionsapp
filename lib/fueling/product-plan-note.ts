@@ -32,6 +32,23 @@ export function extractSavedFuelingProductPlanNote(notes: string | null | undefi
   }
 }
 
+export function formatSavedFuelingProductPlanSummary(
+  summary: string | null | undefined,
+  locale: string
+): string | null {
+  if (!summary) return null
+  if (locale.startsWith('sv')) return summary
+
+  return summary
+    .replace(/\b(\d+(?:[.,]\d+)?)\s+flask(?:a|or) sportdryck\b/gi, (_match, count: string) => {
+      const numericCount = Number(count.replace(',', '.'))
+      const label = numericCount === 1 ? 'sports drink bottle' : 'sports drink bottles'
+      return `${count} ${label}`
+    })
+    .replace(/\bsportdryck\b/gi, 'sports drink')
+    .replaceAll(' à ', ' at ')
+}
+
 function findLastProductPlanHeader(lines: string[]): number {
   for (let index = lines.length - 1; index >= 0; index -= 1) {
     if (PRODUCT_PLAN_HEADERS.includes(lines[index]?.trim() ?? '')) return index
