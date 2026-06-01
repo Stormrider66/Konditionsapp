@@ -19,6 +19,8 @@ interface ExerciseHeaderProps {
   nameEn?: string | null;
   /** Fallback name if neither is provided */
   name: string;
+  /** Current app locale */
+  locale?: 'en' | 'sv' | string;
   /** Size variant to match ExerciseImage width */
   size?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
   /** Custom className */
@@ -40,13 +42,17 @@ export function ExerciseHeader({
   nameSv,
   nameEn,
   name,
+  locale = 'sv',
   size = 'lg',
   className = '',
   showSubtitle = true,
 }: ExerciseHeaderProps) {
   // Determine primary and secondary names
-  const primaryName = nameSv || name;
-  const secondaryName = nameSv && nameEn && nameEn !== nameSv ? nameEn : null;
+  const isSv = locale.startsWith('sv');
+  const primaryName = isSv ? nameSv || name || nameEn : nameEn || name || nameSv;
+  const secondaryName = isSv
+    ? (nameEn && nameEn !== primaryName ? nameEn : null)
+    : (nameSv && nameSv !== primaryName ? nameSv : null);
 
   const width = WIDTH_VARIANTS[size];
 
@@ -133,6 +139,7 @@ export function ExerciseDisplay({
   nameSv,
   nameEn,
   name,
+  locale = 'sv',
   imageUrls,
   exerciseId,
   iconCategory,
@@ -153,6 +160,7 @@ export function ExerciseDisplay({
         nameSv={nameSv}
         nameEn={nameEn}
         name={name}
+        locale={locale}
         size={size}
         showSubtitle={showSubtitle}
         className={hasImages ? 'rounded-t-lg rounded-b-none' : 'rounded-lg'}

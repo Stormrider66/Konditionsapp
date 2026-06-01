@@ -63,6 +63,7 @@ export async function POST(
             id: true,
             name: true,
             nameSv: true,
+            nameEn: true,
             description: true,
             muscleGroup: true,
             biomechanicalPillar: true,

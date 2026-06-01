@@ -647,7 +647,7 @@ export async function analyzeRunningGait(
       },
       include: {
         athlete: { select: { id: true, name: true } },
-        exercise: { select: { id: true, name: true, nameSv: true } },
+        exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } },
       },
     })
 

@@ -213,7 +213,7 @@ async function handleConfirmUpload(
     },
     include: {
       athlete: { select: { id: true, name: true, height: true, weight: true } },
-      exercise: { select: { id: true, name: true, nameSv: true } },
+      exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } },
     },
   });
 

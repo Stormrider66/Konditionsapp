@@ -42,6 +42,7 @@ import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 import { useToast } from '@/hooks/use-toast'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface FocusModeExercise {
   id: string
@@ -49,6 +50,7 @@ interface FocusModeExercise {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   videoUrl?: string
   instructions?: string
   imageUrls?: string[]
@@ -422,10 +424,11 @@ export function WorkoutFocusMode({
                     {/* Styled Header */}
                     <ExerciseHeader
                       nameSv={currentExercise.nameSv}
-                      nameEn={currentExercise.name}
+                      nameEn={currentExercise.nameEn || currentExercise.name}
                       name={currentExercise.name}
+                      locale={locale}
                       size="xl"
-                      showSubtitle={!!currentExercise.nameSv && currentExercise.nameSv !== currentExercise.name}
+                      showSubtitle
                       className="rounded-b-none"
                     />
                     {/* Exercise Image or Remotion Animation */}
@@ -481,7 +484,7 @@ export function WorkoutFocusMode({
                   /* Fallback: Text-only display when no images */
                   <div className="text-center">
                     <h2 className="text-2xl font-bold">
-                      {locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name}
+                      {getExerciseDisplayName(currentExercise, locale)}
                     </h2>
                     <p className="text-muted-foreground">
                       {currentExercise.sets} set × {currentExercise.repsTarget} reps
@@ -629,7 +632,7 @@ export function WorkoutFocusMode({
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              {currentExercise ? (locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name) : ''}
+              {currentExercise ? getExerciseDisplayName(currentExercise, locale) : ''}
             </DialogTitle>
           </DialogHeader>
           {currentExercise?.videoUrl && (

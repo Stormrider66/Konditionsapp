@@ -47,6 +47,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useToast } from '@/hooks/use-toast'
 import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName, getOptionalExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface CalendarWorkoutDetailSheetProps {
   workoutId: string | null
@@ -82,6 +83,7 @@ interface WorkoutSegment {
     id: string
     name: string
     nameSv?: string | null
+    nameEn?: string | null
     category?: string | null
     muscleGroup?: string | null
   } | null
@@ -135,6 +137,7 @@ interface ExerciseOption {
   id: string
   name: string
   nameSv?: string | null
+  nameEn?: string | null
   category?: string | null
 }
 
@@ -142,6 +145,7 @@ interface ExercisePayload {
   id: string
   name: string
   nameSv?: string | null
+  nameEn?: string | null
   category?: string | null
 }
 
@@ -312,6 +316,7 @@ export function CalendarWorkoutDetailSheet({
             id: exercise.id,
             name: exercise.name,
             nameSv: exercise.nameSv,
+            nameEn: exercise.nameEn,
             category: exercise.category,
           }))
         )
@@ -435,6 +440,7 @@ export function CalendarWorkoutDetailSheet({
                     id: selectedExercise.id,
                     name: selectedExercise.name,
                     nameSv: selectedExercise.nameSv,
+                    nameEn: selectedExercise.nameEn,
                     category: selectedExercise.category,
                     muscleGroup: null,
                   }
@@ -766,7 +772,7 @@ export function CalendarWorkoutDetailSheet({
                                       .filter((exercise) => !exercise.category || STRENGTH_TYPES.has(exercise.category))
                                       .map((exercise) => (
                                         <SelectItem key={exercise.id} value={exercise.id}>
-                                          {locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name}
+                                          {getExerciseDisplayName(exercise, locale)}
                                         </SelectItem>
                                       ))}
                                   </SelectContent>
@@ -1303,11 +1309,10 @@ function SegmentCard({ segment, isGlass, locale }: { segment: WorkoutSegment; is
   const isRest = segment.type === 'rest' || segment.type === 'recovery'
   const isWarmupCooldown = segment.type === 'warmup' || segment.type === 'cooldown'
 
-  const exerciseName = (
-    locale === 'sv'
-      ? segment.exercise?.nameSv || segment.exercise?.name
-      : segment.exercise?.name
-  ) || segment.description || segmentTypeLabel(segment.type, locale)
+  const exerciseName =
+    getOptionalExerciseDisplayName(segment.exercise, locale) ||
+    segment.description ||
+    segmentTypeLabel(segment.type, locale)
 
   return (
     <div className={cn(

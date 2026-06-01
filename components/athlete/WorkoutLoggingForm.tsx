@@ -37,6 +37,7 @@ import {
   summarizeRaceFuelingProductItems,
   type RaceFuelingProductPlanItem,
 } from '@/lib/fueling/product-plan'
+import { getOptionalExerciseDisplayName } from '@/lib/exercises/display-name'
 import { FormattedWorkoutInstructions } from './workout/FormattedWorkoutInstructions'
 import type { RaceContext } from './workout/WorkoutLogClient'
 import { useLocale } from '@/i18n/client'
@@ -368,7 +369,7 @@ export function WorkoutLoggingForm({
     }
     return intervalSegments.map((seg: any) => {
       const reps = seg.sets || seg.reps || seg.repsCount || 2
-      const label = buildSegmentLabel(seg)
+      const label = buildSegmentLabel(seg, locale)
       return {
         segmentId: seg.id,
         segmentLabel: label,
@@ -692,7 +693,7 @@ export function WorkoutLoggingForm({
                         {formatSegmentType(segment.type, locale)}
                       </Badge>
                       <span>
-                        {(locale === 'sv' ? segment.exercise?.nameSv : segment.exercise?.name) || segment.exercise?.name || segment.exercise?.nameSv || segment.description}
+                        {getOptionalExerciseDisplayName(segment.exercise, locale) || segment.description}
                         {segment.sets && segment.repsCount && ` (${segment.sets}×${segment.repsCount})`}
                         {segment.duration && !segment.sets && ` (${segment.duration} min)`}
                         {segment.pace && ` @ ${segment.pace}`}
@@ -1839,10 +1840,10 @@ function formatGoalType(goalType: string | null | undefined, locale: AppLocale):
   return typeof label === 'string' ? label : label?.[locale] || goalType || ''
 }
 
-function buildSegmentLabel(segment: any): string {
+function buildSegmentLabel(segment: any, locale: AppLocale): string {
   const reps = segment.sets || segment.reps || segment.repsCount || 2
   const duration = segment.duration ? `${segment.duration} min` : ''
-  const desc = segment.exercise?.nameSv || segment.exercise?.name || segment.description || ''
+  const desc = getOptionalExerciseDisplayName(segment.exercise, locale) || segment.description || ''
   const pace = segment.pace ? ` ${segment.pace}` : ''
   if (duration && desc) return `${reps}x${duration} ${desc}${pace}`
   if (duration) return `${reps}x${duration}${pace}`

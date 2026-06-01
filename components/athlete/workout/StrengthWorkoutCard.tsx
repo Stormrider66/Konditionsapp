@@ -50,6 +50,8 @@ import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider'
 import { getThemeStyles } from '@/lib/themes/theme-utils'
 import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions'
 import { ExerciseIcon } from '@/components/themed'
+import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface WorkoutWithDetails extends Workout {
   segments: (WorkoutSegment & {
@@ -73,6 +75,7 @@ export function StrengthWorkoutCard({
   completionPercentage = 0,
 }: StrengthWorkoutCardProps) {
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set())
+  const locale = useLocale()
 
   // Get theme from context (optional - falls back to default)
   const themeContext = useWorkoutThemeOptional()
@@ -215,7 +218,7 @@ export function StrengthWorkoutCard({
                       {/* Exercise info */}
                       <div className="text-left flex-1">
                         <p className="font-medium text-sm">
-                          {exercise?.nameSv || exercise?.name || 'Exercise'}
+                          {getExerciseDisplayName(exercise, locale)}
                         </p>
                         <p className="text-xs text-gray-600">
                           {segment.sets}×{segment.reps} @ {segment.weight || '—'}

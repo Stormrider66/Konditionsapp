@@ -32,12 +32,14 @@ import {
   Check,
 } from 'lucide-react'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface Exercise {
   id: string
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   sets: number
   repsTarget: number | string
   weight?: number
@@ -219,7 +221,7 @@ export function WorkoutStartScreen({
     const foundEquipment = new Set<string>()
 
     data.exercises.forEach((ex) => {
-      const name = (locale === 'sv' ? ex.nameSv || ex.name : ex.name).toLowerCase()
+      const name = getExerciseDisplayName(ex, locale).toLowerCase()
       Object.entries(equipmentKeywords).forEach(([keyword, equipmentKey]) => {
         if (name.includes(keyword)) {
           foundEquipment.add(t(`equipment.${equipmentKey}`))
@@ -454,7 +456,7 @@ export function WorkoutStartScreen({
                                 </span>
                                 <div className="flex-1 min-w-0">
                                   <p className={`text-sm font-medium truncate ${isCompleted ? 'text-green-600' : ''}`}>
-                                    {locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name}
+                                    {getExerciseDisplayName(exercise, locale)}
                                     {isCompleted && (
                                       <Check className="inline h-4 w-4 ml-1" />
                                     )}

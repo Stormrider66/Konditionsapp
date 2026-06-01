@@ -24,7 +24,8 @@ import { DashboardWorkoutWithContext } from "@/types/prisma-types";
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from "@/lib/themes";
 import { FormattedWorkoutInstructions } from "./workout/FormattedWorkoutInstructions";
 import { OptimizeWorkoutButton } from "./OptimizeWorkoutButton";
-import { useTranslations } from "@/i18n/client";
+import { useLocale, useTranslations } from "@/i18n/client";
+import { getOptionalExerciseDisplayName } from "@/lib/exercises/display-name";
 import {
   DashboardItem,
   getAssignmentRoute,
@@ -57,6 +58,7 @@ export function TodaysWorkouts({
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
   const t = useTranslations("components.todaysWorkouts");
+  const locale = useLocale();
 
   if (items.length === 0) {
     if (variant === "glass") {
@@ -138,6 +140,7 @@ export function TodaysWorkouts({
                 clientId={clientId}
                 basePath={basePath}
                 t={t}
+                locale={locale}
               />
             ) : item.kind === "wod" ? (
               <WODCard
@@ -190,6 +193,7 @@ export function TodaysWorkouts({
               clientId={clientId}
               basePath={basePath}
               t={t}
+              locale={locale}
             />
           ) : item.kind === "wod" ? (
             <WODCard
@@ -590,6 +594,7 @@ function WorkoutCard({
   clientId,
   basePath = "",
   t,
+  locale,
 }: {
   workout: DashboardWorkoutWithContext;
   theme: typeof MINIMALIST_WHITE_THEME;
@@ -597,6 +602,7 @@ function WorkoutCard({
   clientId?: string;
   basePath?: string;
   t: (key: string, values?: Record<string, number | string>) => string;
+  locale: string;
 }) {
   const isCompleted =
     workout.logs && workout.logs.length > 0 && workout.logs[0].completed;
@@ -643,37 +649,41 @@ function WorkoutCard({
         {/* Segments - shown if available (takes priority over instructions) */}
         {workout.segments && workout.segments.length > 0 && (
           <div className="space-y-1">
-            {workout.segments.map((segment) => (
-              <div key={segment.id} className="flex items-start gap-2 text-xs">
-                <Badge
-                  variant="secondary"
-                  className="text-xs flex-shrink-0 bg-white/10 text-slate-200 hover:bg-white/20"
-                >
-                  {formatSegmentType(segment.type, t)}
-                </Badge>
-                <span className="line-clamp-2 flex-1 min-w-0 text-slate-400">
-                  {segment.exercise && segment.exercise.nameSv ? (
-                    <>
-                      {segment.exercise.nameSv}
-                      {segment.sets && segment.repsCount && (
-                        <>
-                          {" "}
-                          ({segment.sets} set × {segment.repsCount} reps
-                          {segment.rest &&
-                            t("segment.restSuffix", { rest: segment.rest })}
-                          )
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {segment.description}
-                      {segment.duration && ` (${segment.duration} min)`}
-                    </>
-                  )}
-                </span>
-              </div>
-            ))}
+            {workout.segments.map((segment) => {
+              const exerciseName = getOptionalExerciseDisplayName(segment.exercise, locale)
+
+              return (
+                <div key={segment.id} className="flex items-start gap-2 text-xs">
+                  <Badge
+                    variant="secondary"
+                    className="text-xs flex-shrink-0 bg-white/10 text-slate-200 hover:bg-white/20"
+                  >
+                    {formatSegmentType(segment.type, t)}
+                  </Badge>
+                  <span className="line-clamp-2 flex-1 min-w-0 text-slate-400">
+                    {exerciseName ? (
+                      <>
+                        {exerciseName}
+                        {segment.sets && segment.repsCount && (
+                          <>
+                            {" "}
+                            ({segment.sets} set × {segment.repsCount} reps
+                            {segment.rest &&
+                              t("segment.restSuffix", { rest: segment.rest })}
+                            )
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        {segment.description}
+                        {segment.duration && ` (${segment.duration} min)`}
+                      </>
+                    )}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         )}
 
@@ -797,45 +807,49 @@ function WorkoutCard({
       {/* Workout segments preview - shown if available (takes priority) */}
       {workout.segments && workout.segments.length > 0 && (
         <div className="space-y-1">
-          {workout.segments.map((segment) => (
-            <div key={segment.id} className="flex items-start gap-2 text-xs">
-              <Badge variant="secondary" className="text-xs flex-shrink-0">
-                {formatSegmentType(segment.type, t)}
-              </Badge>
-              <span
-                className="line-clamp-2 flex-1 min-w-0"
-                style={{ color: theme.colors.textMuted }}
-              >
-                {/* Show exercise name for strength/plyo/core */}
-                {segment.exercise && segment.exercise.nameSv ? (
-                  <>
-                    {segment.exercise.nameSv}
-                    {segment.sets && segment.repsCount && (
-                      <>
-                        {" "}
-                        ({segment.sets} set × {segment.repsCount} reps
-                        {segment.rest &&
-                          t("segment.restSuffix", { rest: segment.rest })}
-                        )
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {segment.description}
-                    {segment.duration && ` (${segment.duration} min)`}
-                    {segment.pace && ` @ ${formatPace(segment.pace)}`}
-                    {segment.heartRate && segment.pace && (
-                      <> | {segment.heartRate}</>
-                    )}
-                    {segment.heartRate && !segment.pace && (
-                      <> @ {segment.heartRate}</>
-                    )}
-                  </>
-                )}
-              </span>
-            </div>
-          ))}
+          {workout.segments.map((segment) => {
+            const exerciseName = getOptionalExerciseDisplayName(segment.exercise, locale)
+
+            return (
+              <div key={segment.id} className="flex items-start gap-2 text-xs">
+                <Badge variant="secondary" className="text-xs flex-shrink-0">
+                  {formatSegmentType(segment.type, t)}
+                </Badge>
+                <span
+                  className="line-clamp-2 flex-1 min-w-0"
+                  style={{ color: theme.colors.textMuted }}
+                >
+                  {/* Show exercise name for strength/plyo/core */}
+                  {exerciseName ? (
+                    <>
+                      {exerciseName}
+                      {segment.sets && segment.repsCount && (
+                        <>
+                          {" "}
+                          ({segment.sets} set × {segment.repsCount} reps
+                          {segment.rest &&
+                            t("segment.restSuffix", { rest: segment.rest })}
+                          )
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {segment.description}
+                      {segment.duration && ` (${segment.duration} min)`}
+                      {segment.pace && ` @ ${formatPace(segment.pace)}`}
+                      {segment.heartRate && segment.pace && (
+                        <> | {segment.heartRate}</>
+                      )}
+                      {segment.heartRate && !segment.pace && (
+                        <> @ {segment.heartRate}</>
+                      )}
+                    </>
+                  )}
+                </span>
+              </div>
+            )
+          })}
         </div>
       )}
 

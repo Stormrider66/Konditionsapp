@@ -19,6 +19,7 @@ type FullAnalysis = Prisma.VideoAnalysisGetPayload<{
         id: true
         name: true
         nameSv: true
+        nameEn: true
         description: true
         muscleGroup: true
         biomechanicalPillar: true
@@ -64,7 +65,7 @@ export async function analyzeGeneric(
     },
     include: {
       athlete: { select: { id: true, name: true } },
-      exercise: { select: { id: true, name: true, nameSv: true } },
+      exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } },
     },
   })
 

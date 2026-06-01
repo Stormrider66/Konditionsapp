@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import type { SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power'
+import { getOptionalExerciseDisplayName } from '@/lib/exercises/display-name'
 
 export interface AIPoseAnalysis {
   interpretation?: string
@@ -46,6 +47,7 @@ interface VideoAnalysisDetailCardProps {
     exercise: {
       name: string
       nameSv: string | null
+      nameEn?: string | null
     } | null
   }
 }
@@ -101,9 +103,7 @@ export function VideoAnalysisDetailCard({ analysis }: VideoAnalysisDetailCardPro
   const hasAnalysis = poseAnalysis || analysis.aiAnalysis
   const isCompleted = analysis.status === 'COMPLETED'
   const isPending = analysis.status === 'PENDING' || analysis.status === 'PROCESSING'
-  const exerciseName = locale === 'sv'
-    ? analysis.exercise?.nameSv || analysis.exercise?.name
-    : analysis.exercise?.name || analysis.exercise?.nameSv
+  const exerciseName = getOptionalExerciseDisplayName(analysis.exercise, locale)
 
   return (
     <div className="border rounded-lg overflow-hidden transition-all">

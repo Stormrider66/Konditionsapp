@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       },
       include: {
         athlete: { select: { id: true, name: true, height: true, weight: true } },
-        exercise: { select: { id: true, name: true, nameSv: true } },
+        exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } },
       },
     });
 
@@ -218,7 +218,7 @@ export async function GET(request: NextRequest) {
       },
       include: {
         athlete: { select: { id: true, name: true, height: true, weight: true } },
-        exercise: { select: { id: true, name: true, nameSv: true } },
+        exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } },
         skiingTechniqueAnalysis: true,
         hyroxStationAnalysis: true,
       },

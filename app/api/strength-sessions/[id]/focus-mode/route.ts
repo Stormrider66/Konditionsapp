@@ -63,6 +63,7 @@ interface FocusModeFollowUp {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   videoUrl?: string
   instructions?: string
   imageUrls?: string[]
@@ -94,6 +95,7 @@ interface FocusModeExercise {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   videoUrl?: string
   instructions?: string
   imageUrls?: string[]
@@ -194,6 +196,7 @@ export async function GET(
         id: true,
         name: true,
         nameSv: true,
+        nameEn: true,
         videoUrl: true,
         instructions: true,
         imageUrls: true,
@@ -315,6 +318,7 @@ export async function GET(
                   exerciseId: f.exerciseId,
                   name: fDetails?.name || f.exerciseName,
                   nameSv: fDetails?.nameSv ?? undefined,
+                  nameEn: fDetails?.nameEn ?? undefined,
                   videoUrl: fDetails?.videoUrl ?? undefined,
                   instructions: fDetails?.instructions ?? undefined,
                   imageUrls: fImageUrls,
@@ -355,6 +359,7 @@ export async function GET(
           exerciseId: ex.exerciseId,
           name: details?.name || ex.exerciseName,
           nameSv: details?.nameSv ?? undefined,
+          nameEn: details?.nameEn ?? undefined,
           videoUrl: details?.videoUrl ?? undefined,
           instructions: details?.instructions ?? undefined,
           imageUrls,

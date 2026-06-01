@@ -38,6 +38,7 @@ import { WorkoutFocusMode } from './WorkoutFocusMode'
 import { ProgramCompletionCelebration } from './ProgramCompletionCelebration'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 export interface RaceContext {
   isRaceWorkout: boolean
@@ -415,7 +416,7 @@ export function WorkoutLogClient({
                             </span>
                             <div className="flex-1 min-w-0">
                               <p className="text-sm font-medium truncate">
-	                                {locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name}
+	                                {getExerciseDisplayName(exercise, locale)}
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {exercise.sets} × {exercise.repsTarget}

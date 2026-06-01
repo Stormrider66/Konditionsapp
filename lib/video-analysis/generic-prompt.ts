@@ -1,4 +1,5 @@
 import type { AnalysisResult } from './shared'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 export type GenericPromptAnalysis = {
   videoType: string
@@ -6,6 +7,7 @@ export type GenericPromptAnalysis = {
   exercise: {
     name: string
     nameSv: string | null
+    nameEn?: string | null
     description: string | null
     muscleGroup: string | null
     biomechanicalPillar: string | null
@@ -31,11 +33,12 @@ export function buildAnalysisPrompt(analysis: GenericPromptAnalysis, locale: App
 
   if (analysis.videoType === 'STRENGTH' && analysis.exercise) {
     const exercise = analysis.exercise
+    const exerciseName = getExerciseDisplayName(exercise, locale)
     if (locale === 'en') {
-      return `You are an experienced strength coach and biomechanics expert. Analyze this video of ${athleteName} performing "${exercise.name}".
+      return `You are an experienced strength coach and biomechanics expert. Analyze this video of ${athleteName} performing "${exerciseName}".
 
 ## EXERCISE INFORMATION
-- **Name**: ${exercise.name}
+- **Name**: ${exerciseName}
 - **Description**: ${exercise.description || 'Not provided'}
 - **Muscle group**: ${exercise.muscleGroup || 'Not provided'}
 - **Biomechanical category**: ${exercise.biomechanicalPillar || 'Not provided'}
@@ -76,10 +79,10 @@ Be specific and constructive. Focus on:
 5. Symmetry between right and left sides`
     }
 
-    return `Du är en erfaren styrketränare och biomekaniexpert. Analysera denna video av ${athleteName} som utför övningen "${exercise.nameSv || exercise.name}".
+    return `Du är en erfaren styrketränare och biomekaniexpert. Analysera denna video av ${athleteName} som utför övningen "${exerciseName}".
 
 ## ÖVNINGSINFORMATION
-- **Namn**: ${exercise.nameSv || exercise.name}
+- **Namn**: ${exerciseName}
 - **Beskrivning**: ${exercise.description || 'Ej angivet'}
 - **Muskelgrupp**: ${exercise.muscleGroup || 'Ej angivet'}
 - **Biomekanisk kategori**: ${exercise.biomechanicalPillar || 'Ej angivet'}

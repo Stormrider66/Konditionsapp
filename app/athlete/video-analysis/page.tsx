@@ -23,7 +23,7 @@ type VideoAnalysisRow = {
   aiAnalysis: string | null
   aiPoseAnalysis: unknown | null
   status: string
-  exercise: { name: string; nameSv: string | null } | null
+  exercise: { name: string; nameSv: string | null; nameEn: string | null } | null
 }
 
 type VideoAnalysisWithVideo = Omit<VideoAnalysisRow, 'videoUrl'> & {
@@ -53,7 +53,7 @@ export default async function AthleteVideoAnalysisPage() {
       aiPoseAnalysis: true,
       status: true,
       exercise: {
-        select: { name: true, nameSv: true },
+        select: { name: true, nameSv: true, nameEn: true },
       },
     },
   })) as VideoAnalysisRow[]
