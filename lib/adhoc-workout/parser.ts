@@ -13,6 +13,7 @@ import {
   fetchAsBase64,
   createInlineData,
   createText,
+  type GenerateContentConfig,
 } from '@/lib/ai/google-genai-client'
 import { getModelById, getDefaultModel, type AIModelConfig } from '@/types/ai-models'
 import { getExerciseLibrary, matchExercise } from './exercise-matcher'
@@ -31,6 +32,7 @@ import type {
   GarminActivityImport,
   ExerciseLibraryEntry,
 } from './types'
+import { extractJsonFromAiResponse } from './response-parser'
 import { logger } from '@/lib/logger'
 
 type AppLocale = 'en' | 'sv'
@@ -40,11 +42,20 @@ function t(locale: AppLocale | undefined, en: string, sv: string): string {
 }
 
 const VALID_FEELINGS = new Set(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED'])
+const DEFAULT_PARSE_MAX_OUTPUT_TOKENS = 8192
 
 function normalizeFeeling(value: unknown): ParsedWorkout['feeling'] | undefined {
   return typeof value === 'string' && VALID_FEELINGS.has(value)
     ? (value as ParsedWorkout['feeling'])
     : undefined
+}
+
+function buildParsingGenerationConfig(config: ParserConfig): GenerateContentConfig {
+  return {
+    maxOutputTokens: config.maxTokens || DEFAULT_PARSE_MAX_OUTPUT_TOKENS,
+    temperature: config.temperature || 0.3,
+    thinkingLevel: /^gemini-3(?:[.-]|$)/i.test(config.apiModelId) ? 'minimal' : undefined,
+  }
 }
 
 // ============================================
@@ -189,10 +200,12 @@ async function callAI(prompt: string, config: ParserConfig): Promise<ParsedWorko
   const apiKey = await getGoogleApiKey(config)
 
   const client = createGoogleGenAIClient(apiKey)
-  const response = await generateContent(client, config.apiModelId, [createText(prompt)], {
-    maxOutputTokens: config.maxTokens || 4096,
-    temperature: config.temperature || 0.3,
-  })
+  const response = await generateContent(
+    client,
+    config.apiModelId,
+    [createText(prompt)],
+    buildParsingGenerationConfig(config)
+  )
 
   return parseAIResponse(response.text, config.locale)
 }
@@ -220,10 +233,7 @@ async function callAIWithImage(
     client,
     config.apiModelId,
     [createInlineData(base64Data, mimeType), createText(prompt)],
-    {
-      maxOutputTokens: config.maxTokens || 4096,
-      temperature: config.temperature || 0.3,
-    }
+    buildParsingGenerationConfig(config)
   )
 
   return parseAIResponse(response.text, config.locale)
@@ -255,6 +265,7 @@ async function transcribeAudio(
     {
       maxOutputTokens: 2048,
       temperature: 0.1, // Low temperature for accurate transcription
+      thinkingLevel: /^gemini-3(?:[.-]|$)/i.test(config.apiModelId) ? 'minimal' : undefined,
     }
   )
 
@@ -269,9 +280,7 @@ async function transcribeAudio(
  * Parse AI response text to ParsedWorkout
  */
 function parseAIResponse(text: string, locale: AppLocale = 'en'): ParsedWorkout {
-  // Extract JSON from response (might be wrapped in markdown code blocks)
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-  const jsonText = jsonMatch ? jsonMatch[1] : text
+  const jsonText = extractJsonFromAiResponse(text)
 
   try {
     const parsed = JSON.parse(jsonText)

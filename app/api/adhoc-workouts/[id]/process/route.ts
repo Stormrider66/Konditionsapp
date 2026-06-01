@@ -17,6 +17,7 @@ import {
   createInlineData,
   createText,
   type AiCallMeta,
+  type GenerateContentConfig,
 } from '@/lib/ai/google-genai-client'
 import { getModelById } from '@/types/ai-models'
 import {
@@ -28,6 +29,7 @@ import {
 } from '@/lib/adhoc-workout'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { normalizeParsedWorkoutDistance } from '@/lib/adhoc-workout/distance'
+import { extractJsonFromAiResponse } from '@/lib/adhoc-workout/response-parser'
 import { matchExercise } from '@/lib/adhoc-workout/exercise-matcher'
 import { logger } from '@/lib/logger'
 import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server'
@@ -44,11 +46,20 @@ function t(locale: AppLocale, en: string, sv: string): string {
 }
 
 const VALID_FEELINGS = new Set(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED'])
+const PARSING_MAX_OUTPUT_TOKENS = 8192
 
 function normalizeFeeling(value: unknown): ParsedWorkout['feeling'] | undefined {
   return typeof value === 'string' && VALID_FEELINGS.has(value)
     ? (value as ParsedWorkout['feeling'])
     : undefined
+}
+
+function buildParsingGenerationConfig(modelId: string): GenerateContentConfig {
+  return {
+    maxOutputTokens: PARSING_MAX_OUTPUT_TOKENS,
+    temperature: 0.3,
+    thinkingLevel: /^gemini-3(?:[.-]|$)/i.test(modelId) ? 'minimal' : undefined,
+  }
 }
 
 // ============================================
@@ -346,10 +357,13 @@ async function parseFromText(
 ): Promise<ParsedWorkout> {
   const prompt = buildTextParsingPrompt(text, exerciseLibrary, locale)
 
-  const response = await generateContent(client, modelId, [createText(prompt)], {
-    maxOutputTokens: 4096,
-    temperature: 0.3,
-  }, meta)
+  const response = await generateContent(
+    client,
+    modelId,
+    [createText(prompt)],
+    buildParsingGenerationConfig(modelId),
+    meta,
+  )
 
   return parseAIResponse(response.text, locale)
 }
@@ -391,10 +405,7 @@ async function parseFromImage(
     client,
     modelId,
     [createInlineData(base64Data, mimeType), createText(prompt)],
-    {
-      maxOutputTokens: 4096,
-      temperature: 0.3,
-    },
+    buildParsingGenerationConfig(modelId),
     meta,
   )
 
@@ -442,6 +453,7 @@ async function parseFromVoice(
     {
       maxOutputTokens: 2048,
       temperature: 0.1,
+      thinkingLevel: /^gemini-3(?:[.-]|$)/i.test(modelId) ? 'minimal' : undefined,
     },
     { ...meta, category: 'adhoc_workout_voice_transcription' },
   )
@@ -450,10 +462,13 @@ async function parseFromVoice(
 
   // Step 2: Parse transcription
   const parsingPrompt = buildVoiceParsingPrompt(transcription, exerciseLibrary, locale)
-  const parsingResponse = await generateContent(client, modelId, [createText(parsingPrompt)], {
-    maxOutputTokens: 4096,
-    temperature: 0.3,
-  }, { ...meta, category: 'adhoc_workout_voice_parse' })
+  const parsingResponse = await generateContent(
+    client,
+    modelId,
+    [createText(parsingPrompt)],
+    buildParsingGenerationConfig(modelId),
+    { ...meta, category: 'adhoc_workout_voice_parse' },
+  )
 
   const parsed = parseAIResponse(parsingResponse.text, locale)
 
@@ -470,9 +485,7 @@ async function parseFromVoice(
 // ============================================
 
 function parseAIResponse(text: string, locale: AppLocale): ParsedWorkout {
-  // Extract JSON from response (might be wrapped in markdown code blocks)
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-  const jsonText = jsonMatch ? jsonMatch[1] : text
+  const jsonText = extractJsonFromAiResponse(text)
 
   try {
     const parsed = JSON.parse(jsonText)
