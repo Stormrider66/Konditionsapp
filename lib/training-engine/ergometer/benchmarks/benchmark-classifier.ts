@@ -304,19 +304,25 @@ export function getTierColor(tier: string): { bg: string; text: string; border: 
 }
 
 /**
- * Get tier label in Swedish
+ * Get tier label, defaulting to English for generated copy.
  */
-export function getTierLabel(tier: string): string {
-  switch (tier) {
-    case 'ELITE':
-      return 'Elit';
-    case 'ADVANCED':
-      return 'Avancerad';
-    case 'INTERMEDIATE':
-      return 'Mellanliggande';
-    case 'BEGINNER':
-      return 'Nyborjare';
-    default:
-      return 'Oklassificerad';
-  }
+export function getTierLabel(tier: string, locale: 'en' | 'sv' = 'en'): string {
+  const labels: Record<'en' | 'sv', Record<string, string>> = {
+    en: {
+      ELITE: 'Elite',
+      ADVANCED: 'Advanced',
+      INTERMEDIATE: 'Intermediate',
+      BEGINNER: 'Beginner',
+      UNCLASSIFIED: 'Unclassified',
+    },
+    sv: {
+      ELITE: 'Elit',
+      ADVANCED: 'Avancerad',
+      INTERMEDIATE: 'Mellanliggande',
+      BEGINNER: 'Nybörjare',
+      UNCLASSIFIED: 'Oklassificerad',
+    },
+  };
+
+  return labels[locale][tier] ?? tier;
 }

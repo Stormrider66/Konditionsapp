@@ -404,7 +404,7 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
       BEGINNER: t(locale, 'Beginner', 'Nybörjare'),
       INTERMEDIATE: t(locale, 'Intermediate', 'Mellanliggande'),
       ADVANCED: t(locale, 'Advanced', 'Avancerad'),
-      ELITE: 'Elit',
+      ELITE: t(locale, 'Elite', 'Elit'),
     };
     return (
       <Badge className={colors[level] || 'bg-gray-100 text-gray-800'}>
