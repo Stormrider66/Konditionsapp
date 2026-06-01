@@ -15,23 +15,38 @@ export const STRENGTH_PHASE_CONTEXT: Record<StrengthPhase, {
   name: string
   nameSv: string
   description: string
+  descriptionSv: string
   sets: string
   reps: string
   intensity: string
+  intensitySv: string
   rest: string
+  restSv: string
   tempo: string
+  tempoSv: string
   focus: string[]
+  focusSv: string[]
 }> = {
   ANATOMICAL_ADAPTATION: {
     name: 'Anatomical Adaptation',
     nameSv: 'Anatomisk Anpassning',
-    description: 'Bygg arbetskapacitet, sen- och ligamentanpassning, teknikfokus',
+    description: 'Build work capacity, tendon and ligament tolerance, and technical consistency.',
+    descriptionSv: 'Bygg arbetskapacitet, sen- och ligamentanpassning, teknikfokus',
     sets: '2-3',
     reps: '12-20',
     intensity: '40-60% 1RM',
-    rest: '30-60 sek',
-    tempo: '2-0-2-0 (kontrollerat)',
+    intensitySv: '40-60% 1RM',
+    rest: '30-60 sec',
+    restSv: '30-60 sek',
+    tempo: '2-0-2-0 (controlled)',
+    tempoSv: '2-0-2-0 (kontrollerat)',
     focus: [
+      'High volume, low intensity',
+      'Perfect technique',
+      'Progressive tendon loading',
+      'Foundation for later phases',
+    ],
+    focusSv: [
       'Hög volym, låg intensitet',
       'Perfekt teknik',
       'Progressiv belastning på senor',
@@ -41,13 +56,23 @@ export const STRENGTH_PHASE_CONTEXT: Record<StrengthPhase, {
   MAXIMUM_STRENGTH: {
     name: 'Maximum Strength',
     nameSv: 'Maxstyrka',
-    description: 'Maximera kraftproduktion genom neurala anpassningar och muskelrekrytering',
+    description: 'Maximize force production through neural adaptation and muscle recruitment.',
+    descriptionSv: 'Maximera kraftproduktion genom neurala anpassningar och muskelrekrytering',
     sets: '3-5',
     reps: '3-6',
     intensity: '80-95% 1RM',
+    intensitySv: '80-95% 1RM',
     rest: '2-5 min',
-    tempo: '3-1-1-0 (långsam excentrisk, explosiv koncentrisk)',
+    restSv: '2-5 min',
+    tempo: '3-1-1-0 (slow eccentric, explosive concentric)',
+    tempoSv: '3-1-1-0 (långsam excentrisk, explosiv koncentrisk)',
     focus: [
+      'Low reps, high intensity',
+      'Full rest between sets',
+      'Emphasize major lifts such as squats, deadlifts, and Romanian deadlifts',
+      'Limit hypertrophy fatigue with controlled volume',
+    ],
+    focusSv: [
       'Lågt antal repetitioner, hög intensitet',
       'Fullständig vila mellan set',
       'Fokus på stora lyft (knäböj, marklyft, RDL)',
@@ -57,13 +82,23 @@ export const STRENGTH_PHASE_CONTEXT: Record<StrengthPhase, {
   POWER: {
     name: 'Power',
     nameSv: 'Explosivitet',
-    description: 'Konvertera styrka till explosiv kraft och hastighet',
+    description: 'Convert strength into explosive force and speed.',
+    descriptionSv: 'Konvertera styrka till explosiv kraft och hastighet',
     sets: '3-5',
     reps: '4-6',
-    intensity: '30-60% 1RM (HASTIGHET prioriteras)',
+    intensity: '30-60% 1RM (speed is prioritized)',
+    intensitySv: '30-60% 1RM (HASTIGHET prioriteras)',
     rest: '2-3 min',
-    tempo: 'X-0-X-0 (explosivt)',
+    restSv: '2-3 min',
+    tempo: 'X-0-X-0 (explosive)',
+    tempoSv: 'X-0-X-0 (explosivt)',
     focus: [
+      'Speed is the priority, not load',
+      'Reduce load if movement speed drops by more than 10%',
+      'Include plyometric work when appropriate',
+      'Use explosive intent on every rep',
+    ],
+    focusSv: [
       'HASTIGHET är prioritet, inte vikt',
       'Minska belastning om hastigheten sjunker >10%',
       'Plyometrisk integration (40-100 kontakter)',
@@ -73,13 +108,23 @@ export const STRENGTH_PHASE_CONTEXT: Record<StrengthPhase, {
   MAINTENANCE: {
     name: 'Maintenance',
     nameSv: 'Underhåll',
-    description: 'Bibehåll styrkevinster medan löpning prioriteras',
+    description: 'Maintain strength gains while endurance or sport training is prioritized.',
+    descriptionSv: 'Bibehåll styrkevinster medan löpning prioriteras',
     sets: '2',
     reps: '3-5',
     intensity: '80-85% 1RM',
+    intensitySv: '80-85% 1RM',
     rest: '2-3 min',
+    restSv: '2-3 min',
     tempo: '2-0-1-0',
+    tempoSv: '2-0-1-0',
     focus: [
+      'Minimal volume to reduce fatigue',
+      'Maintain intensity to preserve neural adaptations',
+      'One session per week is enough for many athletes',
+      'Schedule 48+ hours before key workouts when possible',
+    ],
+    focusSv: [
       'Minimal volym (minska trötthet)',
       'Behåll intensitet (bevara neurala anpassningar)',
       '1x per vecka tillräckligt för de flesta',
@@ -89,13 +134,23 @@ export const STRENGTH_PHASE_CONTEXT: Record<StrengthPhase, {
   TAPER: {
     name: 'Taper',
     nameSv: 'Taper',
-    description: 'Minska trötthet, bibehåll neuromuskulär beredskap',
+    description: 'Reduce fatigue while maintaining neuromuscular readiness.',
+    descriptionSv: 'Minska trötthet, bibehåll neuromuskulär beredskap',
     sets: '1-2',
     reps: '3-5',
     intensity: '80-85% 1RM',
+    intensitySv: '80-85% 1RM',
     rest: '2-3 min',
+    restSv: '2-3 min',
     tempo: '2-0-1-0',
+    tempoSv: '2-0-1-0',
     focus: [
+      'Reduce volume by roughly 41-60% from maintenance',
+      'Maintain intensity with familiar loads',
+      'Stop heavy strength work 7-10 days before the target event',
+      'Prioritize recovery completely',
+    ],
+    focusSv: [
       'Volymreduktion: 41-60% av underhåll',
       'Behåll intensitet (samma vikter)',
       'Sluta 7-10 dagar före tävling',
@@ -109,19 +164,35 @@ export const STRENGTH_GOAL_CONTEXT: Record<string, {
   name: string
   nameSv: string
   description: string
+  descriptionSv: string
   exerciseEmphasis: string[]
+  exerciseEmphasisSv: string[]
   sampleExercises: string[]
+  sampleExercisesSv: string[]
 }> = {
   strength: {
     name: 'General Strength',
     nameSv: 'Generell Styrka',
-    description: 'Bygga total kroppsstyrka med fokus på de stora lyften',
+    description: 'Build total-body strength with an emphasis on major movement patterns.',
+    descriptionSv: 'Bygga total kroppsstyrka med fokus på de stora lyften',
     exerciseEmphasis: [
+      'Posterior-chain hip-dominant movements',
+      'Knee-dominant movements',
+      'Core stability',
+    ],
+    exerciseEmphasisSv: [
       'Posterior chain (höftdominerade rörelser)',
       'Knee dominance (knädominerade rörelser)',
       'Core stabilitet',
     ],
     sampleExercises: [
+      'Squat',
+      'Deadlift',
+      'Romanian deadlift',
+      'Bulgarian split squat',
+      'Hip thrust',
+    ],
+    sampleExercisesSv: [
       'Knäböj',
       'Marklyft',
       'RDL (Romanian Deadlift)',
@@ -132,13 +203,26 @@ export const STRENGTH_GOAL_CONTEXT: Record<string, {
   power: {
     name: 'Power Development',
     nameSv: 'Kraftutveckling',
-    description: 'Explosiv styrka och snabbhet',
+    description: 'Develop explosive strength and speed.',
+    descriptionSv: 'Explosiv styrka och snabbhet',
     exerciseEmphasis: [
+      'Plyometric exercises',
+      'Olympic-lift variations',
+      'Explosive movements',
+    ],
+    exerciseEmphasisSv: [
       'Plyometriska övningar',
       'Olympiska lyft (varianter)',
       'Explosiva rörelser',
     ],
     sampleExercises: [
+      'Box jumps',
+      'Power clean',
+      'Jump squats',
+      'Medicine ball throws',
+      'Depth jumps',
+    ],
+    sampleExercisesSv: [
       'Box Jumps',
       'Frivändning',
       'Jump Squats',
@@ -149,14 +233,28 @@ export const STRENGTH_GOAL_CONTEXT: Record<string, {
   'injury-prevention': {
     name: 'Injury Prevention',
     nameSv: 'Skadeförebyggande',
-    description: 'Balanserad träning för att minska skaderisk',
+    description: 'Balanced training to reduce injury risk.',
+    descriptionSv: 'Balanserad träning för att minska skaderisk',
     exerciseEmphasis: [
+      'Unilateral exercises to address asymmetry',
+      'Core stability',
+      'Foot and ankle strength',
+      'Hamstring strength such as Nordic curls',
+    ],
+    exerciseEmphasisSv: [
       'Unilaterala övningar för asymmetrikorrigering',
       'Core stabilitet',
       'Fot- och ankelstyrka',
       'Hamstringsstyrka (Nordic curls)',
     ],
     sampleExercises: [
+      'Single-leg Romanian deadlift',
+      'Nordic hamstring curl',
+      'Copenhagen adductor',
+      'Pallof press',
+      'Eccentric calf raise',
+    ],
+    sampleExercisesSv: [
       'Single Leg RDL',
       'Nordic Hamstring Curl',
       'Copenhagen Adductor',
@@ -167,14 +265,28 @@ export const STRENGTH_GOAL_CONTEXT: Record<string, {
   'running-economy': {
     name: 'Running Economy',
     nameSv: 'Löpekonomi',
-    description: 'Styrketräning som förbättrar löpeffektivitet',
+    description: 'Strength training that improves running efficiency.',
+    descriptionSv: 'Styrketräning som förbättrar löpeffektivitet',
     exerciseEmphasis: [
+      'Posterior-chain force production',
+      'Unilateral strength',
+      'Plyometrics for stiffness and elastic return',
+      'Core stability',
+    ],
+    exerciseEmphasisSv: [
       'Posterior chain för framdrivning',
       'Unilaterala övningar',
       'Plyometrik för styvhet',
       'Core för stabilitet',
     ],
     sampleExercises: [
+      'Step-ups',
+      'Single-leg squat',
+      'Calf raises',
+      'Pogos',
+      'Plank',
+    ],
+    sampleExercisesSv: [
       'Step-ups',
       'Single Leg Squat',
       'Calf Raises',
@@ -189,38 +301,50 @@ export const BIOMECHANICAL_PILLARS = {
   POSTERIOR_CHAIN: {
     name: 'Posterior Chain',
     nameSv: 'Bakre kedjan',
-    description: 'Hamstrings, gluteus, nedre rygg - kritiskt för löpkraft och skadeprevention',
-    keyExercises: ['RDL', 'Nordic Hamstring', 'Höftlyft', 'Marklyft'],
+    description: 'Hamstrings, glutes, and lower back; critical for running power and injury prevention.',
+    descriptionSv: 'Hamstrings, gluteus, nedre rygg - kritiskt för löpkraft och skadeprevention',
+    keyExercises: ['Romanian deadlift', 'Nordic hamstring', 'Hip thrust', 'Deadlift'],
+    keyExercisesSv: ['RDL', 'Nordic Hamstring', 'Höftlyft', 'Marklyft'],
   },
   KNEE_DOMINANCE: {
     name: 'Knee Dominance',
     nameSv: 'Knädominerade',
-    description: 'Quadriceps och knästabilitet - viktigt för backträning och stötdämpning',
-    keyExercises: ['Knäböj', 'Goblet Squat', 'Bulgarian Split Squat', 'Step-ups'],
+    description: 'Quadriceps and knee stability; important for hills, deceleration, and shock absorption.',
+    descriptionSv: 'Quadriceps och knästabilitet - viktigt för backträning och stötdämpning',
+    keyExercises: ['Squat', 'Goblet squat', 'Bulgarian split squat', 'Step-ups'],
+    keyExercisesSv: ['Knäböj', 'Goblet Squat', 'Bulgarian Split Squat', 'Step-ups'],
   },
   UNILATERAL: {
     name: 'Unilateral',
     nameSv: 'Unilaterala',
-    description: 'Enbensövningar för balans och asymmetrikorrigering',
-    keyExercises: ['Lunges', 'Single Leg RDL', 'Step-ups', 'Pistol Squat'],
+    description: 'Single-leg work for balance, asymmetry correction, and sport transfer.',
+    descriptionSv: 'Enbensövningar för balans och asymmetrikorrigering',
+    keyExercises: ['Lunges', 'Single-leg Romanian deadlift', 'Step-ups', 'Pistol squat'],
+    keyExercisesSv: ['Lunges', 'Single Leg RDL', 'Step-ups', 'Pistol Squat'],
   },
   ANTI_ROTATION_CORE: {
     name: 'Anti-Rotation Core',
     nameSv: 'Core (anti-rotation)',
-    description: 'Core-stabilitet som motstår rotation - avgörande för löpeffektivitet',
-    keyExercises: ['Pallof Press', 'Bird Dog', 'Dead Bug', 'Farmers Walk'],
+    description: 'Core stability that resists rotation and supports efficient movement.',
+    descriptionSv: 'Core-stabilitet som motstår rotation - avgörande för löpeffektivitet',
+    keyExercises: ['Pallof press', 'Bird dog', 'Dead bug', 'Farmers walk'],
+    keyExercisesSv: ['Pallof Press', 'Bird Dog', 'Dead Bug', 'Farmers Walk'],
   },
   FOOT_ANKLE: {
     name: 'Foot/Ankle',
     nameSv: 'Fot/Ankel',
-    description: 'Vadstyrka och fot-intrinsic styrka för stötdämpning och framdrivning',
-    keyExercises: ['Calf Raises', 'Tibialis Raises', 'Single Leg Calf Raise'],
+    description: 'Calf and intrinsic-foot strength for shock absorption and propulsion.',
+    descriptionSv: 'Vadstyrka och fot-intrinsic styrka för stötdämpning och framdrivning',
+    keyExercises: ['Calf raises', 'Tibialis raises', 'Single-leg calf raise'],
+    keyExercisesSv: ['Calf Raises', 'Tibialis Raises', 'Single Leg Calf Raise'],
   },
   UPPER_BODY: {
     name: 'Upper Body',
     nameSv: 'Överkropp',
-    description: 'Armsvingsstyrka och hållning',
-    keyExercises: ['Push-ups', 'Rodd', 'Armhävningar', 'Plankor'],
+    description: 'Posture, arm drive, and trunk support.',
+    descriptionSv: 'Armsvingsstyrka och hållning',
+    keyExercises: ['Push-ups', 'Rows', 'Planks'],
+    keyExercisesSv: ['Push-ups', 'Rodd', 'Armhävningar', 'Plankor'],
   },
 }
 
@@ -379,31 +503,31 @@ Du ska skapa ett komplett styrkepass för en löpare/idrottare.
 ${athleteContext ? `- Ytterligare kontext: ${athleteContext}` : ''}
 
 ### TRÄNINGSFAS: ${phaseInfo.nameSv}
-${phaseInfo.description}
+${phaseInfo.descriptionSv}
 
 **Parametrar för denna fas:**
 - Set: ${phaseInfo.sets}
 - Reps: ${phaseInfo.reps}
-- Intensitet: ${phaseInfo.intensity}
-- Vila: ${phaseInfo.rest}
-- Tempo: ${phaseInfo.tempo}
+- Intensitet: ${phaseInfo.intensitySv}
+- Vila: ${phaseInfo.restSv}
+- Tempo: ${phaseInfo.tempoSv}
 
 **Fokusområden:**
-${phaseInfo.focus.map((f) => `- ${f}`).join('\n')}
+${phaseInfo.focusSv.map((f) => `- ${f}`).join('\n')}
 
 ### MÅL: ${goalInfo.nameSv}
-${goalInfo.description}
+${goalInfo.descriptionSv}
 
 **Övningsemfas:**
-${goalInfo.exerciseEmphasis.map((e) => `- ${e}`).join('\n')}
+${goalInfo.exerciseEmphasisSv.map((e) => `- ${e}`).join('\n')}
 
 **Exempelövningar:**
-${goalInfo.sampleExercises.map((e) => `- ${e}`).join('\n')}
+${goalInfo.sampleExercisesSv.map((e) => `- ${e}`).join('\n')}
 
 ### BIOMECHANISK BALANS
 Passet ska inkludera övningar från följande kategorier:
 ${Object.entries(BIOMECHANICAL_PILLARS)
-  .map(([, info]) => `- ${info.nameSv}: ${info.description}`)
+  .map(([, info]) => `- ${info.nameSv}: ${info.descriptionSv}`)
   .join('\n')}
 
 ### SEKTIONER ATT INKLUDERA
@@ -597,7 +721,7 @@ ${logSummary}
 ### ESTIMERAD 1RM: ${estimated1RM}kg
 
 ### NUVARANDE FAS: ${phaseInfo.nameSv}
-- Målintensitet: ${phaseInfo.intensity}
+- Målintensitet: ${phaseInfo.intensitySv}
 - Målreps: ${phaseInfo.reps}
 
 ### FRÅGA:
@@ -640,82 +764,15 @@ function getStrengthPhaseContextEn(phase: StrengthPhase): {
   tempo: string
   focus: string[]
 } {
-  const contexts: Record<StrengthPhase, {
-    name: string
-    description: string
-    intensity: string
-    rest: string
-    tempo: string
-    focus: string[]
-  }> = {
-    ANATOMICAL_ADAPTATION: {
-      name: 'Anatomical Adaptation',
-      description: 'Build work capacity, tendon and ligament tolerance, and technical consistency.',
-      intensity: '40-60% 1RM',
-      rest: '30-60 sec',
-      tempo: '2-0-2-0 (controlled)',
-      focus: [
-        'High volume, low intensity',
-        'Perfect technique',
-        'Progressive tendon loading',
-        'Foundation for later phases',
-      ],
-    },
-    MAXIMUM_STRENGTH: {
-      name: 'Maximum Strength',
-      description: 'Maximize force production through neural adaptation and muscle recruitment.',
-      intensity: '80-95% 1RM',
-      rest: '2-5 min',
-      tempo: '3-1-1-0 (slow eccentric, explosive concentric)',
-      focus: [
-        'Low reps, high intensity',
-        'Full rest between sets',
-        'Emphasize major lifts such as squats, deadlifts, and Romanian deadlifts',
-        'Limit hypertrophy fatigue with controlled volume',
-      ],
-    },
-    POWER: {
-      name: 'Power',
-      description: 'Convert strength into explosive force and speed.',
-      intensity: '30-60% 1RM (speed is prioritized)',
-      rest: '2-3 min',
-      tempo: 'X-0-X-0 (explosive)',
-      focus: [
-        'Speed is the priority, not load',
-        'Reduce load if movement speed drops by more than 10%',
-        'Include plyometric work when appropriate',
-        'Use explosive intent on every rep',
-      ],
-    },
-    MAINTENANCE: {
-      name: 'Maintenance',
-      description: 'Maintain strength gains while endurance or sport training is prioritized.',
-      intensity: '80-85% 1RM',
-      rest: '2-3 min',
-      tempo: '2-0-1-0',
-      focus: [
-        'Minimal volume to reduce fatigue',
-        'Maintain intensity to preserve neural adaptations',
-        'One session per week is enough for many athletes',
-        'Schedule 48+ hours before key workouts when possible',
-      ],
-    },
-    TAPER: {
-      name: 'Taper',
-      description: 'Reduce fatigue while maintaining neuromuscular readiness.',
-      intensity: '80-85% 1RM',
-      rest: '2-3 min',
-      tempo: '2-0-1-0',
-      focus: [
-        'Reduce volume by roughly 41-60% from maintenance',
-        'Maintain intensity with familiar loads',
-        'Stop heavy strength work 7-10 days before the target event',
-        'Prioritize recovery completely',
-      ],
-    },
+  const context = STRENGTH_PHASE_CONTEXT[phase]
+  return {
+    name: context.name,
+    description: context.description,
+    intensity: context.intensity,
+    rest: context.rest,
+    tempo: context.tempo,
+    focus: context.focus,
   }
-
-  return contexts[phase]
 }
 
 function getStrengthGoalContextEn(goal: string): {
@@ -724,110 +781,20 @@ function getStrengthGoalContextEn(goal: string): {
   exerciseEmphasis: string[]
   sampleExercises: string[]
 } {
-  const contexts: Record<string, {
-    name: string
-    description: string
-    exerciseEmphasis: string[]
-    sampleExercises: string[]
-  }> = {
-    strength: {
-      name: 'General Strength',
-      description: 'Build total-body strength with an emphasis on major movement patterns.',
-      exerciseEmphasis: [
-        'Posterior-chain hip-dominant movements',
-        'Knee-dominant movements',
-        'Core stability',
-      ],
-      sampleExercises: [
-        'Squat',
-        'Deadlift',
-        'Romanian deadlift',
-        'Bulgarian split squat',
-        'Hip thrust',
-      ],
-    },
-    power: {
-      name: 'Power Development',
-      description: 'Develop explosive strength and speed.',
-      exerciseEmphasis: [
-        'Plyometric exercises',
-        'Olympic-lift variations',
-        'Explosive movements',
-      ],
-      sampleExercises: [
-        'Box jumps',
-        'Power clean',
-        'Jump squats',
-        'Medicine ball throws',
-        'Depth jumps',
-      ],
-    },
-    'injury-prevention': {
-      name: 'Injury Prevention',
-      description: 'Balanced training to reduce injury risk.',
-      exerciseEmphasis: [
-        'Unilateral exercises to address asymmetry',
-        'Core stability',
-        'Foot and ankle strength',
-        'Hamstring strength such as Nordic curls',
-      ],
-      sampleExercises: [
-        'Single-leg Romanian deadlift',
-        'Nordic hamstring curl',
-        'Copenhagen adductor',
-        'Pallof press',
-        'Eccentric calf raise',
-      ],
-    },
-    'running-economy': {
-      name: 'Running Economy',
-      description: 'Strength training that improves running efficiency.',
-      exerciseEmphasis: [
-        'Posterior-chain force production',
-        'Unilateral strength',
-        'Plyometrics for stiffness and elastic return',
-        'Core stability',
-      ],
-      sampleExercises: [
-        'Step-ups',
-        'Single-leg squat',
-        'Calf raises',
-        'Pogos',
-        'Plank',
-      ],
-    },
+  const context = STRENGTH_GOAL_CONTEXT[goal] || STRENGTH_GOAL_CONTEXT.strength
+  return {
+    name: context.name,
+    description: context.description,
+    exerciseEmphasis: context.exerciseEmphasis,
+    sampleExercises: context.sampleExercises,
   }
-
-  return contexts[goal] || contexts.strength
 }
 
 function getBiomechanicalPillarsEn(): Array<{ name: string; description: string }> {
-  return [
-    {
-      name: 'Posterior Chain',
-      description: 'Hamstrings, glutes, and lower back; critical for running power and injury prevention.',
-    },
-    {
-      name: 'Knee Dominance',
-      description: 'Quadriceps and knee stability; important for hills, deceleration, and shock absorption.',
-    },
-    {
-      name: 'Unilateral',
-      description: 'Single-leg work for balance, asymmetry correction, and sport transfer.',
-    },
-    {
-      name: 'Anti-Rotation Core',
-      description: 'Core stability that resists rotation and supports efficient movement.',
-    },
-    {
-      name: 'Foot/Ankle',
-      description: 'Calf and intrinsic-foot strength for shock absorption and propulsion.',
-    },
-    {
-      name: 'Upper Body',
-      description: 'Posture, arm drive, and trunk support.',
-    },
-  ]
+  return Object.values(BIOMECHANICAL_PILLARS).map((info) => ({
+    name: info.name,
+    description: info.description,
+  }))
 }
 
 export const strengthPrompts = {

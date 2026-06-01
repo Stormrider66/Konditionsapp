@@ -1,10 +1,32 @@
 import { describe, expect, it } from 'vitest'
 import {
+  BIOMECHANICAL_PILLARS,
   generateStrengthSessionPrompt,
   progressionRecommendationPrompt,
+  STRENGTH_GOAL_CONTEXT,
+  STRENGTH_PHASE_CONTEXT,
 } from './strength-program-prompts'
 
 describe('strength program prompts localization', () => {
+  it('keeps exported default strength context in English', () => {
+    const exportedDefaults = [
+      STRENGTH_PHASE_CONTEXT.POWER.description,
+      STRENGTH_PHASE_CONTEXT.POWER.intensity,
+      STRENGTH_PHASE_CONTEXT.POWER.tempo,
+      ...STRENGTH_PHASE_CONTEXT.POWER.focus,
+      STRENGTH_GOAL_CONTEXT['running-economy'].description,
+      ...STRENGTH_GOAL_CONTEXT['running-economy'].exerciseEmphasis,
+      ...STRENGTH_GOAL_CONTEXT['running-economy'].sampleExercises,
+      BIOMECHANICAL_PILLARS.POSTERIOR_CHAIN.description,
+      ...BIOMECHANICAL_PILLARS.POSTERIOR_CHAIN.keyExercises,
+    ].join('\n')
+
+    expect(exportedDefaults).toContain('Convert strength into explosive force and speed.')
+    expect(exportedDefaults).toContain('speed is prioritized')
+    expect(exportedDefaults).not.toMatch(/[åäöÅÄÖ]|\b(HASTIGHET|löpeffektivitet|Höftlyft|Marklyft)\b/)
+    expect(STRENGTH_PHASE_CONTEXT.POWER.descriptionSv).toContain('Konvertera styrka')
+  })
+
   it('keeps English strength session prompts free from Swedish phase wording', () => {
     const prompt = generateStrengthSessionPrompt({
       phase: 'POWER',
