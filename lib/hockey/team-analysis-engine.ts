@@ -166,6 +166,8 @@ export interface AdaptiveMetricAthlete {
    * norm. Averaged across metrics to form the player composite.
    */
   score: number | null
+  /** True when the latest value is an estimated 1RM (from a rep-max set, not a true single). */
+  estimated: boolean
   missing: boolean
 }
 
@@ -265,6 +267,7 @@ export function buildMetricGroups({
     oneRepMax: number
     unit: string
     date: Date
+    source: string
     exercise: { id: string } & LocalizedExerciseName
   }>
   norms: HockeyNormReferenceConfig[]
@@ -285,6 +288,7 @@ type OneRepMaxRow = {
   oneRepMax: number
   unit: string
   date: Date
+  source: string
   exercise: { id: string } & LocalizedExerciseName
 }
 
@@ -470,6 +474,7 @@ export function buildStrengthMetricRows(
     oneRepMax: number
     unit: string
     date: Date
+    source: string
     exercise: { id: string } & LocalizedExerciseName
   }>,
   locale: AppLocale
@@ -484,14 +489,14 @@ export function buildStrengthMetricRows(
         label: exerciseNameForLocale(sample.exercise, locale),
         unit: sample.unit || 'KG',
       }
-      const valuesByAthlete = new Map<string, Array<{ date: Date; value: number }>>()
+      const valuesByAthlete = new Map<string, Array<{ date: Date; value: number; source?: string }>>()
       for (const member of members) {
         valuesByAthlete.set(
           member.id,
           oneRepMaxRows
             .filter((row) => row.clientId === member.id && row.exerciseId === exerciseId)
             .sort((a, b) => b.date.getTime() - a.date.getTime())
-            .map((row) => ({ date: row.date, value: row.oneRepMax }))
+            .map((row) => ({ date: row.date, value: row.oneRepMax, source: row.source }))
         )
       }
       return buildMetricRow({
@@ -515,7 +520,7 @@ export function buildMetricRow({
   metric: HockeyMetric
   category: MetricCategory
   members: Array<{ id: string; name: string; weight: number; position: string | null }>
-  valuesByAthlete: Map<string, Array<{ date: Date; value: number }>>
+  valuesByAthlete: Map<string, Array<{ date: Date; value: number; source?: string }>>
   normResolver?: (member: { id: string; name: string; weight: number; position: string | null }) => HockeyNormReferenceConfig | null
 }): AdaptiveMetricRow | null {
   const latestValues = members
@@ -603,6 +608,7 @@ export function buildMetricRow({
       percentile: rank?.percentile ?? null,
       targetGap,
       score,
+      estimated: latest?.source === 'ESTIMATED',
       missing: !latest,
     }
   })

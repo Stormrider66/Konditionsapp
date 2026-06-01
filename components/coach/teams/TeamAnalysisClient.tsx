@@ -121,6 +121,7 @@ interface AdaptiveMetricAthlete {
   percentile: number | null
   targetGap: number | null
   score: number | null
+  estimated: boolean
   missing: boolean
 }
 

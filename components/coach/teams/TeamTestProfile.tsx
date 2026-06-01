@@ -35,6 +35,7 @@ interface AdaptiveMetricAthlete {
   percentile: number | null
   targetGap: number | null
   score: number | null
+  estimated: boolean
   missing: boolean
 }
 
@@ -288,7 +289,14 @@ function MetricAthleteRow({ athlete, metric, domain, locale }: { athlete: Adapti
         </div>
       </div>
       <div className="flex items-center justify-between gap-3 sm:justify-end">
-        <div className="text-sm font-medium tabular-nums">{formatMetricValue(athlete.latest, metric.unit, locale)}</div>
+        <div className="flex items-center gap-1 text-sm font-medium tabular-nums">
+          {formatMetricValue(athlete.latest, metric.unit, locale)}
+          {athlete.estimated && (
+            <span className="rounded bg-muted px-1 text-[9px] font-semibold uppercase text-muted-foreground" title={copy(locale, 'Estimated 1RM from a rep-max set', 'Beräknat 1RM från ett rep-max')}>
+              {copy(locale, 'est.', 'ber.')}
+            </span>
+          )}
+        </div>
         <div className={cn('text-xs tabular-nums min-w-[54px] text-right', athlete.delta == null ? 'text-muted-foreground' : (metric.lowerIsBetter ? athlete.delta < 0 : athlete.delta > 0) ? 'text-emerald-600' : 'text-muted-foreground')}>
           {formatDelta(athlete.delta, metric.unit, locale)}
         </div>

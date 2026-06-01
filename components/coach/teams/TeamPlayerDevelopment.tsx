@@ -25,6 +25,7 @@ interface AdaptiveMetricAthlete {
   latestDate: string | null
   targetGap: number | null
   score: number | null
+  estimated: boolean
 }
 
 interface AdaptiveMetricRow {
@@ -154,6 +155,11 @@ function MetricDevRow({ metricKey, label, unit, lowerIsBetter, target, elite, se
 
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold tabular-nums">{formatMetricValue(athlete.latest, unit, locale)}</span>
+        {athlete.estimated && (
+          <span className="rounded bg-muted px-1 text-[9px] font-semibold uppercase text-muted-foreground" title={copy(locale, 'Estimated 1RM from a rep-max set', 'Beräknat 1RM från ett rep-max')}>
+            {copy(locale, 'est.', 'ber.')}
+          </span>
+        )}
         {athlete.delta != null && athlete.delta !== 0 && (
           <span className={cn('text-xs tabular-nums', imp ? 'text-emerald-600' : 'text-orange-600')}>
             {imp ? '▲' : '▼'} {formatDelta(athlete.delta, unit, locale)}
