@@ -39,6 +39,8 @@ export interface PlyometricExerciseTemplate {
   progressionFrom?: string
   /** Equipment needed for this exercise */
   equipmentRequired: string[]
+  /** Swedish equipment needed for this exercise */
+  equipmentRequiredSv?: string[]
   /** Coaching cues in English */
   cues: string[]
   /** Coaching cues in Swedish */
@@ -165,7 +167,8 @@ export const PLYOMETRIC_EXERCISES: PlyometricExerciseTemplate[] = [
     descriptionSv:
       'Steg av en låg låda (20-30cm) och absorbera landningen i en kvarts knäböj. Lär ut korrekt landningsteknik inför progression till djuphopp.',
     progressionFrom: undefined,
-    equipmentRequired: ['Plyo-låda (20-30cm)'],
+    equipmentRequired: ['Plyo box (20-30cm)'],
+    equipmentRequiredSv: ['Plyo-låda (20-30cm)'],
     cues: [
       'Step off, do not jump off',
       'Land with both feet simultaneously',
@@ -298,7 +301,8 @@ export const PLYOMETRIC_EXERCISES: PlyometricExerciseTemplate[] = [
     descriptionSv:
       'Hopp upp på en låda från stående. Minskar landningsimpakten jämfört med markhopp, vilket gör det till ett bra medelintensivt alternativ för att bygga explosiv höftextension.',
     progressionFrom: 'plyo-cmj',
-    equipmentRequired: ['Plyo-låda'],
+    equipmentRequired: ['Plyo box'],
+    equipmentRequiredSv: ['Plyo-låda'],
     cues: [
       'Arms back, then drive up',
       'Land softly on top of box',
@@ -354,7 +358,8 @@ export const PLYOMETRIC_EXERCISES: PlyometricExerciseTemplate[] = [
     descriptionSv:
       'Steg av en låda (30-60cm) och hoppa omedelbart för maximal höjd vid landning. Guldstandarden för reaktiv styrkeutveckling. Kräver utmärkt landningsteknik.',
     progressionFrom: 'plyo-box-step-off-land',
-    equipmentRequired: ['Plyo-låda (30-60cm)'],
+    equipmentRequired: ['Plyo box (30-60cm)'],
+    equipmentRequiredSv: ['Plyo-låda (30-60cm)'],
     cues: [
       'Step off, do not jump off the box',
       'Minimize ground contact time',
@@ -380,7 +385,8 @@ export const PLYOMETRIC_EXERCISES: PlyometricExerciseTemplate[] = [
     descriptionSv:
       'Steg av en låda och hoppa omedelbart framåt för maximal distans. Kombinerar vertikal reaktiv belastning med horisontell kraftproduktion.',
     progressionFrom: 'plyo-depth-jump',
-    equipmentRequired: ['Plyo-låda (30-50cm)'],
+    equipmentRequired: ['Plyo box (30-50cm)'],
+    equipmentRequiredSv: ['Plyo-låda (30-50cm)'],
     cues: [
       'Land and redirect force forward',
       'Aggressive arm swing forward',
@@ -406,7 +412,8 @@ export const PLYOMETRIC_EXERCISES: PlyometricExerciseTemplate[] = [
     descriptionSv:
       'Steg av en låg låda (20-30cm) på ett ben och hoppa för höjd. Extremt krävande för ankel-knäkomplexet. Bara för vältränade idrottare.',
     progressionFrom: 'plyo-depth-jump',
-    equipmentRequired: ['Plyo-låda (20-30cm)'],
+    equipmentRequired: ['Plyo box (20-30cm)'],
+    equipmentRequiredSv: ['Plyo-låda (20-30cm)'],
     cues: [
       'Use a LOW box only (20-30cm)',
       'Land and react on the same leg',
@@ -432,7 +439,8 @@ export const PLYOMETRIC_EXERCISES: PlyometricExerciseTemplate[] = [
     descriptionSv:
       'Kontinuerliga maximala hopp över minihäckar (30-45cm). Varje landning övergår omedelbart till nästa avstamp med minimal markkontakt.',
     progressionFrom: 'plyo-cmj',
-    equipmentRequired: ['Minihäckar (30-45cm)'],
+    equipmentRequired: ['Mini hurdles (30-45cm)'],
+    equipmentRequiredSv: ['Minihäckar (30-45cm)'],
     cues: [
       'Spend as little time on the ground as possible',
       'Keep hips high between hurdles',
