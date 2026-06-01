@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { buildAthleteSystemPrompt } from './athlete-prompts'
 import { buildCoachSystemPrompt } from './chat/system-prompt'
+import {
+  getAnalysisConstitution,
+  getChatConstitution,
+  getProgramConstitution,
+  getWODConstitution,
+} from './constitution'
 import { buildProgramGeneratorSystemPrompt } from './program-generator/prompts'
 import { getPerformanceAnalysisSystemPrompt } from './performance-analysis/prompts'
 
@@ -38,5 +44,29 @@ describe('AI prompt constitution localization', () => {
 
     expect(program).toContain('PROGRAMGENERERINGSPRINCIPER')
     expect(analysis).toContain('ANALYSSPECIFIKA PRINCIPER')
+  })
+
+  it('defaults standalone constitution helpers to English', () => {
+    const prompt = [
+      getWODConstitution(),
+      getChatConstitution('athlete'),
+      getChatConstitution('coach'),
+      getProgramConstitution(),
+      getAnalysisConstitution(),
+    ].join('\n')
+
+    expect(prompt).toContain('WOD-SPECIFIC PRINCIPLES')
+    expect(prompt).toContain('ATHLETE CHAT PRINCIPLES')
+    expect(prompt).toContain('COACH CHAT PRINCIPLES')
+    expect(prompt).toContain('PROGRAM GENERATION PRINCIPLES')
+    expect(prompt).toContain('ANALYSIS-SPECIFIC PRINCIPLES')
+    expect(prompt).not.toMatch(/[åäöÅÄÖ]|\b(WOD-SPECIFIKA|ATLET-CHATTPRINCIPER|PROGRAMGENERERINGSPRINCIPER|ANALYSSPECIFIKA)\b/)
+  })
+
+  it('preserves Swedish standalone constitution helpers when requested', () => {
+    expect(getWODConstitution('sv')).toContain('WOD-SPECIFIKA PRINCIPER')
+    expect(getChatConstitution('athlete', 'sv')).toContain('ATLET-CHATTPRINCIPER')
+    expect(getProgramConstitution('sv')).toContain('PROGRAMGENERERINGSPRINCIPER')
+    expect(getAnalysisConstitution('sv')).toContain('ANALYSSPECIFIKA PRINCIPER')
   })
 })

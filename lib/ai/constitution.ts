@@ -154,33 +154,38 @@ const ANALYSIS_CONSTITUTION_EN = `### ANALYSIS-SPECIFIC PRINCIPLES
 
 type ConstitutionDomain = 'wod' | 'chat' | 'program' | 'analysis'
 type ChatRole = 'coach' | 'athlete'
+type ConstitutionLocale = 'en' | 'sv'
 
 /**
  * Get the WOD-specific constitution section
  */
-export function getWODConstitution(): string {
-  return WOD_CONSTITUTION
+export function getWODConstitution(locale: ConstitutionLocale = 'en'): string {
+  return locale === 'sv' ? WOD_CONSTITUTION : WOD_CONSTITUTION_EN
 }
 
 /**
  * Get the chat-specific constitution section based on role
  */
-export function getChatConstitution(role: ChatRole): string {
-  return role === 'athlete' ? CHAT_ATHLETE_CONSTITUTION : CHAT_COACH_CONSTITUTION
+export function getChatConstitution(role: ChatRole, locale: ConstitutionLocale = 'en'): string {
+  if (role === 'athlete') {
+    return locale === 'sv' ? CHAT_ATHLETE_CONSTITUTION : CHAT_ATHLETE_CONSTITUTION_EN
+  }
+
+  return locale === 'sv' ? CHAT_COACH_CONSTITUTION : CHAT_COACH_CONSTITUTION_EN
 }
 
 /**
  * Get the program generation constitution section
  */
-export function getProgramConstitution(): string {
-  return PROGRAM_CONSTITUTION
+export function getProgramConstitution(locale: ConstitutionLocale = 'en'): string {
+  return locale === 'sv' ? PROGRAM_CONSTITUTION : PROGRAM_CONSTITUTION_EN
 }
 
 /**
  * Get the performance analysis constitution section
  */
-export function getAnalysisConstitution(): string {
-  return ANALYSIS_CONSTITUTION
+export function getAnalysisConstitution(locale: ConstitutionLocale = 'en'): string {
+  return locale === 'sv' ? ANALYSIS_CONSTITUTION : ANALYSIS_CONSTITUTION_EN
 }
 
 /**
@@ -194,7 +199,7 @@ export function getAnalysisConstitution(): string {
 export function buildConstitutionPreamble(
   domain: ConstitutionDomain,
   role?: ChatRole,
-  locale: 'en' | 'sv' = 'en'
+  locale: ConstitutionLocale = 'en'
 ): string {
   let domainSection: string
 
