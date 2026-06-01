@@ -157,8 +157,10 @@ const COPY: Record<AppLocale, {
   addWorkout: string
   volumeGuidance: string
   unsavedChanges: string
+  empty: string
   list: string
   calendar: string
+  phases: string
   published: string
   viewProgram: string
   draftSavedTitle: string
@@ -173,6 +175,7 @@ const COPY: Record<AppLocale, {
   workoutNamePlaceholder: string
   durationMin: string
   intensity: string
+  sessionsPerWeek: string
   cancel: string
   add: string
   workoutTypes: Record<string, string>
@@ -206,8 +209,10 @@ const COPY: Record<AppLocale, {
     addWorkout: 'Add workout',
     volumeGuidance: 'Volume guidance:',
     unsavedChanges: 'Unsaved changes',
+    empty: '(empty)',
     list: 'List',
     calendar: 'Calendar',
+    phases: 'Phases',
     published: 'Published!',
     viewProgram: 'View program',
     draftSavedTitle: 'Draft saved',
@@ -222,6 +227,7 @@ const COPY: Record<AppLocale, {
     workoutNamePlaceholder: 'e.g. Easy run',
     durationMin: 'Duration (min)',
     intensity: 'Intensity',
+    sessionsPerWeek: 'Sessions/week',
     cancel: 'Cancel',
     add: 'Add',
     workoutTypes: {
@@ -269,8 +275,10 @@ const COPY: Record<AppLocale, {
     addWorkout: 'Lägg till pass',
     volumeGuidance: 'Volymvägledning:',
     unsavedChanges: 'Osparade ändringar',
+    empty: '(tomt)',
     list: 'Lista',
     calendar: 'Kalender',
+    phases: 'Faser',
     published: 'Publicerat!',
     viewProgram: 'Visa program',
     draftSavedTitle: 'Utkast sparat',
@@ -285,6 +293,7 @@ const COPY: Record<AppLocale, {
     workoutNamePlaceholder: 'T.ex. Lätt löpning',
     durationMin: 'Varaktighet (min)',
     intensity: 'Intensitet',
+    sessionsPerWeek: 'Pass/vecka',
     cancel: 'Avbryt',
     add: 'Lägg till',
     workoutTypes: {
@@ -810,7 +819,7 @@ export function EnhancedProgramPreview({
         )}
         onClick={() => setEditingField(fieldId)}
       >
-        <span>{value || '(tomt)'}</span>
+        <span>{value || copy.empty}</span>
         <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-50" />
       </div>
     )
@@ -831,7 +840,7 @@ export function EnhancedProgramPreview({
     if (workout.type === 'REST') {
       return (
         <div className="p-2 rounded border bg-gray-50 text-gray-500 text-xs text-center">
-          Vila
+          {copy.rest}
         </div>
       )
     }
@@ -872,7 +881,7 @@ export function EnhancedProgramPreview({
             removeWorkoutFromDay(phaseIndex, dayName)
           }}
           className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-red-500 text-white h-4 w-4 flex items-center justify-center hover:bg-red-600"
-          title="Ta bort pass"
+          title={copy.removeWorkout}
         >
           <X className="h-2.5 w-2.5" />
         </button>
@@ -900,7 +909,7 @@ export function EnhancedProgramPreview({
                   ) : (
                     <ChevronRight className="h-4 w-4" />
                   )}
-                  <span className="font-medium">Vecka {weekNum}</span>
+                  <span className="font-medium">{copy.week} {weekNum}</span>
                   <Badge variant="outline" className="text-xs">
                     {phase.name}
                   </Badge>
@@ -1199,13 +1208,13 @@ export function EnhancedProgramPreview({
             <div className="text-2xl font-bold text-blue-600">
               {draft.phases.length}
             </div>
-            <div className="text-xs text-muted-foreground">{locale === 'sv' ? 'Faser' : 'Phases'}</div>
+            <div className="text-xs text-muted-foreground">{copy.phases}</div>
           </div>
           <div className="text-center p-3 bg-white rounded-lg border">
             <div className="text-2xl font-bold text-blue-600">
               {draft.weeklySchedule?.sessionsPerWeek || '?'}
             </div>
-            <div className="text-xs text-muted-foreground">{locale === 'sv' ? 'Pass/vecka' : 'Sessions/week'}</div>
+            <div className="text-xs text-muted-foreground">{copy.sessionsPerWeek}</div>
           </div>
         </div>
 

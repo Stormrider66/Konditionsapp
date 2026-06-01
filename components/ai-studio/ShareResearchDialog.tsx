@@ -23,10 +23,10 @@ import {
   Mail,
   CheckCircle2,
   Loader2,
-  AlertCircle,
   X,
   UserPlus,
 } from 'lucide-react'
+import { useLocale } from '@/i18n/client'
 
 // ============================================
 // Types
@@ -56,6 +56,87 @@ interface ShareResearchDialogProps {
   onShareComplete?: () => void
 }
 
+type AppLocale = 'en' | 'sv'
+
+const COPY: Record<AppLocale, {
+  networkError: string
+  sharedTitle: string
+  sharedDescription: (successCount: number, failCount: number) => string
+  failedTitle: string
+  genericError: string
+  removedTitle: string
+  removedDescription: string
+  errorTitle: string
+  removeFailed: string
+  dialogTitle: string
+  dialogDescription: string
+  currentShares: string
+  sharedDate: (date: string) => string
+  notified: string
+  shareWithAthletes: string
+  selected: (count: number) => string
+  allShared: string
+  linkedAthlete: string
+  sendNotification: string
+  sendNotificationDescription: string
+  cancel: string
+  shareButton: (count: number) => string
+  removeShare: string
+}> = {
+  en: {
+    networkError: 'Network error',
+    sharedTitle: 'Research shared',
+    sharedDescription: (successCount, failCount) =>
+      `Shared with ${successCount} athlete${successCount === 1 ? '' : 's'}.${failCount > 0 ? ` ${failCount} failed.` : ''}`,
+    failedTitle: 'Failed to share',
+    genericError: 'An error occurred.',
+    removedTitle: 'Share removed',
+    removedDescription: 'The athlete no longer has access to this research.',
+    errorTitle: 'Error',
+    removeFailed: 'Failed to remove share.',
+    dialogTitle: 'Share Research',
+    dialogDescription: 'Share this research report with your athletes. They will be able to view the full report.',
+    currentShares: 'Currently Shared With',
+    sharedDate: (date) => `Shared ${date}`,
+    notified: 'Notified',
+    shareWithAthletes: 'Share With Athletes',
+    selected: (count) => `${count} selected`,
+    allShared: 'Already shared with all athletes',
+    linkedAthlete: 'Linked Athlete (Recommended)',
+    sendNotification: 'Send Notification',
+    sendNotificationDescription: 'Email athletes about the shared research',
+    cancel: 'Cancel',
+    shareButton: (count) => `Share with ${count} Athlete${count === 1 ? '' : 's'}`,
+    removeShare: 'Remove share',
+  },
+  sv: {
+    networkError: 'Nätverksfel',
+    sharedTitle: 'Research delad',
+    sharedDescription: (successCount, failCount) =>
+      `Delad med ${successCount} atlet${successCount === 1 ? '' : 'er'}.${failCount > 0 ? ` ${failCount} misslyckades.` : ''}`,
+    failedTitle: 'Kunde inte dela',
+    genericError: 'Ett fel uppstod.',
+    removedTitle: 'Delning borttagen',
+    removedDescription: 'Atleten har inte längre åtkomst till denna research.',
+    errorTitle: 'Fel',
+    removeFailed: 'Kunde inte ta bort delningen.',
+    dialogTitle: 'Dela research',
+    dialogDescription: 'Dela denna researchrapport med dina atleter. De kan se hela rapporten.',
+    currentShares: 'Delas just nu med',
+    sharedDate: (date) => `Delad ${date}`,
+    notified: 'Aviserad',
+    shareWithAthletes: 'Dela med atleter',
+    selected: (count) => `${count} valda`,
+    allShared: 'Redan delad med alla atleter',
+    linkedAthlete: 'Länkad atlet (rekommenderas)',
+    sendNotification: 'Skicka avisering',
+    sendNotificationDescription: 'Mejla atleterna om den delade researchen',
+    cancel: 'Avbryt',
+    shareButton: (count) => `Dela med ${count} atlet${count === 1 ? '' : 'er'}`,
+    removeShare: 'Ta bort delning',
+  },
+}
+
 // ============================================
 // Component
 // ============================================
@@ -69,6 +150,9 @@ export function ShareResearchDialog({
   onShareComplete,
 }: ShareResearchDialogProps) {
   const { toast } = useToast()
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const copy = COPY[locale]
+  const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
 
   const [isLoading, setIsLoading] = useState(false)
   const [isSharing, setIsSharing] = useState(false)
@@ -96,7 +180,7 @@ export function ShareResearchDialog({
 
   useEffect(() => {
     if (open && sessionId) {
-      fetchCurrentShares()
+      void fetchCurrentShares()
       setSelectedAthletes([])
     }
   }, [open, sessionId, fetchCurrentShares])
@@ -141,7 +225,7 @@ export function ShareResearchDialog({
           results.push({ athleteId, success: false, error: data.error })
         }
       } catch {
-        results.push({ athleteId, success: false, error: 'Network error' })
+        results.push({ athleteId, success: false, error: copy.networkError })
       }
     }
 
@@ -150,16 +234,16 @@ export function ShareResearchDialog({
 
     if (successCount > 0) {
       toast({
-        title: 'Research shared',
-        description: `Shared with ${successCount} athlete(s).${failCount > 0 ? ` ${failCount} failed.` : ''}`,
+        title: copy.sharedTitle,
+        description: copy.sharedDescription(successCount, failCount),
       })
-      fetchCurrentShares()
+      void fetchCurrentShares()
       setSelectedAthletes([])
       onShareComplete?.()
     } else {
       toast({
-        title: 'Failed to share',
-        description: results[0]?.error || 'An error occurred.',
+        title: copy.failedTitle,
+        description: results[0]?.error || copy.genericError,
         variant: 'destructive',
       })
     }
@@ -180,18 +264,18 @@ export function ShareResearchDialog({
 
       if (response.ok) {
         toast({
-          title: 'Share removed',
-          description: 'The athlete no longer has access to this research.',
+          title: copy.removedTitle,
+          description: copy.removedDescription,
         })
-        fetchCurrentShares()
+        void fetchCurrentShares()
       } else {
         const data = await response.json()
         throw new Error(data.error)
       }
     } catch (err) {
       toast({
-        title: 'Error',
-        description: err instanceof Error ? err.message : 'Failed to remove share.',
+        title: copy.errorTitle,
+        description: err instanceof Error ? err.message : copy.removeFailed,
         variant: 'destructive',
       })
     }
@@ -203,10 +287,10 @@ export function ShareResearchDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Share2 className="h-5 w-5" />
-            Share Research
+            {copy.dialogTitle}
           </DialogTitle>
           <DialogDescription>
-            Share this research report with your athletes. They will be able to view the full report.
+            {copy.dialogDescription}
           </DialogDescription>
         </DialogHeader>
 
@@ -214,7 +298,7 @@ export function ShareResearchDialog({
           {/* Current Shares */}
           {currentShares.length > 0 && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Currently Shared With</Label>
+              <Label className="text-sm font-medium">{copy.currentShares}</Label>
               <div className="space-y-2">
                 {currentShares.map((share) => (
                   <div
@@ -228,7 +312,7 @@ export function ShareResearchDialog({
                       <div>
                         <p className="text-sm font-medium">{share.athleteName}</p>
                         <p className="text-xs text-muted-foreground">
-                          Shared {new Date(share.sharedAt).toLocaleDateString()}
+                          {copy.sharedDate(new Date(share.sharedAt).toLocaleDateString(dateLocale))}
                         </p>
                       </div>
                     </div>
@@ -236,13 +320,14 @@ export function ShareResearchDialog({
                       {share.notified && (
                         <Badge variant="outline" className="text-xs">
                           <Mail className="h-3 w-3 mr-1" />
-                          Notified
+                          {copy.notified}
                         </Badge>
                       )}
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeShare(share.athleteId)}
+                        aria-label={copy.removeShare}
                       >
                         <X className="h-4 w-4" />
                       </Button>
@@ -256,10 +341,10 @@ export function ShareResearchDialog({
           {/* Available Athletes */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">
-              Share With Athletes
+              {copy.shareWithAthletes}
               {selectedAthletes.length > 0 && (
                 <Badge variant="secondary" className="ml-2">
-                  {selectedAthletes.length} selected
+                  {copy.selected(selectedAthletes.length)}
                 </Badge>
               )}
             </Label>
@@ -272,7 +357,7 @@ export function ShareResearchDialog({
             ) : availableAthletes.length === 0 ? (
               <div className="text-center py-6 text-muted-foreground border rounded-lg">
                 <CheckCircle2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">Already shared with all athletes</p>
+                <p className="text-sm">{copy.allShared}</p>
               </div>
             ) : (
               <ScrollArea className="h-[200px] border rounded-lg">
@@ -295,7 +380,7 @@ export function ShareResearchDialog({
                         <p className="text-sm font-medium">
                           {clients.find((c) => c.id === linkedAthleteId)?.name}
                         </p>
-                        <p className="text-xs text-primary">Linked Athlete (Recommended)</p>
+                        <p className="text-xs text-primary">{copy.linkedAthlete}</p>
                       </div>
                     </div>
                   )}
@@ -335,9 +420,9 @@ export function ShareResearchDialog({
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-muted-foreground" />
                 <div>
-                  <p className="text-sm font-medium">Send Notification</p>
+                  <p className="text-sm font-medium">{copy.sendNotification}</p>
                   <p className="text-xs text-muted-foreground">
-                    Email athletes about the shared research
+                    {copy.sendNotificationDescription}
                   </p>
                 </div>
               </div>
@@ -351,7 +436,7 @@ export function ShareResearchDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {copy.cancel}
           </Button>
           <Button
             onClick={shareWithAthletes}
@@ -362,7 +447,7 @@ export function ShareResearchDialog({
             ) : (
               <Share2 className="h-4 w-4 mr-2" />
             )}
-            Share with {selectedAthletes.length} Athlete{selectedAthletes.length !== 1 ? 's' : ''}
+            {copy.shareButton(selectedAthletes.length)}
           </Button>
         </DialogFooter>
       </DialogContent>
