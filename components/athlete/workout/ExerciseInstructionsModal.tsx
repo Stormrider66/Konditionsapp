@@ -52,6 +52,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 type AppLocale = 'en' | 'sv'
 
@@ -194,6 +195,7 @@ export function ExerciseInstructionsModal({
   }
 
   const embedUrl = exercise?.videoUrl ? getVideoEmbedUrl(exercise.videoUrl) : null
+  const exerciseName = exercise ? getExerciseDisplayName(exercise, locale) : 'Loading...'
 
   // Render instructions tab
   const renderInstructions = () => {
@@ -358,7 +360,7 @@ export function ExerciseInstructionsModal({
               </div>
               <div className="flex-1">
                 <p className="text-xs text-blue-600">Current Exercise</p>
-                <p className="font-semibold">{exercise.name}</p>
+                <p className="font-semibold">{exerciseName}</p>
               </div>
             </div>
           </CardContent>
@@ -488,7 +490,7 @@ export function ExerciseInstructionsModal({
         <DialogHeader>
           <div className="flex items-start justify-between">
             <div className="flex-1 pr-8">
-              <DialogTitle className="text-xl">{exercise?.name || 'Loading...'}</DialogTitle>
+              <DialogTitle className="text-xl">{exerciseName}</DialogTitle>
               {exercise?.nameSv && exercise.nameEn && (
                 <DialogDescription className="text-xs mt-1">
                   Swedish: {exercise.nameSv} | English: {exercise.nameEn}

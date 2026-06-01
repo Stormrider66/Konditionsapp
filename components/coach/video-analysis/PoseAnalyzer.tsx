@@ -261,6 +261,7 @@ interface PoseAnalyzerProps {
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
+  exerciseNameEn?: string
   aiAnalysis?: AIAnalysisData
   onAnalysisComplete?: (data: {
     frames: PoseFrame[]
@@ -290,6 +291,7 @@ export function PoseAnalyzer({
   videoType,
   exerciseName,
   exerciseNameSv,
+  exerciseNameEn,
   aiAnalysis,
   onAnalysisComplete,
   onAIPoseAnalysis,
@@ -719,6 +721,7 @@ export function PoseAnalyzer({
           videoType,
           exerciseName,
           exerciseNameSv,
+          exerciseNameEn,
           angles: currentAngles,
           angleRanges: angleRangesArray, // Send the full range data!
           frames,

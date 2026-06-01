@@ -32,6 +32,7 @@ import {
   Info,
 } from 'lucide-react'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface RehabExercise {
   id: string
@@ -40,6 +41,7 @@ interface RehabExercise {
     id: string
     name: string
     nameSv?: string
+    nameEn?: string
     videoUrl?: string
     instructions?: string
     instructionsSv?: string
@@ -116,7 +118,7 @@ export function RehabExercisePlayer({
     }
   }
 
-  const exerciseName = locale === 'sv' && exercise.exercise.nameSv ? exercise.exercise.nameSv : exercise.exercise.name
+  const exerciseName = getExerciseDisplayName(exercise.exercise, locale)
   const instructions =
     locale === 'sv' && exercise.exercise.instructionsSv
       ? exercise.exercise.instructionsSv

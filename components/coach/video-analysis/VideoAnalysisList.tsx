@@ -51,7 +51,7 @@ interface VideoAnalysis {
   recommendations: Recommendation[] | null
   createdAt: string
   athlete: { id: string; name: string; height?: number | null; weight?: number | null } | null
-  exercise: { id: string; name: string; nameSv: string | null } | null
+  exercise: { id: string; name: string; nameSv: string | null; nameEn?: string | null } | null
   poseDataSummary?: {
     hasPoseData: boolean
     frameCount: number | null
@@ -69,6 +69,7 @@ interface Exercise {
   id: string
   name: string
   nameSv: string | null
+  nameEn?: string | null
 }
 
 type AppLocale = 'en' | 'sv'
@@ -139,10 +140,11 @@ export function VideoAnalysisList() {
       const response = await fetch('/api/exercises?limit=500')
       const data = await response.json()
       if (data.exercises) {
-        setExercises(data.exercises.map((e: { id: string; name: string; nameSv: string | null }) => ({
+        setExercises(data.exercises.map((e: { id: string; name: string; nameSv: string | null; nameEn?: string | null }) => ({
           id: e.id,
           name: e.name,
           nameSv: e.nameSv,
+          nameEn: e.nameEn,
         })))
       }
     } catch (error) {
@@ -165,6 +167,7 @@ export function VideoAnalysisList() {
     return (
       analysis.athlete?.name.toLowerCase().includes(query) ||
       analysis.exercise?.name.toLowerCase().includes(query) ||
+      analysis.exercise?.nameEn?.toLowerCase().includes(query) ||
       analysis.exercise?.nameSv?.toLowerCase().includes(query)
     )
   })

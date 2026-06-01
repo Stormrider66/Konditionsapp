@@ -1434,6 +1434,7 @@ export function VideoAnalysisCard({
             videoType={analysis.videoType as 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'}
             exerciseName={analysis.exercise?.name}
             exerciseNameSv={analysis.exercise?.nameSv || undefined}
+            exerciseNameEn={analysis.exercise?.nameEn || undefined}
             aiAnalysis={{
               formScore: analysis.formScore,
               issuesDetected: analysis.issuesDetected,

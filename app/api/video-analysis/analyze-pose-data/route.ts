@@ -55,6 +55,7 @@ interface AnalyzePoseDataRequest {
   videoType: 'STRENGTH' | 'RUNNING_GAIT' | 'SPORT_SPECIFIC'
   exerciseName?: string
   exerciseNameSv?: string
+  exerciseNameEn?: string
   angles: JointAngle[]
   angleRanges?: AngleRange[] // Full min/max/range data across all frames
   frames: PoseFrame[]
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body: AnalyzePoseDataRequest = await request.json()
-    const { clientId, videoType, exerciseName, exerciseNameSv, angles, angleRanges, frames, frameCount, cameraAngle, powerEstimate } = body
+    const { clientId, videoType, exerciseName, exerciseNameSv, exerciseNameEn, angles, angleRanges, frames, frameCount, cameraAngle, powerEstimate } = body
 
     if (clientId) {
       const hasAccess = await canAccessClient(user.id, clientId)
@@ -151,7 +152,9 @@ export async function POST(request: NextRequest) {
     const modelId = getGeminiModelId('chat')
 
     // Build context about the exercise
-    const exerciseContext = (locale === 'sv' ? exerciseNameSv || exerciseName : exerciseName || exerciseNameSv) || getVideoTypeLabel(videoType, locale)
+    const exerciseContext = (locale === 'sv'
+      ? exerciseNameSv || exerciseNameEn || exerciseName
+      : exerciseNameEn || exerciseName || exerciseNameSv) || getVideoTypeLabel(videoType, locale)
 
     // Use angleRanges if available (much better data!), fallback to single-frame angles
     const hasRangeData = angleRanges && angleRanges.length > 0
