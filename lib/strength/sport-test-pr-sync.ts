@@ -26,14 +26,14 @@ const STRENGTH_PROTOCOL_FALLBACK_EXERCISES: Record<
   }
 > = {
   POWER_CLEAN_1RM: {
-    name: 'Frivändning',
+    name: 'Power Clean',
     nameSv: 'Frivändning',
     nameEn: 'Power Clean',
-    muscleGroup: 'Posterior chain, ben, rygg, axlar',
+    muscleGroup: 'Posterior chain, legs, back, shoulders',
     biomechanicalPillar: 'POSTERIOR_CHAIN',
-    equipment: 'Skivstång',
-    description: 'Explosivt helkroppslyft från golv till rackposition.',
-    instructions: 'Starta med skivstången nära kroppen, sträck höft och knä explosivt och fånga stången stabilt i front rack.',
+    equipment: 'Barbell',
+    description: 'Explosive full-body lift from the floor to the rack position.',
+    instructions: 'Start with the barbell close to the body, extend the hips and knees explosively, and catch the bar in a stable front-rack position.',
     difficulty: 'Advanced',
   },
 }
@@ -108,8 +108,8 @@ export async function syncStrengthSportTestToPrHistory({
 
   const source = rawData.isEstimated === true ? 'CALCULATED' : 'TESTED'
   const notes = source === 'CALCULATED'
-    ? `${rawData.weight ?? oneRepMax} kg x ${rawData.reps ?? '?'} reps från styrketest`
-    : 'Direkt 1RM från styrketest'
+    ? `${rawData.weight ?? oneRepMax} kg x ${rawData.reps ?? '?'} reps from strength test`
+    : 'Direct 1RM from strength test'
 
   const existingSameDay = await prisma.oneRepMaxHistory.findFirst({
     where: {
