@@ -38,3 +38,27 @@ export function dbDateFromZonedCalendarDay(value: Date | string, timeZone = 'Eur
   if (!year || !month || !day) return date
   return new Date(Date.UTC(year, month - 1, day, 12, 0, 0, 0))
 }
+
+/**
+ * Format a Date as a canonical 24-hour "HH:mm" wall-clock string in the given
+ * time zone (Swedish time by default).
+ *
+ * Stored times — e.g. an assignment's `startTime` — are time-zone-naive "HH:mm"
+ * strings, so they must be derived from the event's *local* wall clock, not the
+ * server's clock. On Vercel the runtime is UTC, so `date.toLocaleTimeString()`
+ * with no `timeZone` silently renders 17:00 CEST as "15:00". Always pin the zone.
+ */
+export function zonedTimeString(
+  value: Date | string | null | undefined,
+  timeZone = 'Europe/Stockholm'
+): string | null {
+  if (!value) return null
+  const date = typeof value === 'string' ? new Date(value) : value
+  if (Number.isNaN(date.getTime())) return null
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}

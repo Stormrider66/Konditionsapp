@@ -3753,6 +3753,7 @@
             "emptyDescription": "Nothing is scheduled for this day yet.",
             "assignCta": "Assign session",
             "viewSession": "View session",
+            "responsibleCoach": "Trainer: {name}",
             "needsContent": "Needs content",
             "statusActive": "Active",
             "statusUpcoming": "Upcoming",

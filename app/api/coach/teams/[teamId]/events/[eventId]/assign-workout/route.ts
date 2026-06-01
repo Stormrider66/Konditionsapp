@@ -5,7 +5,7 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { prisma } from '@/lib/prisma'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
-import { dbDateFromZonedCalendarDay } from '@/lib/team-calendar/date-time'
+import { dbDateFromZonedCalendarDay, zonedTimeString } from '@/lib/team-calendar/date-time'
 import { syncBroadcastAssignmentResponsibility } from '@/lib/team-calendar/assignment-responsibility'
 import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
 import { checkWorkoutAssignmentRestrictions } from '@/lib/training-restrictions/assignment-enforcement'
@@ -299,15 +299,9 @@ async function assignMissingMembersToBroadcast({
   })
 }
 
-function timeValue(date: Date | null, locale: 'en' | 'sv') {
-  if (!date) return null
-  return date.toLocaleTimeString(locale === 'sv' ? 'sv-SE' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-}
-
 export async function POST(req: NextRequest, context: RouteContext) {
   try {
     const user = await requireCoach()
-    const locale = user.language === 'sv' ? 'sv' : 'en'
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(req)
     const businessScope = await resolveWorkoutBusinessScope(user.id, req)
@@ -435,8 +429,8 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
     const assignedDate = dbDateFromZonedCalendarDay(event.startDate)
     const notes = parsed.data.notes || event.description || null
-    const startTime = event.allDay ? null : timeValue(event.startDate, locale)
-    const endTime = event.allDay ? null : timeValue(event.endDate, locale)
+    const startTime = event.allDay ? null : zonedTimeString(event.startDate)
+    const endTime = event.allDay ? null : zonedTimeString(event.endDate)
     const assignmentEvent: AssignmentEvent = {
       linkedWorkoutType: event.linkedWorkoutType,
       linkedWorkoutId: event.linkedWorkoutId,

@@ -15,6 +15,7 @@ import {
   hybridWorkoutAccessWhere,
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope'
+import { zonedTimeString } from '@/lib/team-calendar/date-time'
 
 interface RouteContext {
   params: Promise<{ teamId: string; eventId: string }>
@@ -26,14 +27,6 @@ function getRequestLocale(request: NextRequest, userLanguage?: string | null): A
   if (userLanguage === 'sv') return 'sv'
   const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
   return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
-}
-
-function scheduledTimeValue(date: Date): string {
-  return date.toLocaleTimeString('sv-SE', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
 }
 
 async function buildProtocolForEvent({
@@ -151,7 +144,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const protocol = await buildProtocolForEvent({ event, userId: user.id, request })
     const scheduledDate = event.startDate.toISOString()
-    const scheduledTime = event.allDay ? undefined : scheduledTimeValue(event.startDate)
+    const scheduledTime = event.allDay ? undefined : (zonedTimeString(event.startDate) ?? undefined)
 
     const session = await createIntervalSession(user.id, {
       name: event.linkedWorkoutName || event.title,

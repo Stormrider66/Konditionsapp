@@ -8,6 +8,7 @@ import {
   ChevronRight,
   MapPin,
   Users,
+  UserCheck,
   AlertTriangle,
   ArrowUpRight,
   Loader2,
@@ -38,6 +39,7 @@ export interface ScheduleEvent {
   linkedWorkoutId?: string | null
   linkedWorkoutType?: string | null
   assignedBroadcastId?: string | null
+  responsibleCoach?: { id: string; name: string | null } | null
   assignmentSummary?: {
     totalAssigned: number
     totalCompleted: number
@@ -392,6 +394,12 @@ function ScheduleCard({
               <span className="inline-flex items-center gap-1">
                 <MapPin className="h-3 w-3" />
                 {event.location}
+              </span>
+            )}
+            {event.responsibleCoach?.name && (
+              <span className="inline-flex items-center gap-1">
+                <UserCheck className="h-3 w-3" />
+                {t('responsibleCoach', { name: event.responsibleCoach.name })}
               </span>
             )}
           </div>

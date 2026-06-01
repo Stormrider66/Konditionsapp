@@ -3753,6 +3753,7 @@
             "emptyDescription": "Inget är inplanerat för den här dagen ännu.",
             "assignCta": "Tilldela pass",
             "viewSession": "Visa pass",
+            "responsibleCoach": "Tränare: {name}",
             "needsContent": "Saknar innehåll",
             "statusActive": "Pågår",
             "statusUpcoming": "Kommande",
