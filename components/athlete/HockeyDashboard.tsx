@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import type { HockeySettings } from '@/components/onboarding/HockeyOnboarding'
 import { MatchScheduleWidget } from './MatchScheduleWidget'
+import { AthleteTestProfileCard } from './AthleteTestProfileCard'
 
 interface HockeyDashboardProps {
   settings: HockeySettings
@@ -181,6 +182,9 @@ export function HockeyDashboard({ settings }: HockeyDashboardProps) {
           </div>
         </CardHeader>
       </Card>
+
+      {/* My test profile — position-adjusted composite, per-test vs targets, rank, trail */}
+      <AthleteTestProfileCard />
 
       {/* Season Phase Card */}
       <Card>
