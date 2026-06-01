@@ -256,14 +256,14 @@ export const voiceWorkoutConfirmSchema = z.object({
   // Assignment configuration
   assignment: z.object({
     targetType: voiceWorkoutTargetTypeSchema,
-    targetId: z.string().uuid('Ogiltig mål-ID'),
-    assignedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Datum måste vara i format YYYY-MM-DD'),
+    targetId: z.string().uuid('Invalid target ID'),
+    assignedDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must use YYYY-MM-DD format'),
   }),
   // Calendar event options
   createCalendarEvent: z.boolean().optional().default(false),
   calendarEventTime: z
     .string()
-    .regex(/^\d{2}:\d{2}$/, 'Tid måste vara i format HH:mm')
+    .regex(/^\d{2}:\d{2}$/, 'Time must use HH:mm format')
     .optional(),
 })
 

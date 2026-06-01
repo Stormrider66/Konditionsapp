@@ -217,10 +217,10 @@ function diagnosticsForRawTraces(rawTraces: MuscleLabRawTrace[]): MuscleLabRawDi
 
   for (const trace of rawTraces) {
     if (trace.peakVelocityMs != null && trace.timeToPeakVelocityS != null && trace.durationS && trace.timeToPeakVelocityS > trace.durationS * 0.75) {
-      flags.push(`${trace.label}: peak velocity kommer sent i rörelsen.`)
+      flags.push(`${trace.label}: peak velocity occurs late in the movement.`)
     }
     if (trace.peakPowerW != null && trace.peakPowerW <= 0) {
-      flags.push(`${trace.label}: ingen positiv powerpeak hittades.`)
+      flags.push(`${trace.label}: no positive peak power was found.`)
     }
   }
 
@@ -379,14 +379,14 @@ export async function parseMuscleLabWorkbook(buffer: Buffer): Promise<ParsedMusc
 
   const flags: string[] = []
   if (firstDisplacement && lastDisplacement && lastDisplacement < firstDisplacement * 0.8) {
-    flags.push('ROM minskar tydligt med ökad belastning. Tolka profilen som power/quarter-depth, inte full-depth 1RM.')
+    flags.push('ROM decreases clearly as load increases. Interpret the profile as power/quarter-depth, not full-depth 1RM.')
   }
   const peakVelocityValues = rows.map((row) => row.peakVelocityMs).filter((value): value is number => value != null)
   if (peakVelocityValues.length >= 3) {
     const maxPeakVelocity = Math.max(...peakVelocityValues)
     const medianPeakVelocity = [...peakVelocityValues].sort((a, b) => a - b)[Math.floor(peakVelocityValues.length / 2)]
     if (maxPeakVelocity > medianPeakVelocity * 1.35) {
-      flags.push('En peak velocity-rad avviker kraftigt. Använd AV som primär LV-kurva tills rådata bekräftar pV.')
+      flags.push('One peak-velocity row is a clear outlier. Use AV as the primary load-velocity curve until raw data confirms pV.')
     }
   }
 

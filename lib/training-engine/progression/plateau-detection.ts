@@ -13,6 +13,16 @@ import { prisma } from '@/lib/prisma'
 import { calculate1RMTrend } from './rm-estimation'
 import { logger } from '@/lib/logger'
 
+type NotificationLocale = 'en' | 'sv'
+
+function resolveNotificationLocale(language: string | null | undefined): NotificationLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function notificationText(locale: NotificationLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export interface PlateauAnalysis {
   isPlateau: boolean
   weeksWithoutProgress: number
@@ -335,7 +345,7 @@ export async function createPlateauNotification(
 
   const client = await prisma.client.findUnique({
     where: { id: clientId },
-    select: { name: true, userId: true },
+    select: { name: true, userId: true, user: { select: { language: true } } },
   })
 
   const exercise = await prisma.exercise.findUnique({
@@ -345,11 +355,16 @@ export async function createPlateauNotification(
 
   if (!client || !exercise) return
 
+  const locale = resolveNotificationLocale(client.user.language)
   const title = analysis.recommendation === 'DELOAD'
-    ? `Platå upptäckt: ${exercise.name} — Deload rekommenderas`
-    : `Platå upptäckt: ${exercise.name} — Variation rekommenderas`
+    ? notificationText(locale, `Plateau detected: ${exercise.name} - deload recommended`, `Platå upptäckt: ${exercise.name} - deload rekommenderas`)
+    : notificationText(locale, `Plateau detected: ${exercise.name} - variation recommended`, `Platå upptäckt: ${exercise.name} - variation rekommenderas`)
 
-  const message = `${client.name} har inte gjort framsteg på ${exercise.name} på ${analysis.weeksWithoutProgress} veckor. ${analysis.reasoning}`
+  const message = notificationText(
+    locale,
+    `${client.name} has not made progress on ${exercise.name} for ${analysis.weeksWithoutProgress} weeks. ${analysis.reasoning}`,
+    `${client.name} har inte gjort framsteg på ${exercise.name} på ${analysis.weeksWithoutProgress} veckor. ${analysis.reasoning}`,
+  )
 
   await prisma.aINotification.create({
     data: {

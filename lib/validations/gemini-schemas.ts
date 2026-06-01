@@ -304,7 +304,7 @@ export const StrengthFormAnalysisSchema = z.object({
 
   jointAngles: z.array(
     z.object({
-      joint: z.string().describe('Joint name (e.g., "Vänster knä")'),
+      joint: z.string().describe('Joint name (e.g., "left knee")'),
       measuredAngle: z.number().describe('Detected angle in degrees'),
       idealRange: z.object({
         min: z.number(),

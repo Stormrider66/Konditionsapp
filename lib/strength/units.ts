@@ -5,7 +5,7 @@
  * let the table track sport-specific PRs (box jump height in cm, broad
  * jump in m, sprint times in seconds, peak power in watts, max-rep
  * counts, sprint speed in km/h) without a parallel data model. The
- * runner's `% av 1RM` weight resolution only fires when the stored
+ * runner's `% of 1RM` weight resolution only fires when the stored
  * unit is KG.
  */
 
@@ -24,6 +24,16 @@ export const PR_UNIT_LABELS: Record<PrUnit, string> = {
 }
 
 export const PR_UNIT_DESCRIPTIONS: Record<PrUnit, string> = {
+  KG: 'Kilograms (1RM lift)',
+  CM: 'Centimeters (height, e.g. box jump)',
+  M: 'Meters (distance, e.g. broad jump)',
+  S: 'Seconds (time, e.g. sprint, plank)',
+  W: 'Watts (power, e.g. FTP)',
+  COUNT: 'Rep count (e.g. max push-ups)',
+  KMH: 'Kilometers per hour (speed)',
+}
+
+export const PR_UNIT_DESCRIPTIONS_SV: Record<PrUnit, string> = {
   KG: 'Kilogram (1RM-lyft)',
   CM: 'Centimeter (höjd, t.ex. box jump)',
   M: 'Meter (avstånd, t.ex. längdhopp)',
@@ -40,4 +50,9 @@ export function isPrUnit(value: unknown): value is PrUnit {
 export function formatPrValue(value: number, unit: string | null | undefined): string {
   const u = isPrUnit(unit) ? unit : 'KG'
   return `${value} ${PR_UNIT_LABELS[u]}`
+}
+
+export function getPrUnitDescription(unit: string | null | undefined, locale: 'en' | 'sv' = 'en'): string {
+  const u = isPrUnit(unit) ? unit : 'KG'
+  return locale === 'sv' ? PR_UNIT_DESCRIPTIONS_SV[u] : PR_UNIT_DESCRIPTIONS[u]
 }
