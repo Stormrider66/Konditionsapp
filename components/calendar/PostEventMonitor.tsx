@@ -338,7 +338,7 @@ function getAltitudeMonitoringData(
       },
       {
         icon: Heart,
-        label: 'Puls',
+        label: locale === 'sv' ? 'Puls' : 'Heart rate',
         value: `+${adaptation.hrAdjustment}bpm`,
       },
     ],
