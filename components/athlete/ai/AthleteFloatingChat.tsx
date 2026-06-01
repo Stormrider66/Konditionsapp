@@ -708,7 +708,9 @@ export function AthleteFloatingChat({
     const pc = pageCtx?.pageContext
     if (!pc) return ''
 
-    let contextStr = `\n\n## AKTUELL SIDKONTEXT: ${pc.title}\n`
+    let contextStr = locale === 'sv'
+      ? `\n\n## AKTUELL SIDKONTEXT: ${pc.title}\n`
+      : `\n\n## CURRENT PAGE CONTEXT: ${pc.title}\n`
     if (pc.summary) contextStr += `\n${pc.summary}\n`
 
     if (pc.conceptKeys && pc.conceptKeys.length > 0) {
