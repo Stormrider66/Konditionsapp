@@ -128,10 +128,20 @@ function intervalProtocolCount(protocol: unknown) {
   return typeof count === 'number' && Number.isFinite(count) ? count : null
 }
 
-function intervalProtocolStepLabel(protocol: unknown, intervalNumber: number) {
-  if (!protocol || typeof protocol !== 'object') return null
+function localizeIntervalLabel(label: string | null, locale: AppLocale, intervalNumber: number) {
+  if (!label) return locale === 'sv' ? `Intervall ${intervalNumber}` : `Interval ${intervalNumber}`
+  if (locale === 'en') return label.replace(/^Intervall\b/, 'Interval')
+  return label.replace(/^Interval\b/, 'Intervall')
+}
+
+function lactateNote(value: number, locale: AppLocale) {
+  return `${locale === 'sv' ? 'Laktat' : 'Lactate'} ${value} mmol/L`
+}
+
+function intervalProtocolStepLabel(protocol: unknown, intervalNumber: number, locale: AppLocale) {
+  if (!protocol || typeof protocol !== 'object') return localizeIntervalLabel(null, locale, intervalNumber)
   const steps = (protocol as { steps?: Array<{ label?: string }> }).steps
-  return steps?.[intervalNumber - 1]?.label ?? null
+  return localizeIntervalLabel(steps?.[intervalNumber - 1]?.label ?? null, locale, intervalNumber)
 }
 
 async function getBusinessId(userId: string, businessSlug?: string) {
@@ -420,20 +430,21 @@ async function buildIntervalDetail(sessionId: string, activeMemberIds: Set<strin
   })
 
   const intervalRows: IntervalRow[] = session.participants.flatMap((participant) =>
-    participant.laps.map((lap) => ({
-      athleteId: participant.clientId,
-      athleteName: participant.client.name,
-      label: intervalProtocolStepLabel(session.protocol, lap.intervalNumber) ?? `Intervall ${lap.intervalNumber}`,
-      planned: null,
-      actual: formatSeconds(Math.round(lap.splitTimeMs / 1000)),
-      pace: null,
-      power: null,
-      heartRate: null,
-      status: 'COMPLETED',
-      note: participant.lactates.find((lactate) => lactate.intervalNumber === lap.intervalNumber)
-        ? `Laktat ${participant.lactates.find((lactate) => lactate.intervalNumber === lap.intervalNumber)?.lactate} mmol/L`
-        : null,
-    }))
+    participant.laps.map((lap) => {
+      const lactate = participant.lactates.find((item) => item.intervalNumber === lap.intervalNumber)
+      return {
+        athleteId: participant.clientId,
+        athleteName: participant.client.name,
+        label: intervalProtocolStepLabel(session.protocol, lap.intervalNumber, locale),
+        planned: null,
+        actual: formatSeconds(Math.round(lap.splitTimeMs / 1000)),
+        pace: null,
+        power: null,
+        heartRate: null,
+        status: 'COMPLETED',
+        note: lactate ? lactateNote(lactate.lactate, locale) : null,
+      }
+    })
   )
 
   const completed = athletes.filter((athlete) => athlete.isCompleted).length

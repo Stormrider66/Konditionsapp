@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from 'recharts'
 import { TestStage, TestType } from '@/types'
+import { useLocale } from '@/i18n/client'
 
 interface TestChartProps {
   data: TestStage[]
@@ -20,6 +21,9 @@ interface TestChartProps {
 }
 
 export function TestChart({ data, testType, showLegend = true, height = 400 }: TestChartProps) {
+  const locale = useLocale() === 'sv' ? 'sv' : 'en'
+  const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
+
   const chartData = data.map((stage) => {
     let x: number | undefined
     if (testType === 'RUNNING') {
@@ -38,10 +42,10 @@ export function TestChart({ data, testType, showLegend = true, height = 400 }: T
   })
 
   const xAxisLabel = testType === 'RUNNING'
-    ? 'Hastighet (km/h)'
+    ? t('Hastighet (km/h)', 'Speed (km/h)')
     : testType === 'SKIING'
-      ? 'Tempo (min/km)'
-      : 'Effekt (watt)'
+      ? t('Tempo (min/km)', 'Pace (min/km)')
+      : t('Effekt (watt)', 'Power (watts)')
 
   return (
     <div className="w-full bg-gradient-to-br from-white to-gray-50 p-3 sm:p-4 lg:p-6 rounded-lg sm:rounded-xl shadow-md smooth-transition hover:shadow-lg overflow-hidden">
@@ -61,7 +65,7 @@ export function TestChart({ data, testType, showLegend = true, height = 400 }: T
           <YAxis
             yAxisId="left"
             label={{
-              value: 'Puls (slag/min)',
+              value: t('Puls (slag/min)', 'Heart rate (bpm)'),
               angle: -90,
               position: 'insideLeft',
               style: { fontSize: '14px', fontWeight: 500, fill: '#3b82f6' },
@@ -72,7 +76,7 @@ export function TestChart({ data, testType, showLegend = true, height = 400 }: T
             yAxisId="right"
             orientation="right"
             label={{
-              value: 'Laktat (mmol/L)',
+              value: t('Laktat (mmol/L)', 'Lactate (mmol/L)'),
               angle: 90,
               position: 'insideRight',
               style: { fontSize: '14px', fontWeight: 500, fill: '#ef4444' },
@@ -102,7 +106,7 @@ export function TestChart({ data, testType, showLegend = true, height = 400 }: T
             type="monotone"
             dataKey="heartRate"
             stroke="#3b82f6"
-            name="Puls"
+            name={t('Puls', 'Heart rate')}
             strokeWidth={3}
             dot={{ fill: '#3b82f6', r: 5 }}
             activeDot={{ r: 7, fill: '#1e40af' }}
@@ -112,7 +116,7 @@ export function TestChart({ data, testType, showLegend = true, height = 400 }: T
             type="monotone"
             dataKey="lactate"
             stroke="#ef4444"
-            name="Laktat"
+            name={t('Laktat', 'Lactate')}
             strokeWidth={3}
             dot={{ fill: '#ef4444', r: 5 }}
             activeDot={{ r: 7, fill: '#dc2626' }}

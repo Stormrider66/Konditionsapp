@@ -146,7 +146,7 @@ export function TrainingHistoryTab({ data, viewMode: _viewMode, variant = 'defau
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">{t('Utrustning', 'Equipment')}</p>
                 <div className="flex gap-2 flex-wrap">
                   {athleteProfile.hasLactateMeter && (
-                    <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700")}>Laktat</Badge>
+                    <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700")}>{t('Laktat', 'Lactate')}</Badge>
                   )}
                   {athleteProfile.hasHRVMonitor && (
                     <Badge className={cn("font-black uppercase tracking-widest text-[8px] h-4 rounded-md border-0", isGlass ? "bg-white/10 text-white" : "bg-slate-200 text-slate-700")}>HRV</Badge>

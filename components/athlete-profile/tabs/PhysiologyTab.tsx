@@ -148,7 +148,7 @@ export function PhysiologyTab({ data, viewMode, variant = 'default', basePath = 
                 <TableHeader>
                   <TableRow className={isGlass ? "border-slate-200 dark:border-white/5" : ""}>
                     <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Zon', 'Zone')}</TableHead>
-                    <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>Puls (bpm)</TableHead>
+                    <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Puls (bpm)', 'HR (bpm)')}</TableHead>
                     <TableHead className={cn("font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>% {t('av max', 'of max')}</TableHead>
                     <TableHead className={cn("hidden md:table-cell font-black uppercase tracking-widest text-[10px]", isGlass ? "text-slate-500" : "")}>{t('Beskrivning', 'Description')}</TableHead>
                   </TableRow>

@@ -18,6 +18,8 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { startOfDay, endOfDay, addDays } from 'date-fns'
 
+type AppLocale = 'en' | 'sv'
+
 export interface CrossOrgCalendarEvent {
   id: string
   type: 'CALENDAR_EVENT' | 'TEAM_EVENT' | 'WORKOUT' | 'INTERVAL_SESSION'
@@ -34,12 +36,21 @@ export interface CrossOrgCalendarEvent {
   metadata: Record<string, unknown>
 }
 
+function resolveLocale(language: string | null | undefined): AppLocale {
+  return language === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string) {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+    const locale = resolveLocale(user.language)
 
     const searchParams = request.nextUrl.searchParams
     const startDateStr = searchParams.get('startDate')
@@ -296,7 +307,7 @@ export async function GET(request: NextRequest) {
       events.push({
         id: ev.id,
         type: 'CALENDAR_EVENT',
-        title: biz.isBusyOnly ? 'Upptagen' : ev.title,
+        title: biz.isBusyOnly ? t(locale, 'Busy', 'Upptagen') : ev.title,
         description: biz.isBusyOnly ? null : ev.description,
         startDate: ev.startDate.toISOString(),
         endDate: ev.endDate.toISOString(),
@@ -328,7 +339,7 @@ export async function GET(request: NextRequest) {
       events.push({
         id: ev.id,
         type: 'TEAM_EVENT',
-        title: biz.isBusyOnly ? 'Upptagen' : ev.title,
+        title: biz.isBusyOnly ? t(locale, 'Busy', 'Upptagen') : ev.title,
         description: biz.isBusyOnly ? null : ev.description,
         startDate: ev.startDate.toISOString(),
         endDate: ev.endDate?.toISOString() || null,
@@ -359,7 +370,9 @@ export async function GET(request: NextRequest) {
       events.push({
         id: session.id,
         type: 'INTERVAL_SESSION',
-        title: biz.isBusyOnly ? 'Upptagen' : (session.name || 'Intervallpass'),
+        title: biz.isBusyOnly
+          ? t(locale, 'Busy', 'Upptagen')
+          : (session.name || t(locale, 'Interval session', 'Intervallpass')),
         description: null,
         startDate: session.scheduledDate.toISOString(),
         endDate: null,

@@ -136,7 +136,7 @@ export function buildIntervalProtocolFromCardioSession(session: {
 
     const repeats = Math.max(1, Math.floor(asPositiveNumber(segment.repeats) ?? 1))
     for (let rep = 0; rep < repeats; rep += 1) {
-      addCardioWorkStep(steps, segment, repeats > 1 ? `Intervall ${rep + 1}/${repeats}` : undefined)
+      addCardioWorkStep(steps, segment, repeats > 1 ? `Interval ${rep + 1}/${repeats}` : undefined)
     }
   }
 
