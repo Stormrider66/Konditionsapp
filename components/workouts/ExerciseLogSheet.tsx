@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 import type { LoggedSetPayload, PreviewExercise, PreviewSetLog } from './types'
 import type { UseRestTimerResult } from './useRestTimer'
 import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface ExerciseLogSheetProps {
   open: boolean
@@ -181,7 +182,7 @@ export function ExerciseLogSheet({
   }
 
   const heroImage = exercise.imageUrls?.[0]
-  const exerciseName = locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name
+  const exerciseName = getExerciseDisplayName(exercise, locale)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

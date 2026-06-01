@@ -35,6 +35,7 @@ import {
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface SetLogSummary {
   id: string
@@ -49,6 +50,7 @@ interface FocusModeFollowUp {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   imageUrls?: string[]
   instructions?: string
   repsTarget: number | string
@@ -72,6 +74,7 @@ interface FocusModeExercise {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   imageUrls?: string[]
   instructions?: string
   sets: number
@@ -100,6 +103,7 @@ interface ActiveStage {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   imageUrls?: string[]
   instructions?: string
   repsTarget: number | string
@@ -153,6 +157,7 @@ function buildActiveStage(
       exerciseId: ex.exerciseId,
       name: ex.name,
       nameSv: ex.nameSv,
+      nameEn: ex.nameEn,
       imageUrls: ex.imageUrls,
       instructions: ex.instructions,
       repsTarget: row?.reps ?? ex.repsTarget,
@@ -175,6 +180,7 @@ function buildActiveStage(
     exerciseId: f.exerciseId,
     name: f.name,
     nameSv: f.nameSv,
+    nameEn: f.nameEn,
     imageUrls: f.imageUrls,
     instructions: f.instructions,
     repsTarget: f.repsTarget,
@@ -366,7 +372,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
     // network call so the PR comparison below is consistent with the
     // pre-log state — the post-log fetchData() will overwrite it.
     const stageOneRepMax = activeStage.oneRepMax ?? null
-    const stageExerciseName = locale === 'sv' ? activeStage.nameSv || activeStage.name : activeStage.name
+    const stageExerciseName = getExerciseDisplayName(activeStage, locale)
     const stageExerciseId = activeStage.exerciseId
 
     try {
@@ -591,14 +597,14 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
   const hasBlock = followUpsCount > 0
   const currentRound = activeStage.completedSets + 1
   const restLabel = restReason === 'stage' ? t('rest.stage') : t('rest.round')
-  const activeStageName = locale === 'sv' ? activeStage.nameSv || activeStage.name : activeStage.name
+  const activeStageName = getExerciseDisplayName(activeStage, locale)
 
   // Build stage chips: primary → follow-up 1 → follow-up 2
   const blockStages = hasBlock
     ? [
-        { name: locale === 'sv' ? currentExercise.nameSv || currentExercise.name : currentExercise.name, isPrimary: true },
+        { name: getExerciseDisplayName(currentExercise, locale), isPrimary: true },
         ...(currentExercise.followUps ?? []).map((f) => ({
-          name: locale === 'sv' ? f.nameSv || f.name : f.name,
+          name: getExerciseDisplayName(f, locale),
           isPrimary: false,
         })),
       ]

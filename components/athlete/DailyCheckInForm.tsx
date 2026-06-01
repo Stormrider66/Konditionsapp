@@ -65,6 +65,7 @@ import {
   type InjurySelectorValue,
 } from '@/components/athlete/injury/InjurySelector'
 import { analyzeNotesForInjury } from '@/lib/injury-detection'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 // Garmin prefill data interface
 interface GarminPrefillData {
@@ -170,7 +171,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
     createDefaultInjurySelectorValue()
   )
   const [hasActiveRehabProgram, setHasActiveRehabProgram] = useState(false)
-  const [activeRehabExercises, setActiveRehabExercises] = useState<{name: string; nameSv: string}[]>([])
+  const [activeRehabExercises, setActiveRehabExercises] = useState<{name: string; nameSv?: string | null; nameEn?: string | null}[]>([])
 
   const form = useForm<CheckInFormData>({
     resolver: zodResolver(checkInSchema),
@@ -222,14 +223,15 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
           if (data.programs && data.programs.length > 0) {
             setHasActiveRehabProgram(true)
             // Collect exercises from all active programs
-            const exercises: {name: string; nameSv: string}[] = []
+            const exercises: {name: string; nameSv?: string | null; nameEn?: string | null}[] = []
             for (const program of data.programs) {
               if (program.exercises) {
                 for (const ex of program.exercises) {
                   if (ex.exercise) {
                     exercises.push({
                       name: ex.exercise.name,
-                      nameSv: ex.exercise.nameSv || ex.exercise.name
+                      nameSv: ex.exercise.nameSv,
+                      nameEn: ex.exercise.nameEn,
                     })
                   }
                 }
@@ -855,7 +857,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                       <div className="flex flex-wrap gap-2">
                         {activeRehabExercises.map((ex, idx) => (
                           <Badge key={idx} variant="outline" className="border-teal-500/30 text-teal-400 bg-teal-500/10">
-                            {locale === 'sv' ? ex.nameSv : ex.name}
+                            {getExerciseDisplayName(ex, locale)}
                           </Badge>
                         ))}
                       </div>

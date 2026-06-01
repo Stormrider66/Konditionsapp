@@ -31,6 +31,7 @@ import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from '@/components/athlete/cardio/LiveVoiceCoachButton'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 type HybridFormat =
   | 'FOR_TIME'
@@ -118,7 +119,7 @@ export function HybridFocusModeWorkout({
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const movements = initialMovements
   const movementDisplayName = useCallback(
-    (movement: Movement) => locale === 'sv' ? movement.nameSv || movement.name : movement.nameEn || movement.name,
+    (movement: Movement) => getExerciseDisplayName(movement, locale),
     [locale],
   )
   const [currentRound, setCurrentRound] = useState(1)

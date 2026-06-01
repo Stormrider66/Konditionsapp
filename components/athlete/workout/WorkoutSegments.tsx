@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/GlassCard';
 import { ClipboardList, Clock, Zap, Activity, Info } from 'lucide-react';
 import { useTranslations } from '@/i18n/client';
+import { getOptionalExerciseDisplayName } from '@/lib/exercises/display-name';
 
 type AppLocale = 'en' | 'sv';
 
@@ -88,10 +89,7 @@ export function WorkoutSegments({
   }
 
   function exerciseDisplayName(segment: WorkoutSegment): string | null {
-    if (!segment.exercise) return null;
-    return locale === 'sv'
-      ? segment.exercise.nameSv || segment.exercise.name || segment.exercise.nameEn || null
-      : segment.exercise.nameEn || segment.exercise.name || segment.exercise.nameSv || null;
+    return getOptionalExerciseDisplayName(segment.exercise, locale);
   }
 
   if (isGlass) {

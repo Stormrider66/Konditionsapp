@@ -9,6 +9,7 @@ interface FocusModeMovement {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   videoUrl?: string
   instructions?: string
   order: number
@@ -53,6 +54,7 @@ export async function GET(
                     id: true,
                     name: true,
                     nameSv: true,
+                    nameEn: true,
                     videoUrl: true,
                     instructions: true,
                   },
@@ -113,6 +115,7 @@ export async function GET(
       exerciseId: mov.exerciseId,
       name: mov.exercise.name,
       nameSv: mov.exercise.nameSv ?? undefined,
+      nameEn: mov.exercise.nameEn ?? undefined,
       videoUrl: mov.exercise.videoUrl ?? undefined,
       instructions: mov.exercise.instructions ?? undefined,
       order: mov.order,

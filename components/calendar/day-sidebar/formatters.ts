@@ -187,8 +187,11 @@ export function getAdHocPreviewItems(
       const name = typeof (exercise as { name?: unknown }).name === 'string'
         ? (exercise as { name?: string }).name
         : null
-      if (nameSv || name) {
-        items.push(locale === 'sv' ? nameSv || name || '' : name || nameSv || '')
+      const nameEn = typeof (exercise as { nameEn?: unknown }).nameEn === 'string'
+        ? (exercise as { nameEn?: string }).nameEn
+        : null
+      if (nameSv || name || nameEn) {
+        items.push(locale === 'sv' ? nameSv || name || nameEn || '' : nameEn || name || nameSv || '')
       }
     }
   }

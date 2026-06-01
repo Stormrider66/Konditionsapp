@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
                   id: true,
                   name: true,
                   nameSv: true,
+                  nameEn: true,
                   standardAbbreviation: true,
                   equipmentTypes: true,
                   iconUrl: true,

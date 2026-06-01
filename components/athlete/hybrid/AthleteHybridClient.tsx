@@ -34,6 +34,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { useLocale, useTranslations } from '@/i18n/client';
+import { getExerciseDisplayName } from '@/lib/exercises/display-name';
 
 interface HybridMovement {
   id: string;
@@ -48,6 +49,7 @@ interface HybridMovement {
     id: string;
     name: string;
     nameSv?: string;
+    nameEn?: string | null;
     standardAbbreviation?: string;
     equipmentTypes: string[];
   };
@@ -120,6 +122,7 @@ const scalingLabels: Record<string, { label: string; color: string }> = {
 
 export function AthleteHybridClient({ clientId, basePath = '' }: AthleteHybridClientProps) {
   const t = useTranslations('components.athleteHybridClient')
+  const locale = useLocale()
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
   const [results, setResults] = useState<AthleteResult[]>([]);
   const [prs, setPrs] = useState<AthleteResult[]>([]);
@@ -195,7 +198,7 @@ export function AthleteHybridClient({ clientId, basePath = '' }: AthleteHybridCl
 
     return movements
       .slice(0, 3)
-      .map((m) => m.exercise.standardAbbreviation || m.exercise.name)
+      .map((m) => m.exercise.standardAbbreviation || getExerciseDisplayName(m.exercise, locale))
       .join(', ') + (movements.length > 3 ? ` +${movements.length - 3}` : '');
   }
 

@@ -70,6 +70,7 @@ export async function GET(
                 id: true,
                 name: true,
                 nameSv: true,
+                nameEn: true,
                 description: true,
                 videoUrl: true,
                 instructions: true,

@@ -30,6 +30,7 @@ import {
   Stethoscope,
 } from 'lucide-react'
 import { useLocale } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface RehabExercise {
   id: string
@@ -250,9 +251,7 @@ export function RehabDayView({
                           'font-medium',
                           isCompleted ? 'text-teal-400 line-through' : 'text-white'
                         )}>
-                          {locale === 'sv'
-                            ? ex.exercise.nameSv || ex.exercise.name
-                            : ex.exercise.nameEn || ex.exercise.name}
+                          {getExerciseDisplayName(ex.exercise, locale)}
                         </p>
                         <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                           <span>{ex.sets} set</span>

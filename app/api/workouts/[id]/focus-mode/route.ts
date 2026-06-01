@@ -11,6 +11,7 @@ interface FocusModeExercise {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   videoUrl?: string
   instructions?: string
   imageUrls?: string[]
@@ -77,6 +78,7 @@ export async function GET(
                 id: true,
                 name: true,
                 nameSv: true,
+                nameEn: true,
                 videoUrl: true,
                 instructions: true,
                 imageUrls: true,
@@ -181,6 +183,7 @@ export async function GET(
         exerciseId: segment.exercise.id,
         name: segment.exercise.name,
         nameSv: segment.exercise.nameSv ?? undefined,
+        nameEn: segment.exercise.nameEn ?? undefined,
         videoUrl: segment.exercise.videoUrl ?? undefined,
         instructions: segment.exercise.instructions ?? undefined,
         imageUrls,

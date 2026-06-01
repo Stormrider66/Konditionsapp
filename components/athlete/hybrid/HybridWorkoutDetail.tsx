@@ -57,6 +57,7 @@ import {
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client';
 import { useLocale, useTranslations } from '@/i18n/client';
+import { getExerciseDisplayName } from '@/lib/exercises/display-name';
 
 interface HybridMovement {
   id: string;
@@ -474,9 +475,7 @@ function MovementRow({ movement, index }: { movement: HybridMovement; index: num
   // Get theme from context (optional - falls back to default)
   const themeContext = useWorkoutThemeOptional();
   const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME;
-  const exerciseName = locale === 'sv'
-    ? movement.exercise.nameSv || movement.exercise.name
-    : movement.exercise.nameEn || movement.exercise.name;
+  const exerciseName = getExerciseDisplayName(movement.exercise, locale);
 
   const prescription: string[] = [];
 
@@ -565,9 +564,7 @@ function ScoreLoggingForm({ workout, personalBest, initialTimeMs, onSuccess }: S
 
   function addModification(movement: HybridMovement) {
     const existing = modifications.find((m) => m.movementId === movement.id);
-    const movementName = locale === 'sv'
-      ? movement.exercise.nameSv || movement.exercise.name
-      : movement.exercise.nameEn || movement.exercise.name;
+    const movementName = getExerciseDisplayName(movement.exercise, locale);
     if (!existing) {
       setModifications([
         ...modifications,
@@ -726,9 +723,7 @@ function ScoreLoggingForm({ workout, personalBest, initialTimeMs, onSuccess }: S
                 {workout.movements.map((movement) => {
                   const existingMod = modifications.find((m) => m.movementId === movement.id);
                   if (existingMod) return null;
-                  const movementName = locale === 'sv'
-                    ? movement.exercise.nameSv || movement.exercise.name
-                    : movement.exercise.nameEn || movement.exercise.name;
+                  const movementName = getExerciseDisplayName(movement.exercise, locale);
 
                   return (
                     <Button

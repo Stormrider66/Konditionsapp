@@ -253,7 +253,9 @@ function normalizeHybridMovement(movement: Record<string, unknown>, locale: AppL
   const exercise = isRecord(movement.exercise) ? movement.exercise : {}
   const title =
     asString(movement.exerciseName) ||
-    (locale === 'sv' ? asString(exercise.nameSv) || asString(exercise.name) : asString(exercise.name) || asString(exercise.nameSv)) ||
+    (locale === 'sv'
+      ? asString(exercise.nameSv) || asString(exercise.name) || asString(exercise.nameEn)
+      : asString(exercise.nameEn) || asString(exercise.name) || asString(exercise.nameSv)) ||
     asString(movement.name) ||
     text(locale, 'Movement', 'Rörelse')
   return {
@@ -312,7 +314,9 @@ function normalizeHybridSection(title: string, data: unknown, locale: AppLocale)
 function normalizeAgilityDrill(item: Record<string, unknown>, locale: AppLocale): PrintableWorkoutItem {
   const drill = isRecord(item.drill) ? item.drill : {}
   return {
-    title: (locale === 'sv' ? asString(drill.nameSv) || asString(drill.name) : asString(drill.name) || asString(drill.nameSv)) || 'Drill',
+    title: (locale === 'sv'
+      ? asString(drill.nameSv) || asString(drill.name) || asString(drill.nameEn)
+      : asString(drill.nameEn) || asString(drill.name) || asString(drill.nameSv)) || 'Drill',
     details: joinDetails([
       asNumber(item.sets) ? `${item.sets} set` : undefined,
       asNumber(item.reps) ? `${item.reps} reps` : undefined,

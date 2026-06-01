@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
         id: true,
         name: true,
         nameSv: true,
+        nameEn: true,
         biomechanicalPillar: true,
         progressionLevel: true,
         equipment: true,

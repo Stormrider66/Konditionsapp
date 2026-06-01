@@ -21,6 +21,7 @@ import type {
 } from '@/types/voice-workout'
 import { buildWODContext } from './wod-context-builder'
 import { checkWODGuardrails } from './wod-guardrails'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 type AppLocale = 'en' | 'sv'
 
@@ -361,7 +362,7 @@ async function generateStrengthWorkout(
 async function matchExercise(
   exerciseName: string,
   _coachId: string
-): Promise<{ id: string; name: string; nameSv: string | null; category: string } | null> {
+): Promise<{ id: string; name: string; nameSv: string | null; nameEn: string | null; category: string } | null> {
   // First, try exact match on nameSv or name
   let exercise = await prisma.exercise.findFirst({
     where: {
@@ -370,7 +371,7 @@ async function matchExercise(
         { name: { equals: exerciseName, mode: 'insensitive' } },
       ],
     },
-    select: { id: true, name: true, nameSv: true, category: true },
+    select: { id: true, name: true, nameSv: true, nameEn: true, category: true },
   })
 
   if (exercise) return exercise
@@ -383,14 +384,17 @@ async function matchExercise(
         { name: { contains: exerciseName, mode: 'insensitive' } },
       ],
     },
-    select: { id: true, name: true, nameSv: true, category: true },
+    select: { id: true, name: true, nameSv: true, nameEn: true, category: true },
   })
 
   return exercise
 }
 
-function exerciseDisplayName(exercise: { name: string; nameSv: string | null }, locale: AppLocale): string {
-  return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name
+function exerciseDisplayName(
+  exercise: { name: string; nameSv: string | null; nameEn?: string | null },
+  locale: AppLocale
+): string {
+  return getExerciseDisplayName(exercise, locale)
 }
 
 async function getDefaultStrengthExercises(
@@ -412,7 +416,7 @@ async function getDefaultStrengthExercises(
       category: 'STRENGTH',
       ...(muscleGroupFilter ? { muscleGroup: { contains: muscleGroupFilter, mode: 'insensitive' } } : {}),
     },
-    select: { id: true, name: true, nameSv: true },
+    select: { id: true, name: true, nameSv: true, nameEn: true },
     take: 5,
   })
 

@@ -24,6 +24,7 @@ export interface PreviewExercise {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   videoUrl?: string
   instructions?: string
   imageUrls?: string[]

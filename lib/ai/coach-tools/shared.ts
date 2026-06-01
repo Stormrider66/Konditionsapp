@@ -363,7 +363,7 @@ export function eventTypeForTeamWorkoutType(workoutType: TeamWorkoutType) {
 
 export function normalizeStrengthExercise(
   raw: unknown,
-  exerciseLibrary: Array<{ id: string; name: string; nameSv: string | null }>
+  exerciseLibrary: Array<{ id: string; name: string; nameSv: string | null; nameEn?: string | null }>
 ) {
   const value = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {}
   const rawName = String(value.exerciseName || value.name || value.nameSv || '').trim()
@@ -372,7 +372,11 @@ export function normalizeStrengthExercise(
     ? exerciseLibrary.find((exercise) => exercise.id === rawId)
     : exerciseLibrary.find((exercise) => {
         const candidate = rawName.toLowerCase()
-        return exercise.name.toLowerCase() === candidate || exercise.nameSv?.toLowerCase() === candidate
+        return (
+          exercise.name.toLowerCase() === candidate ||
+          exercise.nameSv?.toLowerCase() === candidate ||
+          exercise.nameEn?.toLowerCase() === candidate
+        )
       })
 
   const sets = typeof value.sets === 'number' && Number.isFinite(value.sets) ? value.sets : 3
@@ -384,7 +388,7 @@ export function normalizeStrengthExercise(
 
   return {
     exerciseId: match?.id ?? rawId,
-    exerciseName: match?.name ?? rawName,
+    exerciseName: match?.nameEn ?? match?.name ?? rawName,
     sets,
     reps: typeof value.reps === 'string' || typeof value.reps === 'number' ? String(value.reps) : '6-8',
     weight: typeof value.weight === 'string' || typeof value.weight === 'number' ? value.weight : undefined,
@@ -508,7 +512,7 @@ export async function getCoachToolLinkedWorkoutDetails(
             weightMale: true,
             weightFemale: true,
             notes: true,
-            exercise: { select: { id: true, name: true, nameSv: true } },
+            exercise: { select: { id: true, name: true, nameSv: true, nameEn: true } },
           },
         },
       },

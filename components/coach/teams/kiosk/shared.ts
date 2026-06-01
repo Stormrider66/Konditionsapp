@@ -39,6 +39,7 @@ export interface FocusModeExercise {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   sets: number
   repsTarget: number | string
   weight?: number
@@ -121,7 +122,9 @@ export function parseTargetReps(reps: number | string): number {
 }
 
 export function exerciseName(exercise: FocusModeExercise, locale: Locale): string {
-  return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.name || exercise.nameEn || 'Övning'
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
 }
 
 export function statusLabel(status: string, locale: Locale): string {

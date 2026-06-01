@@ -34,6 +34,7 @@ import {
 import { RehabExercisePlayer } from '@/components/athlete/RehabExercisePlayer'
 import { RehabProgressLogger } from '@/components/athlete/RehabProgressLogger'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
 interface RehabExercise {
   id: string
@@ -402,9 +403,7 @@ export function AthleteRehabProgram({ programId }: AthleteRehabProgramProps) {
                   </div>
                   <div>
                     <p className="font-bold text-white">
-                      {locale === 'sv'
-                        ? exercise.exercise.nameSv || exercise.exercise.name
-                        : exercise.exercise.nameEn || exercise.exercise.name}
+                      {getExerciseDisplayName(exercise.exercise, locale)}
                     </p>
                     <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                       <span>

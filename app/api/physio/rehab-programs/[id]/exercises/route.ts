@@ -86,6 +86,7 @@ export async function POST(
             id: true,
             name: true,
             nameSv: true,
+            nameEn: true,
             videoUrl: true,
           },
         },

@@ -26,7 +26,8 @@ import {
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useTranslations } from '@/i18n/client'
+import { useLocale, useTranslations } from '@/i18n/client'
+import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 import type {
   PreviewExercise,
   PreviewWorkoutData,
@@ -446,6 +447,7 @@ function ExerciseRow({
   onClick?: () => void
 }) {
   const t = useTranslations('components.workoutPreview')
+  const locale = useLocale()
   const done = exercise.completedSets >= exercise.sets
   const inProgress = exercise.completedSets > 0 && !done
   const content = (
@@ -475,7 +477,7 @@ function ExerciseRow({
             done && 'line-through decoration-muted-foreground/40',
           )}
         >
-          {exercise.nameSv || exercise.name}
+          {getExerciseDisplayName(exercise, locale)}
         </p>
         <p className="truncate text-xs text-muted-foreground">
           {exercise.sets}×{exercise.repsTarget}

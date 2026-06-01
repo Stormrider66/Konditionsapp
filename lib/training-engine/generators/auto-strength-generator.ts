@@ -522,6 +522,7 @@ interface ExerciseFromLibrary {
   id: string
   name: string
   nameSv?: string | null
+  nameEn?: string | null
   biomechanicalPillar: BiomechanicalPillar | null
   progressionLevel: ProgressionLevel | null
   equipment?: string | null
@@ -581,6 +582,7 @@ function selectPrehabExercises(params: {
       const haystack = [
         ex.name,
         ex.nameSv || '',
+        ex.nameEn || '',
         ...(ex.targetBodyParts || []),
       ].join(' ').toLowerCase()
       let score = ex.isRehabExercise ? 4 : 0
@@ -883,7 +885,9 @@ function localizedExerciseName(exercise: { name: string; nameSv?: string }, loca
 }
 
 function localizedLibraryName(exercise: ExerciseFromLibrary, locale: AppLocale): string {
-  return locale === 'sv' ? (exercise.nameSv || exercise.name) : exercise.name
+  return locale === 'sv'
+    ? exercise.nameSv || exercise.name || exercise.nameEn || 'Övning'
+    : exercise.nameEn || exercise.name || exercise.nameSv || 'Exercise'
 }
 
 function localizedNotes(item: { notes?: string; notesEn?: string }, locale: AppLocale): string | undefined {

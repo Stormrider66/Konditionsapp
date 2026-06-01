@@ -23,6 +23,7 @@ interface HybridFocusMovement {
   exerciseId: string
   name: string
   nameSv?: string
+  nameEn?: string
   videoUrl?: string
   instructions?: string
   order: number
@@ -110,6 +111,7 @@ function mapToPreviewData(api: HybridFocusApiResponse['data'], mainSectionName: 
     exerciseId: m.exerciseId,
     name: m.name,
     nameSv: m.nameSv,
+    nameEn: m.nameEn,
     videoUrl: m.videoUrl,
     instructions: m.instructions,
     sets: 1,
@@ -290,6 +292,7 @@ export function HybridWorkoutPreview({
           exerciseId: m.exerciseId,
           name: m.name,
           nameSv: m.nameSv,
+          nameEn: m.nameEn,
           reps: m.reps,
           calories: m.calories,
           distance: m.distance,
