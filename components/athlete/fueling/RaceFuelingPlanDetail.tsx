@@ -32,7 +32,8 @@ interface RaceDayPlan {
   gelEquivalentCount: number | null
   bottleMixCount: number | null
   timing: Array<{ minute: number; carbs: number; label: string }>
-  notesSv: string[]
+  notes?: string[]
+  notesSv?: string[]
 }
 
 interface FuelingPlanDetail {
@@ -298,6 +299,7 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
   }
 
   const raceDayPlan = plan.raceDayPlan
+  const raceDayNotes = raceDayPlan?.notes ?? raceDayPlan?.notesSv ?? []
   const assumptions = normalizeStringList(plan.assumptions)
   const warnings = normalizeStringList(plan.warnings)
   const isCoachMode = noteMode === 'coach'
@@ -548,9 +550,9 @@ export function RaceFuelingPlanDetail({ planId, backHref, noteMode = 'athlete' }
                   </div>
                 )}
 
-                {raceDayPlan.notesSv.length > 0 && (
+                {raceDayNotes.length > 0 && (
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    {raceDayPlan.notesSv.map((note) => <li key={note}>{raceDayNote(note, locale)}</li>)}
+                    {raceDayNotes.map((note) => <li key={note}>{raceDayNote(note, locale)}</li>)}
                   </ul>
                 )}
               </>

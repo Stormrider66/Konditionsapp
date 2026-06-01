@@ -13,6 +13,7 @@
 
 import { describe, it, expect } from 'vitest'
 import {
+  buildCreateTestApiSchema,
   detectLactateDecreases,
   createTestApiSchema,
 } from '@/lib/validations/schemas'
@@ -84,6 +85,24 @@ describe('detectLactateDecreases', () => {
 })
 
 describe('createTestApiSchema — lactate curve validation', () => {
+  it('defaults validation messages to English', () => {
+    const result = createTestApiSchema.safeParse(baseTest([runningStage({}), runningStage({})]))
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.errors[0]?.message).toBe('At least 3 stages are required')
+    }
+  })
+
+  it('keeps Swedish validation messages explicit', () => {
+    const result = buildCreateTestApiSchema('sv').safeParse(baseTest([runningStage({}), runningStage({})]))
+
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.errors[0]?.message).toBe('Minst 3 steg krävs')
+    }
+  })
+
   it('accepts a valid non-decreasing lactate curve', () => {
     const result = createTestApiSchema.safeParse(
       baseTest([

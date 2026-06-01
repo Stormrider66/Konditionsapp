@@ -36,7 +36,8 @@ interface RaceFuelingPlanSummary {
     gelEquivalentCount: number | null
     bottleMixCount: number | null
     timing: Array<{ minute: number; carbs: number; label: string }>
-    notesSv: string[]
+    notes?: string[]
+    notesSv?: string[]
   } | null
   fuelingProgress?: {
     linkedWorkoutCount: number

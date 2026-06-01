@@ -48,7 +48,7 @@ export function createClientSchema(locale: AppLocale = 'en') {
   })
 }
 
-export const clientSchema = createClientSchema('sv')
+export const clientSchema = createClientSchema('en')
 
 // Test-stage validering (form version with separate minutes/seconds)
 export const testStageSchema = z.object({
@@ -105,70 +105,90 @@ export const postTestMeasurementApiSchema = z.object({
 })
 
 // Test-validering (form version)
-export const createTestSchema = z.object({
-  clientId: z.string().uuid().optional(),
-  testDate: z.string(),
-  testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
-  location: z.string().optional(),
-  testLeader: z.string().optional(),
-  inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
-  stages: z.array(testStageSchema).min(3, 'Minst 3 steg krävs'),
-  notes: z.string().optional(),
-  // Pre-test measurements
-  restingLactate: optionalNumber(0, 10),
-  // Post-test measurements (post-max lactate)
-  postTestMeasurements: z.array(postTestMeasurementSchema).optional(),
-  // Recommended next test date
-  recommendedNextTestDate: z.string().optional(),
-})
+export function buildCreateTestSchema(locale: AppLocale = 'en') {
+  return z.object({
+    clientId: z.string().uuid().optional(),
+    testDate: z.string(),
+    testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
+    location: z.string().optional(),
+    testLeader: z.string().optional(),
+    inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
+    stages: z.array(testStageSchema).min(3, t(locale, 'At least 3 stages are required', 'Minst 3 steg krävs')),
+    notes: z.string().optional(),
+    // Pre-test measurements
+    restingLactate: optionalNumber(0, 10),
+    // Post-test measurements (post-max lactate)
+    postTestMeasurements: z.array(postTestMeasurementSchema).optional(),
+    // Recommended next test date
+    recommendedNextTestDate: z.string().optional(),
+  })
+}
+
+export const createTestSchema = buildCreateTestSchema('en')
 
 // Test-validering (API version - for server-side validation)
-export const createTestApiSchema = z.object({
-  clientId: z.string().uuid().optional(),
-  testDate: z.string(),
-  testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
-  location: z.string().optional(),
-  testLeader: z.string().optional(),
-  inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
-  stages: z.array(testStageApiSchema).min(3, 'Minst 3 steg krävs'),
-  notes: z.string().optional(),
-  // Pre-test measurements
-  restingLactate: optionalNumber(0, 10),
-  // Post-test measurements (post-max lactate)
-  postTestMeasurements: z.array(postTestMeasurementApiSchema).optional(),
-  // Recommended next test date
-  recommendedNextTestDate: z.string().optional(),
-})
+export function buildCreateTestApiSchema(locale: AppLocale = 'en') {
+  return z.object({
+    clientId: z.string().uuid().optional(),
+    testDate: z.string(),
+    testType: z.enum(['RUNNING', 'CYCLING', 'SKIING']),
+    location: z.string().optional(),
+    testLeader: z.string().optional(),
+    inclineUnit: z.enum(['PERCENT', 'DEGREES']).optional(),
+    stages: z.array(testStageApiSchema).min(3, t(locale, 'At least 3 stages are required', 'Minst 3 steg krävs')),
+    notes: z.string().optional(),
+    // Pre-test measurements
+    restingLactate: optionalNumber(0, 10),
+    // Post-test measurements (post-max lactate)
+    postTestMeasurements: z.array(postTestMeasurementApiSchema).optional(),
+    // Recommended next test date
+    recommendedNextTestDate: z.string().optional(),
+  })
+}
+
+export const createTestApiSchema = buildCreateTestApiSchema('en')
 
 // Löptest-specifik validering
-export const runningTestSchema = createTestSchema.extend({
-  testType: z.literal('RUNNING'),
-  stages: z.array(
-    testStageSchema.extend({
-      speed: z.number().min(3, 'Hastighet måste vara minst 3 km/h').max(30),
-    })
-  ),
-})
+export function buildRunningTestSchema(locale: AppLocale = 'en') {
+  return buildCreateTestSchema(locale).extend({
+    testType: z.literal('RUNNING'),
+    stages: z.array(
+      testStageSchema.extend({
+        speed: z.number().min(3, t(locale, 'Speed must be at least 3 km/h', 'Hastighet måste vara minst 3 km/h')).max(30),
+      })
+    ),
+  })
+}
+
+export const runningTestSchema = buildRunningTestSchema('en')
 
 // Cykeltest-specifik validering
-export const cyclingTestSchema = createTestSchema.extend({
-  testType: z.literal('CYCLING'),
-  stages: z.array(
-    testStageSchema.extend({
-      power: z.number().min(20, 'Effekt måste vara minst 20 watt').max(1000),
-    })
-  ),
-})
+export function buildCyclingTestSchema(locale: AppLocale = 'en') {
+  return buildCreateTestSchema(locale).extend({
+    testType: z.literal('CYCLING'),
+    stages: z.array(
+      testStageSchema.extend({
+        power: z.number().min(20, t(locale, 'Power must be at least 20 watts', 'Effekt måste vara minst 20 watt')).max(1000),
+      })
+    ),
+  })
+}
+
+export const cyclingTestSchema = buildCyclingTestSchema('en')
 
 // Skidtest-specifik validering
-export const skiingTestSchema = createTestSchema.extend({
-  testType: z.literal('SKIING'),
-  stages: z.array(
-    testStageSchema.extend({
-      pace: z.number().min(2, 'Tempo måste vara minst 2 min/km').max(20),
-    })
-  ),
-})
+export function buildSkiingTestSchema(locale: AppLocale = 'en') {
+  return buildCreateTestSchema(locale).extend({
+    testType: z.literal('SKIING'),
+    stages: z.array(
+      testStageSchema.extend({
+        pace: z.number().min(2, t(locale, 'Pace must be at least 2 min/km', 'Tempo måste vara minst 2 min/km')).max(20),
+      })
+    ),
+  })
+}
+
+export const skiingTestSchema = buildSkiingTestSchema('en')
 
 export type ClientFormData = z.infer<typeof clientSchema>
 export type TestStageFormData = z.infer<typeof testStageSchema>

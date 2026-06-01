@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from "@/lib/prisma"
-import { createTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
+import { buildCreateTestApiSchema, type CreateTestApiData } from '@/lib/validations/schemas'
 import { detectLactateDecreases } from '@/lib/lactate/data-quality'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient, getCurrentUser, getRequestedBusinessScope } from '@/lib/auth-utils'
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validate input
-    const validation = createTestApiSchema.safeParse(body)
+    const validation = buildCreateTestApiSchema(locale).safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
         {

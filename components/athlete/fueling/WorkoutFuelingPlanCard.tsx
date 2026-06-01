@@ -177,9 +177,9 @@ export function WorkoutFuelingPlanCard({ prescription, log }: WorkoutFuelingPlan
               </div>
             )}
 
-            {executionPlan.notesSv.length > 0 && (
+            {executionPlan.notes.length > 0 && (
               <p className="mt-3 text-xs font-medium leading-relaxed text-slate-500 dark:text-slate-400">
-                {raceDayNote(executionPlan.notesSv[executionPlan.carbsPerHour > 60 ? 2 : 0], locale)}
+                {raceDayNote(executionPlan.notes[executionPlan.carbsPerHour > 60 ? 2 : 0], locale)}
               </p>
             )}
           </div>

@@ -276,9 +276,9 @@ export function RaceFuelingEstimateSection({ clientId, test, weightKg }: RaceFue
             <Metric label={t('raceDayPlan.gelEquivalent')} value={raceDayPlan.gelEquivalentCount ? t('raceDayPlan.gels', { count: raceDayPlan.gelEquivalentCount }) : t('missing')} />
             <Metric label={t('raceDayPlan.sportsDrink')} value={raceDayPlan.bottleMixCount ? t('raceDayPlan.bottles', { count: raceDayPlan.bottleMixCount }) : t('missing')} />
           </div>
-          {raceDayPlan.notesSv.length > 0 && (
+          {raceDayPlan.notes.length > 0 && (
             <ul className="list-disc pl-5 mt-3 space-y-1">
-              {raceDayPlan.notesSv.map((note) => (
+              {raceDayPlan.notes.map((note) => (
                 <li key={note}>{note}</li>
               ))}
             </ul>

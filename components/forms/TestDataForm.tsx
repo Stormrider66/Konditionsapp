@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useLocale } from 'next-intl'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus, Trash2, Save, Download, Info, Camera, Loader2, CalendarDays, AlertTriangle, Sparkles, ChevronDown, ChevronRight, Activity, Video, Square, CheckCircle2, ExternalLink } from 'lucide-react'
-import { createTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
+import { buildCreateTestSchema, CreateTestFormData, detectLactateDecreases } from '@/lib/validations/schemas'
 import { TestType, TestTemplate } from '@/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -109,6 +109,8 @@ export function TestDataForm({
   onStageVideosChange,
 }: TestDataFormProps) {
   const locale = useLocale()
+  const appLocale = locale === 'sv' ? 'sv' : 'en'
+  const formSchema = useMemo(() => buildCreateTestSchema(appLocale), [appLocale])
   const t = useCallback((sv: string, en: string) => locale === 'sv' ? sv : en, [locale])
   const { toast } = useToast()
   const {
@@ -119,7 +121,7 @@ export function TestDataForm({
     setValue,
     formState: { errors },
   } = useForm<CreateTestFormData>({
-    resolver: zodResolver(createTestSchema),
+    resolver: zodResolver(formSchema),
     defaultValues: {
       testType,
       testDate: new Date().toISOString().split('T')[0],

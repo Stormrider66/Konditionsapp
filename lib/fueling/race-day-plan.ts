@@ -10,6 +10,8 @@ export interface RaceDayFuelingPlan {
     carbs: number
     label: string
   }>
+  notes: string[]
+  /** @deprecated Use notes. Kept for existing API consumers during the transition. */
   notesSv: string[]
 }
 
@@ -28,6 +30,8 @@ export function buildRaceDayFuelingPlan(
   const totalCarbs = normalizedDuration ? Math.round(roundedCarbsPerHour * (normalizedDuration / 60)) : null
   const intakeEvery20Min = Math.round(roundedCarbsPerHour / 3)
 
+  const notes = buildNotes(roundedCarbsPerHour, normalizedDuration, locale)
+
   return {
     carbsPerHour: roundedCarbsPerHour,
     durationMinutes: normalizedDuration,
@@ -36,7 +40,8 @@ export function buildRaceDayFuelingPlan(
     gelEquivalentCount: totalCarbs ? Math.ceil(totalCarbs / GEL_CARBS_G) : null,
     bottleMixCount: totalCarbs ? Math.ceil(totalCarbs / BOTTLE_MIX_CARBS_G) : null,
     timing: buildTiming(normalizedDuration, intakeEvery20Min),
-    notesSv: buildNotes(roundedCarbsPerHour, normalizedDuration, locale),
+    notes,
+    notesSv: notes,
   }
 }
 

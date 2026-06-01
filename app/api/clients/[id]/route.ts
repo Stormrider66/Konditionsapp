@@ -1,7 +1,7 @@
 // app/api/clients/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
-import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
+import { createClientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { getCurrentUser, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
@@ -288,7 +288,7 @@ export async function PUT(
     const body = await request.json()
 
     // Validate input
-    const validation = clientSchema.safeParse(body)
+    const validation = createClientSchema(locale).safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
         {

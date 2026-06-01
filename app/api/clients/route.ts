@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { clientSchema, type ClientFormData } from '@/lib/validations/schemas'
+import { createClientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
 import { getCurrentUser, getRequestedBusinessScope, hasReachedAthleteLimit } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
 
     // Validate input
-    const validation = clientSchema.safeParse(body)
+    const validation = createClientSchema(locale).safeParse(body)
     if (!validation.success) {
       return NextResponse.json(
         {
