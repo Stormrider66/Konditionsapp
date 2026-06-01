@@ -79,8 +79,13 @@ model KnowledgeChunk {
   content    String @db.Text // Actual text content
   chunkIndex Int // Order within document
 
-  // Embedding stored via raw SQL (pgvector)
-  // embedding    vector(1536) -- Added via migration
+  // Embedding stored via raw SQL (pgvector).
+  // Legacy 1536-dim embedding (OpenAI ada-002) was managed outside Prisma.
+  // `embedding_v2` is the current 768-dim Gemini/OpenAI-3-small column (added
+  // lazily via ensureVectorColumn in lib/ai/embeddings.ts) — declared as
+  // Unsupported so `prisma migrate diff`/`db push` knows it exists and doesn't
+  // try to drop it. Read/write happens via raw SQL. Mirrors KnowledgeSkill.
+  embedding_v2   Unsupported("vector(768)")?
   embeddingModel String? // e.g., "text-embedding-ada-002"
 
   // Chunk metadata
