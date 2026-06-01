@@ -115,8 +115,10 @@ describe('knowledge skill controls', () => {
 
     vi.mocked(searchSystemChunks).mockResolvedValue([
       {
+        id: 'chunk-1',
         documentId: 'doc-1',
         content: 'Svenskt källmaterial kan fortfarande användas som intern kontext.',
+        metadata: null,
         similarity: 0.91,
       },
     ])
