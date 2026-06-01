@@ -576,6 +576,9 @@ export interface CardioSegment {
   duration?: number // seconds
   distance?: number // meters
   pace?: string
+  power?: string // watt target, e.g. "250" or "240-260" (power-based equipment)
+  cadence?: string // RPM target, e.g. "90"
+  equipment?: string
   zone?: number
   notes?: string
   exercises?: Array<{

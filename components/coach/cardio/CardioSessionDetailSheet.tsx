@@ -232,6 +232,18 @@ function formatDistance(meters?: number): string {
   return `${meters} m`;
 }
 
+// Render a repeat-group child step's intensity target (power/cadence/pace/hr) for display.
+function formatChildTarget(targetType?: string, targetValue?: string): string | null {
+  if (!targetType || targetType === 'none' || !targetValue) return null;
+  switch (targetType) {
+    case 'power': return `${targetValue} W`;
+    case 'cadence': return `${targetValue} rpm`;
+    case 'pace': return `@ ${targetValue}`;
+    case 'hr': return `${targetValue} bpm`;
+    default: return targetValue;
+  }
+}
+
 type SavedCardioExportSegment = Omit<CardioSegment, 'type'> & {
   type?: string;
   heartRate?: string;
@@ -288,6 +300,8 @@ function getExportSegments(segments: CardioSegment[]) {
       duration: secondsToExportMinutes(savedSegment.duration),
       distance: metersToExportKilometers(savedSegment.distance),
       pace: savedSegment.pace,
+      power: savedSegment.power,
+      cadence: savedSegment.cadence,
       zone: normalizeZone(savedSegment.zone),
       heartRate: savedSegment.heartRate,
       notes: savedSegment.notes,
@@ -557,6 +571,11 @@ export function CardioSessionDetailSheet({
                                         {step.calories as number} cal
                                       </span>
                                     ) : null}
+                                    {formatChildTarget(step.targetType as string, step.targetValue as string) ? (
+                                      <span className="text-xs font-medium" style={{ color: theme.colors.textMuted }}>
+                                        {formatChildTarget(step.targetType as string, step.targetValue as string)}
+                                      </span>
+                                    ) : null}
                                     {step.notes ? (
                                       <span className="text-xs font-medium">{step.notes as string}</span>
                                     ) : null}
@@ -594,6 +613,8 @@ export function CardioSessionDetailSheet({
                           {segment.duration && formatDuration(segment.duration)}
                           {segment.distance && ` • ${formatDistance(segment.distance)}`}
                           {segment.pace && ` @ ${segment.pace}`}
+                          {segment.power && ` • ${segment.power} W`}
+                          {segment.cadence && ` • ${segment.cadence} rpm`}
                         </div>
                         {exercises.length > 0 && (
                           <ul className="mt-2 space-y-1">

@@ -61,6 +61,8 @@ type CardioFlatSegment = {
   zone: string
   pace?: string // "5:30/km"
   heartRate?: string // "145-155 bpm"
+  power?: string // watt target, e.g. "250" or "240-260" (power-based equipment)
+  cadence?: string // RPM target, e.g. "90"
   notes?: string
   equipment?: string
   repeats?: number // for intervals
@@ -143,6 +145,13 @@ function equipmentLabel(
   locale: AppLocale
 ): string {
   return locale === 'sv' ? option.labelSv ?? option.label : option.label
+}
+
+// Equipment that reports power (watts) + cadence (RPM) rather than running pace.
+// For these the editor shows Watt/RPM fields instead of "Tempo (min/km)".
+const POWER_EQUIPMENT = new Set(['BIKE', 'WATTBIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'ROW', 'SKI_ERG'])
+function equipmentUsesPower(equipment?: string): boolean {
+  return !!equipment && POWER_EQUIPMENT.has(equipment)
 }
 
 type CardioRepeatGroup = {
@@ -445,6 +454,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
             zone: s.zone ? String(s.zone) : '1',
             pace: s.pace || '',
             heartRate: s.heartRate || '',
+            power: s.power || '',
+            cadence: s.cadence || '',
             notes: s.notes || '',
             equipment: s.equipment || '',
             repeats: s.repeats || undefined,
@@ -613,6 +624,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
           zone: s.zone ? parseInt(s.zone) : undefined,
           pace: s.pace || undefined,
           heartRate: s.heartRate || undefined,
+          power: s.power || undefined,
+          cadence: s.cadence || undefined,
           notes: s.notes || undefined,
           equipment: s.equipment || undefined,
           repeats: s.repeats && s.repeats > 1 ? s.repeats : undefined,
@@ -1470,19 +1483,48 @@ function SortableSegmentItem({
               />
             </div>
           </div>
-          <div>
-            <Label className="text-xs text-muted-foreground">{text(locale, 'Tempo (min/km)', 'Pace (min/km)')}</Label>
-            <div className="flex items-center">
-              <Gauge className="h-3 w-3 mr-1 text-muted-foreground" />
-              <Input
-                value={segment.pace || ''}
-                onChange={(e) => onUpdate(segment.id, 'pace', e.target.value)}
-                onBlur={() => onCalculate(segment.id, 'pace')}
-                className="h-7 text-sm"
-                placeholder="5:30"
-              />
+          {equipmentUsesPower(segment.equipment) ? (
+            <>
+              <div>
+                <Label className="text-xs text-muted-foreground">Watt</Label>
+                <div className="flex items-center">
+                  <Zap className="h-3 w-3 mr-1 text-muted-foreground" />
+                  <Input
+                    value={segment.power || ''}
+                    onChange={(e) => onUpdate(segment.id, 'power', e.target.value)}
+                    className="h-7 text-sm"
+                    placeholder="250"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">RPM</Label>
+                <div className="flex items-center">
+                  <Repeat className="h-3 w-3 mr-1 text-muted-foreground" />
+                  <Input
+                    value={segment.cadence || ''}
+                    onChange={(e) => onUpdate(segment.id, 'cadence', e.target.value)}
+                    className="h-7 text-sm"
+                    placeholder="90"
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <div>
+              <Label className="text-xs text-muted-foreground">{text(locale, 'Tempo (min/km)', 'Pace (min/km)')}</Label>
+              <div className="flex items-center">
+                <Gauge className="h-3 w-3 mr-1 text-muted-foreground" />
+                <Input
+                  value={segment.pace || ''}
+                  onChange={(e) => onUpdate(segment.id, 'pace', e.target.value)}
+                  onBlur={() => onCalculate(segment.id, 'pace')}
+                  className="h-7 text-sm"
+                  placeholder="5:30"
+                />
+              </div>
             </div>
-          </div>
+          )}
           <div>
             <Label className="text-xs text-muted-foreground">{text(locale, 'Puls (bpm/zon)', 'Heart rate (bpm/zone)')}</Label>
             <div className="flex items-center">
