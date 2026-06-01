@@ -19,8 +19,8 @@ import {
   Dumbbell,
   Timer,
 } from 'lucide-react'
-import type { NutritionGuidance, WorkoutContext, FoodSuggestion } from '@/lib/nutrition-timing'
-import { useTranslations } from '@/i18n/client'
+import { foodSuggestionName, type NutritionGuidance, type WorkoutContext, type FoodSuggestion } from '@/lib/nutrition-timing'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface WorkoutNutritionCardProps {
   workout: WorkoutContext
@@ -33,9 +33,10 @@ interface WorkoutNutritionCardProps {
 
 function FoodSuggestionChip({ food, isGlass }: { food: FoodSuggestion, isGlass?: boolean }) {
   const t = useTranslations('components.workoutNutritionCard')
+  const locale = useLocale()
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-1 ${isGlass ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300' : 'bg-slate-100 text-slate-700'} text-xs rounded-md transition-colors`}>
-      {food.nameSv}
+      {foodSuggestionName(food, locale)}
       {food.carbsG && <span className="text-slate-500">{t('foodCarbs', { grams: food.carbsG })}</span>}
     </span>
   )

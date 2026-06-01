@@ -124,6 +124,7 @@ export interface FoodSuggestion {
   nameSv: string              // Swedish name
   nameEn: string              // English name (for reference)
   portion: string             // e.g., "80g", "1 banan", "2 dl"
+  portionEn?: string          // English display portion when portion is Swedish
   carbsG?: number             // Carbs in grams
   proteinG?: number           // Protein in grams
   fatG?: number               // Fat in grams

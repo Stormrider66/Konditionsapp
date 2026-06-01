@@ -42,6 +42,7 @@ export const CARB_SOURCES: FoodSuggestion[] = [
     nameSv: 'Havregrynsgröt',
     nameEn: 'Oatmeal porridge',
     portion: '2 dl torrt havre + vatten',
+    portionEn: '2 dl dry oats + water',
     carbsG: 54,
     proteinG: 10,
     fatG: 5,
@@ -61,6 +62,7 @@ export const CARB_SOURCES: FoodSuggestion[] = [
     nameSv: 'Vitt ris',
     nameEn: 'White rice',
     portion: '1.5 dl kokt',
+    portionEn: '1.5 dl cooked',
     carbsG: 45,
     proteinG: 3,
     fatG: 0,
@@ -79,6 +81,7 @@ export const CARB_SOURCES: FoodSuggestion[] = [
     nameSv: 'Pasta',
     nameEn: 'Pasta',
     portion: '2 dl kokt',
+    portionEn: '2 dl cooked',
     carbsG: 50,
     proteinG: 7,
     fatG: 1,
@@ -114,6 +117,7 @@ export const CARB_SOURCES: FoodSuggestion[] = [
     nameSv: 'Rostat bröd (vitt)',
     nameEn: 'White toast',
     portion: '2 skivor',
+    portionEn: '2 slices',
     carbsG: 30,
     proteinG: 4,
     fatG: 1,
@@ -130,6 +134,7 @@ export const CARB_SOURCES: FoodSuggestion[] = [
     nameSv: 'Knäckebröd',
     nameEn: 'Crispbread',
     portion: '3 skivor',
+    portionEn: '3 slices',
     carbsG: 30,
     proteinG: 4,
     fatG: 1,
@@ -147,6 +152,7 @@ export const CARB_SOURCES: FoodSuggestion[] = [
     nameSv: 'Honung',
     nameEn: 'Honey',
     portion: '2 msk (40g)',
+    portionEn: '2 tbsp (40g)',
     carbsG: 35,
     proteinG: 0,
     fatG: 0,
@@ -201,6 +207,7 @@ export const CARB_SOURCES: FoodSuggestion[] = [
     nameSv: 'Fullkornsbröd',
     nameEn: 'Whole grain bread',
     portion: '2 skivor',
+    portionEn: '2 slices',
     carbsG: 30,
     proteinG: 6,
     fatG: 2,
@@ -260,6 +267,7 @@ export const PROTEIN_SOURCES: FoodSuggestion[] = [
     nameSv: 'Ägg',
     nameEn: 'Eggs',
     portion: '3 st',
+    portionEn: '3 eggs',
     carbsG: 1,
     proteinG: 20,
     fatG: 15,
@@ -399,6 +407,7 @@ export const PROTEIN_SOURCES: FoodSuggestion[] = [
     nameSv: 'Linser',
     nameEn: 'Lentils',
     portion: '2 dl kokta',
+    portionEn: '2 dl cooked',
     carbsG: 30,
     proteinG: 15,
     fatG: 1,
@@ -416,6 +425,7 @@ export const PROTEIN_SOURCES: FoodSuggestion[] = [
     nameSv: 'Kikärtor',
     nameEn: 'Chickpeas',
     portion: '2 dl kokta',
+    portionEn: '2 dl cooked',
     carbsG: 35,
     proteinG: 12,
     fatG: 3,
@@ -521,6 +531,7 @@ export const DURING_WORKOUT_FUEL: FoodSuggestion[] = [
     nameSv: 'Energitugg',
     nameEn: 'Energy chews',
     portion: '4-5 st',
+    portionEn: '4-5 pieces',
     carbsG: 25,
     proteinG: 0,
     fatG: 0,
@@ -537,6 +548,7 @@ export const DURING_WORKOUT_FUEL: FoodSuggestion[] = [
     nameSv: 'Dadlar',
     nameEn: 'Dates',
     portion: '4-5 st (50g)',
+    portionEn: '4-5 pieces (50g)',
     carbsG: 35,
     proteinG: 1,
     fatG: 0,
@@ -571,6 +583,7 @@ export const DURING_WORKOUT_FUEL: FoodSuggestion[] = [
     nameSv: 'Banan',
     nameEn: 'Banana',
     portion: '1 st',
+    portionEn: '1 piece',
     carbsG: 27,
     proteinG: 1,
     fatG: 0,
@@ -594,6 +607,7 @@ export const MIXED_FOODS: FoodSuggestion[] = [
     nameSv: 'Fil med müsli',
     nameEn: 'Yogurt with muesli',
     portion: '2 dl fil + 0.5 dl müsli',
+    portionEn: '2 dl yogurt + 0.5 dl muesli',
     carbsG: 35,
     proteinG: 12,
     fatG: 6,
@@ -612,6 +626,7 @@ export const MIXED_FOODS: FoodSuggestion[] = [
     nameSv: 'Smörgås med ost och skinka',
     nameEn: 'Sandwich with cheese and ham',
     portion: '2 skivor bröd + pålägg',
+    portionEn: '2 slices bread + toppings',
     carbsG: 35,
     proteinG: 18,
     fatG: 12,
@@ -646,6 +661,7 @@ export const MIXED_FOODS: FoodSuggestion[] = [
     nameSv: 'Havregrynsgröt med banan och nötter',
     nameEn: 'Oatmeal with banana and nuts',
     portion: '1 portion',
+    portionEn: '1 serving',
     carbsG: 60,
     proteinG: 12,
     fatG: 12,
@@ -664,6 +680,7 @@ export const MIXED_FOODS: FoodSuggestion[] = [
     nameSv: 'Kyckling med ris',
     nameEn: 'Chicken with rice',
     portion: '150g kyckling + 1.5 dl ris',
+    portionEn: '150g chicken + 1.5 dl rice',
     carbsG: 45,
     proteinG: 42,
     fatG: 6,
@@ -682,6 +699,7 @@ export const MIXED_FOODS: FoodSuggestion[] = [
     nameSv: 'Lax med potatis',
     nameEn: 'Salmon with potatoes',
     portion: '150g lax + 2 potatisar',
+    portionEn: '150g salmon + 2 potatoes',
     carbsG: 35,
     proteinG: 38,
     fatG: 20,
@@ -699,6 +717,7 @@ export const MIXED_FOODS: FoodSuggestion[] = [
     nameSv: 'Ägg på rostat bröd',
     nameEn: 'Eggs on toast',
     portion: '2 ägg + 2 skivor bröd',
+    portionEn: '2 eggs + 2 slices bread',
     carbsG: 30,
     proteinG: 18,
     fatG: 12,
@@ -922,13 +941,31 @@ export function getFoodsForProteinTarget(
   return sortByGoal(matched, goalType)
 }
 
+type FoodSuggestionLocale = 'en' | 'sv' | string | undefined
+
+function isSwedishLocale(locale: FoodSuggestionLocale): boolean {
+  return typeof locale === 'string' && locale.startsWith('sv')
+}
+
+export function foodSuggestionName(food: FoodSuggestion, locale: FoodSuggestionLocale = 'sv'): string {
+  return isSwedishLocale(locale) ? food.nameSv : food.nameEn
+}
+
+export function foodSuggestionPortion(food: FoodSuggestion, locale: FoodSuggestionLocale = 'sv'): string {
+  return isSwedishLocale(locale) ? food.portion : food.portionEn ?? food.portion
+}
+
+export function formatFoodSuggestion(food: FoodSuggestion, locale: FoodSuggestionLocale = 'sv'): string {
+  const macros: string[] = []
+  if (food.carbsG) macros.push(`${food.carbsG}g ${isSwedishLocale(locale) ? 'kolhydrater' : 'carbs'}`)
+  if (food.proteinG) macros.push(`${food.proteinG}g protein`)
+
+  return `${foodSuggestionName(food, locale)} (${foodSuggestionPortion(food, locale)}) - ${macros.join(', ')}`
+}
+
 /**
  * Format food suggestion for display (Swedish)
  */
 export function formatFoodSuggestionSv(food: FoodSuggestion): string {
-  const macros: string[] = []
-  if (food.carbsG) macros.push(`${food.carbsG}g kolhydrater`)
-  if (food.proteinG) macros.push(`${food.proteinG}g protein`)
-
-  return `${food.nameSv} (${food.portion}) - ${macros.join(', ')}`
+  return formatFoodSuggestion(food, 'sv')
 }

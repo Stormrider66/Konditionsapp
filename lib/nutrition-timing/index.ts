@@ -111,6 +111,9 @@ export {
   getMixedMeals,
   getFoodsForCarbTarget,
   getFoodsForProteinTarget,
+  foodSuggestionName,
+  foodSuggestionPortion,
+  formatFoodSuggestion,
   formatFoodSuggestionSv,
 } from './constants/food-suggestions'
 

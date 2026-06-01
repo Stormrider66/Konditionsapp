@@ -8,7 +8,7 @@ import { Utensils, Clock, Droplets, X, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { useLocale, useTranslations } from '@/i18n/client'
-import type { DailyNutritionGuidance } from '@/lib/nutrition-timing'
+import { foodSuggestionName, foodSuggestionPortion, type DailyNutritionGuidance } from '@/lib/nutrition-timing'
 
 const DISMISS_KEY = 'nutritionTimingDismissed'
 
@@ -200,7 +200,7 @@ export function NutritionTimingCard() {
                   {(isPostWorkoutMode ? postWorkout : preWorkout)!.foodSuggestions.slice(0, 4).map((food, i) => (
                     <li key={i} className="flex items-center gap-1">
                       <span className="text-emerald-500">•</span>
-                      <span>{locale === 'en' ? food.nameEn : food.nameSv} ({food.portion})</span>
+                      <span>{foodSuggestionName(food, locale)} ({foodSuggestionPortion(food, locale)})</span>
                     </li>
                   ))}
                 </ul>
