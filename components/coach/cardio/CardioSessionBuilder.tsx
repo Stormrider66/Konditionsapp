@@ -1593,10 +1593,10 @@ function SortableSegmentItem({
             <>
               <div>
                 <Label className="text-xs text-muted-foreground">{text(locale, 'Effektmål', 'Power target')}</Label>
-                <div className="flex items-center gap-1">
+                <div className="flex flex-wrap items-center gap-1">
                   <Zap className="h-3 w-3 text-muted-foreground" />
                   <Select value={segment.powerRelTo ?? 'abs'} onValueChange={(v) => onSetPowerMode(segment.id, v)}>
-                    <SelectTrigger className="h-7 w-[92px] text-xs px-1">
+                    <SelectTrigger className="h-7 w-[88px] text-xs px-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1607,21 +1607,22 @@ function SortableSegmentItem({
                     </SelectContent>
                   </Select>
                   {segment.powerRelTo ? (
-                    <div className="relative flex-1">
+                    <div className="flex items-center gap-0.5 flex-1 min-w-[3.5rem]">
                       <Input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
                         value={segment.powerRelPercent ?? ''}
                         onChange={(e) => onUpdate(segment.id, 'powerRelPercent', parseInt(e.target.value) || undefined)}
-                        className="h-7 text-sm pr-5"
+                        className="h-7 text-sm w-full"
                         placeholder="80"
                       />
-                      <span className="absolute right-2 top-1.5 text-xs text-muted-foreground">%</span>
+                      <span className="text-xs text-muted-foreground">%</span>
                     </div>
                   ) : (
                     <Input
                       value={segment.power || ''}
                       onChange={(e) => onUpdate(segment.id, 'power', e.target.value)}
-                      className="h-7 text-sm flex-1"
+                      className="h-7 text-sm flex-1 min-w-[3.5rem]"
                       placeholder="250"
                     />
                   )}
@@ -2047,15 +2048,16 @@ function ChildStepRow({
                     </SelectContent>
                   </Select>
                   {step.targetRelTo ? (
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-0.5">
                       <Input
-                        type="number"
-                        className="h-6 w-12 text-xs px-1"
+                        type="text"
+                        inputMode="numeric"
+                        className="h-6 w-14 text-xs px-1"
                         value={step.targetRelPercent ?? ''}
                         onChange={(e) => onUpdate(groupId, step.id, 'targetRelPercent', parseInt(e.target.value) || undefined)}
                         placeholder="80"
                       />
-                      <span className="text-xs text-muted-foreground ml-0.5">%</span>
+                      <span className="text-xs text-muted-foreground">%</span>
                     </div>
                   ) : (
                     <Input
