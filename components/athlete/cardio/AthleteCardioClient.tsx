@@ -158,6 +158,42 @@ export function AthleteCardioClient({
     setShowStartScreen(true)
   }
 
+  // Reset all logged progress for an assignment and start over.
+  const handleRestartAssignment = async (assignmentId: string) => {
+    const ok = window.confirm(
+      locale === 'sv'
+        ? 'Börja om passet från början? All loggad data för passet raderas.'
+        : 'Restart this session from the beginning? All its logged data will be cleared.'
+    )
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/cardio-sessions/${assignmentId}/focus-mode?mode=reset`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('reset failed')
+      toast({ title: locale === 'sv' ? 'Passet återställt' : 'Session reset' })
+      void fetchAssignments()
+    } catch {
+      toast({ title: t('toasts.errorTitle'), description: t('toasts.saveError'), variant: 'destructive' })
+    }
+  }
+
+  // Remove an assigned session from the athlete's list.
+  const handleDeleteAssignment = async (assignmentId: string) => {
+    const ok = window.confirm(
+      locale === 'sv'
+        ? 'Ta bort det tilldelade passet? Detta kan inte ångras.'
+        : 'Remove this assigned session? This cannot be undone.'
+    )
+    if (!ok) return
+    try {
+      const res = await fetch(`/api/cardio-sessions/${assignmentId}/focus-mode?mode=delete`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('delete failed')
+      toast({ title: locale === 'sv' ? 'Pass borttaget' : 'Session removed' })
+      void fetchAssignments()
+    } catch {
+      toast({ title: t('toasts.errorTitle'), description: t('toasts.saveError'), variant: 'destructive' })
+    }
+  }
+
   // Segment type names
   const SEGMENT_TYPE_NAMES: Record<SegmentType, string> = {
     WARMUP: 'segments.warmup',
@@ -458,6 +494,8 @@ export function AthleteCardioClient({
                   locationName={assignment.locationName}
                   location={assignment.location}
                   onStartFocusMode={handleStartFocusMode}
+                  onRestart={handleRestartAssignment}
+                  onDelete={handleDeleteAssignment}
                 />
               ))}
             </div>

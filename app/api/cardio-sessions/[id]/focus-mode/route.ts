@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
@@ -241,6 +242,61 @@ export async function POST(
       { success: false, error: 'Failed to start focus mode session' },
       { status: 500 }
     )
+  }
+}
+
+/**
+ * DELETE /api/cardio-sessions/[id]/focus-mode
+ * Reset the athlete's progress (?mode=reset, default) or remove the assignment
+ * entirely (?mode=delete). Both clear any logged session/segment data.
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: assignmentId } = await params
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+    }
+    const { clientId } = resolved
+    const mode = request.nextUrl.searchParams.get('mode') === 'delete' ? 'delete' : 'reset'
+
+    const assignment = await prisma.cardioSessionAssignment.findUnique({
+      where: { id: assignmentId },
+    })
+    if (!assignment) {
+      return NextResponse.json({ success: false, error: 'Assignment not found' }, { status: 404 })
+    }
+    if (assignment.athleteId !== clientId) {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
+    }
+
+    // Clear all logged progress for this assignment (cascade removes segment logs).
+    await prisma.cardioSessionLog.deleteMany({ where: { assignmentId } })
+
+    if (mode === 'delete') {
+      await prisma.cardioSessionAssignment.delete({ where: { id: assignmentId } })
+      return NextResponse.json({ success: true, message: 'Assignment removed' })
+    }
+
+    // Reset: keep the assignment, wipe results and set it back to pending.
+    await prisma.cardioSessionAssignment.update({
+      where: { id: assignmentId },
+      data: {
+        status: 'PENDING',
+        actualDuration: null,
+        actualDistance: null,
+        avgHeartRate: null,
+        actualSegments: Prisma.DbNull,
+        completedAt: null,
+      },
+    })
+    return NextResponse.json({ success: true, message: 'Progress reset' })
+  } catch (error) {
+    logError('Error resetting cardio focus mode:', error)
+    return NextResponse.json({ success: false, error: 'Failed to reset session' }, { status: 500 })
   }
 }
 

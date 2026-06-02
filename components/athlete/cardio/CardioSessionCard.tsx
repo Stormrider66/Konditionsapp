@@ -20,6 +20,8 @@ import {
   CheckCircle2,
   MapPin,
   Timer,
+  RotateCcw,
+  Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocale, useTranslations } from '@/i18n/client'
@@ -47,6 +49,10 @@ interface CardioSessionCardProps {
   locationName?: string | null
   location?: { id: string; name: string } | null
   onStartFocusMode: (assignmentId: string) => void
+  /** Reset all logged progress and start over (shown on in-progress sessions). */
+  onRestart?: (assignmentId: string) => void
+  /** Remove the assignment from the athlete's list. */
+  onDelete?: (assignmentId: string) => void
 }
 
 const STATUS_BADGES: Record<AssignmentStatus, { labelKey: string; className: string }> = {
@@ -96,6 +102,8 @@ export function CardioSessionCard({
   locationName,
   location,
   onStartFocusMode,
+  onRestart,
+  onDelete,
 }: CardioSessionCardProps) {
   const t = useTranslations('components.cardioSessionCard')
   const locale = useLocale()
@@ -258,6 +266,16 @@ export function CardioSessionCard({
               {t('actions.continueWorkout')}
             </Button>
             <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="cardio" />
+            {onRestart && (
+              <Button variant="outline" size="icon" className="shrink-0" onClick={() => onRestart(id)} title={locale === 'sv' ? 'Börja om från början' : 'Restart from the beginning'}>
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:text-destructive" onClick={() => onDelete(id)} title={locale === 'sv' ? 'Ta bort' : 'Remove'}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         ) : (
           <div className="flex gap-2">
@@ -266,6 +284,11 @@ export function CardioSessionCard({
               {t('actions.startFocusMode')}
             </Button>
             <HeadlessVoiceCoachLauncher assignmentId={id} workoutType="cardio" />
+            {onDelete && (
+              <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:text-destructive" onClick={() => onDelete(id)} title={locale === 'sv' ? 'Ta bort' : 'Remove'}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         )}
       </GlassCardFooter>
