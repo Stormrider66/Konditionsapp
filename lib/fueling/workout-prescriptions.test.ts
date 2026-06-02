@@ -116,7 +116,7 @@ describe('workout fueling prescriptions', () => {
         id: 'upcoming',
         sport: 'RUNNING',
         recommendedCarbsGPerHour: 85,
-        raceDate: '2026-06-01T08:00:00.000Z',
+        raceDate: '2099-06-01T08:00:00.000Z',
         createdAt: '2026-03-01T08:00:00.000Z',
         updatedAt: '2026-03-01T08:00:00.000Z',
       },
