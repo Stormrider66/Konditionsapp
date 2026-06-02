@@ -148,13 +148,14 @@ export function AthleteCardioClient({
     if (hasUpcoming) setActiveTab('upcoming')
   }, [loading, assignments])
 
-  // Start focus mode — jump straight into the timer (skip the overview screen).
+  // Open the session — show the overview first so the athlete can read the
+  // workout, then start it manually from there.
   const handleStartFocusMode = async (assignmentId: string) => {
     const assignment = assignments.find((a) => a.id === assignmentId)
     if (!assignment) return
 
     setSelectedAssignment(assignment)
-    setAutoStartFocus(true)
+    setAutoStartFocus(false)
     setShowStartScreen(true)
   }
 

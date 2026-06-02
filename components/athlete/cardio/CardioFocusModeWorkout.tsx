@@ -32,6 +32,7 @@ import {
   Clock,
   Headphones,
   HeadphoneOff,
+  Play,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -46,7 +47,7 @@ import {
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
-import { useTranslations } from '@/i18n/client'
+import { useTranslations, useLocale } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -117,7 +118,14 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   PLYOMETRIC: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
 }
 
-type ViewState = 'timer' | 'logging' | 'complete'
+type ViewState = 'prep' | 'timer' | 'logging' | 'complete'
+
+// Seconds of "get ready" pre-roll before an auto-starting work interval.
+const PREP_SECONDS = 10
+
+function isWorkType(type?: string): boolean {
+  return type === 'INTERVAL' || type === 'STEADY' || type === 'HILL'
+}
 
 export function CardioFocusModeWorkout({
   assignmentId,
@@ -132,9 +140,11 @@ export function CardioFocusModeWorkout({
   onSegmentComplete,
 }: CardioFocusModeWorkoutProps) {
   const t = useTranslations('components.cardioFocusModeWorkout')
+  const locale = useLocale()
   const [segments, setSegments] = useState<FocusModeSegment[]>(initialSegments)
   const [currentIndex, setCurrentIndex] = useState(initialSegmentIndex)
   const [viewState, setViewState] = useState<ViewState>('timer')
+  const [prepLeft, setPrepLeft] = useState(0)
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [sessionRPE, setSessionRPE] = useState(5)
@@ -216,6 +226,30 @@ export function CardioFocusModeWorkout({
   const currentTargetPower = resolvedPower.watts
   const currentTargetPowerPending = resolvedPower.pendingLabel
 
+  // "Get ready" pre-roll countdown before a work interval; at 0 it starts the timer.
+  useEffect(() => {
+    if (viewState !== 'prep') return
+    if (prepLeft <= 0) {
+      setViewState('timer')
+      return
+    }
+    const id = setTimeout(() => setPrepLeft((p) => p - 1), 1000)
+    return () => clearTimeout(id)
+  }, [viewState, prepLeft])
+
+  // Advance to a segment. Auto-starting work intervals get a get-ready pre-roll first.
+  const goToSegment = (index: number, autoRun: boolean) => {
+    setAutoRunTimer(autoRun)
+    setCurrentIndex(index)
+    setTimerElapsed(0)
+    if (autoRun && isWorkType(segments[index]?.type)) {
+      setPrepLeft(PREP_SECONDS)
+      setViewState('prep')
+    } else {
+      setViewState('timer')
+    }
+  }
+
   // Announce segment on transition (basic voice — skip when live coach active)
   useEffect(() => {
     if (liveCoachActive) return
@@ -255,10 +289,16 @@ export function CardioFocusModeWorkout({
         prev.map((seg, idx) => (idx === currentIndex ? { ...seg, completed: true, skipped: false } : seg))
       )
       if (currentIndex < segments.length - 1) {
+        const nextIdx = currentIndex + 1
         setAutoRunTimer(true)
-        setCurrentIndex((prev) => prev + 1)
-        setViewState('timer')
+        setCurrentIndex(nextIdx)
         setTimerElapsed(0)
+        if (isWorkType(segments[nextIdx]?.type)) {
+          setPrepLeft(PREP_SECONDS)
+          setViewState('prep')
+        } else {
+          setViewState('timer')
+        }
       } else {
         setShowCompleteDialog(true)
       }
@@ -327,10 +367,7 @@ export function CardioFocusModeWorkout({
 
       const advanceTo = foldRest ? currentIndex + 2 : currentIndex + 1
       if (advanceTo <= segments.length - 1) {
-        setAutoRunTimer(true)
-        setCurrentIndex(advanceTo)
-        setViewState('timer')
-        setTimerElapsed(0)
+        goToSegment(advanceTo, true)
       } else {
         setShowCompleteDialog(true)
       }
@@ -361,10 +398,7 @@ export function CardioFocusModeWorkout({
 
       // Move to next segment (manual skip — don't auto-start the next timer)
       if (currentIndex < segments.length - 1) {
-        setAutoRunTimer(false)
-        setCurrentIndex((prev) => prev + 1)
-        setViewState('timer')
-        setTimerElapsed(0)
+        goToSegment(currentIndex + 1, false)
       } else {
         setShowCompleteDialog(true)
       }
@@ -383,22 +417,12 @@ export function CardioFocusModeWorkout({
 
   // Navigate to previous segment (manual — don't auto-start the timer)
   const goToPrevious = () => {
-    if (currentIndex > 0) {
-      setAutoRunTimer(false)
-      setCurrentIndex((prev) => prev - 1)
-      setViewState('timer')
-      setTimerElapsed(0)
-    }
+    if (currentIndex > 0) goToSegment(currentIndex - 1, false)
   }
 
   // Navigate to next segment (manual — don't auto-start the timer)
   const goToNext = () => {
-    if (currentIndex < segments.length - 1) {
-      setAutoRunTimer(false)
-      setCurrentIndex((prev) => prev + 1)
-      setViewState('timer')
-      setTimerElapsed(0)
-    }
+    if (currentIndex < segments.length - 1) goToSegment(currentIndex + 1, false)
   }
 
   // Format time
@@ -493,7 +517,36 @@ export function CardioFocusModeWorkout({
       {/* Main content */}
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center p-4">
         <div className="my-auto w-full flex flex-col items-center">
-        {viewState === 'timer' && currentSegment.plannedDuration ? (
+        {viewState === 'prep' ? (
+          <div className="text-center space-y-6 max-w-sm mx-auto w-full">
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+              {locale === 'sv' ? 'Gör dig redo' : 'Get ready'}
+            </p>
+            <Badge className={cn('text-lg py-2 px-6 font-black uppercase tracking-wider', SEGMENT_COLORS[currentSegment.type])}>
+              {currentSegment.typeName}{currentSegment.isBenchmark ? ' · Prolog' : ''}
+            </Badge>
+            <p className="text-8xl font-black tabular-nums text-slate-900 dark:text-white">{prepLeft}</p>
+            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-base font-bold text-slate-600 dark:text-slate-300">
+              {currentSegment.plannedDuration ? <span>{formatDuration(currentSegment.plannedDuration)}</span> : null}
+              {currentTargetPower != null ? (
+                <span className="text-amber-500">{currentTargetPower} W</span>
+              ) : currentTargetPowerPending ? (
+                <span>{currentTargetPowerPending}</span>
+              ) : currentSegment.isBenchmark ? (
+                <span className="text-amber-500">{locale === 'sv' ? 'Maximal insats' : 'Max effort'}</span>
+              ) : currentSegment.plannedZone ? (
+                <span>{locale === 'sv' ? 'Zon' : 'Zone'} {currentSegment.plannedZone}</span>
+              ) : null}
+            </div>
+            {currentSegment.notes ? (
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{currentSegment.notes}</p>
+            ) : null}
+            <Button size="lg" onClick={() => setViewState('timer')} className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20">
+              <Play className="h-5 w-5 mr-2" />
+              {locale === 'sv' ? 'Starta nu' : 'Start now'}
+            </Button>
+          </div>
+        ) : viewState === 'timer' && currentSegment.plannedDuration ? (
           <IntervalTimer
             key={currentSegment.id}
             duration={currentSegment.plannedDuration}
