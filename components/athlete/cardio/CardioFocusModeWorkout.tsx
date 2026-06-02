@@ -226,6 +226,19 @@ export function CardioFocusModeWorkout({
   const currentTargetPower = resolvedPower.watts
   const currentTargetPowerPending = resolvedPower.pendingLabel
 
+  // The rest after this segment runs as a countdown on the log form. If a work
+  // interval follows the rest (and gets a get-ready pre-roll), end the form
+  // countdown PREP_SECONDS early so the pre-roll fills the last seconds of the
+  // rest instead of adding to it (a 60s rest stays 60s, not 70s).
+  const followingRestSeconds = segments[currentIndex + 1]?.type === 'RECOVERY'
+    ? (segments[currentIndex + 1]?.plannedDuration ?? 0)
+    : 0
+  const restCountdownForForm = followingRestSeconds > 0
+    ? (isWorkType(segments[currentIndex + 2]?.type) && followingRestSeconds > PREP_SECONDS
+        ? followingRestSeconds - PREP_SECONDS
+        : followingRestSeconds)
+    : undefined
+
   // "Get ready" pre-roll countdown before a work interval; at 0 it starts the timer.
   useEffect(() => {
     if (viewState !== 'prep') return
@@ -515,8 +528,8 @@ export function CardioFocusModeWorkout({
       </div>
 
       {/* Main content */}
-      <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center p-4">
-        <div className="my-auto w-full flex flex-col items-center">
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="min-h-full w-full flex flex-col items-center justify-center p-4">
         {viewState === 'prep' ? (
           <div className="text-center space-y-6 max-w-sm mx-auto w-full">
             <p className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
@@ -610,11 +623,7 @@ export function CardioFocusModeWorkout({
                 currentSegment.plannedPower != null)
             }
             isBenchmark={currentSegment.isBenchmark}
-            restCountdownSeconds={
-              segments[currentIndex + 1]?.type === 'RECOVERY'
-                ? segments[currentIndex + 1]?.plannedDuration
-                : undefined
-            }
+            restCountdownSeconds={restCountdownForForm}
             timerDuration={timerElapsed}
             onSubmit={handleSegmentSubmit}
             onSkip={handleSegmentSkip}

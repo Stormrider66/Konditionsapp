@@ -86,9 +86,12 @@ export function SegmentLoggingForm({
   onSkip,
 }: SegmentLoggingFormProps) {
   const t = useTranslations('components.segmentLoggingForm')
-  const [actualDuration, setActualDuration] = useState<string>(
-    timerDuration ? String(Math.round(timerDuration / 60)) : ''
-  )
+  const [actualDuration, setActualDuration] = useState<string>(() => {
+    // Pre-fill the actual time from the elapsed timer, falling back to the
+    // planned duration so it's never blank when the form opens.
+    const seconds = timerDuration || plannedDuration
+    return seconds ? String(Math.round(seconds / 60)) : ''
+  })
   const [actualDistance, setActualDistance] = useState<string>('')
   const [actualAvgHR, setActualAvgHR] = useState<string>('')
   const [actualMaxHR, setActualMaxHR] = useState<string>('')
