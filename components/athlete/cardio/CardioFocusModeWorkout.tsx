@@ -140,6 +140,10 @@ export function CardioFocusModeWorkout({
   const [sessionNotes, _setSessionNotes] = useState('')
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Whether the current segment's timer should auto-start. True during natural
+  // progression (after logging a work interval, and after a rest auto-completes),
+  // false on manual navigation/skip.
+  const [autoRunTimer, setAutoRunTimer] = useState(autoStartFirstTimedSegment)
 
   // Voice coaching (basic SpeechSynthesis)
   const voice = useVoiceCoach({ rate: 1.05 })
@@ -241,13 +245,32 @@ export function CardioFocusModeWorkout({
     if (currentSegment?.plannedDuration) {
       setTimerElapsed(currentSegment.plannedDuration)
     }
+
+    // Rest/recovery: don't make the athlete fill a form on a short rest. Auto-log
+    // it complete and roll straight into the next interval, which auto-starts.
+    if (currentSegment?.type === 'RECOVERY') {
+      void onSegmentComplete(currentIndex, { completed: true, skipped: false }).catch(() => {})
+      setSegments((prev) =>
+        prev.map((seg, idx) => (idx === currentIndex ? { ...seg, completed: true, skipped: false } : seg))
+      )
+      if (currentIndex < segments.length - 1) {
+        setAutoRunTimer(true)
+        setCurrentIndex((prev) => prev + 1)
+        setViewState('timer')
+        setTimerElapsed(0)
+      } else {
+        setShowCompleteDialog(true)
+      }
+      return
+    }
+
     // Announce what's next (basic voice only — live coach handles its own)
     if (!liveCoachActive) {
       const nextSeg = segments[currentIndex + 1]
       voice.speak(buildSegmentCompleteCue(nextSeg), 'high')
     }
     setViewState('logging')
-  }, [currentSegment, currentIndex, segments, voice, liveCoachActive])
+  }, [currentSegment, currentIndex, segments, voice, liveCoachActive, onSegmentComplete])
 
   // Handle timer skip - mark as skipped and move on
   const handleTimerSkip = useCallback(() => {
@@ -282,8 +305,10 @@ export function CardioFocusModeWorkout({
         )
       )
 
-      // Move to next segment or show complete dialog
+      // Move to next segment or show complete dialog — the next timer auto-starts
+      // so the athlete rolls straight into the rest/next interval.
       if (currentIndex < segments.length - 1) {
+        setAutoRunTimer(true)
         setCurrentIndex((prev) => prev + 1)
         setViewState('timer')
         setTimerElapsed(0)
@@ -315,8 +340,9 @@ export function CardioFocusModeWorkout({
         )
       )
 
-      // Move to next segment
+      // Move to next segment (manual skip — don't auto-start the next timer)
       if (currentIndex < segments.length - 1) {
+        setAutoRunTimer(false)
         setCurrentIndex((prev) => prev + 1)
         setViewState('timer')
         setTimerElapsed(0)
@@ -336,18 +362,20 @@ export function CardioFocusModeWorkout({
     })
   }
 
-  // Navigate to previous segment
+  // Navigate to previous segment (manual — don't auto-start the timer)
   const goToPrevious = () => {
     if (currentIndex > 0) {
+      setAutoRunTimer(false)
       setCurrentIndex((prev) => prev - 1)
       setViewState('timer')
       setTimerElapsed(0)
     }
   }
 
-  // Navigate to next segment
+  // Navigate to next segment (manual — don't auto-start the timer)
   const goToNext = () => {
     if (currentIndex < segments.length - 1) {
+      setAutoRunTimer(false)
       setCurrentIndex((prev) => prev + 1)
       setViewState('timer')
       setTimerElapsed(0)
@@ -460,7 +488,7 @@ export function CardioFocusModeWorkout({
             notes={currentSegment.notes}
             onComplete={handleTimerComplete}
             onSkip={handleTimerSkip}
-            autoStart={autoStartFirstTimedSegment && currentIndex === initialSegmentIndex}
+            autoStart={autoRunTimer}
             voiceSpeak={voice.speak}
             disableVoiceCues={liveCoachActive}
             forcePaused={forcePaused}
