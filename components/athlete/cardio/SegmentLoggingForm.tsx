@@ -38,8 +38,10 @@ interface SegmentLoggingFormProps {
   plannedPower?: number
   showPower?: boolean
   isBenchmark?: boolean
-  /** When set, the following rest runs as a live countdown that auto-submits at 0. */
+  /** When set, the following rest runs as a live countdown that auto-submits. */
   restCountdownSeconds?: number
+  /** Auto-submit when the rest countdown reaches this (the get-ready pre-roll takes the rest). Default 0. */
+  restHandoffAt?: number
   timerDuration?: number // Actual time from timer
   onSubmit: (data: {
     actualDuration?: number
@@ -81,6 +83,7 @@ export function SegmentLoggingForm({
   showPower = false,
   isBenchmark = false,
   restCountdownSeconds,
+  restHandoffAt = 0,
   timerDuration,
   onSubmit,
   onSkip,
@@ -139,19 +142,21 @@ export function SegmentLoggingForm({
     if (!restCountdownSeconds) return
     const id = setInterval(() => {
       setRestLeft((prev) => {
-        if (prev <= 1) {
+        // Hand off to the get-ready pre-roll (or finish) at restHandoffAt, holding
+        // the last shown value so the pre-roll continues the count seamlessly.
+        if (prev - 1 <= restHandoffAt) {
           clearInterval(id)
           if (!autoSubmittedRef.current) {
             autoSubmittedRef.current = true
             submitRef.current()
           }
-          return 0
+          return prev
         }
         return prev - 1
       })
     }, 1000)
     return () => clearInterval(id)
-  }, [restCountdownSeconds])
+  }, [restCountdownSeconds, restHandoffAt])
 
   return (
     <Card className="w-full max-w-md mx-auto">

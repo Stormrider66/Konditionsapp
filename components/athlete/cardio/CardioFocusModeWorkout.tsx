@@ -226,18 +226,15 @@ export function CardioFocusModeWorkout({
   const currentTargetPower = resolvedPower.watts
   const currentTargetPowerPending = resolvedPower.pendingLabel
 
-  // The rest after this segment runs as a countdown on the log form. If a work
-  // interval follows the rest (and gets a get-ready pre-roll), end the form
-  // countdown PREP_SECONDS early so the pre-roll fills the last seconds of the
-  // rest instead of adding to it (a 60s rest stays 60s, not 70s).
+  // The rest after this segment runs as one continuous countdown: the log form
+  // counts the full rest (e.g. 60→11), then hands the last PREP_SECONDS to the
+  // get-ready pre-roll (10→0). Total stays the rest length (a 60s rest stays 60s).
   const followingRestSeconds = segments[currentIndex + 1]?.type === 'RECOVERY'
     ? (segments[currentIndex + 1]?.plannedDuration ?? 0)
     : 0
-  const restCountdownForForm = followingRestSeconds > 0
-    ? (isWorkType(segments[currentIndex + 2]?.type) && followingRestSeconds > PREP_SECONDS
-        ? followingRestSeconds - PREP_SECONDS
-        : followingRestSeconds)
-    : undefined
+  const restPrepHandoff = isWorkType(segments[currentIndex + 2]?.type) && followingRestSeconds > PREP_SECONDS
+  const restCountdownForForm = followingRestSeconds > 0 ? followingRestSeconds : undefined
+  const restHandoffForForm = restPrepHandoff ? PREP_SECONDS : 0
 
   // "Get ready" pre-roll countdown before a work interval; at 0 it starts the timer.
   useEffect(() => {
@@ -624,6 +621,7 @@ export function CardioFocusModeWorkout({
             }
             isBenchmark={currentSegment.isBenchmark}
             restCountdownSeconds={restCountdownForForm}
+            restHandoffAt={restHandoffForForm}
             timerDuration={timerElapsed}
             onSubmit={handleSegmentSubmit}
             onSkip={handleSegmentSkip}
