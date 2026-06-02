@@ -873,7 +873,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
         steps: s.steps.map(step => {
           if (step.id !== stepId) return step
           if (mode === 'abs') return { ...step, targetRelTo: undefined, targetRelPercent: undefined }
-          return { ...step, targetRelTo: mode as CardioRelativeRef, targetValue: '' }
+          // Default the % to 80 so a relative target is never saved without a value.
+          return { ...step, targetRelTo: mode as CardioRelativeRef, targetValue: '', targetRelPercent: step.targetRelPercent ?? 80 }
         }),
       }
     }))
@@ -997,7 +998,8 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
     setSegments(segments.map(s => {
       if (s.id !== id || isRepeatGroup(s) || isExerciseBlock(s)) return s
       if (mode === 'abs') return { ...s, powerRelTo: undefined, powerRelPercent: undefined }
-      return { ...s, powerRelTo: mode as CardioRelativeRef, power: undefined }
+      // Default the % to 80 so a relative target is never saved without a value.
+      return { ...s, powerRelTo: mode as CardioRelativeRef, power: undefined, powerRelPercent: s.powerRelPercent ?? 80 }
     }))
   }
 
