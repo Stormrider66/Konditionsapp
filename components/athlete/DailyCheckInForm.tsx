@@ -606,6 +606,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
               </Button>
             )}
           </div>
+          <GarminAttribution className="mt-3" />
         </div>
       )}
 

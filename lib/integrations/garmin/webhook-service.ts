@@ -275,6 +275,30 @@ export async function processGarminWebhookPayload(payload: GarminWebhookPayload)
   return results
 }
 
+export function processGarminWebhookPayloadAsync(
+  payload: GarminWebhookPayload,
+  source = 'garmin-webhook'
+): void {
+  void processGarminWebhookPayload(payload)
+    .then(results => {
+      logger.info('Garmin webhook processing completed asynchronously', {
+        source,
+        dailies: results.dailies,
+        activities: results.activities,
+        activityDetails: results.activityDetails,
+        sleeps: results.sleeps,
+        bodyComps: results.bodyComps,
+        hrv: results.hrv,
+        deregistrations: results.deregistrations,
+        permissionChanges: results.permissionChanges,
+        errorCount: results.errors.length,
+      })
+    })
+    .catch(error => {
+      logger.error('Garmin webhook asynchronous processing failed', { source }, error)
+    })
+}
+
 /**
  * Dispatch Garmin webhook data as agent events for real-time processing.
  * Runs asynchronously - does not block the webhook response.

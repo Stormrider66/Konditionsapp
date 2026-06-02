@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { SportType, IntensityTargets, VolumeCategory } from '@/types';
+import { GarminAttribution } from '@/components/ui/GarminAttribution';
 import {
   getDefaultTargetsForSport,
   isWithinTarget,
@@ -657,12 +658,15 @@ export function WeeklyTrainingSummaryCard({
             <span>Strava: {summary.stravaActivities}</span>
           )}
           {summary.garminActivities > 0 && (
-            <span>Garmin: {summary.garminActivities}</span>
+            <span>Garmin Connect: {summary.garminActivities}</span>
           )}
           {summary.avgReadiness !== null && (
             <span>Readiness: {summary.avgReadiness.toFixed(1)}</span>
           )}
         </div>
+        {summary.garminActivities > 0 && (
+          <GarminAttribution className="justify-center pt-1" />
+        )}
       </CardContent>
     </Card>
   );

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPolicyPage() {
-  const lastUpdated = '2026-03-18'
+  const lastUpdated = '2026-06-02'
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -120,13 +120,54 @@ export default function PrivacyPolicyPage() {
 
                 {/* 6. Third-Party Integrations */}
                 <Section title="6. Third-Party Services and Integrations">
-                  <h3 className="text-lg font-semibold mt-4 mb-2">6.1 Garmin</h3>
+                  <h3 id="garmin-data-processing" className="text-lg font-semibold mt-4 mb-2 scroll-mt-24">
+                    6.1 Garmin data processing
+                  </h3>
                   <p>
-                    We use the Garmin Health API to import your fitness and health data. When you connect
-                    your Garmin account, we receive activity data, daily summaries, sleep data, and heart
-                    rate variability data. We store OAuth tokens securely (encrypted at rest) and access
-                    only the data scopes you authorize. You can revoke access at any time via your Trainomics
-                    settings or through Garmin Connect.
+                    We use the Garmin Health API and Garmin Training API only after you connect your
+                    Garmin Connect account and authorize data sharing. Depending on the permissions and
+                    APIs you enable, we may collect and process Garmin activity summaries, activity
+                    details, heart-rate zones, heart-rate samples, laps, daily summaries, sleep data,
+                    resting heart rate, stress, heart rate variability, body composition data,
+                    deregistration notices, permission-change notices, Garmin user identifiers, and
+                    encrypted access tokens. When you choose to send a workout from Trainomics to Garmin
+                    Connect, we also process the workout name, schedule date, sport, steps, targets, and
+                    notes needed for that transfer.
+                  </p>
+                  <p>
+                    We use Garmin data to show your training and recovery history, calculate training load
+                    and readiness, match Garmin activities to completed sessions, personalize workout and
+                    program recommendations, help coaches and physiotherapists support assigned athletes,
+                    and send workouts to Garmin Connect when requested. Garmin data may be combined with
+                    other training data in Trainomics to provide a unified view of your progress.
+                  </p>
+                  <p>
+                    Garmin data is stored in our PostgreSQL database hosted by Supabase. Garmin webhook
+                    notifications may be processed by our application hosting and by a dedicated Garmin
+                    webhook service running on Google Cloud Run. Relevant Garmin-derived training context
+                    may be processed by third-party AI providers (Anthropic Claude, Google Gemini, and
+                    OpenAI) only when you use AI-powered features and that context is needed to generate
+                    the requested training insight, recommendation, or plan. We do not send your name or
+                    email address to AI providers as part of Garmin-derived AI context, and we do not sell
+                    Garmin data or use it to train or fine-tune general-purpose AI models.
+                  </p>
+                  <p>
+                    Coaches, physiotherapists, or other team members only see Garmin data when they are
+                    authorized to access your athlete profile in Trainomics. Trainomics does not claim that
+                    any Garmin-derived analysis, recommendation, or AI-generated insight is endorsed by or
+                    affiliated with Garmin.
+                  </p>
+                  <p>
+                    You can revoke Garmin access at any time in Trainomics settings or through Garmin
+                    Connect. Disconnecting Garmin deregisters the integration, removes the local Garmin
+                    token, and stops future Garmin collection and AI processing of newly received Garmin
+                    data. Historical Garmin-derived records may remain in your account history so your
+                    training logs, reports, and previously generated insights continue to work, unless you
+                    request deletion or delete your account.
+                  </p>
+                  <p>
+                    Any future changes to this Garmin data-processing section will be submitted to the
+                    Garmin Connect Developer Program team for written approval before implementation.
                   </p>
 
                   <h3 className="text-lg font-semibold mt-4 mb-2">6.2 Strava</h3>
@@ -148,51 +189,6 @@ export default function PrivacyPolicyPage() {
                   <p>
                     Payments are processed by Stripe. We do not store credit card numbers. Stripe&apos;s
                     privacy policy governs payment data processing.
-                  </p>
-
-                  <h3 className="text-lg font-semibold mt-4 mb-2">6.5 AI Processing of Device-Sourced Data (Garmin)</h3>
-                  <p>
-                    When you connect your Garmin account, data from your Garmin device (including heart rate
-                    variability, resting heart rate, sleep patterns, stress levels, and activity metrics) may
-                    be used as input to our AI-powered features. This section describes how we use this data
-                    in compliance with Garmin&apos;s data sharing requirements.
-                  </p>
-
-                  <h4 className="text-base font-semibold mt-3 mb-1">Nature and Purpose of AI Processing</h4>
-                  <p>Garmin device-sourced data is processed by AI systems for the following purposes:</p>
-                  <ul className="list-disc pl-6 space-y-1">
-                    <li><strong>Readiness scoring</strong> &mdash; Your HRV, resting heart rate, and sleep data are analyzed to calculate a daily readiness score that indicates your body&apos;s recovery state</li>
-                    <li><strong>Training recommendations</strong> &mdash; AI models use your Garmin activity history, training load, and recovery data to suggest appropriate training intensity and volume</li>
-                    <li><strong>Program generation</strong> &mdash; When generating personalized training programs, the AI considers your Garmin-derived fitness level, training patterns, and recovery trends</li>
-                    <li><strong>Daily workout adjustments</strong> &mdash; Daily workout suggestions (WOD) are adjusted based on your current readiness, sleep quality, and recent training load from Garmin data</li>
-                    <li><strong>Pattern and milestone detection</strong> &mdash; The system analyzes trends in your Garmin data to identify fitness improvements, overtraining risks, and notable achievements</li>
-                  </ul>
-                  <p>
-                    When Garmin data is used in AI-derived insights, this is clearly indicated in the user
-                    interface with the notice: &quot;Insights derived in part from Garmin device-sourced data.&quot;
-                    Trainomics does not claim that any AI-generated insight is endorsed by or affiliated with Garmin.
-                  </p>
-
-                  <h4 className="text-base font-semibold mt-3 mb-1">Consent and Control</h4>
-                  <p>
-                    AI processing of your Garmin data requires your explicit consent, which you provide when:
-                  </p>
-                  <ul className="list-disc pl-6 space-y-1">
-                    <li>You connect your Garmin account and authorize data sharing via the Garmin Connect consent screen</li>
-                    <li>You use AI-powered features that incorporate your Garmin data (such as readiness-based workout recommendations)</li>
-                  </ul>
-
-                  <h4 className="text-base font-semibold mt-3 mb-1">Withdrawing Consent</h4>
-                  <p>You can withdraw consent for AI processing of your Garmin data at any time by:</p>
-                  <ul className="list-disc pl-6 space-y-1">
-                    <li><strong>Disconnecting Garmin</strong> &mdash; Go to Settings &rarr; Integrations &rarr; Garmin Connect &rarr; &quot;Koppla bort&quot; (Disconnect). This immediately stops all data collection and AI processing of Garmin data</li>
-                    <li><strong>Revoking access in Garmin Connect</strong> &mdash; You can also revoke Trainomics&apos; access directly from the Garmin Connect app or website</li>
-                    <li><strong>Contacting us</strong> &mdash; Email privacy@trainomics.app to request deletion of all stored Garmin data</li>
-                  </ul>
-                  <p>
-                    Withdrawing consent does not affect the lawfulness of processing carried out before
-                    withdrawal. Previously generated AI insights based on Garmin data will remain in your
-                    account history unless you request their deletion.
                   </p>
                 </Section>
 

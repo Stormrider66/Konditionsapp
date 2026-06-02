@@ -23,6 +23,8 @@ export function PushStrengthToGarminButton({
   const [loading, setLoading] = useState(false)
   const [pushed, setPushed] = useState(false)
   const text = (sv: string, en: string) => (locale === 'sv' ? sv : en)
+  const label = 'Garmin Connect'
+  const iconClassName = size === 'icon' ? 'h-3.5 w-3.5' : 'h-3.5 w-3.5 mr-1'
 
   const handlePush = async () => {
     setLoading(true)
@@ -36,16 +38,16 @@ export function PushStrengthToGarminButton({
       const data = await res.json()
 
       if (!res.ok) {
-        toast.error(data.error || text('Kunde inte skicka till Garmin', 'Could not send to Garmin'))
+        toast.error(data.error || text('Kunde inte skicka till Garmin Connect', 'Could not send to Garmin Connect'))
         return
       }
 
       setPushed(true)
-      toast.success(text('Skickat till Garmin', 'Sent to Garmin'), {
+      toast.success(text('Skickat till Garmin Connect', 'Sent to Garmin Connect'), {
         description: data.message,
       })
     } catch {
-      toast.error(text('Kunde inte skicka till Garmin', 'Could not send to Garmin'))
+      toast.error(text('Kunde inte skicka till Garmin Connect', 'Could not send to Garmin Connect'))
     } finally {
       setLoading(false)
     }
@@ -53,9 +55,9 @@ export function PushStrengthToGarminButton({
 
   if (pushed) {
     return (
-      <Button variant="ghost" size={size} disabled className="text-green-600">
-        <Check className="h-3.5 w-3.5 mr-1" />
-        Garmin
+      <Button variant="ghost" size={size} disabled className="text-green-600" title={label}>
+        <Check className={iconClassName} />
+        {size !== 'icon' && label}
       </Button>
     )
   }
@@ -66,13 +68,14 @@ export function PushStrengthToGarminButton({
       size={size}
       onClick={(e) => { e.stopPropagation(); handlePush() }}
       disabled={loading}
+      title={label}
     >
       {loading ? (
-        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+        <Loader2 className={`${iconClassName} animate-spin`} />
       ) : (
-        <Watch className="h-3.5 w-3.5 mr-1" />
+        <Watch className={iconClassName} />
       )}
-      Garmin
+      {size !== 'icon' && label}
     </Button>
   )
 }

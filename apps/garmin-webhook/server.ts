@@ -4,7 +4,7 @@ import { logger } from '@/lib/logger'
 import {
   GarminWebhookPayload,
   logGarminWebhookReceipt,
-  processGarminWebhookPayload,
+  processGarminWebhookPayloadAsync,
   verifyGarminWebhookRequest,
 } from '@/lib/integrations/garmin/webhook-service'
 
@@ -78,8 +78,8 @@ const server = http.createServer(async (req, res) => {
   try {
     const payload = await readJsonBody(req)
     logGarminWebhookReceipt(payload)
-    const results = await processGarminWebhookPayload(payload)
-    sendJson(res, 200, { received: true, ...results })
+    processGarminWebhookPayloadAsync(payload, 'cloud-run')
+    sendJson(res, 200, { received: true, queued: true })
   } catch (error) {
     logger.error('Garmin webhook error (Cloud Run)', {}, error)
     sendJson(res, 200, { received: true, error: 'Processing error' })

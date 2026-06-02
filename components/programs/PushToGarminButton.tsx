@@ -45,20 +45,20 @@ export function PushToGarminButton({
 
       if (!res.ok) {
         if (data.code === 'GARMIN_NOT_CONNECTED') {
-          toast.error(t('Garmin inte anslutet', 'Garmin is not connected'), {
+          toast.error(t('Garmin Connect är inte anslutet', 'Garmin Connect is not connected'), {
             description: t(
               'Atleten behöver ansluta Garmin Connect i sina inställningar.',
               'The athlete needs to connect Garmin Connect in their settings.'
             ),
           })
         } else {
-          toast.error(data.error || t('Kunde inte skicka till Garmin', 'Could not send to Garmin'))
+          toast.error(data.error || t('Kunde inte skicka till Garmin Connect', 'Could not send to Garmin Connect'))
         }
         return
       }
 
       setPushed(true)
-      toast.success(t('Skickat till Garmin', 'Sent to Garmin'), {
+      toast.success(t('Skickat till Garmin Connect', 'Sent to Garmin Connect'), {
         description: data.scheduled
           ? t(
               'Passet är schemalagt i atletens Garmin Connect-kalender.',
@@ -86,7 +86,7 @@ export function PushToGarminButton({
             className={`h-8 w-8 p-0 ${pushed ? 'text-green-600' : 'text-slate-400 hover:text-primary'}`}
             onClick={handlePush}
             disabled={loading}
-            title={pushed ? t('Skickat till Garmin', 'Sent to Garmin') : t('Skicka till Garmin', 'Send to Garmin')}
+            title={pushed ? t('Skickat till Garmin Connect', 'Sent to Garmin Connect') : t('Skicka till Garmin Connect', 'Send to Garmin Connect')}
           >
             {loading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -99,8 +99,8 @@ export function PushToGarminButton({
         </TooltipTrigger>
         <TooltipContent>
           {pushed
-            ? t('Redan skickad till Garmin — tryck för att skicka igen', 'Already sent to Garmin - click to send again')
-            : t('Skicka till Garmin-klocka', 'Send to Garmin watch')}
+            ? t('Redan skickad till Garmin Connect — tryck för att skicka igen', 'Already sent to Garmin Connect - click to send again')
+            : t('Skicka till Garmin Connect', 'Send to Garmin Connect')}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>

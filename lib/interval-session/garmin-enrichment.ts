@@ -5,16 +5,9 @@
  * and enriches them with HR, speed, and zone data.
  */
 
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import {
-  getGarminActivities,
-  getGarminActivityDetails,
-  extractGarminHRZoneSeconds,
-  extractGarminHRSamples,
-  hasGarminConnection,
-  type GarminActivity,
-} from '@/lib/integrations/garmin/client'
 
 const TIME_WINDOW_MS = 30 * 60 * 1000 // ±30 minutes
 
@@ -24,6 +17,17 @@ interface EnrichmentResult {
   matched: boolean
   activityId?: string
   error?: string
+}
+
+type StoredGarminActivity = {
+  garminActivityId: bigint
+  startDate: Date
+  duration: number | null
+  averageHeartrate: number | null
+  maxHeartrate: number | null
+  averageSpeed: number | null
+  hrZoneSeconds: Prisma.JsonValue | null
+  hrStream: Prisma.JsonValue | null
 }
 
 /**
@@ -61,17 +65,37 @@ export async function syncGarminForSession(
 
     try {
       // Check if athlete has Garmin connected
-      const hasConnection = await hasGarminConnection(clientId)
+      const hasConnection = await hasStoredGarminConnection(clientId)
       if (!hasConnection) {
         results.push({ clientId, clientName, matched: false, error: 'No Garmin connection' })
         continue
       }
 
-      // Fetch activities in the time window
-      const activities = await getGarminActivities(clientId, searchStart, searchEnd)
+      // Match against already-synced Garmin PUSH data. This avoids direct PULL calls
+      // during post-session enrichment and keeps the integration webhook-first.
+      const activities = await prisma.garminActivity.findMany({
+        where: {
+          clientId,
+          startDate: {
+            gte: searchStart,
+            lte: searchEnd,
+          },
+        },
+        select: {
+          garminActivityId: true,
+          startDate: true,
+          duration: true,
+          averageHeartrate: true,
+          maxHeartrate: true,
+          averageSpeed: true,
+          hrZoneSeconds: true,
+          hrStream: true,
+        },
+        orderBy: { startDate: 'asc' },
+      })
 
       if (!activities || activities.length === 0) {
-        results.push({ clientId, clientName, matched: false, error: 'No activity found' })
+        results.push({ clientId, clientName, matched: false, error: 'No synced Garmin activity found' })
         continue
       }
 
@@ -83,26 +107,22 @@ export async function syncGarminForSession(
         continue
       }
 
-      // Get detailed data
-      const details = await getGarminActivityDetails(clientId, bestActivity.activityId)
-      const hrZoneSeconds = extractGarminHRZoneSeconds(details)
-      const hrSamples = extractGarminHRSamples(details)
+      const hrZoneSeconds = parseGarminZoneSeconds(bestActivity.hrZoneSeconds)
+      const hrSamples = parseGarminHrSamples(bestActivity.hrStream)
 
       const enrichment = {
-        avgHR: bestActivity.averageHeartRateInBeatsPerMinute,
-        maxHR: bestActivity.maxHeartRateInBeatsPerMinute,
-        avgSpeed: bestActivity.averageSpeedInMetersPerSecond,
+        avgHR: bestActivity.averageHeartrate ?? undefined,
+        maxHR: bestActivity.maxHeartrate ?? undefined,
+        avgSpeed: bestActivity.averageSpeed ?? undefined,
         hrZoneSeconds: hrZoneSeconds || undefined,
-        hrSamples: hrSamples
-          ? hrSamples.map((hr, i) => ({ timestamp: i, hr }))
-          : undefined,
+        hrSamples: hrSamples || undefined,
       }
 
       // Store on participant
       await prisma.intervalSessionParticipant.update({
         where: { id: participant.id },
         data: {
-          garminActivityId: String(bestActivity.activityId),
+          garminActivityId: String(bestActivity.garminActivityId),
           garminEnrichment: JSON.parse(JSON.stringify(enrichment)),
         },
       })
@@ -111,40 +131,56 @@ export async function syncGarminForSession(
         clientId,
         clientName,
         matched: true,
-        activityId: String(bestActivity.activityId),
+        activityId: String(bestActivity.garminActivityId),
       })
 
       logger.info('Garmin enrichment matched', {
         sessionId,
         clientId,
-        activityId: bestActivity.activityId,
+        activityId: String(bestActivity.garminActivityId),
       })
     } catch (error) {
       logger.error('Garmin enrichment failed', { sessionId, clientId, error })
-      results.push({ clientId, clientName, matched: false, error: 'API error' })
+      results.push({ clientId, clientName, matched: false, error: 'Sync data error' })
     }
   }
 
   return results
 }
 
+async function hasStoredGarminConnection(clientId: string): Promise<boolean> {
+  const token = await prisma.integrationToken.findUnique({
+    where: {
+      clientId_type: {
+        clientId,
+        type: 'GARMIN',
+      },
+    },
+    select: { syncEnabled: true },
+  })
+
+  return Boolean(token?.syncEnabled)
+}
+
 /**
  * Find the Garmin activity with the best time overlap with the session.
  */
 function findBestMatch(
-  activities: GarminActivity[],
+  activities: StoredGarminActivity[],
   sessionStart: Date,
   sessionEnd: Date
-): GarminActivity | null {
-  let bestActivity: GarminActivity | null = null
+): StoredGarminActivity | null {
+  let bestActivity: StoredGarminActivity | null = null
   let bestOverlap = 0
 
   const sessionStartMs = sessionStart.getTime()
   const sessionEndMs = sessionEnd.getTime()
 
   for (const activity of activities) {
-    const actStart = activity.startTimeInSeconds * 1000
-    const actEnd = actStart + activity.activityDurationInSeconds * 1000
+    if (!activity.duration || activity.duration <= 0) continue
+
+    const actStart = activity.startDate.getTime()
+    const actEnd = actStart + activity.duration * 1000
 
     // Calculate overlap
     const overlapStart = Math.max(sessionStartMs, actStart)
@@ -158,4 +194,50 @@ function findBestMatch(
   }
 
   return bestActivity
+}
+
+function parseGarminZoneSeconds(value: Prisma.JsonValue | null): Record<string, number> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+
+  const source = value as Record<string, unknown>
+  const zoneSeconds: Record<string, number> = {}
+
+  for (const zone of ['zone1', 'zone2', 'zone3', 'zone4', 'zone5']) {
+    const seconds = source[zone]
+    if (typeof seconds === 'number' && Number.isFinite(seconds)) {
+      zoneSeconds[zone] = seconds
+    }
+  }
+
+  return Object.keys(zoneSeconds).length > 0 ? zoneSeconds : undefined
+}
+
+function parseGarminHrSamples(
+  value: Prisma.JsonValue | null
+): Array<{ timestamp: number; hr: number }> | undefined {
+  if (!Array.isArray(value)) return undefined
+
+  const samples = value
+    .map((sample, index) => {
+      if (typeof sample === 'number' && Number.isFinite(sample)) {
+        return { timestamp: index, hr: sample }
+      }
+
+      if (sample && typeof sample === 'object' && !Array.isArray(sample)) {
+        const record = sample as Record<string, unknown>
+        const hr = record.hr ?? record.heartRate
+        const timestamp = record.timestamp ?? index
+        if (typeof hr === 'number' && Number.isFinite(hr)) {
+          return {
+            timestamp: typeof timestamp === 'number' && Number.isFinite(timestamp) ? timestamp : index,
+            hr,
+          }
+        }
+      }
+
+      return null
+    })
+    .filter((sample): sample is { timestamp: number; hr: number } => sample !== null)
+
+  return samples.length > 0 ? samples : undefined
 }
