@@ -356,7 +356,7 @@ function addSecurityHeaders(
       "img-src 'self' data: https: blob:",
       "media-src 'self' blob: https://*.supabase.co", // Allow video previews and Supabase media
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://api.openai.com wss://api.openai.com", // MediaPipe WASM files + realtime voice
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net https://api.openai.com wss://api.openai.com https://generativelanguage.googleapis.com wss://generativelanguage.googleapis.com", // MediaPipe WASM files + OpenAI realtime voice + Gemini Live voice coach (browser WebSocket)
       "worker-src 'self' blob:", // MediaPipe web workers
       "object-src 'none'",
       "frame-ancestors 'none'",
