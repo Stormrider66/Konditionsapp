@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -244,7 +245,7 @@ export function WorkoutMergeManager() {
                     <div className="bg-green-50 rounded-md p-2 space-y-1">
                       <div className="flex items-center gap-1.5">
                         <Watch className="h-3.5 w-3.5 text-green-600" />
-                        <span className="font-medium text-xs">{t('labels.garmin')}</span>
+                        <span className="font-medium text-xs">Garmin Connect</span>
                       </div>
                       <p className="text-sm font-medium truncate">
                         {garmin.name || garmin.type}
@@ -258,6 +259,7 @@ export function WorkoutMergeManager() {
                         {garmin.distance && <span>{formatDistance(garmin.distance)}</span>}
                         {garmin.averageHeartrate && <span>{Math.round(garmin.averageHeartrate)} bpm</span>}
                       </div>
+                      <GarminAttribution className="pt-1" />
                     </div>
                   </div>
                 </CardContent>
@@ -299,6 +301,7 @@ export function WorkoutMergeManager() {
                   <span>{formatDateLocalized(g.startDate)}</span>
                   {g.duration && <span>{formatDuration(g.duration)}</span>}
                 </div>
+                <GarminAttribution className="pt-1" />
               </div>
             ))}
           </div>

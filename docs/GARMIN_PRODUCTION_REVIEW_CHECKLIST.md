@@ -40,6 +40,7 @@ Use this as the working checklist for the Garmin Connect Developer Program produ
 ## 4. UX and Brand Review
 
 - Include all places where Garmin data appears in the screenshot zip.
+- Screenshot packet guide: `docs/GARMIN_SCREENSHOT_PACKET.md`.
 - Key in-app surfaces:
   - Integrations settings.
   - Garmin health card.

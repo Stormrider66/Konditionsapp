@@ -349,7 +349,7 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
                   <span>{sportLabels[data?.primarySport || clientSummary?.primarySport || ''] || data?.primarySport}</span>
                 )}
                 {clientSummary?.hasStravaConnected && <span title="Strava">🟧</span>}
-                {clientSummary?.hasGarminConnected && <span title="Garmin">🔵</span>}
+                {clientSummary?.hasGarminConnected && <span title="Garmin Connect">🔵</span>}
               </div>
             </div>
           </div>

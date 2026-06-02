@@ -14835,7 +14835,7 @@
       "sections": {
         "suggestedMatches": "Suggested matches",
         "unlinkedLogged": "{count, plural, one {Unlinked logged workout} other {Unlinked logged workouts}}",
-        "unlinkedGarmin": "{count, plural, one {Unlinked Garmin workout} other {Unlinked Garmin workouts}}"
+        "unlinkedGarmin": "{count, plural, one {Unlinked Garmin Connect workout} other {Unlinked Garmin Connect workouts}}"
       },
       "badges": {
         "matchPercent": "{percent}% match"

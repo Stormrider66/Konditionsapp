@@ -860,7 +860,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 {data.counts.garmin > 0 && (
                   <span className="flex items-center gap-1.5 text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
-                    {data.counts.garmin} garmin
+                    {data.counts.garmin} Garmin Connect
                   </span>
                 )}
               </div>
@@ -1226,7 +1226,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
               {data.counts.garmin > 0 && (
                 <span className="flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                  {data.counts.garmin} garmin
+                  {data.counts.garmin} Garmin Connect
                 </span>
               )}
             </div>
@@ -1602,7 +1602,7 @@ function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemPr
           {item.type === 'CALENDAR_EVENT' && (item.metadata.eventType as string)?.replace(/_/g, ' ').toLowerCase()}
           {item.type === 'AD_HOC' && 'ad-hoc'}
           {item.type === 'WOD' && 'wod'}
-          {item.type === 'GARMIN' && 'garmin'}
+          {item.type === 'GARMIN' && 'Garmin Connect'}
         </span>
       </div>
       {item.description && (

@@ -139,7 +139,7 @@ const AD_HOC_INPUT_TYPE_FALLBACK: Record<string, string> = {
   audio: 'Audio',
   text: 'Text',
   manual: 'Manual',
-  garmin: 'Garmin',
+  garmin: 'Garmin Connect',
   strava: 'Strava',
   template: 'Template',
 }

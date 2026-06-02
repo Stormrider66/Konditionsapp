@@ -31,6 +31,7 @@ import {
 import { WorkoutHistoryCharts } from '@/components/athlete/WorkoutHistoryCharts'
 import { PersonalRecords } from '@/components/athlete/PersonalRecords'
 import { ExportDataButton } from '@/components/athlete/ExportDataButton'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import {
   GlassCard,
   GlassCardHeader,
@@ -315,7 +316,7 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
   const garminItems = garminActivities.map((a) => ({
     id: a.id,
     date: a.startDate,
-    name: a.name || a.type || 'Garmin Activity',
+    name: a.name || a.type || 'Garmin Connect Activity',
     type: a.mappedType || a.type || 'OTHER',
     duration: a.duration ? Math.round(a.duration / 60) : null, // seconds → minutes
     perceivedEffort: null as number | null,
@@ -741,7 +742,7 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                             )}
                             {item.source === 'garmin' && (
                               <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                                Garmin
+                                Garmin Connect
                               </span>
                             )}
                             {item.source && !['wod', 'ai-chat', 'garmin'].includes(item.source) && (
@@ -780,47 +781,50 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
                       </TableCell>
                       <TableCell className="py-5 text-right">
                         {item.source === 'garmin' ? (
-                          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[10px] text-slate-400">
-                            {item.avgHR && (
-                              <span title={t('garmin.averageHeartRate')}>
-                                <Heart className="inline h-3 w-3 mr-0.5 text-red-400" />{Math.round(item.avgHR)} bpm
-                              </span>
-                            )}
-                            {item.maxHR && (
-                              <span title={t('garmin.maxHeartRate')} className="text-slate-500">
-                                {t('garmin.maxPrefix')} {Math.round(item.maxHR)}
-                              </span>
-                            )}
-                            {item.avgSpeed && item.distance && item.distance > 0 && (
-                              <span title={t('garmin.pace')}>
-                                {(() => {
-                                  const paceSecPerKm = 1000 / item.avgSpeed
-                                  const min = Math.floor(paceSecPerKm / 60)
-                                  const sec = Math.round(paceSecPerKm % 60)
-                                  return `${min}:${sec.toString().padStart(2, '0')}/km`
-                                })()}
-                              </span>
-                            )}
-                            {item.avgPower && (
-                              <span title={t('garmin.averageWatts')}>
-                                <Zap className="inline h-3 w-3 mr-0.5 text-yellow-400" />{Math.round(item.avgPower)} W
-                              </span>
-                            )}
-                            {item.calories && (
-                              <span title={t('garmin.calories')}>
-                                {Math.round(item.calories)} kcal
-                              </span>
-                            )}
-                            {item.tss && (
-                              <span title="TSS" className="font-bold text-slate-300">
-                                TSS {Math.round(item.tss)}
-                              </span>
-                            )}
-                            {item.elevationGain && item.elevationGain > 0 && (
-                              <span title={t('garmin.elevationGain')}>
-                                ↑ {Math.round(item.elevationGain)} m
-                              </span>
-                            )}
+                          <div className="space-y-1">
+                            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 text-[10px] text-slate-400">
+                              {item.avgHR && (
+                                <span title={t('garmin.averageHeartRate')}>
+                                  <Heart className="inline h-3 w-3 mr-0.5 text-red-400" />{Math.round(item.avgHR)} bpm
+                                </span>
+                              )}
+                              {item.maxHR && (
+                                <span title={t('garmin.maxHeartRate')} className="text-slate-500">
+                                  {t('garmin.maxPrefix')} {Math.round(item.maxHR)}
+                                </span>
+                              )}
+                              {item.avgSpeed && item.distance && item.distance > 0 && (
+                                <span title={t('garmin.pace')}>
+                                  {(() => {
+                                    const paceSecPerKm = 1000 / item.avgSpeed
+                                    const min = Math.floor(paceSecPerKm / 60)
+                                    const sec = Math.round(paceSecPerKm % 60)
+                                    return `${min}:${sec.toString().padStart(2, '0')}/km`
+                                  })()}
+                                </span>
+                              )}
+                              {item.avgPower && (
+                                <span title={t('garmin.averageWatts')}>
+                                  <Zap className="inline h-3 w-3 mr-0.5 text-yellow-400" />{Math.round(item.avgPower)} W
+                                </span>
+                              )}
+                              {item.calories && (
+                                <span title={t('garmin.calories')}>
+                                  {Math.round(item.calories)} kcal
+                                </span>
+                              )}
+                              {item.tss && (
+                                <span title="TSS" className="font-bold text-slate-300">
+                                  TSS {Math.round(item.tss)}
+                                </span>
+                              )}
+                              {item.elevationGain && item.elevationGain > 0 && (
+                                <span title={t('garmin.elevationGain')}>
+                                  ↑ {Math.round(item.elevationGain)} m
+                                </span>
+                              )}
+                            </div>
+                            <GarminAttribution deviceModel={item.deviceName} className="justify-end" />
                           </div>
                         ) : item.isAdHoc ? (
                           <Link href={`${basePath}/athlete/ad-hoc/${item.id}`}>

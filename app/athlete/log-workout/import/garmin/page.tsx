@@ -29,6 +29,7 @@ import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 
 interface GarminActivity {
   id: string
@@ -141,6 +142,7 @@ export default function GarminImportPage() {
             <p className="text-muted-foreground">
               {t('import.description')}
             </p>
+            <GarminAttribution className="mt-1" />
           </div>
         </div>
         <Button variant="outline" size="icon" onClick={fetchActivities} disabled={loading}>
@@ -242,6 +244,7 @@ export default function GarminImportPage() {
                         </div>
                       )}
                     </div>
+                    <GarminAttribution className="mt-2" />
                   </div>
 
                   <div className="shrink-0">

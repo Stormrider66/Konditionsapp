@@ -69,11 +69,11 @@ interface IntegratedRecentActivityProps {
 const SOURCE_CONFIG = {
   manual: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-gray-100 text-gray-700', icon: '📝' },
   strava: { label: 'Strava', color: 'bg-orange-100 text-orange-700', icon: '🏃' },
-  garmin: { label: 'Garmin', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
+  garmin: { label: 'Garmin Connect', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
   concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
   ai: { label: { en: 'AI session', sv: 'AI-Pass' }, color: 'bg-purple-100 text-purple-700', icon: '✨' },
   adhoc: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
-  'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
+  'adhoc+garmin': { label: { en: 'Manual + Garmin Connect', sv: 'Manuell + Garmin Connect' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -245,7 +245,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
             <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-muted-foreground">{t('Ingen aktivitet ännu', 'No activity yet')}</p>
             <p className="text-sm text-muted-foreground mt-2">
-              {t('Logga ett pass eller anslut Strava/Garmin', 'Log a session or connect Strava/Garmin')}
+              {t('Logga ett pass eller anslut Strava/Garmin Connect', 'Log a session or connect Strava/Garmin Connect')}
             </p>
           </div>
         ) : (

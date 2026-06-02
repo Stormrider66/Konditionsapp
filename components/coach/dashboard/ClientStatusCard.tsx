@@ -179,7 +179,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
                 <span className="text-[10px]" title="Strava">🟧</span>
               )}
               {client.hasGarminConnected && (
-                <span className="text-[10px]" title="Garmin">🔵</span>
+                <span className="text-[10px]" title="Garmin Connect">🔵</span>
               )}
             </div>
           </div>
@@ -197,7 +197,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
             </p>
             {client.lastActivitySource && client.lastActivitySource !== 'program' && (
               <p className="text-[10px] text-muted-foreground">
-                {t('source.via', { source: client.lastActivitySource === 'strava' ? 'Strava' : 'Garmin' })}
+                {t('source.via', { source: client.lastActivitySource === 'strava' ? 'Strava' : 'Garmin Connect' })}
               </p>
             )}
           </div>

@@ -481,7 +481,7 @@ function DroppableDayCell({
     indicators.push({
       type: 'GARMIN',
       color: 'bg-cyan-500',
-      label: 'Garmin',
+      label: 'Garmin Connect',
     })
   }
 

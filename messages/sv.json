@@ -15195,7 +15195,7 @@
       "sections": {
         "suggestedMatches": "Föreslagna matchningar",
         "unlinkedLogged": "{count, plural, one {Olänkat loggat pass} other {Olänkade loggade pass}}",
-        "unlinkedGarmin": "{count, plural, one {Olänkat Garmin-pass} other {Olänkade Garmin-pass}}"
+        "unlinkedGarmin": "{count, plural, one {Olänkat Garmin Connect-pass} other {Olänkade Garmin Connect-pass}}"
       },
       "badges": {
         "matchPercent": "{percent}% överensstämmelse"
