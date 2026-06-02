@@ -34,6 +34,7 @@ interface CardioFocusApiSegment {
   powerRelPercent?: number
   powerRelTo?: 'OPENER' | 'FTP' | 'CP'
   isBenchmark?: boolean
+  equipment?: string
   notes?: string
   actualDuration?: number
   actualDistance?: number
@@ -348,6 +349,7 @@ export function CardioWorkoutPreview({
           powerRelPercent: s.powerRelPercent,
           powerRelTo: s.powerRelTo,
           isBenchmark: s.isBenchmark,
+          equipment: s.equipment,
           notes: s.notes,
           actualDuration: s.actualDuration,
           actualDistance: s.actualDistance,

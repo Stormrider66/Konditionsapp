@@ -18,6 +18,7 @@ export interface CardioSegmentData {
   powerRelPercent?: number
   powerRelTo?: CardioRelativeRef
   isBenchmark?: boolean
+  equipment?: string
   exercises?: Array<{
     name?: string
     sets?: number
@@ -44,6 +45,7 @@ interface CardioChildStepData {
   targetRelPercent?: number
   targetRelTo?: CardioRelativeRef
   isBenchmark?: boolean
+  equipment?: string
 }
 
 interface SegmentLogData {
@@ -73,6 +75,7 @@ export interface FocusModeSegment {
   powerRelPercent?: number // relative power target, e.g. 80
   powerRelTo?: CardioRelativeRef // what the % is relative to (OPENER/FTP/CP)
   isBenchmark?: boolean // opener/prolog whose logged result anchors relative targets
+  equipment?: string
   notes?: string
   actualDuration?: number
   actualDistance?: number
@@ -145,6 +148,12 @@ export function parsePaceToSeconds(pace: string | undefined): number | undefined
   }
 
   return undefined
+}
+
+// Equipment that reports power (watts) rather than running pace.
+const POWER_EQUIPMENT = new Set(['BIKE', 'WATTBIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'ROW', 'SKI_ERG'])
+export function equipmentUsesPower(equipment?: string | null): boolean {
+  return !!equipment && POWER_EQUIPMENT.has(equipment)
 }
 
 // Parse a power string ("250", "240-260") into an absolute watt number (first integer).
@@ -272,6 +281,7 @@ export function buildCardioFocusModeSegments({
             plannedPace: parsePaceToSeconds(step.pace),
             plannedZone: step.zone,
             notes: noteParts.join(' - '),
+            equipment: step.equipment,
             ...powerFields({
               absolute: step.targetType === 'power' ? step.targetValue : undefined,
               relPercent: step.targetRelPercent,
@@ -318,6 +328,7 @@ export function buildCardioFocusModeSegments({
           plannedPace: parsePaceToSeconds(seg.pace),
           plannedZone: seg.zone,
           notes: noteParts.join(' - '),
+          equipment: seg.equipment,
           ...powerFields({
             absolute: seg.power,
             relPercent: seg.powerRelPercent,
@@ -368,6 +379,7 @@ export function buildCardioFocusModeSegments({
       plannedPace: parsePaceToSeconds(seg.pace),
       plannedZone: seg.zone,
       notes: noteParts.join(' - ') || seg.notes,
+      equipment: seg.equipment,
       ...powerFields({
         absolute: seg.power,
         relPercent: seg.powerRelPercent,

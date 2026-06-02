@@ -6,7 +6,7 @@
  * Form to log actual values after completing a cardio segment.
  */
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -38,6 +38,8 @@ interface SegmentLoggingFormProps {
   plannedPower?: number
   showPower?: boolean
   isBenchmark?: boolean
+  /** When set, the following rest runs as a live countdown that auto-submits at 0. */
+  restCountdownSeconds?: number
   timerDuration?: number // Actual time from timer
   onSubmit: (data: {
     actualDuration?: number
@@ -78,6 +80,7 @@ export function SegmentLoggingForm({
   plannedPower,
   showPower = false,
   isBenchmark = false,
+  restCountdownSeconds,
   timerDuration,
   onSubmit,
   onSkip,
@@ -123,6 +126,30 @@ export function SegmentLoggingForm({
     })
   }
 
+  // Run the following rest as a live countdown; auto-submit at 0 so the athlete
+  // logs data while resting and rolls straight into the next interval.
+  const [restLeft, setRestLeft] = useState(restCountdownSeconds ?? 0)
+  const submitRef = useRef(handleSubmit)
+  submitRef.current = handleSubmit
+  const autoSubmittedRef = useRef(false)
+  useEffect(() => {
+    if (!restCountdownSeconds) return
+    const id = setInterval(() => {
+      setRestLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(id)
+          if (!autoSubmittedRef.current) {
+            autoSubmittedRef.current = true
+            submitRef.current()
+          }
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [restCountdownSeconds])
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="pb-4">
@@ -138,6 +165,14 @@ export function SegmentLoggingForm({
       </CardHeader>
 
       <CardContent className="space-y-4">
+        {/* Rest countdown — the following rest runs here while data is logged */}
+        {restCountdownSeconds ? (
+          <div className="flex items-center justify-center gap-2 rounded-lg bg-sky-100 dark:bg-sky-900/20 py-2">
+            <Clock className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+            <span className="text-2xl font-black tabular-nums text-sky-700 dark:text-sky-300">{formatDuration(restLeft)}</span>
+          </div>
+        ) : null}
+
         {/* Planned values reference */}
         <div className="p-3 bg-muted/50 rounded-lg space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase">

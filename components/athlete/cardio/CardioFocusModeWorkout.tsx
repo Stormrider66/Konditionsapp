@@ -36,7 +36,7 @@ import {
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
 import { SegmentLoggingForm } from './SegmentLoggingForm'
-import { resolveSegmentPower } from '@/lib/cardio/focus-mode-segments'
+import { resolveSegmentPower, equipmentUsesPower } from '@/lib/cardio/focus-mode-segments'
 import {
   useVoiceCoach,
   buildSegmentStartCue,
@@ -63,6 +63,7 @@ interface FocusModeSegment {
   powerRelPercent?: number
   powerRelTo?: 'OPENER' | 'FTP' | 'CP'
   isBenchmark?: boolean
+  equipment?: string
   notes?: string
   actualDuration?: number
   actualDistance?: number
@@ -305,11 +306,29 @@ export function CardioFocusModeWorkout({
         )
       )
 
-      // Move to next segment or show complete dialog — the next timer auto-starts
-      // so the athlete rolls straight into the rest/next interval.
-      if (currentIndex < segments.length - 1) {
+      // The logging form ran the following rest as a countdown, so fold it: mark
+      // the rest complete and skip straight to the next interval (which auto-starts).
+      const nextSeg = segments[currentIndex + 1]
+      const foldRest = nextSeg && nextSeg.type === 'RECOVERY' && nextSeg.plannedDuration ? nextSeg : null
+      if (foldRest) {
+        void onSegmentComplete(currentIndex + 1, {
+          completed: true,
+          skipped: false,
+          actualDuration: foldRest.plannedDuration,
+        }).catch(() => {})
+        setSegments((prev) =>
+          prev.map((seg, idx) =>
+            idx === currentIndex + 1
+              ? { ...seg, completed: true, skipped: false, actualDuration: foldRest.plannedDuration }
+              : seg
+          )
+        )
+      }
+
+      const advanceTo = foldRest ? currentIndex + 2 : currentIndex + 1
+      if (advanceTo <= segments.length - 1) {
         setAutoRunTimer(true)
-        setCurrentIndex((prev) => prev + 1)
+        setCurrentIndex(advanceTo)
         setViewState('timer')
         setTimerElapsed(0)
       } else {
@@ -530,11 +549,18 @@ export function CardioFocusModeWorkout({
             plannedZone={currentSegment.plannedZone}
             plannedPower={currentTargetPower}
             showPower={
-              currentSegment.isBenchmark === true ||
-              currentSegment.powerRelPercent != null ||
-              currentSegment.plannedPower != null
+              (currentSegment.type === 'INTERVAL' || currentSegment.type === 'STEADY' || currentSegment.type === 'HILL') &&
+              (equipmentUsesPower(currentSegment.equipment) ||
+                currentSegment.isBenchmark === true ||
+                currentSegment.powerRelPercent != null ||
+                currentSegment.plannedPower != null)
             }
             isBenchmark={currentSegment.isBenchmark}
+            restCountdownSeconds={
+              segments[currentIndex + 1]?.type === 'RECOVERY'
+                ? segments[currentIndex + 1]?.plannedDuration
+                : undefined
+            }
             timerDuration={timerElapsed}
             onSubmit={handleSegmentSubmit}
             onSkip={handleSegmentSkip}
