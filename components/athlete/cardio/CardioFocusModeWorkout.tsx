@@ -447,7 +447,7 @@ export function CardioFocusModeWorkout({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-50 dark:bg-slate-950 flex flex-col">
+    <div className="fixed inset-0 z-50 h-[100dvh] overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
         <Button variant="ghost" size="icon" onClick={() => setShowExitDialog(true)} className="hover:bg-slate-100 dark:hover:bg-white/10">
