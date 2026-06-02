@@ -9,6 +9,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { toast } from 'sonner'
 import { GeminiLiveVoiceClient } from '@/lib/ai/live-voice-coaching/gemini-live-client'
 import { AudioCaptureManager } from '@/lib/ai/live-voice-coaching/audio-capture'
 import { AudioPlaybackManager } from '@/lib/ai/live-voice-coaching/audio-playback'
@@ -33,6 +34,32 @@ interface FocusModeSegment {
   plannedDistance?: number
   plannedZone?: number
   notes?: string
+}
+
+/**
+ * Translate a connection failure into a message the athlete can act on.
+ * The server already returns friendly text (plain Error.message), so we only
+ * remap the cryptic browser DOMExceptions thrown by getUserMedia / WebSocket.
+ */
+function describeConnectError(err: unknown): string {
+  if (err instanceof Error) {
+    switch (err.name) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+        return 'Microphone access was blocked. Allow microphone access for this site, then try again.'
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+        return 'No microphone was found. Connect a microphone and try again.'
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return 'Your microphone is being used by another app. Close it and try again.'
+      case 'SecurityError':
+        return 'The voice coach could not connect securely. Reload the page and try again.'
+      default:
+        return err.message || 'Could not start the voice coach.'
+    }
+  }
+  return 'Could not start the voice coach.'
 }
 
 interface TranscriptEntry {
@@ -394,11 +421,10 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
         }).catch(() => {})
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Connection failed'
       if (isAiAllowanceExhaustedError(err)) {
         setAiAllowanceError(err)
       } else {
-        setError(message)
+        setError(describeConnectError(err))
         setAiAllowanceAction(null)
       }
       setStatus('error')
@@ -466,6 +492,20 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       }
     }
   }, [disconnect])
+
+  // Surface errors visibly. Allowance errors render their own inline action
+  // (with an upgrade link), so toast everything else — connection/mic/setup
+  // failures that would otherwise only show up in the button's hover tooltip.
+  const lastToastedErrorRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!error || aiAllowanceAction) {
+      lastToastedErrorRef.current = null
+      return
+    }
+    if (lastToastedErrorRef.current === error) return
+    lastToastedErrorRef.current = error
+    toast.error(error)
+  }, [error, aiAllowanceAction])
 
   // Send segment change notifications to the AI
   useEffect(() => {
