@@ -7,7 +7,7 @@
  * Shows assigned sessions, allows browsing templates, and starting Focus Mode.
  */
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -100,10 +100,12 @@ export function AthleteCardioClient({
   const [assignments, setAssignments] = useState<CardioAssignment[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('history')
+  const initialTabSelected = useRef(false)
 
   // Focus mode state
   const [selectedAssignment, setSelectedAssignment] = useState<CardioAssignment | null>(null)
   const [showStartScreen, setShowStartScreen] = useState(false)
+  const [autoStartFocus, setAutoStartFocus] = useState(false)
   const [showFocusMode, setShowFocusMode] = useState(false)
   const [focusModeData, setFocusModeData] = useState<{
     segments: FocusModeSegment[]
@@ -135,12 +137,24 @@ export function AthleteCardioClient({
     void fetchAssignments()
   }, [fetchAssignments])
 
-  // Start focus mode
+  // On first load, open the Assigned tab when there's something to do (instead of
+  // landing on empty history).
+  useEffect(() => {
+    if (loading || initialTabSelected.current) return
+    initialTabSelected.current = true
+    const hasUpcoming = assignments.some(
+      (a) => a.status === 'PENDING' || a.status === 'SCHEDULED'
+    )
+    if (hasUpcoming) setActiveTab('upcoming')
+  }, [loading, assignments])
+
+  // Start focus mode — jump straight into the timer (skip the overview screen).
   const handleStartFocusMode = async (assignmentId: string) => {
     const assignment = assignments.find((a) => a.id === assignmentId)
     if (!assignment) return
 
     setSelectedAssignment(assignment)
+    setAutoStartFocus(true)
     setShowStartScreen(true)
   }
 
@@ -306,6 +320,7 @@ export function AthleteCardioClient({
     setShowStartScreen(false)
     setSelectedAssignment(null)
     setFocusModeData(null)
+    setAutoStartFocus(false)
   }
 
   // Filter assignments by status
@@ -351,11 +366,13 @@ export function AthleteCardioClient({
     return (
       <CardioWorkoutPreview
         assignmentId={selectedAssignment.id}
+        autoStart={autoStartFocus}
         onClose={() => {
           setShowStartScreen(false)
           setShowFocusMode(false)
           setSelectedAssignment(null)
           setFocusModeData(null)
+          setAutoStartFocus(false)
         }}
         onCompleted={() => {
           void fetchAssignments()

@@ -87,6 +87,8 @@ interface CardioWorkoutPreviewProps {
   assignmentId: string
   onClose: () => void
   onCompleted?: () => void
+  /** Skip the overview screen and jump straight into Focus Mode once loaded. */
+  autoStart?: boolean
 }
 
 const SEGMENT_TYPE_TO_SECTION: Record<string, WorkoutSection> = {
@@ -194,6 +196,7 @@ export function CardioWorkoutPreview({
   assignmentId,
   onClose,
   onCompleted,
+  autoStart = false,
 }: CardioWorkoutPreviewProps) {
   const t = useTranslations('components.workoutPreview')
   const [data, setData] = useState<PreviewWorkoutData | null>(null)
@@ -237,6 +240,15 @@ export function CardioWorkoutPreview({
     startedAtRef.current = Date.now()
     void refresh()
   }, [refresh])
+
+  // Jump straight into Focus Mode when launched with autoStart (skip the overview).
+  const autoStartedRef = useRef(false)
+  useEffect(() => {
+    if (!autoStart || isLoading || !apiData || showFocusMode || autoStartedRef.current) return
+    autoStartedRef.current = true
+    void handleStart()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart, isLoading, apiData, showFocusMode])
 
   async function handleStart() {
     if (!apiData) return
