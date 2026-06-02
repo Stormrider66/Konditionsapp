@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { buildCardioFocusModeSegments, type FocusModeSegment } from '@/lib/cardio/focus-mode-segments'
 
 const querySchema = z.object({
   kind: z.enum(['cardio', 'strength', 'hybrid', 'agility']),
@@ -103,36 +104,52 @@ function formatSegmentType(type: string | null | undefined, locale: AppLocale) {
   return type ? labels[locale][type] || type : t(locale, 'Part', 'Del')
 }
 
-function buildCardioDetails(segmentLogs?: Array<{
+function buildCardioDetails(segmentLogs: Array<{
   segmentIndex: number
   segmentType: string
   plannedDuration: number | null
   plannedDistance: number | null
   plannedPace: number | null
   plannedZone: number | null
+  plannedPower: number | null
   actualDuration: number | null
   actualDistance: number | null
   actualPace: number | null
   actualAvgHR: number | null
   actualMaxHR: number | null
+  actualAvgPower: number | null
+  actualMaxPower: number | null
   completed: boolean
   skipped: boolean
   notes: string | null
-}> | null, locale: AppLocale = 'en'): DetailSection[] {
+}> | null | undefined, planned: FocusModeSegment[], openerWatts: number | null, locale: AppLocale = 'en'): DetailSection[] {
   if (!segmentLogs?.length) return []
-  const rows = compactRows(segmentLogs.map((segment) => row(
-    `${segment.segmentIndex + 1}. ${formatSegmentType(segment.segmentType, locale)}`,
-    [
+  const plannedByIndex = new Map(planned.map((p) => [p.index, p]))
+  const rows = compactRows(segmentLogs.map((segment) => {
+    const p = plannedByIndex.get(segment.segmentIndex)
+    // Resolve the planned power target: absolute watts, or % of the logged opener.
+    const targetWatts = segment.plannedPower
+      ?? (p?.powerRelPercent && p.powerRelTo === 'OPENER' && openerWatts
+        ? Math.round((openerWatts * p.powerRelPercent) / 100)
+        : null)
+    const targetLabel = targetWatts != null
+      ? `${targetWatts} W${p?.powerRelPercent ? ` (${p.powerRelPercent}%)` : ''}`
+      : null
+    const name = `${segment.segmentIndex + 1}. ${formatSegmentType(segment.segmentType, locale)}${p?.isBenchmark ? ` (${t(locale, 'opener', 'prolog')})` : ''}`
+    return row(name, [
       metric(t(locale, 'Status', 'Status'), segment.skipped ? t(locale, 'Skipped', 'Hoppad över') : segment.completed ? t(locale, 'Done', 'Klar') : t(locale, 'Not done', 'Ej klar')),
       metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(segment.actualDuration ?? segment.plannedDuration)),
       metric(t(locale, 'Distance', 'Distans'), formatDistanceKm(segment.actualDistance ?? segment.plannedDistance)),
       metric(t(locale, 'Pace', 'Tempo'), formatPace(segment.actualPace ?? segment.plannedPace)),
       metric(t(locale, 'Zone', 'Zon'), segment.plannedZone ? `${t(locale, 'Zone', 'Zon')} ${segment.plannedZone}` : null),
+      metric(t(locale, 'Target W', 'Mål W'), targetLabel),
+      metric(t(locale, 'Avg W', 'Snitt W'), segment.actualAvgPower ? `${segment.actualAvgPower} W` : null),
+      metric(t(locale, 'Max W', 'Max W'), segment.actualMaxPower ? `${segment.actualMaxPower} W` : null),
       metric(t(locale, 'Avg HR', 'Snittpuls'), segment.actualAvgHR),
       metric(t(locale, 'Max HR', 'Maxpuls'), segment.actualMaxHR),
       metric(t(locale, 'Note', 'Notering'), segment.notes),
-    ]
-  )))
+    ])
+  }))
   return rows.length > 0 ? [{ title: t(locale, 'Parts', 'Delar'), rows }] : []
 }
 
@@ -204,7 +221,7 @@ export async function GET(request: NextRequest) {
     const assignment = await prisma.cardioSessionAssignment.findUnique({
       where: { id: assignmentId },
       include: {
-        session: { select: { id: true, name: true } },
+        session: { select: { id: true, name: true, segments: true } },
         athlete: { select: { id: true, name: true } },
       },
     })
@@ -219,12 +236,21 @@ export async function GET(request: NextRequest) {
       orderBy: { startedAt: 'desc' },
     })
 
+    // Index-aligned planned segments tell us the opener (benchmark) and the
+    // relative %-of-opener targets, so we can resolve them against logged watts.
+    const plannedSegments = buildCardioFocusModeSegments({ segments: assignment.session.segments, locale })
+    const benchmarkIndex = plannedSegments.find((p) => p.isBenchmark)?.index
+    const openerWatts = benchmarkIndex != null
+      ? (log?.segmentLogs.find((s) => s.segmentIndex === benchmarkIndex)?.actualAvgPower ?? null)
+      : null
+
     const completedAt = log?.completedAt ?? assignment.completedAt
     const metrics = compactMetrics([
       metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(log?.actualDuration ?? assignment.actualDuration)),
       metric(t(locale, 'Distance', 'Distans'), formatDistanceKm(log?.actualDistance) ?? formatDistanceMeters(assignment.actualDistance)),
       metric(t(locale, 'Avg HR', 'Snittpuls'), log?.avgHeartRate ?? assignment.avgHeartRate),
       metric(t(locale, 'Max HR', 'Maxpuls'), log?.maxHeartRate),
+      metric(t(locale, 'Opener', 'Prolog'), openerWatts ? `${openerWatts} W` : null),
       metric('RPE', log?.sessionRPE ? `${log.sessionRPE}/10` : null),
     ])
 
@@ -236,7 +262,7 @@ export async function GET(request: NextRequest) {
       completedAt,
       metrics,
       notes: log?.notes ?? null,
-      details: buildCardioDetails(log?.segmentLogs, locale),
+      details: buildCardioDetails(log?.segmentLogs, plannedSegments, openerWatts, locale),
       original: log ?? assignment,
     })
   }
