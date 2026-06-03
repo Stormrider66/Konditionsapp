@@ -12,6 +12,7 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/
 import { Progress } from '@/components/ui/progress'
 import { AlertTriangle, Flame, Beef, Wheat, Droplets, CircleDot } from 'lucide-react'
 import type { DailyMacroTargets } from '@/lib/nutrition-timing'
+import { calculateMacroDistributionPercentages } from '@/lib/nutrition/macro-distribution'
 import { useLocale, useTranslations } from '@/i18n/client'
 
 interface ConsumedMacros {
@@ -113,11 +114,23 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
   const fuelingAdjustmentKcal = targets.fuelingAdjustmentKcal ?? 0
   const macroWarnings = targets.macroWarnings ?? []
 
-  // Calculate macro percentages (for visualization)
-  const totalMacroCalories = targets.carbsG * 4 + targets.proteinG * 4 + targets.fatG * 9
-  const carbPercent = Math.round((targets.carbsG * 4 / totalMacroCalories) * 100)
-  const proteinPercent = Math.round((targets.proteinG * 4 / totalMacroCalories) * 100)
-  const fatPercent = Math.round((targets.fatG * 9 / totalMacroCalories) * 100)
+  const targetMacroDistribution = calculateMacroDistributionPercentages({
+    carbsGrams: targets.carbsG,
+    proteinGrams: targets.proteinG,
+    fatGrams: targets.fatG,
+  })
+  const consumedMacroDistribution = consumed
+    ? calculateMacroDistributionPercentages({
+        carbsGrams: consumed.carbsGrams,
+        proteinGrams: consumed.proteinGrams,
+        fatGrams: consumed.fatGrams,
+      })
+    : null
+  const activeMacroDistribution = consumedMacroDistribution &&
+    consumedMacroDistribution.carbsPercent + consumedMacroDistribution.proteinPercent + consumedMacroDistribution.fatPercent > 0
+    ? consumedMacroDistribution
+    : targetMacroDistribution
+  const { carbsPercent: carbPercent, proteinPercent, fatPercent } = activeMacroDistribution
 
   if (compact) {
     if (isGlass) {
