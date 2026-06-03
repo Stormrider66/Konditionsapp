@@ -93,10 +93,13 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
 
   const weightKg = client.weightKg
   const completedTodaysWorkouts = todaysWorkouts.filter((workout) => workout.status === 'COMPLETED')
+  const fuelingRelevantTodaysWorkouts = todaysWorkouts.filter(isFuelingRelevantWorkout)
+  const fuelingRelevantTomorrowsWorkouts = tomorrowsWorkouts.filter(isFuelingRelevantWorkout)
+  const completedFuelingRelevantTodaysWorkouts = completedTodaysWorkouts.filter(isFuelingRelevantWorkout)
   // Targets reflect *expected* energy need for the day — planned + completed workouts.
   // Cancel a workout → target comes back down on next fetch.
-  const isRestDay = todaysWorkouts.length === 0
-  const isDoubleDay = todaysWorkouts.length >= 2
+  const isRestDay = fuelingRelevantTodaysWorkouts.length === 0
+  const isDoubleDay = fuelingRelevantTodaysWorkouts.length >= 2
   const goalType = goal?.goalType
 
   // Determine if it's race week (look for race in next 7 days)
@@ -119,7 +122,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
 
   // Generate workout-specific guidance
   const preWorkoutGuidance = generatePreWorkoutGuidanceList(
-    todaysWorkouts,
+    fuelingRelevantTodaysWorkouts,
     preferences ?? undefined,
     weightKg,
     currentTime,
@@ -128,7 +131,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   )
 
   const duringWorkoutGuidance = generateDuringWorkoutGuidanceList(
-    todaysWorkouts,
+    fuelingRelevantTodaysWorkouts,
     preferences ?? undefined,
     weightKg,
     goalType,
@@ -136,7 +139,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   )
 
   const postWorkoutGuidance = generatePostWorkoutGuidanceList(
-    completedTodaysWorkouts,
+    completedFuelingRelevantTodaysWorkouts,
     preferences ?? undefined,
     weightKg,
     goalType,
@@ -145,8 +148,8 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
 
   // Generate tips
   const tips = generateDailyTips(
-    todaysWorkouts,
-    tomorrowsWorkouts,
+    fuelingRelevantTodaysWorkouts,
+    fuelingRelevantTomorrowsWorkouts,
     isRestDay,
     isDoubleDay,
     preferences ?? undefined,
@@ -156,7 +159,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
 
   // Generate meal suggestions (optional)
   const mealSuggestions = generateMealStructure(
-    todaysWorkouts,
+    fuelingRelevantTodaysWorkouts,
     targets,
     preferences ?? undefined,
     isRestDay,
@@ -218,6 +221,9 @@ const INTENSITY_ORDER: Record<WorkoutIntensity, number> = {
   MAX: 5,
 }
 
+const DAILY_MOVEMENT_TYPES = new Set<string>(['OTHER', 'RECOVERY', 'ALTERNATIVE', 'WARMUP'])
+const DAILY_MOVEMENT_NAME_PATTERN = /\b(walk|walking|promenad|steg|steps)\b/i
+
 function isEnduranceWorkout(workout: WorkoutContext): boolean {
   return ENDURANCE_WORKOUT_TYPES.has(String(workout.type))
 }
@@ -226,11 +232,24 @@ function isHardIntensity(intensity: WorkoutIntensity): boolean {
   return intensity === 'THRESHOLD' || intensity === 'INTERVAL' || intensity === 'MAX'
 }
 
+function isVeryEasyDailyMovement(workout: WorkoutContext): boolean {
+  const isLowIntensity = workout.intensity === 'RECOVERY' || workout.intensity === 'EASY'
+  if (!isLowIntensity) return false
+
+  const workoutType = String(workout.type)
+  return DAILY_MOVEMENT_TYPES.has(workoutType) || DAILY_MOVEMENT_NAME_PATTERN.test(workout.name)
+}
+
+function isFuelingRelevantWorkout(workout: WorkoutContext): boolean {
+  return !isVeryEasyDailyMovement(workout)
+}
+
 function workoutCarbShare(workout: WorkoutContext): number {
   const durationMinutes = workout.duration || 60
   const isStrength = workout.type === 'STRENGTH'
   const isLongEndurance = isEnduranceWorkout(workout) && durationMinutes >= 90
 
+  if (isVeryEasyDailyMovement(workout)) return 0.35
   if (isStrength) return 0.42
   if (isLongEndurance) return 0.68
   if (isHardIntensity(workout.intensity)) return 0.62
@@ -356,22 +375,33 @@ function classifyDailyCarbLoad(
     }
   }
 
-  const totalDuration = workouts.reduce((sum, w) => sum + (w.duration || 60), 0)
-  const enduranceDuration = workouts
+  const fuelingRelevantWorkouts = workouts.filter(isFuelingRelevantWorkout)
+
+  if (fuelingRelevantWorkouts.length === 0) {
+    return {
+      category: 'LIGHT',
+      hasHighCarbTrigger: false,
+      hasVeryHighCarbTrigger: false,
+      hasCarbLoadTrigger: false,
+    }
+  }
+
+  const totalDuration = fuelingRelevantWorkouts.reduce((sum, w) => sum + (w.duration || 60), 0)
+  const enduranceDuration = fuelingRelevantWorkouts
     .filter(isEnduranceWorkout)
     .reduce((sum, w) => sum + (w.duration || 60), 0)
-  const hardDuration = workouts
+  const hardDuration = fuelingRelevantWorkouts
     .filter((w) => isHardIntensity(w.intensity))
     .reduce((sum, w) => sum + (w.duration || 60), 0)
-  const hardEnduranceDuration = workouts
+  const hardEnduranceDuration = fuelingRelevantWorkouts
     .filter((w) => isEnduranceWorkout(w) && isHardIntensity(w.intensity))
     .reduce((sum, w) => sum + (w.duration || 60), 0)
-  const highestIntensity = workouts.reduce(
+  const highestIntensity = fuelingRelevantWorkouts.reduce(
     (highest, workout) => Math.max(highest, INTENSITY_ORDER[workout.intensity] ?? 0),
     0
   )
 
-  const isDoubleDay = workouts.length >= 2
+  const isDoubleDay = fuelingRelevantWorkouts.length >= 2
   const hasLongEndurance = enduranceDuration >= 120
   const hasHardEndurance = hardEnduranceDuration >= 90
   const hasHighEnergy = workoutEnergyKcal >= 900
@@ -426,12 +456,16 @@ function classifyDailyCarbLoad(
 }
 
 function getWorkoutProteinBumpPerKg(workouts: WorkoutContext[]): number {
-  if (workouts.length === 0) return 0
+  const fuelingRelevantWorkouts = workouts.filter(isFuelingRelevantWorkout)
+  if (fuelingRelevantWorkouts.length === 0) return 0
 
   let bump = 0
-  if (workouts.some((w) => w.type === 'STRENGTH')) bump += 0.1
-  if (workouts.some((w) => isHardIntensity(w.intensity)) || workouts.some((w) => (w.duration || 60) >= 90)) bump += 0.05
-  if (workouts.length >= 2) bump += 0.05
+  if (fuelingRelevantWorkouts.some((w) => w.type === 'STRENGTH')) bump += 0.1
+  if (
+    fuelingRelevantWorkouts.some((w) => isHardIntensity(w.intensity)) ||
+    fuelingRelevantWorkouts.some((w) => (w.duration || 60) >= 90)
+  ) bump += 0.05
+  if (fuelingRelevantWorkouts.length >= 2) bump += 0.05
 
   return Math.min(0.25, bump)
 }

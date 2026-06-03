@@ -231,6 +231,44 @@ describe('generateDailyGuidance', () => {
       expect(t.carbsGPerKg).toBeLessThanOrEqual(6.5)
     })
 
+    it('treats two recovery walks as daily movement instead of a high-carb double day', () => {
+      const guidance = generateDailyGuidance(
+        createInput([
+          createWorkout({
+            id: 'walk-1',
+            name: 'Promenad',
+            type: 'OTHER',
+            intensity: 'RECOVERY',
+            duration: null,
+            distance: 7.5,
+            source: 'AD_HOC',
+            status: 'COMPLETED',
+          }),
+          createWorkout({
+            id: 'walk-2',
+            name: 'Promenad efter jobbet',
+            type: 'OTHER',
+            intensity: 'RECOVERY',
+            duration: 63,
+            distance: 5.3,
+            source: 'AD_HOC',
+            status: 'COMPLETED',
+            estimatedCaloriesKcal: 239,
+          }),
+        ])
+      )
+      const t = guidance.targets
+
+      expect(guidance.isRestDay).toBe(true)
+      expect(guidance.isDoubleDay).toBe(false)
+      expect(guidance.preWorkoutGuidance).toHaveLength(0)
+      expect(guidance.postWorkoutGuidance).toHaveLength(0)
+      expect(t.carbLoadCategory).toBe('LIGHT')
+      expect(t.highCarbReason).toBeUndefined()
+      expect(t.fuelingAdjustmentKcal).toBeLessThanOrEqual(5)
+      expect(t.carbsGPerKg).toBeLessThan(5)
+    })
+
     it('allows but caps a hard 90 minute threshold day below very-high carbohydrate range', () => {
       const t = calculateDailyTargets(
         57,
