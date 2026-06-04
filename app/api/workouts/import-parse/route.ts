@@ -53,6 +53,8 @@ import {
   type Resolution,
 } from '@/lib/ai/exercise-resolver'
 import {
+  EmptyPdfError,
+  formatEmptyPdfError,
   normalizeFile,
   normalizeText,
   MAX_FILE_BYTES,
@@ -127,14 +129,26 @@ export async function POST(request: NextRequest) {
 
     if (!workoutType) {
       return NextResponse.json(
-        { error: 'workoutType is required (STRENGTH | CARDIO | HYBRID | AGILITY)' },
+        {
+          error: t(
+            locale,
+            'workoutType is required (STRENGTH | CARDIO | HYBRID | AGILITY)',
+            'workoutType krävs (STRENGTH | CARDIO | HYBRID | AGILITY)'
+          ),
+        },
         { status: 400 }
       )
     }
 
     if (file && file.size > MAX_FILE_BYTES) {
       return NextResponse.json(
-        { error: `File too large. Max ${MAX_FILE_BYTES / (1024 * 1024)} MB.` },
+        {
+          error: t(
+            locale,
+            `File too large. Max ${MAX_FILE_BYTES / (1024 * 1024)} MB.`,
+            `Filen är för stor. Max ${MAX_FILE_BYTES / (1024 * 1024)} MB.`
+          ),
+        },
         { status: 413 }
       )
     }
@@ -151,7 +165,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            e instanceof Error ? e.message : 'Could not read the uploaded file',
+            e instanceof EmptyPdfError
+              ? formatEmptyPdfError(e.filename, locale)
+              : e instanceof Error
+                ? e.message
+                : t(locale, 'Could not read the uploaded file', 'Kunde inte läsa den uppladdade filen'),
         },
         { status: 400 }
       )
@@ -159,13 +177,19 @@ export async function POST(request: NextRequest) {
 
     if (!normalized) {
       return NextResponse.json(
-        { error: 'Provide either pasted text or a file to import' },
+        { error: t(locale, 'Provide either pasted text or a file to import', 'Klistra in text eller ladda upp en fil att importera') },
         { status: 400 }
       )
     }
     if (normalized.kind !== 'image' && normalized.body.trim().length === 0) {
       return NextResponse.json(
-        { error: 'The input is empty — paste some text or upload a file with content' },
+        {
+          error: t(
+            locale,
+            'The input is empty - paste some text or upload a file with content',
+            'Innehållet är tomt - klistra in text eller ladda upp en fil med innehåll'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -182,7 +206,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'No AI provider configured. Add an API key in settings to use the workout importer.',
+            t(
+              locale,
+              'No AI provider configured. Add an API key in settings to use the workout importer.',
+              'Ingen AI-leverantör är konfigurerad. Lägg till en API-nyckel i inställningarna för att använda träningsimporten.'
+            ),
         },
         { status: 400 }
       )

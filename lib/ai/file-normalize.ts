@@ -44,12 +44,20 @@ export const VISION_MIME_TYPES = new Set([
   'image/heif',
 ])
 
+export function formatEmptyPdfError(filename: string, locale: 'en' | 'sv' = 'en'): string {
+  if (locale === 'sv') {
+    return `Kunde inte läsa text från "${filename}" - PDF-filen verkar vara en skanning utan textlager. Exportera sidorna som bilder (PNG/JPG) och ladda upp dem i stället.`
+  }
+  return `Could not read text from "${filename}" - the PDF looks like a scan with no text layer. Export the pages as images (PNG/JPG) and upload those instead.`
+}
+
 export class EmptyPdfError extends Error {
+  readonly filename: string
+
   constructor(filename: string) {
-    super(
-      `Could not read text from "${filename}" — the PDF looks like a scan with no text layer. Export the pages as images (PNG/JPG) and upload those instead.`
-    )
+    super(formatEmptyPdfError(filename))
     this.name = 'EmptyPdfError'
+    this.filename = filename
   }
 }
 

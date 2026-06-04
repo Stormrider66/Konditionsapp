@@ -45,6 +45,8 @@ import {
 } from '@/lib/ai/exercise-resolver'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import {
+  EmptyPdfError,
+  formatEmptyPdfError,
   normalizeFile,
   normalizeText,
   MAX_FILE_BYTES,
@@ -189,7 +191,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            e instanceof Error ? e.message : text(locale, 'Could not read the uploaded file', 'Kunde inte läsa den uppladdade filen'),
+            e instanceof EmptyPdfError
+              ? formatEmptyPdfError(e.filename, locale)
+              : e instanceof Error
+                ? e.message
+                : text(locale, 'Could not read the uploaded file', 'Kunde inte läsa den uppladdade filen'),
         },
         { status: 400 }
       )
