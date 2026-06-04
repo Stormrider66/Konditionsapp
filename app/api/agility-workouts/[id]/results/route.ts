@@ -9,6 +9,11 @@ import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { createClient } from '@/lib/supabase/server'
 import { z } from 'zod'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const drillResultSchema = z.object({
   drillId: z.string().uuid(),
@@ -32,13 +37,15 @@ interface RouteParams {
 
 // GET /api/agility-workouts/[id]/results - List results for workout
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -52,12 +59,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     // Coaches can only access results for workouts they own.
     if (workout.coachId !== user.id) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     const where: Record<string, unknown> = { workoutId: id }
@@ -65,7 +72,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (athleteId) {
       const access = await canAccessAthlete(user.id, athleteId)
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
       }
       where.athleteId = athleteId
     }
@@ -88,7 +95,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error('Error fetching workout results:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch workout results' },
+      { error: t(locale, 'Failed to fetch workout results', 'Kunde inte hämta passresultat') },
       { status: 500 }
     )
   }
@@ -96,14 +103,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // POST /api/agility-workouts/[id]/results - Submit workout result (athlete)
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId } = resolved
-    const locale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     // Verify workout exists
     const workout = await prisma.agilityWorkout.findUnique({
@@ -116,7 +125,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     const body = await request.json()
@@ -139,7 +148,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (assignment) {
       if (assignment.workoutId !== id || assignment.athleteId !== clientId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
       }
 
       const warning = getFutureWorkoutCompletionWarning({
@@ -232,13 +241,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error submitting workout result:', error)
     return NextResponse.json(
-      { error: 'Failed to submit workout result' },
+      { error: t(locale, 'Failed to submit workout result', 'Kunde inte skicka in passresultat') },
       { status: 500 }
     )
   }

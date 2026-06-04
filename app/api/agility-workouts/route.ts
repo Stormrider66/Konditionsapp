@@ -16,6 +16,24 @@ import {
   normalizeWorkoutTrainingYear,
   WorkoutLibraryMetadataError,
 } from '@/lib/workouts/library-metadata'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function workoutLibraryMetadataErrorMessage(locale: AppLocale, message: string): string {
+  if (message === 'Training year must be between 2000 and 2100') {
+    return t(locale, message, 'Träningsåret måste vara mellan 2000 och 2100')
+  }
+  if (message === 'Team must be a valid team id') {
+    return t(locale, message, 'Team måste vara ett giltigt team-id')
+  }
+  if (message === 'Team not found or unavailable') {
+    return t(locale, message, 'Teamet hittades inte eller är inte tillgängligt')
+  }
+  return message
+}
 
 const workoutDrillSchema = z.object({
   drillId: z.string().uuid(),
@@ -47,17 +65,19 @@ const createWorkoutSchema = z.object({
 
 // GET /api/agility-workouts - List workouts with filters
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const businessScope = await resolveWorkoutBusinessScope(user.id, request)
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -159,11 +179,11 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     if (error instanceof WorkoutLibraryMetadataError) {
-      return NextResponse.json({ error: error.message }, { status: error.status })
+      return NextResponse.json({ error: workoutLibraryMetadataErrorMessage(locale, error.message) }, { status: error.status })
     }
     console.error('Error fetching agility workouts:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch agility workouts' },
+      { error: t(locale, 'Failed to fetch agility workouts', 'Kunde inte hämta agilitypass') },
       { status: 500 }
     )
   }
@@ -171,27 +191,30 @@ export async function GET(request: NextRequest) {
 
 // POST /api/agility-workouts - Create workout with drills
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const businessScope = await resolveWorkoutBusinessScope(user.id, request)
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 })
     }
 
     // Verify user is a coach
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { role: true, language: true }
     })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'Only coaches can create workouts' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Only coaches can create workouts', 'Endast coacher kan skapa pass') }, { status: 403 })
     }
 
     const body = await request.json()
@@ -211,7 +234,7 @@ export async function POST(request: NextRequest) {
 
     if (existingDrills.length !== drillIds.length) {
       return NextResponse.json(
-        { error: 'One or more drills not found' },
+        { error: t(locale, 'One or more drills not found', 'En eller flera övningar hittades inte') },
         { status: 400 }
       )
     }
@@ -248,17 +271,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(workout, { status: 201 })
   } catch (error) {
     if (error instanceof WorkoutLibraryMetadataError) {
-      return NextResponse.json({ error: error.message }, { status: error.status })
+      return NextResponse.json({ error: workoutLibraryMetadataErrorMessage(locale, error.message) }, { status: error.status })
     }
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error creating agility workout:', error)
     return NextResponse.json(
-      { error: 'Failed to create agility workout' },
+      { error: t(locale, 'Failed to create agility workout', 'Kunde inte skapa agilitypass') },
       { status: 500 }
     )
   }

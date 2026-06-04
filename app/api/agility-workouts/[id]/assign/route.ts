@@ -10,6 +10,11 @@ import {
   agilityWorkoutAccessWhere,
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const assignWorkoutSchema = z.object({
   athleteIds: z.array(z.string().uuid()).min(1),
@@ -29,28 +34,31 @@ interface RouteParams {
 
 // POST /api/agility-workouts/[id]/assign - Assign workout to athletes
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const businessScope = await resolveWorkoutBusinessScope(user.id, request)
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 })
     }
 
     // Verify user is a coach
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { role: true, language: true }
     })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'Only coaches can assign workouts' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Only coaches can assign workouts', 'Endast coacher kan tilldela pass') }, { status: 403 })
     }
 
     // Verify workout exists
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     const body = await request.json()
@@ -89,7 +97,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (athletes.length !== athleteIds.length) {
       return NextResponse.json(
-        { error: 'One or more athletes not found' },
+        { error: t(locale, 'One or more athletes not found', 'En eller flera idrottare hittades inte') },
         { status: 400 }
       )
     }
@@ -99,7 +107,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     )
     if (accessResults.some((allowed) => !allowed)) {
       return NextResponse.json(
-        { error: 'One or more athletes not found or do not belong to you' },
+        { error: t(locale, 'One or more athletes not found or do not belong to you', 'En eller flera idrottare hittades inte eller tillhör inte dig') },
         { status: 403 }
       )
     }
@@ -112,7 +120,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       })
       if (!location) {
         return NextResponse.json(
-          { error: 'Location not found' },
+          { error: t(locale, 'Location not found', 'Platsen hittades inte') },
           { status: 400 }
         )
       }
@@ -128,15 +136,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         let calendarEventId: string | undefined
 
         if (createCalendarEvent) {
-          const locationDisplay = locationName || (locationId ? 'Scheduled location' : undefined)
+          const locationDisplay = locationName || (locationId ? t(locale, 'Scheduled location', 'Schemalagd plats') : undefined)
 
           const calendarEvent = await prisma.calendarEvent.create({
             data: {
               clientId: athleteId,
               type: 'SCHEDULED_WORKOUT',
-              title: `Agility: ${workout.name || 'Agility workout'}`,
+              title: t(locale, `Agility: ${workout.name || 'Agility workout'}`, `Agility: ${workout.name || 'Agilitypass'}`),
               description: locationDisplay
-                ? `Plats: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`
+                ? `${t(locale, 'Location', 'Plats')}: ${locationDisplay}${notes ? `\n\n${notes}` : ''}`
                 : notes || undefined,
               status: 'SCHEDULED',
               startDate: parsedDate,
@@ -203,13 +211,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error assigning agility workout:', error)
     return NextResponse.json(
-      { error: 'Failed to assign agility workout' },
+      { error: t(locale, 'Failed to assign agility workout', 'Kunde inte tilldela agilitypass') },
       { status: 500 }
     )
   }
