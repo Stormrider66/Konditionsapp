@@ -9,12 +9,19 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 import { getUsageStats } from '@/lib/ai/deep-research/budget-manager'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // GET - Get Usage Statistics
 // ============================================
 
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     // Authenticate
     const user = await requireCoach()
@@ -29,7 +36,6 @@ export async function GET(request: NextRequest) {
     // Parse query params
     const { searchParams } = new URL(request.url)
     const period = (searchParams.get('period') as 'day' | 'week' | 'month' | 'all') || 'month'
-    const groupBy = searchParams.get('groupBy') || 'day'
 
     // Get usage stats
     const stats = await getUsageStats(user.id, period)
@@ -170,7 +176,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching usage statistics:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch usage statistics' },
+      { error: t(locale, 'Failed to fetch usage statistics', 'Kunde inte hämta användningsstatistik') },
       { status: 500 }
     )
   }

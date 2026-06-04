@@ -14,6 +14,11 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // Validation Schema
@@ -30,13 +35,15 @@ const ResetBudgetSchema = z.object({
 // ============================================
 
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const body = await request.json()
     const validation = ResetBudgetSchema.safeParse(body)
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.flatten() },
+        { error: t(locale, 'Invalid request', 'Ogiltig begäran'), details: validation.error.flatten() },
         { status: 400 }
       )
     }
@@ -49,7 +56,7 @@ export async function POST(request: NextRequest) {
 
       if (!expectedSecret || cronSecret !== expectedSecret) {
         return NextResponse.json(
-          { error: 'Invalid cron secret' },
+          { error: t(locale, 'Invalid cron secret', 'Ogiltig cron-hemlighet') },
           { status: 401 }
         )
       }
@@ -65,7 +72,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Reset ${result.count} budget records`,
+        message: t(locale, `Reset ${result.count} budget records`, `${result.count} budgetposter har återställts`),
         resetAt: new Date().toISOString(),
       })
     }
@@ -92,7 +99,7 @@ export async function POST(request: NextRequest) {
 
       if (currentUser?.role !== 'ADMIN') {
         return NextResponse.json(
-          { error: 'Only admins can reset other users\' budgets' },
+          { error: t(locale, 'Only admins can reset other users\' budgets', 'Endast administratörer kan återställa andra användares budgetar') },
           { status: 403 }
         )
       }
@@ -128,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Budget period reset successfully',
+      message: t(locale, 'Budget period reset successfully', 'Budgetperioden har återställts'),
       budget: {
         periodStart: budget.periodStart,
         periodSpent: budget.periodSpent,
@@ -138,7 +145,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error resetting budget:', error)
     return NextResponse.json(
-      { error: 'Failed to reset budget' },
+      { error: t(locale, 'Failed to reset budget', 'Kunde inte återställa budget') },
       { status: 500 }
     )
   }

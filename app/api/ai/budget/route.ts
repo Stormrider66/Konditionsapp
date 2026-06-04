@@ -11,6 +11,11 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 import { getBudgetStatus, updateBudgetSettings } from '@/lib/ai/deep-research/budget-manager'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // Validation Schema
@@ -28,6 +33,8 @@ const UpdateBudgetSchema = z.object({
 // ============================================
 
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     // Authenticate
     const user = await requireCoach()
@@ -86,7 +93,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching budget settings:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch budget settings' },
+      { error: t(locale, 'Failed to fetch budget settings', 'Kunde inte hämta budgetinställningar') },
       { status: 500 }
     )
   }
@@ -97,6 +104,8 @@ export async function GET(request: NextRequest) {
 // ============================================
 
 export async function PUT(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     // Authenticate
     const user = await requireCoach()
@@ -114,7 +123,7 @@ export async function PUT(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validation.error.flatten() },
+        { error: t(locale, 'Invalid request', 'Ogiltig begäran'), details: validation.error.flatten() },
         { status: 400 }
       )
     }
@@ -127,13 +136,13 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Budget settings updated',
+      message: t(locale, 'Budget settings updated', 'Budgetinställningarna har uppdaterats'),
       ...updatedStatus,
     })
   } catch (error) {
     console.error('Error updating budget settings:', error)
     return NextResponse.json(
-      { error: 'Failed to update budget settings' },
+      { error: t(locale, 'Failed to update budget settings', 'Kunde inte uppdatera budgetinställningar') },
       { status: 500 }
     )
   }
