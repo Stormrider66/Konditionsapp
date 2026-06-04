@@ -13,6 +13,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { logAuthEvent, type AuthEventType } from '@/lib/auth/auth-events'
 import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const VALID_EVENT_TYPES: AuthEventType[] = [
   'LOGIN_SUCCESS',
@@ -26,6 +31,8 @@ const VALID_EVENT_TYPES: AuthEventType[] = [
 ]
 
 export async function POST(req: NextRequest) {
+  const locale = resolveRequestLocale(req)
+
   try {
     const ip = getRequestIp(req)
 
@@ -42,7 +49,7 @@ export async function POST(req: NextRequest) {
 
     if (!eventType || !VALID_EVENT_TYPES.includes(eventType)) {
       return NextResponse.json(
-        { error: 'Invalid eventType' },
+        { error: t(locale, 'Invalid eventType', 'Ogiltig eventType') },
         { status: 400 }
       )
     }

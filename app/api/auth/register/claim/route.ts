@@ -11,6 +11,11 @@ import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
 import { createClient } from '@/lib/supabase/server'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const claimSchema = z.object({
   code: z.string().min(1, 'Claim code is required'),
@@ -20,6 +25,8 @@ const claimSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     // Rate limit by IP
     const ip = request.headers.get('x-forwarded-for') || 'unknown'
@@ -41,23 +48,23 @@ export async function POST(request: NextRequest) {
     })
 
     if (!invitation) {
-      return NextResponse.json({ error: 'Invalid claim code' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid claim code', 'Ogiltig anspråkskod') }, { status: 400 })
     }
 
     if (invitation.type !== 'BUSINESS_CLAIM') {
-      return NextResponse.json({ error: 'Invalid invitation type' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid invitation type', 'Ogiltig inbjudningstyp') }, { status: 400 })
     }
 
     if (invitation.usedAt) {
-      return NextResponse.json({ error: 'This claim code has already been used' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'This claim code has already been used', 'Den här anspråkskoden har redan använts') }, { status: 400 })
     }
 
     if (invitation.expiresAt && invitation.expiresAt < new Date()) {
-      return NextResponse.json({ error: 'This claim code has expired' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'This claim code has expired', 'Den här anspråkskoden har gått ut') }, { status: 400 })
     }
 
     if (!invitation.business) {
-      return NextResponse.json({ error: 'Business not found for this claim' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Business not found for this claim', 'Ingen verksamhet hittades för det här anspråket') }, { status: 400 })
     }
 
     // Create auth user via Supabase
@@ -72,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     if (authError || !authData.user) {
       return NextResponse.json(
-        { error: authError?.message || 'Failed to create account' },
+        { error: authError?.message || t(locale, 'Failed to create account', 'Kunde inte skapa konto') },
         { status: 400 }
       )
     }
@@ -126,13 +133,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: error.errors },
         { status: 400 }
       )
     }
     logger.error('Claim registration error', {}, error)
     return NextResponse.json(
-      { error: 'Failed to complete registration' },
+      { error: t(locale, 'Failed to complete registration', 'Kunde inte slutföra registreringen') },
       { status: 500 }
     )
   }

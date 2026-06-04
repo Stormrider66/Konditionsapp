@@ -6,28 +6,19 @@ import { sendPasswordResetEmail } from '@/lib/email'
 import { buildRecoveryCallbackUrl } from '@/lib/url-utils'
 import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const forgotPasswordSchema = z.object({
   email: z.string().email(),
 })
 
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv'
-  if (userLanguage === 'en') return 'en'
-
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
-  return acceptLanguage.startsWith('sv') ? 'sv' : 'en'
-}
-
 // POST /api/auth/forgot-password
 export async function POST(request: NextRequest) {
-  let locale = getRequestLocale(request)
+  let locale = resolveRequestLocale(request)
 
   try {
     // Rate limit: 3 requests per 15 minutes per IP
@@ -63,7 +54,7 @@ export async function POST(request: NextRequest) {
       // User doesn't exist — return success anyway (no enumeration)
       return successResponse()
     }
-    locale = getRequestLocale(request, user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     // Generate recovery link via Supabase Admin
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app'

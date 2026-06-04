@@ -4,6 +4,11 @@ import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { handleApiError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const registerSchema = z.object({
   name: z.string().min(1, 'Name is required').max(100),
@@ -16,9 +21,12 @@ const registerSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const body = await request.json()
     const data = registerSchema.parse(body)
+    locale = resolveRequestLocale(request, data.language)
 
     // Find the business
     const business = await prisma.business.findUnique({
@@ -36,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     if (!business) {
       return NextResponse.json(
-        { success: false, error: 'Partner not found' },
+        { success: false, error: t(locale, 'Partner not found', 'Partnern hittades inte') },
         { status: 404 }
       )
     }
@@ -44,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Check if business has active contract
     if (!business.enterpriseContract || business.enterpriseContract.status !== 'ACTIVE') {
       return NextResponse.json(
-        { success: false, error: 'Partner registration not available' },
+        { success: false, error: t(locale, 'Partner registration not available', 'Partnerregistrering är inte tillgänglig') },
         { status: 400 }
       )
     }
@@ -56,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, error: 'An account with this email already exists' },
+        { success: false, error: t(locale, 'An account with this email already exists', 'Det finns redan ett konto med den här e-postadressen') },
         { status: 400 }
       )
     }
@@ -77,7 +85,7 @@ export async function POST(request: NextRequest) {
     if (authError || !authData?.user) {
       logger.error('Partner registration auth error', { email: data.email }, authError)
       return NextResponse.json(
-        { success: false, error: 'Failed to create account' },
+        { success: false, error: t(locale, 'Failed to create account', 'Kunde inte skapa konto') },
         { status: 500 }
       )
     }
@@ -205,10 +213,17 @@ export async function POST(request: NextRequest) {
         name: user.name,
         business: business.name,
       },
-      message: 'Account created successfully'
+      message: t(locale, 'Account created successfully', 'Kontot har skapats')
     }, { status: 201 })
 
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { success: false, error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: error.flatten() },
+        { status: 400 }
+      )
+    }
+
     return handleApiError(error, 'POST /api/auth/register/partner')
   }
 }
