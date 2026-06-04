@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logError } from '@/lib/logger-console'
 
 interface GarminPrefillData {
@@ -37,25 +38,40 @@ interface GarminPrefillData {
   }
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { language: true },
+    })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'clientId required', 'clientId krävs') },
+        { status: 400 }
+      )
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Check if Garmin is connected
@@ -217,6 +233,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(prefillData)
   } catch (error) {
     logError('Error fetching Garmin prefill data:', error)
-    return NextResponse.json({ error: 'Failed to fetch Garmin data' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to fetch Garmin data', 'Kunde inte hämta Garmin-data') },
+      { status: 500 }
+    )
   }
 }

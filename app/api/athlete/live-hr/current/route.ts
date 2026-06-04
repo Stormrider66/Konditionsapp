@@ -1,16 +1,28 @@
 import { NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
 /** Returns the latest HR reading for the authenticated athlete from any active LiveHRSession */
-export async function GET() {
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   const resolved = await resolveAthleteClientId()
   if (!resolved) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
   }
 
+  locale = resolveLocale(request, resolved.user.language)
   const { clientId } = resolved
 
   // Find latest reading from any active session this athlete is participating in

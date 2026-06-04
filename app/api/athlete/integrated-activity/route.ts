@@ -18,16 +18,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import {
   deduplicateActivities,
-  normalizeStravaActivity,
-  normalizeGarminActivity,
-  normalizeConcept2Activity,
-  normalizeWorkoutLog,
-  normalizeAIWod,
   type NormalizedActivity,
   type ActivitySource,
 } from '@/lib/training/activity-deduplication'
@@ -71,14 +67,26 @@ interface UnifiedActivity {
   movements?: Array<{ name: string; reps?: number; weight?: number; distance?: number }>
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { language: true },
+    })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
@@ -86,7 +94,10 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20')
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'clientId required', 'clientId krävs') },
+        { status: 400 }
+      )
     }
 
     // Verify access
@@ -96,14 +107,17 @@ export async function GET(request: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: t(locale, 'Client not found', 'Klienten hittades inte') },
+        { status: 404 }
+      )
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     const athleteId = client.athleteAccount?.userId
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     const startDate = new Date()
@@ -254,8 +268,8 @@ export async function GET(request: NextRequest) {
     // Build set of Garmin activity IDs linked to ad-hoc workouts (to skip in Garmin loop)
     const linkedGarminIds = new Set(
       adHocWorkouts
-        .filter((a: any) => a.garminActivityId)
-        .map((a: any) => a.garminActivityId as string)
+        .map((a) => a.garminActivityId)
+        .filter((id): id is string => Boolean(id))
     )
 
     // Process Garmin activities from GarminActivity model (Gap 5 fix)
@@ -370,11 +384,7 @@ export async function GET(request: NextRequest) {
     for (const adhoc of adHocWorkouts) {
       // Extract data from parsedStructure
       const parsed = adhoc.parsedStructure as ParsedWorkout | null
-      const garmin = (adhoc as any).garminActivity as {
-        id: string; tss: number | null; averageHeartrate: number | null;
-        maxHeartrate: number | null; duration: number | null;
-        distance: number | null; calories: number | null; deviceName: string | null;
-      } | null
+      const garmin = adhoc.garminActivity
 
       // Build workout name
       let workoutName = adhoc.workoutName || parsed?.name
@@ -498,6 +508,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logger.error('Error fetching integrated activities', {}, error)
-    return NextResponse.json({ error: 'Failed to fetch activities' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to fetch activities', 'Kunde inte hämta aktiviteter') },
+      { status: 500 }
+    )
   }
 }
