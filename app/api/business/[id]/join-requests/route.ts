@@ -12,6 +12,7 @@ import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { sendJoinRequestNotification } from '@/lib/email'
 import { isPublicJoinableBusinessType } from '@/lib/business-registration'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{ id: string }>
@@ -21,9 +22,16 @@ const joinRequestSchema = z.object({
   message: z.string().max(500).optional(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
     const { id: businessId } = await params
 
     // Verify business exists and allows public join requests.
@@ -38,12 +46,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!business || !business.isActive) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 404 })
     }
 
     if (!isPublicJoinableBusinessType(business.type)) {
       return NextResponse.json(
-        { error: 'This business is invite-only' },
+        { error: t(locale, 'This business is invite-only', 'Den här verksamheten kräver inbjudan') },
         { status: 403 }
       )
     }
@@ -55,7 +63,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (existingMembership) {
       return NextResponse.json(
-        { error: 'You are already a member of this business' },
+        { error: t(locale, 'You are already a member of this business', 'Du är redan medlem i den här verksamheten') },
         { status: 400 }
       )
     }
@@ -87,28 +95,31 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     // Handle unique constraint violation (already requested)
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       return NextResponse.json(
-        { error: 'You already have a pending request for this business' },
+        { error: t(locale, 'You already have a pending request for this business', 'Du har redan en väntande förfrågan för den här verksamheten') },
         { status: 400 }
       )
     }
     logger.error('Join request error', {}, error)
-    return NextResponse.json({ error: 'Failed to submit join request' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to submit join request', 'Kunde inte skicka anslutningsförfrågan') }, { status: 500 })
   }
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
     const { id: businessId } = await params
 
     await requireBusinessMembership(user.id, businessId, { roles: ['OWNER', 'ADMIN'] })
@@ -132,9 +143,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ requests })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('List join requests error', {}, error)
-    return NextResponse.json({ error: 'Failed to fetch join requests' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch join requests', 'Kunde inte hämta anslutningsförfrågningar') }, { status: 500 })
   }
 }

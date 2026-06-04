@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{ id: string; requestId: string }>
@@ -18,9 +19,16 @@ const reviewSchema = z.object({
   action: z.enum(['APPROVE', 'REJECT']),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
     const { id: businessId, requestId } = await params
 
     await requireBusinessMembership(user.id, businessId, { roles: ['OWNER', 'ADMIN'] })
@@ -30,12 +38,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!joinRequest || joinRequest.businessId !== businessId) {
-      return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Request not found', 'Förfrågan hittades inte') }, { status: 404 })
     }
 
     if (joinRequest.status !== 'PENDING') {
       return NextResponse.json(
-        { error: 'Request has already been reviewed' },
+        { error: t(locale, 'Request has already been reviewed', 'Förfrågan har redan granskats') },
         { status: 400 }
       )
     }
@@ -79,14 +87,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Review join request error', {}, error)
-    return NextResponse.json({ error: 'Failed to review request' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to review request', 'Kunde inte granska förfrågan') }, { status: 500 })
   }
 }
