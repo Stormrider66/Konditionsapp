@@ -12,15 +12,14 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
@@ -30,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { user, clientId, isCoachInAthleteMode } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:model-preference:set', user.id, {
       limit: 30,
@@ -182,8 +181,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET() {
-  let locale: AppLocale = 'en'
+export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
@@ -193,7 +192,7 @@ export async function GET() {
     }
 
     const { user, clientId } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:model-preference:get', user.id, {
       limit: 60,

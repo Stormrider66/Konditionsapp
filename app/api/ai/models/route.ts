@@ -21,8 +21,7 @@ import {
   normalizeAIModelId,
   normalizeAIModelPricing,
 } from '@/lib/ai/model-compat'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -62,7 +61,7 @@ function transformDbModel(dbModel: PrismaAIModel) {
 }
 
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await getCurrentUser()
@@ -70,7 +69,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:models:list', user.id, {
       limit: 60,
