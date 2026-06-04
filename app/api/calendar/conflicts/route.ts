@@ -15,12 +15,18 @@ import {
 } from '@/lib/calendar/conflict-detection'
 import { z } from 'zod'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/calendar/conflicts
  * Detect all conflicts in a date range for a client
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -28,7 +34,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -36,8 +42,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
@@ -46,14 +53,14 @@ export async function GET(request: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'Missing required parameter: clientId' },
+        { error: t(locale, 'Missing required parameter: clientId', 'Obligatorisk parameter saknas: clientId') },
         { status: 400 }
       )
     }
 
     const hasAccess = await canAccessClient(dbUser.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Default to current month if no dates provided
@@ -65,7 +72,6 @@ export async function GET(request: NextRequest) {
       ? new Date(endDateStr)
       : new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59)
 
-    const locale = dbUser.language === 'sv' ? 'sv' : 'en'
     const conflicts = await detectConflictsInRange(clientId, startDate, endDate, locale)
 
     // Group conflicts by severity
@@ -93,7 +99,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logError('Error detecting conflicts:', error)
-    return NextResponse.json({ error: 'Failed to detect conflicts' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to detect conflicts', 'Misslyckades med att hitta konflikter') }, { status: 500 })
   }
 }
 
@@ -109,6 +115,7 @@ const checkConflictSchema = z.object({
  * Check conflicts for moving a specific workout to a new date
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -116,7 +123,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -124,15 +131,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const validationResult = checkConflictSchema.safeParse(body)
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.issues },
+        { error: t(locale, 'Invalid request', 'Ogiltig begäran'), details: validationResult.error.issues },
         { status: 400 }
       )
     }
@@ -162,14 +170,14 @@ export async function POST(request: NextRequest) {
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     const client = workout.day.week.program.client
 
     const hasAccess = await canAccessClient(dbUser.id, client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const conflicts = await detectWorkoutConflicts(
@@ -178,7 +186,7 @@ export async function POST(request: NextRequest) {
       new Date(targetDate),
       workoutType || workout.type,
       workoutIntensity || workout.intensity,
-      dbUser.language === 'sv' ? 'sv' : 'en'
+      locale
     )
 
     const hasCritical = conflicts.some((c) => c.severity === 'CRITICAL')
@@ -199,6 +207,6 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     logError('Error checking conflicts:', error)
-    return NextResponse.json({ error: 'Failed to check conflicts' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to check conflicts', 'Misslyckades med att kontrollera konflikter') }, { status: 500 })
   }
 }

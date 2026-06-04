@@ -9,18 +9,25 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/calendar/notifications
  * Get calendar change notifications for the current user
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const dbUser = await getCurrentUser()
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
@@ -50,7 +57,7 @@ export async function GET(request: NextRequest) {
         if (clientId) {
           const hasAccess = await canAccessClient(dbUser.id, clientId)
           if (!hasAccess) {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+            return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
           }
           clientIds = [clientId]
         }
@@ -160,7 +167,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logError('Error fetching notifications:', error)
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch notifications', 'Misslyckades med att hämta notiser') }, { status: 500 })
   }
 }
 
@@ -169,12 +176,14 @@ export async function GET(request: NextRequest) {
  * Mark multiple notifications as read
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const dbUser = await getCurrentUser()
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const { notificationIds, markAll } = body
@@ -202,7 +211,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (clientIds.length === 0) {
-      return NextResponse.json({ error: 'No access to notifications' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'No access to notifications', 'Ingen åtkomst till notiser') }, { status: 403 })
     }
 
     const now = new Date()
@@ -245,9 +254,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'Invalid request', 'Ogiltig begäran') }, { status: 400 })
   } catch (error) {
     logError('Error marking notifications as read:', error)
-    return NextResponse.json({ error: 'Failed to update notifications' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update notifications', 'Misslyckades med att uppdatera notiser') }, { status: 500 })
   }
 }

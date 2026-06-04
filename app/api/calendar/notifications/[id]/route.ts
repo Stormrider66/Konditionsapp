@@ -10,9 +10,14 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
@@ -20,6 +25,7 @@ interface RouteParams {
  * Get a single notification
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -27,7 +33,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -35,8 +41,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const { id } = await params
 
@@ -73,12 +80,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!notification) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Notification not found', 'Notisen hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, notification.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     return NextResponse.json({
@@ -100,7 +107,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     logError('Error fetching notification:', error)
-    return NextResponse.json({ error: 'Failed to fetch notification' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch notification', 'Misslyckades med att hämta notis') }, { status: 500 })
   }
 }
 
@@ -109,6 +116,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * Mark notification as read or unread
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -116,7 +124,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -124,8 +132,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const { id } = await params
     const body = await request.json()
@@ -147,12 +156,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!notification) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Notification not found', 'Notisen hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, notification.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Update notification
@@ -174,6 +183,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     logError('Error updating notification:', error)
-    return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update notification', 'Misslyckades med att uppdatera notis') }, { status: 500 })
   }
 }
