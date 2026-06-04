@@ -4,16 +4,23 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for logging a habit
-const logHabitSchema = z.object({
-  date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: 'Invalid date format',
-  }),
-  completed: z.boolean(),
-  note: z.string().optional(),
-  value: z.number().optional(),
-})
+function logHabitSchema(locale: AppLocale) {
+  return z.object({
+    date: z.string().refine((val) => !isNaN(Date.parse(val)), {
+      message: t(locale, 'Invalid date format', 'Ogiltigt datumformat'),
+    }),
+    completed: z.boolean(),
+    note: z.string().optional(),
+    value: z.number().optional(),
+  })
+}
 
 // Helper function to calculate streak
 async function updateStreaks(habitId: string): Promise<void> {
@@ -92,16 +99,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ habitId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { habitId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Check habit exists and belongs to athlete
     const habit = await prisma.habit.findFirst({
@@ -110,7 +120,7 @@ export async function GET(
 
     if (!habit) {
       return NextResponse.json(
-        { success: false, error: 'Habit not found' },
+        { success: false, error: t(locale, 'Habit not found', 'Vanan hittades inte') },
         { status: 404 }
       )
     }
@@ -138,7 +148,7 @@ export async function GET(
   } catch (error) {
     logger.error('Error fetching habit logs', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch habit logs' },
+      { success: false, error: t(locale, 'Failed to fetch habit logs', 'Kunde inte hämta vaneloggar') },
       { status: 500 }
     )
   }
@@ -149,16 +159,19 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ habitId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { habitId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Check habit exists and belongs to athlete
     const habit = await prisma.habit.findFirst({
@@ -167,19 +180,19 @@ export async function POST(
 
     if (!habit) {
       return NextResponse.json(
-        { success: false, error: 'Habit not found' },
+        { success: false, error: t(locale, 'Habit not found', 'Vanan hittades inte') },
         { status: 404 }
       )
     }
 
     const body = await request.json()
-    const validation = logHabitSchema.safeParse(body)
+    const validation = logHabitSchema(locale).safeParse(body)
 
     if (!validation.success) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -231,12 +244,14 @@ export async function POST(
         log,
         streaks: updatedHabit,
       },
-      message: data.completed ? 'Habit completed!' : 'Habit marked as incomplete',
+      message: data.completed
+        ? t(locale, 'Habit completed!', 'Vanan markerades som klar!')
+        : t(locale, 'Habit marked as incomplete', 'Vanan markerades som ej klar'),
     })
   } catch (error) {
     logger.error('Error logging habit', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to log habit' },
+      { success: false, error: t(locale, 'Failed to log habit', 'Kunde inte logga vana') },
       { status: 500 }
     )
   }

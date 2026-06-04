@@ -5,6 +5,11 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { HabitCategory, HabitFrequency } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for updating a habit
 const updateHabitSchema = z.object({
@@ -24,16 +29,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ habitId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { habitId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     const habit = await prisma.habit.findFirst({
       where: {
@@ -50,7 +58,7 @@ export async function GET(
 
     if (!habit) {
       return NextResponse.json(
-        { success: false, error: 'Habit not found' },
+        { success: false, error: t(locale, 'Habit not found', 'Vanan hittades inte') },
         { status: 404 }
       )
     }
@@ -62,7 +70,7 @@ export async function GET(
   } catch (error) {
     logger.error('Error fetching habit', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch habit' },
+      { success: false, error: t(locale, 'Failed to fetch habit', 'Kunde inte hämta vana') },
       { status: 500 }
     )
   }
@@ -73,16 +81,19 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ habitId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { habitId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Check habit exists and belongs to athlete
     const existingHabit = await prisma.habit.findFirst({
@@ -91,7 +102,7 @@ export async function PATCH(
 
     if (!existingHabit) {
       return NextResponse.json(
-        { success: false, error: 'Habit not found' },
+        { success: false, error: t(locale, 'Habit not found', 'Vanan hittades inte') },
         { status: 404 }
       )
     }
@@ -103,7 +114,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -126,12 +137,12 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: habit,
-      message: 'Habit updated successfully',
+      message: t(locale, 'Habit updated successfully', 'Vanan har uppdaterats'),
     })
   } catch (error) {
     logger.error('Error updating habit', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update habit' },
+      { success: false, error: t(locale, 'Failed to update habit', 'Kunde inte uppdatera vana') },
       { status: 500 }
     )
   }
@@ -142,16 +153,19 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ habitId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { habitId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Check habit exists and belongs to athlete
     const existingHabit = await prisma.habit.findFirst({
@@ -160,7 +174,7 @@ export async function DELETE(
 
     if (!existingHabit) {
       return NextResponse.json(
-        { success: false, error: 'Habit not found' },
+        { success: false, error: t(locale, 'Habit not found', 'Vanan hittades inte') },
         { status: 404 }
       )
     }
@@ -171,12 +185,12 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Habit deleted successfully',
+      message: t(locale, 'Habit deleted successfully', 'Vanan har raderats'),
     })
   } catch (error) {
     logger.error('Error deleting habit', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to delete habit' },
+      { success: false, error: t(locale, 'Failed to delete habit', 'Kunde inte radera vana') },
       { status: 500 }
     )
   }

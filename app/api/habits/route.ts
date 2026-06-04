@@ -5,6 +5,11 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { HabitCategory, HabitFrequency } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating a habit
 const createHabitSchema = z.object({
@@ -20,15 +25,18 @@ const createHabitSchema = z.object({
 
 // GET /api/habits - List all habits for current athlete
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Get query params for filtering
     const { searchParams } = new URL(request.url)
@@ -60,7 +68,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching habits', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch habits' },
+      { success: false, error: t(locale, 'Failed to fetch habits', 'Kunde inte hämta vanor') },
       { status: 500 }
     )
   }
@@ -68,15 +76,18 @@ export async function GET(request: NextRequest) {
 
 // POST /api/habits - Create a new habit
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validation = createHabitSchema.safeParse(body)
@@ -85,7 +96,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -112,14 +123,14 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         data: habit,
-        message: 'Habit created successfully',
+        message: t(locale, 'Habit created successfully', 'Vanan har skapats'),
       },
       { status: 201 }
     )
   } catch (error) {
     logger.error('Error creating habit', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to create habit' },
+      { success: false, error: t(locale, 'Failed to create habit', 'Kunde inte skapa vana') },
       { status: 500 }
     )
   }
