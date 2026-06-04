@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import {
   saveWeeklySummary,
@@ -22,35 +23,53 @@ interface RouteParams {
   params: Promise<{ weekStart: string }>
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+async function resolveAuthenticatedLocale(request: Request, userId: string): Promise<AppLocale> {
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return resolveRequestLocale(request, dbUser?.language)
+}
+
 export async function GET(request: NextRequest, context: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = await resolveAuthenticatedLocale(request, user.id)
 
     const { weekStart: weekStartParam } = await context.params
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'clientId required', 'clientId krävs') },
+        { status: 400 }
+      )
     }
 
     // Parse and validate date
     const weekStart = new Date(weekStartParam)
     if (isNaN(weekStart.getTime())) {
       return NextResponse.json(
-        { error: 'Invalid date format. Use YYYY-MM-DD' },
+        { error: t(locale, 'Invalid date format. Use YYYY-MM-DD', 'Ogiltigt datumformat. Använd ÅÅÅÅ-MM-DD') },
         { status: 400 }
       )
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Fetch the specific week's summary
@@ -62,7 +81,10 @@ export async function GET(request: NextRequest, context: RouteParams) {
 
     if (!summary) {
       return NextResponse.json(
-        { error: 'Summary not found for this week', weekStart: weekStartParam },
+        {
+          error: t(locale, 'Summary not found for this week', 'Sammanfattning hittades inte för den här veckan'),
+          weekStart: weekStartParam,
+        },
         { status: 404 }
       )
     }
@@ -70,39 +92,48 @@ export async function GET(request: NextRequest, context: RouteParams) {
     return NextResponse.json(summary)
   } catch (error) {
     logger.error('Error fetching weekly summary', {}, error)
-    return NextResponse.json({ error: 'Failed to fetch weekly summary' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to fetch weekly summary', 'Kunde inte hämta veckosammanfattningen') },
+      { status: 500 }
+    )
   }
 }
 
 export async function POST(request: NextRequest, context: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = await resolveAuthenticatedLocale(request, user.id)
 
     const { weekStart: weekStartParam } = await context.params
     const body = await request.json()
     const { clientId } = body
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required in body' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'clientId required in body', 'clientId krävs i innehållet') },
+        { status: 400 }
+      )
     }
 
     // Parse and validate date
     const weekStart = new Date(weekStartParam)
     if (isNaN(weekStart.getTime())) {
       return NextResponse.json(
-        { error: 'Invalid date format. Use YYYY-MM-DD' },
+        { error: t(locale, 'Invalid date format. Use YYYY-MM-DD', 'Ogiltigt datumformat. Använd ÅÅÅÅ-MM-DD') },
         { status: 400 }
       )
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Force recalculation of the week
@@ -120,11 +151,14 @@ export async function POST(request: NextRequest, context: RouteParams) {
 
     return NextResponse.json({
       success: true,
-      message: 'Summary recalculated successfully',
+      message: t(locale, 'Summary recalculated successfully', 'Sammanfattningen räknades om'),
       summary,
     })
   } catch (error) {
     logger.error('Error recalculating weekly summary', {}, error)
-    return NextResponse.json({ error: 'Failed to recalculate summary' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to recalculate summary', 'Kunde inte räkna om sammanfattningen') },
+      { status: 500 }
+    )
   }
 }

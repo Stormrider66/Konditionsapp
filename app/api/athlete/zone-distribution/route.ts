@@ -16,9 +16,16 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { getAggregatedZoneDistribution } from '@/lib/integrations/zone-distribution-service'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: Request) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -35,8 +42,14 @@ export async function GET(request: Request) {
 
     const { data: { user }, error: authError } = await supabase.auth.getUser()
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { language: true },
+    })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
@@ -46,12 +59,15 @@ export async function GET(request: Request) {
     const count = parseInt(searchParams.get('count') || '1', 10)
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'clientId is required', 'clientId krävs') },
+        { status: 400 }
+      )
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Calculate date ranges
@@ -99,7 +115,7 @@ export async function GET(request: Request) {
         case 'custom':
           if (!startDateParam || !endDateParam) {
             return NextResponse.json(
-              { error: 'startDate and endDate required for custom period' },
+              { error: t(locale, 'startDate and endDate required for custom period', 'startDate och endDate krävs för anpassad period') },
               { status: 400 }
             )
           }
@@ -108,7 +124,10 @@ export async function GET(request: Request) {
           break
 
         default:
-          return NextResponse.json({ error: 'Invalid period' }, { status: 400 })
+          return NextResponse.json(
+            { error: t(locale, 'Invalid period', 'Ogiltig period') },
+            { status: 400 }
+          )
       }
 
       const distribution = await getAggregatedZoneDistribution(clientId, startDate, endDate)
@@ -135,7 +154,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Zone distribution API error:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     )
   }
