@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { buildCardioFocusModeSegments, type FocusModeSegment } from '@/lib/cardio/focus-mode-segments'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const querySchema = z.object({
   kind: z.enum(['cardio', 'strength', 'hybrid', 'agility']),
@@ -23,7 +24,6 @@ type DetailSection = {
   title: string
   rows: DetailRow[]
 }
-type AppLocale = 'en' | 'sv'
 
 function formatSecondsToMinutes(seconds?: number | null) {
   if (!seconds || seconds <= 0) return null
@@ -200,11 +200,12 @@ async function assertAssignmentAccess(userId: string, athleteId: string, locale:
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   const user = await getCurrentUser()
   if (!user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
   }
-  const locale = getUserLocale(user.language)
+  locale = resolveRequestLocale(request, user.language)
 
   const parsed = querySchema.safeParse({
     kind: request.nextUrl.searchParams.get('kind'),
@@ -390,10 +391,6 @@ export async function GET(request: NextRequest) {
     details: [],
     original: result ?? assignment,
   })
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

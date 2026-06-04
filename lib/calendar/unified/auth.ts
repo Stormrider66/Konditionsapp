@@ -9,6 +9,11 @@ import {
   userIdByEmailInFlight,
 } from './caches'
 import { getVerifiedLoadTestBypassEmail } from '@/lib/load-test-bypass'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * Resolve the DB User.id for the current request. Dedupes
@@ -20,6 +25,7 @@ import { getVerifiedLoadTestBypassEmail } from '@/lib/load-test-bypass'
 export async function resolveAuthenticatedUserId(
   request: NextRequest
 ): Promise<{ ok: true; userId: string } | { ok: false; response: NextResponse }> {
+  const locale = resolveRequestLocale(request)
   const forwardedEmail = getVerifiedLoadTestBypassEmail(request)
   const authCacheKey = buildAuthCacheKey(request, forwardedEmail)
   const nowMs = Date.now()
@@ -47,7 +53,7 @@ export async function resolveAuthenticatedUserId(
           if (error instanceof Error && error.message === 'UNAUTHORIZED') {
             return {
               ok: false,
-              response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+              response: NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 }),
             }
           }
           throw error
@@ -81,7 +87,7 @@ export async function resolveAuthenticatedUserId(
   if (!resolvedUserId) {
     return {
       ok: false,
-      response: NextResponse.json({ error: 'User not found' }, { status: 404 }),
+      response: NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 }),
     }
   }
 

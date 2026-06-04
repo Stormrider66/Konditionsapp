@@ -14,6 +14,7 @@ import { performance } from 'node:perf_hooks'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { resolveAuthenticatedUserId } from '@/lib/calendar/unified/auth'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   CLIENT_ACCESS_TTL_MS,
   clientAccessCache,
@@ -31,7 +32,12 @@ import { buildUnifiedCalendarPayload } from '@/lib/calendar/unified/build-payloa
 
 export type { UnifiedCalendarItem } from '@/lib/calendar/unified/types'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
   try {
     const emitDebugHeaders = shouldEmitPerfDebugHeaders(request)
     const t0 = emitDebugHeaders ? performance.now() : 0
@@ -61,7 +67,7 @@ export async function GET(request: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'Missing required parameter: clientId' },
+        { error: t(locale, 'Missing required parameter: clientId', 'Obligatorisk parameter saknas: clientId') },
         { status: 400 }
       )
     }
@@ -91,7 +97,7 @@ export async function GET(request: NextRequest) {
       })
     }
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Default to current month, clamp range to 120 days.
@@ -198,7 +204,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching unified calendar:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch unified calendar' },
+      { error: t(locale, 'Failed to fetch unified calendar', 'Misslyckades med att hämta samlad kalender') },
       { status: 500 }
     )
   }
