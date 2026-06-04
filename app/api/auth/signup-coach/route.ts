@@ -12,6 +12,11 @@ import {
   getCoachTrialSubscriptionData,
 } from '@/lib/user-provisioning'
 import { createPersonalBusinessTx } from '@/lib/personal-business'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const signupCoachSchema = z.object({
   name: z.string().min(1),
@@ -59,6 +64,7 @@ const signupCoachSchema = z.object({
 export async function POST(request: NextRequest) {
   let createdFreshUser = false
   let authUserId: string | null = null
+  const locale = resolveRequestLocale(request)
 
   try {
     const supabase = await createClient()
@@ -68,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     if (!supabaseUser?.id || !supabaseUser.email) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -82,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid input', details: validation.error.flatten() },
+        { success: false, error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validation.error.flatten() },
         { status: 400 }
       )
     }
@@ -115,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     if (emailConflict && emailConflict.id !== supabaseUser.id) {
       return NextResponse.json(
-        { success: false, error: 'An account with this email already exists' },
+        { success: false, error: t(locale, 'An account with this email already exists', 'Det finns redan ett konto med den här e-postadressen') },
         { status: 400 }
       )
     }
@@ -130,7 +136,7 @@ export async function POST(request: NextRequest) {
           data: {
             name,
             role: 'COACH',
-            language: 'en',
+            language: locale,
           },
         })
 
@@ -165,7 +171,7 @@ export async function POST(request: NextRequest) {
             email: supabaseEmail,
             name,
             role: 'COACH',
-            language: 'en',
+            language: locale,
           },
         })
 
@@ -205,7 +211,7 @@ export async function POST(request: NextRequest) {
     })
 
     sendEmailAfter(
-      () => sendWelcomeEmail(supabaseEmail, name, 'en'),
+      () => sendWelcomeEmail(supabaseEmail, name, locale),
       { route: 'auth/signup-coach', emailKind: 'welcome' },
     )
 
@@ -231,7 +237,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to create coach account' },
+      { success: false, error: t(locale, 'Failed to create coach account', 'Kunde inte skapa tränarkonto') },
       { status: 500 }
     )
   }

@@ -18,6 +18,11 @@ import { z } from 'zod'
 import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { createCoachTrialSubscription } from '@/lib/subscription/feature-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const signupBusinessSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -60,6 +65,8 @@ async function generateUniqueSlug(name: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const ip = getRequestIp(request)
     const rateLimited = await rateLimitJsonResponse('auth:signup-business', ip, {
@@ -73,19 +80,20 @@ export async function POST(request: NextRequest) {
     const validationResult = signupBusinessSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       )
     }
 
     const { name, email, password, businessName, businessType, city, phone, website, language } =
       validationResult.data
+    locale = resolveRequestLocale(request, language)
 
     // Check if email is already registered
     const existingUser = await prisma.user.findUnique({ where: { email } })
     if (existingUser) {
       return NextResponse.json(
-        { error: 'An account with this email already exists' },
+        { error: t(locale, 'An account with this email already exists', 'Det finns redan ett konto med den här e-postadressen') },
         { status: 400 }
       )
     }
@@ -103,7 +111,7 @@ export async function POST(request: NextRequest) {
     if (authError || !authData.user) {
       logger.error('Supabase auth error during business signup', {}, authError)
       return NextResponse.json(
-        { error: authError?.message || 'Failed to create account' },
+        { error: authError?.message || t(locale, 'Failed to create account', 'Kunde inte skapa konto') },
         { status: 400 }
       )
     }
@@ -149,7 +157,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Business account created successfully.',
+        message: t(locale, 'Business account created successfully.', 'Verksamhetskontot har skapats.'),
         redirectUrl,
       },
       { status: 201 }
@@ -157,7 +165,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Business signup error', {}, error)
     return NextResponse.json(
-      { error: 'Failed to create account' },
+      { error: t(locale, 'Failed to create account', 'Kunde inte skapa konto') },
       { status: 500 }
     )
   }

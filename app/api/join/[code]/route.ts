@@ -13,6 +13,7 @@ import { logger } from '@/lib/logger'
 import { getAthleteSubscriptionDataForTier, type AthleteTier } from '@/lib/athlete-account-utils'
 import { resolveHockeyBetaSubscriptionInput } from '@/lib/hockey-beta'
 import { syncClientSportProfileToTeam } from '@/lib/coach/team-sport-profile'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const VALID_ATHLETE_TIERS: readonly AthleteTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE']
 
@@ -20,18 +21,12 @@ interface RouteContext {
   params: Promise<{ code: string }>
 }
 
-type AppLocale = 'en' | 'sv'
-
-function getRequestLocale(req: NextRequest): AppLocale {
-  return req.nextUrl.searchParams.get('locale') === 'sv' ? 'sv' : 'en'
-}
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-export async function GET(_req: NextRequest, context: RouteContext) {
-  const locale = getRequestLocale(_req)
+export async function GET(req: NextRequest, context: RouteContext) {
+  const locale = resolveRequestLocale(req)
 
   try {
     const { code } = await context.params
@@ -60,11 +55,11 @@ export async function GET(_req: NextRequest, context: RouteContext) {
 
     return NextResponse.json({
       valid: true,
-      teamName: meta?.teamName || 'Lag',
+      teamName: meta?.teamName || t(locale, 'Team', 'Lag'),
       businessId: invite.businessId,
     })
   } catch {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed', 'Misslyckades') }, { status: 500 })
   }
 }
 
@@ -78,7 +73,7 @@ const joinSchema = z.object({
 })
 
 export async function POST(req: NextRequest, context: RouteContext) {
-  let locale = getRequestLocale(req)
+  let locale = resolveRequestLocale(req)
 
   try {
     const { code } = await context.params
@@ -247,7 +242,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ success: true }, { status: 201 })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors[0].message }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: error.flatten() },
+        { status: 400 }
+      )
     }
     console.error('Join error:', error)
     return NextResponse.json({ error: t(locale, 'Registration failed', 'Registrering misslyckades') }, { status: 500 })

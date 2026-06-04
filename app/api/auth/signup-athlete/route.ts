@@ -21,6 +21,11 @@ import { logger } from '@/lib/logger'
 import { createCheckoutSession } from '@/lib/payments/stripe'
 import { getTierFeatures } from '@/lib/auth/tier-utils'
 import { PUBLIC_JOINABLE_BUSINESS_TYPES } from '@/lib/business-registration'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const athleteTierSchema = z.string().optional().transform((value) => {
   const normalized = value?.toUpperCase()
@@ -69,6 +74,8 @@ const signupSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     // SECURITY: Strict rate limit for signup attempts per IP
     // 5 attempts per hour to prevent abuse
@@ -85,12 +92,13 @@ export async function POST(request: NextRequest) {
     const validationResult = signupSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
 
     const { email, password, name, birthDate, gender, businessId, inviteCode, aiCoached, tier, primarySport, language } = validationResult.data;
+    locale = resolveRequestLocale(request, language)
 
     let selectedBusiness: { id: string; slug: string; type: string } | null = null
     if (businessId) {
@@ -109,7 +117,7 @@ export async function POST(request: NextRequest) {
 
       if (!selectedBusiness) {
         return NextResponse.json(
-          { error: 'Selected business was not found' },
+          { error: t(locale, 'Selected business was not found', 'Den valda verksamheten hittades inte') },
           { status: 400 }
         )
       }
@@ -122,7 +130,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'An account with this email already exists' },
+        { error: t(locale, 'An account with this email already exists', 'Det finns redan ett konto med den här e-postadressen') },
         { status: 400 }
       );
     }
@@ -136,14 +144,14 @@ export async function POST(request: NextRequest) {
 
       if (!invitation) {
         return NextResponse.json(
-          { error: 'Invalid invitation code' },
+          { error: t(locale, 'Invalid invitation code', 'Ogiltig inbjudningskod') },
           { status: 400 }
         );
       }
 
       if (invitation.type !== 'ATHLETE_SIGNUP' && invitation.type !== 'REFERRAL') {
         return NextResponse.json(
-          { error: 'This invitation code is not valid for signup' },
+          { error: t(locale, 'This invitation code is not valid for signup', 'Den här inbjudningskoden gäller inte för registrering') },
           { status: 400 }
         );
       }
@@ -152,14 +160,14 @@ export async function POST(request: NextRequest) {
       const now = new Date();
       if (invitation.expiresAt && invitation.expiresAt < now) {
         return NextResponse.json(
-          { error: 'Invitation code has expired' },
+          { error: t(locale, 'Invitation code has expired', 'Inbjudningskoden har gått ut') },
           { status: 400 }
         );
       }
 
       if (invitation.currentUses >= invitation.maxUses) {
         return NextResponse.json(
-          { error: 'Invitation code has already been used' },
+          { error: t(locale, 'Invitation code has already been used', 'Inbjudningskoden har redan använts') },
           { status: 400 }
         );
       }
@@ -181,7 +189,7 @@ export async function POST(request: NextRequest) {
     if (authError || !authData.user) {
       logger.error('Supabase auth error during athlete signup', {}, authError)
       return NextResponse.json(
-        { error: authError?.message || 'Failed to create account' },
+        { error: authError?.message || t(locale, 'Failed to create account', 'Kunde inte skapa konto') },
         { status: 400 }
       );
     }
@@ -328,7 +336,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'Account created successfully. Please check your email to verify your account.',
+        message: t(
+          locale,
+          'Account created successfully. Please check your email to verify your account.',
+          'Kontot har skapats. Kontrollera din e-post för att verifiera kontot.'
+        ),
         user: {
           id: result.user.id,
           email: result.user.email,
@@ -353,7 +365,7 @@ export async function POST(request: NextRequest) {
     logger.error('Athlete signup error', {}, error)
 
     return NextResponse.json(
-      { error: 'Failed to create account' },
+      { error: t(locale, 'Failed to create account', 'Kunde inte skapa konto') },
       { status: 500 }
     );
   }
