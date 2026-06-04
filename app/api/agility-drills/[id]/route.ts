@@ -6,6 +6,11 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { AgilityDrillCategory, DevelopmentStage, SportType } from '@prisma/client'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const updateDrillSchema = z.object({
   name: z.string().min(1).optional(),
@@ -39,13 +44,15 @@ interface RouteParams {
 
 // GET /api/agility-drills/[id] - Get single drill details
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const drill = await prisma.agilityDrill.findUnique({
@@ -67,14 +74,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!drill) {
-      return NextResponse.json({ error: 'Drill not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Drill not found', 'Övningen hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json(drill)
   } catch (error) {
     console.error('Error fetching agility drill:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch agility drill' },
+      { error: t(locale, 'Failed to fetch agility drill', 'Kunde inte hämta agilityövning') },
       { status: 500 }
     )
   }
@@ -82,13 +89,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // PUT /api/agility-drills/[id] - Update custom drill (owner only)
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Check if drill exists and user owns it
@@ -98,22 +107,23 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!existingDrill) {
-      return NextResponse.json({ error: 'Drill not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Drill not found', 'Övningen hittades inte') }, { status: 404 })
     }
 
     if (existingDrill.isSystemDrill) {
-      return NextResponse.json({ error: 'Cannot modify system drills' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Cannot modify system drills', 'Systemövningar kan inte ändras') }, { status: 403 })
     }
 
     if (existingDrill.coachId !== user.id) {
       // Check if admin
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { role: true }
+        select: { role: true, language: true }
       })
+      locale = resolveRequestLocale(request, dbUser?.language)
 
       if (!dbUser || dbUser.role !== 'ADMIN') {
-        return NextResponse.json({ error: 'You can only edit your own drills' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'You can only edit your own drills', 'Du kan bara redigera dina egna övningar') }, { status: 403 })
       }
     }
 
@@ -129,13 +139,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error updating agility drill:', error)
     return NextResponse.json(
-      { error: 'Failed to update agility drill' },
+      { error: t(locale, 'Failed to update agility drill', 'Kunde inte uppdatera agilityövning') },
       { status: 500 }
     )
   }
@@ -143,13 +153,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/agility-drills/[id] - Delete custom drill (owner only)
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Check if drill exists and user owns it
@@ -159,22 +171,23 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!existingDrill) {
-      return NextResponse.json({ error: 'Drill not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Drill not found', 'Övningen hittades inte') }, { status: 404 })
     }
 
     if (existingDrill.isSystemDrill) {
-      return NextResponse.json({ error: 'Cannot delete system drills' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Cannot delete system drills', 'Systemövningar kan inte raderas') }, { status: 403 })
     }
 
     if (existingDrill.coachId !== user.id) {
       // Check if admin
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { role: true }
+        select: { role: true, language: true }
       })
+      locale = resolveRequestLocale(request, dbUser?.language)
 
       if (!dbUser || dbUser.role !== 'ADMIN') {
-        return NextResponse.json({ error: 'You can only delete your own drills' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'You can only delete your own drills', 'Du kan bara radera dina egna övningar') }, { status: 403 })
       }
     }
 
@@ -186,7 +199,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error('Error deleting agility drill:', error)
     return NextResponse.json(
-      { error: 'Failed to delete agility drill' },
+      { error: t(locale, 'Failed to delete agility drill', 'Kunde inte radera agilityövning') },
       { status: 500 }
     )
   }

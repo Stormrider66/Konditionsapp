@@ -6,6 +6,11 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { AgilityDrillCategory, DevelopmentStage, SportType } from '@prisma/client'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const createDrillSchema = z.object({
   name: z.string().min(1),
@@ -33,12 +38,14 @@ const createDrillSchema = z.object({
 
 // GET /api/agility-drills - List drills with filters
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -138,7 +145,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching agility drills:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch agility drills' },
+      { error: t(locale, 'Failed to fetch agility drills', 'Kunde inte hämta agilityövningar') },
       { status: 500 }
     )
   }
@@ -146,22 +153,25 @@ export async function GET(request: NextRequest) {
 
 // POST /api/agility-drills - Create custom drill
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Verify user is a coach
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { role: true, language: true }
     })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'Only coaches can create drills' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Only coaches can create drills', 'Endast coacher kan skapa övningar') }, { status: 403 })
     }
 
     const body = await request.json()
@@ -179,13 +189,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error creating agility drill:', error)
     return NextResponse.json(
-      { error: 'Failed to create agility drill' },
+      { error: t(locale, 'Failed to create agility drill', 'Kunde inte skapa agilityövning') },
       { status: 500 }
     )
   }

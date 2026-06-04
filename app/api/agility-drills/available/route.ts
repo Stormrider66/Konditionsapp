@@ -11,13 +11,21 @@ import {
 } from '@/lib/agility-studio/equipment-filter'
 import { filterDrillsByStage } from '@/lib/agility-studio/ltad-utils'
 import type { AgilityDrill, AgilityDrillCategory, DevelopmentStage } from '@/types'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const searchParams = request.nextUrl.searchParams
     const locationId = searchParams.get('locationId')
@@ -104,7 +112,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching available drills:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch available drills' },
+      { error: t(locale, 'Failed to fetch available drills', 'Kunde inte hämta tillgängliga övningar') },
       { status: 500 }
     )
   }
