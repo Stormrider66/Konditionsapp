@@ -18,8 +18,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function exerciseNameForLocale(
   exercise: { name: string; nameSv: string | null; nameEn: string | null },
@@ -36,12 +35,12 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    const locale: AppLocale = resolveRequestLocale(request, user.language)
     const { id: clientId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Pull all of the client's PRs newest first; we'll filter in-memory
@@ -89,4 +88,8 @@ export async function GET(
   } catch (error: unknown) {
     return handleApiError(error)
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

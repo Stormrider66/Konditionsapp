@@ -4,15 +4,10 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{ id: string }>
-}
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string) {
@@ -53,21 +48,23 @@ function profileMetricsSchema(locale: AppLocale) {
 // PATCH /api/clients/[id]/profile-metrics
 // Coach/professional update for values that may change between lab tests.
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 },
       )
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const hasAccess = await canAccessClient(user.id, id)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Client not found or unauthorized' },
+        { success: false, error: t(locale, 'Client not found or unauthorized', 'Klienten hittades inte eller saknar behörighet') },
         { status: 404 },
       )
     }
@@ -99,7 +96,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logger.error('Error updating client profile metrics', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update profile metrics' },
+      { success: false, error: t(locale, 'Failed to update profile metrics', 'Kunde inte uppdatera profilmått') },
       { status: 500 },
     )
   }

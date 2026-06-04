@@ -9,12 +9,7 @@ import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
@@ -42,7 +37,7 @@ function localizeValidationDetails<T extends Array<{ message: string }>>(
 // GET /api/clients - Hämta alla klienter för inloggad användare
 // Supports pagination: ?limit=50&offset=0 (defaults: limit=500, offset=0)
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
 
@@ -50,12 +45,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const searchParams = request.nextUrl.searchParams
     const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '500') || 500), 500)
@@ -124,7 +119,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/clients - Skapa ny klient
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
 
@@ -132,12 +127,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
 
