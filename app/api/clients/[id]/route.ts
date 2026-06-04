@@ -8,17 +8,12 @@ import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { getAccessibleTeam, getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{
     id: string
   }>
-}
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string) {
@@ -49,7 +44,7 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
 
@@ -57,12 +52,12 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const scope = getRequestedBusinessScope(request)
@@ -264,7 +259,7 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
 
@@ -272,12 +267,12 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const scope = getRequestedBusinessScope(request)
@@ -540,7 +535,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
 
@@ -548,12 +543,12 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const scope = getRequestedBusinessScope(request)
