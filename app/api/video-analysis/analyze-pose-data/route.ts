@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import {
@@ -13,13 +12,13 @@ import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import type { SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const maxDuration = 120
 
 const MAX_POSE_PAYLOAD_BYTES = 5 * 1024 * 1024 // 5MB
 const MAX_FRAMES = 5000
 const MAX_LANDMARKS_PER_FRAME = 60
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -65,13 +64,13 @@ interface AnalyzePoseDataRequest {
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('video:pose-analysis', user.id, {
       limit: 10,
@@ -101,12 +100,6 @@ export async function POST(request: NextRequest) {
           { status: 404 }
         )
       }
-
-      const client = await prisma.client.findUnique({
-        where: { id: clientId },
-        select: { user: { select: { language: true } } },
-      })
-      locale = client?.user.language === 'sv' ? 'sv' : 'en'
 
       const allowanceDenied = await requireAiAllowance(clientId, {
         minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.richAnalysis,

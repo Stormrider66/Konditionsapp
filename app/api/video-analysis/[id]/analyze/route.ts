@@ -28,10 +28,10 @@ import { analyzeGeneric } from '@/lib/video-analysis/analyzers/generic'
 import { analyzeSkiingTechnique } from '@/lib/video-analysis/analyzers/skiing'
 import { analyzeHyroxStation } from '@/lib/video-analysis/analyzers/hyrox'
 import { analyzeRunningGait } from '@/lib/video-analysis/analyzers/running-gait'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Video analysis can take a while (Gemini).
 export const maxDuration = 300
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -41,11 +41,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:run', user.id, {
@@ -76,10 +76,6 @@ export async function POST(
     if (!analysis) {
       return NextResponse.json({ error: t(locale, 'Analysis not found', 'Analysen hittades inte') }, { status: 404 })
     }
-
-    locale = analysis.athlete
-      ? analysis.athlete.user.language === 'sv' ? 'sv' : 'en'
-      : locale
 
     if (analysis.athleteId) {
       const allowanceDenied = await requireAiAllowance(analysis.athleteId, {
