@@ -29,6 +29,7 @@ import { getWritableTeam } from '@/lib/coach/team-access'
 import { resolveExtractionModel, resolveVisionModel, type ModelIntent, isModelIntent } from '@/types/ai-models'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { generateText } from 'ai'
 
 export const runtime = 'nodejs'
@@ -39,7 +40,6 @@ const MAX_IMAGE_BYTES = 10 * 1024 * 1024
 const MAX_TEXT_CHARS = 200_000
 
 const VALID_IMAGE_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif']
-type AppLocale = 'en' | 'sv'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(request)
 

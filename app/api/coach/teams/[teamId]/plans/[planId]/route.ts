@@ -12,12 +12,11 @@ import {
   hasOverlappingBlockPlanDates,
   normalizeBlockPlanDates,
 } from '@/lib/block-plans/duration'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ teamId: string; planId: string }>
 }
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -79,7 +78,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     const { teamId, planId } = await context.params
     const scope = getRequestedBusinessScope(request)
     const team = await getAccessibleTeam(user.id, teamId, scope.businessSlug)

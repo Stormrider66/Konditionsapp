@@ -16,6 +16,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { createAdminSupabaseClient } from '@/lib/supabase/admin'
 import { canAccessClientInTeam, getWritableTeam } from '@/lib/coach/team-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 
@@ -26,7 +27,6 @@ const VALID_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'imag
 interface RouteContext {
   params: Promise<{ teamId: string; clientId: string }>
 }
-type AppLocale = 'en' | 'sv'
 
 let bucketEnsured = false
 async function ensureBucket() {
@@ -56,21 +56,25 @@ function extensionFor(type: string, filename: string): string {
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId, clientId } = await context.params
 
     const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
     const canAccessClient = team
       ? await canAccessClientInTeam(user.id, clientId, teamId)
       : false
-    if (!team || !canAccessClient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!team || !canAccessClient) {
+      return NextResponse.json({ error: t(locale, 'Not found', 'Hittades inte') }, { status: 404 })
+    }
 
     const form = await req.formData()
     const photo = form.get('photo')
     if (!(photo instanceof File) || photo.size === 0) {
-      return NextResponse.json({ error: 'Photo file required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Photo file required', 'Bildfil krävs') }, { status: 400 })
     }
     if (photo.size > MAX_BYTES) {
       return NextResponse.json(
@@ -116,10 +120,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
     return NextResponse.json({ client: updated })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('POST client photo failed', {}, error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed', 'Misslyckades') }, { status: 500 })
   }
 }
 
@@ -127,16 +131,21 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-export async function DELETE(_req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
+  let locale: AppLocale = 'en'
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(req, user.language)
     const { teamId, clientId } = await context.params
 
     const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
     const canAccessClient = team
       ? await canAccessClientInTeam(user.id, clientId, teamId)
       : false
-    if (!team || !canAccessClient) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!team || !canAccessClient) {
+      return NextResponse.json({ error: t(locale, 'Not found', 'Hittades inte') }, { status: 404 })
+    }
 
     await prisma.client.update({
       where: { id: clientId },
@@ -146,9 +155,9 @@ export async function DELETE(_req: NextRequest, context: RouteContext) {
     return NextResponse.json({ cleared: true })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('DELETE client photo failed', {}, error)
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed', 'Misslyckades') }, { status: 500 })
   }
 }

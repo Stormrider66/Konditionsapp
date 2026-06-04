@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -33,7 +32,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(request)
     const bounds = dayBounds(request.nextUrl.searchParams.get('date'))

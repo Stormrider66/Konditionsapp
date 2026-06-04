@@ -11,12 +11,12 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { canAccessClientInTeam, getWritableTeam } from '@/lib/coach/team-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 interface RouteContext {
   params: Promise<{ teamId: string; clientId: string }>
 }
-type AppLocale = 'en' | 'sv'
 
 const emailSchema = z
   .string()
@@ -30,7 +30,7 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId, clientId } = await context.params
 
     const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
@@ -227,12 +227,12 @@ function t(
   return locale === 'sv' ? sv[key] : en[key]
 }
 
-export async function DELETE(_req: NextRequest, context: RouteContext) {
+export async function DELETE(req: NextRequest, context: RouteContext) {
   let locale: AppLocale = 'en'
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId, clientId } = await context.params
 
     const team = await getWritableTeam(user.id, teamId, undefined, 'roster')
