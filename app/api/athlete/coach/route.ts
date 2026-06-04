@@ -1,10 +1,9 @@
 // app/api/athlete/coach/route.ts
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -18,7 +17,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * 1. TrainingProgram.coachId (most recent program)
  * 2. Client.userId (the coach who created the client)
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   let locale: AppLocale = 'en'
 
   try {
@@ -32,7 +31,7 @@ export async function GET() {
     }
 
     const { clientId, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Get client with coach info
     const client = await prisma.client.findUnique({

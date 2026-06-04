@@ -8,17 +8,12 @@ import { createCoachRequest, cancelCoachRequest } from '@/lib/coach/agreement'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const createRequestSchema = z.object({
   coachUserId: z.string().uuid(),
   message: z.string().max(1000).optional(),
 })
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -28,12 +23,12 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * GET /api/athlete/coach-requests
  * List athlete's coach requests (sent requests)
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   let locale: AppLocale = 'en'
 
   try {
     const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const requests = await prisma.coachRequest.findMany({
       where: {
@@ -100,7 +95,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validatedData = createRequestSchema.parse(body)
@@ -168,7 +163,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const { requestId } = body
