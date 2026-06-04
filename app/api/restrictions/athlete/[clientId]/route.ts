@@ -2,6 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/restrictions/athlete/[clientId]
@@ -12,10 +17,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { clientId } = await params
@@ -30,7 +37,7 @@ export async function GET(
 
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have access to this athlete' },
+        { error: t(locale, 'You do not have access to this athlete', 'Du har inte åtkomst till den här atleten') },
         { status: 403 }
       )
     }
@@ -118,7 +125,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching athlete restrictions:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch restrictions' },
+      { error: t(locale, 'Failed to fetch restrictions', 'Kunde inte hämta begränsningar') },
       { status: 500 }
     )
   }
