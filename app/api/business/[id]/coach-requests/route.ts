@@ -4,9 +4,36 @@ import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { requireBusinessMembership } from '@/lib/auth-utils'
 import { createCoachRequest } from '@/lib/coach/agreement'
 import { CoachRequestStatus } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function translateCoachRequestError(locale: AppLocale, message: string): string {
+  if (message === 'You already have a pending request to this coach') {
+    return t(locale, message, 'Du har redan en väntande förfrågan till den här tränaren')
+  }
+  if (message === 'You are already connected with this coach') {
+    return t(locale, message, 'Du är redan kopplad till den här tränaren')
+  }
+  if (message === 'You already have an active coach. End that agreement first.') {
+    return t(locale, message, 'Du har redan en aktiv tränare. Avsluta den överenskommelsen först.')
+  }
+  if (message === 'Athlete is not part of this business') {
+    return t(locale, message, 'Idrottaren tillhör inte den här verksamheten')
+  }
+  if (message === 'Coach is not part of this business') {
+    return t(locale, message, 'Tränaren tillhör inte den här verksamheten')
+  }
+  if (message === 'This coach is not currently accepting new clients') {
+    return t(locale, message, 'Den här tränaren tar inte emot nya klienter just nu')
+  }
+  return message
 }
 
 /**
@@ -64,8 +91,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * Body: { coachUserId, message? }
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     const { id: businessId } = await params
 
     await requireBusinessMembership(user.id, businessId)
@@ -75,7 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!coachUserId) {
       return NextResponse.json(
-        { error: 'coachUserId is required' },
+        { error: t(locale, 'coachUserId is required', 'coachUserId krävs') },
         { status: 400 }
       )
     }
@@ -87,7 +117,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!athleteAccount) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
+        { error: t(locale, 'Athlete account not found', 'Idrottarkontot hittades inte') },
         { status: 404 }
       )
     }
@@ -102,7 +132,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json(coachRequest, { status: 201 })
   } catch (error) {
     if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ error: translateCoachRequestError(locale, error.message) }, { status: 400 })
     }
     return handleApiError(error)
   }
