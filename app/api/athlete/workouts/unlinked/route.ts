@@ -6,18 +6,19 @@
  *       Includes match suggestions with confidence scores.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { subDays } from 'date-fns'
 import { areTypesCompatible } from '@/lib/training/activity-deduplication'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-type AppLocale = 'en' | 'sv'
+export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
 
-export async function GET() {
   try {
     const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     if (!clientId) return NextResponse.json({ unlinkedAdHocs: [], unlinkedGarmin: [], suggestions: [] })
 
     const since = subDays(new Date(), 14)
@@ -99,9 +100,9 @@ export async function GET() {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch unlinked workouts', 'Kunde inte hämta okopplade pass') }, { status: 500 })
   }
 }
 

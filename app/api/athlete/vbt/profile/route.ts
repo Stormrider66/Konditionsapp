@@ -11,8 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { calculateLoadVelocityProfile } from '@/lib/integrations/vbt';
 import { logError } from '@/lib/logger-console'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function exerciseNameForLocale(
   exercise: { name: string; nameSv: string | null; nameEn: string | null },
@@ -37,12 +36,14 @@ const postBodySchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url);
     const params = {
@@ -53,7 +54,7 @@ export async function GET(request: NextRequest) {
     const validationResult = getQuerySchema.safeParse(params);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid parameters', 'Ogiltiga parametrar'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
 
     const hasAccess = await canAccessClient(user.id, clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Fetch profiles
@@ -102,29 +103,31 @@ export async function GET(request: NextRequest) {
     logError('[VBT Profile GET] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch profiles' },
+      { error: t(locale, 'Failed to fetch profiles', 'Kunde inte hämta profiler') },
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json();
     const validationResult = postBodySchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid body', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid body', 'Ogiltig data'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -133,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     const hasAccess = await canAccessClient(user.id, clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Get exercise info
@@ -143,7 +146,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!exercise) {
-      return NextResponse.json({ error: 'Exercise not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Exercise not found', 'Övningen hittades inte') }, { status: 404 });
     }
 
     // Fetch all measurements for this exercise within date range
@@ -203,8 +206,12 @@ export async function POST(request: NextRequest) {
     if (measurements.length < 2) {
       return NextResponse.json(
         {
-          error: 'Not enough data',
-          message: `Need at least 2 measurements with different loads. Found: ${measurements.length}`,
+          error: t(locale, 'Not enough data', 'Inte tillräckligt med data'),
+          message: t(
+            locale,
+            `Need at least 2 measurements with different loads. Found: ${measurements.length}`,
+            `Minst 2 mätningar med olika belastningar krävs. Hittade: ${measurements.length}`
+          ),
         },
         { status: 400 }
       );
@@ -298,12 +305,12 @@ export async function POST(request: NextRequest) {
       warnings: !profile.isValid
         ? [
             profile.dataPoints.length < 3
-              ? 'Need at least 3 data points for a reliable profile'
+              ? t(locale, 'Need at least 3 data points for a reliable profile', 'Minst 3 datapunkter krävs för en tillförlitlig profil')
               : profile.rSquared < 0.8
-              ? 'Low R² value - data has high variability'
+              ? t(locale, 'Low R² value - data has high variability', 'Lågt R²-värde - datan varierar mycket')
               : loadRange < 20
-              ? 'Need wider load range (at least 20% of e1RM)'
-              : 'Profile validation failed',
+              ? t(locale, 'Need wider load range (at least 20% of e1RM)', 'Större belastningsspann krävs (minst 20% av e1RM)')
+              : t(locale, 'Profile validation failed', 'Profilvalideringen misslyckades'),
           ]
         : undefined,
     });
@@ -311,12 +318,16 @@ export async function POST(request: NextRequest) {
     logError('[VBT Profile POST] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to calculate profile' },
+      { error: t(locale, 'Failed to calculate profile', 'Kunde inte beräkna profil') },
       { status: 500 }
     );
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

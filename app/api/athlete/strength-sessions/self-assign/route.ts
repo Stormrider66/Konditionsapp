@@ -15,14 +15,13 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { getTemplateById } from '@/lib/training-engine/templates/strength-templates'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface SelfAssignRequestBody {
   templateId: string
   assignedDate: string // ISO date
   notes?: string
 }
-
-type AppLocale = 'en' | 'sv'
 
 function localizedNotes(locale: AppLocale, notes?: string, notesSv?: string): string | undefined {
   return locale === 'sv' ? notesSv ?? notes : notes
@@ -41,16 +40,18 @@ function localizedTags(locale: AppLocale, tags: string[], tagsSv?: string[]): st
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { user, clientId, isCoachInAthleteMode } = resolved
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const body: SelfAssignRequestBody = await request.json()
 
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!templateId || !assignedDate) {
       return NextResponse.json(
-        { error: 'templateId and assignedDate are required' },
+        { error: t(locale, 'templateId and assignedDate are required', 'templateId och assignedDate krävs') },
         { status: 400 }
       )
     }
@@ -72,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (!client) {
       return NextResponse.json(
-        { error: 'Client not found' },
+        { error: t(locale, 'Client not found', 'Klienten hittades inte') },
         { status: 404 }
       )
     }
@@ -82,7 +83,11 @@ export async function POST(request: NextRequest) {
     if (!selfServiceEnabled) {
       return NextResponse.json(
         {
-          error: 'Self-service strength training requires a PRO or ELITE athlete subscription',
+          error: t(
+            locale,
+            'Self-service strength training requires a PRO or ELITE athlete subscription',
+            'Självservice för styrketräning kräver en PRO- eller ELITE-prenumeration för idrottare'
+          ),
           upgradeRequired: true,
         },
         { status: 403 }
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
     const template = getTemplateById(templateId)
     if (!template) {
       return NextResponse.json(
-        { error: 'Template not found' },
+        { error: t(locale, 'Template not found', 'Mallen hittades inte') },
         { status: 404 }
       )
     }
@@ -202,7 +207,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Error self-assigning strength session', {}, error)
     return NextResponse.json(
-      { error: 'Failed to assign strength session' },
+      { error: t(locale, 'Failed to assign strength session', 'Kunde inte tilldela styrkepass') },
       { status: 500 }
     )
   }
