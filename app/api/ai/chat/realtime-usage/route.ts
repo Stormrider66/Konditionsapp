@@ -17,13 +17,13 @@ import { getConsentStatus } from '@/lib/agent/gdpr/consent-manager'
 import { estimateRealtimeVoiceCost } from '@/lib/ai/realtime-voice-cost'
 import { recordAiUsageDebit, usdToSek } from '@/lib/ai/billing/allowance'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
 
 const REALTIME_MODEL = 'gpt-realtime'
-type AppLocale = 'en' | 'sv'
 
 const requestSchema = z.object({
   durationSeconds: z.number().min(0).max(7200),
@@ -45,7 +45,7 @@ async function resolveClientIdForUsage(isAthleteChat: boolean, locale: AppLocale
 }> {
   const currentUser = await getCurrentUser()
   if (!currentUser) {
-    throw new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    throw new Response(JSON.stringify({ error: t(locale, 'Unauthorized', 'Obehörig') }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -64,7 +64,7 @@ async function resolveClientIdForUsage(isAthleteChat: boolean, locale: AppLocale
 
   const resolved = await resolveAthleteClientId()
   if (!resolved) {
-    throw new Response(JSON.stringify({ error: 'Unauthorized' }), {
+    throw new Response(JSON.stringify({ error: t(locale, 'Unauthorized', 'Obehörig') }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -73,7 +73,7 @@ async function resolveClientIdForUsage(isAthleteChat: boolean, locale: AppLocale
   const access = await checkAthleteFeatureAccess(resolved.clientId, 'ai_chat')
   if (!access.allowed) {
     throw new Response(JSON.stringify({
-      error: access.reason || 'AI chat requires a subscription',
+      error: access.reason || t(locale, 'AI chat requires a subscription', 'AI-chat kräver en prenumeration'),
       code: access.code || 'SUBSCRIPTION_REQUIRED',
       upgradeUrl: access.upgradeUrl || '/athlete/subscription',
       currentUsage: access.currentUsage,
@@ -103,7 +103,7 @@ async function resolveClientIdForUsage(isAthleteChat: boolean, locale: AppLocale
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const body = await request.json().catch(() => null)
     const parsed = requestSchema.safeParse(body)
@@ -116,9 +116,9 @@ export async function POST(request: NextRequest) {
 
     const currentUser = await getCurrentUser()
     if (!currentUser) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = currentUser.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-realtime-usage', currentUser.id, {
       limit: 20,

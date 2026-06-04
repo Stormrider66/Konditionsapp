@@ -72,7 +72,7 @@ function buildCoachNote(title: string, blocks: z.infer<typeof canvasBlockSchema>
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
