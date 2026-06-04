@@ -7,12 +7,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type ACWRZone = 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
 type RiskLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
 type LoadTrend = 'RISING' | 'FALLING' | 'STABLE'
 type RecommendationType = 'WARNING' | 'SUGGESTION' | 'POSITIVE'
-type AppLocale = 'en' | 'sv'
 
 interface Recommendation {
   type: RecommendationType
@@ -52,15 +52,17 @@ interface InjuryPreventionResponse {
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
-    const locale = getRequestLocale(request)
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Get latest training load with ACWR data
     const latestLoad = await prisma.trainingLoad.findFirst({
@@ -159,13 +161,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(response)
   } catch (error) {
     console.error('Error fetching injury prevention data:', error)
-    return NextResponse.json({ error: 'Failed to fetch injury prevention data' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to fetch injury prevention data', 'Kunde inte hämta skadeförebyggande data') },
+      { status: 500 }
+    )
   }
-}
-
-function getRequestLocale(request: NextRequest): AppLocale {
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
-  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

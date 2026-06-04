@@ -8,8 +8,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { createAiTopUpCheckoutSession } from '@/lib/payments/stripe'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const topUpCheckoutSchema = z.object({
   packId: z.string().min(1),
@@ -20,7 +19,7 @@ const topUpCheckoutSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { user, clientId } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json(
         { error: t(locale, 'Billing is not enabled yet', 'Betalning är inte aktiverat ännu'), code: 'BILLING_DISABLED' },

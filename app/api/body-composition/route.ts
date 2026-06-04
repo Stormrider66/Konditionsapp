@@ -11,15 +11,14 @@ import {
   calculateBMRKatchMcArdle,
   categorizeBodyFat,
 } from '@/lib/ai/nutrition-calculator'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 /**
  * POST /api/body-composition
  * Create new body composition measurement
  */
 export async function POST(req: NextRequest) {
-  const locale = getRequestLocale(req)
+  const locale = resolveRequestLocale(req)
 
   try {
     const supabase = await createClient()
@@ -161,7 +160,7 @@ export async function POST(req: NextRequest) {
  * List all body composition measurements for a client
  */
 export async function GET(req: NextRequest) {
-  const locale = getRequestLocale(req)
+  const locale = resolveRequestLocale(req)
 
   try {
     const supabase = await createClient()
@@ -401,11 +400,6 @@ function analyzeBodyComposition(
   }
 
   return analysis
-}
-
-function getRequestLocale(request: NextRequest): AppLocale {
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
-  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en'
 }
 
 function localizeBodyFatCategory(category: string, locale: AppLocale): string {

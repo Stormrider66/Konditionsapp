@@ -15,12 +15,7 @@ import {
   sendApplicationReceivedEmail,
   sendNewApplicationNotification,
 } from '@/lib/email'
-
-type AppLocale = 'en' | 'sv'
-
-function getRequestLocale(request: NextRequest): AppLocale {
-  return request.headers.get('accept-language')?.toLowerCase().startsWith('sv') ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const applicationSchema = z.object({
   type: z.enum(['GYM', 'CLUB']),
@@ -38,7 +33,7 @@ const applicationSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  const locale = getRequestLocale(request)
+  const locale = resolveRequestLocale(request)
 
   try {
     // Rate limit by IP - 3 submissions per hour
@@ -62,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (existing) {
       return NextResponse.json(
-        { error: 'You already have a pending application' },
+        { error: t(locale, 'You already have a pending application', 'Du har redan en väntande ansökan') },
         { status: 400 }
       )
     }
@@ -115,20 +110,22 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: error.errors },
         { status: 400 }
       )
     }
 
     logger.error('Business application error', {}, error)
     return NextResponse.json(
-      { error: 'Failed to submit application' },
+      { error: t(locale, 'Failed to submit application', 'Kunde inte skicka ansökan') },
       { status: 500 }
     )
   }
 }
 
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     await requireAdmin()
 
@@ -148,12 +145,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ applications })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('List applications error', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch applications' },
+      { error: t(locale, 'Failed to fetch applications', 'Kunde inte hämta ansökningar') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
