@@ -15,12 +15,7 @@ import {
   normalizeAIModelId,
   normalizeAIModelPricing,
 } from '@/lib/ai/model-compat'
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
@@ -60,9 +55,12 @@ function transformModel(dbModel: PrismaAIModel) {
 }
 
 // GET - Get user's default AI model
-export async function GET() {
+export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     const userSettings = await prisma.userApiKey.findUnique({
       where: { userId: user.id },
@@ -124,11 +122,11 @@ export async function GET() {
     logError('Get default model error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get default model' },
+      { error: t(locale, 'Failed to get default model', 'Kunde inte hämta standardmodell') },
       { status: 500 }
     );
   }
@@ -136,9 +134,11 @@ export async function GET() {
 
 // PUT - Set user's default AI model
 export async function PUT(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
-    const locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json();
     const { modelId } = body;
 
@@ -183,14 +183,14 @@ export async function PUT(request: NextRequest) {
 
       if (!model) {
         return NextResponse.json(
-          { error: 'Model not found' },
+          { error: t(locale, 'Model not found', 'Modellen hittades inte') },
           { status: 404 }
         );
       }
 
       if (!model.isActive) {
         return NextResponse.json(
-          { error: 'Model is not active' },
+          { error: t(locale, 'Model is not active', 'Modellen är inte aktiv') },
           { status: 400 }
         );
       }
@@ -277,11 +277,11 @@ export async function PUT(request: NextRequest) {
     logError('Set default model error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to set default model' },
+      { error: t(locale, 'Failed to set default model', 'Kunde inte ange standardmodell') },
       { status: 500 }
     );
   }

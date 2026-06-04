@@ -11,7 +11,12 @@ import { prisma } from '@/lib/prisma'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
 import { isModelIntent, legacyModelIdToIntent } from '@/types/ai-models'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import type { ModelIntent } from '@/types/ai-models'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // GET - Get current tier restrictions
 export async function GET() {
@@ -68,8 +73,11 @@ const updateSchema = z.object({
 
 // PUT - Update athlete tier restrictions
 export async function PUT(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const { allowedTiers, defaultTier } = updateSchema.parse(body)
@@ -77,7 +85,7 @@ export async function PUT(request: NextRequest) {
     // If default is set, make sure it's in allowed list (or allowed is empty)
     if (defaultTier && allowedTiers.length > 0 && !allowedTiers.includes(defaultTier)) {
       return NextResponse.json(
-        { error: 'Default tier must be in the allowed tiers list' },
+        { error: t(locale, 'Default tier must be in the allowed tiers list', 'Standardnivån måste finnas i listan över tillåtna nivåer') },
         { status: 400 }
       )
     }

@@ -9,6 +9,11 @@ import { requireCoach } from '@/lib/auth-utils';
 import OpenAI from 'openai';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface ValidateKeyRequest {
   provider: 'anthropic' | 'google' | 'openai';
@@ -17,8 +22,11 @@ interface ValidateKeyRequest {
 
 // POST - Validate a single API key
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     // Rate limit key validation attempts per user
     const rateLimited = await rateLimitJsonResponse('settings:api-keys:validate', user.id, {
@@ -32,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (!provider || !key) {
       return NextResponse.json(
-        { error: 'Provider and key are required' },
+        { error: t(locale, 'Provider and key are required', 'Leverantör och nyckel krävs') },
         { status: 400 }
       );
     }
@@ -55,7 +63,7 @@ export async function POST(request: NextRequest) {
           };
         } catch (e) {
           valid = false;
-          error = e instanceof Error ? e.message : 'Invalid OpenAI API key';
+          error = e instanceof Error ? e.message : t(locale, 'Invalid OpenAI API key', 'Ogiltig OpenAI API-nyckel');
         }
         break;
 
@@ -63,7 +71,7 @@ export async function POST(request: NextRequest) {
         // Validate format first
         if (!key.startsWith('sk-ant-')) {
           valid = false;
-          error = 'Invalid Anthropic API key format. Keys should start with sk-ant-';
+          error = t(locale, 'Invalid Anthropic API key format. Keys should start with sk-ant-', 'Ogiltigt format på Anthropic API-nyckel. Nycklar ska börja med sk-ant-');
         } else {
           // Try to make an API call
           try {
@@ -91,7 +99,7 @@ export async function POST(request: NextRequest) {
             }
           } catch (e) {
             valid = false;
-            error = e instanceof Error ? e.message : 'Failed to validate Anthropic key';
+            error = e instanceof Error ? e.message : t(locale, 'Failed to validate Anthropic key', 'Kunde inte validera Anthropic-nyckeln');
           }
         }
         break;
@@ -100,7 +108,7 @@ export async function POST(request: NextRequest) {
         // Google/Gemini API validation
         if (key.length < 20) {
           valid = false;
-          error = 'Invalid Google API key format';
+          error = t(locale, 'Invalid Google API key format', 'Ogiltigt format på Google API-nyckel');
         } else {
           try {
             const response = await fetch(
@@ -121,14 +129,14 @@ export async function POST(request: NextRequest) {
             }
           } catch (e) {
             valid = false;
-            error = e instanceof Error ? e.message : 'Failed to validate Google key';
+            error = e instanceof Error ? e.message : t(locale, 'Failed to validate Google key', 'Kunde inte validera Google-nyckeln');
           }
         }
         break;
 
       default:
         return NextResponse.json(
-          { error: `Invalid provider: ${provider}` },
+          { error: t(locale, `Invalid provider: ${provider}`, `Ogiltig leverantör: ${provider}`) },
           { status: 400 }
         );
     }
@@ -144,11 +152,11 @@ export async function POST(request: NextRequest) {
     logger.error('Validate API key error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to validate API key' },
+      { error: t(locale, 'Failed to validate API key', 'Kunde inte validera API-nyckel') },
       { status: 500 }
     );
   }

@@ -13,6 +13,11 @@ import OpenAI from 'openai';
 import { encryptIfPresent } from '@/lib/user-api-keys';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface ApiKeyStatus {
   provider: string;
@@ -28,9 +33,12 @@ interface SaveKeysRequest {
 }
 
 // GET - Get API key status (does not return actual keys)
-export async function GET() {
+export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('settings:api-keys:get', user.id, {
       limit: 60,
@@ -117,11 +125,11 @@ export async function GET() {
     logger.error('Get API keys error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get API key status' },
+      { error: t(locale, 'Failed to get API key status', 'Kunde inte hämta status för API-nycklar') },
       { status: 500 }
     );
   }
@@ -129,8 +137,11 @@ export async function GET() {
 
 // POST - Save/update API keys
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('settings:api-keys:save', user.id, {
       limit: 10,
@@ -143,7 +154,7 @@ export async function POST(request: NextRequest) {
 
     if (!anthropicKey && !googleKey && !openaiKey) {
       return NextResponse.json(
-        { error: 'At least one API key must be provided' },
+        { error: t(locale, 'At least one API key must be provided', 'Minst en API-nyckel måste anges') },
         { status: 400 }
       );
     }
@@ -164,7 +175,7 @@ export async function POST(request: NextRequest) {
         validationResults.openai = {
           valid: false,
           error:
-            error instanceof Error ? error.message : 'Invalid OpenAI API key',
+            error instanceof Error ? error.message : t(locale, 'Invalid OpenAI API key', 'Ogiltig OpenAI API-nyckel'),
         };
       }
     }
@@ -176,7 +187,7 @@ export async function POST(request: NextRequest) {
         if (!anthropicKey.startsWith('sk-ant-')) {
           validationResults.anthropic = {
             valid: false,
-            error: 'Invalid Anthropic API key format. Key should start with sk-ant-',
+            error: t(locale, 'Invalid Anthropic API key format. Key should start with sk-ant-', 'Ogiltigt format på Anthropic API-nyckel. Nyckeln ska börja med sk-ant-'),
           };
         } else {
           // Make actual API call to validate by listing models
@@ -210,7 +221,7 @@ export async function POST(request: NextRequest) {
           error:
             error instanceof Error
               ? error.message
-              : 'Invalid Anthropic API key',
+              : t(locale, 'Invalid Anthropic API key', 'Ogiltig Anthropic API-nyckel'),
         };
       }
     }
@@ -235,7 +246,7 @@ export async function POST(request: NextRequest) {
         validationResults.google = {
           valid: false,
           error:
-            error instanceof Error ? error.message : 'Invalid Google API key',
+            error instanceof Error ? error.message : t(locale, 'Invalid Google API key', 'Ogiltig Google API-nyckel'),
         };
       }
     }
@@ -251,7 +262,7 @@ export async function POST(request: NextRequest) {
     if (invalidKeys.length > 0) {
       return NextResponse.json(
         {
-          error: 'One or more API keys are invalid',
+          error: t(locale, 'One or more API keys are invalid', 'En eller flera API-nycklar är ogiltiga'),
           invalidKeys,
         },
         { status: 400 }
@@ -274,7 +285,7 @@ export async function POST(request: NextRequest) {
           error:
             e instanceof Error
               ? e.message
-              : 'Failed to encrypt API keys. Ensure API_KEY_ENCRYPTION_KEY is configured.',
+              : t(locale, 'Failed to encrypt API keys. Ensure API_KEY_ENCRYPTION_KEY is configured.', 'Kunde inte kryptera API-nycklar. Kontrollera att API_KEY_ENCRYPTION_KEY är konfigurerad.'),
         },
         { status: 500 }
       )
@@ -321,27 +332,30 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'API keys saved successfully',
+      message: t(locale, 'API keys saved successfully', 'API-nycklarna har sparats'),
       validation: validationResults,
     });
   } catch (error) {
     logger.error('Save API keys error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to save API keys' },
+      { error: t(locale, 'Failed to save API keys', 'Kunde inte spara API-nycklar') },
       { status: 500 }
     );
   }
 }
 
 // DELETE - Remove all API keys
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('settings:api-keys:delete', user.id, {
       limit: 10,
@@ -355,17 +369,17 @@ export async function DELETE() {
 
     return NextResponse.json({
       success: true,
-      message: 'All API keys removed',
+      message: t(locale, 'All API keys removed', 'Alla API-nycklar har tagits bort'),
     });
   } catch (error) {
     logger.error('Delete API keys error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete API keys' },
+      { error: t(locale, 'Failed to delete API keys', 'Kunde inte ta bort API-nycklar') },
       { status: 500 }
     );
   }
