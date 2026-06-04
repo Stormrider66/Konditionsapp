@@ -37,10 +37,10 @@ import { resolveAiModel, getMaxOutputTokens } from '@/lib/ai/chat/model-selector
 import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import type { KnowledgeSkillAccessMode } from '@/lib/ai/skill-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60
-type AppLocale = 'en' | 'sv'
 
 function jsonError(status: number, payload: Record<string, unknown>): Response {
   return new Response(JSON.stringify(payload), {
@@ -53,13 +53,8 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-function getRequestLocale(request: NextRequest): AppLocale {
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
-  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
-}
-
 export async function POST(request: NextRequest) {
-  let responseLocale: AppLocale = getRequestLocale(request)
+  let responseLocale: AppLocale = resolveRequestLocale(request)
 
   try {
     const body: ChatRequest = await request.json()
@@ -106,7 +101,7 @@ export async function POST(request: NextRequest) {
       if (!resolved) return jsonError(401, { error: t(responseLocale, 'Unauthorized', 'Obehörig') })
 
       userId = resolved.user.id
-      responseLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+      responseLocale = resolveRequestLocale(request, resolved.user.language)
       athleteClientId = resolved.clientId
 
       const clientRecord = await prisma.client.findUnique({
@@ -187,7 +182,7 @@ export async function POST(request: NextRequest) {
     } else {
       const user = await requireCoach()
       userId = user.id
-      responseLocale = user.language === 'sv' ? 'sv' : 'en'
+      responseLocale = resolveRequestLocale(request, user.language)
       apiKeyUserId = user.id
       staffPermissions = await getStaffPermissions(user.id)
     }
