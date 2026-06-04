@@ -217,7 +217,7 @@ async function findFoodReferenceMatch(
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   let logContext:
     | {
         clientId: string
