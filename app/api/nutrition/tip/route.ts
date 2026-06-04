@@ -20,23 +20,31 @@ import { generatePostCheckInTip } from '@/lib/nutrition-timing'
 import type { WorkoutContext } from '@/lib/nutrition-timing'
 import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
 import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Request validation schema
 const requestSchema = z.object({
   readinessScore: z.number().min(0).max(100).optional(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 /**
  * POST /api/nutrition/tip
  * Generate a nutrition tip after daily check-in
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId } = resolved
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     // Parse request body
     const body = await request.json()
@@ -61,7 +69,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Athlete not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     const client = athleteAccount.client
@@ -193,7 +201,7 @@ export async function POST(request: NextRequest) {
         : undefined,
       weightKg: client.weight,
       currentTime: now,
-      locale: athleteAccount.user.language === 'sv' ? 'sv' : 'en',
+      locale,
     })
 
     logger.info('Generated nutrition tip', {
@@ -207,11 +215,11 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
+        { error: t(locale, 'Invalid data', 'Ogiltiga data'), details: error.errors },
         { status: 400 }
       )
     }
     logger.error('Error generating nutrition tip', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }

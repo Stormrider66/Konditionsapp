@@ -20,14 +20,9 @@ import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const MAX_RANGE_DAYS = 31
-type AppLocale = 'en' | 'sv'
-
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv'
-  return request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -51,28 +46,31 @@ function mapAdHocTypeToWorkoutType(parsed: ParsedWorkout | null): WorkoutType {
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId } = resolved
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     const { searchParams } = new URL(request.url)
     const startParam = searchParams.get('startDate')
     const endParam = searchParams.get('endDate')
     if (!startParam || !endParam) {
-      return NextResponse.json({ error: 'startDate and endDate required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'startDate and endDate required', 'startDate och endDate krävs') }, { status: 400 })
     }
     const start = parseISO(startParam)
     const end = parseISO(endParam)
     if (!isValid(start) || !isValid(end) || end < start) {
-      return NextResponse.json({ error: 'Invalid date range' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid date range', 'Ogiltigt datumintervall') }, { status: 400 })
     }
 
     const days = eachDayOfInterval({ start, end })
     if (days.length > MAX_RANGE_DAYS) {
-      return NextResponse.json({ error: `Range capped at ${MAX_RANGE_DAYS} days` }, { status: 400 })
+      return NextResponse.json({ error: t(locale, `Range capped at ${MAX_RANGE_DAYS} days`, `Intervallet är begränsat till ${MAX_RANGE_DAYS} dagar`) }, { status: 400 })
     }
 
     const client = await prisma.client.findUnique({
@@ -89,11 +87,10 @@ export async function GET(request: NextRequest) {
       },
     })
     if (!client?.athleteAccount?.userId) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') }, { status: 404 })
     }
 
     const athleteUserId = client.athleteAccount.userId
-    const locale = getRequestLocale(request, client.athleteAccount.user.language)
     const weightKg = client.weight ?? 70
     const nutritionGoal: Pick<
       NutritionGoalInput,
@@ -313,6 +310,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ targets })
   } catch (error) {
     logger.error('daily-targets route failed', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }

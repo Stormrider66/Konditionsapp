@@ -18,13 +18,7 @@ import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
-
-type AppLocale = 'en' | 'sv'
-
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv'
-  return request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -37,20 +31,23 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * day (falls back to the current day when absent).
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { clientId } = resolved
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     const { searchParams } = new URL(request.url)
     const dateParam = searchParams.get('date')
     const anchor = dateParam ? parseISO(dateParam) : new Date()
     if (dateParam && !isValid(anchor)) {
-      return NextResponse.json({ error: 'Invalid date' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid date', 'Ogiltigt datum') }, { status: 400 })
     }
 
     // Get client with all related data
@@ -70,13 +67,12 @@ export async function GET(request: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     if (!client.athleteAccount?.userId) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') }, { status: 404 })
     }
-    const locale = getRequestLocale(request, client.athleteAccount.user.language)
 
     // `now` drives time-of-day logic in the generator (e.g. pre-workout
     // countdown). For historical dates we pin it to noon of the selected
@@ -371,6 +367,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logger.error('Error generating nutrition guidance', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
