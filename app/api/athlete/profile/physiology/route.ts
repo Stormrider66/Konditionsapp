@@ -5,9 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -45,7 +44,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     const { clientId, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validation = buildPhysiologySchema(locale).safeParse(body)
