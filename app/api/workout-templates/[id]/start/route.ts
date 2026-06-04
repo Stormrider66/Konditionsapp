@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface TemplateExercise {
   name: string
@@ -72,10 +71,6 @@ const TEXT_REPLACEMENTS: Array<[RegExp, string]> = [
   [/\bBörja försiktigt\b/g, 'Start carefully'],
 ]
 
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
-
 function localizeExerciseName(exercise: TemplateExercise, locale: AppLocale): string {
   return locale === 'sv' ? exercise.nameSv || exercise.name : exercise.name || exercise.nameSv
 }
@@ -93,13 +88,14 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, user } = resolved
-    const locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
     const { id } = await params
 
     const template = await prisma.workoutTemplate.findUnique({
@@ -107,7 +103,7 @@ export async function POST(
     })
 
     if (!template) {
-      return NextResponse.json({ error: locale === 'sv' ? 'Mallen hittades inte' : 'Template not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Template not found', 'Mallen hittades inte') }, { status: 404 })
     }
 
     const sections = template.sections as unknown as TemplateSection[]
@@ -180,6 +176,10 @@ export async function POST(
     })
   } catch (error) {
     console.error('Error starting workout from template:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

@@ -2,14 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { Prisma, SportType } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { user } = resolved
+    locale = resolveRequestLocale(req, user.language)
 
     const { searchParams } = new URL(req.url)
     const category = searchParams.get('category')
@@ -99,6 +106,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ templates: result, total })
   } catch (error) {
     console.error('Error fetching workout templates:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
