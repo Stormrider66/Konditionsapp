@@ -8,23 +8,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getBusinessMembership } from '@/lib/coach/team-access'
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const scope = getRequestedBusinessScope(request)
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
 

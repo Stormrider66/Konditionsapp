@@ -8,17 +8,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const updateSchema = z.object({
   action: z.enum(['dismiss', 'resolve', 'action']),
   note: z.string().optional(),
 })
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -28,11 +23,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     // Verify alert belongs to this coach
@@ -112,11 +107,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     const alert = await prisma.coachAlert.findFirst({

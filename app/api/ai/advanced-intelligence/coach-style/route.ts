@@ -8,12 +8,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireCoachFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
@@ -24,7 +19,7 @@ function t(locale: AppLocale, en: string, sv: string) {
  * Extract coaching style from documents and program history
  */
 export async function GET(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
 
   try {
     const user = await getCurrentUser()
@@ -32,7 +27,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     // Subscription gate (coach-level, no clientId needed)
     const denied = await requireCoachFeatureAccess(user.id, 'advanced_intelligence')
@@ -97,7 +92,7 @@ export async function GET(req: NextRequest) {
  * Extract style from specific documents or apply to prompt
  */
 export async function POST(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
 
   try {
     const user = await getCurrentUser()
@@ -105,7 +100,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     // Subscription gate (coach-level, no clientId needed)
     const deniedPost = await requireCoachFeatureAccess(user.id, 'advanced_intelligence')

@@ -11,12 +11,7 @@ import { canAccessClient, canAccessProgram, getCurrentUser } from '@/lib/auth-ut
 import { prisma } from '@/lib/prisma'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withAiContext } from '@/lib/ai/usage-logger'
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
@@ -33,7 +28,7 @@ function t(locale: AppLocale, en: string, sv: string) {
  * - methodology: optional - POLARIZED | NORWEGIAN | PYRAMIDAL | CANOVA
  */
 export async function GET(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
 
   try {
     const user = await getCurrentUser()
@@ -41,7 +36,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization', user.id, {
       limit: 10,
@@ -147,7 +142,7 @@ export async function GET(req: NextRequest) {
  * Request specific periodization adjustments
  */
 export async function POST(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
 
   try {
     const user = await getCurrentUser()
@@ -155,7 +150,7 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:periodization:post', user.id, {
       limit: 10,

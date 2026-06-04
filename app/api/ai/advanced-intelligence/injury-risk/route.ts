@@ -8,12 +8,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { logPrediction, createInjuryRiskInputSnapshot } from '@/lib/data-moat/prediction-logger'
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
@@ -24,7 +19,7 @@ function t(locale: AppLocale, en: string, sv: string) {
  * Calculate comprehensive injury risk assessment
  */
 export async function GET(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
 
   try {
     const user = await getCurrentUser()
@@ -32,7 +27,7 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:advanced:injury-risk', user.id, {
       limit: 10,
