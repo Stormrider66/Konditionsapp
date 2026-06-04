@@ -7,16 +7,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 
 // ============================================
 // GET - Get Research Details
 // ============================================
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { sessionId } = await params
 
@@ -24,10 +31,11 @@ export async function GET(
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { user, clientId } = resolved
 
     // Rate limit
@@ -62,7 +70,7 @@ export async function GET(
 
     if (!sharedAccess) {
       return NextResponse.json(
-        { error: 'Research not found or not shared with you' },
+        { error: t(locale, 'Research not found or not shared with you', 'Research hittades inte eller är inte delad med dig') },
         { status: 404 }
       )
     }
@@ -72,7 +80,7 @@ export async function GET(
     // Only show completed research
     if (session.status !== 'COMPLETED') {
       return NextResponse.json(
-        { error: 'Research is not yet completed' },
+        { error: t(locale, 'Research is not yet completed', 'Researchen är inte klar ännu') },
         { status: 400 }
       )
     }
@@ -122,7 +130,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching athlete research:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch research' },
+      { error: t(locale, 'Failed to fetch research', 'Kunde inte hämta research') },
       { status: 500 }
     )
   }

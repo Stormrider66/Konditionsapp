@@ -7,22 +7,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { rateLimitJsonResponse } from '@/lib/rate-limit-redis'
 
 // ============================================
 // GET - List Shared Research
 // ============================================
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     // Authenticate as athlete
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { user, clientId } = resolved
 
     // Rate limit
@@ -94,7 +102,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error listing athlete research:', error)
     return NextResponse.json(
-      { error: 'Failed to list research' },
+      { error: t(locale, 'Failed to list research', 'Kunde inte hämta research') },
       { status: 500 }
     )
   }
