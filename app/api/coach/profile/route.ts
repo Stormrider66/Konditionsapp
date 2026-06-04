@@ -8,8 +8,7 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -36,7 +35,7 @@ const profileUpdateSchema = z.object({
  * GET /api/coach/profile
  * Get current coach's marketplace profile
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
   let locale: AppLocale = 'en'
 
   try {
@@ -48,7 +47,7 @@ export async function GET(_request: NextRequest) {
         { status: 401 }
       )
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
@@ -90,7 +89,7 @@ export async function PUT(request: NextRequest) {
         { status: 401 }
       )
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
