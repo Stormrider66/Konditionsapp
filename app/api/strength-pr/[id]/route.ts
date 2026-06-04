@@ -15,14 +15,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireAuth()
+    const locale = resolveRequestLocale(request, user.language)
     const { id } = await context.params
 
     const existing = await prisma.oneRepMaxHistory.findUnique({
@@ -30,12 +36,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       select: { id: true, clientId: true },
     })
     if (!existing) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Not found', 'Hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(user.id, existing.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const body = await request.json()
@@ -52,7 +58,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     if (typeof unit === 'string') data.unit = unit
 
     if (Object.keys(data).length === 0) {
-      return NextResponse.json({ error: 'No editable fields supplied' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No editable fields supplied', 'Inga redigerbara fält angavs') }, { status: 400 })
     }
 
     const updated = await prisma.oneRepMaxHistory.update({
@@ -66,9 +72,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   }
 }
 
-export async function DELETE(_request: NextRequest, context: RouteContext) {
+export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
     const user = await requireAuth()
+    const locale = resolveRequestLocale(request, user.language)
     const { id } = await context.params
 
     const existing = await prisma.oneRepMaxHistory.findUnique({
@@ -76,12 +83,12 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
       select: { id: true, clientId: true },
     })
     if (!existing) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Not found', 'Hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(user.id, existing.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     await prisma.oneRepMaxHistory.delete({ where: { id } })

@@ -24,6 +24,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface SessionExerciseShape {
   exerciseId: string
@@ -34,27 +35,22 @@ interface SectionDataShape {
   exercises?: SessionExerciseShape[]
 }
 
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
-
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
-    const locale = resolveLocale(resolved.user.language)
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     const body = await request.json()
     const {
@@ -71,7 +67,14 @@ export async function POST(request: NextRequest) {
 
     if (!assignmentId || !exerciseId || typeof oneRepMax !== 'number' || oneRepMax <= 0) {
       return NextResponse.json(
-        { success: false, error: 'assignmentId, exerciseId and oneRepMax > 0 are required' },
+        {
+          success: false,
+          error: t(
+            locale,
+            'assignmentId, exerciseId and oneRepMax > 0 are required',
+            'assignmentId, exerciseId och oneRepMax > 0 krävs'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -94,10 +97,10 @@ export async function POST(request: NextRequest) {
       },
     })
     if (!assignment) {
-      return NextResponse.json({ success: false, error: 'Assignment not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
     }
     if (assignment.athleteId !== clientId) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ success: false, error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Walk every section's exercise JSON (and follow-ups) and confirm
@@ -117,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     if (!sessionExerciseIds.has(exerciseId)) {
       return NextResponse.json(
-        { success: false, error: 'Exercise not part of this assignment' },
+        { success: false, error: t(locale, 'Exercise not part of this assignment', 'Övningen ingår inte i denna tilldelning') },
         { status: 400 }
       )
     }
@@ -162,7 +165,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('PR-from-set error:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to record PR' },
+      { success: false, error: t(locale, 'Failed to record PR', 'Misslyckades med att spara PR') },
       { status: 500 }
     )
   }

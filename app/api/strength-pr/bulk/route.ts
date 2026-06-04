@@ -24,6 +24,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach, canAccessClient } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface BulkPREntry {
   clientId: string
@@ -41,20 +42,15 @@ interface BulkPRError {
   message: string
 }
 
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
-
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach()
-    const locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json()
     const { teamId, clientId, entries } = body as {
       teamId?: string
@@ -64,20 +60,20 @@ export async function POST(request: NextRequest) {
 
     if (!Array.isArray(entries) || entries.length === 0) {
       return NextResponse.json(
-        { error: 'Non-empty entries[] is required' },
+        { error: t(locale, 'Non-empty entries[] is required', 'entries[] måste innehålla minst en rad') },
         { status: 400 }
       )
     }
     if (!teamId && !clientId) {
       return NextResponse.json(
-        { error: 'Either teamId or clientId is required' },
+        { error: t(locale, 'Either teamId or clientId is required', 'Antingen teamId eller clientId krävs') },
         { status: 400 }
       )
     }
     if (entries.length > 1000) {
       // Hard cap to prevent runaway batches; real teams are far below this.
       return NextResponse.json(
-        { error: 'Max 1000 entries per request' },
+        { error: t(locale, 'Max 1000 entries per request', 'Max 1000 rader per begäran') },
         { status: 400 }
       )
     }
@@ -93,13 +89,13 @@ export async function POST(request: NextRequest) {
         select: { id: true, members: { select: { id: true } } },
       })
       if (!team) {
-        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Team not found', 'Laget hittades inte') }, { status: 404 })
       }
       memberIdSet = new Set(team.members.map((m) => m.id))
     } else {
       const hasAccess = await canAccessClient(user.id, clientId!)
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
       }
       memberIdSet = new Set([clientId!])
     }
@@ -200,7 +196,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('Bulk strength-pr error:', error)
     return NextResponse.json(
-      { error: 'Failed to bulk import PRs' },
+      { error: t(locale, 'Failed to bulk import PRs', 'Misslyckades med att massimportera PR') },
       { status: 500 }
     )
   }

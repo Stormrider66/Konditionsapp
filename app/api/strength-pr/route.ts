@@ -12,14 +12,20 @@ import { prisma } from '@/lib/prisma'
 import { estimate1RMWithConfidence } from '@/lib/training-engine/progression/rm-estimation'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const body = await req.json()
@@ -32,17 +38,8 @@ export async function POST(req: NextRequest) {
       reps,
       load,
       rpe,
-      notes,
       unit,
     } = body
-
-    // Validate required fields
-    if (!clientId || !exerciseId || !sets || !reps || !load) {
-      return NextResponse.json(
-        { error: 'Missing required fields: clientId, exerciseId, sets, reps, load' },
-        { status: 400 }
-      )
-    }
 
     // Resolve the authenticated supabase user → app User row, then
     // gate against canAccessClient. Without this check, any signed-in
@@ -50,14 +47,29 @@ export async function POST(req: NextRequest) {
     // hand-crafting the request body.
     const dbUser = await prisma.user.findUnique({
       where: { email: user.email ?? '' },
-      select: { id: true },
+      select: { id: true, language: true },
     })
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(req, dbUser.language)
+
+    if (!clientId || !exerciseId || !sets || !reps || !load) {
+      return NextResponse.json(
+        {
+          error: t(
+            locale,
+            'Missing required fields: clientId, exerciseId, sets, reps, load',
+            'Obligatoriska fält saknas: clientId, exerciseId, sets, reps, load'
+          ),
+        },
+        { status: 400 }
+      )
+    }
+
     const allowed = await canAccessClient(dbUser.id, clientId)
     if (!allowed) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Verify exercise exists
@@ -66,7 +78,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!exercise) {
-      return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Exercise not found', 'Övningen hittades inte') }, { status: 404 })
     }
 
     // Calculate 1RM estimation
@@ -129,11 +141,11 @@ export async function POST(req: NextRequest) {
     logger.error('Error creating strength PR', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : (error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')),
       },
       { status: 500 }
     )
