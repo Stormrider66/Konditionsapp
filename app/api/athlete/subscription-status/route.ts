@@ -8,20 +8,33 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import { getTrialDaysRemaining } from '@/lib/subscription/trial-utils'
 import { getAthleteSubscriptionWithRepairs } from '@/lib/subscription/feature-access'
 
-export async function GET() {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
+
+    locale = resolveLocale(request, resolved.user.language)
 
     // Get client with subscription using resolved clientId
     const client = await prisma.client.findUnique({
@@ -31,7 +44,7 @@ export async function GET() {
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
+        { success: false, error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
         { status: 404 }
       )
     }
@@ -108,7 +121,7 @@ export async function GET() {
   } catch (error) {
     logger.error('Error fetching subscription status', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch subscription status' },
+      { success: false, error: t(locale, 'Failed to fetch subscription status', 'Kunde inte hämta prenumerationsstatus') },
       { status: 500 }
     )
   }

@@ -2,21 +2,29 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { AssignmentStatus } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logError } from '@/lib/logger-console'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/athlete/strength-sessions
  * Get athlete's strength session assignments
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { clientId } = resolved
 
     const { searchParams } = new URL(request.url)
@@ -172,7 +180,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching strength sessions:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch strength sessions' },
+      { success: false, error: t(locale, 'Failed to fetch strength sessions', 'Kunde inte hämta styrkepass') },
       { status: 500 }
     )
   }

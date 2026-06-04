@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 
@@ -19,21 +20,32 @@ const updateProfileSchema = z.object({
   dietaryNotes: z.string().max(MAX_FIELD_LENGTH).nullable().optional(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
 /**
  * GET /api/athlete/profile
  * Get current athlete's self-description profile
  */
-export async function GET() {
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
 
+    locale = resolveLocale(request, resolved.user.language)
     const { clientId } = resolved
 
     // Get client with athlete account profile fields
@@ -59,7 +71,7 @@ export async function GET() {
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
+        { success: false, error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
         { status: 404 }
       )
     }
@@ -84,7 +96,7 @@ export async function GET() {
   } catch (error) {
     logger.error('Error fetching athlete profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch profile' },
+      { success: false, error: t(locale, 'Failed to fetch profile', 'Kunde inte hämta profilen') },
       { status: 500 }
     )
   }
@@ -95,16 +107,19 @@ export async function GET() {
  * Update athlete's self-description profile
  */
 export async function PUT(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
 
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { clientId, user } = resolved
 
     const body = await request.json()
@@ -112,7 +127,11 @@ export async function PUT(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: validation.error.errors[0].message },
+        {
+          success: false,
+          error: t(locale, 'Invalid profile data', 'Ogiltig profildata'),
+          details: validation.error.errors,
+        },
         { status: 400 }
       )
     }
@@ -171,12 +190,12 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: updated,
-      message: 'Profile updated successfully',
+      message: t(locale, 'Profile updated successfully', 'Profilen uppdaterades'),
     })
   } catch (error) {
     logger.error('Error updating athlete profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update profile' },
+      { success: false, error: t(locale, 'Failed to update profile', 'Kunde inte uppdatera profilen') },
       { status: 500 }
     )
   }
