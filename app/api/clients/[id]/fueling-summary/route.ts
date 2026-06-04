@@ -1,22 +1,29 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { getFuelingFeedbackSummary } from '@/lib/fueling/feedback-summary'
 import { buildFuelingProgressSummary } from '@/lib/fueling/progress-summary'
 import { sortFuelingPlansForDisplay } from '@/lib/fueling/plan-ordering'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!user) return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    locale = resolveRequestLocale(request, user.language)
 
     const { id: clientId } = await params
     const hasAccess = await canAccessClient(user.id, clientId)
-    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!hasAccess) return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
 
     const [summary, latestPlans, recentLogs] = await Promise.all([
       getFuelingFeedbackSummary(prisma, clientId, 6),
@@ -137,7 +144,7 @@ export async function GET(
     })
   } catch (error) {
     logger.error('Error fetching fueling summary', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 

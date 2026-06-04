@@ -4,11 +4,24 @@ export type AppLocale = 'en' | 'sv'
 
 const SUPPORTED_LOCALES = new Set<AppLocale>(['en', 'sv'])
 
+function parseCookieLocale(cookieHeader: string | null): string | undefined {
+  return cookieHeader
+    ?.split(';')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith('NEXT_LOCALE='))
+    ?.split('=')[1]
+}
+
 export function resolveRequestLocale(
-  request: NextRequest,
+  request: NextRequest | Request,
   userLanguage?: string | null
 ): AppLocale {
-  const cookieLocale = request.cookies.get('NEXT_LOCALE')?.value
+  const nextRequest = request as NextRequest
+  const cookieLocale =
+    typeof nextRequest.cookies?.get === 'function'
+      ? nextRequest.cookies.get('NEXT_LOCALE')?.value
+      : parseCookieLocale(request.headers.get('cookie'))
+
   if (SUPPORTED_LOCALES.has(cookieLocale as AppLocale)) {
     return cookieLocale as AppLocale
   }

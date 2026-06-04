@@ -30,8 +30,7 @@ import {
   applyLinkedHockeyAerobicProfile,
   getLinkedHockeyAerobicProfiles,
 } from '@/lib/hockey/aerobic-profile-link'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface HockeySummary {
   id: string
@@ -753,12 +752,12 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    const locale = resolveRequestLocale(request, user.language)
     const { id: clientId } = await params
     const hasAccess = await canAccessClient(user.id, clientId)
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const [tests, client] = await Promise.all([
@@ -822,4 +821,8 @@ export async function GET(
   } catch (error: unknown) {
     return handleApiError(error)
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

@@ -59,6 +59,7 @@ import {
   type NormalizedInput,
 } from '@/lib/ai/file-normalize'
 import { scoreNameAgainstRow } from '@/lib/ai/library-name-match'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -70,10 +71,12 @@ const parseCache = createDistributedJsonCache<{
 }>('workouts:import-parse:v1')
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     // Coach-only for v1. Athletes hitting this directly is uncommon — they
     // have their own program-importer entry point if/when that's needed.
     const coach = await requireCoach()
+    locale = resolveRequestLocale(request, coach.language)
     const callerUserId = coach.id
     const aiKeyOwnerId = coach.id
 
@@ -308,7 +311,11 @@ export async function POST(request: NextRequest) {
       } catch (e) {
         logger.error('Resolver failed during workout import-parse', {}, e)
         warnings.push(
-          'Library matching was unavailable — you can still publish; unmatched names stay as free text and can be linked later.'
+          t(
+            locale,
+            'Library matching was unavailable - you can still publish; unmatched names stay as free text and can be linked later.',
+            'Biblioteksmatchning var inte tillgänglig - du kan fortfarande publicera; omatchade namn sparas som fri text och kan länkas senare.'
+          )
         )
       }
     }
@@ -352,12 +359,16 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     logger.error('Workout import-parse failed', {}, error)
     const msg =
-      error instanceof Error ? error.message : 'Internal server error'
+      error instanceof Error ? error.message : t(locale, 'Internal server error', 'Internt serverfel')
     return NextResponse.json(
       { error: msg },
       { status: msg.startsWith('Forbidden') ? 403 : 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
