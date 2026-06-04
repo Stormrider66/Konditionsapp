@@ -26,15 +26,14 @@ import { logger } from '@/lib/logger'
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'lactate_ocr')
@@ -220,10 +219,6 @@ Typical lactate values:
 - Aerobic threshold: 2.0-2.5 mmol/L
 - Anaerobic threshold: 3.5-5.0 mmol/L
 - Maximal effort: 8-20+ mmol/L`
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

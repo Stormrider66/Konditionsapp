@@ -26,15 +26,15 @@ import { logger } from '@/lib/logger'
 import { getResolvedProviderKey, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const maxDuration = 300
-type AppLocale = 'en' | 'sv'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const { id } = await params;
@@ -52,7 +52,7 @@ export async function POST(
       user = await requireCoach();
       isCoach = true;
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('audio-journal:process', user.id, {
       limit: 5,
@@ -91,7 +91,7 @@ export async function POST(
         return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
       }
     }
-    locale = resolveLocale(audioJournal.client.user?.language)
+    locale = resolveRequestLocale(request, audioJournal.client.user?.language)
 
     const allowanceDenied = await requireAiAllowance(audioJournal.clientId)
     if (allowanceDenied) return allowanceDenied
@@ -430,8 +430,4 @@ Do not guess values that were not mentioned.`
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
-}
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }

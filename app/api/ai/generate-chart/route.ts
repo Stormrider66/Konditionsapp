@@ -14,6 +14,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RequestBody {
   clientId: string;
@@ -23,14 +24,12 @@ interface RequestBody {
   endDate?: string;
 }
 
-type AppLocale = 'en' | 'sv'
-
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:generate-chart', user.id, {
       limit: 10,
@@ -114,10 +113,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

@@ -7,6 +7,7 @@ import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { subDays } from 'date-fns'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface OptimizationSuggestion {
   type: 'reduce_intensity' | 'reduce_volume' | 'increase_intensity' | 'swap_workout' | 'add_recovery' | 'proceed_as_planned'
@@ -26,21 +27,19 @@ interface ReadinessData {
   acwr: number | null
 }
 
-type AppLocale = 'en' | 'sv'
-
 /**
  * GET /api/ai/workout-optimization
  * Analyze athlete readiness and provide workout optimization suggestions
  */
 export async function GET(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
 
   try {
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:workout-optimization', user.id, {
       limit: 30,
@@ -339,10 +338,6 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

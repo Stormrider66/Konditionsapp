@@ -24,6 +24,7 @@ import {
   getGeminiModelId,
 } from '@/lib/ai/google-genai-client'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -40,7 +41,6 @@ const VALID_AUDIO_TYPES = [
   'audio/aac',
   'audio/x-m4a',
 ]
-type AppLocale = 'en' | 'sv'
 
 function getFormString(formData: FormData, key: string): string | undefined {
   const value = formData.get(key)
@@ -57,7 +57,7 @@ async function resolveBusinessId(businessSlug?: string): Promise<string | null> 
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     let formData: FormData
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = getUserLocale(currentUser.language)
+    locale = resolveRequestLocale(request, currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-voice-transcribe', currentUser.id, {
       limit: 12,
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       if (!access.allowed) {
         return NextResponse.json(
           {
-            error: access.reason || 'AI chat requires a subscription',
+            error: access.reason || t(locale, 'AI chat requires a subscription', 'AI-chat kräver en prenumeration'),
             code: access.code || 'SUBSCRIPTION_REQUIRED',
             upgradeUrl: access.upgradeUrl || '/athlete/subscription',
             currentUsage: access.currentUsage,
@@ -216,10 +216,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function buildTranscriptionPrompt(locale: AppLocale): string {

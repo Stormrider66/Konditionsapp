@@ -23,6 +23,7 @@ import {
 } from '@/lib/user-api-keys'
 import { logAiUsage } from '@/lib/ai/usage-logger'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -33,7 +34,6 @@ const TTS_VOICE = 'marin'
 const MAX_TTS_CHARS = 4096
 const OPENAI_TTS_INPUT_USD_PER_1M = 0.60
 const OPENAI_TTS_AUDIO_OUTPUT_USD_PER_1M = 12.00
-type AppLocale = 'en' | 'sv'
 
 const requestSchema = z.object({
   text: z.string().trim().min(1).max(MAX_TTS_CHARS),
@@ -66,7 +66,7 @@ function estimateTtsCostUsd(text: string): {
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const body = await request.json().catch(() => null)
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = getUserLocale(currentUser.language)
+    locale = resolveRequestLocale(request, currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-speech', currentUser.id, {
       limit: 30,
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       if (!access.allowed) {
         return NextResponse.json(
           {
-            error: access.reason || 'AI chat requires a subscription',
+            error: access.reason || t(locale, 'AI chat requires a subscription', 'AI-chat kräver en prenumeration'),
             code: access.code || 'SUBSCRIPTION_REQUIRED',
             upgradeUrl: access.upgradeUrl || '/athlete/subscription',
             currentUsage: access.currentUsage,
@@ -234,10 +234,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function buildTtsInstructions(locale: AppLocale): string {

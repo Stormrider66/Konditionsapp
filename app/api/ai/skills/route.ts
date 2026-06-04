@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { listKnowledgeSkills } from '@/lib/ai/knowledge-skills'
@@ -7,25 +7,20 @@ import {
   type KnowledgeSkillAccessMode,
 } from '@/lib/ai/skill-access'
 import { prisma } from '@/lib/prisma'
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     let accessMode: KnowledgeSkillAccessMode = 'full'
-    let locale: AppLocale = 'en'
+    let locale: AppLocale = resolveRequestLocale(request)
 
     const athleteResolved = await resolveAthleteClientId()
     if (athleteResolved) {
-      locale = resolveLocale(athleteResolved.user.language)
+      locale = resolveRequestLocale(request, athleteResolved.user.language)
       const subscription = await prisma.athleteSubscription.findUnique({
         where: { clientId: athleteResolved.clientId },
         select: { tier: true, assignedCoachId: true, aiChatEnabled: true },
