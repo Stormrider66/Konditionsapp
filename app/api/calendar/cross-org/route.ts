@@ -17,8 +17,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { startOfDay, endOfDay, addDays } from 'date-fns'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export interface CrossOrgCalendarEvent {
   id: string
@@ -36,21 +35,18 @@ export interface CrossOrgCalendarEvent {
   metadata: Record<string, unknown>
 }
 
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
-
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const searchParams = request.nextUrl.searchParams
     const startDateStr = searchParams.get('startDate')
@@ -62,7 +58,7 @@ export async function GET(request: NextRequest) {
     const startDate = startDateStr ? new Date(startDateStr) : startOfDay(now)
     const endDate = endDateStr ? new Date(endDateStr) : endOfDay(addDays(now, 30))
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid date format', 'Ogiltigt datumformat') }, { status: 400 })
     }
 
     // 1. Fetch all memberships + preferences in parallel (2 queries)
@@ -428,6 +424,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('[GET /api/calendar/cross-org]', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }

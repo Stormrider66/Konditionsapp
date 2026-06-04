@@ -9,19 +9,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import type { CalendarEventType, EventImpact } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     let body: Record<string, unknown>
     try {
       body = await request.json()
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid JSON body', 'Ogiltig JSON-body') }, { status: 400 })
     }
 
     const {
@@ -56,7 +63,13 @@ export async function POST(request: NextRequest) {
 
     if (!businessId || !title || !startDateStr || !endDateStr) {
       return NextResponse.json(
-        { error: 'Missing required fields: businessId, title, startDate, endDate' },
+        {
+          error: t(
+            locale,
+            'Missing required fields: businessId, title, startDate, endDate',
+            'Obligatoriska fält saknas: businessId, title, startDate, endDate'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -65,10 +78,22 @@ export async function POST(request: NextRequest) {
     const startDate = new Date(startDateStr)
     const endDate = new Date(endDateStr)
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return NextResponse.json({ error: 'Invalid date format for startDate or endDate' }, { status: 400 })
+      return NextResponse.json(
+        {
+          error: t(
+            locale,
+            'Invalid date format for startDate or endDate',
+            'Ogiltigt datumformat för startDate eller endDate'
+          ),
+        },
+        { status: 400 }
+      )
     }
     if (endDate < startDate) {
-      return NextResponse.json({ error: 'endDate must be after startDate' }, { status: 400 })
+      return NextResponse.json(
+        { error: t(locale, 'endDate must be after startDate', 'endDate måste vara efter startDate') },
+        { status: 400 }
+      )
     }
 
     // Verify user is a member of this business with appropriate role
@@ -82,7 +107,13 @@ export async function POST(request: NextRequest) {
     })
     if (!membership) {
       return NextResponse.json(
-        { error: 'Forbidden — you don\'t have permission to create events in this business' },
+        {
+          error: t(
+            locale,
+            'Forbidden - you do not have permission to create events in this business',
+            'Åtkomst nekad - du har inte behörighet att skapa händelser i denna verksamhet'
+          ),
+        },
         { status: 403 }
       )
     }
@@ -94,7 +125,7 @@ export async function POST(request: NextRequest) {
         select: { id: true, userId: true },
       })
       if (!team) {
-        return NextResponse.json({ error: 'Team not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Team not found', 'Teamet hittades inte') }, { status: 404 })
       }
 
       // Verify the team's coach is in this business
@@ -106,7 +137,10 @@ export async function POST(request: NextRequest) {
         },
       })
       if (!teamCoachMembership) {
-        return NextResponse.json({ error: 'Team does not belong to this business' }, { status: 403 })
+        return NextResponse.json(
+          { error: t(locale, 'Team does not belong to this business', 'Teamet tillhör inte denna verksamhet') },
+          { status: 403 }
+        )
       }
 
       const teamEvent = await prisma.teamEvent.create({
@@ -132,12 +166,15 @@ export async function POST(request: NextRequest) {
         select: { id: true, userId: true, businessId: true },
       })
       if (!client) {
-        return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
       }
 
       // Verify client is in this business (either by businessId or coach membership)
       if (client.businessId && client.businessId !== businessId) {
-        return NextResponse.json({ error: 'Client does not belong to this business' }, { status: 403 })
+        return NextResponse.json(
+          { error: t(locale, 'Client does not belong to this business', 'Klienten tillhör inte denna verksamhet') },
+          { status: 403 }
+        )
       }
       if (!client.businessId) {
         const clientCoachMembership = await prisma.businessMember.findFirst({
@@ -148,7 +185,10 @@ export async function POST(request: NextRequest) {
           },
         })
         if (!clientCoachMembership) {
-          return NextResponse.json({ error: 'Client does not belong to this business' }, { status: 403 })
+          return NextResponse.json(
+            { error: t(locale, 'Client does not belong to this business', 'Klienten tillhör inte denna verksamhet') },
+            { status: 403 }
+          )
         }
       }
 
@@ -169,11 +209,17 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Must specify either teamId (for TEAM_EVENT) or clientId (for CALENDAR_EVENT)' },
+      {
+        error: t(
+          locale,
+          'Must specify either teamId (for TEAM_EVENT) or clientId (for CALENDAR_EVENT)',
+          'Du måste ange antingen teamId (för TEAM_EVENT) eller clientId (för CALENDAR_EVENT)'
+        ),
+      },
       { status: 400 }
     )
   } catch (error) {
     console.error('[POST /api/calendar/cross-org/events]', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
