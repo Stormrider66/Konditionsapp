@@ -1,23 +1,22 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // DELETE /api/nutrition/recipes/[recipeId] - Remove one saved recipe template.
 export async function DELETE(
-  _request: Request,
+  request: NextRequest,
   { params }: { params: Promise<{ recipeId: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { recipeId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = getUserLocale(resolved.user?.language)
+    locale = resolveRequestLocale(request, resolved.user?.language)
 
     const existing = await prisma.nutritionRecipe.findFirst({
       where: { id: recipeId, clientId: resolved.clientId },
@@ -36,10 +35,6 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

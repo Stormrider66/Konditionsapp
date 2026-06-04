@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const optionalString = z.preprocess(
   (value) => (value === null ? undefined : value),
@@ -38,8 +39,6 @@ export const createRecipeSchema = z.object({
   items: z.array(recipeItemSchema).min(1).max(80),
 })
 
-type AppLocale = 'en' | 'sv'
-
 function recipeValidationMessage(error: z.ZodError, locale: AppLocale) {
   const issue = error.issues[0]
   const path = issue?.path.join('.') || ''
@@ -60,14 +59,14 @@ function recipeValidationMessage(error: z.ZodError, locale: AppLocale) {
 }
 
 // GET /api/nutrition/recipes - List saved recipe templates for the athlete.
-export async function GET() {
-  let locale: AppLocale = 'en'
+export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = getUserLocale(resolved.user?.language)
+    locale = resolveRequestLocale(request, resolved.user?.language)
 
     const recipes = await prisma.nutritionRecipe.findMany({
       where: { clientId: resolved.clientId },
@@ -87,13 +86,13 @@ export async function GET() {
 
 // POST /api/nutrition/recipes - Save the current ingredient list as a template.
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = getUserLocale(resolved.user?.language)
+    locale = resolveRequestLocale(request, resolved.user?.language)
 
     const body = await request.json()
     const validation = createRecipeSchema.safeParse(body)
@@ -153,10 +152,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

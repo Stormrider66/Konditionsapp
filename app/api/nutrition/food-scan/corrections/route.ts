@@ -16,9 +16,9 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { classifyCorrection, type DiffableItem } from '@/lib/nutrition/classify-correction'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const MAX_ITEMS_PER_SIDE = 50
-type AppLocale = 'en' | 'sv'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -39,14 +39,14 @@ const bodySchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, user } = resolved
-    locale = getUserLocale(user?.language)
+    locale = resolveRequestLocale(request, user?.language)
 
     // Match the rate-limit shape used by /api/ai/food-scan — cheaper endpoint
     // so a slightly higher ceiling is fine.
@@ -103,10 +103,6 @@ export async function POST(request: NextRequest) {
     // by any correction-capture issue. The meal is already saved by this point.
     return NextResponse.json({ success: true, recorded: false })
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
