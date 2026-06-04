@@ -31,7 +31,7 @@ function buildPhysiologySchema(locale: AppLocale) {
  * Update athlete's manually reported VO2max and max heart rate
  */
 export async function PATCH(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()

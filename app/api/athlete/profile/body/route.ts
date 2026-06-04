@@ -28,7 +28,7 @@ function buildBodySchema(locale: AppLocale) {
  * Update athlete's own height and weight
  */
 export async function PATCH(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()

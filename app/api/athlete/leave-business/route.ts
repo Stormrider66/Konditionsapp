@@ -14,7 +14,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * business access is revoked.
  */
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireAuth()
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
     if (!businessId) {
       return NextResponse.json(
-        { success: false, error: 'businessId is required' },
+        { success: false, error: t(locale, 'businessId is required', 'businessId krävs') },
         { status: 400 }
       )
     }

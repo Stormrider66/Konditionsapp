@@ -24,7 +24,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * List athlete's coach requests (sent requests)
  */
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
  * Create a new request to connect with a coach
  */
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
  * Body: { requestId: string }
  */
 export async function DELETE(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const { clientId, user } = await requireAthleteOrCoachInAthleteMode()

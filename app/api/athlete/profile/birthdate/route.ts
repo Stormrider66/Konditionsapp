@@ -21,14 +21,14 @@ const birthDateSchema = z.object({
  * Update athlete's own birth date
  */
 export async function PATCH(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }

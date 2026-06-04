@@ -18,14 +18,14 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * 2. Client.userId (the coach who created the client)
  */
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
