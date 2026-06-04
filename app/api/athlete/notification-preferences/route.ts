@@ -8,13 +8,17 @@
 import { NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-export async function GET() {
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, resolved.user.language)
     const { clientId } = resolved
 
     // Get or create default preferences
@@ -46,16 +50,19 @@ export async function GET() {
     return NextResponse.json({ preferences })
   } catch (error) {
     console.error('Error fetching preferences:', error)
-    return NextResponse.json({ error: 'Failed to fetch preferences' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch preferences', 'Kunde inte hämta inställningar') }, { status: 500 })
   }
 }
 
 export async function PUT(request: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, resolved.user.language)
     const { clientId } = resolved
 
     const body = await request.json()
@@ -95,6 +102,14 @@ export async function PUT(request: Request) {
     return NextResponse.json({ preferences })
   } catch (error) {
     console.error('Error updating preferences:', error)
-    return NextResponse.json({ error: 'Failed to update preferences' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update preferences', 'Kunde inte uppdatera inställningar') }, { status: 500 })
   }
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

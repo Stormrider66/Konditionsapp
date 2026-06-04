@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const updateSchema = z.object({
   shareFoodDetails: z.boolean().optional(),
@@ -21,12 +22,15 @@ const updateSchema = z.object({
   shareInjuryDetails: z.boolean().optional(),
 })
 
-export async function GET() {
+export async function GET(request?: NextRequest) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, resolved.user.language)
 
     const permissions = await prisma.athleteCoachPermission.findUnique({
       where: { athleteClientId: resolved.clientId },
@@ -57,16 +61,19 @@ export async function GET() {
     })
   } catch (error) {
     logger.error('Error fetching privacy settings', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, resolved.user.language)
 
     const body = await request.json()
     const validated = updateSchema.parse(body)
@@ -89,11 +96,19 @@ export async function PATCH(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
+        { error: t(locale, 'Invalid data', 'Ogiltig data'), details: error.errors },
         { status: 400 }
       )
     }
     logger.error('Error updating privacy settings', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

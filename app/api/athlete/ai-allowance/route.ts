@@ -3,16 +3,20 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getAiAllowanceStatus, getAiAllowanceUsageSummary } from '@/lib/ai/billing/allowance'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, resolved.user.language)
 
     const { clientId } = resolved
     const [{ account, remainingSek }, subscription, recentTopUps] = await Promise.all([
@@ -70,8 +74,16 @@ export async function GET() {
   } catch (error) {
     logger.error('Failed to fetch athlete AI allowance', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch AI allowance' },
+      { error: t(locale, 'Failed to fetch AI allowance', 'Kunde inte hämta AI-saldo') },
       { status: 500 },
     )
   }
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
