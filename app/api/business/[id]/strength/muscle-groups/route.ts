@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { requireBusinessMembership } from '@/lib/auth-utils'
 import { getMuscleGroupData } from '@/lib/strength/muscle-group-data'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const querySchema = z.object({
   clientId: z.string().uuid(),
@@ -16,9 +17,16 @@ interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let responseLocale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    responseLocale = resolveRequestLocale(request, user.language)
     const { id: businessId } = await params
 
     await requireBusinessMembership(user.id, businessId)
@@ -28,7 +36,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: parsed.error.flatten() },
+        { error: t(responseLocale, 'Invalid parameters', 'Ogiltiga parametrar'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+      return NextResponse.json({ error: t(responseLocale, 'Athlete not found', 'Idrottaren hittades inte') }, { status: 404 })
     }
 
     const data = await getMuscleGroupData(clientId, period, count, locale)

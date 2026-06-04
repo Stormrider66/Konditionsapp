@@ -3,9 +3,25 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { requireBusinessMembership } from '@/lib/auth-utils'
 import { endCoachAgreement } from '@/lib/coach/agreement'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function translateEndCoachError(locale: AppLocale, message: string): string {
+  if (message === 'Agreement not found') {
+    return t(locale, message, 'Överenskommelsen hittades inte')
+  }
+  if (message.startsWith('Cannot end agreement with status:')) {
+    const status = message.split(': ')[1] || ''
+    return t(locale, `Cannot end agreement with status: ${status}`, `Kan inte avsluta överenskommelsen med status: ${status}`)
+  }
+  return message
 }
 
 /**
@@ -128,8 +144,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * For athletes — end the active coaching agreement within business.
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     const { id: businessId } = await params
 
     await requireBusinessMembership(user.id, businessId)
@@ -139,7 +158,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Athlete account not found', 'Idrottarkontot hittades inte') }, { status: 404 })
     }
 
     const activeAgreement = await prisma.coachAgreement.findFirst({
@@ -151,7 +170,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!activeAgreement) {
-      return NextResponse.json({ error: 'No active agreement found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'No active agreement found', 'Ingen aktiv överenskommelse hittades') }, { status: 404 })
     }
 
     await endCoachAgreement(activeAgreement.id, user.id, 'Ended by athlete')
@@ -159,7 +178,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ success: true })
   } catch (error) {
     if (error instanceof Error) {
-      return NextResponse.json({ error: error.message }, { status: 400 })
+      return NextResponse.json({ error: translateEndCoachError(locale, error.message) }, { status: 400 })
     }
     return handleApiError(error)
   }

@@ -12,9 +12,14 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import { performance } from 'node:perf_hooks'
 import { getVerifiedLoadTestBypassEmail, isVerifiedLoadTestBypassRequest } from '@/lib/load-test-bypass'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 // Increase TTL aggressively to reduce refresh work that can block the Node event loop under load.
@@ -37,6 +42,8 @@ const businessAccessInFlight = new Map<string, Promise<{ allowed: boolean; busin
 const businessStatsErrorLogState = new Map<string, { nextAllowedAt: number; suppressed: number }>()
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const emitDebugHeaders = shouldEmitPerfDebugHeaders(request)
     const t0 = emitDebugHeaders ? performance.now() : 0
@@ -54,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (!forceRefresh && cached && cached.expiresAt > nowMs) {
       const access = await resolveBusinessAccess(user.id, id)
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 });
       }
       return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'hit' }))
     }
@@ -68,7 +75,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const access = await resolveBusinessAccess(user.id, id)
     if (!access.allowed) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 });
     }
     const businessName = access.businessName || cached?.payload.businessName || 'Business'
 
@@ -125,7 +132,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     try {
       const json = await withTimeout(loadStatsPromise, BUSINESS_STATS_MAX_COMPUTE_MS)
       return jsonResponse(json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'miss' }))
-    } catch (error) {
+    } catch {
       if (cached && cached.staleUntil > Date.now()) {
         return jsonResponse(cached.payload.json, withHandlerTiming(emitDebugHeaders, t0, { 'x-cache': 'stale' }))
       }
@@ -140,11 +147,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     logBusinessStatsErrorThrottled(error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch business statistics' },
+      { error: t(locale, 'Failed to fetch business statistics', 'Kunde inte hämta verksamhetsstatistik') },
       { status: 500 }
     );
   }

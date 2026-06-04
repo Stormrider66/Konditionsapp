@@ -7,17 +7,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 
@@ -26,7 +34,7 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
       where: { userId: user.id, businessId: id, isActive: true },
     })
     if (!membership) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     const settings = await prisma.businessCalendarSettings.findUnique({
@@ -43,16 +51,19 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     console.error('[GET /api/business/[id]/calendar-settings]', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 
@@ -66,14 +77,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       },
     })
     if (!membership) {
-      return NextResponse.json({ error: 'Forbidden — only owners/admins can change calendar settings' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden - only owners/admins can change calendar settings', 'Förbjudet - endast ägare/administratörer kan ändra kalenderinställningar') }, { status: 403 })
     }
 
     let body: Record<string, unknown>
     try {
       body = await request.json()
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid JSON body', 'Ogiltig JSON-kropp') }, { status: 400 })
     }
     const { calendarVisibility, shareTeamEvents, shareAthleteEvents } = body as {
       calendarVisibility?: 'FULL_DETAILS' | 'BUSY_ONLY' | 'HIDDEN'
@@ -99,6 +110,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({ settings })
   } catch (error) {
     console.error('[PUT /api/business/[id]/calendar-settings]', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
