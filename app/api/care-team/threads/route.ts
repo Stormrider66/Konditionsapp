@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating a care team thread
 const createThreadSchema = z.object({
@@ -23,11 +28,14 @@ const createThreadSchema = z.object({
  * List care team threads for the current user
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url)
 
@@ -53,7 +61,7 @@ export async function GET(request: NextRequest) {
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'You do not have access to this athlete' },
+          { error: t(locale, 'You do not have access to this athlete', 'Du har inte åtkomst till den här idrottaren') },
           { status: 403 }
         )
       }
@@ -156,7 +164,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching care team threads:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch care team threads' },
+      { error: t(locale, 'Failed to fetch care team threads', 'Kunde inte hämta vårdteamstrådar') },
       { status: 500 }
     )
   }
@@ -167,11 +175,14 @@ export async function GET(request: NextRequest) {
  * Create a new care team thread
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validatedData = createThreadSchema.parse(body)
@@ -197,7 +208,7 @@ export async function POST(request: NextRequest) {
 
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have access to create a thread for this athlete' },
+        { error: t(locale, 'You do not have access to create a thread for this athlete', 'Du har inte åtkomst att skapa en tråd för den här idrottaren') },
         { status: 403 }
       )
     }
@@ -325,12 +336,12 @@ export async function POST(request: NextRequest) {
     console.error('Error creating care team thread:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to create care team thread' },
+      { error: t(locale, 'Failed to create care team thread', 'Kunde inte skapa vårdteamstråd') },
       { status: 500 }
     )
   }

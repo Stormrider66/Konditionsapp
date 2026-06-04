@@ -5,6 +5,11 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { notifyThreadParticipants } from '@/lib/notifications/care-team'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const createMessageSchema = z.object({
   content: z.string().min(1).max(10000),
@@ -25,11 +30,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id: threadId } = await params
     const { searchParams } = new URL(request.url)
@@ -48,11 +56,11 @@ export async function GET(
     })
 
     if (!thread) {
-      return NextResponse.json({ error: 'Thread not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Thread not found', 'Tråden hittades inte') }, { status: 404 })
     }
 
     if (thread.participants.length === 0 && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Build where clause
@@ -93,7 +101,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching messages:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch messages' },
+      { error: t(locale, 'Failed to fetch messages', 'Kunde inte hämta meddelanden') },
       { status: 500 }
     )
   }
@@ -107,11 +115,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id: threadId } = await params
     const body = await request.json()
@@ -128,11 +139,11 @@ export async function POST(
     })
 
     if (!thread) {
-      return NextResponse.json({ error: 'Thread not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Thread not found', 'Tråden hittades inte') }, { status: 404 })
     }
 
     if (thread.participants.length === 0 && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Create message and update thread in a transaction
@@ -193,12 +204,12 @@ export async function POST(
     console.error('Error sending message:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to send message' },
+      { error: t(locale, 'Failed to send message', 'Kunde inte skicka meddelandet') },
       { status: 500 }
     )
   }

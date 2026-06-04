@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const updateThreadSchema = z.object({
   subject: z.string().min(1).max(255).optional(),
@@ -19,11 +24,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const { searchParams } = new URL(request.url)
@@ -89,13 +97,13 @@ export async function GET(
     })
 
     if (!thread) {
-      return NextResponse.json({ error: 'Thread not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Thread not found', 'Tråden hittades inte') }, { status: 404 })
     }
 
     // Check if user is a participant
     const isParticipant = thread.participants.some(p => p.userId === user.id)
     if (!isParticipant && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Get messages separately with pagination
@@ -139,7 +147,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching care team thread:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch care team thread' },
+      { error: t(locale, 'Failed to fetch care team thread', 'Kunde inte hämta vårdteamstråden') },
       { status: 500 }
     )
   }
@@ -153,11 +161,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const body = await request.json()
@@ -174,13 +185,13 @@ export async function PATCH(
     })
 
     if (!existingThread) {
-      return NextResponse.json({ error: 'Thread not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Thread not found', 'Tråden hittades inte') }, { status: 404 })
     }
 
     // Check if user is a participant or admin
     const isParticipant = existingThread.participants.length > 0
     if (!isParticipant && user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Build update data
@@ -221,12 +232,12 @@ export async function PATCH(
     console.error('Error updating care team thread:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to update care team thread' },
+      { error: t(locale, 'Failed to update care team thread', 'Kunde inte uppdatera vårdteamstråden') },
       { status: 500 }
     )
   }
