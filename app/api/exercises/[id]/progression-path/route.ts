@@ -16,19 +16,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getProgressionPath } from '@/lib/training-engine/generators/exercise-selector'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessExercise } from '@/lib/auth-utils'
-import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     const { id: exerciseId } = await params
 
     const hasAccess = await canAccessExercise(user.id, exerciseId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
     }
 
     const progressionPath = await getProgressionPath(exerciseId)

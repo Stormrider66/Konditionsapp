@@ -3,8 +3,8 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { getRequestedBusinessScope, resolveAthleteClientId } from '@/lib/auth-utils'
 import { Prisma, WorkoutType, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
-import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const BUSINESS_EXERCISE_ROLES = [
   'OWNER',
@@ -16,6 +16,10 @@ const BUSINESS_EXERCISE_ROLES = [
 ]
 
 type ExerciseVisibility = 'PRIVATE' | 'BUSINESS'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Allowed sort fields to prevent injection
 const ALLOWED_SORT_FIELDS = [
@@ -245,19 +249,22 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+    let locale = resolveRequestLocale(request)
+
     try {
         const user = await requireAuth()
+        locale = resolveRequestLocale(request, user.language)
         const hasCoachAccess = user.role === 'ADMIN' || user.role === 'COACH' || await canAccessCoachPlatform(user.id)
         const body = await request.json()
 
         if (!hasCoachAccess) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
         }
         
         // Basic validation
         if (!body.name || !body.category || !body.biomechanicalPillar) {
              return NextResponse.json(
-                { error: 'Name, Category and Biomechanical Pillar are required' },
+                { error: t(locale, 'Name, Category and Biomechanical Pillar are required', 'Namn, kategori och biomekanisk pelare krävs') },
                 { status: 400 }
             )
         }
@@ -269,7 +276,7 @@ export async function POST(request: NextRequest) {
 
         if (visibility === 'BUSINESS' && !requestedBusinessId) {
           return NextResponse.json(
-            { error: 'Business visibility requires an active business membership' },
+            { error: t(locale, 'Business visibility requires an active business membership', 'Synlighet för verksamhet kräver ett aktivt verksamhetsmedlemskap') },
             { status: 403 }
           )
         }
