@@ -18,8 +18,7 @@ import {
 } from '@/lib/ai/google-genai-client'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const HOCKEY_TEST_SCAN_PROMPT_EN = `You are an expert at reading physical test results for ice hockey players.
 
@@ -126,7 +125,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
 
     const formData = await req.formData()
     const file = formData.get('file') as File | null
@@ -178,7 +177,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(parsed)
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Hockey test scan error:', error)
     return NextResponse.json({ error: t(locale, 'Could not analyze the image', 'Kunde inte analysera bilden') }, { status: 500 })
