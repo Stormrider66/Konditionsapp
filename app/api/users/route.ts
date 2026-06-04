@@ -6,8 +6,15 @@ import { createClient } from '@/lib/supabase/server'
 import { sendWelcomeEmail } from '@/lib/email'
 import { sendEmailAfter } from '@/lib/email/after'
 import { Gender } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -16,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!supabaseUser || !supabaseUser.email) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -77,7 +84,7 @@ export async function POST(request: NextRequest) {
           email: supabaseUser.email!,
           name,
           role: 'ATHLETE',
-          language: 'en',
+          language: locale,
         },
       })
 
@@ -109,7 +116,7 @@ export async function POST(request: NextRequest) {
     })
 
     sendEmailAfter(
-      () => sendWelcomeEmail(supabaseUser.email!, name, 'en'),
+      () => sendWelcomeEmail(supabaseUser.email!, name, locale),
       { route: 'users', emailKind: 'welcome' },
     )
 
@@ -117,13 +124,15 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Error creating user', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     )
   }
 }
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -131,12 +140,13 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!supabaseUser) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({ where: { id: supabaseUser.id } })
+    locale = resolveRequestLocale(request, dbUser?.language)
     if (!dbUser || dbUser.role !== 'ADMIN') {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ success: false, error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     const users = await prisma.user.findMany({
@@ -161,7 +171,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching users', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { success: false, error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     )
   }

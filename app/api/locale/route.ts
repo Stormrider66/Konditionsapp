@@ -9,11 +9,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { locales, defaultLocale, type Locale } from '@/i18n/config';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const COOKIE_NAME = 'NEXT_LOCALE';
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  const responseLocale = resolveRequestLocale(request)
+
   try {
     const body = await request.json();
     const { locale } = body;
@@ -21,7 +28,7 @@ export async function POST(request: NextRequest) {
     // Validate locale
     if (!locale || !locales.includes(locale as Locale)) {
       return NextResponse.json(
-        { error: 'Invalid locale', validLocales: locales },
+        { error: t(responseLocale, 'Invalid locale', 'Ogiltigt språk'), validLocales: locales },
         { status: 400 }
       );
     }
@@ -42,7 +49,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('Failed to set locale:', error);
     return NextResponse.json(
-      { error: 'Failed to set locale' },
+      { error: t(responseLocale, 'Failed to set locale', 'Kunde inte ställa in språk') },
       { status: 500 }
     );
   }

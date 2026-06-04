@@ -4,8 +4,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { EquipmentCategory } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category') as EquipmentCategory | null
@@ -49,7 +56,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching equipment catalog:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch equipment catalog' },
+      { success: false, error: t(locale, 'Failed to fetch equipment catalog', 'Kunde inte hämta utrustningskatalogen') },
       { status: 500 }
     )
   }

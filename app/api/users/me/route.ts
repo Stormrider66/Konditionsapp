@@ -2,12 +2,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/users/me
  * Get current authenticated user info
  */
-export async function GET(_request: NextRequest) {
+export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
 
@@ -15,11 +22,12 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
     }
+    locale = resolveRequestLocale(request, user.language)
 
     return NextResponse.json({
       success: true,
@@ -36,7 +44,7 @@ export async function GET(_request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch user information',
+        error: t(locale, 'Failed to fetch user information', 'Kunde inte hämta användarinformation'),
       },
       { status: 500 }
     )
