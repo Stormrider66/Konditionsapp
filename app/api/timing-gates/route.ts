@@ -6,6 +6,11 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { TimingGateSource } from '@prisma/client'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const createSessionSchema = z.object({
   sessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -19,12 +24,14 @@ const createSessionSchema = z.object({
 
 // GET /api/timing-gates - List timing gate sessions
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -68,7 +75,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching timing gate sessions:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch timing gate sessions' },
+      { error: t(locale, 'Failed to fetch timing gate sessions', 'Kunde inte hämta timing gate-sessioner') },
       { status: 500 }
     )
   }
@@ -76,22 +83,25 @@ export async function GET(request: NextRequest) {
 
 // POST /api/timing-gates - Create new session (manual entry)
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Verify user is a coach
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { role: true, language: true }
     })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'Only coaches can create timing sessions' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Only coaches can create timing sessions', 'Endast coacher kan skapa timing-sessioner') }, { status: 403 })
     }
 
     const body = await request.json()
@@ -119,13 +129,13 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error creating timing gate session:', error)
     return NextResponse.json(
-      { error: 'Failed to create timing gate session' },
+      { error: t(locale, 'Failed to create timing gate session', 'Kunde inte skapa timing gate-session') },
       { status: 500 }
     )
   }

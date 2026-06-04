@@ -7,6 +7,11 @@ import { createClient } from '@/lib/supabase/server'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { SportTestProtocol } from '@prisma/client'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const createResultSchema = z.object({
   athleteId: z.string().uuid().optional(),
@@ -33,13 +38,15 @@ interface RouteParams {
 
 // GET /api/timing-gates/[sessionId]/results - List results for session
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { sessionId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -55,11 +62,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'You can only view your own sessions' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'You can only view your own sessions', 'Du kan bara visa dina egna sessioner') }, { status: 403 })
     }
 
     const where: Record<string, unknown> = { sessionId }
@@ -67,7 +74,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (athleteId) {
       const access = await canAccessAthlete(user.id, athleteId)
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
       }
       where.athleteId = athleteId
     }
@@ -90,7 +97,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error('Error fetching timing gate results:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch timing gate results' },
+      { error: t(locale, 'Failed to fetch timing gate results', 'Kunde inte hämta timing gate-resultat') },
       { status: 500 }
     )
   }
@@ -98,13 +105,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // POST /api/timing-gates/[sessionId]/results - Add manual result
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { sessionId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Verify session exists and user owns it
@@ -114,11 +123,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'You can only add results to your own sessions' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'You can only add results to your own sessions', 'Du kan bara lägga till resultat i dina egna sessioner') }, { status: 403 })
     }
 
     const body = await request.json()
@@ -140,13 +149,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error creating timing gate result:', error)
     return NextResponse.json(
-      { error: 'Failed to create timing gate result' },
+      { error: t(locale, 'Failed to create timing gate result', 'Kunde inte skapa timing gate-resultat') },
       { status: 500 }
     )
   }
@@ -154,13 +163,15 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
 // PUT /api/timing-gates/[sessionId]/results - Match athlete to unassigned result
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { sessionId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Verify session exists and user owns it
@@ -170,18 +181,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     if (session.coachId !== user.id) {
-      return NextResponse.json({ error: 'You can only modify your own sessions' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'You can only modify your own sessions', 'Du kan bara ändra dina egna sessioner') }, { status: 403 })
     }
 
     const { searchParams } = new URL(request.url)
     const resultId = searchParams.get('resultId')
 
     if (!resultId) {
-      return NextResponse.json({ error: 'resultId is required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'resultId is required', 'resultId krävs') }, { status: 400 })
     }
 
     const body = await request.json()
@@ -189,7 +200,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     const access = await canAccessAthlete(user.id, athleteId)
     if (!access.allowed) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     const result = await prisma.timingGateResult.update({
@@ -210,13 +221,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     console.error('Error matching athlete to result:', error)
     return NextResponse.json(
-      { error: 'Failed to match athlete to result' },
+      { error: t(locale, 'Failed to match athlete to result', 'Kunde inte matcha idrottare till resultat') },
       { status: 500 }
     )
   }

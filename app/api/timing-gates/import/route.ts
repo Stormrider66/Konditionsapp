@@ -5,6 +5,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { TimingGateSource, SportTestProtocol } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface ParsedResult {
   athleteName?: string
@@ -28,22 +33,25 @@ interface ParsedData {
 
 // POST /api/timing-gates/import - Import CSV file
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Verify user is a coach
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
-      select: { role: true }
+      select: { role: true, language: true }
     })
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
-      return NextResponse.json({ error: 'Only coaches can import timing data' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Only coaches can import timing data', 'Endast coacher kan importera timing-data') }, { status: 403 })
     }
 
     const formData = await request.formData()
@@ -53,7 +61,7 @@ export async function POST(request: NextRequest) {
     const previewOnly = formData.get('preview') === 'true'
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'No file provided', 'Ingen fil har skickats') }, { status: 400 })
     }
 
     // Read file content
@@ -73,7 +81,7 @@ export async function POST(request: NextRequest) {
     } catch (parseError) {
       console.error('CSV parsing error:', parseError)
       return NextResponse.json(
-        { error: 'Failed to parse CSV file', details: (parseError as Error).message },
+        { error: t(locale, 'Failed to parse CSV file', 'Kunde inte tolka CSV-filen'), details: (parseError as Error).message },
         { status: 400 }
       )
     }
@@ -158,7 +166,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Error importing timing gate data:', error)
     return NextResponse.json(
-      { error: 'Failed to import timing gate data' },
+      { error: t(locale, 'Failed to import timing gate data', 'Kunde inte importera timing gate-data') },
       { status: 500 }
     )
   }

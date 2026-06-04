@@ -4,6 +4,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface RouteParams {
   params: Promise<{ sessionId: string }>
@@ -11,13 +16,15 @@ interface RouteParams {
 
 // GET /api/timing-gates/[sessionId] - Get session details with results
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { sessionId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const session = await prisma.timingGateSession.findUnique({
@@ -43,18 +50,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     // Check access
     if (session.coachId !== user.id) {
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { role: true }
+        select: { role: true, language: true }
       })
+      locale = resolveRequestLocale(request, dbUser?.language)
 
       if (!dbUser || dbUser.role !== 'ADMIN') {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
       }
     }
 
@@ -78,7 +86,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error('Error fetching timing gate session:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch timing gate session' },
+      { error: t(locale, 'Failed to fetch timing gate session', 'Kunde inte hämta timing gate-session') },
       { status: 500 }
     )
   }
@@ -86,13 +94,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/timing-gates/[sessionId] - Delete session
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { sessionId } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Check ownership
@@ -102,17 +112,18 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Sessionen hittades inte') }, { status: 404 })
     }
 
     if (session.coachId !== user.id) {
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
-        select: { role: true }
+        select: { role: true, language: true }
       })
+      locale = resolveRequestLocale(request, dbUser?.language)
 
       if (!dbUser || dbUser.role !== 'ADMIN') {
-        return NextResponse.json({ error: 'You can only delete your own sessions' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'You can only delete your own sessions', 'Du kan bara radera dina egna sessioner') }, { status: 403 })
       }
     }
 
@@ -124,7 +135,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error('Error deleting timing gate session:', error)
     return NextResponse.json(
-      { error: 'Failed to delete timing gate session' },
+      { error: t(locale, 'Failed to delete timing gate session', 'Kunde inte radera timing gate-session') },
       { status: 500 }
     )
   }
