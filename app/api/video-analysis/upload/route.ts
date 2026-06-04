@@ -14,6 +14,7 @@ import { prisma } from '@/lib/prisma';
 import { createSignedUrl, createSignedUploadUrl } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
@@ -37,21 +38,15 @@ const ALLOWED_ANALYSIS_TYPES = [
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
 
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language?: string | null): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const rateLimited = await rateLimitJsonResponse('video:upload', user.id, {
       limit: 10,
       windowSeconds: 60,

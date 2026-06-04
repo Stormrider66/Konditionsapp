@@ -15,16 +15,11 @@ import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const updateAnalysisSchema = z.object({
   sourceContext: z.record(z.unknown()).optional(),
 })
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language?: string | null): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -34,10 +29,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:get', user.id, {
@@ -104,10 +99,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:update', user.id, {
@@ -179,10 +174,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:analysis:delete', user.id, {

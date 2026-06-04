@@ -15,8 +15,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type PoseDataSummary = {
   hasPoseData: boolean
@@ -27,10 +26,6 @@ type PoseDataSummary = {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function getUserLocale(language?: string | null): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -72,10 +67,10 @@ const createAnalysisSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const rateLimited = await rateLimitJsonResponse('video:analysis:create', user.id, {
       limit: 10,
       windowSeconds: 60,
@@ -184,10 +179,10 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const rateLimited = await rateLimitJsonResponse('video:analysis:list', user.id, {
       limit: 60,
       windowSeconds: 60,

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const quickCaptureSchema = z.object({
   clientId: z.string().min(1),
@@ -22,17 +23,16 @@ const quickCaptureSchema = z.object({
   intervalNumber: z.number().optional(),
   timestamp: z.string().datetime().optional(),
 });
-type AppLocale = 'en' | 'sv'
 const QUICK_CAPTURE_NOTE_MARKER = 'quick_capture'
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json();
     const data = quickCaptureSchema.parse(body);
@@ -99,13 +99,13 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
@@ -161,10 +161,6 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

@@ -20,6 +20,7 @@ import {
   type PoseFrame,
 } from '@/lib/video-analysis/skeletal-compression';
 import type { SquatJumpPowerCurvePoint, SquatJumpPowerEstimate } from '@/lib/video-analysis/squat-jump-power';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const landmarkSchema = z.object({
   x: z.number(),
@@ -70,12 +71,6 @@ const MAX_LANDMARKS_PAYLOAD_BYTES = 10 * 1024 * 1024 // 10MB
 const MAX_FRAMES = 10_000
 const MAX_LANDMARKS_PER_FRAME = 60
 
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language?: string | null): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -84,10 +79,10 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     const rateLimited = await rateLimitJsonResponse('video:landmarks:patch', user.id, {
@@ -300,10 +295,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     const analysis = await prisma.videoAnalysis.findFirst({
