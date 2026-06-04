@@ -3,12 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { getClientZones } from '@/lib/api/zones'
 import { canAccessWorkout } from '@/lib/auth-utils'
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language?: string | null): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -20,7 +15,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
-    const locale = getUserLocale(user.language)
+    const locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     const hasAccess = await canAccessWorkout(user.id, id)
@@ -78,7 +73,7 @@ export async function PUT(
 ) {
   try {
     const user = await requireAuth()
-    const locale = getUserLocale(user.language)
+    const locale = resolveRequestLocale(request, user.language)
     const { id } = await params
     const body = await request.json()
     
@@ -232,7 +227,7 @@ export async function DELETE(
 ) {
   try {
     const user = await requireAuth()
-    const locale = getUserLocale(user.language)
+    const locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     const hasAccess = await canAccessWorkout(user.id, id)

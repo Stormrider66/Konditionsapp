@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoachAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessWorkout } from '@/lib/auth-utils'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export async function POST(
   request: NextRequest,
@@ -11,18 +10,18 @@ export async function POST(
 ) {
   try {
     const user = await requireCoachAuth()
-    const locale = getUserLocale(user.language)
+    const locale = resolveRequestLocale(request, user.language)
     const { id } = await params
     const body = await request.json()
     const { newType } = body
 
     if (!newType) {
-      return NextResponse.json({ error: 'newType is required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'newType is required', 'newType krävs') }, { status: 400 })
     }
 
     const hasAccess = await canAccessWorkout(user.id, id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     // Transaction to change type and clear segments
@@ -78,10 +77,6 @@ function getDefaultWorkoutName(type: string, locale: AppLocale): string {
     },
   }
   return names[locale][type] || t(locale, 'New workout', 'Nytt träningspass')
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

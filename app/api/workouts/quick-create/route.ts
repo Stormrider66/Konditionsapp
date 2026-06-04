@@ -4,6 +4,7 @@ import { requireCoach, canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const quickCreateSchema = z.object({
   clientId: z.string().uuid(),
@@ -29,13 +30,11 @@ const quickCreateSchema = z.object({
   notes: z.string().max(1000).optional(),
 })
 
-type AppLocale = 'en' | 'sv'
-
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validatedData = quickCreateSchema.parse(body)
@@ -200,10 +199,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

@@ -3,12 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { addDays } from 'date-fns'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language?: string | null): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -17,7 +12,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth()
-    const locale = getUserLocale(user.language)
+    const locale = resolveRequestLocale(request, user.language)
     const body = await request.json()
     
     const { 
@@ -203,4 +198,3 @@ export async function POST(request: NextRequest) {
     return handleApiError(error)
   }
 }
-
