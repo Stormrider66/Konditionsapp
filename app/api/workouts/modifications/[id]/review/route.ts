@@ -11,11 +11,13 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
     // Authenticate user
@@ -25,7 +27,7 @@ export async function PUT(
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Get user from database
@@ -34,13 +36,14 @@ export async function PUT(
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     // Only coaches can review workout modifications
     if (dbUser.role !== 'COACH') {
       return NextResponse.json(
-        { error: 'Access denied. Coach role required.' },
+        { error: t(locale, 'Access denied. Coach role required.', 'Åtkomst nekad. Coachroll krävs.') },
         { status: 403 }
       )
     }
@@ -70,12 +73,12 @@ export async function PUT(
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, workout.day.week.program.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Parse request body for review notes
@@ -99,20 +102,28 @@ export async function PUT(
       success: true,
       workout: updatedWorkout,
       message: approved
-        ? 'Workout modification approved'
-        : 'Workout modification flagged for adjustment',
+        ? t(locale, 'Workout modification approved', 'Träningspassjusteringen har godkänts')
+        : t(locale, 'Workout modification flagged for adjustment', 'Träningspassjusteringen har markerats för justering'),
     })
   } catch (error) {
     logger.error('Error reviewing workout modification', {}, error)
     return NextResponse.json(
       {
-        error: 'Failed to review workout modification',
+        error: t(
+          locale,
+          'Failed to review workout modification',
+          'Misslyckades med att granska träningspassjusteringen'
+        ),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : (error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')),
       },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
