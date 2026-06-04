@@ -7,10 +7,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(req)
+
   try {
-    const { clientId } = await requireAthleteOrCoachInAthleteMode()
+    const { clientId, user } = await requireAthleteOrCoachInAthleteMode()
+    locale = resolveRequestLocale(req, user.language)
 
     const { searchParams } = new URL(req.url)
     const limit = parseInt(searchParams.get('limit') || '20')
@@ -103,9 +111,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ results })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     console.error('Error fetching interval results:', error)
-    return NextResponse.json({ error: 'Failed to fetch results' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to fetch results', 'Kunde inte hämta resultat') },
+      { status: 500 }
+    )
   }
 }

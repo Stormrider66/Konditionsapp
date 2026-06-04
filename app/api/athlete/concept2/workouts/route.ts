@@ -8,13 +8,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const resolved = await resolveAthleteClientId();
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, resolved.user.language);
     const { clientId } = resolved;
 
     const { searchParams } = new URL(request.url);
@@ -48,7 +56,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching Concept2 workouts:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch workouts' },
+      { error: t(locale, 'Failed to fetch workouts', 'Kunde inte hämta pass') },
       { status: 500 }
     );
   }

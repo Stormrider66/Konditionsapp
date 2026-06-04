@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Map Concept2 equipment type to ErgometerType
 function mapEquipmentType(type: string): ErgometerType {
@@ -28,7 +29,7 @@ function mapEquipmentType(type: string): ErgometerType {
 function determineProtocol(
   distance: number,
   timeTenths: number,
-  workoutType?: string
+  _workoutType?: string
 ): ErgometerTestProtocol {
   const timeSeconds = timeTenths / 10;
 
@@ -74,12 +75,19 @@ function paceToWatts(paceSeconds: number): number {
   return Math.round(2.8 / Math.pow(pacePerMeter, 3));
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const resolved = await resolveAthleteClientId();
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, resolved.user.language);
     const { clientId } = resolved;
 
     const body = await request.json();
@@ -87,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     if (!concept2ResultId) {
       return NextResponse.json(
-        { error: 'Missing concept2ResultId' },
+        { error: t(locale, 'Missing concept2ResultId', 'concept2ResultId saknas') },
         { status: 400 }
       );
     }
@@ -99,14 +107,14 @@ export async function POST(request: NextRequest) {
 
     if (!concept2Result) {
       return NextResponse.json(
-        { error: 'Concept2 result not found' },
+        { error: t(locale, 'Concept2 result not found', 'Concept2-resultatet hittades inte') },
         { status: 404 }
       );
     }
 
     // Verify the result belongs to this client
     if (concept2Result.clientId !== clientId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Map to ErgometerFieldTest data
@@ -175,12 +183,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       test: fieldTest,
       protocol: protocolLabels[protocol] || protocol,
-      message: 'Workout imported successfully',
+      message: t(locale, 'Workout imported successfully', 'Passet importerades'),
     });
   } catch (error) {
     logError('Error importing Concept2 workout:', error);
     return NextResponse.json(
-      { error: 'Failed to import workout' },
+      { error: t(locale, 'Failed to import workout', 'Kunde inte importera passet') },
       { status: 500 }
     );
   }

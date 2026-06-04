@@ -8,13 +8,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-export async function GET() {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, user.language)
 
     const notifications = await prisma.broadcastNotification.findMany({
       where: { userId: user.id },
@@ -36,16 +48,22 @@ export async function GET() {
 
     return NextResponse.json({ notifications, unreadCount })
   } catch {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to fetch notifications', 'Kunde inte hämta notiser') },
+      { status: 500 }
+    )
   }
 }
 
 export async function PATCH(req: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(req)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(req, user.language)
 
     const body = await req.json()
 
@@ -63,6 +81,9 @@ export async function PATCH(req: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch {
-    return NextResponse.json({ error: 'Failed' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to update notifications', 'Kunde inte uppdatera notiser') },
+      { status: 500 }
+    )
   }
 }
