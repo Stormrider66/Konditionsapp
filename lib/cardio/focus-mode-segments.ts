@@ -261,8 +261,15 @@ export function buildCardioFocusModeSegments({
           const segmentType = normalizeSegmentType(step.type, 'INTERVAL' as CardioSegmentType)
           const rawType = (step.type?.toUpperCase() || segmentType)
           const calLabel = step.calories ? `${step.calories} cal` : ''
+          const targetUnit = step.targetType === 'power'
+            ? 'W'
+            : step.targetType === 'cadence'
+              ? 'rpm'
+              : step.targetType === 'calories'
+                ? 'cal'
+                : ''
           const targetLabel = step.targetType && step.targetType !== 'none' && step.targetValue
-            ? `${step.targetValue} ${step.targetType === 'power' ? 'W' : step.targetType === 'cadence' ? 'rpm' : ''}`
+            ? `${step.targetValue} ${targetUnit}`.trim()
             : ''
           const noteParts = [
             t(locale, `Round ${rep + 1}/${repeats}`, `Runda ${rep + 1}/${repeats}`),

@@ -88,7 +88,7 @@ interface CardioChildStep {
   pace?: string
   heartRate?: string
   notes?: string     // equipment description
-  targetType?: string // 'power' | 'pace' | 'cadence' | 'hr' | 'none'
+  targetType?: string // 'power' | 'pace' | 'cadence' | 'hr' | 'calories' | 'none'
   targetValue?: string // "250", "62", "2:05"
 }
 
@@ -273,6 +273,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             const descParts: string[] = [];
             if (step.notes) descParts.push(step.notes);
             if (step.calories) descParts.push(`${step.calories} cal`);
+            if (step.targetType === 'calories' && step.targetValue) descParts.push(`${step.targetValue} cal`);
             const description = descParts.length > 0 ? descParts.join(' — ') : undefined;
 
             return {
@@ -580,6 +581,7 @@ function resolveChildTargetType(
   step: CardioChildStep
 ): 'hr' | 'pace' | 'power' | 'cadence' | 'none' | undefined {
   if (step.targetType && step.targetType !== 'none') {
+    if (step.targetType === 'calories') return undefined
     return step.targetType as 'hr' | 'pace' | 'power' | 'cadence'
   }
   // Fall back to legacy fields
@@ -590,6 +592,7 @@ function resolveChildTargetType(
 
 function resolveChildTargetLow(step: CardioChildStep): number | undefined {
   if (step.targetType && step.targetType !== 'none' && step.targetValue) {
+    if (step.targetType === 'calories') return undefined
     if (step.targetType === 'pace') {
       return parsePaceToMetersPerSecond(step.targetValue)
     }
@@ -603,6 +606,7 @@ function resolveChildTargetLow(step: CardioChildStep): number | undefined {
 
 function resolveChildTargetHigh(step: CardioChildStep): number | undefined {
   if (step.targetType && step.targetType !== 'none' && step.targetValue) {
+    if (step.targetType === 'calories') return undefined
     if (step.targetType === 'pace') {
       return parsePaceToMetersPerSecond(step.targetValue)
     }

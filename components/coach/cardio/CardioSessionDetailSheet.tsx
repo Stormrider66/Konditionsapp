@@ -240,6 +240,7 @@ function formatChildTarget(targetType?: string, targetValue?: string): string | 
     case 'cadence': return `${targetValue} rpm`;
     case 'pace': return `@ ${targetValue}`;
     case 'hr': return `${targetValue} bpm`;
+    case 'calories': return `${targetValue} cal`;
     default: return targetValue;
   }
 }

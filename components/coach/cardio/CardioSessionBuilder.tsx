@@ -133,8 +133,8 @@ type CardioChildStep = {
   heartRate?: string
   notes?: string
   equipment?: string
-  targetType?: 'power' | 'pace' | 'cadence' | 'hr' | 'none'
-  targetValue?: string // "250", "62", "2:05"
+  targetType?: 'power' | 'pace' | 'cadence' | 'hr' | 'calories' | 'none'
+  targetValue?: string // "250", "62", "2:05", "20"
   // Relative target (only meaningful when targetType === 'power'): when set,
   // the watt target is a % of a reference instead of the absolute targetValue.
   targetRelPercent?: number // e.g. 80
@@ -229,7 +229,7 @@ function metersToUiDistance(distance?: number): { distance?: number; distanceUni
 }
 
 function normalizeCardioTargetType(value?: string): CardioChildStep['targetType'] {
-  return value === 'power' || value === 'pace' || value === 'cadence' || value === 'hr'
+  return value === 'power' || value === 'pace' || value === 'cadence' || value === 'hr' || value === 'calories'
     ? value
     : 'none'
 }
@@ -2034,6 +2034,7 @@ function ChildStepRow({
                   <SelectItem value="cadence">RPM</SelectItem>
                   <SelectItem value="pace">{text(locale, 'Tempo', 'Pace')}</SelectItem>
                   <SelectItem value="hr">{text(locale, 'Puls', 'Heart rate')}</SelectItem>
+                  <SelectItem value="calories">{text(locale, 'Kalorier', 'Calories')}</SelectItem>
                 </SelectContent>
               </Select>
               {step.targetType === 'power' ? (
@@ -2076,7 +2077,15 @@ function ChildStepRow({
                     className="h-6 w-20 text-xs px-1"
                     value={step.targetValue || ''}
                     onChange={(e) => onUpdate(groupId, step.id, 'targetValue', e.target.value)}
-                    placeholder={step.targetType === 'cadence' ? '62' : step.targetType === 'pace' ? '2:05' : '145-155'}
+                    placeholder={
+                      step.targetType === 'cadence'
+                        ? '62'
+                        : step.targetType === 'pace'
+                          ? '2:05'
+                          : step.targetType === 'calories'
+                            ? '20'
+                            : '145-155'
+                    }
                   />
                 )
               )}
