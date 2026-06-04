@@ -23,7 +23,7 @@ function shouldSendEmail(value: unknown): boolean {
  * Only coaches can create athlete accounts
  */
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     // Require coach authentication
@@ -190,7 +190,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * Get athlete account for a client
  */
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const coach = await requireCoach()
