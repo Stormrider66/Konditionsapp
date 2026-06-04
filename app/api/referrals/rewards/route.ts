@@ -3,19 +3,26 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/referrals/rewards
  * Get all rewards for the current user
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -61,7 +68,7 @@ export async function GET() {
   } catch (error) {
     logger.error('Error fetching rewards', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch rewards' },
+      { success: false, error: t(locale, 'Failed to fetch rewards', 'Kunde inte hämta belöningar') },
       { status: 500 }
     )
   }
@@ -76,12 +83,14 @@ const claimSchema = z.object({
  * Claim a reward
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -91,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { success: false, error: validationResult.error.errors[0].message },
+        { success: false, error: t(locale, 'Invalid reward ID', 'Ogiltigt belönings-ID') },
         { status: 400 }
       )
     }
@@ -108,7 +117,7 @@ export async function POST(request: NextRequest) {
 
     if (!reward) {
       return NextResponse.json(
-        { success: false, error: 'Reward not found' },
+        { success: false, error: t(locale, 'Reward not found', 'Belöningen hittades inte') },
         { status: 404 }
       )
     }
@@ -116,7 +125,7 @@ export async function POST(request: NextRequest) {
     // Verify ownership
     if (reward.userId !== user.id) {
       return NextResponse.json(
-        { success: false, error: 'This reward does not belong to you' },
+        { success: false, error: t(locale, 'This reward does not belong to you', 'Den här belöningen tillhör inte dig') },
         { status: 403 }
       )
     }
@@ -124,7 +133,7 @@ export async function POST(request: NextRequest) {
     // Check if already claimed
     if (reward.applied) {
       return NextResponse.json(
-        { success: false, error: 'This reward has already been claimed' },
+        { success: false, error: t(locale, 'This reward has already been claimed', 'Den här belöningen har redan lösts in') },
         { status: 400 }
       )
     }
@@ -132,13 +141,13 @@ export async function POST(request: NextRequest) {
     // Check if expired
     if (reward.expiresAt && new Date(reward.expiresAt) <= new Date()) {
       return NextResponse.json(
-        { success: false, error: 'This reward has expired' },
+        { success: false, error: t(locale, 'This reward has expired', 'Den här belöningen har gått ut') },
         { status: 400 }
       )
     }
 
     // Apply the reward based on type
-    let appliedDetails: any = {}
+    let appliedDetails: Record<string, unknown> = {}
 
     switch (reward.rewardType) {
       case 'FREE_MONTH':
@@ -165,7 +174,7 @@ export async function POST(request: NextRequest) {
         } else {
           // Store for later application when they subscribe
           appliedDetails = {
-            note: 'Will be applied when subscription is activated',
+            note: t(locale, 'Will be applied when subscription is activated', 'Tillämpas när prenumerationen aktiveras'),
           }
         }
         break
@@ -219,7 +228,7 @@ export async function POST(request: NextRequest) {
         // Create Stripe coupon - would integrate with Stripe here
         appliedDetails = {
           discountPercent: reward.value,
-          note: 'Discount will be applied to next billing',
+          note: t(locale, 'Discount will be applied to next billing', 'Rabatten tillämpas vid nästa debitering'),
         }
         break
     }
@@ -247,12 +256,12 @@ export async function POST(request: NextRequest) {
         reward: updatedReward,
         appliedDetails,
       },
-      message: `Reward claimed successfully!`,
+      message: t(locale, 'Reward claimed successfully!', 'Belöningen löstes in!'),
     })
   } catch (error) {
     logger.error('Error claiming reward', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to claim reward' },
+      { success: false, error: t(locale, 'Failed to claim reward', 'Kunde inte lösa in belöningen') },
       { status: 500 }
     )
   }
