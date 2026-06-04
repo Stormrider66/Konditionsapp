@@ -247,6 +247,46 @@ model CalendarEventChange {
   @@index([changedById])
 }
 
+/// Token-based, athlete-scoped read access for external performance staff.
+/// This is deliberately separate from BusinessMember so club staff can review
+/// one player without receiving broader tenant access.
+model AthleteExternalAccess {
+  id             String   @id @default(uuid())
+  tokenHash      String   @unique
+  athleteClientId String
+  businessId     String?
+  createdByUserId String
+
+  viewerName      String?
+  viewerEmail     String?
+  organizationName String?
+  organizationType String?
+  roleLabel       String?
+  accessLevel     String   @default("CALENDAR_WORKOUTS_READ")
+  scopes          String[] @default(["calendar", "workouts"])
+  note            String?  @db.Text
+
+  expiresAt    DateTime?
+  revokedAt    DateTime?
+  lastViewedAt DateTime?
+  lastViewedIp String?
+  viewCount    Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  athlete   Client    @relation("AthleteExternalAccess", fields: [athleteClientId], references: [id], onDelete: Cascade)
+  business  Business? @relation("BusinessExternalAthleteAccess", fields: [businessId], references: [id], onDelete: SetNull)
+  createdBy User      @relation("UserCreatedExternalAthleteAccess", fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([athleteClientId])
+  @@index([businessId])
+  @@index([createdByUserId])
+  @@index([viewerEmail])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
 /// External calendar connections (Google, Outlook, Apple iCal, Bokadirekt, Zoezi)
 model ExternalCalendarConnection {
   id       String  @id @default(uuid())

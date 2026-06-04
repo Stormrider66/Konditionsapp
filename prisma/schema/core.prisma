@@ -315,6 +315,7 @@ model User {
 
   // External Calendar Connections (Bokadirekt, Zoezi, etc.)
   externalCalendarConnections ExternalCalendarConnection[] @relation("UserCalendarConnections")
+  createdExternalAthleteAccess AthleteExternalAccess[] @relation("UserCreatedExternalAthleteAccess")
 
   // Security Audit Logs
   auditLogs AuditLog[]
@@ -583,6 +584,7 @@ model Client {
   // Calendar System relations
   calendarEvents       CalendarEvent[]
   calendarEventChanges CalendarEventChange[]
+  externalAccessGrants AthleteExternalAccess[] @relation("AthleteExternalAccess")
 
   // Ergometer Field Testing System relations
   ergometerFieldTests         ErgometerFieldTest[]         @relation("ClientErgometerTests")
@@ -789,6 +791,7 @@ model Business {
   locations            Location[]
   athleteSubscriptions AthleteSubscription[]
   invitations          Invitation[]
+  externalAthleteAccessGrants AthleteExternalAccess[] @relation("BusinessExternalAthleteAccess")
 
   // Admin System relations
   enterpriseContract EnterpriseContract?

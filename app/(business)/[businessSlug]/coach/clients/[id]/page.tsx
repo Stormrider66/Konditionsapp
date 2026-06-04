@@ -31,6 +31,7 @@ import { ClientLoadSummary } from '@/components/coach/clients/ClientLoadSummary'
 import { ClientFuelingSummary } from '@/components/coach/clients/ClientFuelingSummary'
 import { RecentTestsCard } from '@/components/coach/clients/RecentTestsCard'
 import { CreateAthletePlanDialog } from '@/components/coach/clients/CreateAthletePlanDialog'
+import { ExternalAthleteAccessCard } from '@/components/coach/clients/ExternalAthleteAccessCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ReadinessDashboard } from '@/components/athlete/ReadinessDashboard'
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
@@ -933,59 +934,62 @@ export default function BusinessClientDetailPage() {
         )}
       </div>
 
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-        <div className="flex flex-col gap-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('profile.portalTitle')}</h2>
-            <p className="text-sm text-muted-foreground mt-1">{t('profile.portalDescription')}</p>
-          </div>
-
-          {client.athleteAccount ? (
-            <>
-              <AthletePortalStatusBadge
-                athleteAccount={client.athleteAccount}
-                labels={portalStatusLabels}
-              />
-              <div className="space-y-3 text-sm">
-                <ProfileField label={t('profile.accountCreated')} value={formatProfileDate(client.athleteAccount.user?.createdAt)} compact />
-                <ProfileField label={t('profile.lastSignIn')} value={formatProfileDate(athletePortalStatus?.lastSignInAt)} compact />
-                <ProfileField label={t('profile.passwordUpdated')} value={formatProfileDate(athletePortalStatus?.passwordUpdatedAt)} compact />
-              </div>
-              <CreateAthleteAccountDialog
-                clientId={id}
-                clientName={client.name}
-                clientEmail={client.email}
-                clientPhone={client.phone}
-                hasExistingAccount
-                onAccountCreated={fetchClient}
-                trigger={
-                  <Button variant="outline" size="sm" className="w-full">
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    {t('profile.sendInvite')}
-                  </Button>
-                }
-              />
-            </>
-          ) : (
-            <div className="rounded-lg border border-dashed border-gray-300 dark:border-white/10 p-4 text-sm text-muted-foreground">
-              <p className="mb-3">{t('profile.noPortalAccount')}</p>
-              <CreateAthleteAccountDialog
-                clientId={id}
-                clientName={client.name}
-                clientEmail={client.email}
-                clientPhone={client.phone}
-                hasExistingAccount={false}
-                onAccountCreated={fetchClient}
-                trigger={
-                  <Button size="sm" className="w-full">
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    {t('actions.createAthleteAccount')}
-                  </Button>
-                }
-              />
+      <div className="space-y-4">
+        <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
+          <div className="flex flex-col gap-4">
+            <div>
+              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('profile.portalTitle')}</h2>
+              <p className="text-sm text-muted-foreground mt-1">{t('profile.portalDescription')}</p>
             </div>
-          )}
+
+            {client.athleteAccount ? (
+              <>
+                <AthletePortalStatusBadge
+                  athleteAccount={client.athleteAccount}
+                  labels={portalStatusLabels}
+                />
+                <div className="space-y-3 text-sm">
+                  <ProfileField label={t('profile.accountCreated')} value={formatProfileDate(client.athleteAccount.user?.createdAt)} compact />
+                  <ProfileField label={t('profile.lastSignIn')} value={formatProfileDate(athletePortalStatus?.lastSignInAt)} compact />
+                  <ProfileField label={t('profile.passwordUpdated')} value={formatProfileDate(athletePortalStatus?.passwordUpdatedAt)} compact />
+                </div>
+                <CreateAthleteAccountDialog
+                  clientId={id}
+                  clientName={client.name}
+                  clientEmail={client.email}
+                  clientPhone={client.phone}
+                  hasExistingAccount
+                  onAccountCreated={fetchClient}
+                  trigger={
+                    <Button variant="outline" size="sm" className="w-full">
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      {t('profile.sendInvite')}
+                    </Button>
+                  }
+                />
+              </>
+            ) : (
+              <div className="rounded-lg border border-dashed border-gray-300 dark:border-white/10 p-4 text-sm text-muted-foreground">
+                <p className="mb-3">{t('profile.noPortalAccount')}</p>
+                <CreateAthleteAccountDialog
+                  clientId={id}
+                  clientName={client.name}
+                  clientEmail={client.email}
+                  clientPhone={client.phone}
+                  hasExistingAccount={false}
+                  onAccountCreated={fetchClient}
+                  trigger={
+                    <Button size="sm" className="w-full">
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      {t('actions.createAthleteAccount')}
+                    </Button>
+                  }
+                />
+              </div>
+            )}
+          </div>
         </div>
+        <ExternalAthleteAccessCard clientId={id} clientName={client.name} />
       </div>
     </div>
   )
