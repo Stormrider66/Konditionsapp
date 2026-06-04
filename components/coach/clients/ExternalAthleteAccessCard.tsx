@@ -197,7 +197,7 @@ export function ExternalAthleteAccessCard({
               {label(locale, 'External staff access', 'Extern personalåtkomst')}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {label(locale, 'Share this athlete’s calendar and workouts only.', 'Dela endast denna aktives kalender och pass.')}
+              {label(locale, 'Share this athlete’s calendar, workouts, and tests only.', 'Dela endast denna aktives kalender, pass och tester.')}
             </p>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white dark:bg-white dark:text-slate-950">
@@ -320,7 +320,7 @@ export function ExternalAthleteAccessCard({
                       {grant.organizationName || grant.viewerName || label(locale, 'External staff', 'Extern personal')}
                     </p>
                     <p className="mt-1 truncate text-muted-foreground">
-                      {grant.roleLabel || grant.viewerEmail || label(locale, 'Calendar + workouts', 'Kalender + pass')}
+                      {grant.roleLabel || grant.viewerEmail || label(locale, 'Calendar + workouts + tests', 'Kalender + pass + tester')}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {label(locale, 'Expires', 'Går ut')}: {formatDate(grant.expiresAt, locale)}

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  EXTERNAL_ATHLETE_ACCESS_DEFAULT_SCOPES,
   EXTERNAL_ATHLETE_ACCESS_TOKEN_PREFIX,
   buildExternalAthleteAccessUrl,
   createExternalAthleteAccessToken,
@@ -15,6 +16,10 @@ describe('external athlete access helpers', () => {
     expect(token.startsWith(EXTERNAL_ATHLETE_ACCESS_TOKEN_PREFIX)).toBe(true)
     expect(hashExternalAthleteAccessToken(token)).toMatch(/^[a-f0-9]{64}$/)
     expect(hashExternalAthleteAccessToken(token)).not.toContain(token)
+  })
+
+  it('includes tests in the default external player scope', () => {
+    expect(EXTERNAL_ATHLETE_ACCESS_DEFAULT_SCOPES).toEqual(['calendar', 'workouts', 'tests'])
   })
 
   it('builds share urls without leaking trailing slashes', () => {

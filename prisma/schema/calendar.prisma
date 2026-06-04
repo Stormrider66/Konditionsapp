@@ -263,7 +263,7 @@ model AthleteExternalAccess {
   organizationType String?
   roleLabel       String?
   accessLevel     String   @default("CALENDAR_WORKOUTS_READ")
-  scopes          String[] @default(["calendar", "workouts"])
+  scopes          String[] @default(["calendar", "workouts", "tests"])
   note            String?  @db.Text
 
   expiresAt    DateTime?

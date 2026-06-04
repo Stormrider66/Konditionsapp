@@ -5,7 +5,10 @@ import {
   Building2,
   CalendarDays,
   Clock,
+  ClipboardCheck,
   Dumbbell,
+  FlaskConical,
+  Gauge,
   LockKeyhole,
   MapPin,
   ShieldCheck,
@@ -23,6 +26,11 @@ import {
   type ExternalAthleteCalendarItem,
   type ExternalPortalLocale,
 } from '@/lib/external-athlete-calendar'
+import {
+  getExternalAthleteTestItems,
+  type ExternalAthleteTestItem,
+  type ExternalAthleteTestKind,
+} from '@/lib/external-athlete-tests'
 import {
   getExternalAthleteAccessStatus,
   resolveExternalAthleteAccess,
@@ -77,6 +85,22 @@ function kindClasses(kind: PrintableWorkoutKind | undefined) {
   if (kind === 'cardio') return 'border-red-200 bg-red-50 text-red-800'
   if (kind === 'hybrid') return 'border-orange-200 bg-orange-50 text-orange-800'
   if (kind === 'agility') return 'border-sky-200 bg-sky-50 text-sky-800'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
+}
+
+function testKindLabel(kind: ExternalAthleteTestKind, locale: ExternalPortalLocale) {
+  if (kind === 'lab') return portalText(locale, 'Lab', 'Labb')
+  if (kind === 'field') return portalText(locale, 'Field', 'Fält')
+  if (kind === 'ergometer') return 'Ergometer'
+  if (kind === 'hockey') return 'Hockey'
+  return portalText(locale, 'Custom', 'Anpassat')
+}
+
+function testKindClasses(kind: ExternalAthleteTestKind) {
+  if (kind === 'lab') return 'border-indigo-200 bg-indigo-50 text-indigo-800'
+  if (kind === 'field') return 'border-emerald-200 bg-emerald-50 text-emerald-800'
+  if (kind === 'ergometer') return 'border-red-200 bg-red-50 text-red-800'
+  if (kind === 'hockey') return 'border-sky-200 bg-sky-50 text-sky-800'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 
@@ -205,6 +229,78 @@ function CalendarItemCard({
   )
 }
 
+function TestItemCard({
+  item,
+  locale,
+}: {
+  item: ExternalAthleteTestItem
+  locale: ExternalPortalLocale
+}) {
+  return (
+    <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`inline-flex items-center gap-2 rounded-md border px-2.5 py-1 text-sm font-medium ${testKindClasses(item.kind)}`}>
+              {item.kind === 'ergometer' ? <Gauge className="h-4 w-4" aria-hidden="true" /> : <FlaskConical className="h-4 w-4" aria-hidden="true" />}
+              {testKindLabel(item.kind, locale)}
+            </span>
+            {item.status ? (
+              <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1 text-sm text-slate-700">
+                {item.status}
+              </span>
+            ) : null}
+          </div>
+          <h3 className="mt-3 text-xl font-semibold text-slate-950">{item.title}</h3>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-600">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-4 w-4" aria-hidden="true" />
+              {formatExternalPortalDateLabel(item.date, locale)}
+            </span>
+            {item.subtitle ? (
+              <span className="inline-flex items-center gap-1.5">
+                <ClipboardCheck className="h-4 w-4" aria-hidden="true" />
+                {item.subtitle}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {item.summary.length ? (
+        <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {item.summary.map((metric) => (
+            <div key={`${metric.label}-${metric.value}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+              <p className="text-xs font-medium uppercase text-slate-500">{metric.label}</p>
+              <p className="mt-1 text-sm font-semibold text-slate-950">{metric.value}</p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {item.sections.length ? (
+        <div className="mt-5 space-y-4">
+          {item.sections.map((section) => (
+            <section key={section.title} className="border-t border-slate-200 pt-4">
+              <h4 className="text-sm font-semibold uppercase text-slate-950">{section.title}</h4>
+              <dl className="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                {section.metrics.map((metric) => (
+                  <div key={`${section.title}-${metric.label}-${metric.value}`} className="flex justify-between gap-3 border-t border-slate-100 py-2 text-sm">
+                    <dt className="text-slate-600">{metric.label}</dt>
+                    <dd className="text-right font-medium text-slate-950">{metric.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          ))}
+        </div>
+      ) : null}
+
+      {item.notes ? <p className="mt-4 border-t border-slate-100 pt-3 text-sm leading-6 text-slate-600">{item.notes}</p> : null}
+    </article>
+  )
+}
+
 function AccessUnavailable({
   status,
   locale,
@@ -277,13 +373,17 @@ export default async function ExternalAthletePage({
   const requestedStart = parseExternalPortalDate(firstParam(rawSearchParams.from), addUtcDays(today, -7))
   const requestedEnd = parseExternalPortalDate(firstParam(rawSearchParams.to), addUtcDays(today, 42))
   const { startDate, endDate } = clampExternalPortalRange(requestedStart, requestedEnd)
-  const items = await getExternalAthleteCalendarItems({
-    athleteClientId: access.athleteClientId,
-    athleteName: access.athlete.name,
-    startDate,
-    endDate,
-    locale,
-  })
+  const canViewTests = access.scopes.includes('tests')
+  const [items, testItems] = await Promise.all([
+    getExternalAthleteCalendarItems({
+      athleteClientId: access.athleteClientId,
+      athleteName: access.athlete.name,
+      startDate,
+      endDate,
+      locale,
+    }),
+    canViewTests ? getExternalAthleteTestItems({ athleteClientId: access.athleteClientId, locale }) : Promise.resolve([]),
+  ])
   const groupedItems = groupByDate(items)
   const business = access.business ?? access.athlete.business
   const primaryColor = safeHexColor(business?.primaryColor)
@@ -301,6 +401,9 @@ export default async function ExternalAthletePage({
   const langParam = `&lang=${locale}`
   const workoutCount = items.filter((item) => item.kind === 'workout').length
   const eventCount = items.length - workoutCount
+  const accessScopeLabel = canViewTests
+    ? portalText(locale, 'Calendar + workouts + tests', 'Kalender + pass + tester')
+    : portalText(locale, 'Calendar + workouts', 'Kalender + pass')
 
   return (
     <main
@@ -354,7 +457,7 @@ export default async function ExternalAthletePage({
               <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
                 <span className="flex items-center gap-2 font-medium text-slate-950">
                   <LockKeyhole className="h-4 w-4" aria-hidden="true" />
-                  {portalText(locale, 'Calendar + workouts', 'Kalender + pass')}
+                  {accessScopeLabel}
                 </span>
                 <span className="mt-1 block">
                   {access.expiresAt
@@ -379,8 +482,9 @@ export default async function ExternalAthletePage({
             <p className="text-sm font-medium text-slate-500">
               {formatExternalPortalDateLabel(startDate, locale)} - {formatExternalPortalDateLabel(endDate, locale)}
             </p>
-            <p className="mt-1 text-lg font-semibold text-slate-950">
+              <p className="mt-1 text-lg font-semibold text-slate-950">
               {workoutCount} {portalText(locale, 'workouts', 'pass')} · {eventCount} {portalText(locale, 'calendar events', 'kalenderhändelser')}
+              {canViewTests ? ` · ${testItems.length} ${portalText(locale, 'tests', 'tester')}` : ''}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -423,6 +527,39 @@ export default async function ExternalAthletePage({
             </h2>
           </section>
         )}
+
+        {canViewTests ? (
+          <section className="mt-10">
+            <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-medium uppercase text-slate-500">
+                  {portalText(locale, 'Testing', 'Tester')}
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-950">
+                  {portalText(locale, 'Performance test history', 'Testhistorik')}
+                </h2>
+              </div>
+              <p className="text-sm text-slate-500">
+                {testItems.length} {portalText(locale, 'shared test entries', 'delade testposter')}
+              </p>
+            </div>
+
+            {testItems.length ? (
+              <div className="space-y-4">
+                {testItems.map((item) => (
+                  <TestItemCard key={item.id} item={item} locale={locale} />
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
+                <FlaskConical className="mx-auto h-10 w-10 text-slate-400" aria-hidden="true" />
+                <h3 className="mt-4 text-lg font-semibold text-slate-950">
+                  {portalText(locale, 'No shared tests yet', 'Inga delade tester ännu')}
+                </h3>
+              </div>
+            )}
+          </section>
+        ) : null}
       </div>
     </main>
   )

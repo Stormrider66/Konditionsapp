@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'crypto'
 
 import { prisma } from '@/lib/prisma'
 
-export const EXTERNAL_ATHLETE_ACCESS_DEFAULT_SCOPES = ['calendar', 'workouts'] as const
+export const EXTERNAL_ATHLETE_ACCESS_DEFAULT_SCOPES = ['calendar', 'workouts', 'tests'] as const
 export const EXTERNAL_ATHLETE_ACCESS_TOKEN_PREFIX = 'eax_'
 
 export type ExternalAthleteAccessStatus = 'active' | 'expired' | 'revoked'

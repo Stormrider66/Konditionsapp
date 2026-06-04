@@ -39,7 +39,7 @@ const createExternalAccessSchema = z.object({
     (value) => (typeof value === 'string' && value.trim() === '' ? undefined : value),
     z.string().datetime().optional().nullable()
   ),
-  scopes: z.array(z.enum(['calendar', 'workouts'])).min(1).optional(),
+  scopes: z.array(z.enum(['calendar', 'workouts', 'tests'])).min(1).optional(),
 })
 
 function defaultExpiryDate() {

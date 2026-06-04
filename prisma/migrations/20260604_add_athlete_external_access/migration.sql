@@ -11,7 +11,7 @@ CREATE TABLE "AthleteExternalAccess" (
   "organizationType" TEXT,
   "roleLabel" TEXT,
   "accessLevel" TEXT NOT NULL DEFAULT 'CALENDAR_WORKOUTS_READ',
-  "scopes" TEXT[] NOT NULL DEFAULT ARRAY['calendar', 'workouts']::TEXT[],
+  "scopes" TEXT[] NOT NULL DEFAULT ARRAY['calendar', 'workouts', 'tests']::TEXT[],
   "note" TEXT,
   "expiresAt" TIMESTAMP(3),
   "revokedAt" TIMESTAMP(3),
