@@ -16,14 +16,7 @@ import {
 } from '@/lib/training-engine/integration/injury-management';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
-
-type AppLocale = 'en' | 'sv';
-
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv';
-  const header = request.headers.get('accept-language')?.toLowerCase() ?? '';
-  return header.startsWith('sv') || header.includes('sv-') ? 'sv' : 'en';
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en;
@@ -90,7 +83,7 @@ type InjuryAssessmentRequest = z.infer<typeof requestSchema>;
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
-    const locale = getRequestLocale(request, user.language);
+    const locale = resolveRequestLocale(request, user.language);
 
     const validation = await validateRequest(request, requestSchema);
     if (!validation.success) return validation.response;
@@ -323,7 +316,7 @@ function deriveFunctionalImpact(painLevel: number): 'NONE' | 'MILD' | 'MODERATE'
   return 'NONE';
 }
 
-function buildAssessmentNotes(limitations?: string[], treatments?: string[], locale: AppLocale = 'en') {
+function buildAssessmentNotes(limitations: string[] | undefined, treatments: string[] | undefined, locale: AppLocale) {
   const notes: string[] = [];
   if (limitations?.length) {
     notes.push(`${t(locale, 'Functional limitations', 'Funktionsbegränsningar')}: ${limitations.join(', ')}`);

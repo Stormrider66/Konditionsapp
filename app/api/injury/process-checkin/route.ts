@@ -29,6 +29,7 @@ import {
   formatPatternNotification,
 } from '@/lib/injury-detection/pattern-detector'
 import { resolveEmailBranding } from '@/lib/email/branding'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -69,10 +70,8 @@ interface TriggerDetection {
   injuryType?: InjuryDetection['injuryType']
 }
 
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
+function getSavedLocale(language: string | null | undefined): AppLocale {
+  return language && ['en', 'sv'].includes(language) ? (language as AppLocale) : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -85,12 +84,13 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * Process daily check-in and trigger injury cascade if needed
  */
 export async function POST(request: NextRequest) {
+  let requestLocale: AppLocale = resolveRequestLocale(request)
+
   try {
     const internalJobSecret = request.headers.get('x-internal-job-secret')
     const isInternalJob = !!process.env.CRON_SECRET && internalJobSecret === process.env.CRON_SECRET
 
     let dbUserId: string | null = null
-    let requestLocale: AppLocale = 'en'
     if (!isInternalJob) {
       const supabase = await createClient()
       const {
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: t(requestLocale, 'Unauthorized', 'Obehörig') }, { status: 401 })
       }
 
       const dbUser = await prisma.user.findUnique({
@@ -106,11 +106,11 @@ export async function POST(request: NextRequest) {
       })
 
       if (!dbUser) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        return NextResponse.json({ error: t(requestLocale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
       }
 
       dbUserId = dbUser.id
-      requestLocale = getUserLocale(dbUser.language)
+      requestLocale = resolveRequestLocale(request, dbUser.language)
     }
 
     // Parse request body
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!clientId || !date) {
       return NextResponse.json(
-        { error: 'Missing required fields: clientId, date' },
+        { error: t(requestLocale, 'Missing required fields: clientId, date', 'Obligatoriska fält saknas: clientId, date') },
         { status: 400 }
       )
     }
@@ -138,13 +138,13 @@ export async function POST(request: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(requestLocale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     if (dbUserId) {
       const hasAccess = await canAccessClient(dbUserId, clientId)
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+        return NextResponse.json({ error: t(requestLocale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
       }
     }
 
@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
       where: { id: client.userId },
       select: { language: true },
     })
-    const coachLocale = getUserLocale(coachUser?.language)
+    const coachLocale = getSavedLocale(coachUser?.language)
     if (isInternalJob) {
       requestLocale = coachLocale
     }
@@ -204,7 +204,11 @@ export async function POST(request: NextRequest) {
         success: true,
         triggered: false,
         patternEscalation: true,
-        message: 'Recurring pain pattern detected. Coach notified for review.',
+        message: t(
+          requestLocale,
+          'Recurring pain pattern detected. Coach notified for review.',
+          'Återkommande smärtmönster upptäckt. Coachen har meddelats för granskning.'
+        ),
         detection: triggerDetection,
         patternAnalysis: {
           patternDetected: patternResult.patternDetected,
@@ -219,7 +223,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         triggered: false,
-        message: 'No injury triggers detected. Check-in processed normally.',
+        message: t(
+          requestLocale,
+          'No injury triggers detected. Check-in processed normally.',
+          'Inga skadetriggers upptäcktes. Incheckningen behandlades normalt.'
+        ),
         detection: triggerDetection,
         patternAnalysis: patternResult.patternDetected
           ? {
@@ -273,7 +281,10 @@ export async function POST(request: NextRequest) {
             ...triggerDetection,
             severity: 'LOW',
             recommendedAction: 'MONITOR',
-            reasons: [...triggerDetection.reasons, 'Chronic illness reported (no rest required)'],
+            reasons: [
+              ...triggerDetection.reasons,
+              t(requestLocale, 'Chronic illness reported (no rest required)', 'Kronisk sjukdom rapporterad (ingen vila krävs)'),
+            ],
           },
           injuryResponse: {
             immediateAction: 'MONITOR',
@@ -295,7 +306,11 @@ export async function POST(request: NextRequest) {
               t(requestLocale, 'Report if symptoms worsen', 'Rapportera om symtomen förvärras'),
               t(requestLocale, 'Your coach has been informed', 'Din coach har informerats'),
             ],
-            programAdjustment: 'No automatic adjustment. Chronic condition logged for coach awareness.',
+            programAdjustment: t(
+              requestLocale,
+              'No automatic adjustment. Chronic condition logged for coach awareness.',
+              'Ingen automatisk justering. Kroniskt tillstånd loggat för coachens kännedom.'
+            ),
           },
           isIllness: true,
         })
@@ -314,7 +329,14 @@ export async function POST(request: NextRequest) {
           ...triggerDetection,
           severity: 'CRITICAL',
           recommendedAction: 'REST',
-          reasons: [...triggerDetection.reasons, `Illness reported: ${injuryDetails.illnessType || 'unspecified'}`],
+          reasons: [
+            ...triggerDetection.reasons,
+            t(
+              requestLocale,
+              `Illness reported: ${injuryDetails.illnessType || 'unspecified'}`,
+              `Sjukdom rapporterad: ${injuryDetails.illnessType || 'ospecificerad'}`
+            ),
+          ],
         },
         injuryResponse: {
           immediateAction: 'COMPLETE_REST',
@@ -341,7 +363,11 @@ export async function POST(request: NextRequest) {
             t(requestLocale, 'With fever: rest for at least 1 week after fever resolves', 'Vid feber: minst 1 vecka vila efter feberfri'),
             t(requestLocale, 'Consult a doctor for serious symptoms', 'Konsultera läkare vid allvarliga symtom'),
           ],
-          programAdjustment: 'All training suspended due to illness. Cross-training not recommended during illness recovery.',
+          programAdjustment: t(
+            requestLocale,
+            'All training suspended due to illness. Cross-training not recommended during illness recovery.',
+            'All träning pausas på grund av sjukdom. Crosstraining rekommenderas inte under återhämtning från sjukdom.'
+          ),
         },
         isIllness: true,
       })
@@ -432,7 +458,7 @@ export async function POST(request: NextRequest) {
     logger.error('Error processing injury check-in', {}, error)
     return NextResponse.json(
       {
-        error: 'Failed to process injury check-in',
+        error: t(requestLocale, 'Failed to process injury check-in', 'Kunde inte behandla skadeincheckning'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -685,7 +711,7 @@ async function getACWRRisk(clientId: string): Promise<{
 async function sendCoachNotification(
   coachUserId: string,
   notification: InjuryResponse['coachNotification'],
-  locale: AppLocale = 'en'
+  locale: AppLocale
 ) {
   try {
     await prisma.message.create({
