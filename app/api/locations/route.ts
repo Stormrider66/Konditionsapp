@@ -11,6 +11,11 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating a location
 const createLocationSchema = z.object({
@@ -24,8 +29,10 @@ const createLocationSchema = z.object({
 });
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const scope = getRequestedBusinessScope(request);
 
     // Get user's business membership
@@ -46,7 +53,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         locations: [],
         businessId: null,
-        message: 'No business membership found. Create or join a business first.',
+        message: t(
+          locale,
+          'No business membership found. Create or join a business first.',
+          'Inget verksamhetsmedlemskap hittades. Skapa eller gå med i en verksamhet först.'
+        ),
       });
     }
 
@@ -78,19 +89,21 @@ export async function GET(request: NextRequest) {
     logError('Get locations error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch locations' },
+      { error: t(locale, 'Failed to fetch locations', 'Kunde inte hämta platser') },
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const scope = getRequestedBusinessScope(request);
     const body = await request.json();
 
@@ -98,7 +111,7 @@ export async function POST(request: NextRequest) {
     const validationResult = createLocationSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -121,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     if (!businessMember) {
       return NextResponse.json(
-        { error: 'You must be part of a business to create locations' },
+        { error: t(locale, 'You must be part of a business to create locations', 'Du måste tillhöra en verksamhet för att skapa platser') },
         { status: 403 }
       );
     }
@@ -136,7 +149,7 @@ export async function POST(request: NextRequest) {
 
     if (existingLocation) {
       return NextResponse.json(
-        { error: 'A location with this name already exists' },
+        { error: t(locale, 'A location with this name already exists', 'Det finns redan en plats med det här namnet') },
         { status: 400 }
       );
     }
@@ -162,11 +175,11 @@ export async function POST(request: NextRequest) {
     logError('Create location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to create location' },
+      { error: t(locale, 'Failed to create location', 'Kunde inte skapa platsen') },
       { status: 500 }
     );
   }

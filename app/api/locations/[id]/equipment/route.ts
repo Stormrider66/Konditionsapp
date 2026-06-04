@@ -9,18 +9,24 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { id: locationId } = await params
@@ -36,12 +42,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!location) {
-      return NextResponse.json({ error: 'Location not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Location not found', 'Platsen hittades inte') }, { status: 404 })
     }
 
     // Verify access: user must belong to the same business
     if (!businessMember || location.businessId !== businessMember.businessId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Fetch equipment at this location
@@ -69,7 +75,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     console.error('Error fetching location equipment:', error)
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: t(locale, 'Internal server error', 'Internt serverfel') },
       { status: 500 }
     )
   }

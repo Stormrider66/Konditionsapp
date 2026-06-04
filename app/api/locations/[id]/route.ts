@@ -12,6 +12,11 @@ import { prisma } from '@/lib/prisma';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for updating a location
 const updateLocationSchema = z.object({
@@ -51,16 +56,24 @@ async function canAccessLocation(userId: string, locationId: string) {
   return { canAccess: false, location: null, reason: 'Access denied' };
 }
 
+function locationAccessError(locale: AppLocale, reason: string | null): string {
+  if (reason === 'Location not found') return t(locale, 'Location not found', 'Platsen hittades inte')
+  if (reason === 'Access denied') return t(locale, 'Access denied', 'Åtkomst nekad')
+  return t(locale, 'Access denied', 'Åtkomst nekad')
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
-    const { canAccess, location, reason } = await canAccessLocation(user.id, id);
+    const { canAccess, reason } = await canAccessLocation(user.id, id);
 
     if (!canAccess) {
       return NextResponse.json(
-        { error: reason },
+        { error: locationAccessError(locale, reason) },
         { status: reason === 'Location not found' ? 404 : 403 }
       );
     }
@@ -113,19 +126,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     logError('Get location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch location' },
+      { error: t(locale, 'Failed to fetch location', 'Kunde inte hämta platsen') },
       { status: 500 }
     );
   }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
     const body = await request.json();
 
@@ -133,7 +148,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (!canAccess) {
       return NextResponse.json(
-        { error: reason },
+        { error: locationAccessError(locale, reason) },
         { status: reason === 'Location not found' ? 404 : 403 }
       );
     }
@@ -142,7 +157,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const validationResult = updateLocationSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -161,7 +176,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
       if (duplicate) {
         return NextResponse.json(
-          { error: 'A location with this name already exists' },
+          { error: t(locale, 'A location with this name already exists', 'Det finns redan en plats med det här namnet') },
           { status: 400 }
         );
       }
@@ -190,26 +205,28 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     logError('Update location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to update location' },
+      { error: t(locale, 'Failed to update location', 'Kunde inte uppdatera platsen') },
       { status: 500 }
     );
   }
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     const { canAccess, reason } = await canAccessLocation(user.id, id);
 
     if (!canAccess) {
       return NextResponse.json(
-        { error: reason },
+        { error: locationAccessError(locale, reason) },
         { status: reason === 'Location not found' ? 404 : 403 }
       );
     }
@@ -226,11 +243,11 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     logError('Delete location error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete location' },
+      { error: t(locale, 'Failed to delete location', 'Kunde inte ta bort platsen') },
       { status: 500 }
     );
   }

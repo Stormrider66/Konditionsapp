@@ -9,14 +9,21 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     // Rate limit stats requests to prevent abuse
@@ -36,12 +43,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!location) {
-      return NextResponse.json({ error: 'Location not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Location not found', 'Platsen hittades inte') }, { status: 404 });
     }
 
     // Verify access
     if (!businessMember || location.businessId !== businessMember.businessId) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 });
     }
 
     // Get date ranges for statistics
@@ -194,10 +201,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }));
 
     // Format tester breakdown
-    const formattedTesterBreakdown = testerBreakdown.map((t) => ({
-      testerId: t.testerId,
-      testerName: t.testerId ? testerMap.get(t.testerId) || 'Unknown' : 'No tester',
-      testCount: t._count,
+    const formattedTesterBreakdown = testerBreakdown.map((tester) => ({
+      testerId: tester.testerId,
+      testerName: tester.testerId
+        ? testerMap.get(tester.testerId) || t(locale, 'Unknown', 'Okänd')
+        : t(locale, 'No tester', 'Ingen testledare'),
+      testCount: tester._count,
     }));
 
     // Calculate average tests per month
@@ -227,11 +236,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     logError('Get location stats error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch location statistics' },
+      { error: t(locale, 'Failed to fetch location statistics', 'Kunde inte hämta platsstatistik') },
       { status: 500 }
     );
   }
