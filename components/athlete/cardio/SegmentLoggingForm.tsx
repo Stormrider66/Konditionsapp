@@ -40,7 +40,7 @@ interface SegmentLoggingFormProps {
   isBenchmark?: boolean
   /** When set, the following rest runs as a live countdown that auto-submits. */
   restCountdownSeconds?: number
-  /** Auto-submit when the rest countdown reaches this (the get-ready pre-roll takes the rest). Default 0. */
+  /** Auto-submit when the rest countdown reaches this many seconds left. Default 0 (runs the full rest, then advances). */
   restHandoffAt?: number
   timerDuration?: number // Actual time from timer
   onSubmit: (data: {
@@ -142,8 +142,8 @@ export function SegmentLoggingForm({
     if (!restCountdownSeconds) return
     const id = setInterval(() => {
       setRestLeft((prev) => {
-        // Hand off to the get-ready pre-roll (or finish) at restHandoffAt, holding
-        // the last shown value so the pre-roll continues the count seamlessly.
+        // When the rest reaches restHandoffAt (default 0 = full rest), auto-submit
+        // the log so the next segment auto-starts without the athlete pressing.
         if (prev - 1 <= restHandoffAt) {
           clearInterval(id)
           if (!autoSubmittedRef.current) {

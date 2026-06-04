@@ -32,7 +32,6 @@ import {
   Clock,
   Headphones,
   HeadphoneOff,
-  Play,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -47,7 +46,7 @@ import {
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
-import { useTranslations, useLocale } from '@/i18n/client'
+import { useTranslations } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -118,10 +117,7 @@ const SEGMENT_COLORS: Record<SegmentType, string> = {
   PLYOMETRIC: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
 }
 
-type ViewState = 'prep' | 'timer' | 'logging' | 'complete'
-
-// Seconds of "get ready" pre-roll before an auto-starting work interval.
-const PREP_SECONDS = 10
+type ViewState = 'timer' | 'logging' | 'complete'
 
 function isWorkType(type?: string): boolean {
   return type === 'INTERVAL' || type === 'STEADY' || type === 'HILL'
@@ -140,11 +136,9 @@ export function CardioFocusModeWorkout({
   onSegmentComplete,
 }: CardioFocusModeWorkoutProps) {
   const t = useTranslations('components.cardioFocusModeWorkout')
-  const locale = useLocale()
   const [segments, setSegments] = useState<FocusModeSegment[]>(initialSegments)
   const [currentIndex, setCurrentIndex] = useState(initialSegmentIndex)
   const [viewState, setViewState] = useState<ViewState>('timer')
-  const [prepLeft, setPrepLeft] = useState(0)
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [sessionRPE, setSessionRPE] = useState(5)
@@ -226,38 +220,23 @@ export function CardioFocusModeWorkout({
   const currentTargetPower = resolvedPower.watts
   const currentTargetPowerPending = resolvedPower.pendingLabel
 
-  // The rest after this segment runs as one continuous countdown: the log form
-  // counts the full rest (e.g. 60→11), then hands the last PREP_SECONDS to the
-  // get-ready pre-roll (10→0). Total stays the rest length (a 60s rest stays 60s).
+  // After a work effort the "rest between rounds" runs as a single auto-advancing
+  // countdown on the log form: the athlete logs the finished effort while the rest
+  // ticks the full length down (e.g. 60→0), then it auto-submits and the next
+  // round's first interval auto-starts.
   const followingRestSeconds = segments[currentIndex + 1]?.type === 'RECOVERY'
     ? (segments[currentIndex + 1]?.plannedDuration ?? 0)
     : 0
-  const restPrepHandoff = isWorkType(segments[currentIndex + 2]?.type) && followingRestSeconds > PREP_SECONDS
   const restCountdownForForm = followingRestSeconds > 0 ? followingRestSeconds : undefined
-  const restHandoffForForm = restPrepHandoff ? PREP_SECONDS : 0
 
-  // "Get ready" pre-roll countdown before a work interval; at 0 it starts the timer.
-  useEffect(() => {
-    if (viewState !== 'prep') return
-    if (prepLeft <= 0) {
-      setViewState('timer')
-      return
-    }
-    const id = setTimeout(() => setPrepLeft((p) => p - 1), 1000)
-    return () => clearTimeout(id)
-  }, [viewState, prepLeft])
-
-  // Advance to a segment. Auto-starting work intervals get a get-ready pre-roll first.
+  // Advance to a segment and show its timer. Auto-started intervals begin running
+  // immediately — the get-ready heads-up is the "ten seconds left" cue on the
+  // previous segment's timer, not a separate break.
   const goToSegment = (index: number, autoRun: boolean) => {
     setAutoRunTimer(autoRun)
     setCurrentIndex(index)
     setTimerElapsed(0)
-    if (autoRun && isWorkType(segments[index]?.type)) {
-      setPrepLeft(PREP_SECONDS)
-      setViewState('prep')
-    } else {
-      setViewState('timer')
-    }
+    setViewState('timer')
   }
 
   // Announce segment on transition (basic voice — skip when live coach active)
@@ -285,39 +264,49 @@ export function CardioFocusModeWorkout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [completedCount, segments.length, liveCoachActive])
 
-  // Handle timer complete - show logging form
+  // Handle timer complete - auto-advance or show the logging form
   const handleTimerComplete = useCallback(() => {
     if (currentSegment?.plannedDuration) {
       setTimerElapsed(currentSegment.plannedDuration)
     }
 
-    // Rest/recovery: don't make the athlete fill a form on a short rest. Auto-log
-    // it complete and roll straight into the next interval, which auto-starts.
-    if (currentSegment?.type === 'RECOVERY') {
-      void onSegmentComplete(currentIndex, { completed: true, skipped: false }).catch(() => {})
+    const nextIdx = currentIndex + 1
+    const nextSeg = segments[nextIdx]
+
+    // Auto-log the finished segment and roll straight into the next one (no form).
+    const autoAdvance = (data: { completed: boolean; skipped: boolean; actualDuration?: number }) => {
+      void onSegmentComplete(currentIndex, data).catch(() => {})
       setSegments((prev) =>
-        prev.map((seg, idx) => (idx === currentIndex ? { ...seg, completed: true, skipped: false } : seg))
+        prev.map((seg, idx) => (idx === currentIndex ? { ...seg, ...data } : seg))
       )
-      if (currentIndex < segments.length - 1) {
-        const nextIdx = currentIndex + 1
+      if (nextIdx <= segments.length - 1) {
         setAutoRunTimer(true)
         setCurrentIndex(nextIdx)
         setTimerElapsed(0)
-        if (isWorkType(segments[nextIdx]?.type)) {
-          setPrepLeft(PREP_SECONDS)
-          setViewState('prep')
-        } else {
-          setViewState('timer')
-        }
+        setViewState('timer')
       } else {
         setShowCompleteDialog(true)
       }
+    }
+
+    // Rest/recovery: never make the athlete fill a form on a rest — auto-log and go.
+    if (currentSegment?.type === 'RECOVERY') {
+      autoAdvance({ completed: true, skipped: false })
       return
     }
 
-    // Announce what's next (basic voice only — live coach handles its own)
+    // Consecutive work efforts in a round flow back-to-back: the athlete moves
+    // straight to the next station with no time to type, so auto-log this effort
+    // and auto-start the next one immediately (no logging form, no break).
+    if (isWorkType(currentSegment?.type) && isWorkType(nextSeg?.type)) {
+      autoAdvance({ completed: true, skipped: false, actualDuration: currentSegment?.plannedDuration })
+      return
+    }
+
+    // Otherwise (entering a rest, a cooldown, or the end of the workout) show the
+    // logging form. When a rest follows, the form runs it as the auto-advancing
+    // "rest between rounds" countdown.
     if (!liveCoachActive) {
-      const nextSeg = segments[currentIndex + 1]
       voice.speak(buildSegmentCompleteCue(nextSeg), 'high')
     }
     setViewState('logging')
@@ -527,36 +516,7 @@ export function CardioFocusModeWorkout({
       {/* Main content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="min-h-full w-full flex flex-col items-center justify-center p-4">
-        {viewState === 'prep' ? (
-          <div className="text-center space-y-6 max-w-sm mx-auto w-full">
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
-              {locale === 'sv' ? 'Gör dig redo' : 'Get ready'}
-            </p>
-            <Badge className={cn('text-lg py-2 px-6 font-black uppercase tracking-wider', SEGMENT_COLORS[currentSegment.type])}>
-              {currentSegment.typeName}{currentSegment.isBenchmark ? ' · Prolog' : ''}
-            </Badge>
-            <p className="text-8xl font-black tabular-nums text-slate-900 dark:text-white">{prepLeft}</p>
-            <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-base font-bold text-slate-600 dark:text-slate-300">
-              {currentSegment.plannedDuration ? <span>{formatDuration(currentSegment.plannedDuration)}</span> : null}
-              {currentTargetPower != null ? (
-                <span className="text-amber-500">{currentTargetPower} W</span>
-              ) : currentTargetPowerPending ? (
-                <span>{currentTargetPowerPending}</span>
-              ) : currentSegment.isBenchmark ? (
-                <span className="text-amber-500">{locale === 'sv' ? 'Maximal insats' : 'Max effort'}</span>
-              ) : currentSegment.plannedZone ? (
-                <span>{locale === 'sv' ? 'Zon' : 'Zone'} {currentSegment.plannedZone}</span>
-              ) : null}
-            </div>
-            {currentSegment.notes ? (
-              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{currentSegment.notes}</p>
-            ) : null}
-            <Button size="lg" onClick={() => setViewState('timer')} className="w-full h-14 text-lg font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20">
-              <Play className="h-5 w-5 mr-2" />
-              {locale === 'sv' ? 'Starta nu' : 'Start now'}
-            </Button>
-          </div>
-        ) : viewState === 'timer' && currentSegment.plannedDuration ? (
+        {viewState === 'timer' && currentSegment.plannedDuration ? (
           <IntervalTimer
             key={currentSegment.id}
             duration={currentSegment.plannedDuration}
@@ -621,7 +581,6 @@ export function CardioFocusModeWorkout({
             }
             isBenchmark={currentSegment.isBenchmark}
             restCountdownSeconds={restCountdownForForm}
-            restHandoffAt={restHandoffForForm}
             timerDuration={timerElapsed}
             onSubmit={handleSegmentSubmit}
             onSkip={handleSegmentSkip}
