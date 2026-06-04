@@ -4,13 +4,12 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -24,7 +23,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
@@ -109,7 +108,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 

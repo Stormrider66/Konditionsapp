@@ -4,12 +4,11 @@ import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getAccessibleTeam, getBusinessMembership } from '@/lib/coach/team-access'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ teamId: string; noteId: string }>
 }
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -72,7 +71,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     const scope = getRequestedBusinessScope(request)
     const { teamId, noteId } = await context.params
 
@@ -127,7 +126,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     const scope = getRequestedBusinessScope(request)
     const { teamId, noteId } = await context.params
 
