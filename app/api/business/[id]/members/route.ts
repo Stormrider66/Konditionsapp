@@ -16,6 +16,7 @@ import { logError } from '@/lib/logger-console'
 import crypto from 'crypto'
 import { ApiError, handleApiError } from '@/lib/api-error'
 import { getLastOwnerGuardError } from '@/lib/business-member-guards'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Validation schema for inviting a member
 const inviteMemberSchema = z.object({
@@ -30,6 +31,10 @@ const removeMemberSchema = z.object({
 
 interface RouteParams {
   params: Promise<{ id: string }>;
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
@@ -73,8 +78,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
     const body = await request.json();
 
@@ -84,7 +92,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const validationResult = inviteMemberSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -127,22 +135,33 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       try {
         const emailBranding = await resolveEmailBranding(id, { senderUserId: user.id })
         const buttonColor = emailBranding.primaryColor
-        const businessName = business?.name || 'a team'
-        const roleLabel = role === 'ADMIN' ? 'an administrator' : 'a member'
+        const businessName = business?.name || t(locale, 'a team', 'ett team')
+        const roleLabel = role === 'ADMIN'
+          ? t(locale, 'an administrator', 'administratör')
+          : t(locale, 'a member', 'medlem')
+        const inviteSubject = t(locale, `Invitation to ${businessName}`, `Inbjudan till ${businessName}`)
+        const inviteHeading = t(locale, 'You have been invited!', 'Du har blivit inbjuden!')
+        const inviteBody = t(
+          locale,
+          `You have been invited to join <strong>${businessName}</strong> as ${roleLabel}.`,
+          `Du har blivit inbjuden att gå med i <strong>${businessName}</strong> som ${roleLabel}.`
+        )
+        const inviteButton = t(locale, 'Accept invitation', 'Acceptera inbjudan')
+        const inviteExpiry = t(locale, 'This invitation is valid for 30 days.', 'Inbjudan är giltig i 30 dagar.')
         await sendGenericEmail({
           to: email,
-          subject: `Invitation to ${businessName}`,
+          subject: inviteSubject,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2>You have been invited!</h2>
-              <p>You have been invited to join <strong>${businessName}</strong> as ${roleLabel}.</p>
+              <h2>${inviteHeading}</h2>
+              <p>${inviteBody}</p>
               <p>
                 <a href="${acceptLink}" style="display: inline-block; background-color: ${buttonColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-                  Accept invitation
+                  ${inviteButton}
                 </a>
               </p>
               <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-                This invitation is valid for 30 days.
+                ${inviteExpiry}
               </p>
             </div>
           `,
@@ -167,7 +186,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             role,
             expiresAt,
           },
-          message: `Invitation sent to ${email}`,
+          message: t(locale, `Invitation sent to ${email}`, `Inbjudan skickad till ${email}`),
         },
         { status: 201 }
       );
@@ -183,7 +202,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (existingMembership) {
       return NextResponse.json(
-        { error: 'User is already a member of this business' },
+        { error: t(locale, 'User is already a member of this business', 'Användaren är redan medlem i den här verksamheten') },
         { status: 400 }
       );
     }
@@ -195,7 +214,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (otherMembership) {
       return NextResponse.json(
-        { error: 'User is already a member of another business' },
+        { error: t(locale, 'User is already a member of another business', 'Användaren är redan medlem i en annan verksamhet') },
         { status: 400 }
       );
     }
@@ -238,8 +257,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
     const body = await request.json();
 
@@ -247,7 +269,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     const validationResult = removeMemberSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -267,7 +289,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     if (!targetMembership) {
       return NextResponse.json(
-        { error: 'Member not found in this business' },
+        { error: t(locale, 'Member not found in this business', 'Medlemmen hittades inte i den här verksamheten') },
         { status: 404 }
       );
     }
@@ -276,7 +298,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     if ((currentMembership.role === 'MEMBER' || currentMembership.role === 'COACH') && !isSelfRemoval) {
       return NextResponse.json(
-        { error: 'Only owners and admins can remove other members' },
+        { error: t(locale, 'Only owners and admins can remove other members', 'Endast ägare och administratörer kan ta bort andra medlemmar') },
         { status: 403 }
       );
     }
@@ -287,14 +309,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       (targetMembership.role === 'ADMIN' || targetMembership.role === 'OWNER')
     ) {
       return NextResponse.json(
-        { error: 'Admins cannot remove other admins' },
+        { error: t(locale, 'Admins cannot remove other admins', 'Administratörer kan inte ta bort andra administratörer') },
         { status: 403 }
       );
     }
 
     if (currentMembership.role !== 'OWNER' && targetMembership.role === 'OWNER') {
       return NextResponse.json(
-        { error: 'Only owners can remove other owners' },
+        { error: t(locale, 'Only owners can remove other owners', 'Endast ägare kan ta bort andra ägare') },
         { status: 403 }
       );
     }

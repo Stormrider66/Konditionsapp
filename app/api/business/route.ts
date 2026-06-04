@@ -10,6 +10,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Validation schema for creating a business
 const createBusinessSchema = z.object({
@@ -34,9 +35,16 @@ const createBusinessSchema = z.object({
   primaryColor: z.string().optional().default('#3b82f6'),
 });
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
@@ -86,7 +94,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         business: null,
         membership: null,
-        message: 'No business membership found',
+        message: t(locale, 'No business membership found', 'Inget verksamhetsmedlemskap hittades'),
       });
     }
 
@@ -107,19 +115,22 @@ export async function GET(request: NextRequest) {
     logError('Get business error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch business' },
+      { error: t(locale, 'Failed to fetch business', 'Kunde inte hämta verksamheten') },
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json();
 
     // Check if user already has a business
@@ -129,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     if (existingMembership) {
       return NextResponse.json(
-        { error: 'You are already a member of a business' },
+        { error: t(locale, 'You are already a member of a business', 'Du är redan medlem i en verksamhet') },
         { status: 400 }
       );
     }
@@ -138,7 +149,7 @@ export async function POST(request: NextRequest) {
     const validationResult = createBusinessSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -152,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     if (existingBusiness) {
       return NextResponse.json(
-        { error: 'This business URL slug is already taken' },
+        { error: t(locale, 'This business URL slug is already taken', 'Den här verksamhetsadressen är redan upptagen') },
         { status: 400 }
       );
     }
@@ -199,11 +210,11 @@ export async function POST(request: NextRequest) {
     logError('Create business error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to create business' },
+      { error: t(locale, 'Failed to create business', 'Kunde inte skapa verksamheten') },
       { status: 500 }
     );
   }

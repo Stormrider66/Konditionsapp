@@ -13,6 +13,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import { handleApiError } from '@/lib/api-error'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Validation schema for updating a business
 const updateBusinessSchema = z.object({
@@ -36,9 +37,16 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
 
     const { role: memberRole } = await requireBusinessMembership(user.id, id)
@@ -75,7 +83,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 404 });
     }
 
     return NextResponse.json({
@@ -96,8 +104,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params;
     const body = await request.json();
 
@@ -107,7 +118,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const validationResult = updateBusinessSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
