@@ -7,6 +7,11 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating sport profile
 // Using z.any() for JSON fields as they're stored as Prisma Json type
@@ -27,6 +32,7 @@ const createSportProfileSchema = z.object({
 
 // POST /api/sport-profile - Create a new sport profile
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -35,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     if (!authUser) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -43,10 +49,11 @@ export async function POST(request: NextRequest) {
     const user = await getCurrentUser()
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validation = createSportProfileSchema.safeParse(body)
@@ -55,7 +62,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -66,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -74,7 +81,7 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, data.clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Client not found or unauthorized' },
+        { success: false, error: t(locale, 'Client not found or unauthorized', 'Klienten hittades inte eller åtkomst saknas') },
         { status: 404 }
       )
     }
@@ -86,7 +93,7 @@ export async function POST(request: NextRequest) {
 
     if (existingProfile) {
       return NextResponse.json(
-        { success: false, error: 'Sport profile already exists for this client' },
+        { success: false, error: t(locale, 'Sport profile already exists for this client', 'Sportprofil finns redan för denna klient') },
         { status: 409 }
       )
     }
@@ -113,12 +120,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: sportProfile,
-      message: 'Sport profile created successfully',
+      message: t(locale, 'Sport profile created successfully', 'Sportprofilen har skapats'),
     })
   } catch (error) {
     logger.error('Error creating sport profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to create sport profile' },
+      { success: false, error: t(locale, 'Failed to create sport profile', 'Misslyckades med att skapa sportprofil') },
       { status: 500 }
     )
   }

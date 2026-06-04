@@ -8,11 +8,16 @@ import { z } from 'zod'
 import { SportType, Prisma } from '@prisma/client'
 import { validateTargets } from '@/lib/training/intensity-targets'
 import { estimateFitnessLevel, type FitnessEstimationInput, type ExperienceLevel } from '@/lib/training/fitness-estimation'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{
     clientId: string
   }>
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 // Helper to calculate fitness estimate from profile data
@@ -113,6 +118,7 @@ export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const locale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -121,7 +127,7 @@ export async function GET(
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -131,7 +137,7 @@ export async function GET(
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -142,7 +148,7 @@ export async function GET(
 
     if (!sportProfile) {
       return NextResponse.json(
-        { success: false, error: 'Sport profile not found', data: null },
+        { success: false, error: t(locale, 'Sport profile not found', 'Sportprofilen hittades inte'), data: null },
         { status: 404 }
       )
     }
@@ -154,7 +160,7 @@ export async function GET(
   } catch (error) {
     logger.error('Error fetching sport profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch sport profile' },
+      { success: false, error: t(locale, 'Failed to fetch sport profile', 'Misslyckades med att hämta sportprofil') },
       { status: 500 }
     )
   }
@@ -165,6 +171,7 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const locale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -173,7 +180,7 @@ export async function PUT(
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -186,7 +193,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -198,7 +205,7 @@ export async function PUT(
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -271,7 +278,7 @@ export async function PUT(
       return NextResponse.json({
         success: true,
         data: { ...sportProfile, fitnessEstimate },
-        message: 'Sport profile created successfully',
+        message: t(locale, 'Sport profile created successfully', 'Sportprofilen har skapats'),
       })
     }
 
@@ -359,12 +366,12 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: fitnessEstimate ? { ...sportProfile, fitnessEstimate } : sportProfile,
-      message: 'Sport profile updated successfully',
+      message: t(locale, 'Sport profile updated successfully', 'Sportprofilen har uppdaterats'),
     })
   } catch (error) {
     logger.error('Error updating sport profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update sport profile' },
+      { success: false, error: t(locale, 'Failed to update sport profile', 'Misslyckades med att uppdatera sportprofil') },
       { status: 500 }
     )
   }
@@ -397,6 +404,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const locale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -405,7 +413,7 @@ export async function PATCH(
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -418,7 +426,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Validation failed',
+          error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
           details: validation.error.errors,
         },
         { status: 400 }
@@ -431,13 +439,13 @@ export async function PATCH(
     if (intensityTargets) {
       if (!sport) {
         return NextResponse.json(
-          { success: false, error: 'sport is required when updating intensityTargets' },
+          { success: false, error: t(locale, 'sport is required when updating intensityTargets', 'sport krävs när intensityTargets uppdateras') },
           { status: 400 }
         )
       }
       if (!validateTargets(intensityTargets)) {
         return NextResponse.json(
-          { success: false, error: 'Intensity percentages must sum to 100' },
+          { success: false, error: t(locale, 'Intensity percentages must sum to 100', 'Intensitetsprocent måste summera till 100') },
           { status: 400 }
         )
       }
@@ -446,7 +454,7 @@ export async function PATCH(
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -458,7 +466,7 @@ export async function PATCH(
 
     if (!existingProfile) {
       return NextResponse.json(
-        { success: false, error: 'Sport profile not found' },
+        { success: false, error: t(locale, 'Sport profile not found', 'Sportprofilen hittades inte') },
         { status: 404 }
       )
     }
@@ -491,7 +499,7 @@ export async function PATCH(
       const settingsField = settingsFieldMap[sport]
       if (!settingsField) {
         return NextResponse.json(
-          { success: false, error: 'Invalid sport type' },
+          { success: false, error: t(locale, 'Invalid sport type', 'Ogiltig sporttyp') },
           { status: 400 }
         )
       }
@@ -519,12 +527,12 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: sportProfile,
-      message: 'Sport profile updated successfully',
+      message: t(locale, 'Sport profile updated successfully', 'Sportprofilen har uppdaterats'),
     })
   } catch (error) {
     logger.error('Error updating sport profile', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update sport profile' },
+      { success: false, error: t(locale, 'Failed to update sport profile', 'Misslyckades med att uppdatera sportprofil') },
       { status: 500 }
     )
   }
