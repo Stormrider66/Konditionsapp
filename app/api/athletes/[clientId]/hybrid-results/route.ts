@@ -9,17 +9,25 @@ import { prisma } from '@/lib/prisma';
 import { getCurrentUser } from '@/lib/auth-utils';
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logger } from '@/lib/logger';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
 
 interface RouteContext {
   params: Promise<{ clientId: string }>;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale = resolveRequestLocale(request);
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const { clientId } = await context.params;
 
@@ -30,7 +38,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     });
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 });
     }
 
     // SECURITY: Use proper authorization check that verifies coach-athlete relationship
@@ -42,7 +50,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
         clientId,
         reason: accessResult.reason,
       });
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
     }
 
     // Fetch all results for this athlete
@@ -107,7 +115,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logger.error('Failed to fetch athlete hybrid results', {}, error);
     return NextResponse.json(
-      { error: 'Failed to fetch results' },
+      { error: t(locale, 'Failed to fetch results', 'Kunde inte hämta resultat') },
       { status: 500 }
     );
   }

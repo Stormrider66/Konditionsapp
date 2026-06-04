@@ -10,12 +10,15 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ clientId: string }>
 }
 
-type AppLocale = 'en' | 'sv'
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 function exerciseNameForLocale(
   exercise: { name: string; nameSv: string | null; nameEn: string | null } | null,
@@ -28,12 +31,14 @@ function exerciseNameForLocale(
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const { clientId } = await context.params
     const searchParams = request.nextUrl.searchParams
@@ -44,7 +49,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     // Verify access
     const accessResult = await canAccessAthlete(user.id, clientId)
     if (!accessResult.allowed) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Calculate date filter
@@ -165,7 +170,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logger.error('Error fetching workout history', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch workout history' },
+      { error: t(locale, 'Failed to fetch workout history', 'Kunde inte hämta passhistorik') },
       { status: 500 }
     )
   }
