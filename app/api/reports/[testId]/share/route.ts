@@ -27,7 +27,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ testId: string }> }
 ) {
-  let locale: AppLocale = 'en';
+  let locale: AppLocale = resolveRequestLocale(request);
 
   try {
     const user = await requireCoach();
@@ -113,7 +113,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ testId: string }> }
 ) {
-  let locale: AppLocale = 'en';
+  let locale: AppLocale = resolveRequestLocale(request);
 
   try {
     const user = await requireCoach();
@@ -166,7 +166,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ testId: string }> }
 ) {
-  let locale: AppLocale = 'en';
+  let locale: AppLocale = resolveRequestLocale(request);
 
   try {
     const user = await requireCoach();

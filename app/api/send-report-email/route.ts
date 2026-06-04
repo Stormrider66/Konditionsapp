@@ -8,21 +8,21 @@ import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { resolveEmailBranding } from '@/lib/email/branding'
 import { emailLayout } from '@/lib/email/email-branding-types'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
 // Maximum PDF size: 10MB
 const MAX_PDF_SIZE = 10 * 1024 * 1024
-type AppLocale = 'en' | 'sv'
 
-function getRequestLocale(rawLocale: unknown, userLanguage?: string | null): AppLocale {
+function getRequestLocale(request: NextRequest, rawLocale: unknown, userLanguage?: string | null): AppLocale {
   if (rawLocale === 'sv') return 'sv'
   if (rawLocale === 'en') return 'en'
-  return userLanguage === 'sv' ? 'sv' : 'en'
+  return resolveRequestLocale(request, userLanguage)
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     // Rate limit: 5 emails per minute per IP (Redis-backed with in-memory fallback)
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       where: { id: user.id },
       select: { role: true, language: true },
     })
-    locale = getRequestLocale(undefined, dbUser?.language)
+    locale = getRequestLocale(request, undefined, dbUser?.language)
     if (!dbUser || (dbUser.role !== 'COACH' && dbUser.role !== 'ADMIN')) {
       return NextResponse.json(
         {
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       customMessage,
       locale: rawLocale,
     } = body
-    locale = getRequestLocale(rawLocale, dbUser.language)
+    locale = getRequestLocale(request, rawLocale, dbUser.language)
 
     if (!to || !pdfBase64) {
       return NextResponse.json(
