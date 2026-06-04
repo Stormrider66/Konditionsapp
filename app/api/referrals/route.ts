@@ -5,6 +5,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/referrals
@@ -15,12 +20,14 @@ import { canAccessCoachPlatform } from '@/lib/user-capabilities'
  * - offset: number (default 0)
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -28,7 +35,7 @@ export async function GET(request: NextRequest) {
     // Only coaches can view their referrals
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Only coaches can view referrals' },
+        { success: false, error: t(locale, 'Only coaches can view referrals', 'Endast coacher kan se värvningar') },
         { status: 403 }
       )
     }
@@ -118,7 +125,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching referrals', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch referrals' },
+      { success: false, error: t(locale, 'Failed to fetch referrals', 'Kunde inte hämta värvningar') },
       { status: 500 }
     )
   }

@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * Generate a unique referral code
@@ -23,13 +28,15 @@ function generateReferralCode(name: string): string {
  * GET /api/referrals/code
  * Get the current user's referral code
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -37,7 +44,7 @@ export async function GET() {
     // Only coaches can have referral codes
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Only coaches can have referral codes' },
+        { success: false, error: t(locale, 'Only coaches can have referral codes', 'Endast coacher kan ha värvningskoder') },
         { status: 403 }
       )
     }
@@ -63,7 +70,11 @@ export async function GET() {
       return NextResponse.json({
         success: true,
         data: null,
-        message: 'No referral code found. Create one to start referring.',
+        message: t(
+          locale,
+          'No referral code found. Create one to start referring.',
+          'Ingen värvningskod hittades. Skapa en för att börja värva.'
+        ),
       })
     }
 
@@ -85,7 +96,7 @@ export async function GET() {
   } catch (error) {
     logger.error('Error fetching referral code', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch referral code' },
+      { success: false, error: t(locale, 'Failed to fetch referral code', 'Kunde inte hämta värvningskoden') },
       { status: 500 }
     )
   }
@@ -96,12 +107,14 @@ export async function GET() {
  * Create a referral code for the current user
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -109,7 +122,7 @@ export async function POST(request: NextRequest) {
     // Only coaches can create referral codes
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(
-        { success: false, error: 'Only coaches can create referral codes' },
+        { success: false, error: t(locale, 'Only coaches can create referral codes', 'Endast coacher kan skapa värvningskoder') },
         { status: 403 }
       )
     }
@@ -121,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     if (existingCode) {
       return NextResponse.json(
-        { success: false, error: 'You already have a referral code' },
+        { success: false, error: t(locale, 'You already have a referral code', 'Du har redan en värvningskod') },
         { status: 400 }
       )
     }
@@ -142,7 +155,7 @@ export async function POST(request: NextRequest) {
 
     if (attempts >= maxAttempts) {
       return NextResponse.json(
-        { success: false, error: 'Failed to generate unique code' },
+        { success: false, error: t(locale, 'Failed to generate unique code', 'Kunde inte skapa en unik kod') },
         { status: 500 }
       )
     }
@@ -177,14 +190,14 @@ export async function POST(request: NextRequest) {
           isActive: referralCode.isActive,
           shareUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://star-thomson.se'}/register?ref=${referralCode.code}`,
         },
-        message: 'Referral code created successfully',
+        message: t(locale, 'Referral code created successfully', 'Värvningskoden skapades'),
       },
       { status: 201 }
     )
   } catch (error) {
     logger.error('Error creating referral code', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to create referral code' },
+      { success: false, error: t(locale, 'Failed to create referral code', 'Kunde inte skapa värvningskoden') },
       { status: 500 }
     )
   }

@@ -2,11 +2,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 const validateSchema = z.object({
   code: z.string().min(1, 'Referral code is required'),
 })
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * POST /api/referrals/validate
@@ -14,13 +19,14 @@ const validateSchema = z.object({
  * Returns the referrer info if code is valid
  */
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
   try {
     const body = await request.json()
 
     const validationResult = validateSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { success: false, error: validationResult.error.errors[0].message },
+        { success: false, error: t(locale, 'Referral code is required', 'Värvningskod krävs') },
         { status: 400 }
       )
     }
@@ -42,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     if (!referralCode) {
       return NextResponse.json(
-        { success: false, error: 'Invalid referral code', valid: false },
+        { success: false, error: t(locale, 'Invalid referral code', 'Ogiltig värvningskod'), valid: false },
         { status: 404 }
       )
     }
@@ -50,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Check if code is active
     if (!referralCode.isActive) {
       return NextResponse.json(
-        { success: false, error: 'This referral code is no longer active', valid: false },
+        { success: false, error: t(locale, 'This referral code is no longer active', 'Den här värvningskoden är inte längre aktiv'), valid: false },
         { status: 400 }
       )
     }
@@ -58,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Check if code has expired
     if (referralCode.expiresAt && new Date(referralCode.expiresAt) < new Date()) {
       return NextResponse.json(
-        { success: false, error: 'This referral code has expired', valid: false },
+        { success: false, error: t(locale, 'This referral code has expired', 'Den här värvningskoden har gått ut'), valid: false },
         { status: 400 }
       )
     }
@@ -66,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Check if code has reached max uses
     if (referralCode.maxUses && referralCode.totalUses >= referralCode.maxUses) {
       return NextResponse.json(
-        { success: false, error: 'This referral code has reached its usage limit', valid: false },
+        { success: false, error: t(locale, 'This referral code has reached its usage limit', 'Den här värvningskoden har nått sin användningsgräns'), valid: false },
         { status: 400 }
       )
     }
@@ -77,13 +83,13 @@ export async function POST(request: NextRequest) {
       data: {
         code: referralCode.code,
         referrerName: referralCode.user.name,
-        benefit: 'Get 1 month free when you sign up!', // Could be dynamic based on current promotion
+        benefit: t(locale, 'Get 1 month free when you sign up!', 'Få 1 månad gratis när du registrerar dig!'), // Could be dynamic based on current promotion
       },
     })
   } catch (error) {
     logger.error('Error validating referral code', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to validate referral code' },
+      { success: false, error: t(locale, 'Failed to validate referral code', 'Kunde inte validera värvningskoden') },
       { status: 500 }
     )
   }

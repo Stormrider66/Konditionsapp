@@ -5,12 +5,17 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { sendReferralRewardEmail } from '@/lib/email'
 import { sendEmailAfter } from '@/lib/email/after'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 const applySchema = z.object({
   code: z.string().min(1, 'Referral code is required'),
   email: z.string().email('Valid email is required'),
 })
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * POST /api/referrals/apply
@@ -19,13 +24,14 @@ const applySchema = z.object({
  * Called during signup process
  */
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
   try {
     const body = await request.json()
 
     const validationResult = applySchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { success: false, error: validationResult.error.errors[0].message },
+        { success: false, error: t(locale, 'Referral code and a valid email are required', 'Värvningskod och giltig e-postadress krävs') },
         { status: 400 }
       )
     }
@@ -41,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     if (!referralCode) {
       return NextResponse.json(
-        { success: false, error: 'Invalid referral code' },
+        { success: false, error: t(locale, 'Invalid referral code', 'Ogiltig värvningskod') },
         { status: 404 }
       )
     }
@@ -49,21 +55,21 @@ export async function POST(request: NextRequest) {
     // Validate code is still usable
     if (!referralCode.isActive) {
       return NextResponse.json(
-        { success: false, error: 'This referral code is no longer active' },
+        { success: false, error: t(locale, 'This referral code is no longer active', 'Den här värvningskoden är inte längre aktiv') },
         { status: 400 }
       )
     }
 
     if (referralCode.expiresAt && new Date(referralCode.expiresAt) < new Date()) {
       return NextResponse.json(
-        { success: false, error: 'This referral code has expired' },
+        { success: false, error: t(locale, 'This referral code has expired', 'Den här värvningskoden har gått ut') },
         { status: 400 }
       )
     }
 
     if (referralCode.maxUses && referralCode.totalUses >= referralCode.maxUses) {
       return NextResponse.json(
-        { success: false, error: 'This referral code has reached its usage limit' },
+        { success: false, error: t(locale, 'This referral code has reached its usage limit', 'Den här värvningskoden har nått sin användningsgräns') },
         { status: 400 }
       )
     }
@@ -83,7 +89,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: { referralId: existingReferral.id },
-        message: 'Referral already applied',
+        message: t(locale, 'Referral already applied', 'Värvningen är redan registrerad'),
       })
     }
 
@@ -94,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser && existingUser.id === referralCode.userId) {
       return NextResponse.json(
-        { success: false, error: 'You cannot refer yourself' },
+        { success: false, error: t(locale, 'You cannot refer yourself', 'Du kan inte värva dig själv') },
         { status: 400 }
       )
     }
@@ -121,14 +127,14 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         data: { referralId: referral.id },
-        message: 'Referral applied successfully',
+        message: t(locale, 'Referral applied successfully', 'Värvningen registrerades'),
       },
       { status: 201 }
     )
   } catch (error) {
     logger.error('Error applying referral', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to apply referral' },
+      { success: false, error: t(locale, 'Failed to apply referral', 'Kunde inte registrera värvningen') },
       { status: 500 }
     )
   }
@@ -140,12 +146,14 @@ export async function POST(request: NextRequest) {
  * Creates rewards for both referrer and referred user
  */
 export async function PUT(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -175,7 +183,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: null,
-        message: 'No pending referral found',
+        message: t(locale, 'No pending referral found', 'Ingen väntande värvning hittades'),
       })
     }
 
@@ -254,15 +262,19 @@ export async function PUT(request: NextRequest) {
         yourReward: {
           type: 'EXTENDED_TRIAL',
           value: 7,
-          description: '7 extra trial days',
+          description: t(locale, '7 extra trial days', '7 extra provdagar'),
         },
       },
-      message: 'Referral completed! You received 7 extra trial days.',
+      message: t(
+        locale,
+        'Referral completed! You received 7 extra trial days.',
+        'Värvningen slutfördes! Du fick 7 extra provdagar.'
+      ),
     })
   } catch (error) {
     logger.error('Error completing referral', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to complete referral' },
+      { success: false, error: t(locale, 'Failed to complete referral', 'Kunde inte slutföra värvningen') },
       { status: 500 }
     )
   }
