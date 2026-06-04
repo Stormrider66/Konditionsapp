@@ -13,6 +13,7 @@ import { normalizeStoragePath } from '@/lib/storage/supabase-storage';
 import { createSignedUrl } from '@/lib/storage/supabase-storage-server';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -22,6 +23,8 @@ const ALLOWED_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'au
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const supabase = createAdminSupabaseClient()
 
@@ -35,6 +38,7 @@ export async function POST(request: NextRequest) {
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       user = resolved.user;
+      locale = resolveRequestLocale(request, user.language)
       const rateLimited = await rateLimitJsonResponse('audio-journal:upload', user.id, {
         limit: 10,
         windowSeconds: 60,
@@ -44,6 +48,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Try as coach
       user = await requireCoach();
+      locale = resolveRequestLocale(request, user.language)
       const rateLimited = await rateLimitJsonResponse('audio-journal:upload', user.id, {
         limit: 10,
         windowSeconds: 60,
@@ -51,12 +56,12 @@ export async function POST(request: NextRequest) {
       if (rateLimited) return rateLimited
       clientId = formData.get('clientId') as string;
       if (!clientId) {
-        return NextResponse.json({ error: 'clientId required for coach uploads' }, { status: 400 });
+        return NextResponse.json({ error: t(locale, 'clientId required for coach uploads', 'clientId krävs för coachuppladdningar') }, { status: 400 });
       }
 
       const hasAccess = await canAccessClient(user.id, clientId);
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
       }
     }
 
@@ -64,13 +69,13 @@ export async function POST(request: NextRequest) {
     const duration = parseInt(formData.get('duration') as string) || 0;
 
     if (!audioFile) {
-      return NextResponse.json({ error: 'Audio file required' }, { status: 400 });
+      return NextResponse.json({ error: t(locale, 'Audio file required', 'Ljudfil krävs') }, { status: 400 });
     }
 
     // Validate file type
     if (!ALLOWED_TYPES.includes(audioFile.type)) {
       return NextResponse.json(
-        { error: `Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}` },
+        { error: t(locale, `Invalid file type. Allowed: ${ALLOWED_TYPES.join(', ')}`, `Ogiltig filtyp. Tillåtna: ${ALLOWED_TYPES.join(', ')}`) },
         { status: 400 }
       );
     }
@@ -78,7 +83,7 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (audioFile.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+        { error: t(locale, `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB`, `Filen är för stor. Maxstorlek: ${MAX_FILE_SIZE / 1024 / 1024} MB`) },
         { status: 400 }
       );
     }
@@ -102,7 +107,7 @@ export async function POST(request: NextRequest) {
     if (uploadError) {
       logger.error('Audio journal upload: Supabase upload error', {}, uploadError)
       return NextResponse.json(
-        { error: 'Failed to upload audio file' },
+        { error: t(locale, 'Failed to upload audio file', 'Kunde inte ladda upp ljudfilen') },
         { status: 500 }
       );
     }
@@ -132,19 +137,22 @@ export async function POST(request: NextRequest) {
     logger.error('Audio journal upload error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to upload audio' },
+      { error: t(locale, 'Failed to upload audio', 'Kunde inte ladda upp ljud') },
       { status: 500 }
     );
   }
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
     const rateLimited = await rateLimitJsonResponse('audio-journal:list', user.id, {
       limit: 60,
       windowSeconds: 60,
@@ -154,12 +162,12 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('clientId');
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 });
+      return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 });
     }
 
     const hasAccess = await canAccessClient(user.id, clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
     }
 
     const journals = await prisma.audioJournal.findMany({
@@ -196,12 +204,16 @@ export async function GET(request: NextRequest) {
     logger.error('Audio journal list error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch audio journals' },
+      { error: t(locale, 'Failed to fetch audio journals', 'Kunde inte hämta ljudjournaler') },
       { status: 500 }
     );
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

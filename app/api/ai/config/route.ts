@@ -8,18 +8,21 @@
  * - Athletes: returns their coach's API keys and model settings
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getUserAIConfig } from '@/lib/ai/user-ai-config'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const config = await getUserAIConfig()
 
     if (!config) {
       return NextResponse.json(
-        { error: 'Unauthorized', success: false },
+        { error: t(locale, 'Unauthorized', 'Obehörig'), success: false },
         { status: 401 }
       )
     }
@@ -63,8 +66,12 @@ export async function GET() {
     logger.error('Get AI config error', {}, error)
 
     return NextResponse.json(
-      { error: 'Failed to get AI configuration', success: false },
+      { error: t(locale, 'Failed to get AI configuration', 'Kunde inte hämta AI-konfiguration'), success: false },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

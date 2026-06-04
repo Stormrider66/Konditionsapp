@@ -8,13 +8,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = request.nextUrl
     const clientId = searchParams.get('clientId')
@@ -24,13 +28,13 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '10', 10), 50)
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId is required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientId is required', 'clientId är obligatoriskt') }, { status: 400 })
     }
 
     // Verify access
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const where: Record<string, unknown> = { clientId }
@@ -60,8 +64,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     return NextResponse.json(
-      { error: 'Failed to fetch visual reports', message: errorMessage },
+      { error: t(locale, 'Failed to fetch visual reports', 'Kunde inte hämta visuella rapporter'), message: errorMessage },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
