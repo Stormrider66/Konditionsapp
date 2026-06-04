@@ -12,6 +12,7 @@ import { requireAuth, errorResponse, successResponse } from '@/lib/api/utils'
 import { ErgometerType } from '@prisma/client'
 import { formatPace, isConcept2 } from '@/lib/training-engine/ergometer'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Query params schema
 const querySchema = z.object({
@@ -19,10 +20,16 @@ const querySchema = z.object({
   includeFormatted: z.coerce.boolean().default(true),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
     const { clientId } = await params
@@ -31,7 +38,7 @@ export async function GET(
 
     if (!queryResult.success) {
       return errorResponse(
-        'Invalid query parameters',
+        t(locale, 'Invalid query parameters', 'Ogiltiga frågeparametrar'),
         400,
         queryResult.error.flatten()
       )
@@ -41,7 +48,7 @@ export async function GET(
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return errorResponse('Client not found or access denied', 404)
+      return errorResponse(t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades'), 404)
     }
 
     const client = await prisma.client.findUnique({
@@ -53,7 +60,7 @@ export async function GET(
     })
 
     if (!client) {
-      return errorResponse('Client not found or access denied', 404)
+      return errorResponse(t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades'), 404)
     }
 
     // Build where clause
@@ -120,7 +127,7 @@ export async function GET(
     }
 
     // Generate zone usage recommendations
-    const recommendations = generateZoneUsageRecommendations(zonesByErgometer)
+    const recommendations = generateZoneUsageRecommendations(zonesByErgometer, locale)
 
     return successResponse({
       client,
@@ -139,7 +146,7 @@ export async function GET(
     })
   } catch (error) {
     logError('Error fetching ergometer zones:', error)
-    return errorResponse('Failed to fetch ergometer zones', 500)
+    return errorResponse(t(locale, 'Failed to fetch ergometer zones', 'Kunde inte hämta ergometerzoner'), 500)
   }
 }
 
@@ -215,26 +222,35 @@ function getZoneColor(zone: number): string {
 // ==================== RECOMMENDATIONS ====================
 
 function generateZoneUsageRecommendations(
-  zonesByErgometer: Record<string, Array<{ zone: number; name: string; powerMin: number; powerMax: number }>>
+  zonesByErgometer: Record<string, Array<{ zone: number; name: string; powerMin: number; powerMax: number }>>,
+  locale: AppLocale
 ): string[] {
   const recommendations: string[] = []
 
   const ergometerCount = Object.keys(zonesByErgometer).length
 
   if (ergometerCount === 0) {
-    recommendations.push('No zones calculated. Complete an ergometer test to generate training zones.')
+    recommendations.push(t(locale, 'No zones calculated. Complete an ergometer test to generate training zones.', 'Inga zoner beräknade. Genomför ett ergometertest för att skapa träningszoner.'))
     return recommendations
   }
 
   // Zone distribution guidance
   recommendations.push(
-    'Zone distribution for conditioning: 80% Zone 1-2, 5% Zone 3, 15% Zone 4-5'
+    t(
+      locale,
+      'Zone distribution for conditioning: 80% Zone 1-2, 5% Zone 3, 15% Zone 4-5',
+      'Zonfördelning för kondition: 80% zon 1-2, 5% zon 3, 15% zon 4-5'
+    )
   )
 
   // Ergometer-specific tips
   for (const [ergType, zones] of Object.entries(zonesByErgometer)) {
     if (zones.length < 6) {
-      recommendations.push(`${ergType}: Only ${zones.length} zones defined. Consider recalculating zones.`)
+      recommendations.push(t(
+        locale,
+        `${ergType}: Only ${zones.length} zones defined. Consider recalculating zones.`,
+        `${ergType}: Endast ${zones.length} zoner definierade. Överväg att räkna om zonerna.`
+      ))
       continue
     }
 
@@ -242,19 +258,19 @@ function generateZoneUsageRecommendations(
     if (z4) {
       switch (ergType) {
         case 'CONCEPT2_ROW':
-          recommendations.push(`Rowing threshold: ${z4.powerMin}-${z4.powerMax}W. Key intervals: 4×1000m, 8×500m at Z4.`)
+          recommendations.push(t(locale, `Rowing threshold: ${z4.powerMin}-${z4.powerMax}W. Key intervals: 4x1000m, 8x500m at Z4.`, `Roddtröskel: ${z4.powerMin}-${z4.powerMax}W. Nyckelintervaller: 4x1000m, 8x500m i Z4.`))
           break
         case 'CONCEPT2_SKIERG':
-          recommendations.push(`SkiErg threshold: ${z4.powerMin}-${z4.powerMax}W. Key intervals: 10×1min, 5×2min at Z4.`)
+          recommendations.push(t(locale, `SkiErg threshold: ${z4.powerMin}-${z4.powerMax}W. Key intervals: 10x1min, 5x2min at Z4.`, `SkiErg-tröskel: ${z4.powerMin}-${z4.powerMax}W. Nyckelintervaller: 10x1min, 5x2min i Z4.`))
           break
         case 'CONCEPT2_BIKEERG':
-          recommendations.push(`BikeErg threshold: ${z4.powerMin}-${z4.powerMax}W. Similar to cycling intervals.`)
+          recommendations.push(t(locale, `BikeErg threshold: ${z4.powerMin}-${z4.powerMax}W. Similar to cycling intervals.`, `BikeErg-tröskel: ${z4.powerMin}-${z4.powerMax}W. Liknar cykelintervaller.`))
           break
         case 'WATTBIKE':
-          recommendations.push(`Wattbike threshold: ${z4.powerMin}-${z4.powerMax}W. FTP intervals: 2×20min, 3×15min at Z4.`)
+          recommendations.push(t(locale, `Wattbike threshold: ${z4.powerMin}-${z4.powerMax}W. FTP intervals: 2x20min, 3x15min at Z4.`, `Wattbike-tröskel: ${z4.powerMin}-${z4.powerMax}W. FTP-intervaller: 2x20min, 3x15min i Z4.`))
           break
         case 'ASSAULT_BIKE':
-          recommendations.push(`Air bike threshold: ${z4.powerMin}-${z4.powerMax}W. HYROX prep: 10×1min on/1min off at Z4-5.`)
+          recommendations.push(t(locale, `Air bike threshold: ${z4.powerMin}-${z4.powerMax}W. HYROX prep: 10x1min on/1min off at Z4-5.`, `Air bike-tröskel: ${z4.powerMin}-${z4.powerMax}W. HYROX-prep: 10x1min på/1min av i Z4-5.`))
           break
       }
     }
@@ -263,7 +279,11 @@ function generateZoneUsageRecommendations(
   // Cross-training guidance if multiple ergometers
   if (ergometerCount > 1) {
     recommendations.push(
-      'With multiple ergometers: Rotate modalities to reduce overuse while maintaining zone targets.'
+      t(
+        locale,
+        'With multiple ergometers: Rotate modalities to reduce overuse while maintaining zone targets.',
+        'Med flera ergometrar: rotera modaliteter för att minska överbelastning och behålla zonmålen.'
+      )
     )
   }
 

@@ -21,6 +21,7 @@ import {
 } from '@/lib/training-engine/ergometer'
 import type { ZoneCalculationInput, ErgometerZoneResult } from '@/lib/training-engine/ergometer'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Request schema for zone calculation
 const calculateZonesSchema = z.object({
@@ -58,7 +59,13 @@ const calculateZonesSchema = z.object({
   sourceThresholdId: z.string().uuid().optional(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
 
@@ -67,7 +74,7 @@ export async function POST(request: NextRequest) {
 
     if (!validationResult.success) {
       return errorResponse(
-        'Invalid request body',
+        t(locale, 'Invalid request body', 'Ogiltig begäran'),
         400,
         validationResult.error.flatten()
       )
@@ -77,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     const hasAccess = await canAccessClient(user.id, data.clientId)
     if (!hasAccess) {
-      return errorResponse('Client not found or access denied', 404)
+      return errorResponse(t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades'), 404)
     }
 
     // Calculate zones based on method
@@ -86,7 +93,7 @@ export async function POST(request: NextRequest) {
     switch (data.calculationMethod) {
       case 'CP':
         if (!data.criticalPower || !data.wPrime) {
-          return errorResponse('criticalPower and wPrime are required for CP-based calculation', 400)
+          return errorResponse(t(locale, 'criticalPower and wPrime are required for CP-based calculation', 'criticalPower och wPrime krävs för CP-baserad beräkning'), 400)
         }
         zoneResult = calculateZonesFromCP(
           data.criticalPower,
@@ -98,7 +105,7 @@ export async function POST(request: NextRequest) {
 
       case 'FTP':
         if (!data.avgPower20min) {
-          return errorResponse('avgPower20min is required for FTP-based calculation', 400)
+          return errorResponse(t(locale, 'avgPower20min is required for FTP-based calculation', 'avgPower20min krävs för FTP-baserad beräkning'), 400)
         }
         zoneResult = calculateZonesFromFTP(
           data.avgPower20min,
@@ -110,28 +117,28 @@ export async function POST(request: NextRequest) {
 
       case 'MAP':
         if (!data.mapWatts) {
-          return errorResponse('mapWatts is required for MAP-based calculation', 400)
+          return errorResponse(t(locale, 'mapWatts is required for MAP-based calculation', 'mapWatts krävs för MAP-baserad beräkning'), 400)
         }
         zoneResult = calculateZonesFromMAP(data.mapWatts, data.ergometerType)
         break
 
       case '2K_AVG':
         if (!data.avgPower2K) {
-          return errorResponse('avgPower2K is required for 2K-based calculation', 400)
+          return errorResponse(t(locale, 'avgPower2K is required for 2K-based calculation', 'avgPower2K krävs för 2K-baserad beräkning'), 400)
         }
         zoneResult = calculateZonesFrom2K(data.avgPower2K, data.ergometerType)
         break
 
       case '1K_AVG':
         if (!data.avgPower1K) {
-          return errorResponse('avgPower1K is required for 1K-based calculation', 400)
+          return errorResponse(t(locale, 'avgPower1K is required for 1K-based calculation', 'avgPower1K krävs för 1K-baserad beräkning'), 400)
         }
         zoneResult = calculateZonesFrom1K(data.avgPower1K, data.ergometerType)
         break
 
       case 'INTERVAL':
         if (!data.avgIntervalPower || !data.intervalConsistency) {
-          return errorResponse('avgIntervalPower and intervalConsistency are required for interval-based calculation', 400)
+          return errorResponse(t(locale, 'avgIntervalPower and intervalConsistency are required for interval-based calculation', 'avgIntervalPower och intervalConsistency krävs för intervallbaserad beräkning'), 400)
         }
         zoneResult = calculateZonesFromIntervalTest(
           data.avgIntervalPower,
@@ -141,7 +148,7 @@ export async function POST(request: NextRequest) {
         break
 
       default:
-        return errorResponse('Invalid calculation method', 400)
+        return errorResponse(t(locale, 'Invalid calculation method', 'Ogiltig beräkningsmetod'), 400)
     }
 
     // If HR at threshold provided, recalculate with HR zones
@@ -208,7 +215,7 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     logError('Error calculating ergometer zones:', error)
-    return errorResponse('Failed to calculate ergometer zones', 500)
+    return errorResponse(t(locale, 'Failed to calculate ergometer zones', 'Kunde inte beräkna ergometerzoner'), 500)
   }
 }
 
