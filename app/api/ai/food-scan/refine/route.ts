@@ -21,6 +21,7 @@ import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   applySimpleFoodIdentityCorrection,
   getFoodCorrectionSearchTerm,
@@ -36,8 +37,6 @@ export const dynamic = 'force-dynamic'
 const REFINE_TIMEOUT_MS = 35_000
 const REFINE_MAX_OUTPUT_TOKENS = 4_096
 const REFINE_RETRY_DELAYS_MS = [600, 1_500]
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -234,7 +233,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     logContext = {
       clientId,
       isCoachInAthleteMode,

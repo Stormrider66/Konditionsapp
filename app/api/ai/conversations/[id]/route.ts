@@ -11,8 +11,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -27,7 +26,7 @@ export async function GET(
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:get', user.id, {
       limit: 60,
@@ -91,7 +90,7 @@ export async function PUT(
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:update', user.id, {
       limit: 30,
@@ -157,7 +156,7 @@ export async function DELETE(
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:delete', user.id, {
       limit: 20,

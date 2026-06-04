@@ -28,6 +28,7 @@ import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -47,8 +48,6 @@ const recipeSchema = z.object({
     .min(1),
   notes: z.string().nullable().optional(),
 })
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied

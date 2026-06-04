@@ -27,6 +27,7 @@ import {
   recomputeTotals,
   type PortionSnap,
 } from '@/lib/nutrition/portion-calibration'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -53,8 +54,6 @@ const WEEKDAY_LABEL_EN = [
   'Friday',
   'Saturday',
 ] as const
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -163,7 +162,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Subscription gate (athlete-level, reuse nutrition_planning feature)
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')

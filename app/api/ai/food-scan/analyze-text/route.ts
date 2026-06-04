@@ -22,6 +22,7 @@ import { resolveAthleteGoogleKeyContext } from '@/lib/ai/resolve-athlete-google-
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 export const maxDuration = 120
@@ -30,8 +31,6 @@ const requestSchema = z.object({
   description: z.string().min(1, 'Description is required'),
   clientHour: z.number().int().min(0).max(23).optional(),
 })
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -118,7 +117,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')
     if (denied) return denied

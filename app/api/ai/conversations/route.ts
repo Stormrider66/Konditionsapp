@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma'
 import { AIProvider } from '@prisma/client'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface CreateConversationRequest {
   modelUsed: string
@@ -22,24 +23,17 @@ interface CreateConversationRequest {
   title?: string
 }
 
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-function requestLocale(request: NextRequest): AppLocale {
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? ''
-  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en'
-}
-
 // GET - List conversations
 export async function GET(request: NextRequest) {
-  let locale = requestLocale(request)
+  let locale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:list', user.id, {
       limit: 60,
@@ -104,7 +98,7 @@ export async function GET(request: NextRequest) {
 
 // POST - Create new conversation
 export async function POST(request: NextRequest) {
-  let locale = requestLocale(request)
+  let locale = resolveRequestLocale(request)
 
   try {
     const body: CreateConversationRequest = await request.json()
@@ -139,7 +133,7 @@ export async function POST(request: NextRequest) {
     // Try athlete path first (handles ATHLETE role + COACH in athlete mode)
     const athleteResolved = await resolveAthleteClientId()
     if (athleteResolved) {
-      locale = athleteResolved.user.language === 'sv' ? 'sv' : 'en'
+      locale = resolveRequestLocale(request, athleteResolved.user.language)
       userId = athleteResolved.user.id
       // For athletes, the coachId is the coach who owns the client record
       const clientRecord = await prisma.client.findUnique({
@@ -150,7 +144,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Fall back to coach auth
       const user = await requireCoach()
-      locale = user.language === 'sv' ? 'sv' : 'en'
+      locale = resolveRequestLocale(request, user.language)
       userId = user.id
       coachId = user.id
     }

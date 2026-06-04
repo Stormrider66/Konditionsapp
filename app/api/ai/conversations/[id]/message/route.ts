@@ -17,14 +17,13 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { normalizeAIModelId } from '@/lib/ai/model-compat'
 import { logAiUsage, withAiContext } from '@/lib/ai/usage-logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface SendMessageRequest {
   content: string
   contextDocuments?: string[]
   webSearchEnabled?: boolean
 }
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -39,7 +38,7 @@ export async function POST(
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:message', user.id, {
       limit: 10,
