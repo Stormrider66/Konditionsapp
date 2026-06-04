@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { requirePhysio, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating a treatment session
 const createTreatmentSchema = z.object({
@@ -49,8 +54,11 @@ const createTreatmentSchema = z.object({
  * Supports filtering by clientId, date range, treatment type
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { searchParams } = new URL(request.url)
 
     // Parse query parameters
@@ -71,7 +79,7 @@ export async function GET(request: NextRequest) {
       const hasAccess = await canAccessAthleteAsPhysio(user.id, clientId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'You do not have access to this athlete' },
+          { error: t(locale, 'You do not have access to this athlete', 'Du har inte åtkomst till den här idrottaren') },
           { status: 403 }
         )
       }
@@ -134,10 +142,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching treatment sessions:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to fetch treatment sessions' },
+      { error: t(locale, 'Failed to fetch treatment sessions', 'Kunde inte hämta behandlingssessioner') },
       { status: 500 }
     )
   }
@@ -148,8 +156,11 @@ export async function GET(request: NextRequest) {
  * Create a new treatment session
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json()
     const validatedData = createTreatmentSchema.parse(body)
 
@@ -157,7 +168,7 @@ export async function POST(request: NextRequest) {
     const hasAccess = await canAccessAthleteAsPhysio(user.id, validatedData.clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have access to this athlete' },
+        { error: t(locale, 'You do not have access to this athlete', 'Du har inte åtkomst till den här idrottaren') },
         { status: 403 }
       )
     }
@@ -172,7 +183,7 @@ export async function POST(request: NextRequest) {
       })
       if (!injury) {
         return NextResponse.json(
-          { error: 'Injury not found or does not belong to this client' },
+          { error: t(locale, 'Injury not found or does not belong to this client', 'Skadan hittades inte eller hör inte till den här klienten') },
           { status: 404 }
         )
       }
@@ -222,15 +233,15 @@ export async function POST(request: NextRequest) {
     console.error('Error creating treatment session:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to create treatment session' },
+      { error: t(locale, 'Failed to create treatment session', 'Kunde inte skapa behandlingssession') },
       { status: 500 }
     )
   }

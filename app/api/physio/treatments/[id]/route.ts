@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { requirePhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
 import type { Prisma } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const updateTreatmentSchema = z.object({
   treatmentType: z.enum([
@@ -38,8 +43,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     const session = await prisma.treatmentSession.findUnique({
@@ -73,22 +81,22 @@ export async function GET(
     })
 
     if (!session) {
-      return NextResponse.json({ error: 'Treatment session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Treatment session not found', 'Behandlingssessionen hittades inte') }, { status: 404 })
     }
 
     // Check access - physio can only see their own sessions
     if (session.physioUserId !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     return NextResponse.json(session)
   } catch (error) {
     console.error('Error fetching treatment session:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to fetch treatment session' },
+      { error: t(locale, 'Failed to fetch treatment session', 'Kunde inte hämta behandlingssessionen') },
       { status: 500 }
     )
   }
@@ -102,8 +110,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
     const body = await request.json()
     const validatedData = updateTreatmentSchema.parse(body)
@@ -114,11 +125,11 @@ export async function PATCH(
     })
 
     if (!existingSession) {
-      return NextResponse.json({ error: 'Treatment session not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Treatment session not found', 'Behandlingssessionen hittades inte') }, { status: 404 })
     }
 
     if (existingSession.physioUserId !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const session = await prisma.treatmentSession.update({
@@ -159,15 +170,15 @@ export async function PATCH(
     console.error('Error updating treatment session:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to update treatment session' },
+      { error: t(locale, 'Failed to update treatment session', 'Kunde inte uppdatera behandlingssessionen') },
       { status: 500 }
     )
   }
