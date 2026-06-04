@@ -6,6 +6,7 @@ import { CreateAthleteAccountDTO } from '@/types'
 import { logger } from '@/lib/logger'
 import { createAthleteAccountForClient, type AthleteTier } from '@/lib/athlete-account-utils'
 import { sendAthletePlatformInvite } from '@/lib/athlete-platform-invite'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const VALID_ATHLETE_TIERS: readonly AthleteTier[] = ['FREE', 'STANDARD', 'PRO', 'ELITE']
 function isValidAthleteTier(value: unknown): value is AthleteTier {
@@ -15,8 +16,6 @@ function isValidAthleteTier(value: unknown): value is AthleteTier {
 function shouldSendEmail(value: unknown): boolean {
   return value !== 'sms' && value !== 'whatsapp' && value !== 'link'
 }
-
-type AppLocale = 'en' | 'sv'
 
 /**
  * POST /api/athlete-accounts
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest) {
   try {
     // Require coach authentication
     const coach = await requireCoach()
-    locale = getUserLocale(coach.language)
+    locale = resolveRequestLocale(request, coach.language)
 
     // Business members are exempt — their limit is managed at the business level
     const businessMembership = await prisma.businessMember.findFirst({
@@ -136,7 +135,7 @@ export async function POST(request: NextRequest) {
 
     const inviteResult = await sendAthletePlatformInvite(clientId, coach.id, {
       sendEmail: shouldSendEmail(body.deliveryMethod),
-    })
+    }, locale)
 
     return NextResponse.json(
       {
@@ -182,10 +181,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -199,7 +194,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const coach = await requireCoach()
-    locale = getUserLocale(coach.language)
+    locale = resolveRequestLocale(request, coach.language)
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 

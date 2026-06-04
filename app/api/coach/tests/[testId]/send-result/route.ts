@@ -12,6 +12,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { sendTestResultInvite } from '@/lib/email/send-test-result-invite'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const bodySchema = z.object({
   message: z.string().max(2000).optional(),
@@ -21,8 +22,6 @@ interface RouteContext {
   params: Promise<{ testId: string }>
 }
 
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -30,7 +29,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
     const coach = await requireCoach()
-    const locale: AppLocale = coach.language === 'sv' ? 'sv' : 'en'
+    const locale = resolveRequestLocale(request, coach.language)
     const { testId } = await context.params
 
     const body = await request.json().catch(() => ({}))
@@ -91,6 +90,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       testId,
       coachUserId: coach.id,
       message: parsed.data.message,
+      locale,
     })
 
     if (!result.success) {

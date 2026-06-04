@@ -159,7 +159,9 @@ export async function sendTestResultInvite(
     }
   }
 
-  const locale: EmailLocale = test.client.athleteAccount?.user?.language === 'sv' ? 'sv' : 'en'
+  const locale: EmailLocale = test.client.athleteAccount?.user?.language === 'sv'
+    ? 'sv'
+    : fallbackLocale
   const copy = getCopy(locale)
 
   const businessSlug = test.client.business.slug

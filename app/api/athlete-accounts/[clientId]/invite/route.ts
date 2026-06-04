@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach, canAccessClient } from '@/lib/auth-utils'
 import { sendAthletePlatformInvite } from '@/lib/athlete-platform-invite'
 import { handleApiError } from '@/lib/api-error'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{ clientId: string }>
 }
-
-type AppLocale = 'en' | 'sv'
 
 // POST /api/athlete-accounts/[clientId]/invite
 // Resend access for an existing athlete account. The client profile email is
@@ -19,7 +18,7 @@ function shouldSendEmail(value: unknown): boolean {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const coach = await requireCoach()
-    const locale = getUserLocale(coach.language)
+    const locale = resolveRequestLocale(request, coach.language)
     const { clientId } = await params
 
     const hasAccess = await canAccessClient(coach.id, clientId)
@@ -33,7 +32,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json().catch(() => ({}))
     const result = await sendAthletePlatformInvite(clientId, coach.id, {
       sendEmail: shouldSendEmail(body.deliveryMethod),
-    })
+    }, locale)
     if (!result.success) {
       return NextResponse.json(
         { success: false, error: result.error || t(locale, 'Could not send invite', 'Kunde inte skicka inbjudan') },
@@ -64,10 +63,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     return handleApiError(error, 'POST /api/athlete-accounts/[clientId]/invite')
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
