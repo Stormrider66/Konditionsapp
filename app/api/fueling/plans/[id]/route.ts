@@ -6,6 +6,7 @@ import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { buildRaceDayFuelingPlan } from '@/lib/fueling/race-day-plan'
 import { normalizeRaceFuelingProductPlan, retargetRaceFuelingProductPlan } from '@/lib/fueling/product-plan'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const productPlanSchema = z.object({
   version: z.literal(1),
@@ -35,13 +36,15 @@ const updatePlanSchema = z.object({
 })
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const locale = getAppLocale(user.language)
+    if (!user) return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const plan = await prisma.raceFuelingPlan.findUnique({
@@ -121,10 +124,10 @@ export async function GET(
       },
     })
 
-    if (!plan) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+    if (!plan) return NextResponse.json({ error: t(locale, 'Plan not found', 'Planen hittades inte') }, { status: 404 })
 
     const hasAccess = await canAccessClient(user.id, plan.clientId)
-    if (!hasAccess) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+    if (!hasAccess) return NextResponse.json({ error: t(locale, 'Plan not found', 'Planen hittades inte') }, { status: 404 })
 
     return NextResponse.json({
       success: true,
@@ -140,7 +143,7 @@ export async function GET(
     })
   } catch (error) {
     logger.error('Error fetching fueling plan', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
@@ -148,10 +151,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const locale = getAppLocale(user.language)
+    if (!user) return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const existing = await prisma.raceFuelingPlan.findUnique({
@@ -165,10 +170,10 @@ export async function PATCH(
         productPlan: true,
       },
     })
-    if (!existing) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+    if (!existing) return NextResponse.json({ error: t(locale, 'Plan not found', 'Planen hittades inte') }, { status: 404 })
 
     const hasAccess = await canAccessClient(user.id, existing.clientId)
-    if (!hasAccess) return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+    if (!hasAccess) return NextResponse.json({ error: t(locale, 'Plan not found', 'Planen hittades inte') }, { status: 404 })
 
     const body = updatePlanSchema.parse(await request.json())
     const nextCarbsPerHour = body.recommendedCarbsGPerHour === undefined
@@ -225,13 +230,13 @@ export async function PATCH(
     })
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Invalid data', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid data', 'Ogiltig data'), details: error.errors }, { status: 400 })
     }
     logger.error('Error updating fueling plan', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
-function getAppLocale(language?: string | null): 'en' | 'sv' {
-  return language?.startsWith('sv') ? 'sv' : 'en'
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

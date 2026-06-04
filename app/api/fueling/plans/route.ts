@@ -11,15 +11,18 @@ import { fuelingSportLabel } from '@/lib/fueling/sport-labels'
 import { sortFuelingPlansForDisplay } from '@/lib/fueling/plan-ordering'
 import { fuelingPlanInputSchema } from '@/lib/fueling/plan-input'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const locale = getAppLocale(user.language)
+    if (!user) return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    locale = resolveRequestLocale(request, user.language)
 
     const resolvedClientId = await resolveClientId(request, user.id)
-    if (!resolvedClientId) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    if (!resolvedClientId) return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
 
     const limit = Math.min(Number(request.nextUrl.searchParams.get('limit') ?? 3), 50)
     const includeArchived = request.nextUrl.searchParams.get('includeArchived') === 'true'
@@ -106,28 +109,30 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logger.error('Error fetching fueling plans', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
-    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    const locale = getAppLocale(user.language)
+    if (!user) return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    locale = resolveRequestLocale(request, user.language)
 
     const body = fuelingPlanInputSchema.parse(await request.json())
     const clientId = body.clientId ?? (await resolveAthleteClientId())?.clientId
-    if (!clientId) return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+    if (!clientId) return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 })
 
     const hasAccess = await canAccessClient(user.id, clientId)
-    if (!hasAccess) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!hasAccess) return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
 
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       select: { weight: true },
     })
-    if (!client) return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    if (!client) return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
 
     const linkedTest = body.testId
       ? await prisma.test.findFirst({
@@ -137,7 +142,7 @@ export async function POST(request: NextRequest) {
       : null
 
     if (body.testId && !linkedTest) {
-      return NextResponse.json({ error: 'Test not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Test not found', 'Testet hittades inte') }, { status: 404 })
     }
 
     const estimate = estimateRaceFueling(
@@ -204,10 +209,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, plan }, { status: 201 })
   } catch (error) {
     if (error instanceof ZodError) {
-      return NextResponse.json({ error: 'Invalid data', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Invalid data', 'Ogiltig data'), details: error.errors }, { status: 400 })
     }
     logger.error('Error creating fueling plan', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
@@ -223,6 +228,6 @@ function defaultPlanName(sport: SportType, distanceKm?: number | null, locale: '
   return distanceKm ? `${prefix} ${label} ${distanceKm} km` : `${prefix} ${label}`
 }
 
-function getAppLocale(language?: string | null): 'en' | 'sv' {
-  return language?.startsWith('sv') ? 'sv' : 'en'
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
