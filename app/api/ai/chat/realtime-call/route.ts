@@ -25,6 +25,7 @@ import {
   getResolvedProviderKey,
 } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -42,7 +43,6 @@ const realtimeModeSchema = z.enum([
   'hyrox_pacing',
 ])
 type RealtimeVoiceMode = z.infer<typeof realtimeModeSchema>
-type AppLocale = 'en' | 'sv'
 
 function safetyIdentifier(userId: string): string {
   return createHash('sha256').update(`trainomics:${userId}`).digest('hex')
@@ -327,7 +327,7 @@ async function resolveOpenAiKey(params: {
     const access = await checkAthleteFeatureAccess(resolved.clientId, 'ai_chat')
     if (!access.allowed) {
       throw new Response(JSON.stringify({
-        error: access.reason || 'AI chat requires a subscription',
+        error: access.reason || t(params.locale, 'AI chat requires a subscription', 'AI-chat kräver en prenumeration'),
         code: access.code || 'SUBSCRIPTION_REQUIRED',
         upgradeUrl: access.upgradeUrl || '/athlete/subscription',
         currentUsage: access.currentUsage,
@@ -404,7 +404,7 @@ async function resolveOpenAiKey(params: {
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const body = await request.json().catch(() => null)
@@ -420,7 +420,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = getUserLocale(currentUser.language)
+    locale = resolveRequestLocale(request, currentUser.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:chat-realtime-call', currentUser.id, {
       limit: 8,
@@ -515,10 +515,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
