@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 import { logError } from '@/lib/logger-console'
 
@@ -23,10 +24,9 @@ const dragScheduledWorkoutSchema = z.object({
 })
 
 type AssignmentKind = 'strength' | 'cardio' | 'hybrid' | 'agility'
-type AppLocale = 'en' | 'sv'
 
 export async function POST(request: NextRequest) {
-  let locale = getRequestLocale(request)
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     if (!dbUser) {
       return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    locale = getRequestLocale(request, dbUser.language)
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const validationResult = dragScheduledWorkoutSchema.safeParse(body)
@@ -526,12 +526,6 @@ function serializeDraggedEvent(event: {
     endDate: event.endDate.toISOString(),
     status: event.status,
   }
-}
-
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv'
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
-  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
 }
 
 function formatDateForLocale(date: Date, locale: AppLocale): string {

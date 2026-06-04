@@ -14,7 +14,12 @@ import {
   calculateAvailability,
 } from '@/lib/calendar/availability-calculator'
 import { buildCalendarContext, shouldUseCalendarConstraints } from '@/lib/ai/calendar-context-builder'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logError } from '@/lib/logger-console'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/calendar/constraints
@@ -26,9 +31,11 @@ import { logError } from '@/lib/logger-console'
  * - includeContext: Optional - Include human-readable context for AI prompts
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
     const { searchParams } = new URL(request.url)
 
     const clientId = searchParams.get('clientId')
@@ -38,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     if (!clientId || !startDateStr || !endDateStr) {
       return NextResponse.json(
-        { error: 'Missing required parameters: clientId, startDate, endDate' },
+        { error: t(locale, 'Missing required parameters: clientId, startDate, endDate', 'Obligatoriska parametrar saknas: clientId, startDate, endDate') },
         { status: 400 }
       )
     }
@@ -46,7 +53,7 @@ export async function GET(request: NextRequest) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
+        { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
         { status: 404 }
       )
     }
@@ -96,11 +103,11 @@ export async function GET(request: NextRequest) {
     logError('Calendar constraints error:', error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to get calendar constraints' },
+      { error: t(locale, 'Failed to get calendar constraints', 'Kunde inte hämta kalenderbegränsningar') },
       { status: 500 }
     )
   }

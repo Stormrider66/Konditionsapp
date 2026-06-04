@@ -15,6 +15,7 @@ import {
   formatDateForLocale,
 } from '@/lib/calendar/workout-scheduling'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 import { logError } from '@/lib/logger-console'
 
@@ -24,10 +25,8 @@ const copyWorkoutSchema = z.object({
   skipConflictCheck: z.boolean().optional().default(false),
 })
 
-type AppLocale = 'en' | 'sv'
-
 export async function POST(request: NextRequest) {
-  let appLocale = getRequestLocale(request)
+  let appLocale: AppLocale = resolveRequestLocale(request)
 
   try {
     const supabase = await createClient()
@@ -46,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (!dbUser) {
       return NextResponse.json({ error: t(appLocale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    appLocale = getUserLocale(dbUser.language)
+    appLocale = resolveRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const validationResult = copyWorkoutSchema.safeParse(body)
@@ -104,7 +103,7 @@ export async function POST(request: NextRequest) {
         targetDate,
         workout.type,
         workout.intensity,
-        dbUser.language === 'sv' ? 'sv' : 'en'
+        appLocale
       )
 
       const criticalConflicts = conflicts.filter((conflict) => conflict.severity === 'CRITICAL')
@@ -250,15 +249,6 @@ export async function POST(request: NextRequest) {
     logError('Error copying workout:', error)
     return NextResponse.json({ error: t(appLocale, 'Failed to copy workout', 'Kunde inte kopiera passet') }, { status: 500 })
   }
-}
-
-function getRequestLocale(request: NextRequest): AppLocale {
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
-  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

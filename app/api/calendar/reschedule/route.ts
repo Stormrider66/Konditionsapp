@@ -18,6 +18,7 @@ import { detectWorkoutConflicts } from '@/lib/calendar/conflict-detection'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { findOrCreateTrainingDayForWorkout } from '@/lib/calendar/workout-scheduling'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 import { logError } from '@/lib/logger-console'
 
@@ -27,10 +28,9 @@ const rescheduleSchema = z.object({
   skipConflictCheck: z.boolean().optional().default(false),
   reason: z.string().optional(),
 })
-type AppLocale = 'en' | 'sv'
 
 export async function POST(request: NextRequest) {
-  let locale = getRequestLocale(request)
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const supabase = await createClient()
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!dbUser) {
       return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    locale = getUserLocale(dbUser.language)
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const validationResult = rescheduleSchema.safeParse(body)
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
         targetDate,
         workout.type,
         workout.intensity,
-        dbUser.language === 'sv' ? 'sv' : 'en'
+        locale
       )
 
       // If there are critical conflicts, warn the user
@@ -208,15 +208,6 @@ export async function POST(request: NextRequest) {
     logError('Error rescheduling workout:', error)
     return NextResponse.json({ error: t(locale, 'Failed to reschedule workout', 'Kunde inte flytta passet') }, { status: 500 })
   }
-}
-
-function getRequestLocale(request: NextRequest): AppLocale {
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
-  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function formatDateForLocale(date: Date, locale: AppLocale): string {

@@ -16,7 +16,12 @@ import {
 } from '@/lib/calendar/availability-calculator'
 import { addDays, format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logError } from '@/lib/logger-console'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/calendar/my-availability
@@ -26,15 +31,17 @@ import { logError } from '@/lib/logger-console'
  * - date: Optional - Check specific date availability (ISO format)
  */
 export async function GET(request: NextRequest) {
+  let appLocale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(appLocale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId } = resolved
 
     const { searchParams } = new URL(request.url)
-    const appLocale = request.headers.get('accept-language')?.startsWith('sv') ? 'sv' : 'en'
+    appLocale = resolveRequestLocale(request, resolved.user.language)
     const dateLocale = appLocale === 'sv' ? sv : enUS
 
     // Check for specific date query
@@ -139,11 +146,11 @@ export async function GET(request: NextRequest) {
     logError('My availability error:', error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(appLocale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to get availability' },
+      { error: t(appLocale, 'Failed to get availability', 'Kunde inte hämta tillgänglighet') },
       { status: 500 }
     )
   }
