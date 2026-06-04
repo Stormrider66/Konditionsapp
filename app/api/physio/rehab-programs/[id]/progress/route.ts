@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const logProgressSchema = z.object({
   exercisesCompleted: z.array(z.string().uuid()).default([]),
@@ -14,8 +15,6 @@ const logProgressSchema = z.object({
   notes: z.string().optional(),
   wantsPhysioContact: z.boolean().default(false),
 })
-
-type AppLocale = 'en' | 'sv'
 
 function getUserLocale(language: string | null | undefined): AppLocale {
   return language === 'sv' ? 'sv' : 'en'
@@ -33,11 +32,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id: programId } = await params
     const { searchParams } = new URL(request.url)
@@ -50,7 +52,7 @@ export async function GET(
     })
 
     if (!program) {
-      return NextResponse.json({ error: 'Rehab program not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Rehab program not found', 'Rehabprogrammet hittades inte') }, { status: 404 })
     }
 
     // Check access
@@ -66,7 +68,7 @@ export async function GET(
     }
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const [logs, total] = await Promise.all([
@@ -96,7 +98,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching progress logs:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch progress logs' },
+      { error: t(locale, 'Failed to fetch progress logs', 'Kunde inte hämta progressloggar') },
       { status: 500 }
     )
   }
@@ -110,11 +112,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id: programId } = await params
     const body = await request.json()
@@ -126,7 +131,7 @@ export async function POST(
     })
 
     if (!program) {
-      return NextResponse.json({ error: 'Rehab program not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Rehab program not found', 'Rehabprogrammet hittades inte') }, { status: 404 })
     }
 
     // Check access - physio, coach, or the athlete themselves
@@ -142,7 +147,7 @@ export async function POST(
     }
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const progressLog = await prisma.rehabProgressLog.create({
@@ -243,12 +248,12 @@ export async function POST(
     console.error('Error logging progress:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to log progress' },
+      { error: t(locale, 'Failed to log progress', 'Kunde inte logga progress') },
       { status: 500 }
     )
   }

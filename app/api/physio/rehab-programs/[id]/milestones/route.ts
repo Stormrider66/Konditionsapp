@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const addMilestoneSchema = z.object({
   phase: z.enum(['ACUTE', 'SUBACUTE', 'REMODELING', 'FUNCTIONAL', 'RETURN_TO_SPORT']),
@@ -27,8 +32,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { id: programId } = await params
     const body = await request.json()
     const validatedData = addMilestoneSchema.parse(body)
@@ -39,11 +47,11 @@ export async function POST(
     })
 
     if (!program) {
-      return NextResponse.json({ error: 'Rehab program not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Rehab program not found', 'Rehabprogrammet hittades inte') }, { status: 404 })
     }
 
     if (program.physioUserId !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Get next order if not provided
@@ -74,15 +82,15 @@ export async function POST(
     console.error('Error adding milestone to rehab program:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to add milestone to rehab program' },
+      { error: t(locale, 'Failed to add milestone to rehab program', 'Kunde inte lägga till milstolpen i rehabprogrammet') },
       { status: 500 }
     )
   }
@@ -97,14 +105,17 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { id: programId } = await params
     const { searchParams } = new URL(request.url)
     const milestoneId = searchParams.get('milestoneId')
 
     if (!milestoneId) {
-      return NextResponse.json({ error: 'milestoneId query parameter required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'milestoneId query parameter required', 'Query-parametern milestoneId krävs') }, { status: 400 })
     }
 
     const body = await request.json()
@@ -116,11 +127,11 @@ export async function PATCH(
     })
 
     if (!program) {
-      return NextResponse.json({ error: 'Rehab program not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Rehab program not found', 'Rehabprogrammet hittades inte') }, { status: 404 })
     }
 
     if (program.physioUserId !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Verify milestone belongs to this program
@@ -132,7 +143,7 @@ export async function PATCH(
     })
 
     if (!existingMilestone) {
-      return NextResponse.json({ error: 'Milestone not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Milestone not found', 'Milstolpen hittades inte') }, { status: 404 })
     }
 
     const milestone = await prisma.rehabMilestone.update({
@@ -151,15 +162,15 @@ export async function PATCH(
     console.error('Error updating milestone:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to update milestone' },
+      { error: t(locale, 'Failed to update milestone', 'Kunde inte uppdatera milstolpen') },
       { status: 500 }
     )
   }

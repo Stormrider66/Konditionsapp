@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const addExerciseSchema = z.object({
   exerciseId: z.string().uuid(),
@@ -26,8 +31,11 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { id: programId } = await params
     const body = await request.json()
     const validatedData = addExerciseSchema.parse(body)
@@ -38,11 +46,11 @@ export async function POST(
     })
 
     if (!program) {
-      return NextResponse.json({ error: 'Rehab program not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Rehab program not found', 'Rehabprogrammet hittades inte') }, { status: 404 })
     }
 
     if (program.physioUserId !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Verify exercise exists
@@ -51,7 +59,7 @@ export async function POST(
     })
 
     if (!exercise) {
-      return NextResponse.json({ error: 'Exercise not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Exercise not found', 'Övningen hittades inte') }, { status: 404 })
     }
 
     // Get next order if not provided
@@ -98,15 +106,15 @@ export async function POST(
     console.error('Error adding exercise to rehab program:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to add exercise to rehab program' },
+      { error: t(locale, 'Failed to add exercise to rehab program', 'Kunde inte lägga till övningen i rehabprogrammet') },
       { status: 500 }
     )
   }
