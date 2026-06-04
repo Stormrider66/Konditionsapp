@@ -13,6 +13,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { inferCompleteProtein, inferProteinSource, normalizeProteinSource } from '@/lib/nutrition/protein-quality'
 import { getTranslations } from '@/i18n/server'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 const RANGE_DAYS: Record<string, number> = {
   '1d': 1,
@@ -39,13 +40,17 @@ function parseDateParam(value: string | null): Date | null {
 }
 
 export async function GET(request: NextRequest) {
-  const t = await getTranslations('api.nutrition.stats')
+  let locale = resolveRequestLocale(request)
+  let t = await getTranslations({ locale, namespace: 'api.nutrition.stats' })
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: t('errors.unauthorized') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
+    t = await getTranslations({ locale, namespace: 'api.nutrition.stats' })
 
     const range = request.nextUrl.searchParams.get('range') || '30d'
     const days = RANGE_DAYS[range] || 30

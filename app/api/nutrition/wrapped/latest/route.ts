@@ -6,19 +6,24 @@
  * Returns the most recent wrapped summary for the current athlete.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { getTranslations } from '@/i18n/server'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
-export async function GET() {
-  const t = await getTranslations('api.nutrition.wrapped')
+export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+  let t = await getTranslations({ locale, namespace: 'api.nutrition.wrapped' })
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: t('errors.unauthorized') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
+    t = await getTranslations({ locale, namespace: 'api.nutrition.wrapped' })
 
     const latest = await prisma.nutritionWrapped.findFirst({
       where: { clientId: resolved.clientId },
