@@ -10,6 +10,11 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema
 const preferencesSchema = z.object({
@@ -31,13 +36,15 @@ const preferencesSchema = z.object({
  * GET /api/nutrition/preferences
  * Get the current athlete's dietary preferences
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Get athlete account
     const athleteAccount = await prisma.athleteAccount.findFirst({
@@ -52,7 +59,7 @@ export async function GET() {
     })
 
     if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Athlete not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -61,7 +68,7 @@ export async function GET() {
     })
   } catch (error) {
     logger.error('Error fetching dietary preferences', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
@@ -70,12 +77,14 @@ export async function GET() {
  * Update the current athlete's dietary preferences
  */
 export async function PUT(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validated = preferencesSchema.parse(body)
@@ -86,7 +95,7 @@ export async function PUT(request: NextRequest) {
     })
 
     if (!athleteAccount) {
-      return NextResponse.json({ error: 'Athlete not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Athlete not found', 'Atleten hittades inte') }, { status: 404 })
     }
 
     // Upsert preferences
@@ -126,11 +135,11 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid data', details: error.errors },
+        { error: t(locale, 'Invalid data', 'Ogiltig data'), details: error.errors },
         { status: 400 }
       )
     }
     logger.error('Error updating dietary preferences', {}, error as Error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }

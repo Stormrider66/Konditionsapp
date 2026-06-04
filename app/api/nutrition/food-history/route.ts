@@ -12,6 +12,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * Compress a free-text meal description into a short, reusable label.
@@ -74,12 +79,14 @@ function getDateFromRange(range: string): Date {
 }
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url)
     const range = searchParams.get('range') || '30d'
@@ -447,9 +454,9 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    return NextResponse.json({ error: 'Invalid view parameter' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'Invalid view parameter', 'Ogiltig vyparameter') }, { status: 400 })
   } catch (error) {
     logger.error('Error fetching food history', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }

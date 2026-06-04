@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t('errors.unauthorized') }, { status: 401 })
     }
     const { clientId } = resolved
 
@@ -284,7 +284,7 @@ export async function GET(request: NextRequest) {
     logger.error('Nutrition stats error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t('errors.unauthorized') }, { status: 401 })
     }
 
     return NextResponse.json({ error: t('errors.fetchFailed') }, { status: 500 })

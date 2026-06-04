@@ -18449,6 +18449,7 @@
     "nutrition": {
       "stats": {
         "errors": {
+          "unauthorized": "Unauthorized",
           "fetchFailed": "Could not fetch statistics"
         }
       },

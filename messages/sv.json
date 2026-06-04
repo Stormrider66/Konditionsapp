@@ -18440,6 +18440,7 @@
     "nutrition": {
       "stats": {
         "errors": {
+          "unauthorized": "Obehörig",
           "fetchFailed": "Kunde inte hämta statistik"
         }
       },
