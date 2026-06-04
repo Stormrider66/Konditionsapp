@@ -9,6 +9,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const feedbackSchema = z.object({
   notificationId: z.string().uuid(),
@@ -19,12 +20,19 @@ const feedbackSchema = z.object({
   notes: z.string().optional(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: Request) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { clientId } = resolved
 
     // Parse and validate body
@@ -33,7 +41,10 @@ export async function POST(request: Request) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { error: 'Invalid feedback data', details: validation.error.errors },
+        {
+          error: t(locale, 'Invalid feedback data', 'Ogiltig feedbackdata'),
+          details: validation.error.errors,
+        },
         { status: 400 }
       )
     }
@@ -51,7 +62,10 @@ export async function POST(request: Request) {
     })
 
     if (!notification) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: t(locale, 'Notification not found', 'Notisen hittades inte') },
+        { status: 404 }
+      )
     }
 
     // Update notification with feedback
@@ -85,11 +99,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Feedback submitted successfully',
+      message: t(locale, 'Feedback submitted successfully', 'Feedbacken skickades'),
       notificationId: updatedNotification.id,
     })
   } catch (error) {
     console.error('Error submitting workout feedback:', error)
-    return NextResponse.json({ error: 'Failed to submit feedback' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to submit feedback', 'Kunde inte skicka feedback') },
+      { status: 500 }
+    )
   }
 }

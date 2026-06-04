@@ -7,14 +7,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     const { clientId } = resolved
 
@@ -76,6 +85,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ notifications })
   } catch (error) {
     console.error('Error fetching notifications:', error)
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+    return NextResponse.json(
+      { error: t(locale, 'Failed to fetch notifications', 'Kunde inte hämta notiser') },
+      { status: 500 }
+    )
   }
 }

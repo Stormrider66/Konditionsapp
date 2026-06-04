@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   getNextMilestone,
   getMotivationMessage,
@@ -14,13 +15,25 @@ import {
   type StreakResponse,
 } from '@/types/streak'
 
-export async function GET() {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    locale = resolveLocale(request, resolved.user.language)
 
     const { clientId } = resolved
 
@@ -89,11 +102,11 @@ export async function GET() {
     }
 
     // Get next milestone and days until
-    const nextMilestone = getNextMilestone(currentStreak)
+    const nextMilestone = getNextMilestone(currentStreak, locale)
     const daysUntilMilestone = nextMilestone ? nextMilestone.days - currentStreak : null
 
     // Get motivation message
-    const motivation = getMotivationMessage(currentStreak, personalBest)
+    const motivation = getMotivationMessage(currentStreak, personalBest, locale)
 
     // Check if beating personal record (strictly greater, not just matching)
     const isNewRecord = currentStreak > 0 && currentStreak > personalBest
@@ -123,7 +136,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching streak data:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch streak data' },
+      { error: t(locale, 'Failed to fetch streak data', 'Kunde inte hämta streak-data') },
       { status: 500 }
     )
   }

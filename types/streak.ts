@@ -47,7 +47,9 @@ export interface StreakResponse {
   }
 }
 
-// Streak milestone thresholds with Swedish labels
+type StreakLocale = 'en' | 'sv'
+
+// Streak milestone thresholds with Swedish labels kept as the default export.
 export const STREAK_MILESTONES: StreakMilestone[] = [
   { days: 7, label: 'En vecka stark!', celebrationLevel: 'BRONZE' },
   { days: 14, label: 'Två veckor!', celebrationLevel: 'BRONZE' },
@@ -59,11 +61,29 @@ export const STREAK_MILESTONES: StreakMilestone[] = [
   { days: 365, label: 'Ett helt år - legendär!', celebrationLevel: 'PLATINUM' },
 ]
 
+const EN_STREAK_MILESTONES: StreakMilestone[] = [
+  { days: 7, label: 'One strong week!', celebrationLevel: 'BRONZE' },
+  { days: 14, label: 'Two weeks!', celebrationLevel: 'BRONZE' },
+  { days: 21, label: 'Three weeks - a habit is forming!', celebrationLevel: 'SILVER' },
+  { days: 30, label: 'A full month!', celebrationLevel: 'SILVER' },
+  { days: 60, label: 'Two months!', celebrationLevel: 'GOLD' },
+  { days: 90, label: 'The quarter is yours!', celebrationLevel: 'GOLD' },
+  { days: 180, label: 'Half a year complete!', celebrationLevel: 'PLATINUM' },
+  { days: 365, label: 'A full year - legendary!', celebrationLevel: 'PLATINUM' },
+]
+
+function getMilestones(locale: StreakLocale): StreakMilestone[] {
+  return locale === 'sv' ? STREAK_MILESTONES : EN_STREAK_MILESTONES
+}
+
 /**
  * Get the next milestone for a given streak count
  */
-export function getNextMilestone(currentStreak: number): StreakMilestone | null {
-  return STREAK_MILESTONES.find((m) => m.days > currentStreak) || null
+export function getNextMilestone(
+  currentStreak: number,
+  locale: StreakLocale = 'sv'
+): StreakMilestone | null {
+  return getMilestones(locale).find((m) => m.days > currentStreak) || null
 }
 
 /**
@@ -85,17 +105,22 @@ export function getMilestoneForStreak(streak: number): StreakMilestone | null {
  */
 export function getMotivationMessage(
   currentStreak: number,
-  personalBest: number
+  personalBest: number,
+  locale: StreakLocale = 'sv'
 ): StreakMotivation {
-  const nextMilestone = getNextMilestone(currentStreak)
+  const nextMilestone = getNextMilestone(currentStreak, locale)
   const daysToRecord = personalBest - currentStreak
   const daysToMilestone = nextMilestone ? nextMilestone.days - currentStreak : null
+  const dayLabel = (days: number) => {
+    if (locale === 'sv') return days === 1 ? 'dag' : 'dagar'
+    return days === 1 ? 'day' : 'days'
+  }
 
   // At personal best
   if (currentStreak > 0 && currentStreak >= personalBest) {
     return {
       type: 'at_record',
-      message: 'Du är på ditt rekord! Fortsätt!',
+      message: locale === 'sv' ? 'Du är på ditt rekord! Fortsätt!' : 'You are at your record! Keep going!',
     }
   }
 
@@ -103,7 +128,9 @@ export function getMotivationMessage(
   if (daysToRecord > 0 && daysToRecord <= 3) {
     return {
       type: 'approaching_record',
-      message: `${daysToRecord} ${daysToRecord === 1 ? 'dag' : 'dagar'} kvar till ditt rekord!`,
+      message: locale === 'sv'
+        ? `${daysToRecord} ${dayLabel(daysToRecord)} kvar till ditt rekord!`
+        : `${daysToRecord} ${dayLabel(daysToRecord)} left until your record!`,
     }
   }
 
@@ -111,13 +138,17 @@ export function getMotivationMessage(
   if (daysToMilestone !== null && daysToMilestone <= 3 && daysToMilestone > 0) {
     return {
       type: 'new_milestone',
-      message: `${daysToMilestone} ${daysToMilestone === 1 ? 'dag' : 'dagar'} till ${nextMilestone!.days}-dagars milestone!`,
+      message: locale === 'sv'
+        ? `${daysToMilestone} ${dayLabel(daysToMilestone)} till ${nextMilestone!.days}-dagars milstolpe!`
+        : `${daysToMilestone} ${dayLabel(daysToMilestone)} until your ${nextMilestone!.days}-day milestone!`,
     }
   }
 
   // Default encouragement
   return {
     type: 'keep_going',
-    message: currentStreak > 0 ? 'Fortsätt så! Varje dag räknas.' : 'Börja din streak idag!',
+    message: locale === 'sv'
+      ? currentStreak > 0 ? 'Fortsätt så! Varje dag räknas.' : 'Börja din streak idag!'
+      : currentStreak > 0 ? 'Keep it up! Every day counts.' : 'Start your streak today!',
   }
 }

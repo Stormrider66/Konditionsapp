@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { resolveAthleteClientId } from '@/lib/auth-utils';
 import { ErgometerType, ErgometerTestProtocol } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 import {
   calculateLeaderboard,
   getAthleteRank,
@@ -17,12 +18,19 @@ import {
   AthleteTestResult,
 } from '@/lib/training-engine/ergometer/leaderboards/leaderboard-calculator';
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const resolved = await resolveAthleteClientId();
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, resolved.user.language);
     const { clientId } = resolved;
 
     // Find the team the athlete is a member of
@@ -49,7 +57,7 @@ export async function GET(request: NextRequest) {
         success: true,
         data: {
           rankings: [],
-          message: 'Du ar inte medlem i nagot lag',
+          message: t(locale, 'You are not a member of any team', 'Du är inte medlem i något lag'),
         },
       });
     }
@@ -172,7 +180,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching team rank:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch team rank' },
+      { error: t(locale, 'Failed to fetch team rank', 'Kunde inte hämta lagranking') },
       { status: 500 }
     );
   }
