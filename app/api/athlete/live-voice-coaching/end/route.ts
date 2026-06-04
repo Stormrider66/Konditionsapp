@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { estimateLiveSessionCost } from '@/lib/ai/gemini-config'
@@ -23,13 +24,20 @@ const endSchema = z.object({
   })).optional(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: Request) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     // Auth
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { clientId, user } = resolved
 
     // Validate body
@@ -37,7 +45,7 @@ export async function POST(request: Request) {
     const parsed = endSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid request', 'Ogiltig förfrågan'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -63,7 +71,7 @@ export async function POST(request: Request) {
 
     if (!session) {
       return NextResponse.json(
-        { error: 'Session not found or already ended' },
+        { error: t(locale, 'Session not found or already ended', 'Passet hittades inte eller har redan avslutats') },
         { status: 404 }
       )
     }
@@ -132,7 +140,7 @@ export async function POST(request: Request) {
   } catch (error) {
     logger.error('Live voice coaching end failed', { error })
     return NextResponse.json(
-      { error: 'Failed to end voice coaching session' },
+      { error: t(locale, 'Failed to end voice coaching session', 'Kunde inte avsluta röstcoachningspasset') },
       { status: 500 }
     )
   }

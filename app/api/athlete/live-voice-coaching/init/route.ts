@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { GoogleGenAI, Modality } from '@google/genai'
 import { z } from 'zod'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
@@ -33,13 +34,20 @@ const initSchema = z.object({
   enableCamera: z.boolean().optional().default(false),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: Request) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     // Auth
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { user, clientId, isCoachInAthleteMode } = resolved
 
     // Rate limit
@@ -63,7 +71,7 @@ export async function POST(request: Request) {
     const parsed = initSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid request', 'Ogiltig förfrågan'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -80,7 +88,11 @@ export async function POST(request: Request) {
     if (!keyContext?.googleKey) {
       return NextResponse.json(
         {
-          error: 'Google API key not configured. Set up your API key in settings to use live voice coaching.',
+          error: t(
+            locale,
+            'Google API key not configured. Set up your API key in settings to use live voice coaching.',
+            'Google API-nyckel är inte konfigurerad. Lägg till din API-nyckel i inställningarna för att använda live-röstcoachning.'
+          ),
           code: 'NO_API_KEY',
         },
         { status: 400 }
@@ -114,7 +126,10 @@ export async function POST(request: Request) {
       })
 
       if (!assignment) {
-        return NextResponse.json({ error: 'Assignment not found or access denied' }, { status: 404 })
+        return NextResponse.json(
+          { error: t(locale, 'Assignment not found or access denied', 'Tilldelningen hittades inte eller saknar åtkomst') },
+          { status: 404 }
+        )
       }
 
       voiceName = assignment.athlete?.preferredVoiceCoachVoice || 'Kore'
@@ -191,7 +206,10 @@ export async function POST(request: Request) {
       })
 
       if (!assignment) {
-        return NextResponse.json({ error: 'Assignment not found or access denied' }, { status: 404 })
+        return NextResponse.json(
+          { error: t(locale, 'Assignment not found or access denied', 'Tilldelningen hittades inte eller saknar åtkomst') },
+          { status: 404 }
+        )
       }
 
       voiceName = assignment.athlete?.preferredVoiceCoachVoice || 'Kore'
@@ -236,7 +254,10 @@ export async function POST(request: Request) {
       })
 
       if (!assignment) {
-        return NextResponse.json({ error: 'Assignment not found or access denied' }, { status: 404 })
+        return NextResponse.json(
+          { error: t(locale, 'Assignment not found or access denied', 'Tilldelningen hittades inte eller saknar åtkomst') },
+          { status: 404 }
+        )
       }
 
       voiceName = assignment.athlete?.preferredVoiceCoachVoice || 'Kore'
@@ -311,7 +332,7 @@ export async function POST(request: Request) {
     if (!token.name) {
       logger.error('Failed to create ephemeral token — no name returned')
       return NextResponse.json(
-        { error: 'Failed to initialize voice coaching session' },
+        { error: t(locale, 'Failed to initialize voice coaching session', 'Kunde inte starta röstcoachningspasset') },
         { status: 500 }
       )
     }
@@ -348,7 +369,7 @@ export async function POST(request: Request) {
   } catch (error) {
     logger.error('Live voice coaching init failed', { error })
     return NextResponse.json(
-      { error: 'Failed to initialize voice coaching session' },
+      { error: t(locale, 'Failed to initialize voice coaching session', 'Kunde inte starta röstcoachningspasset') },
       { status: 500 }
     )
   }
