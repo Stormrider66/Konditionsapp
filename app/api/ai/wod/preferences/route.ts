@@ -4,26 +4,25 @@
  * Athlete-owned learned Dagens pass preferences.
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { getWODPreferenceProfile, resetWODPreferenceProfile } from '@/lib/ai/wod-learning'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-export async function GET() {
-  let locale: AppLocale = 'en'
+export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     const profile = await getWODPreferenceProfile(resolved.clientId)
     return NextResponse.json({ profile })
@@ -36,15 +35,15 @@ export async function GET() {
   }
 }
 
-export async function DELETE() {
-  let locale: AppLocale = 'en'
+export async function DELETE(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    locale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     await resetWODPreferenceProfile(resolved.clientId)
     return NextResponse.json({ success: true })

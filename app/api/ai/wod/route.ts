@@ -39,6 +39,7 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { logAiUsage, withAiContext, type AiProviderTag } from '@/lib/ai/usage-logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   buildCandidateScoringSnapshot,
   buildPreferenceSnapshot,
@@ -58,15 +59,13 @@ interface RequestBody extends WODRequest {
   autoIntent?: WODAutoIntent['source']
 }
 
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now()
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     // Authenticate athlete (supports coaches in athlete mode)
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { user, clientId } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:wod:generate', user.id, {
       limit: 10,
@@ -820,7 +819,7 @@ async function enhanceWorkoutWithLibrary(
 // ============================================
 
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
@@ -828,7 +827,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url)
     const wodId = searchParams.get('id')
@@ -876,7 +875,7 @@ export async function GET(request: NextRequest) {
 // ============================================
 
 export async function PATCH(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
@@ -884,7 +883,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, user } = resolved
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const { wodId, status, sessionRPE, exerciseLogs, actualDuration } = body
