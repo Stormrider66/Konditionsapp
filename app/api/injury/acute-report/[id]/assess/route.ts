@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessAthleteAsPhysio, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const createAssessmentSchema = z.object({
   injuryType: z.string().min(1),
@@ -44,10 +49,12 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
@@ -58,7 +65,13 @@ export async function POST(
     // Only physios and coaches can create assessments
     if (user.role !== 'ADMIN' && !hasPhysioAccess && !hasCoachAccess) {
       return NextResponse.json(
-        { error: 'Only physios and coaches can create injury assessments' },
+        {
+          error: t(
+            locale,
+            'Only physios and coaches can create injury assessments',
+            'Endast fysioterapeuter och coacher kan skapa skadebedömningar'
+          ),
+        },
         { status: 403 }
       )
     }
@@ -73,13 +86,13 @@ export async function POST(
     })
 
     if (!report) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Report not found', 'Rapporten hittades inte') }, { status: 404 })
     }
 
     // Check if already assessed
     if (report.injuryId) {
       return NextResponse.json(
-        { error: 'This report has already been assessed' },
+        { error: t(locale, 'This report has already been assessed', 'Den här rapporten har redan bedömts') },
         { status: 400 }
       )
     }
@@ -96,7 +109,7 @@ export async function POST(
 
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have permission to assess this report' },
+        { error: t(locale, 'You do not have permission to assess this report', 'Du har inte behörighet att bedöma den här rapporten') },
         { status: 403 }
       )
     }
@@ -196,12 +209,12 @@ export async function POST(
     console.error('Error creating injury assessment:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to create injury assessment' },
+      { error: t(locale, 'Failed to create injury assessment', 'Kunde inte skapa skadebedömning') },
       { status: 500 }
     )
   }

@@ -12,6 +12,11 @@ import {
   getMedicalNotificationRecipientIdsForClient,
 } from '@/lib/medical/care-team-recipients'
 import { sendAcuteInjuryExternalAlerts } from '@/lib/notifications/medical-external-alerts'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating an acute injury report
 const createAcuteInjuryReportSchema = z.object({
@@ -44,10 +49,12 @@ const createAcuteInjuryReportSchema = z.object({
  * For coaches: shows reports for their athletes
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -84,11 +91,11 @@ export async function GET(request: NextRequest) {
       // Athletes see their own reports
       const resolved = await resolveAthleteClientId()
       if (!resolved) {
-        return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+        return NextResponse.json({ error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') }, { status: 404 })
       }
       where.clientId = resolved.clientId
     } else if (user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     if (clientId) {
@@ -98,7 +105,7 @@ export async function GET(request: NextRequest) {
         (hasCoachAccess && await canAccessClient(user.id, clientId))
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'You do not have access to this athlete' },
+          { error: t(locale, 'You do not have access to this athlete', 'Du har inte åtkomst till den här atleten') },
           { status: 403 }
         )
       }
@@ -158,7 +165,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching acute injury reports', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch acute injury reports' },
+      { error: t(locale, 'Failed to fetch acute injury reports', 'Kunde inte hämta akuta skaderapporter') },
       { status: 500 }
     )
   }
@@ -170,10 +177,12 @@ export async function GET(request: NextRequest) {
  * Can be created by coaches, physios, or athletes
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const body = await request.json()
@@ -198,7 +207,13 @@ export async function POST(request: NextRequest) {
 
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have access to report an injury for this athlete' },
+        {
+          error: t(
+            locale,
+            'You do not have access to report an injury for this athlete',
+            'Du har inte åtkomst att rapportera en skada för den här atleten'
+          ),
+        },
         { status: 403 }
       )
     }
@@ -207,7 +222,13 @@ export async function POST(request: NextRequest) {
       const canReportToTeamPhysio = await canClientReportInjuryToTeamPhysio(validatedData.clientId)
       if (!canReportToTeamPhysio) {
         return NextResponse.json(
-          { error: 'Injury reports are only available when your team has an assigned physio.' },
+          {
+            error: t(
+              locale,
+              'Injury reports are only available when your team has an assigned physio.',
+              'Skaderapporter är bara tillgängliga när ditt lag har en tilldelad fysioterapeut.'
+            ),
+          },
           { status: 403 }
         )
       }
@@ -325,12 +346,12 @@ export async function POST(request: NextRequest) {
     logger.error('Error creating acute injury report', {}, error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to create acute injury report' },
+      { error: t(locale, 'Failed to create acute injury report', 'Kunde inte skapa akut skaderapport') },
       { status: 500 }
     )
   }

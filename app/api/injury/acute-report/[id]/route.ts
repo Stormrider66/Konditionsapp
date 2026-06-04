@@ -4,6 +4,11 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio, resolveAthleteClientId } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const updateAcuteReportSchema = z.object({
   status: z.enum(['PENDING_REVIEW', 'REVIEWED', 'IN_TREATMENT', 'RESOLVED', 'REFERRED']).optional(),
@@ -30,10 +35,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { id } = await params
@@ -70,7 +77,7 @@ export async function GET(
     })
 
     if (!report) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Report not found', 'Rapporten hittades inte') }, { status: 404 })
     }
 
     // Check access
@@ -91,14 +98,14 @@ export async function GET(
     }
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     return NextResponse.json(report)
   } catch (error) {
     console.error('Error fetching acute injury report:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch acute injury report' },
+      { error: t(locale, 'Failed to fetch acute injury report', 'Kunde inte hämta akut skaderapport') },
       { status: 500 }
     )
   }
@@ -112,10 +119,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
+    locale = resolveRequestLocale(request, user?.language)
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { id } = await params
@@ -128,7 +137,7 @@ export async function PATCH(
     })
 
     if (!existingReport) {
-      return NextResponse.json({ error: 'Report not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Report not found', 'Rapporten hittades inte') }, { status: 404 })
     }
 
     // Check access
@@ -147,7 +156,7 @@ export async function PATCH(
 
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have permission to update this report' },
+        { error: t(locale, 'You do not have permission to update this report', 'Du har inte behörighet att uppdatera den här rapporten') },
         { status: 403 }
       )
     }
@@ -195,12 +204,12 @@ export async function PATCH(
     console.error('Error updating acute injury report:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to update acute injury report' },
+      { error: t(locale, 'Failed to update acute injury report', 'Kunde inte uppdatera akut skaderapport') },
       { status: 500 }
     )
   }
