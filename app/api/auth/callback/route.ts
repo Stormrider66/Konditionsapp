@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 type SupportedEmailOtpType =
   | 'recovery'
@@ -39,6 +40,7 @@ function getSafeNextPath(next: string | null): string {
 // the code for a session (setting auth cookies) then redirects to the
 // final destination specified in the `next` query parameter.
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const tokenHash = searchParams.get('token_hash')
@@ -90,5 +92,5 @@ export async function GET(request: NextRequest) {
   }
 
   // If no code or exchange failed, redirect to login with error
-  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed`)
+  return NextResponse.redirect(`${origin}/login?error=auth_callback_failed&locale=${locale}`)
 }
