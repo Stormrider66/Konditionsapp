@@ -9,19 +9,23 @@ import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
 import { updateAthleteProfileFromRace } from '@/lib/training-engine/update-athlete-profile'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 /**
  * POST /api/race-results
  * Create new race result with automatic VDOT calculation
  */
 export async function POST(req: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(req)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = await resolveUserLocale(req, user.id)
 
     const body = await req.json()
 
@@ -54,14 +58,14 @@ export async function POST(req: NextRequest) {
     // Validate required fields
     if (!clientId || !raceDate || !distance || !timeMinutes) {
       return NextResponse.json(
-        { error: 'Missing required fields: clientId, raceDate, distance, timeMinutes' },
+        { error: t(locale, 'Missing required fields: clientId, raceDate, distance, timeMinutes', 'Obligatoriska fält saknas: clientId, raceDate, distance, timeMinutes') },
         { status: 400 }
       )
     }
 
     const access = await canAccessAthlete(user.id, clientId)
     if (!access.allowed) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Get client data for age and gender
@@ -70,7 +74,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     // Calculate age at race date
@@ -141,7 +145,7 @@ export async function POST(req: NextRequest) {
     logger.error('Error creating race result', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -157,24 +161,27 @@ export async function POST(req: NextRequest) {
  * List all race results for a client
  */
 export async function GET(req: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(req)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = await resolveUserLocale(req, user.id)
 
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('clientId')
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 })
     }
 
     const access = await canAccessAthlete(user.id, clientId)
     if (!access.allowed) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     const raceResults = await prisma.raceResult.findMany({
@@ -205,7 +212,7 @@ export async function GET(req: NextRequest) {
     logger.error('Error fetching race results', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -231,3 +238,14 @@ function formatTime(timeMinutes: number): string {
   }
 }
 
+async function resolveUserLocale(request: NextRequest, userId: string): Promise<AppLocale> {
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return resolveRequestLocale(request, dbUser?.language)
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}

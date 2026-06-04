@@ -8,6 +8,7 @@ import { canAccessClient } from '@/lib/auth-utils'
 import { Prisma } from '@prisma/client'
 import { calculateVDOTFromRace, type VDOTResult } from '@/lib/training-engine/calculations/vdot'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 /**
  * GET /api/race-results/[id]
@@ -17,14 +18,17 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(req)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = await resolveUserLocale(req, user.id)
 
     const raceResult = await prisma.raceResult.findUnique({
       where: { id },
@@ -42,11 +46,11 @@ export async function GET(
     })
 
     if (!raceResult) {
-      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Race result not found', 'Tävlingsresultatet hittades inte') }, { status: 404 })
     }
     const hasAccess = await canAccessClient(user.id, raceResult.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Race result not found', 'Tävlingsresultatet hittades inte') }, { status: 404 })
     }
 
     // Update ageInDays
@@ -63,7 +67,7 @@ export async function GET(
     logger.error('Error fetching race result', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -82,14 +86,17 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(req)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = await resolveUserLocale(req, user.id)
 
     const body = await req.json()
 
@@ -102,11 +109,11 @@ export async function PUT(
     })
 
     if (!existingResult) {
-      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Race result not found', 'Tävlingsresultatet hittades inte') }, { status: 404 })
     }
     const hasAccess = await canAccessClient(user.id, existingResult.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Race result not found', 'Tävlingsresultatet hittades inte') }, { status: 404 })
     }
 
     // Check if distance or time changed (requires VDOT recalculation)
@@ -182,7 +189,7 @@ export async function PUT(
     logger.error('Error updating race result', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -201,32 +208,35 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(req)
+
   try {
     const { id } = await params
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = await resolveUserLocale(req, user.id)
 
     // Check if race exists
     const raceResult = await prisma.raceResult.findUnique({ where: { id } })
 
     if (!raceResult) {
-      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Race result not found', 'Tävlingsresultatet hittades inte') }, { status: 404 })
     }
     const hasAccess = await canAccessClient(user.id, raceResult.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Race result not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Race result not found', 'Tävlingsresultatet hittades inte') }, { status: 404 })
     }
 
     // If this race was used for zones, warn or prevent deletion
     if (raceResult.usedForZones) {
       return NextResponse.json(
         {
-          error: 'Cannot delete race result that is currently used for training zones',
-          message: 'Please select a different race for zones first, or set usedForZones to false'
+          error: t(locale, 'Cannot delete race result that is currently used for training zones', 'Kan inte radera tävlingsresultat som används för träningszoner'),
+          message: t(locale, 'Please select a different race for zones first, or set usedForZones to false', 'Välj först ett annat lopp för zoner eller sätt usedForZones till false')
         },
         { status: 400 }
       )
@@ -237,12 +247,12 @@ export async function DELETE(
       where: { id },
     })
 
-    return NextResponse.json({ success: true, message: 'Race result deleted' })
+    return NextResponse.json({ success: true, message: t(locale, 'Race result deleted', 'Tävlingsresultatet raderades') })
   } catch (error) {
     logger.error('Error deleting race result', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -313,4 +323,16 @@ async function updateAthleteProfileFromRace(
   })
 
   return profile
+}
+
+async function resolveUserLocale(request: NextRequest, userId: string): Promise<AppLocale> {
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { language: true },
+  })
+  return resolveRequestLocale(request, dbUser?.language)
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
