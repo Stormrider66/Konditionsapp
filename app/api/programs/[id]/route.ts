@@ -4,8 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessProgram } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -16,7 +15,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * Get a single program with all details
  */
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   let locale: AppLocale = 'en'
@@ -33,7 +32,7 @@ export async function GET(
         { status: 401 }
       )
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 
@@ -154,7 +153,7 @@ export async function PUT(
         { status: 401 }
       )
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 
@@ -232,7 +231,7 @@ export async function PUT(
  * Delete a program (coaches only)
  */
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   let locale: AppLocale = 'en'
@@ -249,7 +248,7 @@ export async function DELETE(
         { status: 401 }
       )
     }
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 

@@ -6,8 +6,7 @@ import { getCurrentUser, canAccessClient, resolveAthleteClientId } from '@/lib/a
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { createFuelingPrescriptionsForProgram } from '@/lib/fueling/workout-prescriptions'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface ProgramSegmentInput {
   order: number
@@ -86,7 +85,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Get optional clientId filter from query params
     const { searchParams } = new URL(request.url)
@@ -298,7 +297,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json(

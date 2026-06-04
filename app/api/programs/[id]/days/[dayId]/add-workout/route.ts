@@ -4,20 +4,15 @@ import { requireAuth } from '@/lib/api/utils'
 import { canAccessProgram } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
-
-type AppLocale = 'en' | 'sv'
-
-function requestLocale(request: NextRequest): AppLocale {
-  return request.headers.get('accept-language')?.toLowerCase().startsWith('sv') ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string; dayId: string }> }
 ) {
   try {
-    const locale = requestLocale(request)
     const user = await requireAuth()
+    const locale = resolveRequestLocale(request, user.language)
     if (!(await canAccessCoachPlatform(user.id))) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }

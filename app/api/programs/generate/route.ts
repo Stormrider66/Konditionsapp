@@ -16,8 +16,7 @@ import {
   type FitnessLevel,
 } from '@/lib/program-generator/templates/general-fitness'
 import { metricValuesForTest, type HockeyTestForSummary } from '@/lib/hockey/team-test-metrics'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -198,7 +197,7 @@ export async function POST(request: NextRequest) {
   try {
     // Authenticate and authorize
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Check subscription limits
     const limitReached = await hasReachedAthleteLimit(user.id)
