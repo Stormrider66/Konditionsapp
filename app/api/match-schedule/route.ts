@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 const createMatchSchema = z.object({
@@ -22,12 +23,17 @@ const createMatchSchema = z.object({
   externalSource: z.string().default('manual'),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -70,18 +76,19 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching match schedule:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch match schedule' },
+      { error: t(locale, 'Failed to fetch match schedule', 'Kunde inte hämta matchschemat') },
       { status: 500 }
     )
   }
 }
 
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -112,14 +119,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
 
     console.error('Error creating match:', error)
     return NextResponse.json(
-      { error: 'Failed to create match' },
+      { error: t(locale, 'Failed to create match', 'Kunde inte skapa matchen') },
       { status: 500 }
     )
   }

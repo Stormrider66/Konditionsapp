@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 const updateMatchSchema = z.object({
@@ -31,17 +32,22 @@ const updateMatchSchema = z.object({
   maxSpeed: z.number().optional().nullable(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ matchId: string }> }
 ) {
+  const locale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     const { matchId } = await params
 
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -56,7 +62,7 @@ export async function GET(
 
     if (!match) {
       return NextResponse.json(
-        { error: 'Match not found' },
+        { error: t(locale, 'Match not found', 'Matchen hittades inte') },
         { status: 404 }
       )
     }
@@ -65,7 +71,7 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching match:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch match' },
+      { error: t(locale, 'Failed to fetch match', 'Kunde inte hämta matchen') },
       { status: 500 }
     )
   }
@@ -75,13 +81,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ matchId: string }> }
 ) {
+  const locale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     const { matchId } = await params
 
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -97,7 +104,7 @@ export async function PATCH(
 
     if (!existingMatch) {
       return NextResponse.json(
-        { error: 'Match not found' },
+        { error: t(locale, 'Match not found', 'Matchen hittades inte') },
         { status: 404 }
       )
     }
@@ -132,14 +139,14 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
 
     console.error('Error updating match:', error)
     return NextResponse.json(
-      { error: 'Failed to update match' },
+      { error: t(locale, 'Failed to update match', 'Kunde inte uppdatera matchen') },
       { status: 500 }
     )
   }
@@ -149,13 +156,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ matchId: string }> }
 ) {
+  const locale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     const { matchId } = await params
 
     if (!resolved) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
@@ -171,7 +179,7 @@ export async function DELETE(
 
     if (!existingMatch) {
       return NextResponse.json(
-        { error: 'Match not found' },
+        { error: t(locale, 'Match not found', 'Matchen hittades inte') },
         { status: 404 }
       )
     }
@@ -184,7 +192,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting match:', error)
     return NextResponse.json(
-      { error: 'Failed to delete match' },
+      { error: t(locale, 'Failed to delete match', 'Kunde inte ta bort matchen') },
       { status: 500 }
     )
   }
