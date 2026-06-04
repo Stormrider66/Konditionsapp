@@ -18,6 +18,7 @@ import {
   deleteGarminWorkout,
   serializeWorkoutToGarmin,
 } from '@/lib/integrations/garmin/training'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const pushByIdSchema = z.object({
   workoutId: z.string().uuid(),
@@ -26,17 +27,20 @@ const pushByIdSchema = z.object({
 })
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const parsed = pushByIdSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -46,7 +50,7 @@ export async function POST(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Check Garmin connection
@@ -55,7 +59,7 @@ export async function POST(request: NextRequest) {
     })
     if (!token || !token.syncEnabled) {
       return NextResponse.json(
-        { error: 'Garmin inte anslutet', code: 'GARMIN_NOT_CONNECTED' },
+        { error: t(locale, 'Garmin not connected', 'Garmin inte anslutet'), code: 'GARMIN_NOT_CONNECTED' },
         { status: 404 }
       )
     }
@@ -82,12 +86,12 @@ export async function POST(request: NextRequest) {
     })
 
     if (!workout) {
-      return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
     }
 
     // Verify workout belongs to this client
     if (workout.day.week.program.clientId !== clientId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // If already pushed, delete the old one first
@@ -114,7 +118,7 @@ export async function POST(request: NextRequest) {
 
     if (segments.length === 0) {
       return NextResponse.json(
-        { error: 'Workout has no pushable segments (only strength exercises)' },
+        { error: t(locale, 'Workout has no pushable segments (only strength exercises)', 'Passet har inga segment som kan skickas (endast styrkeövningar)') },
         { status: 422 }
       )
     }
@@ -157,16 +161,20 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof Error && error.message.includes('rate limit')) {
       return NextResponse.json(
-        { error: 'Garmin rate limit exceeded. Try again later.' },
+        { error: t(locale, 'Garmin rate limit exceeded. Try again later.', 'Garmins hastighetsgräns har nåtts. Försök igen senare.') },
         { status: 429 }
       )
     }
 
     return NextResponse.json(
-      { error: 'Failed to push workout to Garmin' },
+      { error: t(locale, 'Failed to push workout to Garmin', 'Kunde inte skicka passet till Garmin') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

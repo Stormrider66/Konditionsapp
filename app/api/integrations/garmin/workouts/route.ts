@@ -16,6 +16,7 @@ import {
   deleteGarminWorkout,
   serializeWorkoutToGarmin,
 } from '@/lib/integrations/garmin/training'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const pushWorkoutSchema = z.object({
   clientId: z.string().uuid(),
@@ -53,17 +54,20 @@ const deleteWorkoutSchema = z.object({
  * POST - Push a workout to Garmin Connect (and optionally schedule it)
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const parsed = pushWorkoutSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -73,7 +77,7 @@ export async function POST(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Check Garmin connection
@@ -82,7 +86,7 @@ export async function POST(request: NextRequest) {
     })
     if (!token || !token.syncEnabled) {
       return NextResponse.json(
-        { error: 'Garmin not connected or sync disabled' },
+        { error: t(locale, 'Garmin not connected or sync disabled', 'Garmin är inte anslutet eller synk är inaktiverad') },
         { status: 404 }
       )
     }
@@ -110,13 +114,13 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof Error && error.message.includes('rate limit')) {
       return NextResponse.json(
-        { error: 'Garmin rate limit exceeded. Please try again later.' },
+        { error: t(locale, 'Garmin rate limit exceeded. Please try again later.', 'Garmins hastighetsgräns har nåtts. Försök igen senare.') },
         { status: 429 }
       )
     }
 
     return NextResponse.json(
-      { error: 'Failed to push workout to Garmin' },
+      { error: t(locale, 'Failed to push workout to Garmin', 'Kunde inte skicka passet till Garmin') },
       { status: 500 }
     )
   }
@@ -126,17 +130,20 @@ export async function POST(request: NextRequest) {
  * DELETE - Delete a workout from Garmin Connect
  */
 export async function DELETE(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const parsed = deleteWorkoutSchema.safeParse(body)
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -146,7 +153,7 @@ export async function DELETE(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     await deleteGarminWorkout(clientId, garminWorkoutId)
@@ -155,8 +162,12 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     logError('Delete Garmin workout error:', error)
     return NextResponse.json(
-      { error: 'Failed to delete Garmin workout' },
+      { error: t(locale, 'Failed to delete Garmin workout', 'Kunde inte radera Garmin-passet') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
