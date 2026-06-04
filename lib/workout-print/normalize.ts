@@ -143,6 +143,29 @@ function joinDetails(details: Array<string | undefined | null | false>): string[
   return details.filter((detail): detail is string => typeof detail === 'string' && detail.trim().length > 0)
 }
 
+function normalizeDoseText(value: string): string {
+  return value
+    .replace(/(\d)\s*min\b/i, '$1 min')
+    .replace(/(\d)\s*s\b/i, '$1 s')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function formatRepsDetail(value: unknown, locale: AppLocale): string | undefined {
+  if (value == null) return undefined
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return `${value} ${text(locale, 'reps', 'reps')}`
+  }
+
+  const raw = String(value).trim()
+  if (!raw) return undefined
+
+  const normalized = normalizeDoseText(raw)
+  const shouldUseRepSuffix = /^\d+(?:-\d+)?(?:\+\d+)?$/.test(normalized)
+  return shouldUseRepSuffix ? `${normalized} ${text(locale, 'reps', 'reps')}` : normalized
+}
+
 function normalizeStrengthExercise(exercise: Record<string, unknown>, locale: AppLocale): PrintableWorkoutItem {
   const setRows = asArray(exercise.setRows)
   const followUps = asArray(exercise.followUps)
@@ -152,7 +175,7 @@ function normalizeStrengthExercise(exercise: Record<string, unknown>, locale: Ap
   const distanceMeters = asNumber(exercise.distanceMeters)
   const isCardio = asString(exercise.kind) === 'cardio'
 
-  const details = isCardio
+  const details = isCardio || durationSeconds
     ? joinDetails([
         formatDuration(durationSeconds, undefined, locale),
         formatDistance(distanceMeters),
@@ -161,7 +184,7 @@ function normalizeStrengthExercise(exercise: Record<string, unknown>, locale: Ap
       ])
     : joinDetails([
         `${asNumber(exercise.sets) || 1} set`,
-        exercise.reps != null ? `${String(exercise.reps)} reps` : undefined,
+        formatRepsDetail(exercise.reps, locale),
         weight != null ? `${weight} ${weightUnit}` : undefined,
         asNumber(exercise.restSeconds) ? `${text(locale, 'rest', 'vila')} ${exercise.restSeconds} ${text(locale, 'sec', 'sek')}` : undefined,
         asString(exercise.tempo) ? `tempo ${exercise.tempo}` : undefined,
@@ -169,7 +192,8 @@ function normalizeStrengthExercise(exercise: Record<string, unknown>, locale: Ap
 
   for (const [index, row] of setRows.entries()) {
     const rowWeight = asNumber(row.weight)
-    details.push(`Set ${index + 1}: ${row.reps ?? '-'} reps${rowWeight != null ? `, ${rowWeight} ${weightUnit}` : ''}`)
+    const rowReps = formatRepsDetail(row.reps, locale) ?? '-'
+    details.push(`Set ${index + 1}: ${rowReps}${rowWeight != null ? `, ${rowWeight} ${weightUnit}` : ''}`)
   }
 
   for (const followUp of followUps) {

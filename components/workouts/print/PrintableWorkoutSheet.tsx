@@ -211,15 +211,6 @@ export function PrintableWorkoutDocument({ workout, sheetRef, footer }: Printabl
           </p>
         )}
 
-        {workout.tags && workout.tags.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {workout.tags.map((tag) => (
-              <span key={tag} className="rounded border border-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 print-small">
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
       </header>
 
       <div className="print-page-tight mt-6 space-y-6 print:mt-3">
