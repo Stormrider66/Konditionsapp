@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import { generateAIProgram } from '@/lib/agent/program-generator'
 import { z } from 'zod'
@@ -30,15 +31,22 @@ const generateProgramSchema = z.object({
   equipment: z.record(z.boolean()).optional(),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { user, clientId } = resolved
 
     const body = await request.json()
@@ -46,7 +54,11 @@ export async function POST(request: NextRequest) {
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request body', details: validationResult.error.errors },
+        {
+          success: false,
+          error: t(locale, 'Invalid request body', 'Ogiltigt innehåll i förfrågan'),
+          details: validationResult.error.errors,
+        },
         { status: 400 }
       )
     }
@@ -71,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Client not found' },
+        { success: false, error: t(locale, 'Client not found', 'Klienten hittades inte') },
         { status: 404 }
       )
     }
@@ -86,7 +98,14 @@ export async function POST(request: NextRequest) {
     // Check if athlete has an assigned coach
     if (subscription?.assignedCoachId) {
       return NextResponse.json(
-        { success: false, error: 'Athletes with an assigned coach cannot generate AI programs' },
+        {
+          success: false,
+          error: t(
+            locale,
+            'Athletes with an assigned coach cannot generate AI programs',
+            'Atleter med tilldelad coach kan inte skapa AI-program'
+          ),
+        },
         { status: 403 }
       )
     }
@@ -158,7 +177,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Failed to generate AI program', {}, error)
     return NextResponse.json(
-      { success: false, error: 'Failed to generate program' },
+      { success: false, error: t(locale, 'Failed to generate program', 'Kunde inte skapa programmet') },
       { status: 500 }
     )
   }

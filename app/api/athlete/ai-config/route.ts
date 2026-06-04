@@ -11,20 +11,32 @@
 
 import { NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 import { isModelIntent, legacyModelIdToIntent, INTENT_TIER_LABELS } from '@/types/ai-models'
 import type { ModelIntent } from '@/types/ai-models'
 import { getPlatformAiKeyOwnerId, getResolvedAiKeys } from '@/lib/user-api-keys'
 
-export async function GET() {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
+    locale = resolveLocale(request, resolved.user.language)
     const { user, clientId, isCoachInAthleteMode } = resolved
 
     // Get the client with sport profile and coach link
@@ -58,7 +70,7 @@ export async function GET() {
 
     if (!effectiveCoachId) {
       return NextResponse.json(
-        { error: 'Athlete account not properly linked to coach' },
+        { error: t(locale, 'Athlete account not properly linked to coach', 'Atletkontot är inte korrekt kopplat till en coach') },
         { status: 400 }
       )
     }
@@ -227,11 +239,11 @@ export async function GET() {
     logError('Get athlete AI config error:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to get AI configuration' },
+      { error: t(locale, 'Failed to get AI configuration', 'Kunde inte hämta AI-konfiguration') },
       { status: 500 }
     )
   }

@@ -12,16 +12,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 
-export async function GET() {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
+    locale = resolveLocale(request, resolved.user.language)
     const { user, clientId } = resolved
 
     // Get athlete's account with preferred location
@@ -120,24 +132,27 @@ export async function GET() {
     logger.error('Get preferred location error', {}, error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to get location settings' },
+      { error: t(locale, 'Failed to get location settings', 'Kunde inte hämta platsinställningar') },
       { status: 500 }
     )
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
+    locale = resolveRequestLocale(request, resolved.user.language)
     const { user, clientId } = resolved
     const body = await request.json()
     const { locationId } = body
@@ -150,7 +165,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!athleteAccount) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
+        { error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
         { status: 404 }
       )
     }
@@ -164,7 +179,7 @@ export async function PATCH(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: 'Preferred location cleared',
+        message: t(locale, 'Preferred location cleared', 'Föredragen plats rensades'),
         preferredLocation: null,
       })
     }
@@ -180,7 +195,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!membership) {
       return NextResponse.json(
-        { error: 'No active business membership' },
+        { error: t(locale, 'No active business membership', 'Inget aktivt verksamhetsmedlemskap') },
         { status: 403 }
       )
     }
@@ -201,7 +216,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!location) {
       return NextResponse.json(
-        { error: 'Location not found or not accessible' },
+        { error: t(locale, 'Location not found or not accessible', 'Platsen hittades inte eller är inte tillgänglig') },
         { status: 404 }
       )
     }
@@ -220,18 +235,18 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Preferred location updated',
+      message: t(locale, 'Preferred location updated', 'Föredragen plats uppdaterades'),
       preferredLocation: location,
     })
   } catch (error) {
     logger.error('Update preferred location error', {}, error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { error: 'Failed to update preferred location' },
+      { error: t(locale, 'Failed to update preferred location', 'Kunde inte uppdatera föredragen plats') },
       { status: 500 }
     )
   }

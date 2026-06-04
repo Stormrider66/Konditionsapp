@@ -10,18 +10,30 @@
 
 import { NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { prisma } from '@/lib/prisma'
 import { getUserLocale, normalizeHockeyPosition } from '@/lib/hockey/team-analysis-engine'
 import { loadTeamHockeySeasons } from '@/lib/hockey/team-season-loader'
 import { logError } from '@/lib/logger-console'
 
-export async function GET() {
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
+}
+
+export async function GET(request?: Request) {
+  let responseLocale: AppLocale = resolveLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(responseLocale, 'Not authenticated', 'Inte autentiserad') }, { status: 401 })
     }
     const { clientId, user } = resolved
+    responseLocale = resolveLocale(request, user.language)
     const locale = getUserLocale(user.language)
 
     const client = await prisma.client.findUnique({
@@ -97,6 +109,9 @@ export async function GET() {
     })
   } catch (error) {
     logError('Athlete hockey-profile error:', error)
-    return NextResponse.json({ success: false, error: 'Failed to load hockey profile' }, { status: 500 })
+    return NextResponse.json(
+      { success: false, error: t(responseLocale, 'Failed to load hockey profile', 'Kunde inte hämta hockeyprofilen') },
+      { status: 500 }
+    )
   }
 }
