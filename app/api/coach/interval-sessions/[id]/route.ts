@@ -14,18 +14,19 @@ import {
   deleteSession,
   getAvailableClients,
 } from '@/lib/interval-session/session-service'
-import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { t, type AppLocale } from '@/lib/interval-session/api-locale'
 import { UpdateIntervalSessionInput } from '@/lib/interval-session/types'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>
 }
 
 export async function GET(req: NextRequest, context: RouteContext) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
     const { id } = await context.params
 
     const session = await getSession(id)
@@ -54,10 +55,10 @@ export async function GET(req: NextRequest, context: RouteContext) {
 }
 
 export async function PATCH(req: NextRequest, context: RouteContext) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
     const { id } = await context.params
 
     const body: UpdateIntervalSessionInput = await req.json()
@@ -82,10 +83,10 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
     const { id } = await context.params
 
     const deleted = await deleteSession(id, user.id)

@@ -9,7 +9,8 @@ import { getSessionStreamData } from '@/lib/interval-session/session-service'
 import { getSession } from '@/lib/interval-session/session-service'
 import { createClient } from '@/lib/supabase/server'
 import { STREAM_POLL_INTERVAL_MS } from '@/lib/interval-session/types'
-import { resolveLocale, t } from '@/lib/interval-session/api-locale'
+import { t } from '@/lib/interval-session/api-locale'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>
@@ -17,7 +18,7 @@ interface RouteContext {
 
 export async function GET(req: NextRequest, context: RouteContext) {
   const { id } = await context.params
-  const locale = resolveLocale(req.headers.get('accept-language'))
+  const locale = resolveRequestLocale(req)
 
   // Verify authentication
   const supabase = await createClient()

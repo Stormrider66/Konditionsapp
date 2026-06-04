@@ -7,13 +7,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 export async function GET(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const { searchParams } = new URL(req.url)
     const clientId = searchParams.get('clientId')

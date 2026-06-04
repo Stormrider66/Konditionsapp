@@ -9,21 +9,21 @@ import { requireCoach } from '@/lib/auth-utils'
 import { recordLactate } from '@/lib/interval-session/lactate-service'
 import { recordLactateSchema } from '@/lib/interval-session/validation'
 import {
-  resolveLocale,
   t,
   translateIntervalSessionError,
   type AppLocale,
 } from '@/lib/interval-session/api-locale'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
     const { id } = await context.params
 
     const body = await req.json()

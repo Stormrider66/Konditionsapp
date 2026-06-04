@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 const createTemplateSchema = z.object({
   name: z.string().min(1).max(200),
@@ -22,11 +23,11 @@ const createTemplateSchema = z.object({
   }),
 })
 
-export async function GET() {
-  let locale: AppLocale = 'en'
+export async function GET(req: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const templates = await prisma.intervalSessionTemplate.findMany({
       where: { coachId: user.id },
@@ -45,10 +46,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const body = await req.json()
     const parsed = createTemplateSchema.safeParse(body)

@@ -12,13 +12,14 @@ import {
   listCoachSessions,
 } from '@/lib/interval-session/session-service'
 import { createSessionSchema } from '@/lib/interval-session/validation'
-import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 export async function GET(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const { searchParams } = new URL(req.url)
     const includeEnded = searchParams.get('includeEnded') === 'true'
@@ -39,10 +40,10 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
 
     const body = await req.json()
     const parsed = createSessionSchema.safeParse(body)

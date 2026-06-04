@@ -11,17 +11,18 @@ import {
   addParticipant,
   removeParticipant,
 } from '@/lib/interval-session/session-service'
-import { resolveLocale, t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { t, type AppLocale } from '@/lib/interval-session/api-locale'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>
 }
 
 export async function POST(req: NextRequest, context: RouteContext) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
     const { id } = await context.params
 
     const { clientId } = await req.json()
@@ -50,10 +51,10 @@ export async function POST(req: NextRequest, context: RouteContext) {
 }
 
 export async function DELETE(req: NextRequest, context: RouteContext) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await requireCoach()
-    locale = resolveLocale(user.language)
+    locale = resolveRequestLocale(req, user.language)
     const { id } = await context.params
 
     const { clientId } = await req.json()
