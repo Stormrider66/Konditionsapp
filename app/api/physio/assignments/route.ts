@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio, getCurrentUser } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating an assignment
 const createAssignmentSchema = z.object({
@@ -30,8 +35,11 @@ const createAssignmentSchema = z.object({
  * List all assignments for the current physio user
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
 
     const assignments = await prisma.physioAssignment.findMany({
       where: {
@@ -85,10 +93,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching physio assignments:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to fetch assignments' },
+      { error: t(locale, 'Failed to fetch assignments', 'Kunde inte hämta tilldelningar') },
       { status: 500 }
     )
   }
@@ -100,11 +108,14 @@ export async function GET(request: NextRequest) {
  * Only ADMIN users can create assignments (physio users receive them)
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     // Only admins and business owners can create assignments
     if (user.role !== 'ADMIN') {
@@ -118,7 +129,7 @@ export async function POST(request: NextRequest) {
       })
       if (!isBusinessOwner) {
         return NextResponse.json(
-          { error: 'Only administrators or business owners can create physio assignments' },
+          { error: t(locale, 'Only administrators or business owners can create physio assignments', 'Endast administratörer eller verksamhetsägare kan skapa fysiotilldelningar') },
           { status: 403 }
         )
       }
@@ -128,10 +139,10 @@ export async function POST(request: NextRequest) {
     const validatedData = createAssignmentSchema.parse(body)
 
     // Get the physio user ID from request
-    const { physioUserId, ...assignmentData } = body
+    const { physioUserId } = body
     if (!physioUserId) {
       return NextResponse.json(
-        { error: 'physioUserId is required' },
+        { error: t(locale, 'physioUserId is required', 'physioUserId krävs') },
         { status: 400 }
       )
     }
@@ -144,7 +155,7 @@ export async function POST(request: NextRequest) {
 
     if (!physioUser || (physioUser.role !== 'PHYSIO' && physioUser.role !== 'COACH' && physioUser.role !== 'ADMIN')) {
       return NextResponse.json(
-        { error: 'Target user must be a physio, coach, or admin' },
+        { error: t(locale, 'Target user must be a physio, coach, or admin', 'Målanvändaren måste vara fysioterapeut, tränare eller administratör') },
         { status: 400 }
       )
     }
@@ -192,12 +203,12 @@ export async function POST(request: NextRequest) {
     console.error('Error creating physio assignment:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to create assignment' },
+      { error: t(locale, 'Failed to create assignment', 'Kunde inte skapa tilldelningen') },
       { status: 500 }
     )
   }

@@ -2,6 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio, getPhysioAthletes } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/physio/athletes
@@ -9,8 +14,11 @@ import { requirePhysio, getPhysioAthletes } from '@/lib/auth-utils'
  * Returns athletes with summary information (injuries, restrictions, rehab programs)
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { searchParams } = new URL(request.url)
 
     // Get all athlete IDs this physio can access
@@ -173,10 +181,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching physio athletes:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to fetch athletes' },
+      { error: t(locale, 'Failed to fetch athletes', 'Kunde inte hämta idrottare') },
       { status: 500 }
     )
   }

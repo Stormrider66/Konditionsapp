@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysioOrAdmin } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const updateAssignmentSchema = z.object({
   role: z.enum(['PRIMARY', 'SECONDARY', 'CONSULTANT']).optional(),
@@ -21,8 +26,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysioOrAdmin()
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     const assignment = await prisma.physioAssignment.findUnique({
@@ -70,22 +78,22 @@ export async function GET(
     })
 
     if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
     }
 
     // Check access
     if (user.role !== 'ADMIN' && assignment.physioUserId !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     return NextResponse.json(assignment)
   } catch (error) {
     console.error('Error fetching assignment:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to fetch assignment' },
+      { error: t(locale, 'Failed to fetch assignment', 'Kunde inte hämta tilldelningen') },
       { status: 500 }
     )
   }
@@ -99,8 +107,11 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysioOrAdmin()
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
     const body = await request.json()
     const validatedData = updateAssignmentSchema.parse(body)
@@ -111,12 +122,12 @@ export async function PATCH(
     })
 
     if (!existingAssignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
     }
 
     // Only admin or the assigned physio can update
     if (user.role !== 'ADMIN' && existingAssignment.physioUserId !== user.id) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const assignment = await prisma.physioAssignment.update({
@@ -149,15 +160,15 @@ export async function PATCH(
     console.error('Error updating assignment:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to update assignment' },
+      { error: t(locale, 'Failed to update assignment', 'Kunde inte uppdatera tilldelningen') },
       { status: 500 }
     )
   }
@@ -171,8 +182,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysioOrAdmin()
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     // Check if assignment exists
@@ -181,13 +195,13 @@ export async function DELETE(
     })
 
     if (!existingAssignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
     }
 
     // Only admin can delete assignments
     if (user.role !== 'ADMIN') {
       return NextResponse.json(
-        { error: 'Only administrators can delete assignments' },
+        { error: t(locale, 'Only administrators can delete assignments', 'Endast administratörer kan ta bort tilldelningar') },
         { status: 403 }
       )
     }
@@ -200,10 +214,10 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting assignment:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to delete assignment' },
+      { error: t(locale, 'Failed to delete assignment', 'Kunde inte ta bort tilldelningen') },
       { status: 500 }
     )
   }

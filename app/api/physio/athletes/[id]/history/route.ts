@@ -2,6 +2,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requirePhysio, canAccessAthleteAsPhysio, canModifyProgramsAsPhysio } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/physio/athletes/[id]/history
@@ -11,15 +16,18 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { id: clientId } = await params
 
     // Verify access
     const hasAccess = await canAccessAthleteAsPhysio(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'You do not have access to this athlete' },
+        { error: t(locale, 'You do not have access to this athlete', 'Du har inte åtkomst till den här idrottaren') },
         { status: 403 }
       )
     }
@@ -220,10 +228,10 @@ export async function GET(
   } catch (error) {
     console.error('Error fetching athlete history:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to fetch athlete history' },
+      { error: t(locale, 'Failed to fetch athlete history', 'Kunde inte hämta idrottarens historik') },
       { status: 500 }
     )
   }

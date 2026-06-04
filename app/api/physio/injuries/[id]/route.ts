@@ -3,6 +3,11 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient, canAccessAthleteAsPhysio } from '@/lib/auth-utils'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const updateInjurySchema = z.object({
   status: z.enum(['ACTIVE', 'MONITORING', 'RESOLVED']).optional(),
@@ -15,11 +20,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const body = await request.json()
@@ -31,7 +39,7 @@ export async function PATCH(
     })
 
     if (!injury) {
-      return NextResponse.json({ error: 'Injury not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Injury not found', 'Skadan hittades inte') }, { status: 404 })
     }
 
     const [hasCoachAccess, hasPhysioAccess] = await Promise.all([
@@ -45,7 +53,7 @@ export async function PATCH(
       (hasCoachAccess && (await canAccessClient(user.id, injury.clientId)))
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const shouldResolve = data.resolved === true || data.status === 'RESOLVED'
@@ -89,8 +97,8 @@ export async function PATCH(
   } catch (error) {
     console.error('Error updating injury:', error)
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation error', details: error.errors }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors }, { status: 400 })
     }
-    return NextResponse.json({ error: 'Failed to update injury' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update injury', 'Kunde inte uppdatera skadan') }, { status: 500 })
   }
 }
