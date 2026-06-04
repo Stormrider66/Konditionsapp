@@ -38,6 +38,45 @@ interface StrengthSectionPayload {
   exercises?: StrengthExercisePayload[]
 }
 
+interface GarminStrengthExercisePayload {
+  exerciseId: string
+  exerciseName: string
+  sets: number
+  reps: number | string
+  weight?: number
+  restSeconds?: number
+  notes?: string
+}
+
+function toGarminStrengthExercise(
+  exercise: StrengthExercisePayload,
+  defaults?: { sets?: number; reps?: number | string; restSeconds?: number }
+): GarminStrengthExercisePayload | null {
+  const exerciseId = exercise.exerciseId?.trim()
+  const exerciseName = exercise.exerciseName?.trim()
+  if (!exerciseId || !exerciseName) return null
+
+  const payload: GarminStrengthExercisePayload = {
+    exerciseId,
+    exerciseName,
+    sets: exercise.sets ?? defaults?.sets ?? 1,
+    reps: exercise.reps ?? defaults?.reps ?? '10',
+  }
+
+  if (exercise.weight !== undefined) payload.weight = exercise.weight
+  const restSeconds = exercise.restSeconds ?? defaults?.restSeconds
+  if (restSeconds !== undefined) payload.restSeconds = restSeconds
+  if (exercise.notes) payload.notes = exercise.notes
+
+  return payload
+}
+
+function isGarminStrengthExercise(
+  exercise: GarminStrengthExercisePayload | null
+): exercise is GarminStrengthExercisePayload {
+  return exercise !== null
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -83,32 +122,17 @@ export async function POST(
     const garminWorkout = buildGarminStrengthWorkout({
       name: session.name,
       description: session.description || undefined,
-      exercises: mainExercises.map((e) => ({
-        exerciseId: e.exerciseId,
-        exerciseName: e.exerciseName,
-        sets: e.sets,
-        reps: e.reps,
-        weight: e.weight,
-        restSeconds: e.restSeconds,
-        notes: e.notes,
-      })),
+      exercises: mainExercises
+        .map((exercise) => toGarminStrengthExercise(exercise))
+        .filter(isGarminStrengthExercise),
       warmupExercises: [
         ...(warmupData?.exercises ?? []),
         ...(prehabData?.exercises ?? []),
-      ].map((e) => ({
-        exerciseId: e.exerciseId,
-        exerciseName: e.exerciseName,
-        sets: e.sets || 1,
-        reps: e.reps || '10',
-        notes: e.notes,
-      })),
-      cooldownExercises: cooldownData?.exercises?.map((e) => ({
-        exerciseId: e.exerciseId,
-        exerciseName: e.exerciseName,
-        sets: e.sets || 1,
-        reps: e.reps || '30s',
-        notes: e.notes,
-      })),
+      ].map((exercise) => toGarminStrengthExercise(exercise, { sets: 1, reps: '10' }))
+        .filter(isGarminStrengthExercise),
+      cooldownExercises: cooldownData?.exercises
+        ?.map((exercise) => toGarminStrengthExercise(exercise, { sets: 1, reps: '30s' }))
+        .filter(isGarminStrengthExercise),
     })
 
     // Push to Garmin

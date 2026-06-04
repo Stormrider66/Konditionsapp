@@ -472,10 +472,10 @@ function safeParseRoster(
       if (typeof r.weight === 'number' && r.weight >= 30 && r.weight <= 300) row.weight = r.weight
       if (typeof r.notes === 'string' && r.notes.trim()) row.notes = r.notes.trim()
       out.push(row)
-    }
-    return { ok: true, rows: out }
+  }
+  return { ok: true, rows: out }
   } catch (e) {
-    logger.debug('Roster JSON parse failed', {}, e)
+    logger.debug('Roster JSON parse failed', { error: e })
     return {
       ok: false,
       error: t(locale, 'Invalid JSON', 'Ogiltig JSON'),
