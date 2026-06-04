@@ -10,8 +10,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { logError } from '@/lib/logger-console'
-
-type AppLocale = 'en' | 'sv';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en;
@@ -32,7 +31,7 @@ export async function POST(
 
   try {
     const user = await requireCoach();
-    locale = user.language === 'sv' ? 'sv' : 'en';
+    locale = resolveRequestLocale(request, user.language);
     const { testId } = await params;
 
     // Parse request body
@@ -118,7 +117,7 @@ export async function DELETE(
 
   try {
     const user = await requireCoach();
-    locale = user.language === 'sv' ? 'sv' : 'en';
+    locale = resolveRequestLocale(request, user.language);
     const { testId } = await params;
 
     // Verify test exists and user owns it
@@ -171,7 +170,7 @@ export async function GET(
 
   try {
     const user = await requireCoach();
-    locale = user.language === 'sv' ? 'sv' : 'en';
+    locale = resolveRequestLocale(request, user.language);
     const { testId } = await params;
 
     // Verify test exists and user owns it

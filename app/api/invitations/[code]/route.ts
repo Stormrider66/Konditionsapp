@@ -11,14 +11,7 @@ import { requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
-
-type AppLocale = 'en' | 'sv';
-
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv';
-  const header = request.headers.get('accept-language') || '';
-  return header.toLowerCase().startsWith('sv') ? 'sv' : 'en';
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en;
@@ -42,7 +35,7 @@ const useInvitationSchema = z.object({
  * Returns limited information for public access
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
-  const locale = getRequestLocale(request);
+  const locale = resolveRequestLocale(request);
   try {
     const { code } = await params;
 
@@ -114,7 +107,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * For REPORT_VIEW: Just validates and increments usage
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
-  const locale = getRequestLocale(request);
+  const locale = resolveRequestLocale(request);
   try {
     const { code } = await params;
     const body = await request.json().catch(() => ({}));
@@ -250,10 +243,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
  * Only the sender or business admin can revoke
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
-  let locale = getRequestLocale(request);
+  let locale = resolveRequestLocale(request);
   try {
     const user = await requireCoach();
-    locale = getRequestLocale(request, user.language);
+    locale = resolveRequestLocale(request, user.language);
     const { code } = await params;
 
     // Get the invitation

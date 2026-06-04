@@ -11,14 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import crypto from 'crypto';
 import { logError } from '@/lib/logger-console'
-
-type AppLocale = 'en' | 'sv';
-
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv';
-  const header = request.headers.get('accept-language') || '';
-  return header.toLowerCase().startsWith('sv') ? 'sv' : 'en';
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 
 function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en;
@@ -48,10 +41,10 @@ function generateInviteCode(): string {
  * GET - List invitations
  */
 export async function GET(request: NextRequest) {
-  let locale = getRequestLocale(request);
+  let locale = resolveRequestLocale(request);
   try {
     const user = await requireCoach();
-    locale = getRequestLocale(request, user.language);
+    locale = resolveRequestLocale(request, user.language);
 
     // Get user's business membership
     const businessMember = await prisma.businessMember.findFirst({
@@ -116,10 +109,10 @@ export async function GET(request: NextRequest) {
  * POST - Create a new invitation
  */
 export async function POST(request: NextRequest) {
-  let locale = getRequestLocale(request);
+  let locale = resolveRequestLocale(request);
   try {
     const user = await requireCoach();
-    locale = getRequestLocale(request, user.language);
+    locale = resolveRequestLocale(request, user.language);
     const body = await request.json();
 
     // Validate input
