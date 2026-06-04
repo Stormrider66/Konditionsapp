@@ -12,18 +12,26 @@ import { z } from 'zod';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 import { normalizeAthleteCheckoutRequest } from '@/lib/payments/athlete-checkout-request'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId();
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     const { user, clientId } = resolved;
+    locale = resolveRequestLocale(request, user.language)
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json(
-        { error: 'Billing is not enabled yet', code: 'BILLING_DISABLED' },
+        { error: t(locale, 'Billing is not enabled yet', 'Betalning är inte aktiverat än'), code: 'BILLING_DISABLED' },
         { status: 503 },
       );
     }
@@ -64,17 +72,17 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: t(locale, 'Invalid request data', 'Ogiltiga uppgifter i begäran'), details: error.errors },
         { status: 400 }
       );
     }
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: t(locale, 'Failed to create checkout session', 'Kunde inte skapa checkout-session') },
       { status: 500 }
     );
   }

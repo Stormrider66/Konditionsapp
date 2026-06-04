@@ -12,6 +12,11 @@ import { z } from 'zod';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const checkoutSchema = z.object({
   tier: z.enum(['BASIC', 'PRO', 'ENTERPRISE']),
@@ -19,8 +24,11 @@ const checkoutSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('payments:coach:create-checkout', user.id, {
       limit: 10,
@@ -56,13 +64,13 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
+        { error: t(locale, 'Invalid request data', 'Ogiltiga uppgifter i begäran'), details: error.errors },
         { status: 400 }
       );
     }
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     if (error instanceof Error && error.message.includes('No price configured')) {
@@ -73,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: 'Failed to create checkout session' },
+      { error: t(locale, 'Failed to create checkout session', 'Kunde inte skapa checkout-session') },
       { status: 500 }
     );
   }

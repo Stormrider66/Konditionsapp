@@ -17,14 +17,22 @@ import {
   getTierPrice,
   getTierYearlyPrice,
 } from '@/lib/auth/tier-utils';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId();
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     const { user, clientId } = resolved;
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('payments:athlete:subscription', user.id, {
       limit: 60,
@@ -51,7 +59,7 @@ export async function GET(request: NextRequest) {
 
     if (!clientWithSub) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
+        { error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
         { status: 404 }
       );
     }
@@ -155,11 +163,11 @@ export async function GET(request: NextRequest) {
     logger.error('Get subscription error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get subscription status' },
+      { error: t(locale, 'Failed to get subscription status', 'Kunde inte hämta prenumerationsstatus') },
       { status: 500 }
     );
   }

@@ -10,18 +10,26 @@ import { prisma } from '@/lib/prisma';
 import { createBillingPortalSession } from '@/lib/payments/stripe';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId();
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     const { user, clientId } = resolved;
+    locale = resolveRequestLocale(request, user.language)
 
     if (!process.env.STRIPE_SECRET_KEY) {
       return NextResponse.json(
-        { error: 'Billing is not enabled yet', code: 'BILLING_DISABLED' },
+        { error: t(locale, 'Billing is not enabled yet', 'Betalning är inte aktiverat än'), code: 'BILLING_DISABLED' },
         { status: 503 },
       );
     }
@@ -42,14 +50,14 @@ export async function POST(request: NextRequest) {
 
     if (!clientWithSub) {
       return NextResponse.json(
-        { error: 'Athlete account not found' },
+        { error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') },
         { status: 404 }
       );
     }
 
     if (!clientWithSub.athleteSubscription?.stripeCustomerId) {
       return NextResponse.json(
-        { error: 'No active subscription found' },
+        { error: t(locale, 'No active subscription found', 'Ingen aktiv prenumeration hittades') },
         { status: 400 }
       );
     }
@@ -72,11 +80,11 @@ export async function POST(request: NextRequest) {
     logger.error('Create portal session error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to create portal session' },
+      { error: t(locale, 'Failed to create portal session', 'Kunde inte skapa portalsession') },
       { status: 500 }
     );
   }

@@ -15,8 +15,15 @@ import { handleStripeWebhook, verifyWebhookSignature } from '@/lib/payments/stri
 import { handleCoachStripeWebhook } from '@/lib/payments/coach-stripe';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     // Get raw body for signature verification
     const body = await request.text();
@@ -24,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     if (!signature) {
       return NextResponse.json(
-        { error: 'Missing signature' },
+        { error: t(locale, 'Missing signature', 'Signatur saknas') },
         { status: 400 }
       );
     }
@@ -33,9 +40,9 @@ export async function POST(request: NextRequest) {
     let event;
     try {
       event = verifyWebhookSignature(body, signature);
-    } catch (err) {
+    } catch (_err) {
       return NextResponse.json(
-        { error: 'Invalid signature' },
+        { error: t(locale, 'Invalid signature', 'Ogiltig signatur') },
         { status: 400 }
       );
     }
@@ -66,7 +73,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         received: true,
         handled: existing.handled,
-        message: 'Duplicate event - already processed',
+        message: t(locale, 'Duplicate event - already processed', 'Duplicerad händelse - redan behandlad'),
       });
     }
 
@@ -116,7 +123,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Stripe webhook error', {}, error)
     return NextResponse.json(
-      { error: 'Webhook handler failed' },
+      { error: t(locale, 'Webhook handler failed', 'Webhook-hanteraren misslyckades') },
       { status: 500 }
     );
   }

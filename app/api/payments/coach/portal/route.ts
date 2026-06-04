@@ -10,10 +10,18 @@ import { createCoachBillingPortalSession } from '@/lib/payments/coach-stripe';
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit';
 import { logger } from '@/lib/logger'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('payments:coach:portal', user.id, {
       limit: 10,
@@ -40,18 +48,18 @@ export async function POST(request: NextRequest) {
     logger.error('Coach billing portal error', {}, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     if (error instanceof Error && error.message.includes('No Stripe customer')) {
       return NextResponse.json(
-        { error: 'No subscription found. Please subscribe first.' },
+        { error: t(locale, 'No subscription found. Please subscribe first.', 'Ingen prenumeration hittades. Teckna en prenumeration först.') },
         { status: 400 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Failed to open billing portal' },
+      { error: t(locale, 'Failed to open billing portal', 'Kunde inte öppna betalportalen') },
       { status: 500 }
     );
   }
