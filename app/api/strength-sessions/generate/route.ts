@@ -11,6 +11,7 @@ import { generateStrengthSession, generateWeeklyProgram, type AutoGenerateParams
 import { StrengthPhase } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import { getCalendarConstraints } from '@/lib/calendar/availability-calculator'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface GenerateRequestBody {
   clientId?: string
@@ -30,6 +31,8 @@ interface GenerateRequestBody {
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
     const body: GenerateRequestBody = await request.json()
@@ -50,12 +53,14 @@ export async function POST(request: NextRequest) {
       weekStartDate,
       locale: bodyLocale,
     } = body
-    const locale = bodyLocale === 'sv' || (!bodyLocale && user.language === 'sv') ? 'sv' : 'en'
+    locale = bodyLocale === 'sv' || bodyLocale === 'en'
+      ? bodyLocale
+      : resolveRequestLocale(request, user.language)
 
     // Validate required fields
     if (!goal || !phase) {
       return NextResponse.json(
-        { error: 'Goal and phase are required' },
+        { error: t(locale, 'Goal and phase are required', 'Mål och fas krävs') },
         { status: 400 }
       )
     }
@@ -272,8 +277,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Error generating strength session', {}, error)
     return NextResponse.json(
-      { error: 'Failed to generate strength session' },
+      { error: t(locale, 'Failed to generate strength session', 'Kunde inte skapa styrkepass') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

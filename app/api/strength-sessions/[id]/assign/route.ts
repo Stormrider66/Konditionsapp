@@ -15,6 +15,7 @@ import {
   strengthSessionAccessWhere,
 } from '@/lib/strength/session-business-scope';
 import { checkWorkoutAssignmentRestrictions } from '@/lib/training-restrictions/assignment-enforcement';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -33,14 +34,18 @@ interface AssignmentRequest {
   createCalendarEvent?: boolean;  // default true if startTime provided
 }
 
-type AssignmentLocale = 'en' | 'sv';
+type AssignmentLocale = AppLocale;
 type AssignmentAthleteLocaleSource = {
   user?: { language: string | null } | null;
   athleteAccount?: { user?: { language: string | null } | null } | null;
 };
 
+function savedAssignmentLocale(value: string | null | undefined): AssignmentLocale {
+  return value === 'sv' ? 'sv' : 'en';
+}
+
 function resolveAssignmentLocale(athlete?: AssignmentAthleteLocaleSource): AssignmentLocale {
-  return athlete?.athleteAccount?.user?.language === 'sv' || athlete?.user?.language === 'sv' ? 'sv' : 'en';
+  return savedAssignmentLocale(athlete?.athleteAccount?.user?.language ?? athlete?.user?.language);
 }
 
 function assignmentText(locale: AssignmentLocale, en: string, sv: string): string {
@@ -53,12 +58,15 @@ function buildCalendarEventDescription(locale: AssignmentLocale, locationDisplay
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveStrengthBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: assignmentText(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const { id } = await context.params;
@@ -73,7 +81,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     if (!session) {
       return NextResponse.json(
-        { error: 'Session not found' },
+        { error: assignmentText(locale, 'Session not found', 'Passet hittades inte') },
         { status: 404 }
       );
     }
@@ -105,19 +113,22 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logError('Error fetching assignments:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch assignments' },
+      { error: assignmentText(locale, 'Failed to fetch assignments', 'Kunde inte hämta tilldelningar') },
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveStrengthBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: assignmentText(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const { id } = await context.params;
@@ -138,7 +149,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     // Validate input
     if (!athleteIds || !Array.isArray(athleteIds) || athleteIds.length === 0) {
       return NextResponse.json(
-        { error: 'At least one athlete ID is required' },
+        { error: assignmentText(locale, 'At least one athlete ID is required', 'Minst ett idrottar-ID krävs') },
         { status: 400 }
       );
     }
@@ -150,7 +161,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!session) {
       return NextResponse.json(
-        { error: 'Session not found or you do not have permission to assign it' },
+        { error: assignmentText(locale, 'Session not found or you do not have permission to assign it', 'Passet hittades inte eller så saknar du behörighet att tilldela det') },
         { status: 404 }
       );
     }
@@ -174,7 +185,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (athletes.length !== athleteIds.length) {
       return NextResponse.json(
-        { error: 'One or more athletes not found or not owned by you' },
+        { error: assignmentText(locale, 'One or more athletes not found or not owned by you', 'En eller flera idrottare hittades inte eller tillhör inte dig') },
         { status: 400 }
       );
     }
@@ -191,7 +202,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
       .map((aid: string) => ({ athleteId: aid, reasons: blockedByAthlete.get(aid)?.reasons ?? [] }));
     if (assignableIds.length === 0) {
       return NextResponse.json(
-        { error: 'All selected athletes are blocked by an active restriction for this session', skipped },
+        {
+          error: assignmentText(
+            locale,
+            'All selected athletes are blocked by an active restriction for this session',
+            'Alla valda idrottare blockeras av en aktiv begränsning för detta pass'
+          ),
+          skipped,
+        },
         { status: 400 }
       );
     }
@@ -204,7 +222,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       });
       if (!location) {
         return NextResponse.json(
-          { error: 'Location not found' },
+          { error: assignmentText(locale, 'Location not found', 'Platsen hittades inte') },
           { status: 400 }
         );
       }
@@ -304,7 +322,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logError('Error creating assignments:', error);
     return NextResponse.json(
-      { error: 'Failed to create assignments' },
+      { error: assignmentText(locale, 'Failed to create assignments', 'Kunde inte skapa tilldelningar') },
       { status: 500 }
     );
   }

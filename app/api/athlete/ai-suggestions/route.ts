@@ -12,10 +12,11 @@
  * - Workout streaks (motivation)
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface Suggestion {
   type: string
@@ -25,20 +26,18 @@ interface Suggestion {
   action: { label: string; href: string } | null
 }
 
-type AppLocale = 'en' | 'sv'
-
-export async function GET() {
-  let locale: AppLocale = 'en'
+export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const resolved = await resolveAthleteClientId()
 
     if (!resolved) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { user, clientId } = resolved
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const athleteId = user.id
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -321,10 +320,6 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
