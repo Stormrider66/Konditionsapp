@@ -12,6 +12,7 @@ import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const requestSchema = z.object({
   currentTestId: z.string().uuid(),
@@ -19,18 +20,16 @@ const requestSchema = z.object({
   includeTrainingCorrelation: z.boolean().optional().default(true),
 })
 
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
 export async function POST(req: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(req)
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)
