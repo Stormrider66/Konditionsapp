@@ -16,8 +16,15 @@ import {
   searchTemplates,
   getTemplateById,
 } from '@/lib/training-engine/templates/strength-templates'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { searchParams } = new URL(request.url)
     const category = searchParams.get('category')
@@ -30,7 +37,7 @@ export async function GET(request: NextRequest) {
       const template = getTemplateById(templateId)
       if (!template) {
         return NextResponse.json(
-          { error: 'Template not found' },
+          { error: t(locale, 'Template not found', 'Mallen hittades inte') },
           { status: 404 }
         )
       }
@@ -88,7 +95,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching system strength templates:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch templates' },
+      { error: t(locale, 'Failed to fetch templates', 'Kunde inte hämta mallar') },
       { status: 500 }
     )
   }

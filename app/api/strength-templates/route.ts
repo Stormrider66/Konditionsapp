@@ -24,40 +24,21 @@ import { Prisma, StrengthPhase, SportType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-interface TemplateExercise {
-  exerciseId: string
-  exerciseName: string
-  order: number
-  sets: number
-  reps: number
-  load: string
-  restSeconds: number
-  tempo?: string
-  notes?: string
-}
-
-interface StrengthTemplate {
-  id: string
-  name: string
-  description: string
-  strengthPhase: string
-  category: string // 'FULL_BODY' | 'UPPER' | 'LOWER' | 'PLYOMETRIC' | 'CORE'
-  difficulty: string // 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED' | 'ELITE'
-  estimatedDuration: number
-  exercises: TemplateExercise[]
-  userId: string
-  isPublic: boolean
-  createdAt: Date
-  usageCount: number
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
  * GET - List all strength templates
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
     const searchParams = request.nextUrl.searchParams
 
     // Filters
@@ -106,10 +87,10 @@ export async function GET(request: NextRequest) {
     })
   } catch (error: unknown) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Error fetching templates', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
@@ -117,8 +98,11 @@ export async function GET(request: NextRequest) {
  * POST - Create new template from workout
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json()
 
     const {
@@ -138,7 +122,7 @@ export async function POST(request: NextRequest) {
     // Validation
     if (!name || !sessions || sessions.length === 0) {
       return NextResponse.json(
-        { error: 'name and sessions are required' },
+        { error: t(locale, 'name and sessions are required', 'name och sessions krävs') },
         { status: 400 }
       )
     }
@@ -165,9 +149,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(template, { status: 201 })
   } catch (error: unknown) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Error creating template', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
