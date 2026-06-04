@@ -16,6 +16,7 @@ import { requestFullBackfill } from '@/lib/integrations/garmin/client';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Schema for POST request
 const syncRequestSchema = z.object({
@@ -38,11 +39,14 @@ const getDataSchema = z.object({
  * GET - Get readiness and training load data
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const searchParams = request.nextUrl.searchParams;
     const params = {
@@ -55,7 +59,7 @@ export async function GET(request: NextRequest) {
     const validationResult = getDataSchema.safeParse(params);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid parameters', 'Ogiltiga parametrar'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -65,7 +69,7 @@ export async function GET(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Check if connected
@@ -80,7 +84,7 @@ export async function GET(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Garmin not connected for this client' },
+        { error: t(locale, 'Garmin not connected for this client', 'Garmin är inte anslutet för den här klienten') },
         { status: 404 }
       );
     }
@@ -107,11 +111,11 @@ export async function GET(request: NextRequest) {
     logError('Get Garmin data error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get Garmin data' },
+      { error: t(locale, 'Failed to get Garmin data', 'Kunde inte hämta Garmin-data') },
       { status: 500 }
     );
   }
@@ -125,18 +129,21 @@ export async function GET(request: NextRequest) {
  * Data will arrive asynchronously via webhook push notifications.
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json();
 
     // Validate input
     const validationResult = syncRequestSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig indata'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -147,7 +154,7 @@ export async function POST(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Check subscription for Garmin sync access
@@ -155,7 +162,7 @@ export async function POST(request: NextRequest) {
     if (!access.allowed) {
       return NextResponse.json(
         {
-          error: access.reason || 'Garmin sync requires a Standard or Pro subscription',
+          error: access.reason || t(locale, 'Garmin sync requires a Standard or Pro subscription', 'Garmin-synk kräver en Standard- eller Pro-prenumeration'),
           code: access.code || 'SUBSCRIPTION_REQUIRED',
           upgradeUrl: access.upgradeUrl || '/athlete/subscription',
         },
@@ -175,14 +182,14 @@ export async function POST(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Garmin not connected for this client' },
+        { error: t(locale, 'Garmin not connected for this client', 'Garmin är inte anslutet för den här klienten') },
         { status: 404 }
       );
     }
 
     if (!token.syncEnabled) {
       return NextResponse.json(
-        { error: 'Sync is disabled for this client' },
+        { error: t(locale, 'Sync is disabled for this client', 'Synk är inaktiverad för den här klienten') },
         { status: 400 }
       );
     }
@@ -207,7 +214,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Backfill requested. Data will arrive via webhook push notifications.',
+      message: t(locale, 'Backfill requested. Data will arrive via webhook push notifications.', 'Backfill begärd. Data kommer via webhook-pushnotiser.'),
       requested: result.requested,
       errors: result.errors,
     });
@@ -215,12 +222,16 @@ export async function POST(request: NextRequest) {
     logError('Sync Garmin data error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to request Garmin backfill' },
+      { error: t(locale, 'Failed to request Garmin backfill', 'Kunde inte begära Garmin-backfill') },
       { status: 500 }
     );
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
