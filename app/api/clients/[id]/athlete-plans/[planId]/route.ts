@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
-import { handleApiError } from '@/lib/api/utils'
 import { prisma } from '@/lib/prisma'
 import {
   blockPlanDescriptionWithActualWeeks,
@@ -10,6 +9,24 @@ import {
   hasOverlappingBlockPlanDates,
   normalizeBlockPlanDates,
 } from '@/lib/block-plans/duration'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function handlePlanApiError(error: unknown, locale: AppLocale) {
+  if (error instanceof Error) {
+    if (error.message === 'Unauthorized' || error.message === 'Not authenticated') {
+      return NextResponse.json({ success: false, error: t(locale, 'Authentication required', 'Autentisering krävs') }, { status: 401 })
+    }
+    if (error.message === 'Forbidden' || error.message === 'Access denied') {
+      return NextResponse.json({ success: false, error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
+    }
+  }
+
+  return NextResponse.json({ success: false, error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
+}
 
 const blockSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -66,13 +83,16 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; planId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
     const { id: clientId, planId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ success: false, error: 'Client not found or access denied' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') }, { status: 404 })
     }
 
     const existingPlan = await prisma.athletePlan.findFirst({
@@ -80,13 +100,13 @@ export async function PUT(
       select: { id: true },
     })
     if (!existingPlan) {
-      return NextResponse.json({ success: false, error: 'Plan not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Plan not found', 'Planen hittades inte') }, { status: 404 })
     }
 
     const parsed = updatePlanSchema.safeParse(await request.json())
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: 'Validation failed', details: parsed.error.flatten() },
+        { success: false, error: t(locale, 'Validation failed', 'Valideringen misslyckades'), details: parsed.error.flatten() },
         { status: 400 }
       )
     }
@@ -94,14 +114,14 @@ export async function PUT(
     const startDate = parseDate(parsed.data.startDate)
     const endDate = parseDate(parsed.data.endDate)
     if (!startDate || !endDate || endDate < startDate) {
-      return NextResponse.json({ success: false, error: 'Invalid plan dates' }, { status: 400 })
+      return NextResponse.json({ success: false, error: t(locale, 'Invalid plan dates', 'Ogiltiga plandatum') }, { status: 400 })
     }
 
     const blocks = parsed.data.blocks.map((block) => {
       const blockStart = parseDate(block.startDate)
       const blockEnd = parseDate(block.endDate)
       if (!blockStart || !blockEnd || blockEnd < blockStart) {
-        throw new Error('Invalid block dates')
+        throw new Error('INVALID_BLOCK_DATES')
       }
       return {
         title: block.title,
@@ -142,9 +162,9 @@ export async function PUT(
 
     return NextResponse.json({ success: true, data: plan })
   } catch (error) {
-    if (error instanceof Error && error.message === 'Invalid block dates') {
-      return NextResponse.json({ success: false, error: error.message }, { status: 400 })
+    if (error instanceof Error && error.message === 'INVALID_BLOCK_DATES') {
+      return NextResponse.json({ success: false, error: t(locale, 'Invalid block dates', 'Ogiltiga blockdatum') }, { status: 400 })
     }
-    return handleApiError(error)
+    return handlePlanApiError(error, locale)
   }
 }
