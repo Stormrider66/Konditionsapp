@@ -7,8 +7,7 @@ import { rejectCoachRequest } from '@/lib/coach/agreement'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{
@@ -27,6 +26,9 @@ const copy = {
     rejected: 'Request rejected.',
     invalidData: 'Invalid data',
     rejectFailed: 'Failed to reject request',
+    requestNotFound: 'Coach request not found',
+    notYourRequest: 'Unauthorized: not your request',
+    cannotRejectPrefix: 'Cannot reject request with status:',
   },
   sv: {
     unauthorized: 'Obehörig',
@@ -34,8 +36,21 @@ const copy = {
     rejected: 'Förfrågan avvisad.',
     invalidData: 'Ogiltiga data',
     rejectFailed: 'Misslyckades med att avvisa förfrågan',
+    requestNotFound: 'Coachförfrågan hittades inte',
+    notYourRequest: 'Obehörig: det här är inte din förfrågan',
+    cannotRejectPrefix: 'Kan inte avvisa förfrågan med status:',
   },
 } satisfies Record<AppLocale, Record<string, string>>
+
+function localizeKnownError(message: string, locale: AppLocale): string {
+  if (message === 'Coach request not found') return copy[locale].requestNotFound
+  if (message === 'Unauthorized: not your request') return copy[locale].notYourRequest
+  if (message.startsWith('Cannot reject request with status:')) {
+    const status = message.split(':').slice(1).join(':').trim()
+    return `${copy[locale].cannotRejectPrefix} ${status}`
+  }
+  return message
+}
 
 /**
  * POST /api/coach/requests/[id]/reject
@@ -45,7 +60,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
-    locale = user?.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
@@ -90,7 +105,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         error.message.includes('Cannot reject')
       ) {
         return NextResponse.json(
-          { success: false, error: error.message },
+          { success: false, error: localizeKnownError(error.message, locale) },
           { status: 400 }
         )
       }

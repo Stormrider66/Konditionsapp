@@ -6,8 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const copy = {
   en: {
@@ -33,7 +32,7 @@ export async function GET(request: NextRequest) {
   let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
-    locale = user?.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(

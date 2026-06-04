@@ -7,8 +7,7 @@ import { acceptCoachRequest } from '@/lib/coach/agreement'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{
@@ -28,6 +27,10 @@ const copy = {
     accepted: 'Request accepted. The athlete is now connected to you.',
     invalidData: 'Invalid data',
     acceptFailed: 'Failed to accept request',
+    requestNotFound: 'Coach request not found',
+    notYourRequest: 'Unauthorized: not your request',
+    requestExpired: 'Request has expired',
+    cannotAcceptPrefix: 'Cannot accept request with status:',
   },
   sv: {
     unauthorized: 'Obehörig',
@@ -35,8 +38,23 @@ const copy = {
     accepted: 'Förfrågan accepterad! Atleten är nu kopplad till dig.',
     invalidData: 'Ogiltiga data',
     acceptFailed: 'Misslyckades med att acceptera förfrågan',
+    requestNotFound: 'Coachförfrågan hittades inte',
+    notYourRequest: 'Obehörig: det här är inte din förfrågan',
+    requestExpired: 'Förfrågan har gått ut',
+    cannotAcceptPrefix: 'Kan inte acceptera förfrågan med status:',
   },
 } satisfies Record<AppLocale, Record<string, string>>
+
+function localizeKnownError(message: string, locale: AppLocale): string {
+  if (message === 'Coach request not found') return copy[locale].requestNotFound
+  if (message === 'Unauthorized: not your request') return copy[locale].notYourRequest
+  if (message === 'Request has expired') return copy[locale].requestExpired
+  if (message.startsWith('Cannot accept request with status:')) {
+    const status = message.split(':').slice(1).join(':').trim()
+    return `${copy[locale].cannotAcceptPrefix} ${status}`
+  }
+  return message
+}
 
 /**
  * POST /api/coach/requests/[id]/accept
@@ -46,7 +64,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   let locale: AppLocale = 'en'
   try {
     const user = await getCurrentUser()
-    locale = user?.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user?.language)
 
     if (!user) {
       return NextResponse.json(
@@ -103,7 +121,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         error.message.includes('expired')
       ) {
         return NextResponse.json(
-          { success: false, error: error.message },
+          { success: false, error: localizeKnownError(error.message, locale) },
           { status: 400 }
         )
       }
