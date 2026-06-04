@@ -11,6 +11,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Query schema for GET
 const getQuerySchema = z.object({
@@ -26,12 +27,19 @@ const deleteQuerySchema = z.object({
   sessionId: z.string().uuid(),
 });
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const { searchParams } = new URL(request.url);
     const params = {
@@ -45,7 +53,7 @@ export async function GET(request: NextRequest) {
     const validationResult = getQuerySchema.safeParse(params);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid parameters', 'Ogiltiga parametrar'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -54,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const hasAccess = await canAccessClient(user.id, clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Build date filter
@@ -133,22 +141,25 @@ export async function GET(request: NextRequest) {
     logError('[VBT Sessions] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch VBT sessions' },
+      { error: t(locale, 'Failed to fetch VBT sessions', 'Kunde inte hämta VBT-pass') },
       { status: 500 }
     );
   }
 }
 
 export async function DELETE(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const { searchParams } = new URL(request.url);
     const params = { sessionId: searchParams.get('sessionId') };
@@ -156,7 +167,7 @@ export async function DELETE(request: NextRequest) {
     const validationResult = deleteQuerySchema.safeParse(params);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid parameters', 'Ogiltiga parametrar'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -174,19 +185,19 @@ export async function DELETE(request: NextRequest) {
     });
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 });
     }
 
     const hasAccess = await canAccessClient(user.id, session.clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     const hasCoachAccess = await canAccessCoachPlatform(user.id);
 
     // Additional guard: athlete can only delete self-uploaded sessions (no coachId).
     if (!hasCoachAccess && session.coachId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Delete session (cascades to measurements)
@@ -199,11 +210,11 @@ export async function DELETE(request: NextRequest) {
     logError('[VBT Delete] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to delete VBT session' },
+      { error: t(locale, 'Failed to delete VBT session', 'Kunde inte radera VBT-passet') },
       { status: 500 }
     );
   }

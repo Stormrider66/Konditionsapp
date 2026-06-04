@@ -13,11 +13,11 @@ import { prisma } from '@/lib/prisma';
 import type { VBTDeviceType } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   parseVBTCSV,
   enrichMeasurements,
   calculateSessionMetrics,
-  normalizeExerciseName,
   exerciseSimilarity,
 } from '@/lib/integrations/vbt';
 
@@ -42,12 +42,19 @@ interface UploadResponse {
   errors?: string[];
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 export async function POST(request: NextRequest): Promise<NextResponse<UploadResponse | { error: string }>> {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
@@ -60,21 +67,24 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
 
     // Validate file
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return NextResponse.json({ error: t(locale, 'No file provided', 'Ingen fil angiven') }, { status: 400 });
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json({ error: 'File too large. Maximum size: 10MB' }, { status: 400 });
+      return NextResponse.json(
+        { error: t(locale, 'File too large. Maximum size: 10MB', 'Filen är för stor. Maxstorlek: 10 MB') },
+        { status: 400 }
+      );
     }
 
     // Validate clientId
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId is required' }, { status: 400 });
+      return NextResponse.json({ error: t(locale, 'clientId is required', 'clientId krävs') }, { status: 400 });
     }
 
     const hasAccess = await canAccessClient(user.id, clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     const hasCoachAccess = await canAccessCoachPlatform(user.id);
@@ -97,7 +107,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
         exerciseCount: 0,
         errors: parsed.parseErrors.length > 0
           ? parsed.parseErrors
-          : ['No valid measurements found in file'],
+          : [t(locale, 'No valid measurements found in file', 'Inga giltiga mätningar hittades i filen')],
       });
     }
 
@@ -183,7 +193,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     const unmatchedCount = exerciseSummary.filter((e) => !e.matchedExerciseId).length;
     if (unmatchedCount > 0) {
       warnings.push(
-        `${unmatchedCount} exercise(s) could not be matched to the exercise library`
+        t(
+          locale,
+          `${unmatchedCount} exercise(s) could not be matched to the exercise library`,
+          `${unmatchedCount} övning(ar) kunde inte matchas mot övningsbiblioteket`
+        )
       );
     }
 
@@ -204,11 +218,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     logError('[VBT Upload] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to process VBT data' },
+      { error: t(locale, 'Failed to process VBT data', 'Kunde inte bearbeta VBT-data') },
       { status: 500 }
     );
   }
@@ -243,7 +257,6 @@ async function matchExercises(
 
   // Match each unique name
   for (const csvName of uniqueNames) {
-    const normalizedCsvName = normalizeExerciseName(csvName);
     let bestMatch: { id: string; score: number } | null = null;
 
     for (const exercise of exercises) {

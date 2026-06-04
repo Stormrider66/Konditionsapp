@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   getVBTProgressionData,
   getVBTProgressionSummary,
@@ -18,15 +19,22 @@ import {
 
 export const dynamic = 'force-dynamic';
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 /**
  * GET - Retrieve VBT progression data
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const { searchParams } = new URL(request.url);
     const clientId = searchParams.get('clientId');
@@ -35,14 +43,14 @@ export async function GET(request: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId is required' },
+        { error: t(locale, 'clientId is required', 'clientId krävs') },
         { status: 400 }
       );
     }
 
     const hasAccess = await canAccessClient(user.id, clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Handle different request types
@@ -84,7 +92,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('[VBT Progression] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to get VBT progression data' },
+      { error: t(locale, 'Failed to get VBT progression data', 'Kunde inte hämta VBT-progressionsdata') },
       { status: 500 }
     );
   }
@@ -94,25 +102,28 @@ export async function GET(request: NextRequest) {
  * POST - Update progression after VBT session
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const body = await request.json();
     const { clientId, sessionId } = body;
 
     if (!clientId || !sessionId) {
       return NextResponse.json(
-        { error: 'clientId and sessionId are required' },
+        { error: t(locale, 'clientId and sessionId are required', 'clientId och sessionId krävs') },
         { status: 400 }
       );
     }
 
     const hasAccess = await canAccessClient(user.id, clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Verify session exists and belongs to client
@@ -123,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     if (!session || session.clientId !== clientId) {
       return NextResponse.json(
-        { error: 'Session not found or does not belong to client' },
+        { error: t(locale, 'Session not found or does not belong to client', 'Passet hittades inte eller tillhör inte klienten') },
         { status: 404 }
       );
     }
@@ -133,12 +144,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Progression updated with VBT data',
+      message: t(locale, 'Progression updated with VBT data', 'Progressionen uppdaterades med VBT-data'),
     });
   } catch (error) {
     logError('[VBT Progression] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to update progression' },
+      { error: t(locale, 'Failed to update progression', 'Kunde inte uppdatera progressionen') },
       { status: 500 }
     );
   }

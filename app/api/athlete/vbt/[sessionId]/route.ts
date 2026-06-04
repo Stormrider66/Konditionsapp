@@ -8,21 +8,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   calculateLoadVelocityProfile,
   VELOCITY_ZONES,
   getVelocityZone,
 } from '@/lib/integrations/vbt';
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const { sessionId } = await params;
 
@@ -54,12 +62,12 @@ export async function GET(
     });
 
     if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 });
     }
 
     const hasAccess = await canAccessClient(user.id, session.clientId);
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
     }
 
     // Group measurements by exercise
@@ -241,11 +249,11 @@ export async function GET(
     logError('[VBT Session Detail] Error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch session details' },
+      { error: t(locale, 'Failed to fetch session details', 'Kunde inte hämta passdetaljer') },
       { status: 500 }
     );
   }
