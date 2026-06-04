@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 /**
  * POST /api/workouts/[id]/logs/[logId]/sets
@@ -11,15 +12,17 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     const { id: workoutId, logId } = await params
     const body = await request.json()
@@ -36,21 +39,21 @@ export async function POST(
 
     if (!workoutLog) {
       return NextResponse.json(
-        { success: false, error: 'Workout log not found' },
+        { success: false, error: t(locale, 'Workout log not found', 'Träningslogg hittades inte') },
         { status: 404 }
       )
     }
 
     if (workoutLog.athleteId !== user.id) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
 
     if (workoutLog.workoutId !== workoutId) {
       return NextResponse.json(
-        { success: false, error: 'Workout ID mismatch' },
+        { success: false, error: t(locale, 'Workout ID mismatch', 'Träningspassets ID matchar inte') },
         { status: 400 }
       )
     }
@@ -76,7 +79,7 @@ export async function POST(
   } catch (error) {
     logError('Error creating set log:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to create set log' },
+      { success: false, error: t(locale, 'Failed to create set log', 'Misslyckades med att skapa setlogg') },
       { status: 500 }
     )
   }
@@ -90,15 +93,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     const { logId } = await params
 
@@ -109,14 +114,14 @@ export async function GET(
 
     if (!workoutLog) {
       return NextResponse.json(
-        { success: false, error: 'Workout log not found' },
+        { success: false, error: t(locale, 'Workout log not found', 'Träningslogg hittades inte') },
         { status: 404 }
       )
     }
 
     if (workoutLog.athleteId !== user.id) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -143,8 +148,12 @@ export async function GET(
   } catch (error) {
     logError('Error fetching set logs:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch set logs' },
+      { success: false, error: t(locale, 'Failed to fetch set logs', 'Misslyckades med att hämta setloggar') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

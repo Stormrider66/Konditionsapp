@@ -5,8 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 /**
  * PUT /api/workouts/[id]/logs/[logId]
@@ -16,10 +15,12 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
-    locale = getUserLocale(user?.language)
+    if (user) {
+      locale = resolveRequestLocale(request, user.language)
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -177,10 +178,12 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
-    locale = getUserLocale(user?.language)
+    if (user) {
+      locale = resolveRequestLocale(request, user.language)
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -309,10 +312,12 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; logId: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
-    locale = getUserLocale(user?.language)
+    if (user) {
+      locale = resolveRequestLocale(request, user.language)
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -369,10 +374,6 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

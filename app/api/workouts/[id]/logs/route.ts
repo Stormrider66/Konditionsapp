@@ -7,8 +7,7 @@ import { canAccessWorkout, getCurrentUser, resolveAthleteClientId } from '@/lib/
 import { calculateVDOTFromRace } from '@/lib/training-engine/calculations/vdot'
 import { updateAthleteProfileFromRace } from '@/lib/training-engine/update-athlete-profile'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 /** Map program goalType to VDOT distance format. Returns 'CUSTOM' for non-running. */
 function mapGoalTypeToVDOTDistance(
@@ -31,7 +30,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
@@ -44,7 +43,7 @@ export async function POST(
       )
     }
     const { user, clientId } = resolved
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 
@@ -422,10 +421,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await getCurrentUser()
-    locale = getUserLocale(user?.language)
+    if (user) {
+      locale = resolveRequestLocale(request, user.language)
+    }
 
     if (!user) {
       return NextResponse.json(
@@ -482,10 +483,6 @@ export async function GET(
       { status: 500 }
     )
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
