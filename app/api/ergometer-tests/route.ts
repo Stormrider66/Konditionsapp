@@ -5,7 +5,7 @@
  * GET /api/ergometer-tests - List tests with optional filtering
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient } from '@/lib/auth-utils'
@@ -18,16 +18,13 @@ import {
   analyze6SecondPeakPower,
   analyze7StrokeMaxPower,
   analyze30SecondSprint,
-  calculateZonesFromCP,
   calculateZonesFrom2K,
   calculateZonesFrom1K,
   calculateZonesFromFTP,
-  calculateZonesFromIntervalTest,
   calculateZonesFromMAP,
-  paceToWatts,
-  wattsToPace,
 } from '@/lib/training-engine/ergometer'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import type {
   Interval4x4RawData,
   CP3MinRawData,
@@ -39,6 +36,10 @@ import type {
   MAPRampRawData,
   TT10MinRawData,
 } from '@/lib/training-engine/ergometer'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ==================== ZOD SCHEMAS ====================
 
@@ -252,15 +253,18 @@ const listQuerySchema = z.object({
 // ==================== POST HANDLER ====================
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validationResult = ergometerTestSchema.safeParse(body)
 
     if (!validationResult.success) {
       return errorResponse(
-        'Invalid request body',
+        t(locale, 'Invalid request body', 'Ogiltigt innehåll i begäran'),
         400,
         validationResult.error.flatten()
       )
@@ -270,14 +274,14 @@ export async function POST(request: NextRequest) {
 
     const hasAccess = await canAccessClient(user.id, data.clientId)
     if (!hasAccess) {
-      return errorResponse('Client not found or access denied', 404)
+      return errorResponse(t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades'), 404)
     }
 
     const client = await prisma.client.findUnique({
       where: { id: data.clientId },
     })
     if (!client) {
-      return errorResponse('Client not found or access denied', 404)
+      return errorResponse(t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades'), 404)
     }
 
     // Process test based on protocol
@@ -329,7 +333,8 @@ export async function POST(request: NextRequest) {
       data.ergometerType,
       data.testProtocol,
       analysis,
-      client
+      client,
+      locale
     )
 
     return successResponse(
@@ -344,22 +349,25 @@ export async function POST(request: NextRequest) {
     )
   } catch (error) {
     logError('Error creating ergometer test:', error)
-    return errorResponse('Failed to create ergometer test', 500)
+    return errorResponse(t(locale, 'Failed to create ergometer test', 'Kunde inte skapa ergometertest'), 500)
   }
 }
 
 // ==================== GET HANDLER ====================
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url)
     const queryResult = listQuerySchema.safeParse(Object.fromEntries(searchParams))
 
     if (!queryResult.success) {
       return errorResponse(
-        'Invalid query parameters',
+        t(locale, 'Invalid query parameters', 'Ogiltiga frågeparametrar'),
         400,
         queryResult.error.flatten()
       )
@@ -413,7 +421,7 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     logError('Error listing ergometer tests:', error)
-    return errorResponse('Failed to list ergometer tests', 500)
+    return errorResponse(t(locale, 'Failed to list ergometer tests', 'Kunde inte lista ergometertester'), 500)
   }
 }
 
@@ -695,11 +703,20 @@ interface BenchmarkResult {
   message?: string
 }
 
+function benchmarkMessage(locale: AppLocale): string {
+  return t(
+    locale,
+    'Benchmark classification will be available after reference data is seeded',
+    'Benchmarkklassificering blir tillgänglig när referensdata har lagts in'
+  )
+}
+
 async function classifyPerformance(
   ergometerType: ErgometerType,
   testProtocol: ErgometerTestProtocol,
   analysis: AnalysisResult,
-  client: { id: string; name: string }
+  client: { id: string; name: string },
+  locale: AppLocale
 ): Promise<BenchmarkResult> {
   // Get client's gender for benchmark comparison
   const clientData = await prisma.client.findUnique({
@@ -710,7 +727,7 @@ async function classifyPerformance(
   // For now, return basic benchmark info
   // Full benchmark classification will be implemented in Phase 6
   const benchmark: BenchmarkResult = {
-    message: 'Benchmark classification will be available after reference data is seeded',
+    message: benchmarkMessage(locale),
   }
 
   // If we have peak power analysis with tier, use it

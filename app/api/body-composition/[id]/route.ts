@@ -11,6 +11,11 @@ import {
   calculateBMR,
   calculateBMRKatchMcArdle,
 } from '@/lib/ai/nutrition-calculator'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/body-composition/[id]
@@ -20,12 +25,14 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const locale = resolveRequestLocale(req)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { id } = await params
@@ -46,11 +53,11 @@ export async function GET(
     })
 
     if (!measurement) {
-      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Measurement not found', 'Mätningen hittades inte') }, { status: 404 })
     }
     const hasAccess = await canAccessClient(user.id, measurement.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Measurement not found', 'Mätningen hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json(measurement)
@@ -58,7 +65,7 @@ export async function GET(
     logger.error('Error fetching body composition', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -77,12 +84,14 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const locale = resolveRequestLocale(req)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { id } = await params
@@ -104,11 +113,11 @@ export async function PUT(
     })
 
     if (!existing) {
-      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Measurement not found', 'Mätningen hittades inte') }, { status: 404 })
     }
     const hasAccess = await canAccessClient(user.id, existing.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Measurement not found', 'Mätningen hittades inte') }, { status: 404 })
     }
 
     const {
@@ -199,7 +208,7 @@ export async function PUT(
     logger.error('Error updating body composition', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
@@ -218,12 +227,14 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const locale = resolveRequestLocale(req)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { id } = await params
@@ -232,11 +243,11 @@ export async function DELETE(
     const existing = await prisma.bodyComposition.findUnique({ where: { id } })
 
     if (!existing) {
-      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Measurement not found', 'Mätningen hittades inte') }, { status: 404 })
     }
     const hasAccess = await canAccessClient(user.id, existing.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Measurement not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Measurement not found', 'Mätningen hittades inte') }, { status: 404 })
     }
 
     await prisma.bodyComposition.delete({
@@ -248,7 +259,7 @@ export async function DELETE(
     logger.error('Error deleting body composition', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined

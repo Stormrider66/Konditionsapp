@@ -6,10 +6,18 @@ import { prisma } from '@/lib/prisma';
 import { requireCoach } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
 import { subDays, startOfDay, endOfDay, format } from 'date-fns';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '30'; // days
     const days = parseInt(range, 10);
@@ -34,9 +42,6 @@ export async function GET(request: NextRequest) {
 
       // Workout activity
       workoutLogsThisPeriod,
-
-      // Daily activity breakdown (for charts)
-      dailyWorkoutLogs,
 
       // Subscription info
       subscription,
@@ -113,23 +118,6 @@ export async function GET(request: NextRequest) {
           completedAt: true,
           coachFeedback: true,
         },
-      }),
-
-      // Daily workout logs for chart (group by day)
-      prisma.workoutLog.groupBy({
-        by: ['completedAt'],
-        where: {
-          completedAt: { gte: startDate, lte: endDate },
-          completed: true,
-          workout: {
-            day: {
-              week: {
-                program: { coachId: user.id },
-              },
-            },
-          },
-        },
-        _count: { id: true },
       }),
 
       // Subscription
@@ -262,7 +250,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching analytics', {}, error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch analytics' },
+      { success: false, error: t(locale, 'Failed to fetch analytics', 'Kunde inte hämta analysdata') },
       { status: 500 }
     );
   }

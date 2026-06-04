@@ -8,6 +8,11 @@ import { canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { SportType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating sport performance
 const createSportPerformanceSchema = z.object({
@@ -70,12 +75,14 @@ const createSportPerformanceSchema = z.object({
 
 // GET /api/sport-performance - Get sport performances for a client
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { searchParams } = new URL(request.url)
@@ -83,12 +90,12 @@ export async function GET(request: NextRequest) {
     const sport = searchParams.get('sport') as SportType | null
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 })
     }
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     const performances = await prisma.sportPerformance.findMany({
@@ -103,18 +110,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: performances })
   } catch (error) {
     logError('Error fetching sport performances:', error)
-    return NextResponse.json({ error: 'Failed to fetch performances' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch performances', 'Kunde inte hämta prestationer') }, { status: 500 })
   }
 }
 
 // POST /api/sport-performance - Create new sport performance
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const body = await request.json()
@@ -122,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json({
-        error: 'Validation failed',
+        error: t(locale, 'Validation failed', 'Valideringen misslyckades'),
         details: validation.error.errors,
       }, { status: 400 })
     }
@@ -131,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     const hasAccess = await canAccessClient(user.id, data.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Create the performance record
@@ -184,6 +193,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, data: performance })
   } catch (error) {
     logError('Error creating sport performance:', error)
-    return NextResponse.json({ error: 'Failed to create performance' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to create performance', 'Kunde inte skapa prestation') }, { status: 500 })
   }
 }

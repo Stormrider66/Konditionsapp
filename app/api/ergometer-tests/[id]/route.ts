@@ -5,7 +5,7 @@
  * DELETE /api/ergometer-tests/[id] - Delete a test
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, errorResponse, successResponse } from '@/lib/api/utils'
 import { ErgometerTestProtocol } from '@prisma/client'
@@ -21,6 +21,7 @@ import {
   analyzeHRPowerCoupling,
 } from '@/lib/training-engine/ergometer'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import type {
   Interval4x4RawData,
   CP3MinRawData,
@@ -29,14 +30,21 @@ import type {
   SevenStrokeRawData,
 } from '@/lib/training-engine/ergometer'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // ==================== GET HANDLER ====================
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     const test = await prisma.ergometerFieldTest.findFirst({
@@ -57,7 +65,7 @@ export async function GET(
     })
 
     if (!test) {
-      return errorResponse('Test not found or access denied', 404)
+      return errorResponse(t(locale, 'Test not found or access denied', 'Testet hittades inte eller åtkomst nekades'), 404)
     }
 
     // Generate detailed analysis based on protocol
@@ -99,7 +107,7 @@ export async function GET(
     })
   } catch (error) {
     logError('Error fetching ergometer test:', error)
-    return errorResponse('Failed to fetch ergometer test', 500)
+    return errorResponse(t(locale, 'Failed to fetch ergometer test', 'Kunde inte hämta ergometertest'), 500)
   }
 }
 
@@ -109,8 +117,11 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await params
 
     // Verify test exists and user has access
@@ -124,17 +135,17 @@ export async function DELETE(
     })
 
     if (!test) {
-      return errorResponse('Test not found or access denied', 404)
+      return errorResponse(t(locale, 'Test not found or access denied', 'Testet hittades inte eller åtkomst nekades'), 404)
     }
 
     await prisma.ergometerFieldTest.delete({
       where: { id },
     })
 
-    return successResponse({ message: 'Test deleted successfully' })
+    return successResponse({ message: t(locale, 'Test deleted successfully', 'Testet har raderats') })
   } catch (error) {
     logError('Error deleting ergometer test:', error)
-    return errorResponse('Failed to delete ergometer test', 500)
+    return errorResponse(t(locale, 'Failed to delete ergometer test', 'Kunde inte radera ergometertest'), 500)
   }
 }
 
