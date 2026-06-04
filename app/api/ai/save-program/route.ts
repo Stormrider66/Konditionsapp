@@ -17,14 +17,10 @@ import { logger } from '@/lib/logger'
 import type { MergedProgram } from '@/lib/ai/program-generator'
 import { createFuelingPrescriptionsForProgram } from '@/lib/fueling/workout-prescriptions'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type ProgramType = 'MAIN' | 'COMPLEMENTARY';
 type ExistingProgramAction = 'KEEP' | 'DEACTIVATE' | 'REPLACE';
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -43,7 +39,7 @@ interface SaveProgramRequest {
 }
 
 export async function POST(request: NextRequest) {
-  let responseLocale: AppLocale = 'en'
+  let responseLocale: AppLocale = resolveRequestLocale(request)
   try {
     // Dual auth: try coach first, then athlete
     let coachUserId: string;
@@ -53,19 +49,19 @@ export async function POST(request: NextRequest) {
     try {
       const user = await requireCoach();
       coachUserId = user.id;
-      responseLocale = resolveLocale(user.language)
+      responseLocale = resolveRequestLocale(request, user.language)
     } catch {
       // Fallback: try athlete auth
       const resolved = await resolveAthleteClientId();
       if (!resolved) {
         return NextResponse.json(
-          { error: 'Unauthorized' },
+          { error: t(responseLocale, 'Unauthorized', 'Obehörig') },
           { status: 401 }
         );
       }
       isAthleteAuth = true;
       athleteClientId = resolved.clientId;
-      responseLocale = resolveLocale(resolved.user.language)
+      responseLocale = resolveRequestLocale(request, resolved.user.language)
 
       // Get the coach user ID from the client record
       const clientRecord = await prisma.client.findUnique({
@@ -74,7 +70,7 @@ export async function POST(request: NextRequest) {
       });
       if (!clientRecord?.userId) {
         return NextResponse.json(
-          { error: 'Athlete account not properly linked' },
+          { error: t(responseLocale, 'Athlete account not properly linked', 'Atletkontot är inte korrekt kopplat') },
           { status: 400 }
         );
       }
@@ -105,7 +101,7 @@ export async function POST(request: NextRequest) {
     // Athlete auth: verify clientId matches their own
     if (isAthleteAuth && clientId !== athleteClientId) {
       return NextResponse.json(
-        { error: 'Access denied: clientId mismatch' },
+        { error: t(responseLocale, 'Access denied: clientId mismatch', 'Åtkomst nekad: clientId matchar inte') },
         { status: 403 }
       );
     }
@@ -113,14 +109,14 @@ export async function POST(request: NextRequest) {
     // Need either aiOutput or mergedProgram
     if (!mergedProgramInput && !aiOutput) {
       return NextResponse.json(
-        { error: 'Missing required fields: aiOutput or mergedProgram' },
+        { error: t(responseLocale, 'Missing required fields: aiOutput or mergedProgram', 'Obligatoriska fält saknas: aiOutput eller mergedProgram') },
         { status: 400 }
       );
     }
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'Missing required field: clientId' },
+        { error: t(responseLocale, 'Missing required field: clientId', 'Obligatoriskt fält saknas: clientId') },
         { status: 400 }
       );
     }
@@ -130,7 +126,7 @@ export async function POST(request: NextRequest) {
       const hasAccess = await canAccessClient(coachUserId, clientId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'Client not found or access denied' },
+          { error: t(responseLocale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
           { status: 404 }
         );
       }
@@ -164,7 +160,7 @@ export async function POST(request: NextRequest) {
       if (!parseResult.success || !parseResult.program) {
         return NextResponse.json(
           {
-            error: 'Failed to parse AI output',
+            error: t(responseLocale, 'Failed to parse AI output', 'Kunde inte tolka AI-svaret'),
             details: parseResult.error,
             rawJson: parseResult.rawJson
           },
@@ -180,7 +176,7 @@ export async function POST(request: NextRequest) {
     if (!validation.valid) {
       return NextResponse.json(
         {
-          error: 'Program validation failed',
+          error: t(responseLocale, 'Program validation failed', 'Programvalideringen misslyckades'),
           errors: validation.errors,
           warnings: validation.warnings
         },
@@ -381,7 +377,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (athleteAccount?.user?.email) {
-          const athleteLocale = resolveLocale(athleteAccount.user.language)
+          const athleteLocale = resolveRequestLocale(request, athleteAccount.user.language)
           // Create an in-app message notification
           await prisma.message.create({
             data: {
@@ -422,17 +418,17 @@ export async function POST(request: NextRequest) {
 
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: t(responseLocale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       );
     }
 
     return NextResponse.json(
       {
-        error: 'Failed to save program',
+        error: t(responseLocale, 'Failed to save program', 'Kunde inte spara programmet'),
         message:
           process.env.NODE_ENV === 'production'
-            ? 'Internal server error'
+            ? t(responseLocale, 'Internal server error', 'Internt serverfel')
             : errorMessage,
       },
       { status: 500 }

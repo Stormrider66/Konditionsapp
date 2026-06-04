@@ -16,8 +16,7 @@ import {
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withAiContext } from '@/lib/ai/usage-logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface ExtractRequest {
   clientId: string
@@ -29,7 +28,7 @@ interface ExtractRequest {
 }
 
 export async function POST(request: Request) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const supabase = await createClient()
@@ -38,7 +37,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const body: ExtractRequest = await request.json()
@@ -46,7 +45,7 @@ export async function POST(request: Request) {
 
     if (!clientId || !messages || messages.length === 0) {
       return NextResponse.json(
-        { error: 'clientId and messages are required' },
+        { error: t(locale, 'clientId and messages are required', 'clientId och messages är obligatoriska') },
         { status: 400 }
       )
     }
@@ -54,7 +53,7 @@ export async function POST(request: Request) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
+        { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
         { status: 404 }
       )
     }
@@ -83,17 +82,17 @@ export async function POST(request: Request) {
 
     if (!client) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
+        { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
         { status: 404 }
       )
     }
-    locale = client.athleteAccount?.user?.language === 'sv' || client.user?.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, client.athleteAccount?.user?.language ?? client.user?.language)
 
     // Get API keys from coach settings
     const apiKeys = await getResolvedAiKeys(client.userId)
     if (!apiKeys.anthropicKey && !apiKeys.googleKey && !apiKeys.openaiKey) {
       return NextResponse.json(
-        { error: 'No AI API key configured' },
+        { error: t(locale, 'No AI API key configured', 'Ingen AI API-nyckel är konfigurerad') },
         { status: 400 }
       )
     }
@@ -127,8 +126,12 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Memory extraction error:', error)
     return NextResponse.json(
-      { error: locale === 'sv' ? 'Kunde inte extrahera minnen' : 'Failed to extract memories' },
+      { error: t(locale, 'Failed to extract memories', 'Kunde inte extrahera minnen') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }

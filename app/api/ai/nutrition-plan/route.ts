@@ -18,8 +18,8 @@ import {
   type ActivityLevel,
   type CaloricGoal,
 } from '@/lib/ai/nutrition-calculator'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-type AppLocale = 'en' | 'sv'
 type NutritionBasePlan = {
   targetCalories?: number
   macros?: {
@@ -27,10 +27,6 @@ type NutritionBasePlan = {
     carbs?: { grams?: number }
     fat?: { grams?: number }
   }
-}
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string) {
@@ -42,14 +38,14 @@ function t(locale: AppLocale, en: string, sv: string) {
  * Generate AI-powered personalized nutrition plan
  */
 export async function POST(req: NextRequest) {
-  let responseLocale: AppLocale = 'en'
+  let responseLocale: AppLocale = resolveRequestLocale(req)
   try {
     const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: t(responseLocale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    responseLocale = resolveLocale(user.language)
+    responseLocale = resolveRequestLocale(req, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:nutrition-plan', user.id, {
       limit: 5,
@@ -95,7 +91,10 @@ export async function POST(req: NextRequest) {
         },
       },
     })
-    const contentLocale = resolveLocale(clientLocale?.athleteAccount?.user?.language ?? clientLocale?.user?.language ?? user.language)
+    const contentLocale = resolveRequestLocale(
+      req,
+      clientLocale?.athleteAccount?.user?.language ?? clientLocale?.user?.language ?? user.language
+    )
 
     // Subscription gate
     const denied = await requireFeatureAccess(clientId, 'nutrition_planning')

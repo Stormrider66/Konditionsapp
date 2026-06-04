@@ -28,6 +28,7 @@ import { logger } from '@/lib/logger'
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
 const DOCUMENT_TYPES = ['application/pdf', 'text/csv']
@@ -36,8 +37,6 @@ const AUDIO_TYPES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/wav', 'audi
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024   // 10MB
 const MAX_DOC_SIZE = 25 * 1024 * 1024     // 25MB
 const MAX_AUDIO_SIZE = 10 * 1024 * 1024   // 10MB
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -328,11 +327,11 @@ LJUDSPECIFIKT:
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Subscription gate
     const denied = await requireCoachFeatureAccess(user.id, 'smart_test_import')
@@ -621,7 +620,7 @@ export async function POST(request: NextRequest) {
     }, error)
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(

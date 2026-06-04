@@ -17,15 +17,10 @@ import {
   getRecentSummary,
   formatMemoriesForPrompt,
 } from '@/lib/ai/memory-extractor'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ clientId: string }>
-}
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -33,7 +28,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
 }
 
 export async function GET(request: Request, { params }: RouteParams) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const { clientId } = await params
@@ -43,14 +38,14 @@ export async function GET(request: Request, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
       select: { language: true },
     })
-    locale = resolveLocale(dbUser?.language)
+    locale = resolveRequestLocale(request, dbUser?.language)
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
@@ -93,9 +88,12 @@ export async function GET(request: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(request: Request, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { clientId } = await params
     const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
 
     // Get memory ID from query params
     const url = new URL(request.url)
@@ -103,7 +101,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     if (!memoryId) {
       return NextResponse.json(
-        { error: 'memoryId is required' },
+        { error: t(locale, 'memoryId is required', 'memoryId är obligatoriskt') },
         { status: 400 }
       )
     }
@@ -111,7 +109,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
       return NextResponse.json(
-        { error: 'Client not found or access denied' },
+        { error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') },
         { status: 404 }
       )
     }
@@ -127,8 +125,12 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Memory deletion error:', error)
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
+    }
+
     return NextResponse.json(
-      { error: 'Failed to delete memory' },
+      { error: t(locale, 'Failed to delete memory', 'Kunde inte radera minnet') },
       { status: 500 }
     )
   }
