@@ -54,7 +54,7 @@ describe('normalizePrintableWorkout', () => {
       },
     }, { locale: 'sv' })
 
-    expect(workout.sections[0].items[0].details).toContain('vila efter 3 min')
+    expect(workout.sections[0].items[0].details).toContain('vila 3 min efter')
     expect(workout.sections[0].items[0].details).toContain('SkiErg 250 m')
     expect(workout.sections[0].items[0].details).toContain('Push Press 10 reps, herr 40 kg')
     expect(workout.sections[0].items[0].details).not.toContain('Rörelse')

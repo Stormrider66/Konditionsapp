@@ -302,6 +302,12 @@ function formatHybridMovementSummary(movement: Record<string, unknown>, locale: 
   return [item.title, item.details.join(', ')].filter(Boolean).join(' ')
 }
 
+function formatRestAfter(seconds: unknown, locale: AppLocale): string | undefined {
+  const duration = formatDuration(asNumber(seconds), undefined, locale)
+  if (!duration) return undefined
+  return locale === 'sv' ? `vila ${duration} efter` : `rest ${duration} after`
+}
+
 function normalizeHybridSection(title: string, data: unknown, locale: AppLocale): PrintableWorkoutSection | null {
   if (!isRecord(data)) return null
   const blocks = asArray(data.blocks)
@@ -317,7 +323,7 @@ function normalizeHybridSection(title: string, data: unknown, locale: AppLocale)
           formatDuration(asNumber(block.intervalSeconds), undefined, locale),
           formatDuration(asNumber(block.workSeconds), undefined, locale) ? `${text(locale, 'work', 'arbete')} ${formatDuration(asNumber(block.workSeconds), undefined, locale)}` : undefined,
           formatDuration(asNumber(block.restSeconds), undefined, locale) ? `${text(locale, 'rest', 'vila')} ${formatDuration(asNumber(block.restSeconds), undefined, locale)}` : undefined,
-          formatDuration(asNumber(block.restAfterSeconds), undefined, locale) ? `${text(locale, 'rest after', 'vila efter')} ${formatDuration(asNumber(block.restAfterSeconds), undefined, locale)}` : undefined,
+          formatRestAfter(block.restAfterSeconds, locale),
           ...asArray(block.movements).map((movement) => formatHybridMovementSummary(movement, locale)),
         ]),
         notes: asString(block.notes),
