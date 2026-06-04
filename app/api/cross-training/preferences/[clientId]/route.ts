@@ -16,10 +16,34 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { requireAuth } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function handleCrossTrainingError(error: unknown, locale: AppLocale) {
+  logger.error('Cross-training preferences API error', {}, error)
+
+  if (error instanceof Error) {
+    const msg = error.message
+    if (msg === 'Unauthorized' || msg === 'Not authenticated' || msg === 'Authentication required') {
+      return NextResponse.json({ error: t(locale, 'Authentication required', 'Autentisering krävs') }, { status: 401 })
+    }
+    if (msg === 'Forbidden' || msg === 'Access denied') {
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
+    }
+  }
+
+  return NextResponse.json(
+    { error: t(locale, 'An unexpected error occurred', 'Ett oväntat fel inträffade') },
+    { status: 500 }
+  )
+}
 
 type Modality = 'DWR' | 'XC_SKIING' | 'ALTERG' | 'AIR_BIKE' | 'CYCLING' | 'ROWING' | 'ELLIPTICAL' | 'SWIMMING'
 
@@ -51,17 +75,20 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     if (!(await canAccessCoachPlatform(user.id))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     const { clientId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Get athlete profile with cross-training preferences
@@ -90,7 +117,7 @@ export async function GET(
       isDefault: !preferences,
     })
   } catch (error: unknown) {
-    return handleApiError(error)
+    return handleCrossTrainingError(error, locale)
   }
 }
 
@@ -98,10 +125,13 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     if (!(await canAccessCoachPlatform(user.id))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     const { clientId } = await params
@@ -109,7 +139,7 @@ export async function POST(
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Validate the preferences structure
@@ -121,7 +151,7 @@ export async function POST(
 
     if (!preferences) {
       return NextResponse.json(
-        { error: 'Missing preferences in request body' },
+        { error: t(locale, 'Missing preferences in request body', 'Preferenser saknas i begäran') },
         { status: 400 }
       )
     }
@@ -145,7 +175,7 @@ export async function POST(
     const invalidModalities = mergedPreferences.preferredOrder.filter(m => !validModalities.includes(m))
     if (invalidModalities.length > 0) {
       return NextResponse.json(
-        { error: `Invalid modalities: ${invalidModalities.join(', ')}` },
+        { error: t(locale, `Invalid modalities: ${invalidModalities.join(', ')}`, `Ogiltiga träningsformer: ${invalidModalities.join(', ')}`) },
         { status: 400 }
       )
     }
@@ -183,6 +213,6 @@ export async function POST(
       isDefault: false,
     })
   } catch (error: unknown) {
-    return handleApiError(error)
+    return handleCrossTrainingError(error, locale)
   }
 }

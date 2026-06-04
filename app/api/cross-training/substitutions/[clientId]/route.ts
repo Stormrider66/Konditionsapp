@@ -26,9 +26,33 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { requireAuth } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function handleCrossTrainingError(error: unknown, locale: AppLocale) {
+  logger.error('Cross-training substitutions API error', {}, error)
+
+  if (error instanceof Error) {
+    const msg = error.message
+    if (msg === 'Unauthorized' || msg === 'Not authenticated' || msg === 'Authentication required') {
+      return NextResponse.json({ error: t(locale, 'Authentication required', 'Autentisering krävs') }, { status: 401 })
+    }
+    if (msg === 'Forbidden' || msg === 'Access denied') {
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
+    }
+  }
+
+  return NextResponse.json(
+    { error: t(locale, 'An unexpected error occurred', 'Ett oväntat fel inträffade') },
+    { status: 500 }
+  )
+}
 
 // Cross-training modality equivalencies (from injury-management system)
 const MODALITY_RETENTION = {
@@ -169,14 +193,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     const { clientId } = await params
     const { searchParams } = new URL(request.url)
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Parse query params
@@ -186,7 +213,7 @@ export async function GET(
     // Validate date range
     if (![7, 14].includes(dateRange)) {
       return NextResponse.json(
-        { error: 'dateRange must be 7 or 14' },
+        { error: t(locale, 'dateRange must be 7 or 14', 'dateRange måste vara 7 eller 14') },
         { status: 400 }
       )
     }
@@ -338,7 +365,11 @@ export async function GET(
             intensity: dayWorkout.intensity || 'EASY',
             tss: crossTrainingTSS,
             retentionPercent,
-            reasoning: `${activeInjury.injuryType} injury - ${preferredModality} recommended for safe recovery`,
+            reasoning: t(
+              locale,
+              `${activeInjury.injuryType} injury - ${preferredModality} recommended for safe recovery`,
+              `${activeInjury.injuryType} - ${preferredModality} rekommenderas för säker återhämtning`
+            ),
           },
           hasSubstitution: true,
         })
@@ -391,6 +422,6 @@ export async function GET(
       recommendedModalities: activeInjury.injuryType ? INJURY_MODALITY_MAP[activeInjury.injuryType] || ['DWR'] : ['DWR'],
     })
   } catch (error: unknown) {
-    return handleApiError(error)
+    return handleCrossTrainingError(error, locale)
   }
 }

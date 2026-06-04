@@ -21,9 +21,33 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireAuth, handleApiError } from '@/lib/api/utils'
+import { requireAuth } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function handleCrossTrainingError(error: unknown, locale: AppLocale) {
+  logger.error('Cross-training fitness projection API error', {}, error)
+
+  if (error instanceof Error) {
+    const msg = error.message
+    if (msg === 'Unauthorized' || msg === 'Not authenticated' || msg === 'Authentication required') {
+      return NextResponse.json({ error: t(locale, 'Authentication required', 'Autentisering krävs') }, { status: 401 })
+    }
+    if (msg === 'Forbidden' || msg === 'Access denied') {
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
+    }
+  }
+
+  return NextResponse.json(
+    { error: t(locale, 'An unexpected error occurred', 'Ett oväntat fel inträffade') },
+    { status: 500 }
+  )
+}
 
 // Fitness retention rates (weekly decay with cross-training)
 const MODALITY_RETENTION = {
@@ -112,14 +136,17 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
+    locale = resolveRequestLocale(request, user.language)
     const { clientId } = await params
     const { searchParams } = new URL(request.url)
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Parse query params
@@ -129,7 +156,7 @@ export async function GET(
     // Validation
     if (weeks < 1 || weeks > 12) {
       return NextResponse.json(
-        { error: 'weeks must be between 1 and 12' },
+        { error: t(locale, 'weeks must be between 1 and 12', 'weeks måste vara mellan 1 och 12') },
         { status: 400 }
       )
     }
@@ -143,7 +170,7 @@ export async function GET(
 
     if (!latestTest || !latestTest.vo2max) {
       return NextResponse.json(
-        { error: 'No VO2max test data available for this athlete' },
+        { error: t(locale, 'No VO2max test data available for this athlete', 'Ingen VO2max-testdata finns tillgänglig för den här idrottaren') },
         { status: 404 }
       )
     }
@@ -273,12 +300,24 @@ export async function GET(
       recommendations: {
         modality: recommendedModality,
         reasoning: activeInjury
-          ? `${recommendedModality} is safe for ${activeInjury.injuryType} and provides ${MODALITY_RETENTION[recommendedModality] * 100}% fitness retention`
-          : `${recommendedModality} provides highest fitness retention (${MODALITY_RETENTION[recommendedModality] * 100}%)`,
-        expectedReturn: `${weeks} weeks cross-training + ${RETURN_TIMELINE_WEEKS[recommendedModality]} weeks return = ${weeks + RETURN_TIMELINE_WEEKS[recommendedModality]} weeks total`,
+          ? t(
+              locale,
+              `${recommendedModality} is safe for ${activeInjury.injuryType} and provides ${MODALITY_RETENTION[recommendedModality] * 100}% fitness retention`,
+              `${recommendedModality} är säkert vid ${activeInjury.injuryType} och behåller ${MODALITY_RETENTION[recommendedModality] * 100}% av konditionen`
+            )
+          : t(
+              locale,
+              `${recommendedModality} provides highest fitness retention (${MODALITY_RETENTION[recommendedModality] * 100}%)`,
+              `${recommendedModality} behåller mest kondition (${MODALITY_RETENTION[recommendedModality] * 100}%)`
+            ),
+        expectedReturn: t(
+          locale,
+          `${weeks} weeks cross-training + ${RETURN_TIMELINE_WEEKS[recommendedModality]} weeks return = ${weeks + RETURN_TIMELINE_WEEKS[recommendedModality]} weeks total`,
+          `${weeks} veckor alternativ träning + ${RETURN_TIMELINE_WEEKS[recommendedModality]} veckor återgång = ${weeks + RETURN_TIMELINE_WEEKS[recommendedModality]} veckor totalt`
+        ),
       },
     })
   } catch (error: unknown) {
-    return handleApiError(error)
+    return handleCrossTrainingError(error, locale)
   }
 }
