@@ -4,9 +4,8 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
 import { createModelInstance } from '@/lib/ai/create-model'
 import { withAiContext } from '@/lib/ai/usage-logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { generateText } from 'ai'
-
-type AppLocale = 'en' | 'sv'
 
 /**
  * POST /api/coach/social/generate
@@ -27,7 +26,9 @@ export async function POST(request: NextRequest) {
       language,               // sv or en
       includeHashtags = true,
     } = body
-    locale = language === 'sv' || (!language && user.language === 'sv') ? 'sv' : 'en'
+    locale = language === 'sv' || language === 'en'
+      ? language
+      : resolveRequestLocale(request, user.language)
 
     if (!topic) {
       return NextResponse.json(
