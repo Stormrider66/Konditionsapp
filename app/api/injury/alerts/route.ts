@@ -11,10 +11,16 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/injury/alerts
@@ -22,6 +28,7 @@ import { logger } from '@/lib/logger'
  * Fetch all injury alerts for authenticated coach
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     // Authenticate user
     const supabase = await createClient()
@@ -30,7 +37,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Get user from database
@@ -39,13 +46,14 @@ export async function GET(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     // Only coaches can access injury alerts
     if (dbUser.role !== 'COACH') {
       return NextResponse.json(
-        { error: 'Access denied. Coach role required.' },
+        { error: t(locale, 'Access denied. Coach role required.', 'Åtkomst nekad. Coachroll krävs.') },
         { status: 403 }
       )
     }
@@ -56,7 +64,7 @@ export async function GET(request: NextRequest) {
     const clientId = searchParams.get('clientId') // Optional: filter by specific athlete
 
     // Build where clause
-    const whereClause: any = {
+    const whereClause: Prisma.InjuryAssessmentWhereInput = {
       client: {
         userId: dbUser.id, // Only show alerts for this coach's athletes
       },
@@ -69,7 +77,7 @@ export async function GET(request: NextRequest) {
     if (clientId) {
       const hasAccess = await canAccessClient(dbUser.id, clientId)
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
       }
       whereClause.clientId = clientId
     }
@@ -193,11 +201,11 @@ export async function GET(request: NextRequest) {
     logger.error('Error fetching injury alerts', {}, error)
     return NextResponse.json(
       {
-        error: 'Failed to fetch injury alerts',
+        error: t(locale, 'Failed to fetch injury alerts', 'Kunde inte hämta skadevarningar'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : (error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')),
       },
       { status: 500 }
     )

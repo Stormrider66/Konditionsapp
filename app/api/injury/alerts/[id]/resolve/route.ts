@@ -11,11 +11,17 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
   try {
     const { id } = await params
     // Authenticate user
@@ -25,7 +31,7 @@ export async function PUT(
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     // Get user from database
@@ -34,13 +40,14 @@ export async function PUT(
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     // Only coaches can resolve injury alerts
     if (dbUser.role !== 'COACH') {
       return NextResponse.json(
-        { error: 'Access denied. Coach role required.' },
+        { error: t(locale, 'Access denied. Coach role required.', 'Åtkomst nekad. Coachroll krävs.') },
         { status: 403 }
       )
     }
@@ -58,12 +65,12 @@ export async function PUT(
     })
 
     if (!injury) {
-      return NextResponse.json({ error: 'Injury assessment not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Injury assessment not found', 'Skadebedömningen hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, injury.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Parse request body for resolution details
@@ -74,7 +81,13 @@ export async function PUT(
     const validStatuses = ['MONITORING', 'RESOLVED']
     if (!validStatuses.includes(status)) {
       return NextResponse.json(
-        { error: 'Invalid status. Must be MONITORING or RESOLVED.' },
+        {
+          error: t(
+            locale,
+            'Invalid status. Must be MONITORING or RESOLVED.',
+            'Ogiltig status. Måste vara MONITORING eller RESOLVED.'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -93,17 +106,21 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       injury: updatedInjury,
-      message: `Injury assessment marked as ${status.toLowerCase()}`,
+      message: t(
+        locale,
+        `Injury assessment marked as ${status.toLowerCase()}`,
+        `Skadebedömningen markerades som ${status.toLowerCase()}`
+      ),
     })
   } catch (error) {
     logger.error('Error resolving injury alert', {}, error)
     return NextResponse.json(
       {
-        error: 'Failed to resolve injury alert',
+        error: t(locale, 'Failed to resolve injury alert', 'Kunde inte lösa skadevarningen'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : (error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')),
       },
       { status: 500 }
     )
