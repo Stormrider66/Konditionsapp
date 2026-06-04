@@ -18,8 +18,7 @@ import { logError } from '@/lib/logger-console'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -29,7 +28,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ clientId: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const { clientId } = await params;
@@ -38,7 +37,7 @@ export async function GET(
     let actorUserId: string | null = null;
     const resolved = await resolveAthleteClientId();
     if (resolved) {
-      locale = resolved.user.language === 'sv' ? 'sv' : 'en'
+      locale = resolveRequestLocale(request, resolved.user.language)
       if (resolved.clientId !== clientId) {
         return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 });
       }
@@ -46,7 +45,7 @@ export async function GET(
     } else {
       // Try as coach viewing a specific client
       const user = await requireCoach();
-      locale = user.language === 'sv' ? 'sv' : 'en'
+      locale = resolveRequestLocale(request, user.language)
       actorUserId = user.id;
       const hasAccess = await canAccessClient(user.id, clientId)
       if (!hasAccess) {

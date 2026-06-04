@@ -9,8 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolveAthleteClientId, requireCoach, canAccessClient } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -30,6 +29,8 @@ function calculatePhase(cycleDay: number): string {
  * GET: Get daily logs for a date range
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     let clientId: string;
 
@@ -37,19 +38,21 @@ export async function GET(request: NextRequest) {
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       clientId = resolved.clientId;
+      locale = resolveRequestLocale(request, resolved.user.language)
     } else {
       // Try as coach viewing a specific client
       const user = await requireCoach();
+      locale = resolveRequestLocale(request, user.language)
       const { searchParams } = new URL(request.url);
       clientId = searchParams.get('clientId') || '';
 
       if (!clientId) {
-        return NextResponse.json({ error: 'clientId required' }, { status: 400 });
+        return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 });
       }
 
       const hasAccess = await canAccessClient(user.id, clientId);
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 });
       }
     }
 
@@ -104,11 +107,11 @@ export async function GET(request: NextRequest) {
     logError('Daily log GET error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to fetch daily logs' },
+      { error: t(locale, 'Failed to fetch daily logs', 'Kunde inte hämta dagliga loggar') },
       { status: 500 }
     );
   }
@@ -118,34 +121,33 @@ export async function GET(request: NextRequest) {
  * POST: Create or update daily log
  */
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     let clientId: string;
+    const body = await request.json();
 
     // Try as athlete (or coach in athlete mode) first
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       clientId = resolved.clientId;
-      locale = resolved.user.language === 'sv' ? 'sv' : 'en'
+      locale = resolveRequestLocale(request, resolved.user.language)
     } else {
       // Try as coach managing a specific client
       const user = await requireCoach();
-      locale = user.language === 'sv' ? 'sv' : 'en'
-      const body = await request.json();
+      locale = resolveRequestLocale(request, user.language)
       clientId = body.clientId;
 
       if (!clientId) {
-        return NextResponse.json({ error: 'clientId required' }, { status: 400 });
+        return NextResponse.json({ error: t(locale, 'clientId required', 'clientId krävs') }, { status: 400 });
       }
 
       const hasAccess = await canAccessClient(user.id, clientId);
       if (!hasAccess) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 });
       }
     }
 
-    const body = await request.json();
     const {
       date,
       flowIntensity,
@@ -261,11 +263,11 @@ export async function POST(request: NextRequest) {
     logError('Daily log POST error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to save daily log' },
+      { error: t(locale, 'Failed to save daily log', 'Kunde inte spara daglig logg') },
       { status: 500 }
     );
   }

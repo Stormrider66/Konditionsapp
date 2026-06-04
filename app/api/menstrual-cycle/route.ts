@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { resolveAthleteClientId, requireCoach, canAccessClient } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Phase duration defaults (in days)
 const PHASE_DURATIONS = {
@@ -19,17 +20,9 @@ const PHASE_DURATIONS = {
 } as const;
 
 type Phase = keyof typeof PHASE_DURATIONS;
-type AppLocale = 'en' | 'sv';
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en;
-}
-
-function requestLocale(request: NextRequest, language?: string | null): AppLocale {
-  if (language === 'sv') return 'sv';
-
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase() ?? '';
-  return acceptLanguage.startsWith('sv') || acceptLanguage.includes('sv-') ? 'sv' : 'en';
 }
 
 /**
@@ -54,19 +47,20 @@ function daysUntilNextPhase(cycleDay: number): number {
  * GET: Get current cycle and phase for a client
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     let clientId: string;
-    let locale = requestLocale(request);
 
     // Try as athlete (or coach in athlete mode) first
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       clientId = resolved.clientId;
-      locale = requestLocale(request, resolved.user.language);
+      locale = resolveRequestLocale(request, resolved.user.language);
     } else {
       // Try as coach viewing a specific client
       const user = await requireCoach();
-      locale = requestLocale(request, user.language);
+      locale = resolveRequestLocale(request, user.language);
       const { searchParams } = new URL(request.url);
       clientId = searchParams.get('clientId') || '';
 
@@ -138,11 +132,11 @@ export async function GET(request: NextRequest) {
     logError('Menstrual cycle GET error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: t(requestLocale(request), 'Failed to fetch cycle data', 'Kunde inte hämta cykeldata') },
+      { error: t(locale, 'Failed to fetch cycle data', 'Kunde inte hämta cykeldata') },
       { status: 500 }
     );
   }
@@ -152,9 +146,10 @@ export async function GET(request: NextRequest) {
  * POST: Start a new cycle or end current cycle
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     let clientId: string;
-    let locale = requestLocale(request);
     const body = await request.json();
     const { action, startDate } = body;
 
@@ -162,11 +157,11 @@ export async function POST(request: NextRequest) {
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       clientId = resolved.clientId;
-      locale = requestLocale(request, resolved.user.language);
+      locale = resolveRequestLocale(request, resolved.user.language);
     } else {
       // Try as coach managing a specific client
       const user = await requireCoach();
-      locale = requestLocale(request, user.language);
+      locale = resolveRequestLocale(request, user.language);
       clientId = body.clientId;
 
       if (!clientId) {
@@ -281,11 +276,11 @@ export async function POST(request: NextRequest) {
     logError('Menstrual cycle POST error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: t(requestLocale(request), 'Failed to update cycle', 'Kunde inte uppdatera cykeln') },
+      { error: t(locale, 'Failed to update cycle', 'Kunde inte uppdatera cykeln') },
       { status: 500 }
     );
   }
