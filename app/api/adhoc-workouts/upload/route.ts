@@ -8,9 +8,13 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
 import { uploadToSupabaseStorage } from '@/lib/storage/supabase-storage-server'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Upload routes must run on Node.js (Edge can't stream large multipart
 // bodies) and need a longer timeout than the Vercel default for slower
@@ -44,12 +48,15 @@ const ALLOWED_AUDIO_TYPES = [
 ]
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Parse form data
     const formData = await request.formData()
@@ -58,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json(
-        { success: false, error: 'No file provided' },
+        { success: false, error: t(locale, 'No file provided', 'Ingen fil har skickats') },
         { status: 400 }
       )
     }
@@ -69,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     if (!normalizedType) {
       return NextResponse.json(
-        { success: false, error: 'Invalid file type. Must be "PHOTO", "VOICE", "image", or "audio"' },
+        { success: false, error: t(locale, 'Invalid file type. Must be "PHOTO", "VOICE", "image", or "audio"', 'Ogiltig filtyp. Måste vara "PHOTO", "VOICE", "image" eller "audio"') },
         { status: 400 }
       )
     }
@@ -83,7 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: `Invalid file format. Allowed types: ${allowedTypes.join(', ')}`,
+          error: t(locale, `Invalid file format. Allowed types: ${allowedTypes.join(', ')}`, `Ogiltigt filformat. Tillåtna typer: ${allowedTypes.join(', ')}`),
         },
         { status: 400 }
       )
@@ -92,7 +99,7 @@ export async function POST(request: NextRequest) {
     if (file.size > maxSize) {
       const maxSizeMB = Math.round(maxSize / 1024 / 1024)
       return NextResponse.json(
-        { success: false, error: `File too large. Maximum size: ${maxSizeMB}MB` },
+        { success: false, error: t(locale, `File too large. Maximum size: ${maxSizeMB}MB`, `Filen är för stor. Maxstorlek: ${maxSizeMB} MB`) },
         { status: 400 }
       )
     }
@@ -114,7 +121,7 @@ export async function POST(request: NextRequest) {
     if (!uploadResult.success) {
       logger.error('Failed to upload ad-hoc workout file', { error: uploadResult.error })
       return NextResponse.json(
-        { success: false, error: 'Failed to upload file' },
+        { success: false, error: t(locale, 'Failed to upload file', 'Kunde inte ladda upp filen') },
         { status: 500 }
       )
     }
@@ -140,11 +147,11 @@ export async function POST(request: NextRequest) {
     console.error('Error uploading ad-hoc workout file:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to upload file' },
+      { success: false, error: t(locale, 'Failed to upload file', 'Kunde inte ladda upp filen') },
       { status: 500 }
     )
   }

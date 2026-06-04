@@ -36,10 +36,9 @@ import { downloadAsBase64 } from '@/lib/storage/supabase-storage-server'
 import { isHttpUrl, normalizeStoragePath } from '@/lib/storage/supabase-storage'
 import { getResolvedProviderKey, getPlatformAiKeyOwnerId } from '@/lib/user-api-keys'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const maxDuration = 120
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -70,14 +69,16 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, isCoachInAthleteMode, user } = resolved
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Get client info for coach's API keys
     const client = await prisma.client.findUnique({
@@ -92,7 +93,7 @@ export async function POST(
 
     if (!client) {
       return NextResponse.json(
-        { success: false, error: 'Athlete account not found' },
+        { success: false, error: t(locale, 'Athlete account not found', 'Idrottarkontot hittades inte') },
         { status: 400 }
       )
     }
@@ -114,7 +115,7 @@ export async function POST(
 
     if (!adHocWorkout) {
       return NextResponse.json(
-        { success: false, error: 'Ad-hoc workout not found' },
+        { success: false, error: t(locale, 'Ad-hoc workout not found', 'Ad hoc-passet hittades inte') },
         { status: 404 }
       )
     }
@@ -122,7 +123,7 @@ export async function POST(
     // Verify ownership
     if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -136,7 +137,7 @@ export async function POST(
           status: adHocWorkout.status,
           parsedStructure: adHocWorkout.parsedStructure,
         },
-        message: 'Already processed',
+        message: t(locale, 'Already processed', 'Redan bearbetat'),
       })
     }
 
@@ -325,7 +326,7 @@ export async function POST(
       })
 
       return NextResponse.json(
-        { success: false, error: `Processing failed: ${errorMessage}` },
+        { success: false, error: t(locale, `Processing failed: ${errorMessage}`, `Bearbetningen misslyckades: ${errorMessage}`) },
         { status: 500 }
       )
     }
@@ -333,11 +334,11 @@ export async function POST(
     console.error('Error processing ad-hoc workout:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to process ad-hoc workout' },
+      { success: false, error: t(locale, 'Failed to process ad-hoc workout', 'Kunde inte bearbeta ad hoc-pass') },
       { status: 500 }
     )
   }

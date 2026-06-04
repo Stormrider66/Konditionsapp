@@ -13,6 +13,11 @@ import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { normalizeParsedWorkoutDistance } from '@/lib/adhoc-workout/distance'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // VALIDATION SCHEMAS
@@ -33,13 +38,16 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -48,7 +56,7 @@ export async function GET(
 
     if (!adHocWorkout) {
       return NextResponse.json(
-        { success: false, error: 'Ad-hoc workout not found' },
+        { success: false, error: t(locale, 'Ad-hoc workout not found', 'Ad hoc-passet hittades inte') },
         { status: 404 }
       )
     }
@@ -56,7 +64,7 @@ export async function GET(
     // Verify ownership
     if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -89,11 +97,11 @@ export async function GET(
     console.error('Error getting ad-hoc workout:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to get ad-hoc workout' },
+      { success: false, error: t(locale, 'Failed to get ad-hoc workout', 'Kunde inte hämta ad hoc-pass') },
       { status: 500 }
     )
   }
@@ -107,13 +115,16 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -122,7 +133,7 @@ export async function PATCH(
 
     if (!adHocWorkout) {
       return NextResponse.json(
-        { success: false, error: 'Ad-hoc workout not found' },
+        { success: false, error: t(locale, 'Ad-hoc workout not found', 'Ad hoc-passet hittades inte') },
         { status: 404 }
       )
     }
@@ -130,7 +141,7 @@ export async function PATCH(
     // Verify ownership
     if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -138,7 +149,7 @@ export async function PATCH(
     // Cannot update confirmed workouts
     if (adHocWorkout.status === 'CONFIRMED') {
       return NextResponse.json(
-        { success: false, error: 'Cannot update a confirmed workout' },
+        { success: false, error: t(locale, 'Cannot update a confirmed workout', 'Ett bekräftat pass kan inte uppdateras') },
         { status: 400 }
       )
     }
@@ -149,7 +160,7 @@ export async function PATCH(
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request data', details: validation.error.flatten() },
+        { success: false, error: t(locale, 'Invalid request data', 'Ogiltiga uppgifter i begäran'), details: validation.error.flatten() },
         { status: 400 }
       )
     }
@@ -190,11 +201,11 @@ export async function PATCH(
     console.error('Error updating ad-hoc workout:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to update ad-hoc workout' },
+      { success: false, error: t(locale, 'Failed to update ad-hoc workout', 'Kunde inte uppdatera ad hoc-pass') },
       { status: 500 }
     )
   }
@@ -208,13 +219,16 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -223,7 +237,7 @@ export async function DELETE(
 
     if (!adHocWorkout) {
       return NextResponse.json(
-        { success: false, error: 'Ad-hoc workout not found' },
+        { success: false, error: t(locale, 'Ad-hoc workout not found', 'Ad hoc-passet hittades inte') },
         { status: 404 }
       )
     }
@@ -231,7 +245,7 @@ export async function DELETE(
     // Verify ownership
     if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -249,11 +263,11 @@ export async function DELETE(
     console.error('Error deleting ad-hoc workout:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to delete ad-hoc workout' },
+      { success: false, error: t(locale, 'Failed to delete ad-hoc workout', 'Kunde inte radera ad hoc-pass') },
       { status: 500 }
     )
   }

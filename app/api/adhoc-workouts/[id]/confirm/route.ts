@@ -15,6 +15,7 @@ import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { estimateCalories } from '@/lib/adhoc-workout/calorie-estimator'
 import { normalizeParsedWorkoutDistance } from '@/lib/adhoc-workout/distance'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // ============================================
 // VALIDATION SCHEMAS
@@ -31,6 +32,10 @@ const confirmWorkoutSchema = z.object({
 
 const VALID_FEELINGS = new Set(['GREAT', 'GOOD', 'OKAY', 'TIRED', 'EXHAUSTED'])
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function normalizeFeeling(value: unknown): ParsedWorkout['feeling'] | undefined {
   return typeof value === 'string' && VALID_FEELINGS.has(value)
     ? (value as ParsedWorkout['feeling'])
@@ -45,13 +50,16 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const { id } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Get the ad-hoc workout
     const adHocWorkout = await prisma.adHocWorkout.findUnique({
@@ -60,7 +68,7 @@ export async function POST(
 
     if (!adHocWorkout) {
       return NextResponse.json(
-        { success: false, error: 'Ad-hoc workout not found' },
+        { success: false, error: t(locale, 'Ad-hoc workout not found', 'Ad hoc-passet hittades inte') },
         { status: 404 }
       )
     }
@@ -68,7 +76,7 @@ export async function POST(
     // Verify ownership
     if (adHocWorkout.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -82,13 +90,13 @@ export async function POST(
           status: adHocWorkout.status,
           trainingLoadId: adHocWorkout.trainingLoadId,
         },
-        message: 'Already confirmed',
+        message: t(locale, 'Already confirmed', 'Redan bekräftat'),
       })
     }
 
     if (adHocWorkout.status !== 'READY_FOR_REVIEW') {
       return NextResponse.json(
-        { success: false, error: 'Workout must be processed before confirming' },
+        { success: false, error: t(locale, 'Workout must be processed before confirming', 'Passet måste bearbetas innan det kan bekräftas') },
         { status: 400 }
       )
     }
@@ -99,7 +107,7 @@ export async function POST(
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request data', details: validation.error.flatten() },
+        { success: false, error: t(locale, 'Invalid request data', 'Ogiltiga uppgifter i begäran'), details: validation.error.flatten() },
         { status: 400 }
       )
     }
@@ -112,7 +120,7 @@ export async function POST(
 
     if (!finalStructureRaw) {
       return NextResponse.json(
-        { success: false, error: 'No parsed workout data available' },
+        { success: false, error: t(locale, 'No parsed workout data available', 'Ingen tolkad passdata tillgänglig') },
         { status: 400 }
       )
     }
@@ -228,11 +236,11 @@ export async function POST(
     console.error('Error confirming ad-hoc workout:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to confirm ad-hoc workout' },
+      { success: false, error: t(locale, 'Failed to confirm ad-hoc workout', 'Kunde inte bekräfta ad hoc-pass') },
       { status: 500 }
     )
   }

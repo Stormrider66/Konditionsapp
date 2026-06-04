@@ -12,18 +12,26 @@ import { Prisma } from '@prisma/client'
 import { parseWorkoutFromStrava } from '@/lib/adhoc-workout'
 import type { StravaActivityImport } from '@/lib/adhoc-workout/types'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // GET - List Available Strava Activities
 // ============================================
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -99,11 +107,11 @@ export async function GET(request: NextRequest) {
     console.error('Error listing Strava activities:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to list Strava activities' },
+      { success: false, error: t(locale, 'Failed to list Strava activities', 'Kunde inte lista Strava-aktiviteter') },
       { status: 500 }
     )
   }
@@ -114,13 +122,15 @@ export async function GET(request: NextRequest) {
 // ============================================
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, user } = resolved
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Parse request body
     const body = await request.json()
@@ -128,7 +138,7 @@ export async function POST(request: NextRequest) {
 
     if (!stravaActivityId) {
       return NextResponse.json(
-        { success: false, error: 'stravaActivityId is required' },
+        { success: false, error: t(locale, 'stravaActivityId is required', 'stravaActivityId krävs') },
         { status: 400 }
       )
     }
@@ -143,7 +153,7 @@ export async function POST(request: NextRequest) {
 
     if (!stravaActivity) {
       return NextResponse.json(
-        { success: false, error: 'Strava activity not found' },
+        { success: false, error: t(locale, 'Strava activity not found', 'Strava-aktiviteten hittades inte') },
         { status: 404 }
       )
     }
@@ -167,7 +177,7 @@ export async function POST(request: NextRequest) {
           id: existingImport.id,
           status: existingImport.status,
         },
-        message: 'Activity already imported',
+        message: t(locale, 'Activity already imported', 'Aktiviteten är redan importerad'),
       })
     }
 
@@ -231,11 +241,11 @@ export async function POST(request: NextRequest) {
     console.error('Error importing Strava activity:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to import Strava activity' },
+      { success: false, error: t(locale, 'Failed to import Strava activity', 'Kunde inte importera Strava-aktiviteten') },
       { status: 500 }
     )
   }

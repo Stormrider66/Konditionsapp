@@ -12,18 +12,26 @@ import { Prisma } from '@prisma/client'
 import { parseWorkoutFromGarmin } from '@/lib/adhoc-workout'
 import type { GarminActivityImport } from '@/lib/adhoc-workout/types'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // GET - List Available Garmin Activities
 // ============================================
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -101,11 +109,11 @@ export async function GET(request: NextRequest) {
     console.error('Error listing Garmin activities:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to list Garmin activities' },
+      { success: false, error: t(locale, 'Failed to list Garmin activities', 'Kunde inte lista Garmin-aktiviteter') },
       { status: 500 }
     )
   }
@@ -116,13 +124,15 @@ export async function GET(request: NextRequest) {
 // ============================================
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId, user } = resolved
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Parse request body
     const body = await request.json()
@@ -130,7 +140,7 @@ export async function POST(request: NextRequest) {
 
     if (!garminActivityId) {
       return NextResponse.json(
-        { success: false, error: 'garminActivityId is required' },
+        { success: false, error: t(locale, 'garminActivityId is required', 'garminActivityId krävs') },
         { status: 400 }
       )
     }
@@ -145,7 +155,7 @@ export async function POST(request: NextRequest) {
 
     if (!garminActivity) {
       return NextResponse.json(
-        { success: false, error: 'Garmin activity not found' },
+        { success: false, error: t(locale, 'Garmin activity not found', 'Garmin-aktiviteten hittades inte') },
         { status: 404 }
       )
     }
@@ -169,7 +179,7 @@ export async function POST(request: NextRequest) {
           id: existingImport.id,
           status: existingImport.status,
         },
-        message: 'Activity already imported',
+        message: t(locale, 'Activity already imported', 'Aktiviteten är redan importerad'),
       })
     }
 
@@ -231,11 +241,11 @@ export async function POST(request: NextRequest) {
     console.error('Error importing Garmin activity:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to import Garmin activity' },
+      { success: false, error: t(locale, 'Failed to import Garmin activity', 'Kunde inte importera Garmin-aktiviteten') },
       { status: 500 }
     )
   }

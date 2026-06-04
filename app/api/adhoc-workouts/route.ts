@@ -11,6 +11,11 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { z } from 'zod'
 import type { AdHocInputType, AdHocWorkoutStatus } from '@prisma/client'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // ============================================
 // VALIDATION SCHEMAS
@@ -39,12 +44,15 @@ const createAdHocWorkoutSchema = z.object({
 // ============================================
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Parse and validate request body
     const body = await request.json()
@@ -52,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     if (!validation.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid request data', details: validation.error.flatten() },
+        { success: false, error: t(locale, 'Invalid request data', 'Ogiltiga uppgifter i begäran'), details: validation.error.flatten() },
         { status: 400 }
       )
     }
@@ -62,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Validate that we have at least one input source
     if (!data.rawInputUrl && !data.rawInputText && !data.rawInputMetadata) {
       return NextResponse.json(
-        { success: false, error: 'At least one input source is required (url, text, or metadata)' },
+        { success: false, error: t(locale, 'At least one input source is required (url, text, or metadata)', 'Minst en källa krävs (url, text eller metadata)') },
         { status: 400 }
       )
     }
@@ -96,11 +104,11 @@ export async function POST(request: NextRequest) {
     console.error('Error creating ad-hoc workout:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to create ad-hoc workout' },
+      { success: false, error: t(locale, 'Failed to create ad-hoc workout', 'Kunde inte skapa ad hoc-pass') },
       { status: 500 }
     )
   }
@@ -111,12 +119,15 @@ export async function POST(request: NextRequest) {
 // ============================================
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
-    const { clientId } = resolved
+    const { clientId, user } = resolved
+    locale = resolveRequestLocale(request, user.language)
 
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams
@@ -185,11 +196,11 @@ export async function GET(request: NextRequest) {
     console.error('Error listing ad-hoc workouts:', error)
 
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     return NextResponse.json(
-      { success: false, error: 'Failed to list ad-hoc workouts' },
+      { success: false, error: t(locale, 'Failed to list ad-hoc workouts', 'Kunde inte lista ad hoc-pass') },
       { status: 500 }
     )
   }
