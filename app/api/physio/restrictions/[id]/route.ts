@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canCreateRestrictions, canAccessClient } from '@/lib/auth-utils'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const updateRestrictionSchema = z.object({
   type: z.enum([
@@ -38,11 +43,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 
@@ -75,7 +83,7 @@ export async function GET(
     })
 
     if (!restriction) {
-      return NextResponse.json({ error: 'Restriction not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Restriction not found', 'Restriktionen hittades inte') }, { status: 404 })
     }
 
     // Check access
@@ -91,14 +99,14 @@ export async function GET(
     }
 
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
 
     return NextResponse.json(restriction)
   } catch (error) {
     console.error('Error fetching restriction:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch restriction' },
+      { error: t(locale, 'Failed to fetch restriction', 'Kunde inte hämta restriktionen') },
       { status: 500 }
     )
   }
@@ -112,11 +120,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
     const body = await request.json()
@@ -128,14 +139,14 @@ export async function PATCH(
     })
 
     if (!existingRestriction) {
-      return NextResponse.json({ error: 'Restriction not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Restriction not found', 'Restriktionen hittades inte') }, { status: 404 })
     }
 
     // Check permission to update
     const canUpdate = await canCreateRestrictions(user.id, existingRestriction.clientId)
     if (!canUpdate && existingRestriction.createdById !== user.id) {
       return NextResponse.json(
-        { error: 'You do not have permission to update this restriction' },
+        { error: t(locale, 'You do not have permission to update this restriction', 'Du har inte behörighet att uppdatera den här restriktionen') },
         { status: 403 }
       )
     }
@@ -181,12 +192,12 @@ export async function PATCH(
     console.error('Error updating restriction:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to update restriction' },
+      { error: t(locale, 'Failed to update restriction', 'Kunde inte uppdatera restriktionen') },
       { status: 500 }
     )
   }
@@ -200,11 +211,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
 
@@ -214,13 +228,13 @@ export async function DELETE(
     })
 
     if (!existingRestriction) {
-      return NextResponse.json({ error: 'Restriction not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Restriction not found', 'Restriktionen hittades inte') }, { status: 404 })
     }
 
     // Only creator or admin can delete
     if (user.role !== 'ADMIN' && existingRestriction.createdById !== user.id) {
       return NextResponse.json(
-        { error: 'You do not have permission to delete this restriction' },
+        { error: t(locale, 'You do not have permission to delete this restriction', 'Du har inte behörighet att ta bort den här restriktionen') },
         { status: 403 }
       )
     }
@@ -233,7 +247,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Error deleting restriction:', error)
     return NextResponse.json(
-      { error: 'Failed to delete restriction' },
+      { error: t(locale, 'Failed to delete restriction', 'Kunde inte ta bort restriktionen') },
       { status: 500 }
     )
   }

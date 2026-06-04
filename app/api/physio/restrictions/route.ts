@@ -6,6 +6,11 @@ import { z } from 'zod'
 import { notifyCoachOfRestriction } from '@/lib/notifications/care-team'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 // Validation schema for creating a training restriction
 const createRestrictionSchema = z.object({
@@ -40,8 +45,11 @@ const createRestrictionSchema = z.object({
  * List active training restrictions
  */
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await requirePhysio()
+    locale = resolveRequestLocale(request, user.language)
     const { searchParams } = new URL(request.url)
 
     // Parse query parameters
@@ -65,7 +73,7 @@ export async function GET(request: NextRequest) {
       const hasAccess = await canAccessAthleteAsPhysio(user.id, clientId)
       if (!hasAccess) {
         return NextResponse.json(
-          { error: 'You do not have access to this athlete' },
+          { error: t(locale, 'You do not have access to this athlete', 'Du har inte åtkomst till den här idrottaren') },
           { status: 403 }
         )
       }
@@ -120,10 +128,10 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching training restrictions:', error)
     if (error instanceof Error && error.message.includes('Access denied')) {
-      return NextResponse.json({ error: error.message }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Access denied', 'Åtkomst nekad') }, { status: 403 })
     }
     return NextResponse.json(
-      { error: 'Failed to fetch training restrictions' },
+      { error: t(locale, 'Failed to fetch training restrictions', 'Kunde inte hämta träningsrestriktioner') },
       { status: 500 }
     )
   }
@@ -134,11 +142,14 @@ export async function GET(request: NextRequest) {
  * Create a new training restriction
  */
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const validatedData = createRestrictionSchema.parse(body)
@@ -147,7 +158,7 @@ export async function POST(request: NextRequest) {
     const canCreate = await canCreateRestrictions(user.id, validatedData.clientId)
     if (!canCreate) {
       return NextResponse.json(
-        { error: 'You do not have permission to create restrictions for this athlete' },
+        { error: t(locale, 'You do not have permission to create restrictions for this athlete', 'Du har inte behörighet att skapa restriktioner för den här idrottaren') },
         { status: 403 }
       )
     }
@@ -162,7 +173,7 @@ export async function POST(request: NextRequest) {
       })
       if (!injury) {
         return NextResponse.json(
-          { error: 'Injury not found or does not belong to this client' },
+          { error: t(locale, 'Injury not found or does not belong to this client', 'Skadan hittades inte eller hör inte till den här klienten') },
           { status: 404 }
         )
       }
@@ -242,12 +253,12 @@ export async function POST(request: NextRequest) {
     console.error('Error creating training restriction:', error)
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { error: t(locale, 'Validation error', 'Valideringsfel'), details: error.errors },
         { status: 400 }
       )
     }
     return NextResponse.json(
-      { error: 'Failed to create training restriction' },
+      { error: t(locale, 'Failed to create training restriction', 'Kunde inte skapa träningsrestriktion') },
       { status: 500 }
     )
   }
