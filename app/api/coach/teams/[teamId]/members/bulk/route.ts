@@ -23,12 +23,12 @@ import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { createAthleteAccountForClient } from '@/lib/athlete-account-utils'
 import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
-type AppLocale = 'en' | 'sv'
 
 const rowSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 

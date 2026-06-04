@@ -10,12 +10,11 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { randomBytes } from 'crypto'
 import { resolveHockeyBetaSubscriptionInput } from '@/lib/hockey-beta'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -25,12 +24,12 @@ function generateInviteCode(): string {
   return randomBytes(4).toString('hex').toUpperCase() // 8 chars, e.g. "A3F2B1C9"
 }
 
-export async function GET(_req: NextRequest, context: RouteContext) {
+export async function GET(req: NextRequest, context: RouteContext) {
   let locale: AppLocale = 'en'
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
 
     // Verify coach owns team
@@ -73,7 +72,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
 
     // Verify coach owns team

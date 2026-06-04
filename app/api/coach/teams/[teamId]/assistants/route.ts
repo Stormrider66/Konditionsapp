@@ -8,12 +8,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
-type AppLocale = 'en' | 'sv'
 
 const addAssistantSchema = z.object({
   email: z.string().email(),
@@ -22,12 +22,12 @@ const addAssistantSchema = z.object({
   canCreateEvents: z.boolean().default(true),
 })
 
-export async function GET(_req: NextRequest, context: RouteContext) {
+export async function GET(req: NextRequest, context: RouteContext) {
   let locale: AppLocale = 'en'
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
 
     // Verify coach owns this team
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
 
     // Verify coach owns this team

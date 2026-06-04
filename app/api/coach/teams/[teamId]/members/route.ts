@@ -13,18 +13,18 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { connectTeamMemberToCoach } from '@/lib/coach/team-connection'
 import { getBusinessMembership, getWritableTeam } from '@/lib/coach/team-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
-type AppLocale = 'en' | 'sv'
 
 export async function GET(req: NextRequest, context: RouteContext) {
   let locale: AppLocale = 'en'
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 
