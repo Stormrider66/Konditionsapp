@@ -288,7 +288,11 @@ export async function POST(request: NextRequest) {
       })
       if (result.finishReason === 'length') {
         warningsFromGen.push(
-          'The model ran out of output tokens and may have truncated the workout. Try the Powerful tier or split the source.'
+          t(
+            locale,
+            'The model ran out of output tokens and may have truncated the workout. Try the Powerful tier or split the source.',
+            'Modellen fick slut på svarstokens och kan ha kapat passet. Testa nivån Kraftfull eller dela upp källan.'
+          )
         )
       } else {
         const expiresAt = Date.now() + PARSE_CACHE_TTL_MS
@@ -303,16 +307,24 @@ export async function POST(request: NextRequest) {
     // Validate against the per-type schema. Failure is reported but not
     // fatal — the dialog can still display warnings and let the coach map
     // unmatched names manually.
-    const parsed = parseAIWorkout(aiOutput, workoutType)
+    const parsed = parseAIWorkout(aiOutput, workoutType, locale)
     const warnings: string[] = [...warningsFromGen]
     if (normalized.truncated) {
       warnings.push(
-        'Input was truncated before sending to the model; review the result carefully.'
+        t(
+          locale,
+          'Input was truncated before sending to the model; review the result carefully.',
+          'Innehållet kortades innan det skickades till modellen. Granska resultatet noggrant.'
+        )
       )
     }
     if (!parsed.success) {
       warnings.push(
-        `Model output did not fully match the ${workoutType.toLowerCase()} schema: ${parsed.error}`
+        t(
+          locale,
+          `Model output did not fully match the ${workoutType.toLowerCase()} schema: ${parsed.error}`,
+          `Modellens svar matchade inte schemat för ${workoutType.toLowerCase()} helt: ${parsed.error}`
+        )
       )
     }
 

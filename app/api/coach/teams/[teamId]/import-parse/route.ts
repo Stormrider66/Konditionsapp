@@ -211,7 +211,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             })
     )
 
-    const parsedRows = safeParseRoster(aiOutput)
+    const parsedRows = safeParseRoster(aiOutput, locale)
 
     const warnings: string[] = []
     if (normalized.kind !== 'image' && normalized.truncated) {
@@ -437,13 +437,19 @@ type RosterRow = {
 }
 
 function safeParseRoster(
-  raw: string
+  raw: string,
+  locale: AppLocale
 ): { ok: true; rows: RosterRow[] } | { ok: false; error: string } {
   try {
     const trimmed = stripCodeFence(raw.trim())
     const parsed = JSON.parse(trimmed)
     const rowsSrc = Array.isArray(parsed) ? parsed : parsed?.rows
-    if (!Array.isArray(rowsSrc)) return { ok: false, error: 'No "rows" array in response' }
+    if (!Array.isArray(rowsSrc)) {
+      return {
+        ok: false,
+        error: t(locale, 'No "rows" array in response', 'Ingen "rows"-lista hittades i svaret'),
+      }
+    }
 
     const out: RosterRow[] = []
     for (const r of rowsSrc) {
@@ -469,7 +475,11 @@ function safeParseRoster(
     }
     return { ok: true, rows: out }
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Invalid JSON' }
+    logger.debug('Roster JSON parse failed', {}, e)
+    return {
+      ok: false,
+      error: t(locale, 'Invalid JSON', 'Ogiltig JSON'),
+    }
   }
 }
 

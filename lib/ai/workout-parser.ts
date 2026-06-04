@@ -349,9 +349,16 @@ export type ParseWorkoutResult<T> =
   | { success: true; workout: T; rawJson: unknown }
   | { success: false; error: string; rawJson?: unknown }
 
+type ParserLocale = 'en' | 'sv'
+
+function parserText(locale: ParserLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export function parseAIWorkout<T extends WorkoutImportType>(
   aiOutput: string,
-  workoutType: T
+  workoutType: T,
+  locale: ParserLocale = 'en'
 ): ParseWorkoutResult<
   T extends 'STRENGTH'
     ? ParsedStrengthWorkout
@@ -364,13 +371,13 @@ export function parseAIWorkout<T extends WorkoutImportType>(
   try {
     const jsonString = extractJsonFromText(aiOutput)
     if (!jsonString) {
-      return { success: false, error: 'No JSON found in AI response' }
+      return { success: false, error: parserText(locale, 'No JSON found in AI response', 'Ingen JSON hittades i AI-svaret') }
     }
     let raw: unknown
     try {
       raw = JSON.parse(jsonString)
     } catch {
-      return { success: false, error: 'Invalid JSON in AI response', rawJson: jsonString }
+      return { success: false, error: parserText(locale, 'Invalid JSON in AI response', 'Ogiltig JSON i AI-svaret'), rawJson: jsonString }
     }
     // Force the discriminator so the schema picks the right branch even when
     // the model forgot to emit it.
@@ -383,13 +390,13 @@ export function parseAIWorkout<T extends WorkoutImportType>(
       const issues = result.error.issues
         .map((i) => `${i.path.join('.')}: ${i.message}`)
         .join(', ')
-      return { success: false, error: `Validation error: ${issues}`, rawJson: raw }
+      return { success: false, error: parserText(locale, `Validation error: ${issues}`, `Valideringsfel: ${issues}`), rawJson: raw }
     }
     return { success: true, workout: result.data as never, rawJson: raw }
   } catch (e) {
     return {
       success: false,
-      error: e instanceof Error ? e.message : 'Unknown parsing error',
+      error: e instanceof Error ? e.message : parserText(locale, 'Unknown parsing error', 'Okänt tolkningsfel'),
     }
   }
 }

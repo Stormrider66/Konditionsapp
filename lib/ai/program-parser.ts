@@ -138,6 +138,12 @@ export type ParseResult = {
   rawJson?: unknown;
 };
 
+type ParserLocale = 'en' | 'sv';
+
+function parserText(locale: ParserLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
+
 /**
  * Try to parse key-value format that some AI models output
  * Format:
@@ -416,14 +422,14 @@ function normalizeProgram(json: Record<string, unknown>): Record<string, unknown
 /**
  * Parse AI output and extract structured program data
  */
-export function parseAIProgram(aiOutput: string): ParseResult {
+export function parseAIProgram(aiOutput: string, locale: ParserLocale = 'en'): ParseResult {
   try {
     // Extract JSON from the response
     const jsonString = extractJsonFromText(aiOutput);
     if (!jsonString) {
       return {
         success: false,
-        error: 'No JSON found in AI response'
+        error: parserText(locale, 'No JSON found in AI response', 'Ingen JSON hittades i AI-svaret')
       };
     }
 
@@ -434,7 +440,7 @@ export function parseAIProgram(aiOutput: string): ParseResult {
     } catch {
       return {
         success: false,
-        error: 'Invalid JSON in AI response',
+        error: parserText(locale, 'Invalid JSON in AI response', 'Ogiltig JSON i AI-svaret'),
         rawJson: jsonString
       };
     }
@@ -451,7 +457,7 @@ export function parseAIProgram(aiOutput: string): ParseResult {
       const issues = parseResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join(', ');
       return {
         success: false,
-        error: `Validation error: ${issues}`,
+        error: parserText(locale, `Validation error: ${issues}`, `Valideringsfel: ${issues}`),
         rawJson: normalizedJson
       };
     }
@@ -464,7 +470,7 @@ export function parseAIProgram(aiOutput: string): ParseResult {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown parsing error'
+      error: error instanceof Error ? error.message : parserText(locale, 'Unknown parsing error', 'Okänt tolkningsfel')
     };
   }
 }
@@ -472,7 +478,7 @@ export function parseAIProgram(aiOutput: string): ParseResult {
 /**
  * Parse a single workout from AI output
  */
-export function parseAIWorkout(aiOutput: string): {
+export function parseAIWorkout(aiOutput: string, locale: ParserLocale = 'en'): {
   success: boolean;
   workout?: ParsedWorkout;
   error?: string;
@@ -480,7 +486,7 @@ export function parseAIWorkout(aiOutput: string): {
   try {
     const jsonString = extractJsonFromText(aiOutput);
     if (!jsonString) {
-      return { success: false, error: 'No JSON found' };
+      return { success: false, error: parserText(locale, 'No JSON found', 'Ingen JSON hittades') };
     }
 
     const rawJson = JSON.parse(jsonString);
@@ -489,7 +495,7 @@ export function parseAIWorkout(aiOutput: string): {
     if (!parseResult.success) {
       return {
         success: false,
-        error: `Validation error: ${parseResult.error.message}`
+        error: parserText(locale, `Validation error: ${parseResult.error.message}`, `Valideringsfel: ${parseResult.error.message}`)
       };
     }
 
@@ -497,7 +503,7 @@ export function parseAIWorkout(aiOutput: string): {
   } catch (error) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : parserText(locale, 'Unknown error', 'Okänt fel')
     };
   }
 }

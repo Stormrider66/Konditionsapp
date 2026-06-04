@@ -374,7 +374,7 @@ export async function POST(request: NextRequest) {
     // Validate the result is actually parseable so we don't hand the editor
     // something it will choke on. We don't block on validation failure — the
     // editor has a "Fix format" recovery path — but we do surface warnings.
-    const parsed = parseAIProgram(aiOutput)
+    const parsed = parseAIProgram(aiOutput, locale)
 
     const warnings: string[] = [...warningsFromGen]
     if (normalized.truncated) {
