@@ -16,10 +16,13 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope';
 import { checkWorkoutAssignmentRestrictions } from '@/lib/training-restrictions/assignment-enforcement';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 
 // GET /api/hybrid-assignments - Get assignments
 // Query params: athleteId, workoutId, status, dateFrom, dateTo
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const { searchParams } = new URL(request.url);
     const athleteId = searchParams.get('athleteId');
@@ -30,12 +33,13 @@ export async function GET(request: NextRequest) {
 
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveWorkoutBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     // Build where clause based on user role
@@ -53,13 +57,13 @@ export async function GET(request: NextRequest) {
           ? { businessId: businessScope.businessId }
           : { userId: user.id };
       } else if (user.role !== 'ADMIN') {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
       }
     } else {
       // athleteId provided via query param - enforce coach-athlete authorization
       const access = await canAccessAthlete(user.id, athleteId);
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
       }
       where.athleteId = athleteId;
     }
@@ -115,7 +119,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching assignments:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch assignments' },
+      { error: t(locale, 'Failed to fetch assignments', 'Kunde inte hämta tilldelningar') },
       { status: 500 }
     );
   }
@@ -124,12 +128,15 @@ export async function GET(request: NextRequest) {
 // POST /api/hybrid-assignments - Create assignment(s)
 // Body: { workoutId, athleteIds, assignedDate, notes?, customScaling?, scalingNotes?, startTime?, endTime?, locationId?, locationName?, createCalendarEvent? }
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveWorkoutBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const body = await request.json();
@@ -151,14 +158,14 @@ export async function POST(request: NextRequest) {
 
     if (!workoutId || !athleteIds || !Array.isArray(athleteIds) || athleteIds.length === 0) {
       return NextResponse.json(
-        { error: 'workoutId and athleteIds are required' },
+        { error: t(locale, 'workoutId and athleteIds are required', 'workoutId och athleteIds krävs') },
         { status: 400 }
       );
     }
 
     if (!assignedDate) {
       return NextResponse.json(
-        { error: 'assignedDate is required' },
+        { error: t(locale, 'assignedDate is required', 'assignedDate krävs') },
         { status: 400 }
       );
     }
@@ -173,7 +180,7 @@ export async function POST(request: NextRequest) {
 
     if (!workout) {
       return NextResponse.json(
-        { error: 'Workout not found or access denied' },
+        { error: t(locale, 'Workout not found or access denied', 'Passet hittades inte eller åtkomst nekades') },
         { status: 403 }
       );
     }
@@ -185,7 +192,7 @@ export async function POST(request: NextRequest) {
     const hasForbiddenAthlete = accessChecks.some((access) => !access.allowed);
     if (hasForbiddenAthlete) {
       return NextResponse.json(
-        { error: 'Forbidden: one or more athletes are not accessible' },
+        { error: t(locale, 'Forbidden: one or more athletes are not accessible', 'Förbjudet: en eller flera atleter är inte tillgängliga') },
         { status: 403 }
       );
     }
@@ -200,7 +207,7 @@ export async function POST(request: NextRequest) {
 
       if (athletesInBusiness !== athleteIds.length) {
         return NextResponse.json(
-          { error: 'Forbidden: one or more athletes are outside this business' },
+          { error: t(locale, 'Forbidden: one or more athletes are outside this business', 'Förbjudet: en eller flera atleter ligger utanför den här verksamheten') },
           { status: 403 }
         );
       }
@@ -218,7 +225,7 @@ export async function POST(request: NextRequest) {
       .map((aid: string) => ({ athleteId: aid, reasons: blockedByAthlete.get(aid)?.reasons ?? [] }));
     if (assignableIds.length === 0) {
       return NextResponse.json(
-        { error: 'All selected athletes are blocked by an active restriction for this workout', skipped },
+        { error: t(locale, 'All selected athletes are blocked by an active restriction for this workout', 'Alla valda atleter blockeras av en aktiv begränsning för det här passet'), skipped },
         { status: 400 }
       );
     }
@@ -317,15 +324,23 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json({
-      message: `Assigned workout to ${assignments.length} athlete(s)`,
+      message: t(locale, `Assigned workout to ${assignments.length} athlete(s)`, `Tilldelade passet till ${assignments.length} atlet(er)`),
       assignments,
       skipped,
     });
   } catch (error) {
     logError('Error creating assignments:', error);
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
+    }
+
     return NextResponse.json(
-      { error: 'Failed to create assignments' },
+      { error: t(locale, 'Failed to create assignments', 'Kunde inte skapa tilldelningar') },
       { status: 500 }
     );
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
 }

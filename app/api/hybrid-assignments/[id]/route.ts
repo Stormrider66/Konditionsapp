@@ -9,6 +9,7 @@ import { prisma } from '@/lib/prisma';
 import { requireCoach, getCurrentUser, resolveAthleteClientId } from '@/lib/auth-utils';
 import { canAccessAthlete } from '@/lib/auth/athlete-access';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -16,12 +17,15 @@ interface RouteParams {
 
 // GET /api/hybrid-assignments/[id] - Get single assignment
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const assignment = await prisma.hybridWorkoutAssignment.findUnique({
       where: { id },
@@ -45,19 +49,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
 
     if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 });
     }
 
     // Check access: athlete (or coach-in-athlete-mode) can only see their own assignments
     const resolved = await resolveAthleteClientId();
     if (resolved) {
       if (resolved.clientId !== assignment.athleteId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
       }
     } else {
       const access = await canAccessAthlete(user.id, assignment.athleteId);
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
       }
     }
 
@@ -65,7 +69,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logError('Error fetching assignment:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch assignment' },
+      { error: t(locale, 'Failed to fetch assignment', 'Kunde inte hämta tilldelningen') },
       { status: 500 }
     );
   }
@@ -74,19 +78,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT /api/hybrid-assignments/[id] - Update assignment
 // Body: { status?, notes?, customScaling?, scalingNotes?, resultId? }
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const { id } = await params;
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language);
 
     const assignment = await prisma.hybridWorkoutAssignment.findUnique({
       where: { id },
     });
 
     if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 });
     }
 
     const body = await request.json();
@@ -100,7 +107,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     if (resolved) {
       // Athlete (or coach-in-athlete-mode) can only update status and resultId
       if (resolved.clientId !== assignment.athleteId) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
       }
 
       if (status) {
@@ -115,7 +122,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     } else {
       const access = await canAccessAthlete(user.id, assignment.athleteId);
       if (!access.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
       }
 
       // Coach can update everything
@@ -150,7 +157,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logError('Error updating assignment:', error);
     return NextResponse.json(
-      { error: 'Failed to update assignment' },
+      { error: t(locale, 'Failed to update assignment', 'Kunde inte uppdatera tilldelningen') },
       { status: 500 }
     );
   }
@@ -158,33 +165,44 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
 // DELETE /api/hybrid-assignments/[id] - Delete assignment
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request);
+
   try {
     const { id } = await params;
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
 
     const assignment = await prisma.hybridWorkoutAssignment.findUnique({
       where: { id },
     });
 
     if (!assignment) {
-      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
+      return NextResponse.json({ error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 });
     }
 
     const access = await canAccessAthlete(user.id, assignment.athleteId);
     if (!access.allowed) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 });
     }
 
     await prisma.hybridWorkoutAssignment.delete({
       where: { id },
     });
 
-    return NextResponse.json({ message: 'Assignment deleted' });
+    return NextResponse.json({ message: t(locale, 'Assignment deleted', 'Tilldelningen raderades') });
   } catch (error) {
     logError('Error deleting assignment:', error);
+    if (error instanceof Error && error.message === 'Unauthorized') {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
+    }
+
     return NextResponse.json(
-      { error: 'Failed to delete assignment' },
+      { error: t(locale, 'Failed to delete assignment', 'Kunde inte radera tilldelningen') },
       { status: 500 }
     );
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
 }
