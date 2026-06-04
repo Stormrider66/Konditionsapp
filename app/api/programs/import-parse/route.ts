@@ -50,6 +50,7 @@ import {
   MAX_FILE_BYTES,
   type NormalizedInput,
 } from '@/lib/ai/file-normalize'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -64,12 +65,6 @@ const parseCache = createDistributedJsonCache<{
   aiOutput: string
   modelDisplayName: string
 }>('programs:import-parse:v2') // bump when SYSTEM_PROMPT meaningfully changes
-
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
 
 function text(locale: AppLocale, enText: string, svText: string): string {
   return locale === 'sv' ? svText : enText
@@ -89,6 +84,8 @@ function computeCacheKey(
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     // Dual-auth: coaches import for their athletes, athletes import for
     // themselves. Athletes borrow their coach's AI keys, same pattern as
@@ -96,20 +93,19 @@ export async function POST(request: NextRequest) {
     let callerUserId: string
     let aiKeyOwnerId: string
     let athleteClientId: string | null = null
-    let locale: AppLocale = 'en'
     try {
       const coach = await requireCoach()
       callerUserId = coach.id
       aiKeyOwnerId = coach.id
-      locale = resolveLocale(coach.language)
+      locale = resolveRequestLocale(request, coach.language)
     } catch {
       const resolved = await resolveAthleteClientId()
       if (!resolved) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        return NextResponse.json({ error: text(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
       }
       callerUserId = resolved.user.id
       athleteClientId = resolved.clientId
-      locale = resolveLocale(resolved.user.language)
+      locale = resolveRequestLocale(request, resolved.user.language)
       // AI keys for athletes live on their coach record. Direct athletes
       // (no coach) can't use the importer — fail loudly rather than silently
       // falling back to the athlete's own (empty) key set.
@@ -120,8 +116,11 @@ export async function POST(request: NextRequest) {
       if (!client?.userId || client.userId === resolved.user.id) {
         return NextResponse.json(
           {
-            error:
+            error: text(
+              locale,
               'The program importer requires a coach account with AI keys. Ask your coach to enable it, or contact support if you believe this is an error.',
+              'Programimporten kräver ett coachkonto med AI-nycklar. Be din coach aktivera det, eller kontakta support om du tror att detta är fel.'
+            ),
           },
           { status: 400 }
         )
@@ -190,7 +189,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            e instanceof Error ? e.message : 'Could not read the uploaded file',
+            e instanceof Error ? e.message : text(locale, 'Could not read the uploaded file', 'Kunde inte läsa den uppladdade filen'),
         },
         { status: 400 }
       )
@@ -198,7 +197,7 @@ export async function POST(request: NextRequest) {
 
     if (!normalized) {
       return NextResponse.json(
-        { error: 'Provide either pasted text or a file to import' },
+        { error: text(locale, 'Provide either pasted text or a file to import', 'Klistra in text eller ladda upp en fil att importera') },
         { status: 400 }
       )
     }
@@ -206,7 +205,13 @@ export async function POST(request: NextRequest) {
     // model has nothing to extract from.
     if (normalized.kind !== 'image' && normalized.body.trim().length === 0) {
       return NextResponse.json(
-        { error: 'The input is empty — paste some text or upload a file with content' },
+        {
+          error: text(
+            locale,
+            'The input is empty - paste some text or upload a file with content',
+            'Innehållet är tomt - klistra in text eller ladda upp en fil med innehåll'
+          ),
+        },
         { status: 400 }
       )
     }
@@ -243,8 +248,11 @@ export async function POST(request: NextRequest) {
     if (!resolved) {
       return NextResponse.json(
         {
-          error:
+          error: text(
+            locale,
             'No AI provider configured. Add an API key in settings to use the program importer.',
+            'Ingen AI-leverantör är konfigurerad. Lägg till en API-nyckel i inställningarna för att använda programimporten.'
+          ),
         },
         { status: 400 }
       )
@@ -365,12 +373,20 @@ export async function POST(request: NextRequest) {
     const warnings: string[] = [...warningsFromGen]
     if (normalized.truncated) {
       warnings.push(
-        'Input was truncated before sending to the model; review the result carefully.'
+        text(
+          locale,
+          'Input was truncated before sending to the model; review the result carefully.',
+          'Innehållet kortades innan det skickades till modellen. Granska resultatet noggrant.'
+        )
       )
     }
     if (!parsed.success) {
       warnings.push(
-        `Model output did not fully match the program schema: ${parsed.error ?? 'unknown error'}`
+        text(
+          locale,
+          `Model output did not fully match the program schema: ${parsed.error ?? 'unknown error'}`,
+          `Modellens svar matchade inte programschemat helt: ${parsed.error ?? 'okänt fel'}`
+        )
       )
     }
 
@@ -418,7 +434,11 @@ export async function POST(request: NextRequest) {
               'The exercise library is not initialized in this environment. Run the latest Prisma migrations (npx prisma migrate deploy) before trying again. You can still publish the program without linking exercises.',
               'Övningsbiblioteket är inte initialiserat på den här miljön. Kör senaste Prisma-migrationerna (npx prisma migrate deploy) innan du försöker igen. Du kan fortfarande publicera programmet utan att länka övningar.'
             )
-          : 'Exercise auto-matching was unavailable; you can map exercises manually in the review panel.'
+          : text(
+              locale,
+              'Exercise auto-matching was unavailable; you can map exercises manually in the review panel.',
+              'Automatisk övningsmatchning var inte tillgänglig. Du kan mappa övningar manuellt i granskningspanelen.'
+            )
       warnings.push(msg)
     }
 
@@ -453,7 +473,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     logger.error('Program import-parse failed', {}, error)
     const msg =
-      error instanceof Error ? error.message : 'Internal server error'
+      error instanceof Error ? error.message : text(locale, 'Internal server error', 'Internt serverfel')
     return NextResponse.json(
       { error: msg },
       { status: msg.startsWith('Forbidden') ? 403 : 500 }

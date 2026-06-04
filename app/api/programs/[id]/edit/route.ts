@@ -20,6 +20,11 @@ import { prisma } from '@/lib/prisma'
 import { canAccessProgram, getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * PUT - Edit program, day, workout, or segments
@@ -28,19 +33,22 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
     if (!(await canAccessCoachPlatform(user.id))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const { id: programId } = await params
     const hasAccess = await canAccessProgram(user.id, programId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -51,19 +59,19 @@ export async function PUT(
     // Route to appropriate handler
     switch (editType) {
       case 'day':
-        return await editDay(programId, body)
+        return await editDay(programId, body, locale)
       case 'workout':
-        return await editWorkout(programId, body)
+        return await editWorkout(programId, body, locale)
       case 'reorder':
-        return await reorderWorkouts(programId, body)
+        return await reorderWorkouts(programId, body, locale)
       case 'segments':
-        return await editSegments(programId, body)
+        return await editSegments(programId, body, locale)
       default:
         return await editProgramMetadata(programId, body)
     }
   } catch (error: unknown) {
     logger.error('Error editing program', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
@@ -74,19 +82,22 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
     if (!(await canAccessCoachPlatform(user.id))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const { id: programId } = await params
     const hasAccess = await canAccessProgram(user.id, programId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -95,19 +106,19 @@ export async function POST(
     const body = await request.json()
 
     if (addType === 'workout') {
-      return await addWorkout(programId, body)
+      return await addWorkout(programId, body, locale)
     }
     if (addType === 'week') {
-      return await addWeek(programId, body)
+      return await addWeek(programId, body, locale)
     }
     if (addType === 'day-add') {
-      return await addDay(programId, body)
+      return await addDay(programId, body, locale)
     }
 
-    return NextResponse.json({ error: 'Invalid type parameter' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'Invalid type parameter', 'Ogiltig type-parameter') }, { status: 400 })
   } catch (error: unknown) {
     logger.error('Error adding to program', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
@@ -118,19 +129,22 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
     if (!(await canAccessCoachPlatform(user.id))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const { id: programId } = await params
     const hasAccess = await canAccessProgram(user.id, programId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const searchParams = request.nextUrl.searchParams
@@ -139,28 +153,28 @@ export async function DELETE(
     if (deleteType === 'week') {
       const weekId = searchParams.get('weekId')
       if (!weekId) {
-        return NextResponse.json({ error: 'weekId required' }, { status: 400 })
+        return NextResponse.json({ error: t(locale, 'weekId required', 'weekId krävs') }, { status: 400 })
       }
-      return await removeWeek(programId, weekId)
+      return await removeWeek(programId, weekId, locale)
     }
 
     if (deleteType === 'day') {
       const dayId = searchParams.get('dayId')
       if (!dayId) {
-        return NextResponse.json({ error: 'dayId required' }, { status: 400 })
+        return NextResponse.json({ error: t(locale, 'dayId required', 'dayId krävs') }, { status: 400 })
       }
-      return await removeDay(programId, dayId)
+      return await removeDay(programId, dayId, locale)
     }
 
     const workoutId = searchParams.get('workoutId')
     if (!workoutId) {
-      return NextResponse.json({ error: 'workoutId required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'workoutId required', 'workoutId krävs') }, { status: 400 })
     }
 
-    return await removeWorkout(programId, workoutId)
+    return await removeWorkout(programId, workoutId, locale)
   } catch (error: unknown) {
     logger.error('Error removing from program', {}, error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Internal server error', 'Internt serverfel') }, { status: 500 })
   }
 }
 
@@ -187,11 +201,11 @@ async function editProgramMetadata(programId: string, body: any) {
 /**
  * Edit training day
  */
-async function editDay(programId: string, body: any) {
+async function editDay(programId: string, body: any, locale: AppLocale) {
   const { weekId, dayId, notes } = body
 
   if (!weekId || !dayId) {
-    return NextResponse.json({ error: 'weekId and dayId required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'weekId and dayId required', 'weekId och dayId krävs') }, { status: 400 })
   }
 
   // Ensure the day belongs to the target program
@@ -204,7 +218,7 @@ async function editDay(programId: string, body: any) {
     select: { id: true },
   })
   if (!day) {
-    return NextResponse.json({ error: 'Day not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Day not found', 'Dagen hittades inte') }, { status: 404 })
   }
 
   const updated = await prisma.trainingDay.update({
@@ -220,11 +234,11 @@ async function editDay(programId: string, body: any) {
 /**
  * Add new workout to a day
  */
-async function addWorkout(programId: string, body: any) {
+async function addWorkout(programId: string, body: any, locale: AppLocale) {
   const { dayId, name, type, intensity, duration, description, segments } = body
 
   if (!dayId || !type) {
-    return NextResponse.json({ error: 'dayId and type required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'dayId and type required', 'dayId och type krävs') }, { status: 400 })
   }
 
   // Ensure the day belongs to the target program
@@ -233,7 +247,7 @@ async function addWorkout(programId: string, body: any) {
     select: { id: true },
   })
   if (!day) {
-    return NextResponse.json({ error: 'Day not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Day not found', 'Dagen hittades inte') }, { status: 404 })
   }
 
   // Get current workout count for this day (for ordering)
@@ -244,7 +258,7 @@ async function addWorkout(programId: string, body: any) {
   const workout = await prisma.workout.create({
     data: {
       dayId: dayId,
-      name: name || `${type} Workout`,
+      name: name || t(locale, `${type} Workout`, `${type} pass`),
       type,
       intensity: intensity || 'MODERATE',
       duration: duration || 60,
@@ -291,11 +305,11 @@ async function addWorkout(programId: string, body: any) {
 /**
  * Edit existing workout
  */
-async function editWorkout(programId: string, body: any) {
+async function editWorkout(programId: string, body: any, locale: AppLocale) {
   const { workoutId, type, intensity, duration, description } = body
 
   if (!workoutId) {
-    return NextResponse.json({ error: 'workoutId required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'workoutId required', 'workoutId krävs') }, { status: 400 })
   }
 
   // Ensure the workout belongs to the target program
@@ -304,7 +318,7 @@ async function editWorkout(programId: string, body: any) {
     select: { id: true },
   })
   if (!workout) {
-    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
   }
 
   const updated = await prisma.workout.update({
@@ -330,13 +344,13 @@ async function editWorkout(programId: string, body: any) {
 /**
  * Remove workout from day
  */
-async function removeWorkout(programId: string, workoutId: string) {
+async function removeWorkout(programId: string, workoutId: string, locale: AppLocale) {
   const workout = await prisma.workout.findFirst({
     where: { id: workoutId, day: { week: { programId } } },
     select: { id: true },
   })
   if (!workout) {
-    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
   }
 
   // Delete workout (cascade will delete segments)
@@ -344,17 +358,17 @@ async function removeWorkout(programId: string, workoutId: string) {
     where: { id: workoutId },
   })
 
-  return NextResponse.json({ message: 'Workout removed successfully' }, { status: 200 })
+  return NextResponse.json({ message: t(locale, 'Workout removed successfully', 'Passet togs bort') }, { status: 200 })
 }
 
 /**
  * Reorder workouts within a day
  */
-async function reorderWorkouts(programId: string, body: any) {
+async function reorderWorkouts(programId: string, body: any, locale: AppLocale) {
   const { workoutOrders } = body // Array of {workoutId, newOrder}
 
   if (!workoutOrders || !Array.isArray(workoutOrders)) {
-    return NextResponse.json({ error: 'workoutOrders array required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'workoutOrders array required', 'workoutOrders-lista krävs') }, { status: 400 })
   }
 
   const workoutIds = workoutOrders
@@ -362,7 +376,7 @@ async function reorderWorkouts(programId: string, body: any) {
     .filter((id: unknown): id is string => typeof id === 'string' && id.length > 0)
 
   if (workoutIds.length !== workoutOrders.length) {
-    return NextResponse.json({ error: 'Invalid workoutOrders' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'Invalid workoutOrders', 'Ogiltig workoutOrders') }, { status: 400 })
   }
 
   // Ensure all workouts belong to the target program
@@ -371,7 +385,7 @@ async function reorderWorkouts(programId: string, body: any) {
     select: { id: true },
   })
   if (workouts.length !== workoutIds.length) {
-    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
   }
 
   // Update all workout orders in transaction
@@ -384,17 +398,17 @@ async function reorderWorkouts(programId: string, body: any) {
     )
   )
 
-  return NextResponse.json({ message: 'Workouts reordered successfully' }, { status: 200 })
+  return NextResponse.json({ message: t(locale, 'Workouts reordered successfully', 'Passens ordning uppdaterades') }, { status: 200 })
 }
 
 /**
  * Edit workout segments (exercises)
  */
-async function editSegments(programId: string, body: any) {
+async function editSegments(programId: string, body: any, locale: AppLocale) {
   const { workoutId, segments } = body
 
   if (!workoutId || !segments) {
-    return NextResponse.json({ error: 'workoutId and segments required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'workoutId and segments required', 'workoutId och segments krävs') }, { status: 400 })
   }
 
   // Ensure the workout belongs to the target program
@@ -403,7 +417,7 @@ async function editSegments(programId: string, body: any) {
     select: { id: true },
   })
   if (!workout) {
-    return NextResponse.json({ error: 'Workout not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Workout not found', 'Passet hittades inte') }, { status: 404 })
   }
 
   // Delete existing segments and create new ones (simpler than update)
@@ -458,7 +472,7 @@ async function editSegments(programId: string, body: any) {
  * Add a new week (optionally duplicated from an existing week) to the end of a program.
  * Body: { copyFromWeekId?: string, phase?: string, focus?: string }
  */
-async function addWeek(programId: string, body: any) {
+async function addWeek(programId: string, body: any, locale: AppLocale) {
   const { copyFromWeekId, phase, focus } = body || {}
 
   const program = await prisma.trainingProgram.findUnique({
@@ -468,7 +482,7 @@ async function addWeek(programId: string, body: any) {
     },
   })
   if (!program) {
-    return NextResponse.json({ error: 'Program not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Program not found', 'Programmet hittades inte') }, { status: 404 })
   }
 
   const lastWeek = program.weeks[0]
@@ -493,7 +507,7 @@ async function addWeek(programId: string, body: any) {
       },
     })
     if (!source) {
-      return NextResponse.json({ error: 'Source week not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Source week not found', 'Källveckan hittades inte') }, { status: 404 })
     }
 
     const created = await prisma.trainingWeek.create({
@@ -581,13 +595,13 @@ async function addWeek(programId: string, body: any) {
  * Remove a week and renumber remaining weeks.
  * Cascade deletes days → workouts → segments via Prisma onDelete: Cascade.
  */
-async function removeWeek(programId: string, weekId: string) {
+async function removeWeek(programId: string, weekId: string, locale: AppLocale) {
   const week = await prisma.trainingWeek.findFirst({
     where: { id: weekId, programId },
     select: { id: true, weekNumber: true },
   })
   if (!week) {
-    return NextResponse.json({ error: 'Week not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Week not found', 'Veckan hittades inte') }, { status: 404 })
   }
 
   const laterWeeks = await prisma.trainingWeek.findMany({
@@ -607,17 +621,17 @@ async function removeWeek(programId: string, weekId: string) {
     ),
   ])
 
-  return NextResponse.json({ message: 'Week removed' }, { status: 200 })
+  return NextResponse.json({ message: t(locale, 'Week removed', 'Veckan togs bort') }, { status: 200 })
 }
 
 /**
  * Add a day to a week (blank or duplicated from another day). Appends at next dayNumber.
  * Body: { weekId: string, copyFromDayId?: string, dayNumber?: number }
  */
-async function addDay(programId: string, body: any) {
+async function addDay(programId: string, body: any, locale: AppLocale) {
   const { weekId, copyFromDayId } = body || {}
   if (!weekId) {
-    return NextResponse.json({ error: 'weekId required' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'weekId required', 'weekId krävs') }, { status: 400 })
   }
 
   const week = await prisma.trainingWeek.findFirst({
@@ -625,12 +639,12 @@ async function addDay(programId: string, body: any) {
     include: { days: { orderBy: { dayNumber: 'desc' }, take: 1 } },
   })
   if (!week) {
-    return NextResponse.json({ error: 'Week not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Week not found', 'Veckan hittades inte') }, { status: 404 })
   }
 
   const nextDayNumber = (week.days[0]?.dayNumber ?? 0) + 1
   if (nextDayNumber > 7) {
-    return NextResponse.json({ error: 'Week already has 7 days' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'Week already has 7 days', 'Veckan har redan 7 dagar') }, { status: 400 })
   }
   const date = new Date(week.startDate.getTime() + (nextDayNumber - 1) * 24 * 60 * 60 * 1000)
 
@@ -640,7 +654,7 @@ async function addDay(programId: string, body: any) {
       include: { workouts: { include: { segments: true } } },
     })
     if (!source) {
-      return NextResponse.json({ error: 'Source day not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Source day not found', 'Källdagen hittades inte') }, { status: 404 })
     }
 
     const created = await prisma.trainingDay.create({
@@ -701,13 +715,13 @@ async function addDay(programId: string, body: any) {
 /**
  * Remove a day from a week and renumber remaining days.
  */
-async function removeDay(programId: string, dayId: string) {
+async function removeDay(programId: string, dayId: string, locale: AppLocale) {
   const day = await prisma.trainingDay.findFirst({
     where: { id: dayId, week: { programId } },
     select: { id: true, dayNumber: true, weekId: true },
   })
   if (!day) {
-    return NextResponse.json({ error: 'Day not found' }, { status: 404 })
+    return NextResponse.json({ error: t(locale, 'Day not found', 'Dagen hittades inte') }, { status: 404 })
   }
 
   const laterDays = await prisma.trainingDay.findMany({
@@ -726,5 +740,5 @@ async function removeDay(programId: string, dayId: string) {
     ),
   ])
 
-  return NextResponse.json({ message: 'Day removed' }, { status: 200 })
+  return NextResponse.json({ message: t(locale, 'Day removed', 'Dagen togs bort') }, { status: 200 })
 }

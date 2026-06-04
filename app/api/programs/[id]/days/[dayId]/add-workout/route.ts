@@ -6,15 +6,21 @@ import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string; dayId: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await requireAuth()
-    const locale = resolveRequestLocale(request, user.language)
+    locale = resolveRequestLocale(request, user.language)
     if (!(await canAccessCoachPlatform(user.id))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const params = await context.params
@@ -22,14 +28,14 @@ export async function POST(
 
     const hasAccess = await canAccessProgram(user.id, programId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const body = await request.json()
     const { type } = body
 
     if (!type) {
-      return NextResponse.json({ error: 'type is required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'type is required', 'type krävs') }, { status: 400 })
     }
 
     // Verify day exists and belongs to the program
@@ -50,12 +56,12 @@ export async function POST(
     })
 
     if (!day) {
-      return NextResponse.json({ error: 'Training day not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Training day not found', 'Träningsdagen hittades inte') }, { status: 404 })
     }
 
     if (day.week.programId !== programId) {
       return NextResponse.json(
-        { error: 'Day does not belong to this program' },
+        { error: t(locale, 'Day does not belong to this program', 'Dagen tillhör inte detta program') },
         { status: 403 }
       )
     }
@@ -74,7 +80,7 @@ export async function POST(
       success: true,
       workoutId: workout.id,
       workout,
-      message: 'Workout created successfully'
+      message: t(locale, 'Workout created successfully', 'Passet skapades')
     })
 
   } catch (error) {
@@ -82,7 +88,7 @@ export async function POST(
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Internal server error'
+        error: error instanceof Error ? error.message : t(locale, 'Internal server error', 'Internt serverfel')
       },
       { status: 500 }
     )

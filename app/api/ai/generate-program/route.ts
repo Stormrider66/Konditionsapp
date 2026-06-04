@@ -23,12 +23,7 @@ import {
   type GenerationContext,
   type StartGenerationRequest,
 } from '@/lib/ai/program-generator'
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -39,12 +34,12 @@ function t(locale: AppLocale, en: string, sv: string): string {
 // ============================================
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     // Authenticate
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'program_generation')
@@ -213,11 +208,11 @@ function startGenerationBackground(
 // ============================================
 
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url)
     const sessionId = searchParams.get('sessionId')

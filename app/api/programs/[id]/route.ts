@@ -18,7 +18,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await getCurrentUser()
@@ -27,7 +27,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -139,7 +139,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await getCurrentUser()
@@ -148,7 +148,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -234,7 +234,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await getCurrentUser()
@@ -243,7 +243,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )

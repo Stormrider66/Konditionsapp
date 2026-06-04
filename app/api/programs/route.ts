@@ -70,7 +70,7 @@ function t(locale: AppLocale, en: string, sv: string): string {
  * - clientId: Filter programs by specific client (coaches only)
  */
 export async function GET(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await getCurrentUser()
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -285,14 +285,14 @@ export async function GET(request: NextRequest) {
  * Create a new training program
  */
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }

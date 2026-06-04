@@ -192,7 +192,7 @@ async function resolveHockeyTestForClient(
  * Generate a new training program from test results
  */
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en'
+  let locale: AppLocale = resolveRequestLocale(request)
 
   try {
     // Authenticate and authorize
