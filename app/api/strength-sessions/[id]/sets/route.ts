@@ -5,6 +5,10 @@ import { resolveStrengthAssignmentAccess } from '@/lib/strength/assignment-acces
 
 type AppLocale = 'en' | 'sv'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 function exerciseNameForLocale(
   exercise: { name: string; nameSv: string | null; nameEn: string | null },
   locale: AppLocale
@@ -38,11 +42,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: assignmentId } = await params
     const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
     if ('response' in accessResult) return accessResult.response
-    const { clientId, locale } = accessResult.access
+    const { clientId } = accessResult.access
+    locale = accessResult.access.locale
 
     const body = await request.json()
     const {
@@ -65,7 +72,7 @@ export async function POST(
     // Validate required fields
     if (!exerciseId || typeof setNumber !== 'number' || typeof weight !== 'number' || typeof repsCompleted !== 'number') {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: exerciseId, setNumber, weight, repsCompleted' },
+        { success: false, error: t(locale, 'Missing required fields: exerciseId, setNumber, weight, repsCompleted', 'Obligatoriska fält saknas: exerciseId, setNumber, weight, repsCompleted') },
         { status: 400 }
       )
     }
@@ -81,7 +88,7 @@ export async function POST(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -89,7 +96,7 @@ export async function POST(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -170,7 +177,7 @@ export async function POST(
   } catch (error) {
     logError('Error logging set:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to log set' },
+      { success: false, error: t(locale, 'Failed to log set', 'Kunde inte logga set') },
       { status: 500 }
     )
   }
@@ -184,11 +191,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: assignmentId } = await params
     const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
     if ('response' in accessResult) return accessResult.response
-    const { clientId, locale } = accessResult.access
+    const { clientId } = accessResult.access
+    locale = accessResult.access.locale
 
     // Verify assignment exists
     const assignment = await prisma.strengthSessionAssignment.findUnique({
@@ -200,7 +210,7 @@ export async function GET(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -208,7 +218,7 @@ export async function GET(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -254,7 +264,7 @@ export async function GET(
   } catch (error) {
     logError('Error fetching set logs:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch set logs' },
+      { success: false, error: t(locale, 'Failed to fetch set logs', 'Kunde inte hämta loggade set') },
       { status: 500 }
     )
   }
@@ -268,6 +278,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: assignmentId } = await params
     const { searchParams } = new URL(request.url)
@@ -275,7 +287,7 @@ export async function DELETE(
 
     if (!setLogId) {
       return NextResponse.json(
-        { success: false, error: 'setLogId query parameter required' },
+        { success: false, error: t(locale, 'setLogId query parameter required', 'Frågeparametern setLogId krävs') },
         { status: 400 }
       )
     }
@@ -283,6 +295,7 @@ export async function DELETE(
     const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
     if ('response' in accessResult) return accessResult.response
     const { clientId } = accessResult.access
+    locale = accessResult.access.locale
 
     // Verify set log exists and belongs to this assignment
     const setLog = await prisma.setLog.findUnique({
@@ -294,7 +307,7 @@ export async function DELETE(
 
     if (!setLog || setLog.assignmentId !== assignmentId) {
       return NextResponse.json(
-        { success: false, error: 'Set log not found' },
+        { success: false, error: t(locale, 'Set log not found', 'Setloggen hittades inte') },
         { status: 404 }
       )
     }
@@ -302,7 +315,7 @@ export async function DELETE(
     // Verify athlete owns this assignment
     if (setLog.assignment?.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -314,12 +327,12 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Set log deleted',
+      message: t(locale, 'Set log deleted', 'Setloggen har raderats'),
     })
   } catch (error) {
     logError('Error deleting set log:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to delete set log' },
+      { success: false, error: t(locale, 'Failed to delete set log', 'Kunde inte radera setlogg') },
       { status: 500 }
     )
   }

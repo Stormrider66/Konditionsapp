@@ -25,14 +25,22 @@ import {
   normalizeWorkoutTrainingYear,
   WorkoutLibraryMetadataError,
 } from '@/lib/workouts/library-metadata';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveStrengthBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -105,23 +113,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     logger.error('Error fetching strength sessions', {}, error);
     return NextResponse.json(
-      { error: 'Failed to fetch strength sessions' },
+      { error: t(locale, 'Failed to fetch strength sessions', 'Kunde inte hämta styrkepass') },
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveStrengthBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const body = await request.json();
@@ -147,7 +158,7 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!name) {
       return NextResponse.json(
-        { error: 'Name is required' },
+        { error: t(locale, 'Name is required', 'Namn krävs') },
         { status: 400 }
       );
     }
@@ -196,11 +207,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     logger.error('Error creating strength session', {}, error);
     return NextResponse.json(
-      { error: 'Failed to create strength session' },
+      { error: t(locale, 'Failed to create strength session', 'Kunde inte skapa styrkepass') },
       { status: 500 }
     );
   }

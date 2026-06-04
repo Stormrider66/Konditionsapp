@@ -26,18 +26,26 @@ import {
   buildWorkoutLibraryMetadataData,
   WorkoutLibraryMetadataError,
 } from '@/lib/workouts/library-metadata';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale';
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en;
+}
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveStrengthBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const { id } = await context.params;
@@ -68,7 +76,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     if (!session) {
       return NextResponse.json(
-        { error: 'Session not found' },
+        { error: t(locale, 'Session not found', 'Passet hittades inte') },
         { status: 404 }
       );
     }
@@ -76,23 +84,26 @@ export async function GET(request: NextRequest, context: RouteContext) {
     return NextResponse.json(session);
   } catch (error) {
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     logError('Error fetching strength session:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch strength session' },
+      { error: t(locale, 'Failed to fetch strength session', 'Kunde inte hämta styrkepass') },
       { status: 500 }
     );
   }
 }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
+  let locale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveStrengthBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const { id } = await context.params;
@@ -105,7 +116,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
     if (!existing) {
       return NextResponse.json(
-        { error: 'Session not found or you do not have permission to edit it' },
+        { error: t(locale, 'Session not found or you do not have permission to edit it', 'Passet hittades inte eller så saknar du behörighet att redigera det') },
         { status: 404 }
       );
     }
@@ -174,23 +185,26 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: error.message }, { status: error.status });
     }
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     logError('Error updating strength session:', error);
     return NextResponse.json(
-      { error: 'Failed to update strength session' },
+      { error: t(locale, 'Failed to update strength session', 'Kunde inte uppdatera styrkepass') },
       { status: 500 }
     );
   }
 }
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
+  let locale = resolveRequestLocale(request);
+
   try {
     const user = await requireCoach();
+    locale = resolveRequestLocale(request, user.language);
     const businessScope = await resolveStrengthBusinessScope(user.id, request);
 
     if (!businessScope) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 403 });
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 403 });
     }
 
     const { id } = await context.params;
@@ -202,7 +216,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
 
     if (!existing) {
       return NextResponse.json(
-        { error: 'Session not found or you do not have permission to delete it' },
+        { error: t(locale, 'Session not found or you do not have permission to delete it', 'Passet hittades inte eller så saknar du behörighet att radera det') },
         { status: 404 }
       );
     }
@@ -235,11 +249,11 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
     });
   } catch (error) {
     if (error instanceof Error && error.message === 'NEXT_REDIRECT') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
     logError('Error deleting strength session:', error);
     return NextResponse.json(
-      { error: 'Failed to delete strength session' },
+      { error: t(locale, 'Failed to delete strength session', 'Kunde inte radera styrkepass') },
       { status: 500 }
     );
   }

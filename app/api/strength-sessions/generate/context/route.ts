@@ -15,15 +15,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
+
   try {
-    await requireCoach()
+    const user = await requireCoach()
+    locale = resolveRequestLocale(request, user.language)
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
     if (!clientId) {
-      return NextResponse.json({ error: 'clientId is required' }, { status: 400 })
+      return NextResponse.json({ error: t(locale, 'clientId is required', 'clientId krävs') }, { status: 400 })
     }
 
     // Fetch client basic info
@@ -37,7 +45,7 @@ export async function GET(request: NextRequest) {
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     // Fetch sport from sport profile
@@ -149,7 +157,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching athlete context for generation', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch athlete context' },
+      { error: t(locale, 'Failed to fetch athlete context', 'Kunde inte hämta atletkontext') },
       { status: 500 }
     )
   }

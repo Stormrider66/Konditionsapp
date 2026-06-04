@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach, resolveAthleteClientId, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export type StrengthAssignmentAccessMode = 'athlete' | 'team-kiosk'
 
@@ -12,6 +13,10 @@ export interface StrengthAssignmentAccess {
   coachUserId?: string
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 type StrengthAssignmentAccessResult =
   | { access: StrengthAssignmentAccess }
   | { response: NextResponse }
@@ -20,6 +25,7 @@ export async function resolveStrengthAssignmentAccess(
   request: NextRequest,
   assignmentId: string
 ): Promise<StrengthAssignmentAccessResult> {
+  const locale = resolveRequestLocale(request)
   const coachTeamId = request.nextUrl.searchParams.get('coachTeamId')?.trim()
 
   if (coachTeamId) {
@@ -30,7 +36,7 @@ export async function resolveStrengthAssignmentAccess(
   if (!resolved) {
     return {
       response: NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       ),
     }
@@ -50,6 +56,7 @@ async function resolveTeamKioskAccess(
   assignmentId: string,
   teamId: string
 ): Promise<StrengthAssignmentAccessResult> {
+  let locale = resolveRequestLocale(request)
   let coach: Awaited<ReturnType<typeof requireCoach>>
 
   try {
@@ -57,11 +64,12 @@ async function resolveTeamKioskAccess(
   } catch {
     return {
       response: NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       ),
     }
   }
+  locale = resolveRequestLocale(request, coach.language)
 
   const scope = getRequestedBusinessScope(request)
   const team = await getAccessibleTeam(coach.id, teamId, scope.businessSlug)
@@ -69,7 +77,7 @@ async function resolveTeamKioskAccess(
   if (!team) {
     return {
       response: NextResponse.json(
-        { success: false, error: 'Team not found' },
+        { success: false, error: t(locale, 'Team not found', 'Laget hittades inte') },
         { status: 404 }
       ),
     }
@@ -87,7 +95,7 @@ async function resolveTeamKioskAccess(
   if (!assignment) {
     return {
       response: NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       ),
     }
@@ -100,7 +108,7 @@ async function resolveTeamKioskAccess(
   if (!belongsToTeam) {
     return {
       response: NextResponse.json(
-        { success: false, error: 'Assignment is not part of this team' },
+        { success: false, error: t(locale, 'Assignment is not part of this team', 'Tilldelningen ingår inte i det här laget') },
         { status: 403 }
       ),
     }

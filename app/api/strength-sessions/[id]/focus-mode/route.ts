@@ -7,6 +7,10 @@ import { resolveStrengthAssignmentAccess } from '@/lib/strength/assignment-acces
 type AppLocale = 'en' | 'sv'
 type WeightUnit = 'kg' | 'percent'
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 interface SessionFollowUp {
   exerciseId: string
   exerciseName: string
@@ -132,11 +136,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: assignmentId } = await params
     const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
     if ('response' in accessResult) return accessResult.response
-    const { clientId, locale } = accessResult.access
+    const { clientId } = accessResult.access
+    locale = accessResult.access.locale
 
     // Get assignment with session and logged sets
     const assignment = await prisma.strengthSessionAssignment.findUnique({
@@ -154,7 +161,7 @@ export async function GET(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -162,7 +169,7 @@ export async function GET(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -485,7 +492,7 @@ export async function GET(
   } catch (error) {
     logError('Error fetching focus mode data:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch workout data' },
+      { success: false, error: t(locale, 'Failed to fetch workout data', 'Kunde inte hämta passdata') },
       { status: 500 }
     )
   }
@@ -517,11 +524,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = 'en'
+
   try {
     const { id: assignmentId } = await params
     const accessResult = await resolveStrengthAssignmentAccess(request, assignmentId)
     if ('response' in accessResult) return accessResult.response
-    const { clientId, locale } = accessResult.access
+    const { clientId } = accessResult.access
+    locale = accessResult.access.locale
 
     const body = await request.json()
 
@@ -534,7 +544,7 @@ export async function PUT(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -542,7 +552,7 @@ export async function PUT(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -642,7 +652,7 @@ export async function PUT(
   } catch (error) {
     logError('Error updating assignment:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update assignment' },
+      { success: false, error: t(locale, 'Failed to update assignment', 'Kunde inte uppdatera tilldelningen') },
       { status: 500 }
     )
   }
