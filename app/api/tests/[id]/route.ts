@@ -9,6 +9,7 @@ import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculat
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { triggerTrialAfterTest } from '@/lib/subscription/trial-trigger'
 import type { Test, Client, TestStage } from '@/types'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{
@@ -16,11 +17,17 @@ type RouteParams = {
   }>
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 // GET /api/tests/[id] - Hämta specifikt test med stages
 export async function GET(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -31,7 +38,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -50,7 +57,7 @@ export async function GET(
       return NextResponse.json(
         {
           success: false,
-          error: 'Test not found',
+          error: t(locale, 'Test not found', 'Testet hittades inte'),
         },
         { status: 404 }
       )
@@ -112,7 +119,7 @@ export async function GET(
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to fetch test',
+        error: t(locale, 'Failed to fetch test', 'Kunde inte hämta testet'),
       },
       { status: 500 }
     )
@@ -124,6 +131,8 @@ export async function PUT(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -134,7 +143,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -157,7 +166,7 @@ export async function PUT(
       return NextResponse.json(
         {
           success: false,
-          error: 'Test not found or unauthorized',
+          error: t(locale, 'Test not found or unauthorized', 'Testet hittades inte eller saknar behörighet'),
         },
         { status: 404 }
       )
@@ -185,14 +194,14 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: test,
-      message: 'Test updated successfully',
+      message: t(locale, 'Test updated successfully', 'Testet uppdaterades'),
     })
   } catch (error) {
     logger.error('Error updating test', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update test',
+        error: t(locale, 'Failed to update test', 'Kunde inte uppdatera testet'),
       },
       { status: 500 }
     )
@@ -204,6 +213,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -214,7 +225,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -237,7 +248,7 @@ export async function PATCH(
       return NextResponse.json(
         {
           success: false,
-          error: 'Test not found or unauthorized',
+          error: t(locale, 'Test not found or unauthorized', 'Testet hittades inte eller saknar behörighet'),
         },
         { status: 404 }
       )
@@ -342,14 +353,14 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: test,
-      message: 'Test updated successfully',
+      message: t(locale, 'Test updated successfully', 'Testet uppdaterades'),
     })
   } catch (error) {
     logger.error('Error updating test', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to update test',
+        error: t(locale, 'Failed to update test', 'Kunde inte uppdatera testet'),
       },
       { status: 500 }
     )
@@ -361,6 +372,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: RouteParams
 ) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient()
     const {
@@ -371,7 +384,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Unauthorized',
+          error: t(locale, 'Unauthorized', 'Obehörig'),
         },
         { status: 401 }
       )
@@ -393,7 +406,7 @@ export async function DELETE(
       return NextResponse.json(
         {
           success: false,
-          error: 'Test not found or unauthorized',
+          error: t(locale, 'Test not found or unauthorized', 'Testet hittades inte eller saknar behörighet'),
         },
         { status: 404 }
       )
@@ -403,14 +416,14 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Test deleted successfully',
+      message: t(locale, 'Test deleted successfully', 'Testet raderades'),
     })
   } catch (error) {
     logger.error('Error deleting test', {}, error)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to delete test',
+        error: t(locale, 'Failed to delete test', 'Kunde inte radera testet'),
       },
       { status: 500 }
     )
