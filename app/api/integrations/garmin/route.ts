@@ -18,6 +18,7 @@ import {
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Schema for POST request
 const initiateAuthSchema = z.object({
@@ -29,17 +30,20 @@ const initiateAuthSchema = z.object({
  * GET - Get Garmin connection status for a client
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
 
     // Check if Garmin API is configured
     if (!isGarminConfigured()) {
       return NextResponse.json({
         configured: false,
-        message: 'Garmin API is not configured. Contact support to enable Garmin integration.',
+        message: t(locale, 'Garmin API is not configured. Contact support to enable Garmin integration.', 'Garmin API är inte konfigurerat. Kontakta supporten för att aktivera Garmin-integrationen.'),
       });
     }
 
@@ -48,7 +52,7 @@ export async function GET(request: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId is required' },
+        { error: t(locale, 'clientId is required', 'clientId krävs') },
         { status: 400 }
       );
     }
@@ -56,7 +60,7 @@ export async function GET(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Check if connected
@@ -107,11 +111,11 @@ export async function GET(request: NextRequest) {
     logError('Get Garmin status error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get Garmin status' },
+      { error: t(locale, 'Failed to get Garmin status', 'Kunde inte hämta Garmin-status') },
       { status: 500 }
     );
   }
@@ -121,16 +125,19 @@ export async function GET(request: NextRequest) {
  * POST - Initiate Garmin OAuth flow
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
 
     // Check if Garmin API is configured
     if (!isGarminConfigured()) {
       return NextResponse.json(
-        { error: 'Garmin API is not configured' },
+        { error: t(locale, 'Garmin API is not configured', 'Garmin API är inte konfigurerat') },
         { status: 503 }
       );
     }
@@ -141,7 +148,7 @@ export async function POST(request: NextRequest) {
     const validationResult = initiateAuthSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig indata'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -151,7 +158,7 @@ export async function POST(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Subscription gate
@@ -162,7 +169,7 @@ export async function POST(request: NextRequest) {
     const isConnected = await hasGarminConnection(clientId);
     if (isConnected) {
       return NextResponse.json(
-        { error: 'Garmin is already connected for this client' },
+        { error: t(locale, 'Garmin is already connected for this client', 'Garmin är redan anslutet för den här klienten') },
         { status: 400 }
       );
     }
@@ -176,11 +183,11 @@ export async function POST(request: NextRequest) {
     logError('Initiate Garmin auth error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to initiate Garmin authentication' },
+      { error: t(locale, 'Failed to initiate Garmin authentication', 'Kunde inte starta Garmin-autentisering') },
       { status: 500 }
     );
   }
@@ -190,18 +197,21 @@ export async function POST(request: NextRequest) {
  * DELETE - Disconnect Garmin
  */
 export async function DELETE(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const searchParams = request.nextUrl.searchParams;
     const clientId = searchParams.get('clientId');
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'clientId is required' },
+        { error: t(locale, 'clientId is required', 'clientId krävs') },
         { status: 400 }
       );
     }
@@ -209,7 +219,7 @@ export async function DELETE(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Disconnect from Garmin
@@ -220,12 +230,16 @@ export async function DELETE(request: NextRequest) {
     logError('Disconnect Garmin error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to disconnect Garmin' },
+      { error: t(locale, 'Failed to disconnect Garmin', 'Kunde inte koppla från Garmin') },
       { status: 500 }
     );
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
