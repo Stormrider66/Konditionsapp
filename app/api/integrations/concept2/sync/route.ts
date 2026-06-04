@@ -17,6 +17,7 @@ import type { Concept2EquipmentType } from '@/lib/integrations/concept2';
 import { z } from 'zod';
 import { logError } from '@/lib/logger-console'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 // Valid equipment types
 const equipmentTypes = [
@@ -47,11 +48,14 @@ const getResultsSchema = z.object({
  * GET - Get synced results and training load
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const searchParams = request.nextUrl.searchParams;
     // Filter out null values so Zod optional() works correctly (searchParams.get returns null, not undefined)
@@ -71,7 +75,7 @@ export async function GET(request: NextRequest) {
     const validationResult = getResultsSchema.safeParse(params);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid parameters', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid parameters', 'Ogiltiga parametrar'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -81,7 +85,7 @@ export async function GET(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Subscription gate
@@ -100,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Concept2 not connected for this client' },
+        { error: t(locale, 'Concept2 not connected for this client', 'Concept2 är inte anslutet för den här klienten') },
         { status: 404 }
       );
     }
@@ -133,11 +137,11 @@ export async function GET(request: NextRequest) {
     logError('Get Concept2 results error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to get results' },
+      { error: t(locale, 'Failed to get results', 'Kunde inte hämta resultat') },
       { status: 500 }
     );
   }
@@ -147,11 +151,14 @@ export async function GET(request: NextRequest) {
  * POST - Trigger result sync
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json();
 
@@ -159,7 +166,7 @@ export async function POST(request: NextRequest) {
     const validationResult = syncRequestSchema.safeParse(body);
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig indata'), details: validationResult.error.flatten() },
         { status: 400 }
       );
     }
@@ -169,7 +176,7 @@ export async function POST(request: NextRequest) {
     // Access control
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Subscription gate
@@ -188,14 +195,14 @@ export async function POST(request: NextRequest) {
 
     if (!token) {
       return NextResponse.json(
-        { error: 'Concept2 not connected for this client' },
+        { error: t(locale, 'Concept2 not connected for this client', 'Concept2 är inte anslutet för den här klienten') },
         { status: 404 }
       );
     }
 
     if (!token.syncEnabled) {
       return NextResponse.json(
-        { error: 'Sync is disabled for this client' },
+        { error: t(locale, 'Sync is disabled for this client', 'Synk är inaktiverad för den här klienten') },
         { status: 400 }
       );
     }
@@ -217,12 +224,16 @@ export async function POST(request: NextRequest) {
     logError('Sync Concept2 results error:', error);
 
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
 
     return NextResponse.json(
-      { error: 'Failed to sync results' },
+      { error: t(locale, 'Failed to sync results', 'Kunde inte synka resultat') },
       { status: 500 }
     );
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
