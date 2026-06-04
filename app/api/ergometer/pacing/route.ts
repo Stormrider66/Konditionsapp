@@ -16,8 +16,15 @@ import {
   PacingStrategy,
   RaceEffort,
 } from '@/lib/training-engine/ergometer/pacing';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function POST(request: NextRequest) {
+  let responseLocale = resolveRequestLocale(request)
+
   try {
     const supabase = await createClient();
     const {
@@ -26,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(responseLocale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       );
     }
@@ -44,12 +51,12 @@ export async function POST(request: NextRequest) {
       locale,
     } = body;
 
-    const responseLocale: 'en' | 'sv' = locale === 'sv' ? 'sv' : 'en';
+    responseLocale = resolveRequestLocale(request, locale === 'sv' ? 'sv' : 'en');
 
     // Validate required fields
     if (!clientId || !ergometerType || !targetDistance) {
       return NextResponse.json(
-        { success: false, error: 'clientId, ergometerType, and targetDistance are required' },
+        { success: false, error: t(responseLocale, 'clientId, ergometerType, and targetDistance are required', 'clientId, ergometerType och targetDistance krävs') },
         { status: 400 }
       );
     }
@@ -57,7 +64,7 @@ export async function POST(request: NextRequest) {
     // Validate distance
     if (targetDistance < 500 || targetDistance > 42195) {
       return NextResponse.json(
-        { success: false, error: 'targetDistance must be between 500m and 42195m' },
+        { success: false, error: t(responseLocale, 'targetDistance must be between 500m and 42195m', 'targetDistance måste vara mellan 500 m och 42195 m') },
         { status: 400 }
       );
     }
@@ -76,7 +83,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'No CP data found. Perform a threshold test first.',
+          error: t(responseLocale, 'No CP data found. Perform a threshold test first.', 'Ingen CP-data hittades. Genomför ett tröskeltest först.'),
           code: 'NO_CP_DATA',
         },
         { status: 404 }
@@ -169,7 +176,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('Error generating pacing plan:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to generate pacing plan' },
+      { success: false, error: t(responseLocale, 'Failed to generate pacing plan', 'Kunde inte skapa farthållningsplan') },
       { status: 500 }
     );
   }

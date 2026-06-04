@@ -17,19 +17,18 @@ import {
   projectImprovement,
   generateProjectionCurve,
 } from '@/lib/training-engine/ergometer/predictions';
-
-type AppLocale = 'en' | 'sv';
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en;
 }
 
 export async function POST(request: NextRequest) {
-  let locale: AppLocale = 'en';
+  let locale = resolveRequestLocale(request);
 
   try {
     const user = await getCurrentUser();
-    locale = user?.language === 'sv' ? 'sv' : 'en';
+    locale = resolveRequestLocale(request, user?.language);
 
     if (!user) {
       return NextResponse.json(

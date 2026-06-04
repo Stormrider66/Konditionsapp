@@ -10,6 +10,11 @@ import { prisma } from '@/lib/prisma';
 import { ErgometerType, ErgometerTestProtocol, SportType } from '@prisma/client';
 import { classifyPerformance, BenchmarkInput } from '@/lib/training-engine/ergometer/benchmarks';
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const classifySchema = z.object({
   ergometerType: z.nativeEnum(ErgometerType),
@@ -25,6 +30,8 @@ const classifySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const body = await request.json();
     const validated = classifySchema.parse(body);
@@ -51,14 +58,14 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { success: false, error: 'Invalid input', details: error.errors },
+        { success: false, error: t(locale, 'Invalid input', 'Ogiltig indata'), details: error.errors },
         { status: 400 }
       );
     }
 
     logError('Error classifying performance:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to classify performance' },
+      { success: false, error: t(locale, 'Failed to classify performance', 'Kunde inte klassificera prestationen') },
       { status: 500 }
     );
   }
@@ -70,6 +77,8 @@ export async function POST(request: NextRequest) {
  * Get available benchmarks for a specific test type
  */
 export async function GET(request: NextRequest) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const { searchParams } = new URL(request.url);
     const ergometerType = searchParams.get('ergometerType') as ErgometerType | null;
@@ -99,7 +108,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching benchmarks:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch benchmarks' },
+      { success: false, error: t(locale, 'Failed to fetch benchmarks', 'Kunde inte hämta riktvärden') },
       { status: 500 }
     );
   }
