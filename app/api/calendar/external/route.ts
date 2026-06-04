@@ -19,6 +19,11 @@ import {
 import { CalendarEventType, EventImpact } from '@prisma/client'
 import { logger } from '@/lib/logger'
 import { generateOAuthState, clearOAuthState } from '@/lib/auth/oauth-state'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 const createConnectionSchema = z.object({
   clientId: z.string().uuid(),
@@ -45,6 +50,7 @@ const createConnectionSchema = z.object({
  * Create a new external calendar connection
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -52,7 +58,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -60,15 +66,16 @@ export async function POST(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const validationResult = createConnectionSchema.safeParse(body)
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.issues },
+        { error: t(locale, 'Invalid request', 'Ogiltig begäran'), details: validationResult.error.issues },
         { status: 400 }
       )
     }
@@ -77,14 +84,14 @@ export async function POST(request: NextRequest) {
 
     const hasAccess = await canAccessClient(dbUser.id, data.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // For iCal URL connections, validate and fetch initial events
     if (data.provider === 'ICAL_URL' || data.provider === 'APPLE') {
       if (!data.icalUrl) {
         return NextResponse.json(
-          { error: 'iCal URL is required for this provider' },
+          { error: t(locale, 'iCal URL is required for this provider', 'iCal-URL krävs för denna leverantör') },
           { status: 400 }
         )
       }
@@ -95,7 +102,7 @@ export async function POST(request: NextRequest) {
       if (!parseResult.success && parseResult.events.length === 0) {
         return NextResponse.json(
           {
-            error: 'Failed to fetch or parse calendar',
+            error: t(locale, 'Failed to fetch or parse calendar', 'Misslyckades med att hämta eller tolka kalendern'),
             details: parseResult.errors,
           },
           { status: 400 }
@@ -239,11 +246,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    return NextResponse.json({ error: 'Invalid provider' }, { status: 400 })
+    return NextResponse.json({ error: t(locale, 'Invalid provider', 'Ogiltig leverantör') }, { status: 400 })
   } catch (error) {
     logger.error('Error creating external calendar connection', {}, error)
     return NextResponse.json(
-      { error: 'Failed to create connection' },
+      { error: t(locale, 'Failed to create connection', 'Misslyckades med att skapa anslutning') },
       { status: 500 }
     )
   }
@@ -254,6 +261,7 @@ export async function POST(request: NextRequest) {
  * List all external calendar connections for a client
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -261,7 +269,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -269,22 +277,23 @@ export async function GET(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'Missing required parameter: clientId' },
+        { error: t(locale, 'Missing required parameter: clientId', 'Obligatorisk parameter saknas: clientId') },
         { status: 400 }
       )
     }
 
     const hasAccess = await canAccessClient(dbUser.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const connections = await prisma.externalCalendarConnection.findMany({
@@ -314,7 +323,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error('Error fetching external calendar connections', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch connections' },
+      { error: t(locale, 'Failed to fetch connections', 'Misslyckades med att hämta anslutningar') },
       { status: 500 }
     )
   }

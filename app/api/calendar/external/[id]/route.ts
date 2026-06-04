@@ -14,9 +14,14 @@ import { CalendarEventType, EventImpact } from '@prisma/client'
 import { z } from 'zod'
 import { toPublicExternalCalendarConnection } from '@/lib/calendar/external-calendar-connection'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 const updateConnectionSchema = z.object({
@@ -41,6 +46,7 @@ const updateConnectionSchema = z.object({
  * Get a single external calendar connection
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
 
@@ -50,7 +56,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -58,8 +64,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const connection = await prisma.externalCalendarConnection.findUnique({
       where: { id },
@@ -71,16 +78,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!connection) {
-      return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Connection not found', 'Anslutningen hittades inte') }, { status: 404 })
     }
 
     if (!connection.client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Get event count
@@ -99,7 +106,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logError('Error fetching external calendar connection:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch connection' },
+      { error: t(locale, 'Failed to fetch connection', 'Misslyckades med att hämta anslutning') },
       { status: 500 }
     )
   }
@@ -110,6 +117,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * Update an external calendar connection
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
 
@@ -119,7 +127,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -127,8 +135,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const connection = await prisma.externalCalendarConnection.findUnique({
       where: { id },
@@ -140,16 +149,16 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!connection) {
-      return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Connection not found', 'Anslutningen hittades inte') }, { status: 404 })
     }
 
     if (!connection.client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const body = await request.json()
@@ -157,7 +166,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: validationResult.error.issues },
+        { error: t(locale, 'Invalid request', 'Ogiltig begäran'), details: validationResult.error.issues },
         { status: 400 }
       )
     }
@@ -181,7 +190,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logError('Error updating external calendar connection:', error)
     return NextResponse.json(
-      { error: 'Failed to update connection' },
+      { error: t(locale, 'Failed to update connection', 'Misslyckades med att uppdatera anslutning') },
       { status: 500 }
     )
   }
@@ -192,6 +201,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  * Delete an external calendar connection and its imported events
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
 
@@ -201,7 +211,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -209,8 +219,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const connection = await prisma.externalCalendarConnection.findUnique({
       where: { id },
@@ -222,16 +233,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!connection) {
-      return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Connection not found', 'Anslutningen hittades inte') }, { status: 404 })
     }
 
     if (!connection.client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Delete imported events first
@@ -256,7 +267,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logError('Error deleting external calendar connection:', error)
     return NextResponse.json(
-      { error: 'Failed to delete connection' },
+      { error: t(locale, 'Failed to delete connection', 'Misslyckades med att radera anslutning') },
       { status: 500 }
     )
   }

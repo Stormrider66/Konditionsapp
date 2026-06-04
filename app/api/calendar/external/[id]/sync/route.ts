@@ -15,9 +15,14 @@ import {
   convertToCalendarEvents,
 } from '@/lib/calendar/ical-parser'
 import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 /**
@@ -25,6 +30,7 @@ interface RouteParams {
  * Trigger a sync for a calendar connection
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
 
@@ -34,7 +40,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -42,8 +48,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const connection = await prisma.externalCalendarConnection.findUnique({
       where: { id },
@@ -55,21 +62,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!connection) {
-      return NextResponse.json({ error: 'Connection not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Connection not found', 'Anslutningen hittades inte') }, { status: 404 })
     }
 
     if (!connection.client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, connection.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     if (!connection.syncEnabled) {
       return NextResponse.json(
-        { error: 'Sync is disabled for this connection' },
+        { error: t(locale, 'Sync is disabled for this connection', 'Synkronisering är avstängd för denna anslutning') },
         { status: 400 }
       )
     }
@@ -82,7 +89,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // Handle iCal URL sync
     if (connection.icalUrl) {
-      return await syncICalConnection(syncConnection, dbUser.id)
+      return await syncICalConnection(syncConnection, dbUser.id, locale)
     }
 
     // Handle Google Calendar sync (requires OAuth token)
@@ -96,13 +103,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     return NextResponse.json(
-      { error: 'Cannot sync this connection type or OAuth not completed' },
+      { error: t(locale, 'Cannot sync this connection type or OAuth not completed', 'Kan inte synkronisera denna anslutningstyp eller så är OAuth inte slutfört') },
       { status: 400 }
     )
   } catch (error) {
     logger.error('Error syncing external calendar', {}, error)
     return NextResponse.json(
-      { error: 'Failed to sync calendar' },
+      { error: t(locale, 'Failed to sync calendar', 'Misslyckades med att synkronisera kalender') },
       { status: 500 }
     )
   }
@@ -122,11 +129,12 @@ async function syncICalConnection(
     defaultImpact: EventImpact
     color: string | null
   },
-  userId: string
+  userId: string,
+  locale: AppLocale
 ) {
   if (!connection.icalUrl) {
     return NextResponse.json(
-      { error: 'No iCal URL configured' },
+      { error: t(locale, 'No iCal URL configured', 'Ingen iCal-URL är konfigurerad') },
       { status: 400 }
     )
   }
@@ -143,7 +151,10 @@ async function syncICalConnection(
     })
 
     return NextResponse.json(
-      { error: 'Failed to fetch or parse calendar', details: parseResult.errors },
+      {
+        error: t(locale, 'Failed to fetch or parse calendar', 'Misslyckades med att hämta eller tolka kalendern'),
+        details: parseResult.errors,
+      },
       { status: 400 }
     )
   }
@@ -530,7 +541,7 @@ async function syncOutlookCalendar(
     defaultImpact: EventImpact
     color: string | null
   },
-  userId: string
+  _userId: string
 ) {
   // Tokens are stored encrypted at rest; decrypt for use
   let accessToken: string | null
