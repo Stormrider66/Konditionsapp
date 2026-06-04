@@ -5,8 +5,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:create-task', user.id, {
       limit: 20,

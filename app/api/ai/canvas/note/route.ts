@@ -7,6 +7,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const canvasBlockSchema = z.object({
   id: z.string().optional(),
@@ -52,8 +53,6 @@ const saveCanvasNoteSchema = z.object({
   blocks: z.array(canvasBlockSchema).min(1).max(80),
 })
 
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:save-note', user.id, {
       limit: 20,

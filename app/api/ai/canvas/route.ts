@@ -6,8 +6,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -104,7 +103,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:list', user.id, {
       limit: 60,
@@ -170,7 +169,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:create', user.id, {
       limit: 30,
