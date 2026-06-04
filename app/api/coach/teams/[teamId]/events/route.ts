@@ -22,13 +22,12 @@ import {
 } from '@/lib/team-calendar/event-types'
 import { getTeamCalendarPermissionProfile, getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
 import { resolveWorkoutBusinessScope } from '@/lib/workouts/business-scope'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
 }
-
-type AppLocale = 'en' | 'sv'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -71,7 +70,7 @@ export async function GET(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
     const businessScope = await resolveWorkoutBusinessScope(user.id, req)
@@ -153,7 +152,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(req)
 

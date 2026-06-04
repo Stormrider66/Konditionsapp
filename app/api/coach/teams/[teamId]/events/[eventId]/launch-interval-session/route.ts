@@ -16,17 +16,10 @@ import {
   resolveWorkoutBusinessScope,
 } from '@/lib/workouts/business-scope'
 import { zonedTimeString } from '@/lib/team-calendar/date-time'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ teamId: string; eventId: string }>
-}
-
-type AppLocale = 'en' | 'sv'
-
-function getRequestLocale(request: NextRequest, userLanguage?: string | null): AppLocale {
-  if (userLanguage === 'sv') return 'sv'
-  const acceptLanguage = request.headers.get('accept-language')?.toLowerCase()
-  return acceptLanguage?.startsWith('sv') ? 'sv' : 'en'
 }
 
 async function buildProtocolForEvent({
@@ -109,10 +102,10 @@ async function buildProtocolForEvent({
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
-  let locale = getRequestLocale(request)
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const user = await requireCoach()
-    locale = getRequestLocale(request, user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { teamId, eventId } = await context.params
     const scope = getRequestedBusinessScope(request)
 
