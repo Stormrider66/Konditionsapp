@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface FieldTestPoint {
   id: string
@@ -52,8 +53,6 @@ interface TrendAnalysis {
   }
 }
 
-type AppLocale = 'en' | 'sv'
-
 function secondsToMinKm(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   const secs = Math.round(seconds % 60)
@@ -66,12 +65,12 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
-    const locale = getUserLocale(user.language)
+    const locale = resolveRequestLocale(request, user.language)
     const { clientId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Get all field tests for this client
@@ -343,10 +342,6 @@ export async function GET(
   } catch (error: unknown) {
     return handleApiError(error)
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

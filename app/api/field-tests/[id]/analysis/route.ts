@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface ThirtyMinTTAnalysis {
   testType: '30_MIN_TT'
@@ -105,8 +106,6 @@ interface HRDriftAnalysis {
 }
 
 type FieldTestAnalysis = ThirtyMinTTAnalysis | CriticalVelocityAnalysis | HRDriftAnalysis
-type AppLocale = 'en' | 'sv'
-
 function secondsToMinKm(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   const secs = Math.round(seconds % 60)
@@ -437,7 +436,7 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
-    const locale = getUserLocale(user.language)
+    const locale = resolveRequestLocale(request, user.language)
     const { id: testId } = await params
 
     // Get field test
@@ -449,12 +448,12 @@ export async function GET(
     })
 
     if (!test) {
-      return NextResponse.json({ error: 'Field test not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Field test not found', 'Fälttestet hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(user.id, test.clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
     }
 
     // Analyze based on test type
@@ -471,7 +470,7 @@ export async function GET(
         analysis = analyzeHRDrift(test, locale)
         break
       default:
-        return NextResponse.json({ error: 'Unknown test type' }, { status: 400 })
+        return NextResponse.json({ error: t(locale, 'Unknown test type', 'Okänd testtyp') }, { status: 400 })
     }
 
     return NextResponse.json({
@@ -485,10 +484,6 @@ export async function GET(
   } catch (error: unknown) {
     return handleApiError(error)
   }
-}
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {

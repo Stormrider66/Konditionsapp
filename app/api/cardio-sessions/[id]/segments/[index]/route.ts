@@ -4,6 +4,11 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import type { CardioSegmentType } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
 import { buildCardioFocusModeSegments, type AppLocale } from '@/lib/cardio/focus-mode-segments'
+import { resolveRequestLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * PUT /api/cardio-sessions/[id]/segments/[index]
@@ -13,13 +18,15 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; index: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId, index: segmentIndexStr } = await params
     const segmentIndex = parseInt(segmentIndexStr)
 
     if (isNaN(segmentIndex) || segmentIndex < 0) {
       return NextResponse.json(
-        { success: false, error: 'Invalid segment index' },
+        { success: false, error: t(locale, 'Invalid segment index', 'Ogiltigt segmentindex') },
         { status: 400 }
       )
     }
@@ -27,12 +34,12 @@ export async function PUT(
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     const body = await request.json()
 
@@ -57,7 +64,7 @@ export async function PUT(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -65,7 +72,7 @@ export async function PUT(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -76,7 +83,7 @@ export async function PUT(
     })
     if (segmentIndex >= focusModeSegments.length) {
       return NextResponse.json(
-        { success: false, error: 'Segment index out of range' },
+        { success: false, error: t(locale, 'Segment index out of range', 'Segmentindex är utanför intervallet') },
         { status: 400 }
       )
     }
@@ -177,7 +184,7 @@ export async function PUT(
   } catch (error) {
     logError('Error logging cardio segment:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to log segment' },
+      { success: false, error: t(locale, 'Failed to log segment', 'Kunde inte logga segment') },
       { status: 500 }
     )
   }
@@ -191,13 +198,15 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; index: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId, index: segmentIndexStr } = await params
     const segmentIndex = parseInt(segmentIndexStr)
 
     if (isNaN(segmentIndex) || segmentIndex < 0) {
       return NextResponse.json(
-        { success: false, error: 'Invalid segment index' },
+        { success: false, error: t(locale, 'Invalid segment index', 'Ogiltigt segmentindex') },
         { status: 400 }
       )
     }
@@ -205,12 +214,12 @@ export async function GET(
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     // Get assignment with session
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -220,7 +229,7 @@ export async function GET(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -228,7 +237,7 @@ export async function GET(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -239,7 +248,7 @@ export async function GET(
     })
     if (segmentIndex >= focusModeSegments.length) {
       return NextResponse.json(
-        { success: false, error: 'Segment index out of range' },
+        { success: false, error: t(locale, 'Segment index out of range', 'Segmentindex är utanför intervallet') },
         { status: 400 }
       )
     }
@@ -279,7 +288,7 @@ export async function GET(
   } catch (error) {
     logError('Error fetching segment details:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch segment' },
+      { success: false, error: t(locale, 'Failed to fetch segment', 'Kunde inte hämta segment') },
       { status: 500 }
     )
   }
