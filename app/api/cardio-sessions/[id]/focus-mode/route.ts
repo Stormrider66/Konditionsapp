@@ -5,8 +5,11 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { buildCardioFocusModeSegments } from '@/lib/cardio/focus-mode-segments'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-type AppLocale = 'en' | 'sv'
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 /**
  * GET /api/cardio-sessions/[id]/focus-mode
@@ -16,17 +19,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     // Get assignment with session
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -41,7 +46,7 @@ export async function GET(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -49,7 +54,7 @@ export async function GET(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -149,7 +154,7 @@ export async function GET(
   } catch (error) {
     logError('Error fetching cardio focus mode data:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch workout data' },
+      { success: false, error: t(locale, 'Failed to fetch workout data', 'Kunde inte hämta passdata') },
       { status: 500 }
     )
   }
@@ -163,16 +168,19 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     // Get assignment
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -182,7 +190,7 @@ export async function POST(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -190,7 +198,7 @@ export async function POST(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -210,7 +218,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         data: existingLog,
-        message: 'Resuming existing session',
+        message: t(locale, 'Resuming existing session', 'Återupptar befintligt pass'),
       })
     }
 
@@ -234,12 +242,12 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: sessionLog,
-      message: 'Focus mode session started',
+      message: t(locale, 'Focus mode session started', 'Fokusläget har startats'),
     })
   } catch (error) {
     logError('Error starting cardio focus mode:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to start focus mode session' },
+      { success: false, error: t(locale, 'Failed to start focus mode session', 'Kunde inte starta fokusläget') },
       { status: 500 }
     )
   }
@@ -254,23 +262,26 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     const { clientId } = resolved
+    locale = resolveRequestLocale(request, resolved.user.language)
     const mode = request.nextUrl.searchParams.get('mode') === 'delete' ? 'delete' : 'reset'
 
     const assignment = await prisma.cardioSessionAssignment.findUnique({
       where: { id: assignmentId },
     })
     if (!assignment) {
-      return NextResponse.json({ success: false, error: 'Assignment not found' }, { status: 404 })
+      return NextResponse.json({ success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') }, { status: 404 })
     }
     if (assignment.athleteId !== clientId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 403 })
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 403 })
     }
 
     // Clear all logged progress for this assignment (cascade removes segment logs).
@@ -278,7 +289,7 @@ export async function DELETE(
 
     if (mode === 'delete') {
       await prisma.cardioSessionAssignment.delete({ where: { id: assignmentId } })
-      return NextResponse.json({ success: true, message: 'Assignment removed' })
+      return NextResponse.json({ success: true, message: t(locale, 'Assignment removed', 'Tilldelningen har tagits bort') })
     }
 
     // Reset: keep the assignment, wipe results and set it back to pending.
@@ -293,10 +304,10 @@ export async function DELETE(
         completedAt: null,
       },
     })
-    return NextResponse.json({ success: true, message: 'Progress reset' })
+    return NextResponse.json({ success: true, message: t(locale, 'Progress reset', 'Progressen har återställts') })
   } catch (error) {
     logError('Error resetting cardio focus mode:', error)
-    return NextResponse.json({ success: false, error: 'Failed to reset session' }, { status: 500 })
+    return NextResponse.json({ success: false, error: t(locale, 'Failed to reset session', 'Kunde inte återställa passet') }, { status: 500 })
   }
 }
 
@@ -308,17 +319,19 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
-    const locale: AppLocale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     const body = await request.json()
 
@@ -340,7 +353,7 @@ export async function PUT(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -348,7 +361,7 @@ export async function PUT(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -377,7 +390,7 @@ export async function PUT(
 
     if (!sessionLog) {
       return NextResponse.json(
-        { success: false, error: 'No active session found' },
+        { success: false, error: t(locale, 'No active session found', 'Inget aktivt pass hittades') },
         { status: 404 }
       )
     }
@@ -501,7 +514,7 @@ export async function PUT(
   } catch (error) {
     logError('Error updating cardio focus mode:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update session' },
+      { success: false, error: t(locale, 'Failed to update session', 'Kunde inte uppdatera passet') },
       { status: 500 }
     )
   }

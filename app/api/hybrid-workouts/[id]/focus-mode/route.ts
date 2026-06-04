@@ -3,6 +3,11 @@ import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface FocusModeMovement {
   id: string
@@ -30,16 +35,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     // Get assignment with workout and movements
     const assignment = await prisma.hybridWorkoutAssignment.findUnique({
@@ -72,7 +80,7 @@ export async function GET(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -80,7 +88,7 @@ export async function GET(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -196,7 +204,7 @@ export async function GET(
   } catch (error) {
     logError('Error fetching hybrid focus mode data:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch workout data' },
+      { success: false, error: t(locale, 'Failed to fetch workout data', 'Kunde inte hämta passdata') },
       { status: 500 }
     )
   }
@@ -210,16 +218,19 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
+    locale = resolveRequestLocale(request, resolved.user.language)
 
     // Get assignment
     const assignment = await prisma.hybridWorkoutAssignment.findUnique({
@@ -229,7 +240,7 @@ export async function POST(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -237,7 +248,7 @@ export async function POST(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -256,7 +267,7 @@ export async function POST(
       return NextResponse.json({
         success: true,
         data: existingLog,
-        message: 'Resuming existing session',
+        message: t(locale, 'Resuming existing session', 'Återupptar befintligt pass'),
       })
     }
 
@@ -282,12 +293,12 @@ export async function POST(
     return NextResponse.json({
       success: true,
       data: workoutLog,
-      message: 'Focus mode session started',
+      message: t(locale, 'Focus mode session started', 'Fokusläget har startats'),
     })
   } catch (error) {
     logError('Error starting hybrid focus mode:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to start focus mode session' },
+      { success: false, error: t(locale, 'Failed to start focus mode session', 'Kunde inte starta fokusläget') },
       { status: 500 }
     )
   }
@@ -301,17 +312,19 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: assignmentId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { clientId } = resolved
-    const locale = resolved.user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, resolved.user.language)
     const body = await request.json()
 
     const {
@@ -333,7 +346,7 @@ export async function PUT(
 
     if (!assignment) {
       return NextResponse.json(
-        { success: false, error: 'Assignment not found' },
+        { success: false, error: t(locale, 'Assignment not found', 'Tilldelningen hittades inte') },
         { status: 404 }
       )
     }
@@ -341,7 +354,7 @@ export async function PUT(
     // Verify athlete owns this assignment
     if (assignment.athleteId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -369,7 +382,7 @@ export async function PUT(
 
     if (!workoutLog) {
       return NextResponse.json(
-        { success: false, error: 'No active session found' },
+        { success: false, error: t(locale, 'No active session found', 'Inget aktivt pass hittades') },
         { status: 404 }
       )
     }
@@ -486,7 +499,7 @@ export async function PUT(
   } catch (error) {
     logError('Error updating hybrid focus mode:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to update session' },
+      { success: false, error: t(locale, 'Failed to update session', 'Kunde inte uppdatera passet') },
       { status: 500 }
     )
   }

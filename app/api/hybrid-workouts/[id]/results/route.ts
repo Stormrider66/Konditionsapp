@@ -13,17 +13,25 @@ import { HybridScoreType, ScalingLevel } from '@prisma/client';
 import { logError } from '@/lib/logger-console'
 import { canAccessCoachPlatform, canAccessPhysioPlatform } from '@/lib/user-capabilities'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteContext {
   params: Promise<{ id: string }>;
 }
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function GET(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await context.params;
     const { searchParams } = new URL(request.url);
@@ -48,14 +56,14 @@ export async function GET(request: NextRequest, context: RouteContext) {
       if (athleteId) {
         const hasAccess = await canAccessAthlete(user.id, athleteId)
         if (!hasAccess.allowed) {
-          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
         }
         where.athleteId = athleteId
       } else if (hasCoachAccess) {
         where.athlete = { userId: user.id }
       }
     } else {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const [results, total] = await Promise.all([
@@ -95,19 +103,21 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logError('Error fetching results:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch results' },
+      { error: t(locale, 'Failed to fetch results', 'Kunde inte hämta resultat') },
       { status: 500 }
     );
   }
 }
 
 export async function POST(request: NextRequest, context: RouteContext) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser();
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 });
     }
-    const locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     const { id } = await context.params;
     const body = await request.json();
@@ -144,19 +154,19 @@ export async function POST(request: NextRequest, context: RouteContext) {
     } else if (user.role === 'ADMIN' || hasCoachAccess || hasPhysioAccess) {
       athleteId = body?.athleteId
       if (typeof athleteId !== 'string' || !athleteId) {
-        return NextResponse.json({ error: 'athleteId is required' }, { status: 400 })
+        return NextResponse.json({ error: t(locale, 'athleteId is required', 'athleteId krävs') }, { status: 400 })
       }
       // Verify the professional can write results for this athlete.
       const hasAccess = await canAccessAthlete(user.id, athleteId)
       if (!hasAccess.allowed) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
       }
     } else {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     if (!athleteId) {
-      return NextResponse.json({ error: 'Athlete account not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Athlete account not found', 'Atletkontot hittades inte') }, { status: 404 })
     }
 
     // Validate workout exists
@@ -166,7 +176,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!workout) {
       return NextResponse.json(
-        { error: 'Workout not found' },
+        { error: t(locale, 'Workout not found', 'Passet hittades inte') },
         { status: 404 }
       );
     }
@@ -283,7 +293,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logError('Error creating result:', error);
     return NextResponse.json(
-      { error: 'Failed to create result' },
+      { error: t(locale, 'Failed to create result', 'Kunde inte skapa resultat') },
       { status: 500 }
     );
   }

@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-type AppLocale = 'en' | 'sv'
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface FocusModeExercise {
   id: string
@@ -43,17 +46,19 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const { id: workoutId } = await params
     const resolved = await resolveAthleteClientId()
     if (!resolved) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 401 }
       )
     }
     const { user, clientId } = resolved
-    const locale: AppLocale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(request, user.language)
 
     // Get workout with segments and exercise details
     const workout = await prisma.workout.findUnique({
@@ -101,7 +106,7 @@ export async function GET(
 
     if (!workout) {
       return NextResponse.json(
-        { success: false, error: 'Workout not found' },
+        { success: false, error: t(locale, 'Workout not found', 'Passet hittades inte') },
         { status: 404 }
       )
     }
@@ -109,7 +114,7 @@ export async function GET(
     // Verify athlete has access to this workout's program
     if (workout.day.week.program.clientId !== clientId) {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
+        { success: false, error: t(locale, 'Unauthorized', 'Obehörig') },
         { status: 403 }
       )
     }
@@ -264,7 +269,7 @@ export async function GET(
   } catch (error) {
     logError('Error fetching workout focus mode data:', error)
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch workout data' },
+      { success: false, error: t(locale, 'Failed to fetch workout data', 'Kunde inte hämta passdata') },
       { status: 500 }
     )
   }
