@@ -10,27 +10,43 @@ import { prisma } from '@/lib/prisma'
 import { requireCoach, requireBusinessMembership } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
   params: Promise<{ id: string }>
 }
 
-const elitePricingSchema = z.object({
-  elitePriceMonthly: z.number().positive('Monthly price must be positive').nullable(),
-  elitePriceYearly: z.number().positive('Yearly price must be positive').nullable().optional(),
-  eliteDescription: z.string().max(1000).nullable().optional(),
-  eliteAiAllowanceSek: z.number().min(0, 'AI allowance cannot be negative').nullable().optional(),
-}).refine(
-  (data) => {
-    if (data.elitePriceMonthly && data.elitePriceYearly) {
-      return data.elitePriceYearly < data.elitePriceMonthly * 12
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function buildElitePricingSchema(locale: AppLocale) {
+  return z.object({
+    elitePriceMonthly: z.number().positive(t(locale, 'Monthly price must be positive', 'Månadspriset måste vara positivt')).nullable(),
+    elitePriceYearly: z.number().positive(t(locale, 'Yearly price must be positive', 'Årspriset måste vara positivt')).nullable().optional(),
+    eliteDescription: z.string().max(1000).nullable().optional(),
+    eliteAiAllowanceSek: z.number().min(0, t(locale, 'AI allowance cannot be negative', 'AI-potten kan inte vara negativ')).nullable().optional(),
+  }).refine(
+    (data) => {
+      if (data.elitePriceMonthly && data.elitePriceYearly) {
+        return data.elitePriceYearly < data.elitePriceMonthly * 12
+      }
+      return true
+    },
+    {
+      message: t(
+        locale,
+        'Yearly price must be less than 12x monthly (should be a discount)',
+        'Årspriset måste vara lägre än 12x månadspriset (ska vara en rabatt)'
+      ),
+      path: ['elitePriceYearly'],
     }
-    return true
-  },
-  { message: 'Yearly price must be less than 12x monthly (should be a discount)', path: ['elitePriceYearly'] }
-)
+  )
+}
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
     const { id: businessId } = await params
@@ -48,7 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!business) {
-      return NextResponse.json({ error: 'Business not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Business not found', 'Verksamheten hittades inte') }, { status: 404 })
     }
 
     return NextResponse.json({
@@ -60,14 +76,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Get ELITE pricing error', {}, error)
-    return NextResponse.json({ error: 'Failed to fetch pricing' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to fetch pricing', 'Kunde inte hämta prissättning') }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  const locale = resolveRequestLocale(request)
+
   try {
     const user = await requireCoach()
     const { id: businessId } = await params
@@ -75,7 +93,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     await requireBusinessMembership(user.id, businessId, { roles: ['OWNER', 'ADMIN'] })
 
     const body = await request.json()
-    const data = elitePricingSchema.parse(body)
+    const data = buildElitePricingSchema(locale).parse(body)
 
     await prisma.business.update({
       where: { id: businessId },
@@ -91,14 +109,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: 'Invalid input', details: error.errors },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: error.errors },
         { status: 400 }
       )
     }
     if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
     logger.error('Update ELITE pricing error', {}, error)
-    return NextResponse.json({ error: 'Failed to update pricing' }, { status: 500 })
+    return NextResponse.json({ error: t(locale, 'Failed to update pricing', 'Kunde inte uppdatera prissättning') }, { status: 500 })
   }
 }
