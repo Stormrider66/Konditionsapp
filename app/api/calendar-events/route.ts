@@ -12,11 +12,10 @@ import { canAccessClient } from '@/lib/auth-utils'
 import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptationPhase } from '@prisma/client'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { logError, logWarn } from '@/lib/logger-console'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-type AppLocale = 'en' | 'sv'
-
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function actorLabel(role: string, locale: AppLocale) {
@@ -35,6 +34,7 @@ function eventCreatedDescription(role: string, title: string, locale: AppLocale)
  * Create a new calendar event
  */
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -50,9 +50,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    const locale = resolveLocale(dbUser.language)
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const body = await request.json()
     const {
@@ -89,14 +89,20 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!clientId || !type || !title || !startDate || !endDate) {
       return NextResponse.json(
-        { error: 'Missing required fields: clientId, type, title, startDate, endDate' },
+        {
+          error: t(
+            locale,
+            'Missing required fields: clientId, type, title, startDate, endDate',
+            'Obligatoriska fält saknas: clientId, type, title, startDate, endDate'
+          ),
+        },
         { status: 400 }
       )
     }
 
     const hasAccess = await canAccessClient(dbUser.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Calculate altitude adaptation phase if altitude camp
@@ -188,7 +194,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logError('Error creating calendar event:', error)
     return NextResponse.json(
-      { error: 'Failed to create calendar event' },
+      { error: t(locale, 'Failed to create calendar event', 'Misslyckades med att skapa kalenderhändelse') },
       { status: 500 }
     )
   }
@@ -199,6 +205,7 @@ export async function POST(request: NextRequest) {
  * List events for a client within a date range
  */
 export async function GET(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -206,7 +213,7 @@ export async function GET(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -214,8 +221,9 @@ export async function GET(request: NextRequest) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')
@@ -235,14 +243,14 @@ export async function GET(request: NextRequest) {
 
     if (!clientId) {
       return NextResponse.json(
-        { error: 'Missing required parameter: clientId' },
+        { error: t(locale, 'Missing required parameter: clientId', 'Obligatorisk parameter saknas: clientId') },
         { status: 400 }
       )
     }
 
     const hasAccess = await canAccessClient(dbUser.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Build query
@@ -299,7 +307,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logError('Error fetching calendar events:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch calendar events' },
+      { error: t(locale, 'Failed to fetch calendar events', 'Misslyckades med att hämta kalenderhändelser') },
       { status: 500 }
     )
   }

@@ -13,15 +13,14 @@ import { canAccessClient } from '@/lib/auth-utils'
 import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptationPhase } from '@prisma/client'
 import { sendNotificationAsync } from '@/lib/calendar/notification-service'
 import { logError } from '@/lib/logger-console'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 interface RouteParams {
   params: Promise<{ id: string }>
 }
 
-function resolveLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
 }
 
 function actorLabel(role: string, locale: AppLocale) {
@@ -57,6 +56,7 @@ function eventDeletedDescription(role: string, title: string, locale: AppLocale)
  * Get a single calendar event
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
 
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -74,8 +74,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     const event = await prisma.calendarEvent.findUnique({
       where: { id },
@@ -102,19 +103,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!event) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Event not found', 'Händelsen hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, event.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     return NextResponse.json(event)
   } catch (error) {
     logError('Error fetching calendar event:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch calendar event' },
+      { error: t(locale, 'Failed to fetch calendar event', 'Misslyckades med att hämta kalenderhändelse') },
       { status: 500 }
     )
   }
@@ -125,6 +126,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  * Update a calendar event
  */
 export async function PUT(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
 
@@ -134,7 +136,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -142,9 +144,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    const locale = resolveLocale(dbUser.language)
+    locale = resolveRequestLocale(request, dbUser.language)
 
     // Get existing event
     const existingEvent = await prisma.calendarEvent.findUnique({
@@ -157,18 +159,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!existingEvent) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Event not found', 'Händelsen hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, existingEvent.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     // Check if read-only (imported from external calendar)
     if (existingEvent.isReadOnly) {
       return NextResponse.json(
-        { error: 'Cannot edit imported calendar event' },
+        { error: t(locale, 'Cannot edit imported calendar event', 'Importerade kalenderhändelser kan inte redigeras') },
         { status: 400 }
       )
     }
@@ -314,7 +316,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logError('Error updating calendar event:', error)
     return NextResponse.json(
-      { error: 'Failed to update calendar event' },
+      { error: t(locale, 'Failed to update calendar event', 'Misslyckades med att uppdatera kalenderhändelse') },
       { status: 500 }
     )
   }
@@ -325,6 +327,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
  * Delete a calendar event
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  let locale: AppLocale = resolveRequestLocale(request)
   try {
     const { id } = await params
 
@@ -334,7 +337,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const dbUser = await prisma.user.findUnique({
@@ -342,9 +345,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'User not found', 'Användaren hittades inte') }, { status: 404 })
     }
-    const locale = resolveLocale(dbUser.language)
+    locale = resolveRequestLocale(request, dbUser.language)
 
     // Get existing event
     const existingEvent = await prisma.calendarEvent.findUnique({
@@ -357,12 +360,12 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     })
 
     if (!existingEvent) {
-      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Event not found', 'Händelsen hittades inte') }, { status: 404 })
     }
 
     const hasAccess = await canAccessClient(dbUser.id, existingEvent.client.id)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
     const changeDescription = eventDeletedDescription(dbUser.role, existingEvent.title, locale)
 
@@ -405,7 +408,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
   } catch (error) {
     logError('Error deleting calendar event:', error)
     return NextResponse.json(
-      { error: 'Failed to delete calendar event' },
+      { error: t(locale, 'Failed to delete calendar event', 'Misslyckades med att radera kalenderhändelse') },
       { status: 500 }
     )
   }
