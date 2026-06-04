@@ -20,6 +20,7 @@ import { getRequestedBusinessScope, requireBusinessAdminRole } from '@/lib/auth-
 import { handleApiError } from '@/lib/api-error'
 import { hasWhiteLabel } from '@/lib/branding/feature-gate'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 
@@ -53,16 +54,21 @@ const FORBIDDEN_DOMAINS = new Set([
   'proton.me',
 ])
 
-type AppLocale = 'en' | 'sv'
-
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-function ensureResend() {
+function ensureResend(locale: AppLocale) {
   if (!resend) {
     return NextResponse.json(
-      { success: false, error: 'Email service not configured (missing RESEND_API_KEY)' },
+      {
+        success: false,
+        error: t(
+          locale,
+          'Email service not configured (missing RESEND_API_KEY)',
+          'E-posttjänsten är inte konfigurerad (RESEND_API_KEY saknas)'
+        ),
+      },
       { status: 503 },
     )
   }
@@ -73,17 +79,24 @@ function ensureResend() {
 export async function POST(request: NextRequest) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
-    const locale: AppLocale = admin.language === 'sv' ? 'sv' : 'en'
+    const locale = resolveRequestLocale(request, admin.language)
     const businessId = admin.businessId
 
     if (!(await hasWhiteLabel(businessId))) {
       return NextResponse.json(
-        { success: false, error: 'White Label feature required for custom sending domain' },
+        {
+          success: false,
+          error: t(
+            locale,
+            'White Label feature required for custom sending domain',
+            'White Label krävs för egen avsändardomän'
+          ),
+        },
         { status: 403 },
       )
     }
 
-    const r = ensureResend()
+    const r = ensureResend(locale)
     if (r instanceof NextResponse) return r
 
     const body = await request.json()
@@ -192,17 +205,17 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
-    const locale: AppLocale = admin.language === 'sv' ? 'sv' : 'en'
+    const locale = resolveRequestLocale(request, admin.language)
     const businessId = admin.businessId
 
     if (!(await hasWhiteLabel(businessId))) {
       return NextResponse.json(
-        { success: false, error: 'White Label feature required' },
+        { success: false, error: t(locale, 'White Label feature required', 'White Label krävs') },
         { status: 403 },
       )
     }
 
-    const r = ensureResend()
+    const r = ensureResend(locale)
     if (r instanceof NextResponse) return r
 
     const business = await prisma.business.findUnique({
@@ -256,9 +269,10 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const admin = await requireBusinessAdminRole(getRequestedBusinessScope(request))
+    const locale = resolveRequestLocale(request, admin.language)
     const businessId = admin.businessId
 
-    const r = ensureResend()
+    const r = ensureResend(locale)
     if (r instanceof NextResponse) return r
 
     const business = await prisma.business.findUnique({
