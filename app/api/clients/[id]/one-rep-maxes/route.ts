@@ -15,6 +15,11 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { asRecord, isStrengthPrSyncProtocol, syncStrengthSportTestToPrHistory } from '@/lib/strength/sport-test-pr-sync'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 interface OneRepMaxEntry {
   id: string
@@ -41,11 +46,12 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const locale = resolveRequestLocale(request, user.language)
     const { id: clientId } = await params
 
     const hasAccess = await canAccessClient(user.id, clientId)
     if (!hasAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const strengthTests = await prisma.sportTest.findMany({

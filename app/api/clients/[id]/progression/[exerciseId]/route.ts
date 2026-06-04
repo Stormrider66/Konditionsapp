@@ -17,7 +17,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getProgressionHistory } from '@/lib/training-engine/progression'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient, canAccessExercise } from '@/lib/auth-utils'
-import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 export async function GET(
   request: NextRequest,
@@ -25,18 +29,19 @@ export async function GET(
 ) {
   try {
     const user = await requireAuth()
+    const locale = resolveRequestLocale(request, user.language)
     const { id: clientId, exerciseId } = await params
     const searchParams = request.nextUrl.searchParams
     const limit = parseInt(searchParams.get('limit') || '20')
 
     const hasClientAccess = await canAccessClient(user.id, clientId)
     if (!hasClientAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const hasExerciseAccess = await canAccessExercise(user.id, exerciseId)
     if (!hasExerciseAccess) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Åtkomst nekad') }, { status: 403 })
     }
 
     const history = await getProgressionHistory(clientId, exerciseId, limit)

@@ -13,6 +13,11 @@ import {
 } from '@/lib/training-engine/calculations/pace-selector'
 import type { StoredLactateThreshold } from '@/lib/training-engine/calculations/lactate-profile-analyzer'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
 
 function numberFromUnknown(value: unknown): number | undefined {
   if (typeof value === 'number' && Number.isFinite(value)) return value
@@ -60,12 +65,13 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const locale = resolveRequestLocale(req)
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const { id: clientId } = await params
@@ -79,7 +85,7 @@ export async function GET(
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     // Calculate age
@@ -233,11 +239,11 @@ export async function GET(
     logger.error('Error calculating paces', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : (error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')),
       },
       { status: 500 }
     )
@@ -252,12 +258,13 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const locale = resolveRequestLocale(req)
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
     const body = await req.json()
@@ -274,7 +281,7 @@ export async function POST(
     })
 
     if (!client) {
-      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+      return NextResponse.json({ error: t(locale, 'Client not found', 'Klienten hittades inte') }, { status: 404 })
     }
 
     // Calculate age
@@ -390,11 +397,11 @@ export async function POST(
     logger.error('Error recalculating paces', {}, error)
     return NextResponse.json(
       {
-        error: 'Internal server error',
+        error: t(locale, 'Internal server error', 'Internt serverfel'),
         details:
           process.env.NODE_ENV === 'production'
             ? undefined
-            : (error instanceof Error ? error.message : 'Unknown error'),
+            : (error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')),
       },
       { status: 500 }
     )
