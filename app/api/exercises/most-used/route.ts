@@ -9,13 +9,17 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-export async function GET() {
+export async function GET(request?: Request) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, user.language)
 
     // Fetch all strength sessions for this coach
     const sessions = await prisma.strengthSession.findMany({
@@ -66,8 +70,16 @@ export async function GET() {
   } catch (error) {
     logger.error('Error fetching most-used exercises', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch most-used exercises' },
+      { error: t(locale, 'Failed to fetch most-used exercises', 'Kunde inte hämta mest använda övningar') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
 }

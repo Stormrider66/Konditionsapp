@@ -9,13 +9,17 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-export async function GET() {
+export async function GET(request?: NextRequest) {
+  let locale: AppLocale = resolveLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveLocale(request, user.language)
 
     try {
       const hidden = await prisma.hiddenExercise.findMany({
@@ -33,25 +37,28 @@ export async function GET() {
   } catch (error) {
     logger.error('Error fetching hidden exercises', {}, error)
     return NextResponse.json(
-      { error: 'Failed to fetch hidden exercises' },
+      { error: t(locale, 'Failed to fetch hidden exercises', 'Kunde inte hämta dolda övningar') },
       { status: 500 }
     )
   }
 }
 
 export async function POST(request: NextRequest) {
+  let locale: AppLocale = resolveRequestLocale(request)
+
   try {
     const user = await getCurrentUser()
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+    locale = resolveRequestLocale(request, user.language)
 
     const body = await request.json()
     const { exerciseId } = body
 
     if (!exerciseId || typeof exerciseId !== 'string') {
       return NextResponse.json(
-        { error: 'exerciseId is required' },
+        { error: t(locale, 'exerciseId is required', 'exerciseId krävs') },
         { status: 400 }
       )
     }
@@ -79,8 +86,16 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Error toggling hidden exercise', {}, error)
     return NextResponse.json(
-      { error: 'Failed to toggle hidden exercise' },
+      { error: t(locale, 'Failed to toggle hidden exercise', 'Kunde inte ändra dold övning') },
       { status: 500 }
     )
   }
+}
+
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
+function resolveLocale(request?: Request, userLanguage?: string | null): AppLocale {
+  return request ? resolveRequestLocale(request, userLanguage) : userLanguage === 'sv' ? 'sv' : 'en'
 }
