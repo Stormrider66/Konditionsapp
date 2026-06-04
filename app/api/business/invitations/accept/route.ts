@@ -9,12 +9,18 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const acceptSchema = z.object({
   code: z.string().uuid('Valid invitation code is required'),
 })
 
+function t(locale: AppLocale, en: string, sv: string): string {
+  return locale === 'sv' ? sv : en
+}
+
 export async function POST(request: NextRequest) {
+  let locale = resolveRequestLocale(request)
   try {
     const supabase = await createClient()
     const {
@@ -23,7 +29,13 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: 'Unauthorized. Please log in or create an account first.' },
+        {
+          error: t(
+            locale,
+            'Unauthorized. Please log in or create an account first.',
+            'Obehörig. Logga in eller skapa ett konto först.'
+          ),
+        },
         { status: 401 }
       )
     }
@@ -32,7 +44,7 @@ export async function POST(request: NextRequest) {
     const validationResult = acceptSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid input', details: validationResult.error.flatten() },
+        { error: t(locale, 'Invalid input', 'Ogiltig inmatning'), details: validationResult.error.flatten() },
         { status: 400 }
       )
     }
@@ -46,35 +58,35 @@ export async function POST(request: NextRequest) {
 
     if (!invitation) {
       return NextResponse.json(
-        { error: 'Invitation not found' },
+        { error: t(locale, 'Invitation not found', 'Inbjudan hittades inte') },
         { status: 404 }
       )
     }
 
     if (invitation.usedAt) {
       return NextResponse.json(
-        { error: 'Invitation has already been used' },
+        { error: t(locale, 'Invitation has already been used', 'Inbjudan har redan använts') },
         { status: 400 }
       )
     }
 
     if (invitation.expiresAt && invitation.expiresAt < new Date()) {
       return NextResponse.json(
-        { error: 'Invitation has expired' },
+        { error: t(locale, 'Invitation has expired', 'Inbjudan har gått ut') },
         { status: 400 }
       )
     }
 
     if (invitation.type !== 'BUSINESS_CLAIM') {
       return NextResponse.json(
-        { error: 'Invalid invitation type' },
+        { error: t(locale, 'Invalid invitation type', 'Ogiltig inbjudningstyp') },
         { status: 400 }
       )
     }
 
     if (!invitation.businessId) {
       return NextResponse.json(
-        { error: 'Invalid invitation: no business linked' },
+        { error: t(locale, 'Invalid invitation: no business linked', 'Ogiltig inbjudan: ingen verksamhet är kopplad') },
         { status: 400 }
       )
     }
@@ -86,10 +98,11 @@ export async function POST(request: NextRequest) {
 
     if (!dbUser) {
       return NextResponse.json(
-        { error: 'User account not found' },
+        { error: t(locale, 'User account not found', 'Användarkontot hittades inte') },
         { status: 404 }
       )
     }
+    locale = resolveRequestLocale(request, dbUser.language)
 
     // Check if user is already a member of this business
     const existingMembership = await prisma.businessMember.findFirst({
@@ -106,7 +119,7 @@ export async function POST(request: NextRequest) {
         data: { usedAt: new Date() },
       })
       return NextResponse.json(
-        { error: 'You are already a member of this business' },
+        { error: t(locale, 'You are already a member of this business', 'Du är redan medlem i den här verksamheten') },
         { status: 400 }
       )
     }
@@ -118,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     if (otherMembership) {
       return NextResponse.json(
-        { error: 'You are already a member of another business' },
+        { error: t(locale, 'You are already a member of another business', 'Du är redan medlem i en annan verksamhet') },
         { status: 400 }
       )
     }
@@ -167,7 +180,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error('Accept business invitation error', {}, error)
     return NextResponse.json(
-      { error: 'Failed to accept invitation' },
+      { error: t(locale, 'Failed to accept invitation', 'Kunde inte acceptera inbjudan') },
       { status: 500 }
     )
   }
