@@ -8,8 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { generateDrillFromText } from '@/lib/drills/generate-from-text'
 import { prisma } from '@/lib/prisma'
-
-type AppLocale = 'en' | 'sv'
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -20,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = user.language === 'sv' ? 'sv' : 'en'
+    locale = resolveRequestLocale(req, user.language)
 
     const body = await req.json()
     const { prompt, sportType } = body

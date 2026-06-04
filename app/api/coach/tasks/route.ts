@@ -1,23 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-
-type AppLocale = 'en' | 'sv'
-
-function getUserLocale(language: string | null | undefined): AppLocale {
-  return language === 'sv' ? 'sv' : 'en'
-}
+import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   let locale: AppLocale = 'en'
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
 
     // Get business membership
     const membership = await prisma.businessMember.findFirst({
@@ -76,7 +71,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json()
 
     const membership = await prisma.businessMember.findFirst({
@@ -126,7 +121,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const body = await request.json()
     const { id, ...updates } = body
 
@@ -210,7 +205,7 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const user = await requireCoach()
-    locale = getUserLocale(user.language)
+    locale = resolveRequestLocale(request, user.language)
     const { id } = await request.json()
 
     if (!id) {
