@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, type ChangeEvent } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { Upload, Video, Loader2, CheckCircle2, Info } from 'lucide-react'
+import { Upload, Video, Loader2, CheckCircle2, Info, Camera } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/i18n/client'
 
@@ -78,6 +78,9 @@ const COPY: Record<AppLocale, {
     idle: string
     formats: string
   }
+  capture: {
+    button: string
+  }
   upload: {
     progress: string
     button: string
@@ -116,6 +119,9 @@ const COPY: Record<AppLocale, {
       active: 'Drop the video here...',
       idle: 'Drag and drop a video, or click to choose',
       formats: 'MP4, MOV, AVI, WebM - Max 100MB',
+    },
+    capture: {
+      button: 'Start filming',
     },
     upload: {
       progress: 'Uploading...',
@@ -156,6 +162,9 @@ const COPY: Record<AppLocale, {
       idle: 'Dra och släpp en video, eller klicka för att välja',
       formats: 'MP4, MOV, AVI, WebM - Max 100MB',
     },
+    capture: {
+      button: 'Filma direkt',
+    },
     upload: {
       progress: 'Laddar upp...',
       button: 'Ladda upp video',
@@ -176,13 +185,23 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
   const [videoType, setVideoType] = useState<string>('RUNNING_GAIT')
   const [hyroxStation, setHyroxStation] = useState<string>('')
   const [notes, setNotes] = useState('')
+  const captureInputRef = useRef<HTMLInputElement>(null)
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      setSelectedFile(acceptedFiles[0])
+  const selectFile = useCallback((file: File | null | undefined) => {
+    if (file) {
+      setSelectedFile(file)
       setUploadSuccess(false)
     }
   }, [])
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    selectFile(acceptedFiles[0])
+  }, [selectFile])
+
+  const handleCaptureChange = (event: ChangeEvent<HTMLInputElement>) => {
+    selectFile(event.target.files?.[0])
+    event.target.value = ''
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -346,6 +365,30 @@ export function AthleteVideoUploader({ clientId }: AthleteVideoUploaderProps) {
           </Select>
         </div>
       )}
+
+      {/* Camera Capture */}
+      <div>
+        <input
+          ref={captureInputRef}
+          type="file"
+          accept="video/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleCaptureChange}
+          disabled={isUploading}
+        />
+        <Button
+          type="button"
+          variant="secondary"
+          className="w-full"
+          size="lg"
+          onClick={() => captureInputRef.current?.click()}
+          disabled={isUploading}
+        >
+          <Camera className="h-4 w-4 mr-2" />
+          {copy.capture.button}
+        </Button>
+      </div>
 
       {/* Dropzone */}
       <div

@@ -1853,11 +1853,12 @@
     },
     "videoAnalysis": {
       "backToProfile": "Back to profile",
-      "title": "Upload video",
-      "description": "Upload a video of your technique for analysis",
+      "backToDashboard": "Back to dashboard",
+      "title": "Video analysis",
+      "description": "Film or upload a video of your technique for analysis",
       "upload": {
         "title": "New video analysis",
-        "description": "Upload a video of your running form, lift, or other technique. Your coach will analyze the video and provide feedback."
+        "description": "Start filming or upload a video of your running form, lift, or other technique. Your coach will analyze the video and provide feedback."
       },
       "recent": {
         "title": "Your video analyses",

@@ -1853,11 +1853,12 @@
     },
     "videoAnalysis": {
       "backToProfile": "Tillbaka till profil",
-      "title": "Ladda upp video",
-      "description": "Ladda upp en video av din teknik för analys",
+      "backToDashboard": "Tillbaka till dashboard",
+      "title": "Videoanalys",
+      "description": "Filma eller ladda upp en video av din teknik för analys",
       "upload": {
         "title": "Ny videoanalys",
-        "description": "Ladda upp en video av din löpstil, lyft eller annan teknik. Din coach kommer att analysera videon och ge feedback."
+        "description": "Filma direkt eller ladda upp en video av din löpstil, lyft eller annan teknik. Din coach kommer att analysera videon och ge feedback."
       },
       "recent": {
         "title": "Dina videoanalyser",

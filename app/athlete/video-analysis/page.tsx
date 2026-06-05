@@ -124,10 +124,10 @@ export default async function AthleteVideoAnalysisPage() {
     <div className="container mx-auto py-4 sm:py-6 px-4 sm:px-6 max-w-3xl">
       {/* Header */}
       <div className="mb-6">
-        <Link href={`${basePath}/athlete/profile?tab=technique`}>
+        <Link href={`${basePath}/athlete/dashboard`}>
           <Button variant="ghost" size="sm" className="gap-2 mb-4">
             <ArrowLeft className="h-4 w-4" />
-            {t('backToProfile')}
+            {t('backToDashboard')}
           </Button>
         </Link>
 
