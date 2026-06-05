@@ -66,11 +66,24 @@ interface IngredientBuilderProps {
   scanRequestKey?: number
 }
 
+interface RecipeScanEstimate {
+  caloriesPer100g: number
+  proteinPer100g: number
+  carbsPer100g: number
+  fatPer100g: number
+  fiberPer100g?: number | null
+  sugarPer100g?: number | null
+}
+
 interface RecipeScanIngredient {
   name: string
   lookupName?: string | null
   grams: number
   food: FoodOption | null
+  // Per-100g AI estimate used when no confident Food match was found, so the
+  // row still arrives with the right name + reasonable macros (shown with the
+  // "AI-uppskattning" badge) instead of an empty, un-costed row.
+  estimate?: RecipeScanEstimate | null
 }
 
 type RecipeSource = 'MANUAL' | 'SCAN' | 'MEAL_COPY'
@@ -398,32 +411,49 @@ export function IngredientBuilder({ value, onChange, scanRequestKey = 0 }: Ingre
       }
       // Replace any empty seed rows; append to filled rows.
       const existing = value.filter((r) => r.name.trim().length > 0)
-      const newRows: IngredientRow[] = ingredients.map((ing) =>
-        ing.food
-          ? {
-              rowId: makeRowId(),
-              foodId: ing.food.id,
-              name: appLocale === 'sv' ? ing.food.nameSv : ing.food.nameEn || ing.food.nameSv,
-              category: ing.food.category,
-              grams: ing.grams,
-              caloriesPer100g: ing.food.caloriesPer100g,
-              proteinPer100g: ing.food.proteinPer100g,
-              carbsPer100g: ing.food.carbsPer100g,
-              fatPer100g: ing.food.fatPer100g,
-              fiberPer100g: ing.food.fiberPer100g ?? undefined,
-              saturatedFatPer100g: ing.food.saturatedFatPer100g ?? undefined,
-              monounsaturatedFatPer100g: ing.food.monounsaturatedFatPer100g ?? undefined,
-              polyunsaturatedFatPer100g: ing.food.polyunsaturatedFatPer100g ?? undefined,
-              sugarPer100g: ing.food.sugarPer100g ?? undefined,
-              isCompleteProtein: ing.food.isCompleteProtein ?? undefined,
-              proteinSource: ing.food.proteinSource ?? undefined,
-            }
-          : {
-              rowId: makeRowId(),
-              name: ing.name,
-              grams: ing.grams,
-            }
-      )
+      const newRows: IngredientRow[] = ingredients.map((ing) => {
+        if (ing.food) {
+          return {
+            rowId: makeRowId(),
+            foodId: ing.food.id,
+            name: appLocale === 'sv' ? ing.food.nameSv : ing.food.nameEn || ing.food.nameSv,
+            category: ing.food.category,
+            grams: ing.grams,
+            caloriesPer100g: ing.food.caloriesPer100g,
+            proteinPer100g: ing.food.proteinPer100g,
+            carbsPer100g: ing.food.carbsPer100g,
+            fatPer100g: ing.food.fatPer100g,
+            fiberPer100g: ing.food.fiberPer100g ?? undefined,
+            saturatedFatPer100g: ing.food.saturatedFatPer100g ?? undefined,
+            monounsaturatedFatPer100g: ing.food.monounsaturatedFatPer100g ?? undefined,
+            polyunsaturatedFatPer100g: ing.food.polyunsaturatedFatPer100g ?? undefined,
+            sugarPer100g: ing.food.sugarPer100g ?? undefined,
+            isCompleteProtein: ing.food.isCompleteProtein ?? undefined,
+            proteinSource: ing.food.proteinSource ?? undefined,
+          }
+        }
+        // No confident Food match: keep the model's own name and seed the
+        // per-100g AI estimate so the row shows macros + the "AI-uppskattning"
+        // badge. Free text (no foodId) — the user can still pick a Food to override.
+        if (ing.estimate) {
+          return {
+            rowId: makeRowId(),
+            name: ing.name,
+            grams: ing.grams,
+            caloriesPer100g: ing.estimate.caloriesPer100g,
+            proteinPer100g: ing.estimate.proteinPer100g,
+            carbsPer100g: ing.estimate.carbsPer100g,
+            fatPer100g: ing.estimate.fatPer100g,
+            fiberPer100g: ing.estimate.fiberPer100g ?? undefined,
+            sugarPer100g: ing.estimate.sugarPer100g ?? undefined,
+          }
+        }
+        return {
+          rowId: makeRowId(),
+          name: ing.name,
+          grams: ing.grams,
+        }
+      })
       onChange([...existing, ...newRows])
       if (typeof payload?.title === 'string' && payload.title.trim()) {
         setSaveName(payload.title.trim().slice(0, 80))

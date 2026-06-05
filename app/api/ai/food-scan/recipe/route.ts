@@ -28,6 +28,7 @@ import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { prisma } from '@/lib/prisma'
+import { pickConfidentFood } from '@/lib/nutrition/recipe-food-match'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
@@ -40,14 +41,66 @@ const recipeSchema = z.object({
   ingredients: z
     .array(
       z.object({
-        name: z.string().describe('User-facing ingredient name in the requested app language.'),
-        lookupName: z.string().nullable().optional().describe('Swedish ingredient lookup name, as close as possible to Livsmedelsverket food terminology.'),
+        name: z.string().describe('User-facing ingredient name in the requested app language. Keep the SPECIFIC food (e.g. "coconut sugar", not "sugar").'),
+        lookupName: z.string().nullable().optional().describe('Swedish ingredient lookup name, as close as possible to Livsmedelsverket food terminology. Keep the specific food type (e.g. "kokossocker", "vaniljpulver"), never generalise it away.'),
         grams: z.number().nonnegative().describe('Weight in grams for the full recipe or batch.'),
+        // Per-100 g estimate for THIS specific ingredient. Used as the fallback
+        // when the database has no confident match, so the row still shows the
+        // right name with reasonable macros instead of a wrong food.
+        estCaloriesPer100g: z.number().nonnegative().describe('Best estimate of kcal per 100 g of this specific ingredient.'),
+        estProteinPer100g: z.number().nonnegative().describe('Estimated protein grams per 100 g.'),
+        estCarbsPer100g: z.number().nonnegative().describe('Estimated carbohydrate grams per 100 g.'),
+        estFatPer100g: z.number().nonnegative().describe('Estimated fat grams per 100 g.'),
+        estFiberPer100g: z.number().nonnegative().nullable().optional().describe('Estimated fibre grams per 100 g, if known.'),
+        estSugarPer100g: z.number().nonnegative().nullable().optional().describe('Estimated sugar grams per 100 g, if known.'),
       })
     )
     .min(1),
   notes: z.string().nullable().optional(),
 })
+
+interface RecipeEstimate {
+  caloriesPer100g: number
+  proteinPer100g: number
+  carbsPer100g: number
+  fatPer100g: number
+  fiberPer100g: number | null
+  sugarPer100g: number | null
+}
+
+function buildEstimate(ing: z.infer<typeof recipeSchema>['ingredients'][number]): RecipeEstimate | null {
+  const calories = ing.estCaloriesPer100g
+  if (calories == null || !Number.isFinite(calories)) return null
+  const nonNeg = (v: number | null | undefined) =>
+    v != null && Number.isFinite(v) ? Math.max(0, v) : 0
+  return {
+    caloriesPer100g: Math.max(0, calories),
+    proteinPer100g: nonNeg(ing.estProteinPer100g),
+    carbsPer100g: nonNeg(ing.estCarbsPer100g),
+    fatPer100g: nonNeg(ing.estFatPer100g),
+    fiberPer100g: ing.estFiberPer100g != null ? Math.max(0, ing.estFiberPer100g) : null,
+    sugarPer100g: ing.estSugarPer100g != null ? Math.max(0, ing.estSugarPer100g) : null,
+  }
+}
+
+const FOOD_SELECT = {
+  id: true,
+  searchName: true,
+  nameSv: true,
+  nameEn: true,
+  category: true,
+  caloriesPer100g: true,
+  proteinPer100g: true,
+  carbsPer100g: true,
+  fatPer100g: true,
+  fiberPer100g: true,
+  saturatedFatPer100g: true,
+  monounsaturatedFatPer100g: true,
+  polyunsaturatedFatPer100g: true,
+  sugarPer100g: true,
+  isCompleteProtein: true,
+  proteinSource: true,
+} as const
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -63,18 +116,27 @@ vikt i gram för hela receptet/satsen.
 INSTRUKTIONER:
 1. Identifiera varje separat ingrediens och dess mängd. Ange svensk benämning i ingredients[].name och ingredients[].lookupName som matchar
    svenska livsmedelsdatabasens terminologi (t.ex. "havregryn", "vetemjöl", "kycklingfilé").
-2. Skriv title och notes på svenska.
-3. Konvertera alla mått till gram. Vanliga konverteringar: 1 dl mjöl ungefär 60 g, 1 dl vatten/mjölk = 100 g,
-   1 msk olja ungefär 14 g, 1 tsk salt ungefär 5 g, 1 ägg ungefär 55 g, 1 standardportion ris (torrt) ungefär 75 g.
-4. Om receptet anger att det räcker till flera portioner, dela INTE ingredienserna per portion.
+2. BEHÅLL ingrediensens specifika identitet. Generalisera ALDRIG en specifik ingrediens till en bredare:
+   kokossocker är INTE socker, kokosgrädde är INTE grädde, mandelmjöl är INTE vetemjöl,
+   vaniljpulver är INTE vaniljpudding eller vaniljsocker. Ta bara bort varumärken (t.ex. "Änglamark"),
+   aldrig själva livsmedelstypen (kokos-, mandel-, soja-, havre- osv.).
+3. Skriv title och notes på svenska.
+4. Konvertera alla mått till gram. Vanliga konverteringar: 1 dl mjöl ungefär 60 g, 1 dl vatten/mjölk = 100 g,
+   1 dl grädde/kokosgrädde = 100 g, 1 dl strösocker ungefär 85 g, 1 msk olja ungefär 14 g, 1 tsk salt ungefär 5 g,
+   1 tsk torrt pulver (vaniljpulver, kanel, bakpulver) ungefär 3 g, 1 ägg ungefär 55 g, 1 standardportion ris (torrt) ungefär 75 g.
+5. Ange för VARJE ingrediens din bästa uppskattning av näringsvärdet per 100 g för den FAKTISKA ingrediensen
+   (estCaloriesPer100g, estProteinPer100g, estCarbsPer100g, estFatPer100g, och estFiberPer100g/estSugarPer100g om du vet).
+   Detta används som reserv när databasen saknar en exakt träff - basera det på den specifika ingrediensen, inte en bredare kategori.
+6. Om receptet anger att det räcker till flera portioner, dela INTE ingredienserna per portion.
    Spara hela satsens ingrediensmängder så användaren senare kan logga hur mycket hen åt eller drack.
-5. Om receptet anger slutvolym eller slutvikt (t.ex. "ca 8 dl"), nämn det i notes men behåll ingrediensmängderna för hela satsen.
-6. Om antalet portioner inte framgår, gissa inte portioner. Arbeta med hela receptet.
-7. Ignorera kryddor i mycket små mängder (under 1 g) om de inte är betydande näringsämnen.
+7. Om receptet anger slutvolym eller slutvikt (t.ex. "ca 8 dl"), nämn det i notes men behåll ingrediensmängderna för hela satsen.
+8. Om antalet portioner inte framgår, gissa inte portioner. Arbeta med hela receptet.
+9. Ignorera kryddor i mycket små mängder (under 1 g) om de inte är betydande näringsämnen.
 
 VIKTIGT:
 - Returnera alltid minst en ingrediens.
-- Använd korrekta svenska termer i ingredients[].name och ingredients[].lookupName - undvik engelska eller varumärken om generiska finns.
+- Använd korrekta svenska termer i ingredients[].name och ingredients[].lookupName - undvik varumärken om generiska finns,
+  men behåll alltid det specifika livsmedlet (kokossocker, kokosgrädde, vaniljpulver), generalisera inte bort det.
 - Var konservativ med portionsuppskattning - det är bättre att underskatta än överskatta.`
   }
 
@@ -87,18 +149,28 @@ INSTRUCTIONS:
    For ingredients[].lookupName, use a Swedish lookup term that matches
    the Swedish food database as closely as possible (for example "havregryn", "vetemjöl", "kycklingfilé").
    lookupName is used only for database matching, so keep lookupName in Swedish even when the app language is English.
-2. Write title and notes in English.
-3. Convert all measurements to grams. Common conversions: 1 dl flour is about 60 g, 1 dl water/milk = 100 g,
-   1 tbsp oil is about 14 g, 1 tsp salt is about 5 g, 1 egg is about 55 g, 1 standard dry rice serving is about 75 g.
-4. If the recipe says it serves multiple portions, do NOT divide ingredients per portion.
+2. KEEP the ingredient's specific identity. NEVER generalise a specific ingredient to a broader one:
+   coconut sugar is NOT sugar, coconut cream is NOT cream, almond flour is NOT wheat flour,
+   vanilla powder is NOT vanilla pudding or vanilla sugar. Only strip brand names (e.g. "Änglamark"),
+   never the food type itself (coconut-, almond-, soy-, oat-, etc.). In lookupName keep the specific
+   Swedish term (kokossocker, kokosgrädde, vaniljpulver), do not collapse it to a category.
+3. Write title and notes in English.
+4. Convert all measurements to grams. Common conversions: 1 dl flour is about 60 g, 1 dl water/milk = 100 g,
+   1 dl cream/coconut cream = 100 g, 1 dl granulated sugar is about 85 g, 1 tbsp oil is about 14 g, 1 tsp salt is about 5 g,
+   1 tsp dry powder (vanilla powder, cinnamon, baking powder) is about 3 g, 1 egg is about 55 g, 1 standard dry rice serving is about 75 g.
+5. For EVERY ingredient, give your best estimate of its nutrition per 100 g for the ACTUAL ingredient
+   (estCaloriesPer100g, estProteinPer100g, estCarbsPer100g, estFatPer100g, plus estFiberPer100g/estSugarPer100g if known).
+   This is used as a fallback when the database has no exact match - base it on the specific ingredient, not a broader category.
+6. If the recipe says it serves multiple portions, do NOT divide ingredients per portion.
    Save the full batch amounts so the user can later log how much they ate or drank.
-5. If the recipe gives final volume or final weight (for example "about 8 dl"), mention it in notes but keep ingredient amounts for the full batch.
-6. If the number of portions is not clear, do not guess portions. Work with the full recipe.
-7. Ignore spices in very small amounts (under 1 g) unless they are nutritionally meaningful.
+7. If the recipe gives final volume or final weight (for example "about 8 dl"), mention it in notes but keep ingredient amounts for the full batch.
+8. If the number of portions is not clear, do not guess portions. Work with the full recipe.
+9. Ignore spices in very small amounts (under 1 g) unless they are nutritionally meaningful.
 
 IMPORTANT:
 - Always return at least one ingredient.
-- Keep ingredients[].name user-facing and English. Use correct Swedish terms in ingredients[].lookupName; avoid English or brand names when a generic Swedish lookup term exists.
+- Keep ingredients[].name user-facing and English. Use correct Swedish terms in ingredients[].lookupName; avoid brand names when a generic term exists,
+  but always keep the specific food (kokossocker, kokosgrädde, vaniljpulver) - do not generalise it away.
 - Be conservative with portion estimates - underestimating is better than overestimating.`
 }
 
@@ -195,7 +267,9 @@ export async function POST(request: NextRequest) {
         generateObject({
           model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
           schema: recipeSchema,
-          providerOptions: getGeminiThinkingOptions('quick'),
+          // Reading handwritten recipes and mapping them to correct Swedish food
+          // terms is error-prone at minimal thinking, so this one runs at medium.
+          providerOptions: getGeminiThinkingOptions('standard'),
           messages: [
             {
               role: 'user',
@@ -208,56 +282,43 @@ export async function POST(request: NextRequest) {
         }),
     )
 
-    // Match each extracted ingredient against the Food table so the client
-    // can drop the rows straight into the builder with foodId + macros set.
+    // Match each extracted ingredient against the Food table so the client can
+    // drop rows straight into the builder. A DB row is only auto-applied when we
+    // are confident it is the SAME food (see pickConfidentFood) — a weak ILIKE
+    // hit like "vanilj" → "Vaniljpudding" is rejected. Whatever the outcome, we
+    // also pass the model's per-100 g estimate so unmatched rows still land with
+    // the correct name and reasonable macros instead of empty or wrong values.
     const ingredients = await Promise.all(
       result.object.ingredients.map(async (ing) => {
+        const estimate = buildEstimate(ing)
         const q = (ing.lookupName || ing.name).trim().toLowerCase()
-        if (q.length < 2) return { ...ing, food: null }
-        const prefix = await prisma.food.findFirst({
+        const out = { name: ing.name, lookupName: ing.lookupName ?? null, grams: ing.grams }
+        if (q.length < 2) return { ...out, food: null, estimate }
+
+        // Pull a few popularity-ranked candidates per band and accept the first
+        // that clears the whole-word confidence gate, rather than blindly taking
+        // the single most popular hit.
+        const prefix = await prisma.food.findMany({
           where: { searchName: { startsWith: q } },
           orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
-          select: {
-            id: true,
-            nameSv: true,
-            nameEn: true,
-            category: true,
-            caloriesPer100g: true,
-            proteinPer100g: true,
-            carbsPer100g: true,
-            fatPer100g: true,
-            fiberPer100g: true,
-            saturatedFatPer100g: true,
-            monounsaturatedFatPer100g: true,
-            polyunsaturatedFatPer100g: true,
-            sugarPer100g: true,
-            isCompleteProtein: true,
-            proteinSource: true,
-          },
+          take: 5,
+          select: FOOD_SELECT,
         })
-        if (prefix) return { ...ing, food: prefix }
-        const contains = await prisma.food.findFirst({
-          where: { searchName: { contains: q } },
-          orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
-          select: {
-            id: true,
-            nameSv: true,
-            nameEn: true,
-            category: true,
-            caloriesPer100g: true,
-            proteinPer100g: true,
-            carbsPer100g: true,
-            fatPer100g: true,
-            fiberPer100g: true,
-            saturatedFatPer100g: true,
-            monounsaturatedFatPer100g: true,
-            polyunsaturatedFatPer100g: true,
-            sugarPer100g: true,
-            isCompleteProtein: true,
-            proteinSource: true,
-          },
-        })
-        return { ...ing, food: contains }
+        let match = pickConfidentFood(q, prefix)
+        if (!match) {
+          const contains = await prisma.food.findMany({
+            where: { searchName: { contains: q } },
+            orderBy: [{ popularity: 'desc' }, { searchName: 'asc' }],
+            take: 8,
+            select: FOOD_SELECT,
+          })
+          match = pickConfidentFood(q, contains)
+        }
+
+        if (!match) return { ...out, food: null, estimate }
+        // Drop searchName (gating-only) before sending to the client.
+        const { searchName: _searchName, ...food } = match
+        return { ...out, food, estimate: null }
       })
     )
 
