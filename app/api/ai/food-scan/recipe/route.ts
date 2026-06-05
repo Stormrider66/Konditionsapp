@@ -28,12 +28,15 @@ import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { prisma } from '@/lib/prisma'
+import { retryOnTransientAiError } from '@/lib/ai/transient-retry'
 import { pickConfidentFood } from '@/lib/nutrition/recipe-food-match'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60
+// Handwriting OCR at medium thinking plus a transient-overload retry needs more
+// headroom than the default 60s, matching the refine route.
+export const maxDuration = 120
 export const dynamic = 'force-dynamic'
 
 const recipeSchema = z.object({
@@ -46,11 +49,13 @@ const recipeSchema = z.object({
         grams: z.number().nonnegative().describe('Weight in grams for the full recipe or batch.'),
         // Per-100 g estimate for THIS specific ingredient. Used as the fallback
         // when the database has no confident match, so the row still shows the
-        // right name with reasonable macros instead of a wrong food.
-        estCaloriesPer100g: z.number().nonnegative().describe('Best estimate of kcal per 100 g of this specific ingredient.'),
-        estProteinPer100g: z.number().nonnegative().describe('Estimated protein grams per 100 g.'),
-        estCarbsPer100g: z.number().nonnegative().describe('Estimated carbohydrate grams per 100 g.'),
-        estFatPer100g: z.number().nonnegative().describe('Estimated fat grams per 100 g.'),
+        // right name with reasonable macros instead of a wrong food. All
+        // optional: a missing estimate degrades that row to name+grams (the user
+        // can still estimate/pick a food) rather than failing the whole scan.
+        estCaloriesPer100g: z.number().nonnegative().nullable().optional().describe('Best estimate of kcal per 100 g of this specific ingredient.'),
+        estProteinPer100g: z.number().nonnegative().nullable().optional().describe('Estimated protein grams per 100 g.'),
+        estCarbsPer100g: z.number().nonnegative().nullable().optional().describe('Estimated carbohydrate grams per 100 g.'),
+        estFatPer100g: z.number().nonnegative().nullable().optional().describe('Estimated fat grams per 100 g.'),
         estFiberPer100g: z.number().nonnegative().nullable().optional().describe('Estimated fibre grams per 100 g, if known.'),
         estSugarPer100g: z.number().nonnegative().nullable().optional().describe('Estimated sugar grams per 100 g, if known.'),
       })
@@ -264,22 +269,26 @@ export async function POST(request: NextRequest) {
     const result = await withAiContext(
       { userId: user.id, clientId, category: 'food_scan_recipe' },
       () =>
-        generateObject({
-          model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
-          schema: recipeSchema,
-          // Reading handwritten recipes and mapping them to correct Swedish food
-          // terms is error-prone at minimal thinking, so this one runs at medium.
-          providerOptions: getGeminiThinkingOptions('standard'),
-          messages: [
-            {
-              role: 'user',
-              content: [
-                { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
-                { type: 'text', text: prompt },
-              ],
-            },
-          ],
-        }),
+        // Retry transient Gemini overloads (429/503/overloaded) so a momentary
+        // blip doesn't surface as "Kunde inte tolka receptet".
+        retryOnTransientAiError(() =>
+          generateObject({
+            model: withGoogleLogging(google(GEMINI_MODELS.FLASH)),
+            schema: recipeSchema,
+            // Reading handwritten recipes and mapping them to correct Swedish food
+            // terms is error-prone at minimal thinking, so this one runs at medium.
+            providerOptions: getGeminiThinkingOptions('standard'),
+            messages: [
+              {
+                role: 'user',
+                content: [
+                  { type: 'image', image: `data:${mimeForGemini};base64,${base64}` },
+                  { type: 'text', text: prompt },
+                ],
+              },
+            ],
+          }),
+        ),
     )
 
     // Match each extracted ingredient against the Food table so the client can
