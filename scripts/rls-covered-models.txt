@@ -37,6 +37,7 @@ AgilityWorkoutResult
 AthleteAccount
 AthleteCoachPermission
 AthleteCohort
+AthleteExternalAccess
 AthletePatternMatch
 AthletePlan
 AthletePlanBlock
