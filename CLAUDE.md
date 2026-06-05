@@ -166,7 +166,7 @@ Post-`v2.0.0`. Not urgent, worth checking periodically:
 
 - **Supabase logs**: grep for `custom_access_token_hook failed:` — silent errors push users onto the slow DB-lookup fallback.
 - **Stripe webhook**: dry-run a few events through the new idempotency path before peak billing cycles.
-- **Lint warnings**: 1863 baseline, enforced via `--max-warnings` in the `lint` script (the build fails if it rises). Lower the gate in `package.json` whenever you reduce the count.
+- **Lint warnings**: 1769 baseline, enforced via `--max-warnings` in the `lint` script (the build fails if it rises). Lower the gate in `package.json` whenever you reduce the count.
 - **MediaPipe**: unmaintained, no declared React peer. Plan a 1–2 day migration to `@mediapipe/tasks-vision` before the next React major bump.
 - **`videos` storage bucket**: never verified post-launch. When video-analysis gets real usage, confirm its RLS policies match `video-analysis` (private + 100 MB limit).
 - **PoseAnalyzer.tsx (1422 LOC) + ConfigurationForm.tsx (1073 LOC)**: still above the 500-LOC target. Decompose further only when actively editing.

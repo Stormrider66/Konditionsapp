@@ -115,11 +115,8 @@ export async function fetchWithTimeoutAndRetry(
       }
 
       // Cancel the body so the connection can be reused before retrying.
-      try {
-        response.body?.cancel()
-      } catch {
-        // ignore
-      }
+      // Fire-and-forget: a cancel rejection is harmless here.
+      void response.body?.cancel().catch(() => {})
 
       const retryAfterMsRaw = parseRetryAfterMs(response.headers.get('retry-after'))
       const retryAfterMs = retryAfterMsRaw != null ? Math.min(maxDelayMs, retryAfterMsRaw) : null

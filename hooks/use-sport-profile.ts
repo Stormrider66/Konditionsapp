@@ -98,7 +98,7 @@ export function useSportProfile(clientId?: string): UseSportProfileResult {
   }
 
   useEffect(() => {
-    fetchSportProfile()
+    void fetchSportProfile()
   }, [clientId])
 
   return {

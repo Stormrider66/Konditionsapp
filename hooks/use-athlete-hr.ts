@@ -41,7 +41,7 @@ export function useAthleteHR(enabled: boolean, pollIntervalMs = 3000): AthleteHR
       }
     }
 
-    poll()
+    void poll()
     intervalRef.current = setInterval(poll, pollIntervalMs)
 
     return () => {

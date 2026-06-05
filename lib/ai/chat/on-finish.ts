@@ -139,8 +139,8 @@ export function buildOnFinishHandler(input: BuildOnFinishInput) {
     if (isAthleteChat && athleteClientId && text) {
       const lastUserMessage = messages.filter((m) => m.role === 'user').pop()
       if (lastUserMessage) {
-        // Fire-and-forget memory extraction.
-        ;(async () => {
+        // Fire-and-forget memory extraction (errors handled internally).
+        void (async () => {
           try {
             const apiKeys = await getResolvedAiKeys(apiKeyUserId, {
               businessId: effectiveBusinessId,
