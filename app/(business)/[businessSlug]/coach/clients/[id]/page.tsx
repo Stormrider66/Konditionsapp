@@ -13,6 +13,7 @@ import { ClientDetailTabs } from '@/components/client/ClientDetailTabs'
 import { Loader2, CheckCircle2, CircleAlert, Sparkles } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getAthleteProfileConfig } from '@/lib/coach/athlete-profile-config'
+import type { TeamPlanContext } from '@/lib/coach/team-plan'
 import type { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import type {
   ClientWithTests,
@@ -51,6 +52,7 @@ export default function BusinessClientDetailPage() {
   const [recentTestCounts, setRecentTestCounts] = useState<RecentTestCounts>({ test: 0, hockey: 0, custom: 0 })
   const [athletePlans, setAthletePlans] = useState<AthletePlanSummary[]>([])
   const [athletePlansLoading, setAthletePlansLoading] = useState(true)
+  const [teamPlan, setTeamPlan] = useState<TeamPlanContext | null>(null)
 
   const fetchClient = useCallback(async () => {
     try {
@@ -151,6 +153,17 @@ export default function BusinessClientDetailPage() {
     }
   }, [id])
 
+  const fetchTeamPlan = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/clients/${id}/team-plan`)
+      const result = await response.json()
+      setTeamPlan(result.success ? result.teamPlan ?? null : null)
+    } catch (err) {
+      console.error('Error fetching team plan:', err)
+      setTeamPlan(null)
+    }
+  }, [id])
+
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       void fetchClient()
@@ -158,10 +171,11 @@ export default function BusinessClientDetailPage() {
       void fetchSportProfile()
       void fetchRecentTests()
       void fetchAthletePlans()
+      void fetchTeamPlan()
     }, 0)
 
     return () => window.clearTimeout(timeoutId)
-  }, [fetchClient, fetchPrograms, fetchSportProfile, fetchRecentTests, fetchAthletePlans])
+  }, [fetchClient, fetchPrograms, fetchSportProfile, fetchRecentTests, fetchAthletePlans, fetchTeamPlan])
 
   if (loading) {
     return (
@@ -245,7 +259,8 @@ export default function BusinessClientDetailPage() {
     const endDate = new Date(block.endDate)
     return startDate <= now && endDate >= now
   }) ?? activeAthletePlan?.blocks[0] ?? null
-  const hasPlanContext = !!activeProgram || !!activeAthletePlan
+  const hasPlanContext = !!activeProgram || !!activeAthletePlan || !!teamPlan
+  const teamPlanLabel = teamPlan ? (teamPlan.currentBlock?.title ?? teamPlan.name) : null
   const upcomingProgram = programs
     .filter((program) => new Date(program.startDate) > now)
     .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0] ?? null
@@ -337,11 +352,13 @@ export default function BusinessClientDetailPage() {
     : t('overview.snapshotMetrics.noPortal')
   const planningProgramLabel = programsLoading || athletePlansLoading
     ? t('planning.loading')
-    : activeProgram?.name ?? activeAthletePlan?.name ?? upcomingProgram?.name ?? t('planning.noProgram')
+    : activeProgram?.name ?? activeAthletePlan?.name ?? teamPlanLabel ?? upcomingProgram?.name ?? t('planning.noProgram')
   const planningProgramMeta = activeProgram
     ? t('planning.daysRemaining', { days: daysRemainingInActiveProgram ?? 0 })
     : activeAthletePlan
       ? `${currentAthletePlanBlock?.title ?? t('planning.blockPlan')} · ${t('planning.daysRemaining', { days: daysRemainingInActiveAthletePlan ?? 0 })}`
+    : teamPlan
+      ? t('planning.teamPlanMeta', { team: teamPlan.teamName })
     : upcomingProgram
       ? t('planning.startsIn', { days: daysUntilUpcomingProgram ?? 0 })
       : t('planning.noProgramDescription')
@@ -363,11 +380,15 @@ export default function BusinessClientDetailPage() {
       ? t('planning.nextSevenDaysCovered', { count: programsInNextSevenDays.length })
       : activeAthletePlan
         ? t('planning.blockActive', { block: currentAthletePlanBlock?.title ?? t('planning.blockPlan') })
+      : teamPlan
+        ? t('planning.teamPlanActive', { block: teamPlanLabel ?? teamPlan.name })
       : t('planning.nextSevenDaysEmpty')
   const planningWeekDescription = programsInNextSevenDays.length > 0
     ? t('planning.nextSevenDaysCoveredDescription')
     : activeAthletePlan
       ? t('planning.blockVisibleDescription')
+    : teamPlan
+      ? t('planning.teamPlanDescription')
     : t('planning.nextSevenDaysEmptyDescription')
   const previousCompletedTest = completedTests[1] ?? null
   const latestVo2max = latestCompletedTest?.vo2max ?? null
@@ -529,6 +550,7 @@ export default function BusinessClientDetailPage() {
                 latestTestLabel={latestTestLabel}
                 portalMetricLabel={portalMetricLabel}
                 visibleCoachSnapshotActions={visibleCoachSnapshotActions}
+                teamPlanLabel={teamPlanLabel}
                 setAthletePlans={setAthletePlans}
                 onRefetchClient={fetchClient}
               />
@@ -549,6 +571,7 @@ export default function BusinessClientDetailPage() {
                 activeProgram={activeProgram}
                 activeAthletePlan={activeAthletePlan}
                 currentAthletePlanBlock={currentAthletePlanBlock}
+                teamPlanLabel={teamPlanLabel}
                 referenceProgram={referenceProgram}
                 programsInNextSevenDays={programsInNextSevenDays}
                 hasRecentTest={hasRecentTest}

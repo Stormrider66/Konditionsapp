@@ -32,6 +32,8 @@ interface OverviewTabProps {
   latestTestLabel: string
   portalMetricLabel: string
   visibleCoachSnapshotActions: CoachSnapshotAction[]
+  /** Current block of the athlete's team plan, when they have no individual plan. */
+  teamPlanLabel: string | null
   setAthletePlans: Dispatch<SetStateAction<AthletePlanSummary[]>>
   onRefetchClient: () => void
 }
@@ -47,6 +49,7 @@ export function OverviewTab({
   latestTestLabel,
   portalMetricLabel,
   visibleCoachSnapshotActions,
+  teamPlanLabel,
   setAthletePlans,
   onRefetchClient,
 }: OverviewTabProps) {
@@ -117,7 +120,7 @@ export function OverviewTab({
           <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('overview.snapshotMetrics.nextFocus')}</p>
             <p className="text-sm font-semibold text-gray-900 dark:text-white mt-1 truncate">
-              {activeProgram?.name ?? currentAthletePlanBlock?.title ?? activeAthletePlan?.name ?? t('overview.snapshotMetrics.noActiveProgram')}
+              {activeProgram?.name ?? currentAthletePlanBlock?.title ?? activeAthletePlan?.name ?? teamPlanLabel ?? t('overview.snapshotMetrics.noActiveProgram')}
             </p>
           </div>
           <div className="rounded-lg border border-gray-200 dark:border-white/10 p-3">

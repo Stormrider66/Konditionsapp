@@ -33,6 +33,8 @@ interface PlanningTabProps {
   activeProgram: ProgramSummary | null
   activeAthletePlan: AthletePlanSummary | null
   currentAthletePlanBlock: AthletePlanSummary['blocks'][number] | null
+  /** Current block of the athlete's team plan, when they have no individual plan. */
+  teamPlanLabel: string | null
   referenceProgram: ProgramSummary | null
   programsInNextSevenDays: ProgramSummary[]
   hasRecentTest: boolean
@@ -56,6 +58,7 @@ export function PlanningTab({
   activeProgram,
   activeAthletePlan,
   currentAthletePlanBlock,
+  teamPlanLabel,
   referenceProgram,
   programsInNextSevenDays,
   hasRecentTest,
@@ -174,7 +177,7 @@ export function PlanningTab({
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t('planning.weekChecklist.plan')}</p>
               <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">
-                {referenceProgram?.name ?? currentAthletePlanBlock?.title ?? activeAthletePlan?.name ?? t('planning.weekChecklist.noPlan')}
+                {referenceProgram?.name ?? currentAthletePlanBlock?.title ?? activeAthletePlan?.name ?? teamPlanLabel ?? t('planning.weekChecklist.noPlan')}
               </p>
             </div>
             <div>
