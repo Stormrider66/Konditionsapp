@@ -3429,6 +3429,30 @@
           "rank": "Placering",
           "positionRank": "Position"
         },
+        "planCompliance": {
+          "title": "Följsamhet",
+          "description": "Genomförda vs planerade pass de senaste {weeks} veckorna.",
+          "loading": "Laddar följsamhet…",
+          "empty": "Ingen veckoträningsdata ännu.",
+          "error": "Kunde inte ladda följsamhet.",
+          "avgCompliance": "Snittföljsamhet",
+          "completedSessions": "Genomförda pass",
+          "barCaption": "Genomfört vs planerat per vecka",
+          "noPlanned": "Inget planerat program att mäta mot — visar endast genomförda pass."
+        },
+        "garmin": {
+          "title": "Wearable (Garmin)",
+          "notConnected": "Ingen wearable ansluten",
+          "connectedNote": "Atleten ansluter och hanterar Garmin i sin egen app.",
+          "statusConnected": "Ansluten",
+          "statusPaused": "Synk pausad",
+          "lastSync": "Senaste synk",
+          "never": "Ej synkad",
+          "dataPoints": "Dagliga mätvärden",
+          "connectedSince": "Ansluten sedan",
+          "syncError": "Synkfel",
+          "synced": "synkad"
+        },
         "overview": {
           "personalInfo": "Personuppgifter",
           "sportSpecificData": "Sportspecifik Data",

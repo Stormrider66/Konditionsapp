@@ -3429,6 +3429,30 @@
           "rank": "Rank",
           "positionRank": "Position"
         },
+        "planCompliance": {
+          "title": "Adherence",
+          "description": "Completed vs planned sessions over the last {weeks} weeks.",
+          "loading": "Loading adherence…",
+          "empty": "No weekly training data yet.",
+          "error": "Could not load adherence.",
+          "avgCompliance": "Avg compliance",
+          "completedSessions": "Completed sessions",
+          "barCaption": "Weekly completed vs planned",
+          "noPlanned": "No planned program to measure adherence against — showing completed sessions only."
+        },
+        "garmin": {
+          "title": "Wearable (Garmin)",
+          "notConnected": "No wearable connected",
+          "connectedNote": "The athlete connects and manages Garmin from their own app.",
+          "statusConnected": "Connected",
+          "statusPaused": "Sync paused",
+          "lastSync": "Last sync",
+          "never": "Not synced",
+          "dataPoints": "Daily metrics",
+          "connectedSince": "Connected since",
+          "syncError": "Sync error",
+          "synced": "synced"
+        },
         "overview": {
           "personalInfo": "Personal information",
           "sportSpecificData": "Sport-specific data",

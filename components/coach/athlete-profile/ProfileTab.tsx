@@ -13,6 +13,7 @@ import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAcc
 import { ExternalAthleteAccessCard } from '@/components/coach/clients/ExternalAthleteAccessCard'
 import { SportProfileEditor } from '@/components/coach/clients/SportProfileEditor'
 import { ProfileField, AthletePortalStatusBadge } from './ui'
+import { GarminConnectionCard } from './GarminConnectionCard'
 import type { ClientWithTests, SportProfileSummary, CoachSnapshotTone } from './types'
 
 interface ProfileSetupItem {
@@ -296,6 +297,7 @@ export function ProfileTab({
       </div>
       {profileOverviewContent}
       {sportProfileContent}
+      <GarminConnectionCard clientId={id} />
     </div>
   )
 }

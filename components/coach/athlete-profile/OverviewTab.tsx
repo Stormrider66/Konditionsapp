@@ -18,6 +18,7 @@ import { VBTProgressionWidget } from '@/components/athlete/VBTProgressionWidget'
 import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
+import { GarminFreshnessBadge } from './GarminFreshnessBadge'
 import type { ClientWithTests, ProgramSummary, CoachSnapshotTone, CoachSnapshotAction } from './types'
 
 interface OverviewTabProps {
@@ -189,6 +190,8 @@ export function OverviewTab({
 
       {client.athleteAccount ? (
         <>
+          <GarminFreshnessBadge clientId={id} />
+
           <div className="grid gap-4 lg:grid-cols-3">
             <ClientLoadSummary clientId={id} />
             <ReadinessDashboard clientId={id} />

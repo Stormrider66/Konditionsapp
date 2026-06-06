@@ -14,6 +14,8 @@ import { CreateAthletePlanDialog } from '@/components/coach/clients/CreateAthlet
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
 import { AthletePlanSummaryCard, AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
+import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
+import { PlanCompliance } from './PlanCompliance'
 import type { ClientWithTests, ProgramSummary } from './types'
 
 interface PlanningTabProps {
@@ -269,6 +271,8 @@ export function PlanningTab({
         </div>
       </div>
 
+      <PlanCompliance clientId={id} weeks={8} />
+
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 lg:p-6">
         <UnifiedCalendar
           clientId={id}
@@ -313,6 +317,8 @@ export function PlanningTab({
           )}
         </div>
       </div>
+
+      <IntegratedRecentActivity clientId={id} limit={8} />
 
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
