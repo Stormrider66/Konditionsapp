@@ -3347,6 +3347,88 @@
             "noTestDetail": "Baslinje saknas"
           }
         },
+        "assessmentTimeline": {
+          "title": "Test- och mäthistorik",
+          "description": "Alla tester från alla källor, senaste först.",
+          "totalCount": "{count} totalt",
+          "loading": "Laddar tester…",
+          "empty": "Inga tester registrerade ännu.",
+          "error": "Kunde inte ladda tester.",
+          "team": "Lag",
+          "individual": "Individuell",
+          "view": "Visa",
+          "filters": {
+            "all": "Alla",
+            "endurance": "Kondition",
+            "hockey": "Hockey",
+            "sport": "Fälttester",
+            "ergometer": "Ergometer",
+            "custom": "Anpassade"
+          }
+        },
+        "wellnessTrends": {
+          "title": "Måendetrender",
+          "description": "Dagliga incheckningskomponenter de senaste {days} dagarna.",
+          "loading": "Laddar måendedata…",
+          "empty": "Ingen incheckningsdata ännu.",
+          "error": "Kunde inte ladda måendedata.",
+          "injuriesTitle": "Skador & sjukdom",
+          "noInjuries": "Inga skador eller sjukdomar registrerade.",
+          "injury": "Skada",
+          "illness": "Sjukdom",
+          "pain": "Smärta {value}/10",
+          "components": {
+            "energy": "Energi",
+            "mood": "Humör",
+            "sleepQuality": "Sömnkvalitet",
+            "soreness": "Träningsvärk",
+            "stress": "Stress"
+          }
+        },
+        "trainingStats": {
+          "title": "Träningsstatistik",
+          "description": "Volym, följsamhet och intensitet de senaste {weeks} veckorna.",
+          "loading": "Laddar statistik…",
+          "empty": "Ingen veckoträningsdata ännu.",
+          "error": "Kunde inte ladda statistik.",
+          "weeklyLoad": "Veckobelastning (TSS)",
+          "intensity": "Intensitetsfördelning",
+          "intensityEasy": "Lätt",
+          "intensityModerate": "Medel",
+          "intensityHard": "Hård",
+          "kpi": {
+            "tss": "Belastning (TSS)",
+            "distance": "Distans",
+            "duration": "Tid",
+            "sessions": "Pass",
+            "compliance": "Följsamhet"
+          }
+        },
+        "recurringExercises": {
+          "title": "Mest tränade övningar",
+          "description": "Övningar som utförs oftast, och var var och en står.",
+          "loading": "Laddar övningar…",
+          "empty": "Ingen styrkeprogressionsdata ännu.",
+          "error": "Kunde inte ladda övningar.",
+          "sessions": "{count} pass",
+          "status": {
+            "ON_TRACK": "På rätt spår",
+            "PLATEAU": "Platå",
+            "REGRESSING": "Tillbakagång",
+            "DELOAD_NEEDED": "Avlastning"
+          }
+        },
+        "hockeyTeamRank": {
+          "title": "Lagjämförelse",
+          "description": "Hur spelaren rankas inom laget.",
+          "loading": "Laddar lagrankning…",
+          "empty": "Ingen lagjämförelse tillgänglig ännu.",
+          "error": "Kunde inte ladda lagrankning.",
+          "metric": "Mått",
+          "teamPercentile": "Lag (perc.)",
+          "rank": "Placering",
+          "positionRank": "Position"
+        },
         "overview": {
           "personalInfo": "Personuppgifter",
           "sportSpecificData": "Sportspecifik Data",

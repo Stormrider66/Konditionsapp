@@ -3347,6 +3347,88 @@
             "noTestDetail": "Baseline missing"
           }
         },
+        "assessmentTimeline": {
+          "title": "Test & assessment history",
+          "description": "Every test across all sources, newest first.",
+          "totalCount": "{count} total",
+          "loading": "Loading assessments…",
+          "empty": "No tests recorded yet.",
+          "error": "Could not load assessments.",
+          "team": "Team",
+          "individual": "Individual",
+          "view": "View",
+          "filters": {
+            "all": "All",
+            "endurance": "Endurance",
+            "hockey": "Hockey",
+            "sport": "Field tests",
+            "ergometer": "Ergometer",
+            "custom": "Custom"
+          }
+        },
+        "wellnessTrends": {
+          "title": "Wellness trends",
+          "description": "Daily check-in components over the last {days} days.",
+          "loading": "Loading wellness data…",
+          "empty": "No check-in data yet.",
+          "error": "Could not load wellness data.",
+          "injuriesTitle": "Injuries & illness",
+          "noInjuries": "No injuries or illness logged.",
+          "injury": "Injury",
+          "illness": "Illness",
+          "pain": "Pain {value}/10",
+          "components": {
+            "energy": "Energy",
+            "mood": "Mood",
+            "sleepQuality": "Sleep quality",
+            "soreness": "Soreness",
+            "stress": "Stress"
+          }
+        },
+        "trainingStats": {
+          "title": "Training statistics",
+          "description": "Volume, compliance and intensity over the last {weeks} weeks.",
+          "loading": "Loading statistics…",
+          "empty": "No weekly training data yet.",
+          "error": "Could not load statistics.",
+          "weeklyLoad": "Weekly load (TSS)",
+          "intensity": "Intensity distribution",
+          "intensityEasy": "Easy",
+          "intensityModerate": "Moderate",
+          "intensityHard": "Hard",
+          "kpi": {
+            "tss": "Load (TSS)",
+            "distance": "Distance",
+            "duration": "Duration",
+            "sessions": "Sessions",
+            "compliance": "Compliance"
+          }
+        },
+        "recurringExercises": {
+          "title": "Most-trained exercises",
+          "description": "Exercises performed most often, with where each stands.",
+          "loading": "Loading exercises…",
+          "empty": "No strength progression data yet.",
+          "error": "Could not load exercises.",
+          "sessions": "{count} sessions",
+          "status": {
+            "ON_TRACK": "On track",
+            "PLATEAU": "Plateau",
+            "REGRESSING": "Regressing",
+            "DELOAD_NEEDED": "Deload"
+          }
+        },
+        "hockeyTeamRank": {
+          "title": "Team benchmarking",
+          "description": "Where this player ranks within the team.",
+          "loading": "Loading team ranks…",
+          "empty": "No team benchmarking available yet.",
+          "error": "Could not load team ranks.",
+          "metric": "Metric",
+          "teamPercentile": "Team %ile",
+          "rank": "Rank",
+          "positionRank": "Position"
+        },
         "overview": {
           "personalInfo": "Personal information",
           "sportSpecificData": "Sport-specific data",

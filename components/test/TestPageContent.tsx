@@ -36,6 +36,7 @@ import { SwimmingCSSTestForm } from '@/components/tests/swimming'
 import { YoYoTestForm } from '@/components/tests/endurance'
 import { HYROXStationTestForm, HYROXRaceSimulationForm } from '@/components/tests/hyrox'
 import { HockeyTestForm } from '@/components/coach/hockey-tests/HockeyTestForm'
+import { getAthleteProfileConfig } from '@/lib/coach/athlete-profile-config'
 
 type TestCategory = 'lactate' | 'body-composition' | 'power' | 'speed' | 'agility' | 'strength' | 'swimming' | 'endurance' | 'hyrox' | 'hockey'
 type TestPageClient = Client & {
@@ -44,8 +45,6 @@ type TestPageClient = Client & {
     secondarySports?: string[] | null
   } | null
 }
-
-const HOCKEY_SPORT = 'TEAM_ICE_HOCKEY'
 
 const TEST_CATEGORIES = [
   { value: 'lactate', labelSv: 'Laktattest', labelEn: 'Lactate test', icon: Droplet, available: true },
@@ -160,9 +159,7 @@ export function TestPageContent({ businessSlug, organizationName, initialClientI
   const selectedClient = filteredClients.find((c) => c.id === selectedClientId)
   const isHockeyClient = (client: TestPageClient | undefined) => {
     if (!client) return false
-    return client.sportProfile?.primarySport === HOCKEY_SPORT
-      || client.sportProfile?.secondarySports?.includes(HOCKEY_SPORT)
-      || client.team?.sportType === HOCKEY_SPORT
+    return getAthleteProfileConfig({ team: client.team, sportProfile: client.sportProfile }).isHockeyAthlete
   }
   const selectedClientIsHockey = isHockeyClient(selectedClient)
   const visibleTestCategories = TEST_CATEGORIES.filter((category) => category.value !== 'hockey' || selectedClientIsHockey || testCategory === 'hockey')
