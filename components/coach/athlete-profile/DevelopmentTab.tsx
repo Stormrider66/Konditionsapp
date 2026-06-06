@@ -73,6 +73,8 @@ interface DevelopmentTabProps {
   showPaceZones: boolean
   /** Team id when this is a hockey team athlete; null otherwise (gates team benchmarking). */
   hockeyTeamId: string | null
+  /** Whether to show the legacy endurance-only test table (hidden for team/racket athletes with no endurance tests). */
+  showEnduranceTable: boolean
   newTestHref: string
   developmentStatusTone: CoachSnapshotTone
   latestTestLabel: string
@@ -95,6 +97,7 @@ export function DevelopmentTab({
   sportProfileLoading,
   showPaceZones,
   hockeyTeamId,
+  showEnduranceTable,
   newTestHref,
   developmentStatusTone,
   latestTestLabel,
@@ -838,7 +841,7 @@ export function DevelopmentTab({
   return (
     <div className="space-y-4 sm:space-y-6">
       {developmentContent}
-      {testsContent}
+      {showEnduranceTable && testsContent}
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

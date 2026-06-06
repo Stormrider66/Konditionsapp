@@ -567,6 +567,10 @@ export default function BusinessClientDetailPage() {
                 sportProfileLoading={sportProfileLoading}
                 showPaceZones={profileConfig.showPaceZones}
                 hockeyTeamId={profileConfig.isHockeyAthlete && client.team ? client.team.id : null}
+                showEnduranceTable={
+                  (client.tests?.length ?? 0) > 0 ||
+                  !(profileConfig.isTeamAthlete || profileConfig.sportKind === 'RACKET')
+                }
                 newTestHref={newTestHref}
                 developmentStatusTone={developmentStatusTone}
                 latestTestLabel={latestTestLabel}
