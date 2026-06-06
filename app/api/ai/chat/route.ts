@@ -38,6 +38,11 @@ import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import type { KnowledgeSkillAccessMode } from '@/lib/ai/skill-access'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import {
+  formatAiCapabilitiesForPrompt,
+  getAvailableAiCapabilities,
+} from '@/lib/ai/capabilities/registry'
+import { isAiAssistantOperationsEnabled } from '@/lib/ai/capabilities/feature-gate'
 
 // Allow longer execution time for AI streaming responses (60 seconds)
 export const maxDuration = 60
@@ -244,6 +249,19 @@ export async function POST(request: NextRequest) {
       hasAthleteConsent = consentStatus.hasRequiredConsent
     }
 
+    const aiOperationsEnabled = await isAiAssistantOperationsEnabled(effectiveBusinessId)
+    const availableAiCapabilities = getAvailableAiCapabilities({
+      role: isAthleteChat ? 'ATHLETE' : 'COACH',
+      operationsEnabled: aiOperationsEnabled,
+      staffPermissions,
+      athleteCapabilities,
+      hasAthleteConsent: isAthleteChat ? hasAthleteConsent : hasAthleteConsent || !athleteId,
+    })
+    const capabilityContext = aiOperationsEnabled
+      ? formatAiCapabilitiesForPrompt(availableAiCapabilities, responseLocale)
+      : ''
+    const pageAndCapabilityContext = [pageContext, capabilityContext].filter(Boolean).join('\n\n')
+
     // ── 5. Build context (athlete bio + sport + calendar + RAG + web) ──
     const embeddingKeys: EmbeddingKeys = {
       googleKey: decryptedKeys.googleKey,
@@ -257,7 +275,7 @@ export async function POST(request: NextRequest) {
       hasAthleteConsent,
       documentIds,
       webSearchEnabled,
-      pageContext,
+      pageContext: pageAndCapabilityContext,
       memoryContext,
       athleteCapabilities,
       staffPermissions,
@@ -273,10 +291,10 @@ export async function POST(request: NextRequest) {
 
     // ── 6. System prompt ────────────────────────────────────────────
     const systemPrompt = isAthleteChat && context.athleteSystemPrompt
-      ? `${context.athleteSystemPrompt}\n${visibleActionResponsePolicy(responseLocale)}\n## OUTPUT LANGUAGE\n${responseLocale === 'sv' ? 'Svara på svenska om inte atleten uttryckligen ber om ett annat språk.' : 'Respond in English unless the athlete explicitly asks for another language.'}\n${pageContext}\n`
+      ? `${context.athleteSystemPrompt}\n${visibleActionResponsePolicy(responseLocale)}\n## OUTPUT LANGUAGE\n${responseLocale === 'sv' ? 'Svara på svenska om inte atleten uttryckligen ber om ett annat språk.' : 'Respond in English unless the athlete explicitly asks for another language.'}\n${pageAndCapabilityContext}\n`
       : buildCoachSystemPrompt({
           locale: responseLocale,
-          pageContext,
+          pageContext: pageAndCapabilityContext,
           athleteContext: context.athleteContext,
           sportSpecificContext: context.sportSpecificContext,
           calendarContext: context.calendarContext,
@@ -333,12 +351,31 @@ export async function POST(request: NextRequest) {
           athleteCapabilities
             ? { canGenerateProgram: athleteCapabilities.canGenerateProgram }
             : undefined,
-          responseLocale
+          responseLocale,
+          {
+            enabled: aiOperationsEnabled,
+            actorUserId: userId,
+            businessId: effectiveBusinessId,
+            businessSlug: explicitBusinessSlug || undefined,
+            clientId: athleteClientId,
+            conversationId,
+          }
         ),
         maxSteps: 4,
       }),
       ...(!isAthleteChat && {
-        tools: createCoachChatTools(userId, explicitBusinessSlug || undefined, responseLocale),
+        tools: createCoachChatTools(
+          userId,
+          explicitBusinessSlug || undefined,
+          responseLocale,
+          {
+            enabled: aiOperationsEnabled,
+            actorUserId: userId,
+            businessId: effectiveBusinessId,
+            businessSlug: explicitBusinessSlug || undefined,
+            conversationId,
+          }
+        ),
         maxSteps: 6,
       }),
       ...(provider === 'GOOGLE' && deepThinkEnabled && {

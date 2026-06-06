@@ -27,6 +27,15 @@ export interface CoachToolContext {
   coachUserId: string
   businessSlug?: string
   locale: 'en' | 'sv'
+  aiOperations?: {
+    enabled: boolean
+    actorUserId: string
+    actorRole: 'COACH'
+    surface: 'coach_chat'
+    businessId?: string | null
+    businessSlug?: string | null
+    conversationId?: string | null
+  }
 }
 
 export const CARDIO_TOOL_SPORTS = [

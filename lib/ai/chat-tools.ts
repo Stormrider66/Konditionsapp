@@ -22,6 +22,11 @@ import { logger } from '@/lib/logger'
 import { lookupOrGenerateExercise } from '@/lib/ai/exercise-generator'
 import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { getProgramSportSettings, normalizeProgramSport } from '@/lib/ai/program-generator/sport-normalization'
+import { getConfirmedAiCapabilityIds } from '@/lib/ai/capabilities/registry'
+import {
+  type AiActionDraftContext,
+  wrapToolsWithAiActionDrafts,
+} from '@/lib/ai/capabilities/action-drafts'
 
 /** Capabilities that control which tools are available */
 export interface ChatToolCapabilities {
@@ -43,8 +48,21 @@ export function createChatTools(
   clientId: string,
   conversationId?: string,
   capabilities?: ChatToolCapabilities,
-  locale: ChatLocale = 'en'
+  locale: ChatLocale = 'en',
+  aiOperations?: Omit<AiActionDraftContext, 'actorRole' | 'surface' | 'clientId' | 'locale'> & {
+    clientId?: string | null
+  }
 ) {
+  const operationContext = aiOperations
+    ? {
+        ...aiOperations,
+        actorRole: 'ATHLETE' as const,
+        surface: 'athlete_chat' as const,
+        clientId: aiOperations.clientId ?? clientId,
+        conversationId: aiOperations.conversationId ?? conversationId,
+        locale,
+      }
+    : undefined
   const tools: Record<string, any> = { // eslint-disable-line
     createTodayWorkout: tool({
       description:
@@ -1007,5 +1025,11 @@ export function createChatTools(
     })
   }
 
-  return tools
+  if (!operationContext?.enabled) return tools
+
+  return wrapToolsWithAiActionDrafts(
+    tools,
+    operationContext,
+    getConfirmedAiCapabilityIds('ATHLETE')
+  )
 }

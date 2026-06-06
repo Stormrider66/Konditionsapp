@@ -352,6 +352,10 @@ export type AuditAction =
   | 'CONSENT_CHANGED'
   | 'DATA_EXPORTED'
   | 'DATA_DELETED'
+  | 'AI_ACTION_DRAFTED'
+  | 'AI_ACTION_EXECUTED'
+  | 'AI_ACTION_FAILED'
+  | 'AI_ACTION_CANCELLED'
 
 export type AuditActorType = 'AGENT' | 'ATHLETE' | 'COACH' | 'SYSTEM'
 

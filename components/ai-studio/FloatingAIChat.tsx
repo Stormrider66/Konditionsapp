@@ -2413,7 +2413,12 @@ export function FloatingAIChat({
               )
               const navigationResult = navigationToolPart?.output as ChatNavigationResult | undefined
               const actionToolPart = (message.parts as ToolOutputPart[] | undefined)?.find(
-                part => part.type === 'tool-prepareCoachMessageDraft' && part.state === 'output-available'
+                part => part.state === 'output-available' &&
+                  (
+                    part.type === 'tool-prepareCoachMessageDraft' ||
+                    (isToolStatusOutput(part.output) &&
+                      typeof (part.output as { action?: { type?: unknown } }).action === 'object')
+                  )
               )
               const actionResult = actionToolPart?.output as ChatActionResult | undefined
               return (

@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
+import { ChatActionCard, type ChatActionResult } from '@/components/ai-studio/ChatActionCard'
 import {
   getVoiceFileExtension,
   formatVoiceDuration,
@@ -1962,19 +1963,26 @@ export function AthleteFloatingChat({
 
               // Check for workout tool results (AI SDK v5: type is "tool-{name}", state is "output-available")
               const workoutToolPart = (message.parts as any[])?.find( // eslint-disable-line
-                part => part.type === 'tool-createTodayWorkout' && part.state === 'output-available' && part.output?.success
+                part => part.type === 'tool-createTodayWorkout' && part.state === 'output-available' && part.output?.success && part.output?.wodId
               )
               const workoutResult = workoutToolPart ? workoutToolPart.output : null
 
               // Check for program generation tool results
               const programToolPart = (message.parts as any[])?.find( // eslint-disable-line
-                part => part.type === 'tool-generateTrainingProgram' && part.state === 'output-available' && part.output?.success
+                part => part.type === 'tool-generateTrainingProgram' && part.state === 'output-available' && part.output?.success && part.output?.sessionId
               )
               const programResult = programToolPart ? programToolPart.output : null
               const programErrorPart = (message.parts as any[])?.find( // eslint-disable-line
                 part => part.type === 'tool-generateTrainingProgram' && part.state === 'output-available' && part.output && !part.output.success
               )
               const programError = programErrorPart ? programErrorPart.output : null
+              const actionToolPart = (message.parts as any[])?.find( // eslint-disable-line
+                part => part.type?.startsWith('tool-') &&
+                  part.state === 'output-available' &&
+                  part.output?.success &&
+                  part.output?.action?.type === 'aiCapabilityAction'
+              )
+              const actionResult = actionToolPart?.output as ChatActionResult | undefined
 
               return (
                 <div key={`${message.id}-${index}`}>
@@ -2058,6 +2066,9 @@ export function AthleteFloatingChat({
                         </div>
                       </div>
                     </div>
+                  )}
+                  {actionResult?.success && (
+                    <ChatActionCard result={actionResult} basePath={basePath} />
                   )}
                 </div>
               )

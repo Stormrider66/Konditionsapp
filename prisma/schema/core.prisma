@@ -171,6 +171,9 @@ enum FeatureFlag {
   // Limits
   UNLIMITED_ATHLETES
   UNLIMITED_COACHES
+
+  // Internal beta
+  AI_ASSISTANT_OPERATIONS
 }
 
 model User {

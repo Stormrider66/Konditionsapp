@@ -16,14 +16,41 @@ import { createCalendarTools } from './coach-tools/calendar-tools'
 import { createWorkoutTools } from './coach-tools/workout-tools'
 import { createNavigationTools } from './coach-tools/navigation-tools'
 import { createMessagingTools } from './coach-tools/messaging-tools'
+import { getConfirmedAiCapabilityIds } from '@/lib/ai/capabilities/registry'
+import {
+  type AiActionDraftContext,
+  wrapToolsWithAiActionDrafts,
+} from '@/lib/ai/capabilities/action-drafts'
 
 /**
  * Create all chat tools for a coach session.
  */
-export function createCoachChatTools(coachUserId: string, businessSlug?: string, locale: 'en' | 'sv' = 'en') {
-  const ctx: CoachToolContext = { coachUserId, businessSlug, locale }
+export function createCoachChatTools(
+  coachUserId: string,
+  businessSlug?: string,
+  locale: 'en' | 'sv' = 'en',
+  aiOperations?: Omit<AiActionDraftContext, 'actorRole' | 'surface' | 'actorUserId' | 'locale'> & {
+    actorUserId?: string
+  }
+) {
+  const operationContext = aiOperations
+    ? {
+        ...aiOperations,
+        actorUserId: aiOperations.actorUserId || coachUserId,
+        actorRole: 'COACH' as const,
+        surface: 'coach_chat' as const,
+        businessSlug: aiOperations.businessSlug ?? businessSlug,
+        locale,
+      }
+    : undefined
+  const ctx: CoachToolContext = {
+    coachUserId,
+    businessSlug,
+    locale,
+    aiOperations: operationContext,
+  }
 
-  return {
+  const tools = {
     ...createStrengthTools(ctx),
     ...createAthleteTools(ctx),
     ...createCalendarTools(ctx),
@@ -31,4 +58,11 @@ export function createCoachChatTools(coachUserId: string, businessSlug?: string,
     ...createNavigationTools(ctx),
     ...createMessagingTools(ctx),
   }
+
+  if (!operationContext?.enabled) return tools
+
+  const genericConfirmedIds = getConfirmedAiCapabilityIds('COACH').filter(
+    (id) => id !== 'prepareCoachMessageDraft'
+  )
+  return wrapToolsWithAiActionDrafts(tools, operationContext, genericConfirmedIds)
 }
