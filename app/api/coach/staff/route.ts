@@ -143,13 +143,42 @@ export async function GET(req: NextRequest) {
         teams: assignmentsByUserId.get(m.userId) ?? [],
         clients,
         clientIds: clients.map((c) => c.id),
+        hasAccount: true,
         invitedAt: m.invitedAt.toISOString(),
         acceptedAt: m.acceptedAt?.toISOString() ?? null,
       }
     })
 
+    // Roster players without a login account (Clients with no AthleteAccount).
+    // Surface them so the coach can see who's missing access and invite them.
+    const memberEmails = new Set(
+      members.map((m) => m.user.email?.toLowerCase()).filter((e): e is string => !!e),
+    )
+    const rosterClients = await prisma.client.findMany({
+      where: { businessId: membership.businessId, athleteAccount: { is: null } },
+      select: { id: true, name: true, email: true, createdAt: true, team: { select: { id: true, name: true } } },
+      orderBy: { name: 'asc' },
+    })
+    const rosterOnly = rosterClients
+      .filter((c) => !(c.email && memberEmails.has(c.email.toLowerCase())))
+      .map((c) => ({
+        id: `client:${c.id}`,
+        clientId: c.id,
+        userId: null,
+        name: c.name,
+        email: c.email,
+        role: 'MEMBER',
+        roleLabel: roleLabelFor('MEMBER', businessType, locale),
+        teams: c.team ? [{ id: c.team.id, name: c.team.name }] : [],
+        clients: [] as Array<{ id: string; name: string }>,
+        clientIds: [] as string[],
+        hasAccount: false,
+        invitedAt: c.createdAt.toISOString(),
+        acceptedAt: null,
+      }))
+
     return NextResponse.json({
-      staff: staffWithTeams,
+      staff: [...staffWithTeams, ...rosterOnly],
       businessType,
       invitableRoles: invitableRolesFor(businessType, locale),
     })

@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { UserPlus, Users, User, Shield, Dumbbell, Heart, Clipboard, Trash2, Pencil } from 'lucide-react'
+import { UserPlus, Users, User, Shield, Dumbbell, Heart, Clipboard, Trash2, Pencil, Mail, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import { teamStaffRolesFor, teamRoleLabel, type BusinessType } from '@/lib/permissions/staff-roles'
 
@@ -38,14 +38,18 @@ interface Athlete {
 
 interface StaffMember {
   id: string
-  userId: string
+  userId: string | null
   name: string
-  email: string
+  email: string | null
   role: string
   roleLabel: string
   teams: Team[]
   clients?: Athlete[]
   clientIds?: string[]
+  // Roster players without a login account are surfaced with hasAccount=false
+  // and a clientId (their Client record) so they can be invited.
+  hasAccount?: boolean
+  clientId?: string
   invitedAt: string
   acceptedAt: string | null
 }
@@ -114,6 +118,12 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
   // Athlete roster (lazy — only fetched when assigning individual athletes to a physio)
   const [roster, setRoster] = useState<Athlete[]>([])
   const [rosterLoaded, setRosterLoaded] = useState(false)
+
+  // Invite a roster player (give an account-less player a login)
+  const [invitePlayerOpen, setInvitePlayerOpen] = useState(false)
+  const [invitePlayerTarget, setInvitePlayerTarget] = useState<StaffMember | null>(null)
+  const [invitePlayerEmail, setInvitePlayerEmail] = useState('')
+  const [invitingPlayer, setInvitingPlayer] = useState(false)
 
   const fetchStaff = useCallback(async () => {
     try {
@@ -361,6 +371,49 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
     )
   }
 
+  const openInvitePlayer = (member: StaffMember) => {
+    setInvitePlayerTarget(member)
+    setInvitePlayerEmail(member.email ?? '')
+    setInvitePlayerOpen(true)
+  }
+
+  const handleInvitePlayer = async () => {
+    if (!invitePlayerTarget?.clientId) return
+    if (!invitePlayerEmail.trim()) {
+      toast.error(copy('Enter an email to send the invite', 'Ange en e-post för att skicka inbjudan'))
+      return
+    }
+    setInvitingPlayer(true)
+    try {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/athlete-accounts${params.size ? `?${params}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
+        body: JSON.stringify({ clientId: invitePlayerTarget.clientId, email: invitePlayerEmail.trim() }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok) {
+        toast.success(data.message || copy('Player invited', 'Spelare inbjuden'))
+        setInvitePlayerOpen(false)
+        setInvitePlayerTarget(null)
+        await fetchStaff()
+      } else {
+        toast.error(data.error || copy('Could not invite player', 'Kunde inte bjuda in spelare'))
+      }
+    } catch {
+      toast.error(copy('Network error', 'Nätverksfel'))
+    } finally {
+      setInvitingPlayer(false)
+    }
+  }
+
+  // Smart detection: roster players who have no login account yet.
+  const memberlessPlayers = useMemo(() => staff.filter((m) => m.hasAccount === false), [staff])
+
   // Group staff by role for a legible, scannable layout.
   const groupedStaff = useMemo(() => {
     const groups = new Map<string, StaffMember[]>()
@@ -381,7 +434,8 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
     const Icon = ROLE_ICONS[member.role] || Users
     const colorClass = ROLE_COLORS[member.role] || ROLE_COLORS.COACH
     const isSelf = !!currentUserId && member.userId === currentUserId
-    const canManage = member.role !== 'OWNER' && !isSelf
+    const isRosterOnly = member.hasAccount === false
+    const canManage = !isRosterOnly && member.role !== 'OWNER' && !isSelf
     const athleteCount = member.clients?.length ?? 0
     return (
       <Card key={member.id} className="group">
@@ -406,9 +460,25 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
                 </Badge>
               )}
             </div>
+            {isRosterOnly && (
+              <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 dark:text-amber-400">
+                {copy('No account', 'Inget konto')}
+              </Badge>
+            )}
             <Badge className={`text-[10px] ${colorClass} border-0`}>
               {teamRoleLabel(member.role, locale)}
             </Badge>
+            {isRosterOnly && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => openInvitePlayer(member)}
+              >
+                <Mail className="h-3.5 w-3.5 mr-1" />
+                {copy('Invite', 'Bjud in')}
+              </Button>
+            )}
             {canManage && (
               <>
                 <Button
@@ -567,6 +637,24 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
         </Dialog>
       </div>
 
+      {/* Smart detection: players missing a login account */}
+      {!loading && memberlessPlayers.length > 0 && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-900/20 p-3">
+          <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-medium text-amber-800 dark:text-amber-300">
+              {copy(
+                `${memberlessPlayers.length} ${memberlessPlayers.length === 1 ? 'player has' : 'players have'} no login account`,
+                `${memberlessPlayers.length} ${memberlessPlayers.length === 1 ? 'spelare saknar' : 'spelare saknar'} inloggning`,
+              )}
+            </p>
+            <p className="text-amber-700 dark:text-amber-400/80 text-xs mt-0.5">
+              {copy('Invite them so they can log in and follow their training.', 'Bjud in dem så att de kan logga in och följa sin träning.')}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Staff list (grouped by role) */}
       {loading ? (
         <div className="space-y-2">
@@ -683,6 +771,37 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
               <Button variant="outline" onClick={() => { setEditOpen(false); setEditMember(null) }}>{copy('Cancel', 'Avbryt')}</Button>
               <Button onClick={handleSaveEdit} disabled={saving}>
                 {saving ? copy('Saving...', 'Sparar...') : copy('Save', 'Spara')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite player dialog (give an account-less roster player a login) */}
+      <Dialog open={invitePlayerOpen} onOpenChange={(open) => { setInvitePlayerOpen(open); if (!open) setInvitePlayerTarget(null) }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {invitePlayerTarget ? copy(`Invite ${invitePlayerTarget.name}`, `Bjud in ${invitePlayerTarget.name}`) : copy('Invite player', 'Bjud in spelare')}
+            </DialogTitle>
+            <DialogDescription>
+              {copy('This player has no login yet. Send an invite so they get an account and can access the app.', 'Spelaren har ingen inloggning ännu. Skicka en inbjudan så att de får ett konto och kan använda appen.')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>{copy('Email', 'E-post')}</Label>
+              <Input
+                value={invitePlayerEmail}
+                onChange={(e) => setInvitePlayerEmail(e.target.value)}
+                type="email"
+                placeholder="player@example.com"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setInvitePlayerOpen(false); setInvitePlayerTarget(null) }}>{copy('Cancel', 'Avbryt')}</Button>
+              <Button onClick={handleInvitePlayer} disabled={invitingPlayer}>
+                {invitingPlayer ? copy('Sending...', 'Skickar...') : copy('Send invite', 'Skicka inbjudan')}
               </Button>
             </div>
           </div>
