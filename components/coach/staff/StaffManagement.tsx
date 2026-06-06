@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select'
 import { UserPlus, Users, Shield, Dumbbell, Heart, Clipboard, Trash2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
-import { invitableRolesFor, type BusinessType } from '@/lib/permissions/assistant-coach'
+import { invitableRolesFor, type BusinessType } from '@/lib/permissions/staff-roles'
 
 interface Team {
   id: string
