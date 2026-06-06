@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { resolveStrengthAssignmentAccess } from '@/lib/strength/assignment-access'
+import { rollupAssignmentProgression } from '@/lib/training-engine/progression/assignment-rollup'
 
 type AppLocale = 'en' | 'sv'
 type WeightUnit = 'kg' | 'percent'
@@ -591,6 +592,17 @@ export async function PUT(
       where: { id: assignmentId },
       data: updateData,
     })
+
+    // Roll this session's logged sets up into ProgressionTracking so the
+    // Progression Dashboard, PR tracking and "most-trained" surfaces populate.
+    // Best-effort: never fail completion if the rollup errors.
+    if (status === 'COMPLETED') {
+      try {
+        await rollupAssignmentProgression(assignmentId)
+      } catch (rollupError) {
+        logError('Progression rollup on completion failed:', rollupError)
+      }
+    }
 
     // Create TrainingLoad entry when workout is completed
     // This ensures strength workouts contribute to weekly load ("Veckobelastning")
