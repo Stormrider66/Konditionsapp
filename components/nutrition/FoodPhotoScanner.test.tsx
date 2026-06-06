@@ -53,6 +53,7 @@ describe('FoodPhotoScanner', () => {
   let refineRequestBody: Record<string, unknown> | null
   let refineResponse: Record<string, unknown>
   let recipeRequestBody: Record<string, unknown> | null
+  let scanRequestFormData: Record<string, string> | null
 
   beforeAll(() => {
     Object.defineProperty(URL, 'createObjectURL', {
@@ -114,6 +115,7 @@ describe('FoodPhotoScanner', () => {
     vi.clearAllMocks()
     refineRequestBody = null
     recipeRequestBody = null
+    scanRequestFormData = null
     refineResponse = {
       result: {
         success: true,
@@ -151,12 +153,48 @@ describe('FoodPhotoScanner', () => {
         const url = typeof input === 'string' ? input : input.toString()
 
         if (url === '/api/ai/food-scan') {
+          if (init?.body instanceof FormData) {
+            scanRequestFormData = {}
+            for (const [key, value] of init.body.entries()) {
+              if (typeof value === 'string') scanRequestFormData[key] = value
+            }
+          }
           return {
             ok: true,
             status: 200,
             json: async () => ({
               result: baseAnalysisResult,
               enhancedMode: false,
+            }),
+          } as Response
+        }
+
+        if (url === '/api/nutrition/recipes' && (!init?.method || init.method === 'GET')) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              success: true,
+              data: [
+                {
+                  id: 'recipe_blood_pancake',
+                  name: 'Blodpannkaka',
+                  baseServings: 1,
+                  updatedAt: '2026-06-06T12:00:00.000Z',
+                  items: [
+                    {
+                      id: 'ingredient_1',
+                      name: 'Blodpannkaka',
+                      grams: 200,
+                      caloriesPer100g: 210,
+                      proteinPer100g: 11,
+                      carbsPer100g: 18,
+                      fatPer100g: 8,
+                      fiberPer100g: 1,
+                    },
+                  ],
+                },
+              ],
             }),
           } as Response
         }
@@ -353,6 +391,37 @@ describe('FoodPhotoScanner', () => {
         }),
       ])
       expect(screen.getByText(/pasta sparades bland dina recept/i)).toBeInTheDocument()
+    })
+  })
+
+  it('passes selected saved recipe context and amount to the photo scan API', async () => {
+    const user = userEvent.setup()
+
+    const { container } = renderScanner()
+
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
+    expect(fileInput).not.toBeNull()
+
+    const file = new File(['image'], 'meal.png', { type: 'image/png' })
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [file] },
+    })
+
+    await user.click(await screen.findByRole('button', { name: /använd sparat recept/i }))
+    await user.click(await screen.findByRole('button', { name: /blodpannkaka/i }))
+
+    const amountInput = screen.getByLabelText(/mängd/i)
+    await user.clear(amountInput)
+    await user.type(amountInput, '95')
+
+    await user.click(screen.getByRole('button', { name: /analysera måltid/i }))
+
+    await waitFor(() => {
+      expect(scanRequestFormData).toMatchObject({
+        recipeId: 'recipe_blood_pancake',
+        recipeAmount: '95',
+        recipeAmountUnit: 'g',
+      })
     })
   })
 

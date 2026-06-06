@@ -10,10 +10,16 @@ const mockRateLimitJsonResponse = vi.hoisted(() => vi.fn())
 const mockResolveAthleteGoogleKeyContext = vi.hoisted(() => vi.fn())
 const mockBuildFoodMemoryContext = vi.hoisted(() => vi.fn())
 const mockLogAiUsage = vi.hoisted(() => vi.fn())
+const mockCalibratePortions = vi.hoisted(() => vi.fn())
+const mockFetchPortionStats = vi.hoisted(() => vi.fn())
+const mockRecomputeTotals = vi.hoisted(() => vi.fn())
 
 const mockPrisma = vi.hoisted(() => ({
   dietaryPreferences: {
     findUnique: vi.fn(),
+  },
+  nutritionRecipe: {
+    findFirst: vi.fn(),
   },
 }))
 
@@ -86,9 +92,9 @@ vi.mock('@/lib/ai/billing/require-ai-allowance', () => ({
 }))
 
 vi.mock('@/lib/nutrition/portion-calibration', () => ({
-  calibratePortions: vi.fn(),
-  fetchPortionStats: vi.fn(),
-  recomputeTotals: vi.fn(),
+  calibratePortions: mockCalibratePortions,
+  fetchPortionStats: mockFetchPortionStats,
+  recomputeTotals: mockRecomputeTotals,
 }))
 
 import { POST } from './route'
@@ -104,6 +110,16 @@ describe('food scan API route', () => {
     mockRequireFeatureAccess.mockResolvedValue(null)
     mockRequireAiAllowance.mockResolvedValue(null)
     mockRateLimitJsonResponse.mockResolvedValue(null)
+    mockResolveAthleteGoogleKeyContext.mockResolvedValue({ googleKey: 'google-key' })
+    mockCreateGoogleGenerativeAI.mockReturnValue((model: string) => `google:${model}`)
+    mockPrisma.dietaryPreferences.findUnique.mockResolvedValue({
+      enhancedMacroAnalysis: false,
+      memoryEnabled: false,
+    })
+    mockPrisma.nutritionRecipe.findFirst.mockResolvedValue(null)
+    mockFetchPortionStats.mockResolvedValue(new Map())
+    mockCalibratePortions.mockReturnValue({ items: [], snaps: [] })
+    mockRecomputeTotals.mockReturnValue({})
   })
 
   it('blocks exhausted AI credits before parsing the image or calling Gemini', async () => {
@@ -133,5 +149,126 @@ describe('food scan API route', () => {
     expect(mockCreateGoogleGenerativeAI).not.toHaveBeenCalled()
     expect(mockGenerateObject).not.toHaveBeenCalled()
     expect(mockLogAiUsage).not.toHaveBeenCalled()
+  })
+
+  it('injects selected saved recipe context and recalculates the matched recipe item from stored macros', async () => {
+    mockPrisma.nutritionRecipe.findFirst.mockResolvedValue({
+      id: 'recipe-1',
+      name: 'Blodpannkaka',
+      baseServings: 1,
+      items: [
+        {
+          name: 'Blodpannkaka',
+          grams: 100,
+          caloriesPer100g: 200,
+          proteinPer100g: 10,
+          carbsPer100g: 20,
+          fatPer100g: 5,
+          fiberPer100g: 2,
+        },
+        {
+          name: 'Mjölk',
+          grams: 100,
+          caloriesPer100g: 100,
+          proteinPer100g: 5,
+          carbsPer100g: 10,
+          fatPer100g: 1,
+          fiberPer100g: 3,
+        },
+      ],
+    })
+    mockGenerateObject.mockResolvedValue({
+      object: {
+        success: true,
+        items: [
+          {
+            name: 'Blodpannkaka',
+            category: 'GRAIN',
+            estimatedGrams: 100,
+            portionDescription: '1 bit',
+            calories: 999,
+            proteinGrams: 1,
+            carbsGrams: 1,
+            fatGrams: 1,
+            fiberGrams: 1,
+            source: 'SAVED_RECIPE',
+            recipeId: 'recipe-1',
+            recipeName: 'Blodpannkaka',
+          },
+          {
+            name: 'Lingonsylt',
+            category: 'OTHER',
+            estimatedGrams: 30,
+            portionDescription: '2 klickar',
+            calories: 60,
+            proteinGrams: 0.1,
+            carbsGrams: 14.4,
+            fatGrams: 0.1,
+            fiberGrams: 0.3,
+          },
+        ],
+        totals: {
+          calories: 1059,
+          proteinGrams: 1.1,
+          carbsGrams: 15.4,
+          fatGrams: 1.1,
+          fiberGrams: 1.3,
+        },
+        mealDescription: 'Blodpannkaka med lingonsylt',
+        suggestedMealType: 'AFTERNOON_SNACK',
+        confidence: 0.9,
+        notes: [],
+      },
+      usage: { inputTokens: 100, outputTokens: 50 },
+    })
+
+    const formData = new FormData()
+    formData.append('image', new File(['image'], 'meal.png', { type: 'image/png' }))
+    formData.append('recipeId', 'recipe-1')
+    formData.append('recipeAmount', '95')
+    formData.append('recipeAmountUnit', 'g')
+
+    const request = new Request('http://localhost/api/ai/food-scan', {
+      method: 'POST',
+      body: formData,
+    }) as unknown as NextRequest
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(mockPrisma.nutritionRecipe.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'recipe-1', clientId: 'client-1' },
+      })
+    )
+    const content = mockGenerateObject.mock.calls[0][0].messages[0].content as Array<{
+      type: string
+      text?: string
+    }>
+    const prompt = content.find((part) => part.type === 'text')?.text ?? ''
+    expect(prompt).toContain('Blodpannkaka')
+    expect(prompt).toContain('source="SAVED_RECIPE"')
+
+    expect(body.selectedRecipeUsed).toBe(true)
+    expect(body.result.items[0]).toMatchObject({
+      name: 'Blodpannkaka',
+      estimatedGrams: 95,
+      portionDescription: '95 g',
+      calories: 143,
+      proteinGrams: 7.1,
+      carbsGrams: 14.3,
+      fatGrams: 2.9,
+      fiberGrams: 2.4,
+      source: 'SAVED_RECIPE',
+      recipeId: 'recipe-1',
+    })
+    expect(body.result.totals).toMatchObject({
+      calories: 203,
+      proteinGrams: 7.2,
+      carbsGrams: 28.7,
+      fatGrams: 3,
+      fiberGrams: 2.7,
+    })
   })
 })

@@ -39,6 +39,7 @@ import {
   Zap,
   ZapOff,
   Save,
+  BookOpen,
 } from 'lucide-react'
 
 const SESSION_KEY = 'food-scanner-state'
@@ -63,6 +64,13 @@ import {
 import { AiAllowanceBlockedAction, type AiAllowanceAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 import { cn } from '@/lib/utils'
 import { useLocale, useTranslations } from '@/i18n/client'
+import {
+  recipeAmountToGrams,
+  savedRecipeTotalGrams,
+  savedRecipeTotals,
+  scaleSavedRecipeTotals,
+  type RecipeAmountUnit,
+} from '@/lib/nutrition/saved-recipe-scaling'
 
 type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
 
@@ -122,6 +130,86 @@ const foodItemsToRecipeItems = (items: EditableFoodItem[]) =>
       fatPer100g: nutrientPer100g(item.fatGrams, item.estimatedGrams),
       fiberPer100g: nutrientPer100g(item.fiberGrams, item.estimatedGrams),
     }))
+
+interface ScannerSavedRecipeIngredient {
+  id: string
+  name: string
+  grams: number
+  caloriesPer100g: number
+  proteinPer100g: number
+  carbsPer100g: number
+  fatPer100g: number
+  fiberPer100g: number
+}
+
+interface ScannerSavedRecipe {
+  id: string
+  name: string
+  baseServings: number
+  updatedAt: string
+  items: ScannerSavedRecipeIngredient[]
+}
+
+const parsePositiveNumber = (value: string, fallback = 0) => {
+  const parsed = Number.parseFloat(value.replace(',', '.'))
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+const formatDisplayNumber = (value: number) => {
+  if (!Number.isFinite(value)) return '0'
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+const recipeAmountPreview = (
+  recipe: ScannerSavedRecipe,
+  amountValue: string,
+  unit: RecipeAmountUnit,
+  pieceGramsValue: string
+) => {
+  const amount = parsePositiveNumber(amountValue, 0)
+  const pieceGrams = parsePositiveNumber(pieceGramsValue, 0)
+  const grams = recipeAmountToGrams(recipe, amount, unit, pieceGrams)
+  const totals = scaleSavedRecipeTotals(recipe, grams)
+  return { grams, totals }
+}
+
+function scannerRecipeCopy(locale: 'en' | 'sv') {
+  if (locale === 'sv') {
+    return {
+      button: 'Använd sparat recept',
+      title: 'Sparade recept',
+      refresh: 'Uppdatera',
+      loading: 'Hämtar...',
+      empty: 'Inga sparade recept ännu.',
+      amountLabel: 'Mängd',
+      unitLabel: 'Enhet',
+      pieceGramsLabel: 'Gram per styck',
+      selectedPrefix: 'Receptkontext',
+      clear: 'Ta bort',
+      totalGrams: '{grams} g total sats',
+      caloriesForAmount: 'Receptet ger ca {calories} kcal för {grams} g.',
+      fetchError: 'Kunde inte hämta recept',
+      pieceGramsRequired: 'Ange gram per styck för att använda styck.',
+    }
+  }
+
+  return {
+    button: 'Use saved recipe',
+    title: 'Saved recipes',
+    refresh: 'Refresh',
+    loading: 'Loading...',
+    empty: 'No saved recipes yet.',
+    amountLabel: 'Amount',
+    unitLabel: 'Unit',
+    pieceGramsLabel: 'Grams per piece',
+    selectedPrefix: 'Recipe context',
+    clear: 'Remove',
+    totalGrams: '{grams} g full batch',
+    caloriesForAmount: 'Recipe provides about {calories} kcal for {grams} g.',
+    fetchError: 'Could not fetch recipes',
+    pieceGramsRequired: 'Enter grams per piece to use pieces.',
+  }
+}
 
 interface FoodPhotoScannerProps {
   onMealSaved?: (meal: unknown) => void
@@ -222,6 +310,7 @@ export function FoodPhotoScanner({
   const t = useTranslations('components.foodPhotoScanner')
   const locale = useLocale()
   const foodScanLocale = locale === 'sv' ? 'sv' : 'en'
+  const recipeCopy = scannerRecipeCopy(foodScanLocale)
   const router = useRouter()
   const fileInputId = useId()
   const cameraInputId = useId()
@@ -266,6 +355,15 @@ export function FoodPhotoScanner({
   const [isSavingRecipe, setIsSavingRecipe] = useState(false)
   const [recipeSaveMessage, setRecipeSaveMessage] = useState<string | null>(null)
   const [recipeSaveError, setRecipeSaveError] = useState<string | null>(null)
+  const [savedRecipes, setSavedRecipes] = useState<ScannerSavedRecipe[]>([])
+  const [savedRecipesLoaded, setSavedRecipesLoaded] = useState(false)
+  const [savedRecipesOpen, setSavedRecipesOpen] = useState(false)
+  const [loadingSavedRecipes, setLoadingSavedRecipes] = useState(false)
+  const [savedRecipeError, setSavedRecipeError] = useState<string | null>(null)
+  const [selectedRecipeId, setSelectedRecipeId] = useState<string | null>(null)
+  const [recipeAmount, setRecipeAmount] = useState('100')
+  const [recipeAmountUnit, setRecipeAmountUnit] = useState<RecipeAmountUnit>('g')
+  const [recipePieceGrams, setRecipePieceGrams] = useState('')
 
   // Pre-analysis context (user-provided hints before scanning)
   const [userContext, setUserContext] = useState('')
@@ -297,6 +395,11 @@ export function FoodPhotoScanner({
   const initialAiItemsRef = useRef<unknown[] | null>(null)
   const initialAiConfidenceRef = useRef<number | null>(null)
   const refinedRef = useRef(false)
+
+  const selectedRecipe = savedRecipes.find((recipe) => recipe.id === selectedRecipeId) ?? null
+  const selectedRecipePreview = selectedRecipe
+    ? recipeAmountPreview(selectedRecipe, recipeAmount, recipeAmountUnit, recipePieceGrams)
+    : null
 
   const revokePreviewUrl = useCallback(() => {
     if (previewUrlRef.current?.startsWith('blob:')) {
@@ -467,8 +570,48 @@ export function FoodPhotoScanner({
     event.target.value = ''
   }, [normalizeSelectedImage, setSelectedImage, clearSessionStorage, clearError, showError, t])
 
+  const loadSavedRecipes = async () => {
+    if (loadingSavedRecipes) return
+    setSavedRecipeError(null)
+    setLoadingSavedRecipes(true)
+    try {
+      const res = await fetch('/api/nutrition/recipes')
+      const payload = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(payload?.error || recipeCopy.fetchError)
+      }
+      setSavedRecipes((payload?.data ?? []) as ScannerSavedRecipe[])
+      setSavedRecipesLoaded(true)
+    } catch (err) {
+      setSavedRecipeError(err instanceof Error ? err.message : recipeCopy.fetchError)
+    } finally {
+      setLoadingSavedRecipes(false)
+    }
+  }
+
+  const toggleSavedRecipes = () => {
+    const nextOpen = !savedRecipesOpen
+    setSavedRecipesOpen(nextOpen)
+    if (nextOpen && !savedRecipesLoaded) void loadSavedRecipes()
+  }
+
+  const chooseSavedRecipe = (recipe: ScannerSavedRecipe) => {
+    setSelectedRecipeId(recipe.id)
+    setRecipeAmount('100')
+    setRecipeAmountUnit('g')
+    setRecipePieceGrams('')
+    setSavedRecipeError(null)
+    setSavedRecipesOpen(false)
+  }
+
   const handleAnalyze = async () => {
     if (!imageFile) return
+
+    if (selectedRecipe && recipeAmountUnit === 'st' && parsePositiveNumber(recipePieceGrams, 0) <= 0) {
+      showError(recipeCopy.pieceGramsRequired)
+      setSavedRecipesOpen(true)
+      return
+    }
 
     setStep('ANALYZING')
     clearError()
@@ -481,6 +624,14 @@ export function FoodPhotoScanner({
       formData.append('clientDayOfWeek', String(now.getDay()))
       if (userContext.trim()) {
         formData.append('context', userContext.trim())
+      }
+      if (selectedRecipe) {
+        formData.append('recipeId', selectedRecipe.id)
+        formData.append('recipeAmount', recipeAmount)
+        formData.append('recipeAmountUnit', recipeAmountUnit)
+        if (recipePieceGrams.trim()) {
+          formData.append('recipePieceGrams', recipePieceGrams.trim())
+        }
       }
 
       const response = await fetch('/api/ai/food-scan', {
@@ -688,6 +839,11 @@ export function FoodPhotoScanner({
       }
 
       const savedName = typeof data?.data?.name === 'string' ? data.data.name : t('recipe.defaultName')
+      if (data?.data?.id) {
+        const savedRecipe = data.data as ScannerSavedRecipe
+        setSavedRecipes((prev) => [savedRecipe, ...prev.filter((recipe) => recipe.id !== savedRecipe.id)])
+        setSavedRecipesLoaded(true)
+      }
       setRecipeSaveMessage(t('recipe.saved', { name: savedName }))
     } catch (err) {
       setRecipeSaveError(err instanceof Error ? err.message : t('errors.saveRecipe'))
@@ -715,6 +871,12 @@ export function FoodPhotoScanner({
     setIsSavingRecipe(false)
     setRecipeSaveMessage(null)
     setRecipeSaveError(null)
+    setSavedRecipesOpen(false)
+    setSavedRecipeError(null)
+    setSelectedRecipeId(null)
+    setRecipeAmount('100')
+    setRecipeAmountUnit('g')
+    setRecipePieceGrams('')
     initialAiItemsRef.current = null
     initialAiConfidenceRef.current = null
     refinedRef.current = false
@@ -1091,6 +1253,155 @@ export function FoodPhotoScanner({
                   </Button>
                 </div>
               )}
+              <div className="space-y-2 rounded-lg border border-slate-200 bg-white/70 p-3 dark:border-white/10 dark:bg-white/5">
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="min-w-0 flex-1 justify-start gap-2 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+                    onClick={toggleSavedRecipes}
+                  >
+                    {loadingSavedRecipes ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                      <BookOpen className="h-4 w-4 shrink-0" />
+                    )}
+                    <span className="truncate">
+                      {selectedRecipe
+                        ? `${recipeCopy.selectedPrefix}: ${selectedRecipe.name}`
+                        : recipeCopy.button}
+                    </span>
+                  </Button>
+                  {selectedRecipe && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 shrink-0 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      aria-label={recipeCopy.clear}
+                      onClick={() => {
+                        setSelectedRecipeId(null)
+                        setSavedRecipeError(null)
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {selectedRecipe && (
+                  <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-black/20">
+                    <div className="grid grid-cols-[minmax(0,1fr)_minmax(5.75rem,auto)] gap-2">
+                      <div className="min-w-0">
+                        <label className={scannerMicroLabelClass}>{recipeCopy.amountLabel}</label>
+                        <Input
+                          type="number"
+                          min="0.1"
+                          step={recipeAmountUnit === 'portion' ? '0.25' : recipeAmountUnit === 'st' ? '0.5' : '1'}
+                          value={recipeAmount}
+                          onChange={(event) => setRecipeAmount(event.target.value)}
+                          className={cn(scannerControlClass, 'h-9 text-sm')}
+                          aria-label={recipeCopy.amountLabel}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <label className={scannerMicroLabelClass}>{recipeCopy.unitLabel}</label>
+                        <select
+                          value={recipeAmountUnit}
+                          onChange={(event) => {
+                            setRecipeAmountUnit(event.target.value as RecipeAmountUnit)
+                            setSavedRecipeError(null)
+                          }}
+                          className="h-9 w-full rounded-md border border-slate-200 bg-white px-2 text-sm text-slate-900 shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
+                          aria-label={recipeCopy.unitLabel}
+                        >
+                          <option value="g">g</option>
+                          <option value="st">st</option>
+                          <option value="portion">portion</option>
+                          <option value="ml">ml</option>
+                          <option value="dl">dl</option>
+                        </select>
+                      </div>
+                    </div>
+                    {recipeAmountUnit === 'st' && (
+                      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+                        <div className="min-w-0">
+                          <label className={scannerMicroLabelClass}>{recipeCopy.pieceGramsLabel}</label>
+                          <Input
+                            type="number"
+                            min="1"
+                            step="1"
+                            inputMode="numeric"
+                            value={recipePieceGrams}
+                            onChange={(event) => {
+                              setRecipePieceGrams(event.target.value)
+                              setSavedRecipeError(null)
+                            }}
+                            className={cn(scannerControlClass, 'h-9 text-sm')}
+                            aria-label={recipeCopy.pieceGramsLabel}
+                          />
+                        </div>
+                        <span className="pb-2 text-xs text-slate-500 dark:text-slate-400">g/st</span>
+                      </div>
+                    )}
+                    {selectedRecipePreview && selectedRecipePreview.grams > 0 && (
+                      <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                        {recipeCopy.caloriesForAmount
+                          .replace('{calories}', String(selectedRecipePreview.totals.calories))
+                          .replace('{grams}', formatDisplayNumber(roundTo(selectedRecipePreview.grams, 1)))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {savedRecipesOpen && (
+                  <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2 dark:border-white/10 dark:bg-black/20">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="text-xs font-medium text-slate-800 dark:text-slate-100">{recipeCopy.title}</div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => void loadSavedRecipes()}
+                        disabled={loadingSavedRecipes}
+                      >
+                        {loadingSavedRecipes ? recipeCopy.loading : recipeCopy.refresh}
+                      </Button>
+                    </div>
+                    {savedRecipeError && <div className="text-xs text-red-500">{savedRecipeError}</div>}
+                    {!savedRecipeError && savedRecipesLoaded && savedRecipes.length === 0 && (
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{recipeCopy.empty}</div>
+                    )}
+                    <div className="max-h-48 space-y-1.5 overflow-y-auto overscroll-contain">
+                      {savedRecipes.map((recipe) => {
+                        const totals = savedRecipeTotals(recipe)
+                        const totalGrams = savedRecipeTotalGrams(recipe)
+                        const active = recipe.id === selectedRecipeId
+                        return (
+                          <button
+                            key={recipe.id}
+                            type="button"
+                            className={cn(
+                              'w-full min-w-0 rounded-md border px-3 py-2 text-left text-sm transition-colors',
+                              active
+                                ? 'border-cyan-400/50 bg-cyan-400/10 text-slate-950 dark:text-white'
+                                : 'border-slate-200 bg-white text-slate-800 hover:bg-slate-100 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10'
+                            )}
+                            onClick={() => chooseSavedRecipe(recipe)}
+                          >
+                            <div className="truncate font-medium">{recipe.name}</div>
+                            <div className="truncate text-xs text-slate-500 dark:text-slate-400">
+                              {Math.round(totals.calories)} kcal · {recipeCopy.totalGrams.replace('{grams}', String(Math.round(totalGrams)))}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
               {/* Pre-analysis context — user can provide hints */}
               <div className="space-y-2">
                 <button

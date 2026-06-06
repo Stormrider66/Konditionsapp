@@ -13,7 +13,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { GEMINI_MODELS, GEMINI_PRICING, getGeminiThinkingOptions } from '@/lib/ai/gemini-config'
-import { FoodPhotoAnalysisSchema } from '@/lib/validations/gemini-schemas'
+import { FoodPhotoAnalysisSchema, type FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
 import { logger } from '@/lib/logger'
@@ -27,6 +27,13 @@ import {
   recomputeTotals,
   type PortionSnap,
 } from '@/lib/nutrition/portion-calibration'
+import {
+  recipeAmountToGrams,
+  savedRecipeTotalGrams,
+  savedRecipeTotals,
+  scaleSavedRecipeTotals,
+  type RecipeAmountUnit,
+} from '@/lib/nutrition/saved-recipe-scaling'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export const runtime = 'nodejs'
@@ -34,6 +41,7 @@ export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
 const MEMORY_CONFIDENCE_THRESHOLD = 0.75
+const RECIPE_AMOUNT_UNITS = new Set<RecipeAmountUnit>(['g', 'ml', 'dl', 'st', 'portion'])
 
 const WEEKDAY_LABEL_SV = [
   'söndag',
@@ -64,6 +72,7 @@ function buildPrompt({
   clientDayOfWeek,
   enhancedMode,
   memoryContext,
+  savedRecipeContext,
   userContext,
   locale,
 }: {
@@ -71,6 +80,7 @@ function buildPrompt({
   clientDayOfWeek: number | null
   enhancedMode: boolean
   memoryContext: string | null
+  savedRecipeContext: string | null
   userContext: string | null
   locale: AppLocale
 }) {
@@ -87,6 +97,7 @@ function buildPrompt({
       : ''
 
   const memoryBlock = memoryContext ? `${memoryContext}\n\n` : ''
+  const recipeBlock = savedRecipeContext ? `${savedRecipeContext}\n\n` : ''
 
   const userContextBlock = userContext
     ? locale === 'sv'
@@ -104,7 +115,7 @@ function buildPrompt({
   return `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.
 Skriv alla användarsynliga namn, portionsbeskrivningar, måltidsbeskrivningar och anteckningar på ${outputLanguage}.
 
-${timeLine}${memoryBlock}${userContextBlock}INSTRUKTIONER:
+${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}INSTRUKTIONER:
 1. Identifiera varje separat matvara/ingrediens i bilden
 2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
 3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
@@ -125,7 +136,7 @@ VIKTIGT:
   return `You are a nutrition and food-identification expert. Analyze this meal photo and estimate calories and macronutrients.
 Write all user-facing item names, portion descriptions, meal descriptions, and notes in ${outputLanguage}. Memory context may contain Swedish food names or correction notes; use it for calibration, but keep the final user-facing output in ${outputLanguage}.
 
-${timeLine}${memoryBlock}${userContextBlock}INSTRUCTIONS:
+${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}INSTRUCTIONS:
 1. Identify each separate food item or ingredient in the image
 2. Estimate portion size in grams and describe the portion in English (for example "1 slice", "2 dl", "1 serving")
 3. Calculate calories and macros (protein, carbohydrates, fat, fiber) per food item
@@ -152,6 +163,238 @@ function estimateFoodScanCost(
   if (!pricing) return 0
   // GEMINI_PRICING is per 1K tokens
   return (inputTokens / 1000) * pricing.input + (outputTokens / 1000) * pricing.output
+}
+
+type SelectedSavedRecipe = {
+  id: string
+  name: string
+  baseServings: number
+  items: Array<{
+    name: string
+    grams: number
+    caloriesPer100g: number
+    proteinPer100g: number
+    carbsPer100g: number
+    fatPer100g: number
+    fiberPer100g: number
+  }>
+}
+
+type SelectedRecipeContext = {
+  recipe: SelectedSavedRecipe
+  amountGrams: number | null
+  amountLabel: string | null
+  text: string
+}
+
+function parsePositiveNumber(value: FormDataEntryValue | null): number | null {
+  if (value == null) return null
+  const parsed = Number.parseFloat(String(value).replace(',', '.'))
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function parseRecipeAmountUnit(value: FormDataEntryValue | null): RecipeAmountUnit | null {
+  const unit = String(value || '').trim() as RecipeAmountUnit
+  return RECIPE_AMOUNT_UNITS.has(unit) ? unit : null
+}
+
+function roundOne(value: number): number {
+  return Math.round((value + 1e-9) * 10) / 10
+}
+
+function formatAmountLabel(
+  amount: number,
+  unit: RecipeAmountUnit,
+  pieceGrams: number | null,
+  locale: AppLocale
+): string {
+  if (unit === 'st') {
+    const suffix = pieceGrams
+      ? locale === 'sv'
+        ? ` (${roundOne(pieceGrams)} g/st)`
+        : ` (${roundOne(pieceGrams)} g each)`
+      : ''
+    return `${roundOne(amount)} st${suffix}`
+  }
+  if (unit === 'portion') {
+    return locale === 'sv'
+      ? `${roundOne(amount)} portion${amount === 1 ? '' : 'er'}`
+      : `${roundOne(amount)} portion${amount === 1 ? '' : 's'}`
+  }
+  return `${roundOne(amount)} ${unit}`
+}
+
+function buildSavedRecipePromptContext({
+  recipe,
+  amountGrams,
+  amountLabel,
+  locale,
+}: {
+  recipe: SelectedSavedRecipe
+  amountGrams: number | null
+  amountLabel: string | null
+  locale: AppLocale
+}): string {
+  const totalGrams = savedRecipeTotalGrams(recipe)
+  const totals = savedRecipeTotals(recipe)
+  const selectedTotals = amountGrams ? scaleSavedRecipeTotals(recipe, amountGrams) : null
+  const ingredients = recipe.items
+    .slice(0, 20)
+    .map((item) => `- ${item.name}: ${roundOne(item.grams)} g`)
+    .join('\n')
+
+  if (locale === 'sv') {
+    return `SPARAT RECEPT SOM ANVÄNDAREN VILL ANVÄNDA SOM KONTEXT:
+- Recept: ${recipe.name}
+- recipeId: ${recipe.id}
+- Hel sats: ${roundOne(totalGrams)} g, ${Math.round(totals.calories)} kcal, protein ${roundOne(totals.proteinGrams)} g, kolhydrater ${roundOne(totals.carbsGrams)} g, fett ${roundOne(totals.fatGrams)} g, fiber ${roundOne(totals.fiberGrams)} g
+${amountGrams && amountLabel && selectedTotals ? `- Användaren loggar: ${amountLabel} = ${roundOne(amountGrams)} g av receptet. Om bilden innehåller detta recept, använd EXAKT dessa receptmakron för recept-delen: ${selectedTotals.calories} kcal, protein ${selectedTotals.proteinGrams} g, kolhydrater ${selectedTotals.carbsGrams} g, fett ${selectedTotals.fatGrams} g, fiber ${selectedTotals.fiberGrams} g.` : '- Om bilden innehåller detta recept, uppskatta synlig mängd i gram och använd receptets näringsvärden proportionellt.'}
+- Ingredienser i hela receptet:
+${ingredients}
+
+VIKTIGT: Om maten på bilden matchar detta sparade recept, returnera den raden med source="SAVED_RECIPE", recipeId="${recipe.id}" och recipeName="${recipe.name}". Andra livsmedel på bilden (t.ex. sylt, smör, sås) ska uppskattas som separata AI_ESTIMATE-rader. Om bilden tydligt visar något annat, använd inte receptet.`
+  }
+
+  return `SAVED RECIPE THE USER WANTS TO USE AS CONTEXT:
+- Recipe: ${recipe.name}
+- recipeId: ${recipe.id}
+- Full batch: ${roundOne(totalGrams)} g, ${Math.round(totals.calories)} kcal, protein ${roundOne(totals.proteinGrams)} g, carbs ${roundOne(totals.carbsGrams)} g, fat ${roundOne(totals.fatGrams)} g, fiber ${roundOne(totals.fiberGrams)} g
+${amountGrams && amountLabel && selectedTotals ? `- User is logging: ${amountLabel} = ${roundOne(amountGrams)} g of the recipe. If the image contains this recipe, use EXACTLY these recipe macros for the recipe part: ${selectedTotals.calories} kcal, protein ${selectedTotals.proteinGrams} g, carbs ${selectedTotals.carbsGrams} g, fat ${selectedTotals.fatGrams} g, fiber ${selectedTotals.fiberGrams} g.` : "- If the image contains this recipe, estimate the visible amount in grams and use the recipe's nutrition proportionally."}
+- Ingredients in the full recipe:
+${ingredients}
+
+IMPORTANT: If the food in the image matches this saved recipe, return that row with source="SAVED_RECIPE", recipeId="${recipe.id}", and recipeName="${recipe.name}". Other foods in the image (for example jam, butter, sauce) should be estimated as separate AI_ESTIMATE rows. If the image clearly shows something else, do not use the recipe.`
+}
+
+function normalizeName(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9åäö\s]/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function findSavedRecipeItemIndex(
+  items: FoodPhotoAnalysisResult['items'],
+  recipe: SelectedSavedRecipe
+): number {
+  const explicit = items.findIndex((item) => item.source === 'SAVED_RECIPE' || item.recipeId === recipe.id)
+  if (explicit >= 0) return explicit
+
+  const recipeName = normalizeName(recipe.name)
+  if (!recipeName) return -1
+
+  return items.findIndex((item) => {
+    const itemName = normalizeName(item.name)
+    return itemName.includes(recipeName) || recipeName.includes(itemName)
+  })
+}
+
+function recomputeFoodScanTotals(items: FoodPhotoAnalysisResult['items']): FoodPhotoAnalysisResult['totals'] {
+  return items.reduce<FoodPhotoAnalysisResult['totals']>(
+    (acc, item) => ({
+      calories: acc.calories + item.calories,
+      proteinGrams: roundOne(acc.proteinGrams + item.proteinGrams),
+      carbsGrams: roundOne(acc.carbsGrams + item.carbsGrams),
+      fatGrams: roundOne(acc.fatGrams + item.fatGrams),
+      fiberGrams: roundOne(acc.fiberGrams + item.fiberGrams),
+      saturatedFatGrams:
+        item.saturatedFatGrams != null
+          ? roundOne((acc.saturatedFatGrams ?? 0) + item.saturatedFatGrams)
+          : acc.saturatedFatGrams,
+      monounsaturatedFatGrams:
+        item.monounsaturatedFatGrams != null
+          ? roundOne((acc.monounsaturatedFatGrams ?? 0) + item.monounsaturatedFatGrams)
+          : acc.monounsaturatedFatGrams,
+      polyunsaturatedFatGrams:
+        item.polyunsaturatedFatGrams != null
+          ? roundOne((acc.polyunsaturatedFatGrams ?? 0) + item.polyunsaturatedFatGrams)
+          : acc.polyunsaturatedFatGrams,
+      sugarGrams:
+        item.sugarGrams != null ? roundOne((acc.sugarGrams ?? 0) + item.sugarGrams) : acc.sugarGrams,
+      complexCarbsGrams:
+        item.complexCarbsGrams != null
+          ? roundOne((acc.complexCarbsGrams ?? 0) + item.complexCarbsGrams)
+          : acc.complexCarbsGrams,
+    }),
+    {
+      calories: 0,
+      proteinGrams: 0,
+      carbsGrams: 0,
+      fatGrams: 0,
+      fiberGrams: 0,
+      saturatedFatGrams: undefined,
+      monounsaturatedFatGrams: undefined,
+      polyunsaturatedFatGrams: undefined,
+      sugarGrams: undefined,
+      complexCarbsGrams: undefined,
+    }
+  )
+}
+
+function applySavedRecipeNutrition({
+  result,
+  context,
+  locale,
+}: {
+  result: FoodPhotoAnalysisResult
+  context: SelectedRecipeContext | null
+  locale: AppLocale
+}): { result: FoodPhotoAnalysisResult; applied: boolean } {
+  if (!context || !result.success || result.items.length === 0) {
+    return { result, applied: false }
+  }
+
+  const index = findSavedRecipeItemIndex(result.items, context.recipe)
+  if (index < 0) return { result, applied: false }
+
+  const originalItem = result.items[index]
+  const grams = context.amountGrams && context.amountGrams > 0
+    ? context.amountGrams
+    : originalItem.estimatedGrams
+  const scaled = scaleSavedRecipeTotals(context.recipe, grams)
+  const portionDescription =
+    context.amountLabel ||
+    originalItem.portionDescription ||
+    (locale === 'sv'
+      ? `${roundOne(grams)} g av sparat recept`
+      : `${roundOne(grams)} g of saved recipe`)
+
+  const items = result.items.map((item, itemIndex) =>
+    itemIndex === index
+      ? {
+          ...item,
+          name: context.recipe.name,
+          estimatedGrams: roundOne(grams),
+          portionDescription,
+          calories: scaled.calories,
+          proteinGrams: scaled.proteinGrams,
+          carbsGrams: scaled.carbsGrams,
+          fatGrams: scaled.fatGrams,
+          fiberGrams: scaled.fiberGrams,
+          source: 'SAVED_RECIPE' as const,
+          recipeId: context.recipe.id,
+          recipeName: context.recipe.name,
+        }
+      : item
+  )
+
+  return {
+    result: {
+      ...result,
+      items,
+      totals: recomputeFoodScanTotals(items),
+      notes: [
+        ...(result.notes ?? []),
+        locale === 'sv'
+          ? `Näringsvärden för ${context.recipe.name} beräknades från ditt sparade recept.`
+          : `Nutrition for ${context.recipe.name} was calculated from your saved recipe.`,
+      ],
+    },
+    applied: true,
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -196,6 +439,10 @@ export async function POST(request: NextRequest) {
       : null
 
     const userContext = (formData.get('context') as string | null)?.trim() || null
+    const selectedRecipeId = (formData.get('recipeId') as string | null)?.trim() || null
+    const selectedRecipeAmount = parsePositiveNumber(formData.get('recipeAmount'))
+    const selectedRecipeAmountUnit = parseRecipeAmountUnit(formData.get('recipeAmountUnit'))
+    const selectedRecipePieceGrams = parsePositiveNumber(formData.get('recipePieceGrams'))
 
     if (!imageFile) {
       return NextResponse.json(
@@ -281,6 +528,68 @@ export async function POST(request: NextRequest) {
     const enhancedMode = prefs?.enhancedMacroAnalysis ?? false
     const memoryEnabled = prefs?.memoryEnabled ?? true
 
+    let selectedRecipeContext: SelectedRecipeContext | null = null
+    if (selectedRecipeId) {
+      const recipe = await prisma.nutritionRecipe.findFirst({
+        where: { id: selectedRecipeId, clientId },
+        select: {
+          id: true,
+          name: true,
+          baseServings: true,
+          items: {
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              name: true,
+              grams: true,
+              caloriesPer100g: true,
+              proteinPer100g: true,
+              carbsPer100g: true,
+              fatPer100g: true,
+              fiberPer100g: true,
+            },
+          },
+        },
+      })
+
+      if (!recipe) {
+        return NextResponse.json(
+          { error: t(locale, 'Saved recipe not found', 'Det sparade receptet hittades inte') },
+          { status: 404 }
+        )
+      }
+
+      const amountGrams =
+        selectedRecipeAmount && selectedRecipeAmountUnit
+          ? recipeAmountToGrams(
+              recipe,
+              selectedRecipeAmount,
+              selectedRecipeAmountUnit,
+              selectedRecipePieceGrams ?? 0
+            )
+          : 0
+      const amountLabel =
+        selectedRecipeAmount && selectedRecipeAmountUnit
+          ? formatAmountLabel(
+              selectedRecipeAmount,
+              selectedRecipeAmountUnit,
+              selectedRecipePieceGrams,
+              locale
+            )
+          : null
+
+      selectedRecipeContext = {
+        recipe,
+        amountGrams: amountGrams > 0 ? amountGrams : null,
+        amountLabel,
+        text: buildSavedRecipePromptContext({
+          recipe,
+          amountGrams: amountGrams > 0 ? amountGrams : null,
+          amountLabel,
+          locale,
+        }),
+      }
+    }
+
     // Convert file to base64
     const arrayBuffer = await imageFile.arrayBuffer()
     const base64 = Buffer.from(arrayBuffer).toString('base64')
@@ -299,6 +608,7 @@ export async function POST(request: NextRequest) {
       clientDayOfWeek,
       enhancedMode,
       memoryContext: null,
+      savedRecipeContext: selectedRecipeContext?.text ?? null,
       userContext,
       locale,
     })
@@ -349,6 +659,7 @@ export async function POST(request: NextRequest) {
           clientDayOfWeek,
           enhancedMode,
           memoryContext: memory.text,
+          savedRecipeContext: selectedRecipeContext?.text ?? null,
           userContext,
           locale,
         })
@@ -413,6 +724,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const savedRecipeApplication = applySavedRecipeNutrition({
+      result: finalResult,
+      context: selectedRecipeContext,
+      locale,
+    })
+    finalResult = savedRecipeApplication.result
+    const savedRecipeUsed = savedRecipeApplication.applied
+
     // Log cost (fire-and-forget; do not block the response on logging failure)
     const estimatedCost = estimateFoodScanCost(modelName, inputTokens, outputTokens)
     logAiUsage({
@@ -437,6 +756,8 @@ export async function POST(request: NextRequest) {
         memoryCorrectionsConsidered,
         memoryCorrectionHintsIncluded,
         portionSnapCount: portionSnaps.length,
+        selectedRecipeId,
+        savedRecipeUsed,
       })
     }
 
@@ -450,6 +771,8 @@ export async function POST(request: NextRequest) {
       memoryCorrectionsConsidered,
       memoryCorrectionHintsIncluded,
       portionSnaps,
+      selectedRecipeUsed: savedRecipeUsed,
+      selectedRecipeName: savedRecipeUsed ? selectedRecipeContext?.recipe.name : null,
       generatedAt: new Date().toISOString(),
     })
   } catch (error) {

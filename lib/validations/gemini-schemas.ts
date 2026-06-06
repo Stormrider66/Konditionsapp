@@ -441,6 +441,9 @@ export const FoodPhotoAnalysisSchema = z.object({
       complexCarbsGrams: z.number().optional().describe('Complex carbs (starch) in grams'),
       isCompleteProtein: z.boolean().optional().describe('Whether this item is a complete protein source'),
       proteinSource: z.enum(['ANIMAL', 'PLANT', 'MIXED', 'UNKNOWN']).optional().describe('Primary protein source type'),
+      source: z.enum(['AI_ESTIMATE', 'SAVED_RECIPE']).optional().describe('Whether this item came from AI estimation or an explicitly selected saved recipe'),
+      recipeId: z.string().optional().describe('Saved recipe id when source is SAVED_RECIPE'),
+      recipeName: z.string().optional().describe('Saved recipe name when source is SAVED_RECIPE'),
     })
   ),
 
