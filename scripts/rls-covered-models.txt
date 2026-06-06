@@ -1,6 +1,7 @@
 AIBriefing
 AICanvas
 AICanvasBlock
+AIActionDraft
 AIAllowanceAccount
 AIConversation
 AIFeedbackLoop
