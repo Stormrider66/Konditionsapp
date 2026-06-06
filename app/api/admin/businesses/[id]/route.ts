@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
+import { FeatureFlag, Prisma } from '@prisma/client'
 import { requireAdminRole } from '@/lib/auth-utils'
 import { handleApiError } from '@/lib/api-error'
 import { z } from 'zod'
@@ -71,6 +71,20 @@ export async function GET(
             endDate: true,
           },
         },
+        features: {
+          where: {
+            feature: FeatureFlag.AI_ASSISTANT_OPERATIONS,
+          },
+          select: {
+            id: true,
+            feature: true,
+            isEnabled: true,
+            enabledAt: true,
+            expiresAt: true,
+            usageLimit: true,
+            usageCount: true,
+          },
+        },
         _count: {
           select: {
             members: true,
@@ -92,7 +106,13 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: business,
+      data: {
+        ...business,
+        aiAssistantOperationsEnabled: business.features.some((feature) => {
+          if (!feature.isEnabled) return false
+          return !feature.expiresAt || feature.expiresAt > new Date()
+        }),
+      },
     })
   } catch (error) {
     return handleApiError(error, 'GET /api/admin/businesses/[id]')

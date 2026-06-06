@@ -16,11 +16,13 @@ import {
   RefreshCw,
   ExternalLink,
   UserPlus,
+  Bot,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useLocale } from 'next-intl';
 import { BusinessMembersManager } from './BusinessMembersManager';
 import { PartnerReferralsTab } from './PartnerReferralsTab';
+import { AIActionHistoryPanel } from './AIActionHistoryPanel';
 
 interface BusinessDetail {
   id: string;
@@ -37,8 +39,18 @@ interface BusinessDetail {
   primaryColor?: string | null;
   defaultRevenueShare: number;
   isActive: boolean;
+  aiAssistantOperationsEnabled: boolean;
   createdAt: string;
   updatedAt: string;
+  features: Array<{
+    id: string;
+    feature: string;
+    isEnabled: boolean;
+    enabledAt?: string | null;
+    expiresAt?: string | null;
+    usageLimit: number;
+    usageCount: number;
+  }>;
   members: Array<{
     id: string;
     role: string;
@@ -117,6 +129,14 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
     onUpdate?.();
   };
 
+  const handleAiOperationsChange = (enabled: boolean) => {
+    setBusiness((current) => current
+      ? { ...current, aiAssistantOperationsEnabled: enabled }
+      : current
+    );
+    onUpdate?.();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -149,10 +169,14 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
   return (
     <div className="mt-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="members">Members ({business._count.members})</TabsTrigger>
           <TabsTrigger value="locations">Locations ({business._count.locations})</TabsTrigger>
+          <TabsTrigger value="ai" className="flex items-center gap-1">
+            <Bot className="h-3 w-3" />
+            AI Ops
+          </TabsTrigger>
           <TabsTrigger value="referrals" className="flex items-center gap-1">
             <UserPlus className="h-3 w-3" />
             Referrals
@@ -366,6 +390,16 @@ export function BusinessDetailPanel({ businessId, onUpdate }: BusinessDetailPane
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* AI Operations Tab */}
+        <TabsContent value="ai" className="mt-4">
+          <AIActionHistoryPanel
+            key={business.id}
+            businessId={business.id}
+            initialEnabled={business.aiAssistantOperationsEnabled}
+            onEnabledChange={handleAiOperationsChange}
+          />
         </TabsContent>
 
         {/* Referrals Tab */}
