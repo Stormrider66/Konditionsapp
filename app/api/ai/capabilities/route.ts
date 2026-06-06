@@ -6,6 +6,7 @@ import { getStaffPermissions } from '@/lib/permissions/assistant-coach'
 import {
   getAvailableAiCapabilities,
 } from '@/lib/ai/capabilities/registry'
+import { summarizeAiCapabilitiesForDiscovery } from '@/lib/ai/capabilities/discovery'
 import { isAiAssistantOperationsEnabled } from '@/lib/ai/capabilities/feature-gate'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         operationsEnabled,
+        summary: summarizeAiCapabilitiesForDiscovery(capabilities),
         capabilities,
       })
     }
@@ -105,6 +107,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       operationsEnabled,
+      summary: summarizeAiCapabilitiesForDiscovery(capabilities),
       capabilities,
     })
   } catch (error) {

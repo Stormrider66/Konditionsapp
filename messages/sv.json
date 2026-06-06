@@ -3522,6 +3522,9 @@
           "daysRemaining": "{days} dagar kvar",
           "blockActive": "{block} är aktiv",
           "blockVisibleDescription": "Blocket syns för coach och atlet även innan alla pass är inlagda.",
+          "teamPlanMeta": "Lagplan · {team}",
+          "teamPlanActive": "Lagplan: {block}",
+          "teamPlanDescription": "Följer lagplanen — lägg till ett individuellt block för att anpassa.",
           "startsIn": "Startar om {days} dagar",
           "workoutLogging": "Träningsloggning",
           "logsReady": "Redo för feedback",
@@ -16103,6 +16106,9 @@
         "greeting": "Hej!",
         "greetingWithName": "Hej, {name}!",
         "description": "Jag är din AI-träningsassistent. Jag kan hjälpa dig förstå din träning, förklara pass och analysera dina data."
+      },
+      "quickPrompts": {
+        "capabilities": "Vad kan du göra?"
       },
       "programError": {
         "title": "Programgenereringen kunde inte startas",

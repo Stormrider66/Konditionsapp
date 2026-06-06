@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { Button } from '@/components/ui/button'
@@ -76,6 +76,11 @@ import {
 } from '@/lib/ai/realtime-voice-client'
 import { AISkillPicker, type AISkillOption } from '@/components/ai/AISkillPicker'
 import { useLocale, useTranslations } from '@/i18n/client'
+import {
+  buildAiCapabilityDiscoveryPrompt,
+  type AiCapabilityDiscoveryItem,
+  type AiCapabilityDiscoverySummary,
+} from '@/lib/ai/capabilities/discovery'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -90,6 +95,13 @@ interface IntentTierOption {
   label: string
   description: string
   icon: string
+}
+
+interface AiCapabilitiesResponse {
+  success?: boolean
+  operationsEnabled?: boolean
+  summary?: AiCapabilityDiscoverySummary
+  capabilities?: AiCapabilityDiscoveryItem[]
 }
 
 const ATHLETE_VOICE_AUTO_SEND_KEY = 'athlete-floating-ai-voice-auto-send'
@@ -155,6 +167,10 @@ export function AthleteFloatingChat({
   const [availableIntents, setAvailableIntents] = useState<IntentTierOption[]>([])
   const [selectedSkillIds, setSelectedSkillIds] = useState<string[]>([])
   const [availableSkills, setAvailableSkills] = useState<AISkillOption[]>([])
+  const [capabilitySnapshot, setCapabilitySnapshot] = useState<{
+    operationsEnabled: boolean
+    capabilities: AiCapabilityDiscoveryItem[]
+  } | null>(null)
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const [configReady, setConfigReady] = useState(false)
   const [memoryContext, setMemoryContext] = useState<MemoryContext | null>(null)
@@ -939,6 +955,49 @@ export function AthleteFloatingChat({
       controller.abort()
     }
   }, [hasAIAccess])
+
+  useEffect(() => {
+    if (hasAIAccess !== true || consentStatus !== 'granted') {
+      void Promise.resolve().then(() => setCapabilitySnapshot(null))
+      return
+    }
+
+    let isMounted = true
+    const controller = new AbortController()
+
+    void Promise.resolve().then(async () => {
+      try {
+        const response = await fetch('/api/ai/capabilities?isAthleteChat=true', {
+          signal: controller.signal,
+        })
+        const payload = await response.json().catch(() => null) as AiCapabilitiesResponse | null
+        if (!isMounted || !payload?.success) return
+        setCapabilitySnapshot({
+          operationsEnabled: Boolean(payload.operationsEnabled),
+          capabilities: payload.capabilities || [],
+        })
+      } catch {
+        if (isMounted) setCapabilitySnapshot(null)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [consentStatus, hasAIAccess])
+
+  const capabilityQuickPrompt = useMemo(() => buildAiCapabilityDiscoveryPrompt({
+    role: 'ATHLETE',
+    locale,
+    operationsEnabled: capabilitySnapshot?.operationsEnabled ?? false,
+    capabilities: capabilitySnapshot?.capabilities ?? [],
+    pageTitle: pageCtx?.pageContext?.title ?? null,
+  }), [
+    capabilitySnapshot,
+    locale,
+    pageCtx?.pageContext?.title,
+  ])
 
   useEffect(() => {
     if (!pendingSkillSyncRequestRef.current || knowledgeSkills.length === 0 || availableSkills.length === 0) return
@@ -1939,6 +1998,14 @@ export function AthleteFloatingChat({
             )}
             {/* Quick prompts */}
             <div className="flex flex-wrap gap-2 justify-center max-w-[320px]">
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => handleQuickPrompt(capabilityQuickPrompt)}
+              >
+                {t('quickPrompts.capabilities')}
+              </Button>
               {quickPrompts.slice(0, 4).map((prompt) => (
                 <Button
                   key={prompt.id}

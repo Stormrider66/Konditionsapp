@@ -3522,6 +3522,9 @@
           "daysRemaining": "{days} days left",
           "blockActive": "{block} is active",
           "blockVisibleDescription": "The block is visible to coach and athlete even before every session has been added.",
+          "teamPlanMeta": "Team plan · {team}",
+          "teamPlanActive": "Team plan: {block}",
+          "teamPlanDescription": "Following the team plan — add an individual block to tailor it.",
           "startsIn": "Starts in {days} days",
           "workoutLogging": "Workout logging",
           "logsReady": "Ready for feedback",
@@ -15743,6 +15746,9 @@
         "greeting": "Hi!",
         "greetingWithName": "Hi, {name}!",
         "description": "I am your AI training assistant. I can help you understand your training, explain workouts, and analyze your data."
+      },
+      "quickPrompts": {
+        "capabilities": "What can you do?"
       },
       "programError": {
         "title": "Program generation could not start",

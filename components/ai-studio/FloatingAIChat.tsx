@@ -62,6 +62,11 @@ import {
   createRealtimeVoiceUsageAccumulator,
   hasRealtimeUsageTokens,
 } from '@/lib/ai/realtime-voice-client'
+import {
+  buildAiCapabilityDiscoveryPrompt,
+  type AiCapabilityDiscoveryItem,
+  type AiCapabilityDiscoverySummary,
+} from '@/lib/ai/capabilities/discovery'
 
 const COACH_VOICE_GUIDE_DISMISSED_KEY = 'floating-ai-voice-guide-dismissed'
 
@@ -102,6 +107,13 @@ interface ModelConfig {
 interface QuickPrompt {
   label: string
   prompt: string
+}
+
+interface AiCapabilitiesResponse {
+  success?: boolean
+  operationsEnabled?: boolean
+  summary?: AiCapabilityDiscoverySummary
+  capabilities?: AiCapabilityDiscoveryItem[]
 }
 
 interface ToolOutputPart {
@@ -387,6 +399,7 @@ const FLOATING_CHAT_COPY = {
     hasContext: (title: string) => `I have access to ${title.toLowerCase()}. Ask me anything about it.`,
     contextDisabled: 'Context is disabled. Click the button above to enable it.',
     defaultEmpty: 'Ask me about training programs, test analyses, or other questions about your athletes.',
+    whatCanYouDo: 'What can you do?',
     operatorActive: 'Dashboard operator mode is active.',
     explainIssues: 'Explain issues',
     explainIssuesPrompt: 'Explain the most important issues in the analysis',
@@ -536,6 +549,7 @@ const FLOATING_CHAT_COPY = {
     hasContext: (title: string) => `Jag har tillgång till ${title.toLowerCase()}. Fråga mig vad som helst om det!`,
     contextDisabled: 'Kontext är inaktiverad. Klicka på knappen ovan för att aktivera.',
     defaultEmpty: 'Fråga mig om träningsprogram, testanalyser, eller andra frågor om dina atleter.',
+    whatCanYouDo: 'Vad kan du göra?',
     operatorActive: 'Dashboardens operatorläge är aktivt.',
     explainIssues: 'Förklara problem',
     explainIssuesPrompt: 'Förklara de viktigaste problemen i analysen',
@@ -647,6 +661,10 @@ export function FloatingAIChat({
     content: string
     createdAt: Date
   }>>([])
+  const [capabilitySnapshot, setCapabilitySnapshot] = useState<{
+    operationsEnabled: boolean
+    capabilities: AiCapabilityDiscoveryItem[]
+  } | null>(null)
 
   // GDPR: Track athlete consent status for coach chat
   const [athleteConsentStatus, setAthleteConsentStatus] = useState<'loading' | 'granted' | 'none' | null>(null)
@@ -752,6 +770,35 @@ export function FloatingAIChat({
       window.speechSynthesis.cancel()
     }
   }, [locale])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    let isMounted = true
+
+    void Promise.resolve().then(async () => {
+      try {
+        const params = new URLSearchParams()
+        if (pathBusinessSlug) params.set('businessSlug', pathBusinessSlug)
+        const query = params.toString()
+        const response = await fetch(`/api/ai/capabilities${query ? `?${query}` : ''}`, {
+          signal: controller.signal,
+        })
+        const payload = await response.json().catch(() => null) as AiCapabilitiesResponse | null
+        if (!isMounted || !payload?.success) return
+        setCapabilitySnapshot({
+          operationsEnabled: Boolean(payload.operationsEnabled),
+          capabilities: payload.capabilities || [],
+        })
+      } catch {
+        if (isMounted) setCapabilitySnapshot(null)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      controller.abort()
+    }
+  }, [pathBusinessSlug])
 
   const stopAssistantSpeech = useCallback(() => {
     assistantSpeechAbortRef.current?.abort()
@@ -1875,6 +1922,24 @@ export function FloatingAIChat({
     spokenAssistantNoticeIdsRef.current.clear()
   }
 
+  const capabilityQuickPrompt = useMemo<QuickPrompt>(() => ({
+    label: copy.whatCanYouDo,
+    prompt: buildAiCapabilityDiscoveryPrompt({
+      role: 'COACH',
+      locale,
+      operationsEnabled: capabilitySnapshot?.operationsEnabled ?? false,
+      capabilities: capabilitySnapshot?.capabilities ?? [],
+      pageTitle: hasContext && isContextEnabled ? pageContext?.title : null,
+    }),
+  }), [
+    capabilitySnapshot,
+    copy.whatCanYouDo,
+    hasContext,
+    isContextEnabled,
+    locale,
+    pageContext?.title,
+  ])
+
   const contextualQuickPrompts = useMemo<QuickPrompt[]>(() => {
     if (!pageContext || !hasContext || !isContextEnabled) return []
 
@@ -2347,6 +2412,14 @@ export function FloatingAIChat({
             )}
             {/* Quick prompts */}
             <div className="mt-4 flex flex-wrap gap-2 justify-center">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setInput(capabilityQuickPrompt.prompt)}
+                className="text-xs"
+              >
+                {capabilityQuickPrompt.label}
+              </Button>
               {contextualQuickPrompts.map((quickPrompt) => (
                 <Button
                   key={quickPrompt.label}
