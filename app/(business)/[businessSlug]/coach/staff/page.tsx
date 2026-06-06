@@ -19,9 +19,15 @@ export default async function StaffPage({ params }: PageProps) {
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
 
-  // Staff/role management is a team-organization (club) feature only.
-  // Gyms and independent coaches don't get the multi-role staff hub.
-  if (membership.business.type !== 'CLUB') notFound()
+  // Staff/role management is a team feature. Mirror the nav, which only surfaces
+  // "Personal" when the coach is in TEAM dashboard mode; also allow club-type
+  // businesses. Gyms and solo PTs (PT/GYM mode) don't get the multi-role hub.
+  const profile = await prisma.coachProfile.findUnique({
+    where: { userId: user.id },
+    select: { dashboardMode: true },
+  })
+  const isTeamContext = profile?.dashboardMode === 'TEAM' || membership.business.type === 'CLUB'
+  if (!isTeamContext) notFound()
 
   const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
   const teams = await prisma.team.findMany({

@@ -4,6 +4,7 @@ const mockBusinessMemberFindFirst = vi.hoisted(() => vi.fn())
 const mockBusinessMemberFindUnique = vi.hoisted(() => vi.fn())
 const mockBusinessMemberFindMany = vi.hoisted(() => vi.fn())
 const mockBusinessMemberUpdate = vi.hoisted(() => vi.fn())
+const mockCoachProfileFindUnique = vi.hoisted(() => vi.fn())
 const mockTeamFindMany = vi.hoisted(() => vi.fn())
 const mockClientFindMany = vi.hoisted(() => vi.fn())
 const mockTcaFindMany = vi.hoisted(() => vi.fn())
@@ -26,6 +27,7 @@ vi.mock('@/lib/prisma', () => {
       findMany: mockBusinessMemberFindMany,
       update: mockBusinessMemberUpdate,
     },
+    coachProfile: { findUnique: mockCoachProfileFindUnique },
     team: { findMany: mockTeamFindMany },
     client: { findMany: mockClientFindMany },
     teamCoachAssignment: {
@@ -107,6 +109,7 @@ describe('PATCH /api/coach/staff/[memberId]', () => {
     })
     mockBusinessMemberFindMany.mockResolvedValue([{ userId: 'admin-1' }, { userId: 'staff-1' }])
     mockBusinessMemberUpdate.mockResolvedValue({})
+    mockCoachProfileFindUnique.mockResolvedValue({ dashboardMode: 'TEAM' })
     mockTeamFindMany.mockResolvedValue([{ id: teamA }, { id: teamB }])
     mockClientFindMany.mockResolvedValue([{ id: clientX }])
     mockTcaFindMany.mockResolvedValue([])
@@ -125,11 +128,22 @@ describe('PATCH /api/coach/staff/[memberId]', () => {
     expect(mockBusinessMemberUpdate).not.toHaveBeenCalled()
   })
 
-  it('rejects non-club businesses', async () => {
+  it('rejects non-team contexts (gym business, not in team mode)', async () => {
     mockBusinessMemberFindFirst.mockResolvedValue({ businessId: 'business-1', business: { type: 'GYM' } })
+    mockCoachProfileFindUnique.mockResolvedValue({ dashboardMode: 'GYM' })
     const res = await PATCH(patchRequest({ role: 'COACH' }) as any, ctx() as any)
     expect(res.status).toBe(400)
     expect(mockBusinessMemberUpdate).not.toHaveBeenCalled()
+  })
+
+  it('allows a non-club business when the requester is in team mode', async () => {
+    mockBusinessMemberFindFirst.mockResolvedValue({ businessId: 'business-1', business: { type: 'INDEPENDENT_COACH' } })
+    mockCoachProfileFindUnique.mockResolvedValue({ dashboardMode: 'TEAM' })
+    mockBusinessMemberFindUnique.mockResolvedValue({ userId: 'staff-1', role: 'PHYSIO', businessId: 'business-1' })
+    mockTcaFindMany.mockResolvedValue([{ teamId: teamA }])
+    const res = await PATCH(patchRequest({ role: 'COACH' }) as any, ctx() as any)
+    expect(res.status).toBe(200)
+    expect(mockBusinessMemberUpdate).toHaveBeenCalledWith({ where: { id: 'member-1' }, data: { role: 'COACH' } })
   })
 
   it('returns 404 for a member outside the requester business', async () => {

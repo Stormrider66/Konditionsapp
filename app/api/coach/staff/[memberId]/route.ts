@@ -76,9 +76,15 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: t(locale, 'No business found', 'Ingen verksamhet') }, { status: 400 })
     }
 
-    // Staff/role management is a team-organization (club) feature only.
-    if (requesterMembership.business.type !== 'CLUB') {
-      return NextResponse.json({ error: t(locale, 'Staff management is only available for clubs', 'Personalhantering är endast tillgänglig för klubbar') }, { status: 400 })
+    // Staff/role management is a team feature (mirror the page gate): allow when
+    // the requester is in TEAM dashboard mode, or the business is a club.
+    const requesterProfile = await prisma.coachProfile.findUnique({
+      where: { userId: user.id },
+      select: { dashboardMode: true },
+    })
+    const isTeamContext = requesterProfile?.dashboardMode === 'TEAM' || requesterMembership.business.type === 'CLUB'
+    if (!isTeamContext) {
+      return NextResponse.json({ error: t(locale, 'Staff management is only available for team organizations', 'Personalhantering är endast tillgänglig för lagorganisationer') }, { status: 400 })
     }
 
     const { memberId } = await context.params
