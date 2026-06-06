@@ -98,6 +98,10 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
   const [invRole, setInvRole] = useState('')
   const [invTeamIds, setInvTeamIds] = useState<string[]>([])
   const [inviting, setInviting] = useState(false)
+  // Player-specific invite fields (role === MEMBER / Spelare)
+  const [invPlayerTeamId, setInvPlayerTeamId] = useState('')
+  const [invJersey, setInvJersey] = useState('')
+  const [invPosition, setInvPosition] = useState('')
 
   // Edit form
   const [editOpen, setEditOpen] = useState(false)
@@ -172,7 +176,77 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
     void fetchStaff()
   }, [fetchStaff])
 
+  const resetInviteForm = () => {
+    setInviteOpen(false)
+    setInvName('')
+    setInvEmail('')
+    setInvRole('')
+    setInvTeamIds([])
+    setInvPlayerTeamId('')
+    setInvJersey('')
+    setInvPosition('')
+  }
+
+  // Players (Spelare = MEMBER role) are roster athletes: create a Client on the
+  // team (with an athlete login if an email is given) via the roster endpoint.
+  const handleAddPlayer = async () => {
+    if (!invName.trim()) {
+      toast.error(copy('Enter a name', 'Ange ett namn'))
+      return
+    }
+    if (!invPlayerTeamId) {
+      toast.error(copy('Select a team', 'Välj ett lag'))
+      return
+    }
+
+    setInviting(true)
+    try {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const res = await fetch(`/api/coach/teams/${invPlayerTeamId}/members/bulk${params.size ? `?${params}` : ''}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
+        },
+        body: JSON.stringify({
+          rows: [{
+            name: invName.trim(),
+            email: invEmail.trim() || undefined,
+            jerseyNumber: invJersey.trim() ? Number(invJersey) : undefined,
+            position: invPosition.trim() || undefined,
+            createAthleteAccount: !!invEmail.trim(),
+          }],
+        }),
+      })
+
+      if (res.ok) {
+        const data = await res.json()
+        if ((data.summary?.created ?? 0) > 0) {
+          toast.success(copy('Player added', 'Spelare tillagd'))
+          resetInviteForm()
+          await fetchStaff()
+        } else {
+          const reason = data.results?.[0]?.reason
+          toast.error(reason || copy('Could not add player', 'Kunde inte lägga till spelare'))
+        }
+      } else {
+        const err = await res.json()
+        toast.error(err.error || copy('Could not add player', 'Kunde inte lägga till spelare'))
+      }
+    } catch {
+      toast.error(copy('Network error', 'Nätverksfel'))
+    } finally {
+      setInviting(false)
+    }
+  }
+
   const handleInvite = async () => {
+    if (invRole === 'MEMBER') {
+      await handleAddPlayer()
+      return
+    }
+
     if (!invName.trim() || !invEmail.trim() || !invRole) {
       toast.error(copy('Fill in all fields', 'Fyll i alla fält'))
       return
@@ -199,11 +273,7 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
       if (res.ok) {
         const data = await res.json()
         toast.success(copy(`${data.roleLabel} invited`, `${data.roleLabel} inbjuden!`))
-        setInviteOpen(false)
-        setInvName('')
-        setInvEmail('')
-        setInvRole('')
-        setInvTeamIds([])
+        resetInviteForm()
         await fetchStaff()
       } else {
         const err = await res.json()
@@ -377,7 +447,7 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
             {copy(`${staff.length} ${staff.length === 1 ? 'member' : 'members'}`, `${staff.length} medlemmar`)}
           </p>
         </div>
-        <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <Dialog open={inviteOpen} onOpenChange={(open) => { if (open) setInviteOpen(true); else resetInviteForm() }}>
           <DialogTrigger asChild>
             <Button>
               <UserPlus className="h-4 w-4 mr-1.5" />
@@ -398,7 +468,7 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
               </div>
 
               <div className="space-y-2">
-                <Label>{copy('Email', 'E-post')}</Label>
+                <Label>{invRole === 'MEMBER' ? copy('Email (optional)', 'E-post (valfritt)') : copy('Email', 'E-post')}</Label>
                 <Input value={invEmail} onChange={(e) => setInvEmail(e.target.value)} type="email" placeholder="coach@example.com" />
               </div>
 
@@ -447,10 +517,49 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
                 </div>
               )}
 
+              {/* Player (Spelare) fields */}
+              {invRole === 'MEMBER' && (
+                <>
+                  <div className="space-y-2">
+                    <Label>{copy('Team', 'Lag')}</Label>
+                    <Select value={invPlayerTeamId} onValueChange={setInvPlayerTeamId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder={copy('Select team...', 'Välj lag...')} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {teams.map((team) => (
+                          <SelectItem key={team.id} value={team.id}>{team.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {teams.length === 0 && (
+                      <p className="text-xs text-amber-600">{copy('Create a team first', 'Skapa ett lag först')}</p>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-2">
+                      <Label>{copy('Jersey #', 'Tröjnummer')}</Label>
+                      <Input value={invJersey} onChange={(e) => setInvJersey(e.target.value)} type="number" inputMode="numeric" placeholder="10" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>{copy('Position', 'Position')}</Label>
+                      <Input value={invPosition} onChange={(e) => setInvPosition(e.target.value)} placeholder={copy('e.g. Center', 't.ex. Center')} />
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {copy('With an email the player also gets a login. Height, weight and birth date can be filled in later on the athlete’s profile.', 'Med en e-post får spelaren även en inloggning. Längd, vikt och födelsedatum kan fyllas i senare på atletens profil.')}
+                  </p>
+                </>
+              )}
+
               <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setInviteOpen(false)}>{copy('Cancel', 'Avbryt')}</Button>
+                <Button variant="outline" onClick={resetInviteForm}>{copy('Cancel', 'Avbryt')}</Button>
                 <Button onClick={handleInvite} disabled={inviting}>
-                  {inviting ? copy('Inviting...', 'Bjuder in...') : copy('Invite', 'Bjud in')}
+                  {inviting
+                    ? copy('Saving...', 'Sparar...')
+                    : invRole === 'MEMBER'
+                      ? copy('Add player', 'Lägg till spelare')
+                      : copy('Invite', 'Bjud in')}
                 </Button>
               </div>
             </div>
