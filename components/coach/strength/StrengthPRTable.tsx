@@ -192,6 +192,10 @@ function sourceMeta(source: string, locale: AppLocale) {
   }
 }
 
+function formatWeight(value: number, locale: AppLocale): string {
+  return value.toLocaleString(locale === 'sv' ? 'sv-SE' : 'en-US', { maximumFractionDigits: 1 })
+}
+
 function formatDate(iso: string, locale: AppLocale): string {
   return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
     year: 'numeric',
@@ -398,7 +402,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                   </div>
                   <div className="text-right shrink-0">
                     <div className="text-lg font-bold tabular-nums">
-                      {g.current.oneRepMax}{' '}
+                      {formatWeight(g.current.oneRepMax, locale)}{' '}
                       <span className="text-sm font-normal text-muted-foreground">
                         {PR_UNIT_LABELS[(isPrUnit(g.current.unit) ? g.current.unit : 'KG') as PrUnit]}
                       </span>
@@ -424,7 +428,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                             {meta.label}
                           </Badge>
                           <span className="font-mono ml-auto">
-                            {h.oneRepMax}{' '}
+                            {formatWeight(h.oneRepMax, locale)}{' '}
                             {PR_UNIT_LABELS[(isPrUnit(h.unit) ? h.unit : 'KG') as PrUnit]}
                           </span>
                           {delta != null && delta !== 0 ? (
@@ -434,7 +438,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                               }`}
                             >
                               {delta > 0 ? '+' : ''}
-                              {delta}
+                              {formatWeight(delta, locale)}
                             </span>
                           ) : (
                             <span className="w-10" />
