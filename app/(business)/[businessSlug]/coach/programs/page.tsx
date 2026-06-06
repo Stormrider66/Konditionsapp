@@ -4,6 +4,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
+import { isPlatformAdmin } from '@/lib/subscription/require-feature-access'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Upload } from 'lucide-react'
@@ -74,9 +75,13 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
     where: { userId: user.id },
   })
 
-  const canCreateMore = subscription
-    ? subscription.currentAthletes < subscription.maxAthletes
-    : true
+  // Platform admins bypass all subscription gates; maxAthletes === -1 is
+  // "unlimited" (ENTERPRISE) and must not be treated as a numeric ceiling.
+  const isAdmin = await isPlatformAdmin(user.id)
+  const canCreateMore = isAdmin
+    || !subscription
+    || subscription.maxAthletes === -1
+    || subscription.currentAthletes < subscription.maxAthletes
 
   return (
     <div className="container mx-auto py-8 px-4">
