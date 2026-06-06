@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -381,6 +382,9 @@ export function StaffManagement({ teams, businessType, businessSlug, currentUser
           <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{copy('Invite staff', 'Bjud in personal')}</DialogTitle>
+              <DialogDescription>
+                {copy('Add a new staff member and assign their role and teams.', 'Lägg till en ny medlem i personalen och tilldela roll och lag.')}
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="space-y-2">
@@ -477,6 +481,9 @@ export function StaffManagement({ teams, businessType, businessSlug, currentUser
             <DialogTitle>
               {editMember ? copy(`Edit ${editMember.name}`, `Redigera ${editMember.name}`) : copy('Edit staff', 'Redigera personal')}
             </DialogTitle>
+            <DialogDescription>
+              {copy('Update this member’s role, team connections, and athletes.', 'Uppdatera medlemmens roll, lagkopplingar och atleter.')}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
