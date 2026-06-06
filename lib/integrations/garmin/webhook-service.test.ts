@@ -17,6 +17,13 @@ const mocks = vi.hoisted(() => ({
       findMany: vi.fn(),
       update: vi.fn(),
     },
+    bodyComposition: {
+      upsert: vi.fn(),
+    },
+    dailyMetrics: {
+      findUnique: vi.fn(),
+      upsert: vi.fn(),
+    },
   },
   processGarminActivityZonesForClient: vi.fn(),
 }))
@@ -51,6 +58,9 @@ describe('Garmin webhook zone processing', () => {
     mocks.prisma.integrationToken.findFirst.mockResolvedValue({ clientId: 'client-1' } as never)
     mocks.prisma.client.findUnique.mockResolvedValue({ manualMaxHR: 190, tests: [] } as never)
     mocks.prisma.cardioSessionAssignment.findMany.mockResolvedValue([] as never)
+    mocks.prisma.dailyMetrics.findUnique.mockResolvedValue(null as never)
+    mocks.prisma.bodyComposition.upsert.mockResolvedValue({} as never)
+    mocks.prisma.dailyMetrics.upsert.mockResolvedValue({} as never)
     mocks.processGarminActivityZonesForClient.mockResolvedValue(null as never)
   })
 
@@ -109,5 +119,73 @@ describe('Garmin webhook zone processing', () => {
 
     expect(result.activityDetails).toBe(1)
     expect(mocks.processGarminActivityZonesForClient).toHaveBeenCalledWith('client-1', 'garmin-row-1')
+  })
+
+  it('saves plausible Garmin body composition data', async () => {
+    mocks.prisma.client.findUnique.mockResolvedValue({ height: 172 } as never)
+
+    const result = await processGarminWebhookPayload({
+      bodyComps: [
+        {
+          userId: 'garmin-user-1',
+          summaryId: 'body-comp-1',
+          calendarDate: '2026-06-02',
+          weightInGrams: 77000,
+          bodyFatInPercent: 18.2,
+          skeletalMuscleMassInGrams: 35500,
+          boneMassInGrams: 3200,
+          bodyWaterInPercent: 55.4,
+        },
+      ],
+    })
+
+    expect(result.bodyComps).toBe(1)
+    expect(mocks.prisma.bodyComposition.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          weightKg: 77,
+          bodyFatPercent: 18.2,
+          muscleMassKg: 35.5,
+          boneMassKg: 3.2,
+          waterPercent: 55.4,
+          deviceBrand: 'Garmin',
+        }),
+      })
+    )
+    expect(mocks.prisma.dailyMetrics.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          factorScores: expect.objectContaining({
+            garminBodyComposition: expect.objectContaining({
+              weightKg: 77,
+              source: 'webhook',
+            }),
+          }),
+        }),
+      })
+    )
+  })
+
+  it('skips implausible Garmin body composition data', async () => {
+    mocks.prisma.client.findUnique.mockResolvedValue({ height: 172 } as never)
+
+    const result = await processGarminWebhookPayload({
+      bodyComps: [
+        {
+          userId: 'garmin-user-1',
+          summaryId: 'generated-body-comp',
+          calendarDate: '2026-06-02',
+          weightInGrams: 64930,
+          bodyFatInPercent: 43.110924,
+          skeletalMuscleMassInGrams: 21730,
+          boneMassInGrams: 34220,
+          bodyWaterInPercent: 88.00809,
+        },
+      ],
+    })
+
+    expect(result.bodyComps).toBe(0)
+    expect(mocks.prisma.bodyComposition.upsert).not.toHaveBeenCalled()
+    expect(mocks.prisma.dailyMetrics.upsert).not.toHaveBeenCalled()
   })
 })

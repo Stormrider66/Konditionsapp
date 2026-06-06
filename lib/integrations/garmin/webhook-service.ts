@@ -11,6 +11,16 @@ import {
 } from '@/lib/integrations/garmin/client'
 
 const DEFAULT_MAX_HR = 185
+const BODY_COMP_LIMITS = {
+  weightKg: { min: 25, max: 250 },
+  bodyFatPercent: { min: 2, max: 75 },
+  muscleMassKg: { min: 5, max: 120 },
+  boneMassKg: { min: 1, max: 8 },
+  waterPercent: { min: 30, max: 75 },
+  visceralFat: { min: 1, max: 60 },
+  bmrKcal: { min: 500, max: 5000 },
+  metabolicAge: { min: 10, max: 100 },
+} as const
 
 const ACTIVITY_TYPE_MAP: Record<string, { type: string; intensity: string }> = {
   RUNNING: { type: 'RUNNING', intensity: 'MODERATE' },
@@ -210,8 +220,8 @@ export async function processGarminWebhookPayload(payload: GarminWebhookPayload)
   if (payload.bodyComps && Array.isArray(payload.bodyComps)) {
     for (const bodyComp of payload.bodyComps) {
       try {
-        await processBodyComposition(bodyComp)
-        results.bodyComps++
+        const processed = await processBodyComposition(bodyComp)
+        if (processed) results.bodyComps++
       } catch (error) {
         results.errors.push(`BodyComp ${bodyComp.summaryId ?? bodyComp.measurementTimeInSeconds ?? 'unknown'}: ${error instanceof Error ? error.message : 'Unknown'}`)
       }
@@ -699,11 +709,11 @@ async function processSleepData(sleep: GarminSleepData & { userId?: string }) {
   logger.debug('Synced Garmin sleep data', { clientId, date: sleep.calendarDate })
 }
 
-async function processBodyComposition(bodyComp: GarminBodyComposition) {
+async function processBodyComposition(bodyComp: GarminBodyComposition): Promise<boolean> {
   const clientId = await findClientId(bodyComp.userId)
   if (!clientId) {
     logger.warn('No client found for Garmin body composition data')
-    return
+    return false
   }
 
   const measurementDate = getBodyCompMeasurementDate(bodyComp)
@@ -724,6 +734,27 @@ async function processBodyComposition(bodyComp: GarminBodyComposition) {
     where: { id: clientId },
     select: { height: true },
   })
+
+  const plausibility = validateBodyCompositionValues({
+    weightKg,
+    bodyFatPercent,
+    muscleMassKg,
+    boneMassKg,
+    waterPercent,
+    visceralFat,
+    bmrKcal,
+    metabolicAge,
+  })
+
+  if (!plausibility.valid) {
+    logger.warn('Skipped implausible Garmin body composition data', {
+      clientId,
+      date: measurementDate.toISOString().slice(0, 10),
+      summaryId: bodyComp.summaryId,
+      reasons: plausibility.reasons,
+    })
+    return false
+  }
 
   const bmi = weightKg && client?.height ? Math.round((weightKg / Math.pow(client.height / 100, 2)) * 10) / 10 : null
   const ffmi =
@@ -803,6 +834,7 @@ async function processBodyComposition(bodyComp: GarminBodyComposition) {
   })
 
   logger.debug('Synced Garmin body composition', { clientId, date: measurementDate.toISOString().slice(0, 10) })
+  return true
 }
 
 async function processHRVData(hrv: GarminHRVData & { userId?: string }) {
@@ -1001,6 +1033,62 @@ async function findClientId(userId?: string): Promise<string | null> {
 function gramsToKg(value?: number): number | null {
   if (typeof value !== 'number' || Number.isNaN(value)) return null
   return Math.round((value / 1000) * 100) / 100
+}
+
+function validateBodyCompositionValues(values: {
+  weightKg: number | null
+  bodyFatPercent: number | null
+  muscleMassKg: number | null
+  boneMassKg: number | null
+  waterPercent: number | null
+  visceralFat: number | null
+  bmrKcal: number | null
+  metabolicAge: number | null
+}): { valid: boolean; reasons: string[] } {
+  const reasons: string[] = []
+
+  addRangeIssue(reasons, 'weightKg', values.weightKg, BODY_COMP_LIMITS.weightKg)
+  addRangeIssue(reasons, 'bodyFatPercent', values.bodyFatPercent, BODY_COMP_LIMITS.bodyFatPercent)
+  addRangeIssue(reasons, 'muscleMassKg', values.muscleMassKg, BODY_COMP_LIMITS.muscleMassKg)
+  addRangeIssue(reasons, 'boneMassKg', values.boneMassKg, BODY_COMP_LIMITS.boneMassKg)
+  addRangeIssue(reasons, 'waterPercent', values.waterPercent, BODY_COMP_LIMITS.waterPercent)
+  addRangeIssue(reasons, 'visceralFat', values.visceralFat, BODY_COMP_LIMITS.visceralFat)
+  addRangeIssue(reasons, 'bmrKcal', values.bmrKcal, BODY_COMP_LIMITS.bmrKcal)
+  addRangeIssue(reasons, 'metabolicAge', values.metabolicAge, BODY_COMP_LIMITS.metabolicAge)
+
+  if (
+    values.weightKg &&
+    values.muscleMassKg &&
+    values.muscleMassKg > values.weightKg * 0.9
+  ) {
+    reasons.push(`muscleMassKg ${values.muscleMassKg} exceeds 90% of weight ${values.weightKg}`)
+  }
+
+  if (
+    values.weightKg &&
+    values.boneMassKg &&
+    values.boneMassKg > values.weightKg * 0.12
+  ) {
+    reasons.push(`boneMassKg ${values.boneMassKg} exceeds 12% of weight ${values.weightKg}`)
+  }
+
+  return { valid: reasons.length === 0, reasons }
+}
+
+function addRangeIssue(
+  reasons: string[],
+  field: string,
+  value: number | null,
+  range: { min: number; max: number }
+) {
+  if (value === null) return
+  if (!Number.isFinite(value)) {
+    reasons.push(`${field} is not finite`)
+    return
+  }
+  if (value < range.min || value > range.max) {
+    reasons.push(`${field} ${value} outside ${range.min}-${range.max}`)
+  }
 }
 
 function getBodyCompMeasurementDate(bodyComp: GarminBodyComposition): Date {
