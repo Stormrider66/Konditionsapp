@@ -9823,6 +9823,7 @@
     },
     "setLoggingForm": {
       "previous": "Förra: {weight} kg × {reps}",
+      "lastSession": "Senast {reps}×: {weight} kg",
       "fields": {
         "weight": "Belastning (kg)",
         "targetReps": "(mål: {target})",

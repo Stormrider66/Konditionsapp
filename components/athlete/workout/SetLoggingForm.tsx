@@ -31,6 +31,8 @@ interface SetLoggingFormProps {
   targetReps: number | string
   previousWeight?: number
   previousReps?: number
+  /** Last session of this exercise at the same rep scheme (cross-session prefill). */
+  lastSession?: { weight: number; reps: number; repsTarget: number | null; sameScheme: boolean }
   onSubmit: (data: SetLogData) => Promise<void>
   disabled?: boolean
   compact?: boolean
@@ -58,6 +60,7 @@ export function SetLoggingForm({
   targetReps,
   previousWeight,
   previousReps,
+  lastSession,
   onSubmit,
   disabled = false,
   compact = false,
@@ -71,7 +74,7 @@ export function SetLoggingForm({
   }
 
   const defaultReps = parseTargetReps(targetReps)
-  const defaultWeight = targetWeight ?? previousWeight ?? 0
+  const defaultWeight = targetWeight ?? previousWeight ?? lastSession?.weight ?? 0
 
   const [weight, setWeight] = useState(defaultWeight)
   const [repsCompleted, setRepsCompleted] = useState(defaultReps)
@@ -236,6 +239,11 @@ export function SetLoggingForm({
         {previousWeight && previousReps && (
           <Badge variant="outline" className="text-xs">
             {t('previous', { weight: previousWeight, reps: previousReps })}
+          </Badge>
+        )}
+        {!previousWeight && lastSession && (
+          <Badge variant="outline" className="text-xs text-muted-foreground">
+            {t('lastSession', { reps: lastSession.repsTarget ?? lastSession.reps, weight: lastSession.weight })}
           </Badge>
         )}
       </div>

@@ -9456,6 +9456,7 @@
     },
     "setLoggingForm": {
       "previous": "Previous: {weight} kg × {reps}",
+      "lastSession": "Last {reps}×: {weight} kg",
       "fields": {
         "weight": "Load (kg)",
         "targetReps": "(target: {target})",

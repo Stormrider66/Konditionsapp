@@ -65,6 +65,13 @@ interface FocusModeExercise {
   sets: number
   repsTarget: number | string
   weight?: number
+  lastPerformance?: {
+    weight: number
+    reps: number
+    repsTarget: number | null
+    date: string
+    sameScheme: boolean
+  }
   tempo?: string
   restSeconds: number
   notes?: string
@@ -671,6 +678,7 @@ export function FocusModeWorkout({
                     targetReps={currentExercise.repsTarget}
                     previousWeight={lastLog?.weight}
                     previousReps={lastLog?.repsCompleted}
+                    lastSession={currentExercise.lastPerformance}
                     onSubmit={handleSetSubmit}
                   />
                 )}

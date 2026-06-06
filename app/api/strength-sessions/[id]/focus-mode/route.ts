@@ -4,12 +4,23 @@ import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { resolveStrengthAssignmentAccess } from '@/lib/strength/assignment-access'
 import { rollupAssignmentProgression } from '@/lib/training-engine/progression/assignment-rollup'
+import { getLastPerformance, lastPerformanceKey, type LastPerformance, type LastPerformanceItem } from '@/lib/strength/last-performance'
 
 type AppLocale = 'en' | 'sv'
 type WeightUnit = 'kg' | 'percent'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+/** Coerce a prescription rep value (number, "8", or "8-10") to a number for scheme matching. */
+function numericReps(value: number | string | undefined | null): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  if (typeof value === 'string') {
+    const n = Number.parseInt(value, 10)
+    return Number.isFinite(n) ? n : null
+  }
+  return null
 }
 
 interface SessionFollowUp {
@@ -111,6 +122,8 @@ interface FocusModeExercise {
   weightPercent?: number
   /** Athlete's most recent 1RM for this exercise (only when relevant). */
   oneRepMax?: number
+  /** Athlete's most recent previous session at the same rep scheme — for weight prefill. */
+  lastPerformance?: LastPerformance
   tempo?: string
   restSeconds: number
   notes?: string
@@ -187,8 +200,10 @@ export async function GET(
     // Collect all unique exercise IDs to fetch details — including
     // follow-up exercises attached to main-section primaries.
     const allExerciseIds = new Set<string>()
+    const lastPerfItems: LastPerformanceItem[] = []
     const collectIds = (ex: SessionExercise) => {
       allExerciseIds.add(ex.exerciseId)
+      lastPerfItems.push({ exerciseId: ex.exerciseId, repsTarget: numericReps(ex.reps) })
       ex.followUps?.forEach((f) => allExerciseIds.add(f.exerciseId))
     }
     mainExercises.forEach(collectIds)
@@ -234,6 +249,9 @@ export async function GET(
         oneRepMaxByExercise.set(row.exerciseId, row.oneRepMax)
       }
     }
+
+    // "Last time at this rep scheme" weights, for prefilling the logging UI.
+    const lastPerfMap = await getLastPerformance(clientId, assignmentId, lastPerfItems)
 
     /**
      * Resolve a coach-prescribed weight value into kg + percent metadata
@@ -379,6 +397,7 @@ export async function GET(
           // when the prescription was kg, so the runner can spot new
           // PRs computed from any logged set.
           oneRepMax: primaryOneRepMax,
+          lastPerformance: lastPerfMap.get(lastPerformanceKey(ex.exerciseId, numericReps(ex.reps))),
           tempo: ex.tempo,
           restSeconds: ex.restSeconds ?? defaultRest,
           notes: ex.notes,
