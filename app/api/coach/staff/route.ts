@@ -15,6 +15,7 @@ import {
   isRoleInvitableFor,
   invitableRolesFor,
 } from '@/lib/permissions/assistant-coach'
+import { TEAM_STAFF_ROLE_VALUES } from '@/lib/permissions/staff-roles'
 import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { handleApiError } from '@/lib/api/utils'
 import { z } from 'zod'
@@ -22,7 +23,8 @@ import { z } from 'zod'
 const inviteSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1).max(100),
-  role: z.enum(['COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'ADMIN']),
+  // MEMBER is the "player" role (Spelare) on a team roster.
+  role: z.enum(['COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'ADMIN', 'MEMBER']),
   teamIds: z.array(z.string().uuid()).optional(),
 })
 
@@ -191,8 +193,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() }, { status: 400 })
     }
 
-    // Reject roles that aren't valid for this business type (e.g. Sportchef on a GYM).
-    if (!isRoleInvitableFor(parsed.data.role, membership.business.type)) {
+    // Team organizations get the full staff lineup (incl. player) regardless of
+    // business type; mirror the page/nav gate via the requester's dashboard mode.
+    const requesterProfile = await prisma.coachProfile.findUnique({
+      where: { userId: user.id },
+      select: { dashboardMode: true },
+    })
+    const isTeamContext = requesterProfile?.dashboardMode === 'TEAM' || membership.business.type === 'CLUB'
+    const roleAllowed = isTeamContext
+      ? TEAM_STAFF_ROLE_VALUES.includes(parsed.data.role)
+      : isRoleInvitableFor(parsed.data.role, membership.business.type)
+    if (!roleAllowed) {
       return NextResponse.json(
         {
           error: t(

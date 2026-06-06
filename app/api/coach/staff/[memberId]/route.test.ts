@@ -195,6 +195,15 @@ describe('PATCH /api/coach/staff/[memberId]', () => {
     expect(mockTcaCreate).not.toHaveBeenCalled()
   })
 
+  it('allows setting a member to the player (MEMBER) role and drops team rows', async () => {
+    mockBusinessMemberFindUnique.mockResolvedValue({ userId: 'staff-1', role: 'ASSISTANT_COACH', businessId: 'business-1' })
+    mockTcaFindMany.mockResolvedValue([{ teamId: teamA }])
+    const res = await PATCH(patchRequest({ role: 'MEMBER' }) as any, ctx() as any)
+    expect(res.status).toBe(200)
+    expect(mockBusinessMemberUpdate).toHaveBeenCalledWith({ where: { id: 'member-1' }, data: { role: 'MEMBER' } })
+    expect(mockTcaDeleteMany).toHaveBeenCalledWith({ where: { userId: 'staff-1' } })
+  })
+
   it('reconciles team connections (add new, remove dropped)', async () => {
     mockTcaFindMany.mockResolvedValue([{ teamId: teamA }])
     const res = await PATCH(patchRequest({ role: 'ASSISTANT_COACH', teamIds: [teamB] }) as any, ctx() as any)

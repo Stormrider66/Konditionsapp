@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mockBusinessMemberFindFirst = vi.hoisted(() => vi.fn())
 const mockBusinessMemberFindMany = vi.hoisted(() => vi.fn())
+const mockCoachProfileFindUnique = vi.hoisted(() => vi.fn())
 const mockTeamFindMany = vi.hoisted(() => vi.fn())
 const mockTeamCoachAssignmentCreate = vi.hoisted(() => vi.fn())
 const mockRequireCoach = vi.hoisted(() => vi.fn())
@@ -15,6 +16,9 @@ vi.mock('@/lib/prisma', () => ({
     businessMember: {
       findFirst: mockBusinessMemberFindFirst,
       findMany: mockBusinessMemberFindMany,
+    },
+    coachProfile: {
+      findUnique: mockCoachProfileFindUnique,
     },
     team: {
       findMany: mockTeamFindMany,
@@ -73,6 +77,7 @@ describe('POST /api/coach/staff', () => {
       business: { type: 'CLUB' },
     })
     mockBusinessMemberFindMany.mockResolvedValue([{ userId: 'owner-1' }])
+    mockCoachProfileFindUnique.mockResolvedValue({ dashboardMode: 'TEAM' })
     mockInviteUserToBusiness.mockResolvedValue({
       success: true,
       userId: 'staff-1',

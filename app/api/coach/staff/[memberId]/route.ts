@@ -18,9 +18,9 @@ import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import {
   getStaffPermissions,
-  isRoleInvitableFor,
   roleLabelFor,
 } from '@/lib/permissions/assistant-coach'
+import { TEAM_STAFF_ROLE_VALUES } from '@/lib/permissions/staff-roles'
 import { getStaffRolePreview } from '@/lib/permissions/role-preview-server'
 import { handleApiError } from '@/lib/api/utils'
 import { z } from 'zod'
@@ -36,8 +36,9 @@ function t(locale: AppLocale, en: string, sv: string): string {
 }
 
 // `role` excludes OWNER: nobody can be promoted to owner via this endpoint.
+// MEMBER is the "player" role (Spelare) on a team roster.
 const patchSchema = z.object({
-  role: z.enum(['COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'ADMIN']),
+  role: z.enum(['COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'ADMIN', 'MEMBER']),
   teamIds: z.array(z.string().uuid()).optional(),
   clientIds: z.array(z.string().uuid()).optional(),
 })
@@ -116,16 +117,11 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
 
     const newRole = parsed.data.role
 
-    // Re-validate the role is allowed for this business type.
-    if (!isRoleInvitableFor(newRole, requesterMembership.business.type)) {
+    // The hub is team-gated above, so the full team lineup (incl. the player
+    // role) is allowed regardless of business type.
+    if (!TEAM_STAFF_ROLE_VALUES.includes(newRole)) {
       return NextResponse.json(
-        {
-          error: t(
-            locale,
-            `The role "${roleLabelFor(newRole, requesterMembership.business.type, 'en')}" is not available for this business type`,
-            `Rollen "${roleLabelFor(newRole, requesterMembership.business.type, 'sv')}" är inte tillgänglig för denna typ av verksamhet`,
-          ),
-        },
+        { error: t(locale, 'Role not allowed', 'Rollen är inte tillåten') },
         { status: 400 },
       )
     }

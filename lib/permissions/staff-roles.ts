@@ -109,6 +109,37 @@ export function isRoleInvitableFor(role: StaffRole, businessType: BusinessType |
 /** @deprecated Prefer `invitableRolesFor(businessType)`. Kept for backwards compat — returns the CLUB lineup. */
 export const INVITABLE_ROLES: InvitableRole[] = invitableRolesFor('CLUB')
 
+/**
+ * The "player" option for team rosters. Reuses the MEMBER role — players are
+ * business members without staff permissions; their athlete access comes from
+ * their Client record, not from a staff role.
+ */
+const PLAYER_ROLE: Record<AppLocale, InvitableRole> = {
+  en: { value: 'MEMBER', label: 'Player', description: 'Team player on the roster' },
+  sv: { value: 'MEMBER', label: 'Spelare', description: 'Spelare i lagtruppen' },
+}
+
+/**
+ * Full staff lineup for a team organization, independent of BusinessType.
+ * Team orgs may be stored as INDEPENDENT_COACH/GYM (not CLUB), so the team
+ * staff hub always offers the complete club lineup plus the player option.
+ */
+export function teamStaffRolesFor(locale: AppLocale = 'en'): InvitableRole[] {
+  return [...invitableRolesFor('CLUB', locale), PLAYER_ROLE[locale]]
+}
+
+/** Role values assignable within a team organization (full lineup + player). */
+export const TEAM_STAFF_ROLE_VALUES: StaffRole[] = ['COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'ADMIN', 'MEMBER']
+
+/**
+ * Display label within a team organization: clubs frame ADMIN as "Sportchef"
+ * and MEMBER as "Spelare".
+ */
+export function teamRoleLabel(role: StaffRole | string, locale: AppLocale = 'en'): string {
+  if (role === 'MEMBER') return locale === 'sv' ? 'Spelare' : 'Player'
+  return roleLabelFor(role, 'CLUB', locale)
+}
+
 export interface StaffPermissions {
   role: StaffRole
   roleLabel: string

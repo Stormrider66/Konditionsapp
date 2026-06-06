@@ -22,9 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { UserPlus, Users, Shield, Dumbbell, Heart, Clipboard, Trash2, Pencil } from 'lucide-react'
+import { UserPlus, Users, User, Shield, Dumbbell, Heart, Clipboard, Trash2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
-import { invitableRolesFor, type BusinessType } from '@/lib/permissions/staff-roles'
+import { teamStaffRolesFor, teamRoleLabel, type BusinessType } from '@/lib/permissions/staff-roles'
 
 interface Team {
   id: string
@@ -57,6 +57,7 @@ const ROLE_ICONS: Record<string, typeof Shield> = {
   PHYSICAL_TRAINER: Dumbbell,
   ASSISTANT_COACH: Clipboard,
   PHYSIO: Heart,
+  MEMBER: User,
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -66,6 +67,7 @@ const ROLE_COLORS: Record<string, string> = {
   PHYSICAL_TRAINER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   ASSISTANT_COACH: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400',
   PHYSIO: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
+  MEMBER: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
 }
 
 const ROLE_ORDER = ['OWNER', 'ADMIN', 'COACH', 'PHYSICAL_TRAINER', 'ASSISTANT_COACH', 'PHYSIO', 'MEMBER']
@@ -79,13 +81,16 @@ interface StaffManagementProps {
   currentUserId?: string
 }
 
-export function StaffManagement({ teams, businessType, businessSlug, currentUserId }: StaffManagementProps) {
+export function StaffManagement({ teams, businessSlug, currentUserId }: StaffManagementProps) {
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = useCallback((en: string, sv: string) => locale === 'sv' ? sv : en, [locale])
   const [staff, setStaff] = useState<StaffMember[]>([])
   const [loading, setLoading] = useState(true)
   const [inviteOpen, setInviteOpen] = useState(false)
-  const invitableRoles = invitableRolesFor(businessType, locale)
+  // The staff hub is team-only, so always offer the full team lineup
+  // (Sport director, head/assistant coach, physical trainer, physio, player),
+  // regardless of how the business type was set during onboarding.
+  const invitableRoles = teamStaffRolesFor(locale)
 
   // Invite form
   const [invName, setInvName] = useState('')
@@ -332,7 +337,7 @@ export function StaffManagement({ teams, businessType, businessSlug, currentUser
               )}
             </div>
             <Badge className={`text-[10px] ${colorClass} border-0`}>
-              {member.roleLabel}
+              {teamRoleLabel(member.role, locale)}
             </Badge>
             {canManage && (
               <>
@@ -465,7 +470,7 @@ export function StaffManagement({ teams, businessType, businessSlug, currentUser
           {groupedStaff.map((group) => (
             <div key={group.role} className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground px-1">
-                {group.members[0].roleLabel}
+                {teamRoleLabel(group.role, locale)}
                 <span className="ml-1.5 font-normal normal-case">({group.members.length})</span>
               </h3>
               {group.members.map(renderMemberCard)}
