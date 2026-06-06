@@ -50,9 +50,12 @@ interface StaffMember {
   // and a clientId (their Client record) so they can be invited.
   hasAccount?: boolean
   clientId?: string
+  phone?: string | null
   invitedAt: string
   acceptedAt: string | null
 }
+
+type InviteMethod = 'email' | 'sms' | 'whatsapp' | 'link'
 
 const ROLE_ICONS: Record<string, typeof Shield> = {
   OWNER: Shield,
@@ -123,6 +126,8 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
   const [invitePlayerOpen, setInvitePlayerOpen] = useState(false)
   const [invitePlayerTarget, setInvitePlayerTarget] = useState<StaffMember | null>(null)
   const [invitePlayerEmail, setInvitePlayerEmail] = useState('')
+  const [invitePlayerPhone, setInvitePlayerPhone] = useState('')
+  const [inviteMethod, setInviteMethod] = useState<InviteMethod>('email')
   const [invitingPlayer, setInvitingPlayer] = useState(false)
 
   const fetchStaff = useCallback(async () => {
@@ -374,13 +379,37 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
   const openInvitePlayer = (member: StaffMember) => {
     setInvitePlayerTarget(member)
     setInvitePlayerEmail(member.email ?? '')
+    setInvitePlayerPhone(member.phone ?? '')
+    setInviteMethod('email')
     setInvitePlayerOpen(true)
+  }
+
+  // Hand the generated invite to WhatsApp/SMS/clipboard so the coach can deliver
+  // it themselves (handy while outbound email is paused).
+  const shareInvite = (method: InviteMethod, data: { inviteUrl?: string; inviteText?: string }) => {
+    const text = data.inviteText || data.inviteUrl || ''
+    const phoneDigits = invitePlayerPhone.replace(/[^0-9]/g, '')
+    if (method === 'whatsapp') {
+      const base = phoneDigits ? `https://wa.me/${phoneDigits}` : 'https://wa.me/'
+      window.open(`${base}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer')
+    } else if (method === 'sms') {
+      window.open(`sms:${invitePlayerPhone.trim()}?&body=${encodeURIComponent(text)}`, '_blank')
+    } else if (method === 'link') {
+      if (data.inviteUrl) {
+        void navigator.clipboard?.writeText(data.inviteUrl)
+        toast.success(copy('Invite link copied', 'Inbjudningslänk kopierad'))
+      }
+    }
   }
 
   const handleInvitePlayer = async () => {
     if (!invitePlayerTarget?.clientId) return
     if (!invitePlayerEmail.trim()) {
-      toast.error(copy('Enter an email to send the invite', 'Ange en e-post för att skicka inbjudan'))
+      toast.error(copy('An email is required to create the login', 'En e-post krävs för att skapa inloggningen'))
+      return
+    }
+    if ((inviteMethod === 'sms' || inviteMethod === 'whatsapp') && !invitePlayerPhone.trim()) {
+      toast.error(copy('Enter a phone number', 'Ange ett telefonnummer'))
       return
     }
     setInvitingPlayer(true)
@@ -393,11 +422,20 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
           'Content-Type': 'application/json',
           ...(businessSlug ? { 'x-business-slug': businessSlug } : {}),
         },
-        body: JSON.stringify({ clientId: invitePlayerTarget.clientId, email: invitePlayerEmail.trim() }),
+        body: JSON.stringify({
+          clientId: invitePlayerTarget.clientId,
+          email: invitePlayerEmail.trim(),
+          deliveryMethod: inviteMethod,
+        }),
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        toast.success(data.message || copy('Player invited', 'Spelare inbjuden'))
+        if (inviteMethod === 'email') {
+          toast.success(data.message || copy('Player invited', 'Spelare inbjuden'))
+        } else {
+          shareInvite(inviteMethod, data)
+          toast.success(copy('Account created — share the invite', 'Konto skapat — dela inbjudan'))
+        }
         setInvitePlayerOpen(false)
         setInvitePlayerTarget(null)
         await fetchStaff()
@@ -798,10 +836,60 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
                 placeholder="player@example.com"
               />
             </div>
+
+            <div className="space-y-2">
+              <Label>{copy('Deliver via', 'Skicka via')}</Label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {([
+                  { value: 'email', label: copy('Email', 'E-post') },
+                  { value: 'whatsapp', label: 'WhatsApp' },
+                  { value: 'sms', label: 'SMS' },
+                  { value: 'link', label: copy('Copy link', 'Kopiera länk') },
+                ] as { value: InviteMethod; label: string }[]).map((m) => (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setInviteMethod(m.value)}
+                    className={`px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                      inviteMethod === m.value
+                        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                        : 'bg-muted hover:bg-muted/70'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(inviteMethod === 'sms' || inviteMethod === 'whatsapp') && (
+              <div className="space-y-2">
+                <Label>{copy('Phone', 'Telefon')}</Label>
+                <Input
+                  value={invitePlayerPhone}
+                  onChange={(e) => setInvitePlayerPhone(e.target.value)}
+                  type="tel"
+                  placeholder="+46 70 123 45 67"
+                />
+              </div>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              {copy('An email is always required to create the login. WhatsApp, SMS and link just let you deliver the invite yourself.', 'En e-post krävs alltid för att skapa inloggningen. WhatsApp, SMS och länk låter dig leverera inbjudan själv.')}
+            </p>
+
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => { setInvitePlayerOpen(false); setInvitePlayerTarget(null) }}>{copy('Cancel', 'Avbryt')}</Button>
               <Button onClick={handleInvitePlayer} disabled={invitingPlayer}>
-                {invitingPlayer ? copy('Sending...', 'Skickar...') : copy('Send invite', 'Skicka inbjudan')}
+                {invitingPlayer
+                  ? copy('Sending...', 'Skickar...')
+                  : inviteMethod === 'email'
+                    ? copy('Send invite', 'Skicka inbjudan')
+                    : inviteMethod === 'whatsapp'
+                      ? copy('Create & open WhatsApp', 'Skapa & öppna WhatsApp')
+                      : inviteMethod === 'sms'
+                        ? copy('Create & open SMS', 'Skapa & öppna SMS')
+                        : copy('Create & copy link', 'Skapa & kopiera länk')}
               </Button>
             </div>
           </div>

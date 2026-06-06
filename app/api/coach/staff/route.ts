@@ -156,7 +156,7 @@ export async function GET(req: NextRequest) {
     )
     const rosterClients = await prisma.client.findMany({
       where: { businessId: membership.businessId, athleteAccount: { is: null } },
-      select: { id: true, name: true, email: true, createdAt: true, team: { select: { id: true, name: true } } },
+      select: { id: true, name: true, email: true, phone: true, createdAt: true, team: { select: { id: true, name: true } } },
       orderBy: { name: 'asc' },
     })
     const rosterOnly = rosterClients
@@ -167,6 +167,7 @@ export async function GET(req: NextRequest) {
         userId: null,
         name: c.name,
         email: c.email,
+        phone: c.phone,
         role: 'MEMBER',
         roleLabel: roleLabelFor('MEMBER', businessType, locale),
         teams: c.team ? [{ id: c.team.id, name: c.team.name }] : [],
