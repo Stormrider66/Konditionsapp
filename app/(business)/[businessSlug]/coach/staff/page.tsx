@@ -19,6 +19,10 @@ export default async function StaffPage({ params }: PageProps) {
   const membership = await validateBusinessMembership(user.id, businessSlug)
   if (!membership) notFound()
 
+  // Staff/role management is a team-organization (club) feature only.
+  // Gyms and independent coaches don't get the multi-role staff hub.
+  if (membership.business.type !== 'CLUB') notFound()
+
   const teamWhere = await getAccessibleTeamWhere(user.id, businessSlug)
   const teams = await prisma.team.findMany({
     where: teamWhere,
@@ -38,7 +42,7 @@ export default async function StaffPage({ params }: PageProps) {
         </p>
       </div>
 
-      <StaffManagement teams={teams} businessType={membership.business.type} businessSlug={businessSlug} />
+      <StaffManagement teams={teams} businessType={membership.business.type} businessSlug={businessSlug} currentUserId={user.id} />
     </div>
   )
 }

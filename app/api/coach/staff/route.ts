@@ -106,17 +106,45 @@ export async function GET(req: NextRequest) {
       assignmentsByUserId.set(a.userId, existing)
     }
 
-    const staffWithTeams = members.map((m) => ({
-      id: m.id,
-      userId: m.userId,
-      name: m.user.name,
-      email: m.user.email,
-      role: m.role,
-      roleLabel: roleLabelFor(m.role, businessType, locale),
-      teams: assignmentsByUserId.get(m.userId) ?? [],
-      invitedAt: m.invitedAt.toISOString(),
-      acceptedAt: m.acceptedAt?.toISOString() ?? null,
-    }))
+    // Individual-athlete assignments for PHYSIO members (PhysioAssignment.clientId scope).
+    // Batched + grouped in memory to avoid N+1.
+    const physioUserIds = members.filter((m) => m.role === 'PHYSIO').map((m) => m.userId)
+    const physioAthleteRows = physioUserIds.length
+      ? await prisma.physioAssignment.findMany({
+          where: {
+            physioUserId: { in: physioUserIds },
+            clientId: { not: null },
+            isActive: true,
+            client: { businessId: membership.businessId },
+          },
+          include: { client: { select: { id: true, name: true } } },
+        })
+      : []
+
+    const athletesByUserId = new Map<string, Array<{ id: string; name: string }>>()
+    for (const a of physioAthleteRows) {
+      if (!a.client) continue
+      const existing = athletesByUserId.get(a.physioUserId) ?? []
+      existing.push({ id: a.client.id, name: a.client.name })
+      athletesByUserId.set(a.physioUserId, existing)
+    }
+
+    const staffWithTeams = members.map((m) => {
+      const clients = athletesByUserId.get(m.userId) ?? []
+      return {
+        id: m.id,
+        userId: m.userId,
+        name: m.user.name,
+        email: m.user.email,
+        role: m.role,
+        roleLabel: roleLabelFor(m.role, businessType, locale),
+        teams: assignmentsByUserId.get(m.userId) ?? [],
+        clients,
+        clientIds: clients.map((c) => c.id),
+        invitedAt: m.invitedAt.toISOString(),
+        acceptedAt: m.acceptedAt?.toISOString() ?? null,
+      }
+    })
 
     return NextResponse.json({
       staff: staffWithTeams,
