@@ -69,26 +69,26 @@ interface ReadinessData {
     recommendedAction: string | null
     factors: {
       hrv: {
-        value: number
-        status: string
-        percentOfBaseline: number
-        trend: string
+        value: number | null
+        status: string | null
+        percentOfBaseline: number | null
+        trend: string | null
       } | null
       rhr: {
-        value: number
-        status: string
-        deviation: number
+        value: number | null
+        status: string | null
+        deviation: number | null
       } | null
       wellness: {
-        score: number
+        score: number | null
         breakdown: {
-          sleepQuality: number
-          sleepHours: number
-          muscleSoreness: number
-          energyLevel: number
-          mood: number
-          stress: number
-          injuryPain: number
+          sleepQuality: number | null
+          sleepHours: number | null
+          muscleSoreness: number | null
+          energyLevel: number | null
+          mood: number | null
+          stress: number | null
+          injuryPain: number | null
         }
       } | null
     } | null
@@ -230,7 +230,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'EXCELLENT':
       case 'GOOD':
@@ -249,6 +249,25 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
         return 'text-gray-600'
     }
   }
+
+  const formatNumber = (value: number | null | undefined, decimals = 0) =>
+    typeof value === 'number' && Number.isFinite(value) ? value.toFixed(decimals) : 'N/A'
+
+  const hasNumber = (value: number | null | undefined): value is number =>
+    typeof value === 'number' && Number.isFinite(value)
+
+  const formatMetric = (value: number | null | undefined, unit: string, decimals = 0) =>
+    typeof value === 'number' && Number.isFinite(value) ? `${value.toFixed(decimals)} ${unit}` : `N/A ${unit}`
+
+  const formatBaselinePercent = (value: number | null | undefined) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? `${value.toFixed(0)}% of baseline`
+      : 'Baseline not available'
+
+  const formatRhrDeviation = (value: number | null | undefined) =>
+    typeof value === 'number' && Number.isFinite(value)
+      ? `${value >= 0 ? '+' : ''}${value.toFixed(1)} bpm from baseline`
+      : 'Baseline not available'
 
   // Prepare chart data
   const chartData = data.history.last7Days.map(day => ({
@@ -330,12 +349,12 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="text-3xl font-bold">{data.current.factors.hrv.value} ms</div>
+                  <div className="text-3xl font-bold">{formatMetric(data.current.factors.hrv.value, 'ms')}</div>
                   <div className={`text-sm font-medium ${getStatusColor(data.current.factors.hrv.status)}`}>
-                    {data.current.factors.hrv.status}
+                    {data.current.factors.hrv.status || 'No status'}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {data.current.factors.hrv.percentOfBaseline.toFixed(0)}% of baseline
+                    {formatBaselinePercent(data.current.factors.hrv.percentOfBaseline)}
                   </div>
                   {data.current.factors.hrv.trend && (
                     <div className="text-sm">
@@ -355,13 +374,12 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <div className="text-3xl font-bold">{data.current.factors.rhr.value} bpm</div>
+                  <div className="text-3xl font-bold">{formatMetric(data.current.factors.rhr.value, 'bpm')}</div>
                   <div className={`text-sm font-medium ${getStatusColor(data.current.factors.rhr.status)}`}>
-                    {data.current.factors.rhr.status}
+                    {data.current.factors.rhr.status || 'No status'}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {data.current.factors.rhr.deviation >= 0 ? '+' : ''}
-                    {data.current.factors.rhr.deviation.toFixed(1)} bpm from baseline
+                    {formatRhrDeviation(data.current.factors.rhr.deviation)}
                   </div>
                 </div>
               </CardContent>
@@ -377,14 +395,14 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               <CardContent>
                 <div className="space-y-2">
                   <div className="text-3xl font-bold">
-                    {data.current.factors.wellness.score.toFixed(1)}
+                    {formatNumber(data.current.factors.wellness.score, 1)}
                     <span className="text-xl text-muted-foreground">/10</span>
                   </div>
                   <div className="space-y-1 text-xs text-muted-foreground">
-                    <div>Sleep Quality: {data.current.factors.wellness.breakdown.sleepQuality}/10</div>
-                    <div>Sleep: {data.current.factors.wellness.breakdown.sleepHours}h</div>
-                    <div>Energy: {data.current.factors.wellness.breakdown.energyLevel}/10</div>
-                    <div>Mood: {data.current.factors.wellness.breakdown.mood}/10</div>
+                    <div>Sleep Quality: {formatNumber(data.current.factors.wellness.breakdown.sleepQuality)}/10</div>
+                    <div>Sleep: {formatNumber(data.current.factors.wellness.breakdown.sleepHours, 1)}h</div>
+                    <div>Energy: {formatNumber(data.current.factors.wellness.breakdown.energyLevel)}/10</div>
+                    <div>Mood: {formatNumber(data.current.factors.wellness.breakdown.mood)}/10</div>
                   </div>
                 </div>
               </CardContent>
@@ -417,13 +435,13 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* HRV */}
-              {garminData.data.hrvRMSSD && (
+              {hasNumber(garminData.data.hrvRMSSD) && (
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                     <Activity className="h-3 w-3" />
                     HRV
                   </div>
-                  <div className="text-xl font-bold">{Math.round(garminData.data.hrvRMSSD)} ms</div>
+                  <div className="text-xl font-bold">{formatMetric(garminData.data.hrvRMSSD, 'ms')}</div>
                   {garminData.data.hrvStatus && (
                     <div className="text-xs text-muted-foreground capitalize">{garminData.data.hrvStatus}</div>
                   )}
@@ -431,22 +449,22 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               )}
 
               {/* RHR */}
-              {garminData.data.restingHR && (
+              {hasNumber(garminData.data.restingHR) && (
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">{t('garmin.restingHr')}</div>
-                  <div className="text-xl font-bold">{garminData.data.restingHR} bpm</div>
+                  <div className="text-xl font-bold">{formatMetric(garminData.data.restingHR, 'bpm')}</div>
                 </div>
               )}
 
               {/* Sleep */}
-              {garminData.data.sleepHours && (
+              {hasNumber(garminData.data.sleepHours) && (
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground flex items-center gap-1">
                     <Moon className="h-3 w-3" />
                     {t('garmin.sleep')}
                   </div>
-                  <div className="text-xl font-bold">{garminData.data.sleepHours} h</div>
-                  {garminData.data.sleepQuality && (
+                  <div className="text-xl font-bold">{formatMetric(garminData.data.sleepHours, 'h', 1)}</div>
+                  {hasNumber(garminData.data.sleepQuality) && (
                     <div className="text-xs text-muted-foreground">
                       {t('garmin.quality', { score: garminData.data.sleepQuality })}
                     </div>
@@ -475,15 +493,15 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               )}
 
               {/* Stress */}
-              {garminData.data.stress && (
+              {hasNumber(garminData.data.stress) && (
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">Stress</div>
-                  <div className="text-xl font-bold">{garminData.data.stress}/10</div>
+                  <div className="text-xl font-bold">{formatNumber(garminData.data.stress)}/10</div>
                 </div>
               )}
 
               {/* Steps */}
-              {garminData.data.steps && (
+              {hasNumber(garminData.data.steps) && (
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">{t('garmin.stepsToday')}</div>
                   <div className="text-xl font-bold">{garminData.data.steps.toLocaleString()}</div>
@@ -491,7 +509,7 @@ export function ReadinessDashboard({ clientId }: ReadinessDashboardProps) {
               )}
 
               {/* Active Minutes */}
-              {garminData.data.activeMinutes && (
+              {hasNumber(garminData.data.activeMinutes) && (
                 <div className="space-y-1">
                   <div className="text-xs text-muted-foreground">{t('garmin.activeMinutes')}</div>
                   <div className="text-xl font-bold">{garminData.data.activeMinutes} min</div>
