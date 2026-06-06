@@ -94,6 +94,10 @@
       "schedule": "5 0 1 * *"
     },
     {
+      "path": "/api/cron/expire-ai-action-drafts",
+      "schedule": "17 * * * *"
+    },
+    {
       "path": "/api/cron/auto-optimize",
       "schedule": "0 3 * * 0"
     },
