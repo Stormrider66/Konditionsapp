@@ -163,9 +163,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: t(locale, 'No linked workout assignment found', 'Ingen kopplad passtilldelning hittades') }, { status: 400 })
     }
 
-    if (isCompletedAssignment(assignment.record)) {
+    if (action === 'move' && isCompletedAssignment(assignment.record)) {
       return NextResponse.json(
-        { error: t(locale, 'Completed workouts cannot be moved or copied', 'Genomförda pass kan inte flyttas eller kopieras') },
+        { error: t(locale, 'Completed workouts cannot be moved', 'Genomförda pass kan inte flyttas') },
         { status: 400 }
       )
     }
@@ -390,6 +390,8 @@ async function copyScheduledWorkoutEvent({
       assignmentId: result.copiedAssignment.id,
       status: result.copiedAssignment.status,
       assignedDate: targetDate.toISOString(),
+      completedAt: null,
+      isCompleted: false,
     },
   }
 }

@@ -17705,6 +17705,7 @@
           "actions": {
             "editWorkout": "Edit workout",
             "printWorkout": "Print",
+            "copyWorkout": "Copy",
             "viewResult": "View result",
             "praise": "Praise",
             "time": "Time",
@@ -17712,6 +17713,14 @@
             "remove": "Remove",
             "cancel": "Cancel",
             "removing": "Removing..."
+          },
+          "copy": {
+            "title": "Copy workout",
+            "description": "Choose a date for {title}.",
+            "dateLabel": "Date",
+            "confirm": "Copy workout",
+            "copying": "Copying...",
+            "invalidDate": "Choose a valid date"
           },
           "noResult": "No result found",
           "deleteConfirmTitle": "Remove event",
@@ -17740,6 +17749,7 @@
       "toast": {
         "eventDeleted": "Event removed",
         "deleteFailed": "Could not remove event",
+        "copyFailed": "Could not copy workout",
         "resultLoadFailed": "Could not load result",
         "praiseFailed": "Could not send praise",
         "praiseSent": "Praise sent"

@@ -18065,6 +18065,7 @@
           "actions": {
             "editWorkout": "Redigera pass",
             "printWorkout": "Skriv ut",
+            "copyWorkout": "Kopiera",
             "viewResult": "Visa resultat",
             "praise": "Beröm",
             "time": "Tid",
@@ -18072,6 +18073,14 @@
             "remove": "Ta bort",
             "cancel": "Avbryt",
             "removing": "Tar bort..."
+          },
+          "copy": {
+            "title": "Kopiera pass",
+            "description": "Välj datum för {title}.",
+            "dateLabel": "Datum",
+            "confirm": "Kopiera pass",
+            "copying": "Kopierar...",
+            "invalidDate": "Välj ett giltigt datum"
           },
           "noResult": "Inget resultat hittades",
           "deleteConfirmTitle": "Ta bort händelse",
@@ -18100,6 +18109,7 @@
       "toast": {
         "eventDeleted": "Händelse borttagen",
         "deleteFailed": "Kunde inte ta bort händelsen",
+        "copyFailed": "Kunde inte kopiera passet",
         "resultLoadFailed": "Kunde inte ladda resultat",
         "praiseFailed": "Kunde inte skicka beröm",
         "praiseSent": "Beröm skickat"

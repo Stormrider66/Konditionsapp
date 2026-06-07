@@ -5,7 +5,7 @@
 
 import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { format } from 'date-fns'
+import { addDays, format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { Button } from '@/components/ui/button'
@@ -25,9 +25,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import {
   Clock,
   MapPin,
@@ -39,6 +41,7 @@ import {
   Thermometer,
   CheckCircle2,
   ChevronRight,
+  Copy,
   Dumbbell,
   Edit,
   Sparkles,
@@ -340,6 +343,7 @@ export interface CalendarEventItemProps {
   onClick: () => void
   onEdit: () => void
   onDeleted: () => void
+  onCopyScheduledWorkout?: (event: UnifiedCalendarItem, targetDate: Date) => Promise<boolean | void> | boolean | void
   isCoachView?: boolean
   isGlass?: boolean
 }
@@ -351,6 +355,7 @@ export function CalendarEventItem({
   onClick,
   onEdit,
   onDeleted,
+  onCopyScheduledWorkout,
   isCoachView = false,
   isGlass = false,
 }: CalendarEventItemProps) {
@@ -360,6 +365,10 @@ export function CalendarEventItem({
   const [isResultOpen, setIsResultOpen] = useState(false)
   const [isLoadingResult, setIsLoadingResult] = useState(false)
   const [isSendingPraise, setIsSendingPraise] = useState(false)
+  const getDefaultCopyDate = () => format(addDays(new Date(event.date), 7), 'yyyy-MM-dd')
+  const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false)
+  const [copyTargetDate, setCopyTargetDate] = useState(getDefaultCopyDate)
+  const [isCopyingScheduledWorkout, setIsCopyingScheduledWorkout] = useState(false)
   const [workoutResult, setWorkoutResult] = useState<ScheduledWorkoutResult | null>(null)
   const t = useTranslations('components.daySidebar')
   const locale = useLocale()
@@ -376,6 +385,11 @@ export function CalendarEventItem({
   )
   const canPrintScheduledWorkoutSource = ['strength', 'cardio', 'hybrid', 'agility'].includes(
     scheduledWorkoutSource?.kind || ''
+  )
+  const canCopyScheduledWorkoutSource = Boolean(
+    scheduledWorkoutSource?.assignmentId &&
+      onCopyScheduledWorkout &&
+      !isVirtualAssignment
   )
   const hasRegisteredWorkout = Boolean(
     scheduledWorkoutSource?.isCompleted ||
@@ -516,6 +530,36 @@ export function CalendarEventItem({
     }
   }
 
+  const openCopyDialog = () => {
+    setCopyTargetDate(getDefaultCopyDate())
+    setIsCopyDialogOpen(true)
+  }
+
+  const handleCopyScheduledWorkout = async () => {
+    if (!onCopyScheduledWorkout || !copyTargetDate) return
+
+    const targetDate = new Date(`${copyTargetDate}T00:00:00.000Z`)
+    if (Number.isNaN(targetDate.getTime())) {
+      toast.error(t('calendarItem.event.copy.invalidDate'))
+      return
+    }
+
+    setIsCopyingScheduledWorkout(true)
+    try {
+      const copied = await onCopyScheduledWorkout(event, targetDate)
+      if (copied !== false) {
+        setIsCopyDialogOpen(false)
+      }
+    } catch (error) {
+      console.error('Failed to copy scheduled workout:', error)
+      toast.error(t('toast.copyFailed'), {
+        description: t('errors.network'),
+      })
+    } finally {
+      setIsCopyingScheduledWorkout(false)
+    }
+  }
+
   return (
     <div
       className={cn(
@@ -604,6 +648,12 @@ export function CalendarEventItem({
               className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold"
             />
           )}
+          {canCopyScheduledWorkoutSource && (
+            <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={openCopyDialog}>
+              <Copy className="h-3 w-3 shrink-0 mr-1" />
+              {t('calendarItem.event.actions.copyWorkout')}
+            </Button>
+          )}
           {scheduledWorkoutSource?.assignmentId && hasRegisteredWorkout && (
             <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={handleOpenResult}>
               <Eye className="h-3 w-3 shrink-0 mr-1" />
@@ -668,6 +718,58 @@ export function CalendarEventItem({
           )}
         </div>
       )}
+
+      <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
+        <DialogContent className={cn('max-w-sm', isGlass ? 'bg-slate-900 border-white/10 text-white' : '')}>
+          <DialogHeader>
+            <DialogTitle className={isGlass ? 'text-white' : ''}>
+              {t('calendarItem.event.copy.title')}
+            </DialogTitle>
+            <DialogDescription className={isGlass ? 'text-slate-400' : ''}>
+              {t('calendarItem.event.copy.description', { title: sourceName || event.title })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <label
+              htmlFor={`copy-scheduled-workout-${event.id}`}
+              className="text-xs font-bold uppercase tracking-widest text-muted-foreground"
+            >
+              {t('calendarItem.event.copy.dateLabel')}
+            </label>
+            <Input
+              id={`copy-scheduled-workout-${event.id}`}
+              type="date"
+              value={copyTargetDate}
+              onChange={(copyEvent) => setCopyTargetDate(copyEvent.target.value)}
+              className={isGlass ? 'bg-white/5 border-white/10 text-white' : ''}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsCopyDialogOpen(false)}
+              disabled={isCopyingScheduledWorkout}
+            >
+              {t('calendarItem.event.actions.cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCopyScheduledWorkout}
+              disabled={isCopyingScheduledWorkout || !copyTargetDate}
+            >
+              {isCopyingScheduledWorkout ? (
+                <Loader2 className="h-4 w-4 shrink-0 mr-2 animate-spin" />
+              ) : (
+                <Copy className="h-4 w-4 shrink-0 mr-2" />
+              )}
+              {isCopyingScheduledWorkout
+                ? t('calendarItem.event.copy.copying')
+                : t('calendarItem.event.copy.confirm')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
         <DialogContent className={cn('max-w-2xl max-h-[88vh] overflow-hidden flex flex-col', isGlass ? 'bg-slate-900 border-white/10 text-white' : '')}>

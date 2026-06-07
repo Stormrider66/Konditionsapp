@@ -82,6 +82,7 @@ interface DaySidebarProps {
   onAddEvent: () => void
   onEditEvent: (item: UnifiedCalendarItem) => void
   onEventDeleted: () => void
+  onCopyScheduledWorkout?: (item: UnifiedCalendarItem, targetDate: Date) => Promise<boolean | void> | boolean | void
   isCoachView?: boolean
   variant?: 'default' | 'glass'
   onViewWorkoutDetails?: (workoutId: string) => void
@@ -96,6 +97,7 @@ export function DaySidebar({
   onAddEvent,
   onEditEvent,
   onEventDeleted,
+  onCopyScheduledWorkout,
   isCoachView,
   variant = 'default',
   onViewWorkoutDetails,
@@ -257,6 +259,7 @@ export function DaySidebar({
                         onClick={() => onItemClick(event)}
                         onEdit={() => onEditEvent(event)}
                         onDeleted={onEventDeleted}
+                        onCopyScheduledWorkout={onCopyScheduledWorkout}
                         isCoachView={isCoachView}
                         isGlass={true}
                       />
@@ -478,6 +481,7 @@ export function DaySidebar({
                       onClick={() => onItemClick(event)}
                       onEdit={() => onEditEvent(event)}
                       onDeleted={onEventDeleted}
+                      onCopyScheduledWorkout={onCopyScheduledWorkout}
                       isCoachView={isCoachView}
                     />
                   ))}

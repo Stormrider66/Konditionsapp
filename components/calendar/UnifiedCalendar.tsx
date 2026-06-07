@@ -601,7 +601,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             description: result.error || (appLocale === 'sv' ? 'Kunde inte kopiera passet' : 'Could not copy the workout'),
             variant: 'destructive',
           })
-          return
+          return false
         }
 
         const copiedItem: UnifiedCalendarItem = {
@@ -613,9 +613,12 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           status: result.event.status || 'SCHEDULED',
           metadata: {
             ...item.metadata,
+            isCompleted: false,
             scheduledWorkoutSource: {
               ...(item.metadata.scheduledWorkoutSource as Record<string, unknown> | null | undefined),
               ...result.scheduledWorkoutSource,
+              completedAt: null,
+              isCompleted: false,
             },
           },
         }
@@ -640,6 +643,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           title: appLocale === 'sv' ? 'Pass kopierat' : 'Workout copied',
           description: result.message,
         })
+        return true
       } catch (err) {
         console.error('Error copying scheduled workout:', err)
         toast({
@@ -647,6 +651,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           description: appLocale === 'sv' ? 'Kunde inte kopiera passet' : 'Could not copy the workout',
           variant: 'destructive',
         })
+        return false
       } finally {
         setIsCopyingWorkout(false)
       }
@@ -922,6 +927,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             onAddEvent={handleSidebarAddEvent}
             onEditEvent={handleEditEvent}
             onEventDeleted={handleEventDeleted}
+            onCopyScheduledWorkout={handleCopyScheduledWorkout}
             isCoachView={isCoachView}
             variant="glass"
             onViewWorkoutDetails={handleViewWorkoutDetails}
@@ -946,6 +952,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           }}
           onEventDeleted={handleEventDeleted}
           onMoveWorkout={handleMobileMove}
+          onCopyScheduledWorkout={handleCopyScheduledWorkout}
           onViewWorkoutDetails={handleViewWorkoutDetails}
           isCoachView={isCoachView}
           variant="glass"
@@ -1286,6 +1293,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
           onAddEvent={handleSidebarAddEvent}
           onEditEvent={handleEditEvent}
           onEventDeleted={handleEventDeleted}
+          onCopyScheduledWorkout={handleCopyScheduledWorkout}
           isCoachView={isCoachView}
           onViewWorkoutDetails={handleViewWorkoutDetails}
         />
@@ -1309,6 +1317,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
         }}
         onEventDeleted={handleEventDeleted}
         onMoveWorkout={handleMobileMove}
+        onCopyScheduledWorkout={handleCopyScheduledWorkout}
         onViewWorkoutDetails={handleViewWorkoutDetails}
         isCoachView={isCoachView}
         clientId={clientId}

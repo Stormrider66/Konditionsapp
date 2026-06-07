@@ -41,6 +41,7 @@ interface MobileDaySheetProps {
   onEditEvent: (item: UnifiedCalendarItem) => void
   onEventDeleted: () => void
   onMoveWorkout?: (item: UnifiedCalendarItem) => void
+  onCopyScheduledWorkout?: (item: UnifiedCalendarItem, targetDate: Date) => Promise<boolean | void> | boolean | void
   onViewWorkoutDetails?: (workoutId: string) => void
   isCoachView?: boolean
   variant?: 'default' | 'glass'
@@ -58,6 +59,7 @@ export function MobileDaySheet({
   onEditEvent,
   onEventDeleted,
   onMoveWorkout,
+  onCopyScheduledWorkout,
   onViewWorkoutDetails,
   isCoachView,
   variant = 'default',
@@ -331,6 +333,7 @@ export function MobileDaySheet({
                       onClick={() => onItemClick(event)}
                       onEdit={() => onEditEvent(event)}
                       onDeleted={onEventDeleted}
+                      onCopyScheduledWorkout={onCopyScheduledWorkout}
                       isCoachView={isCoachView}
                       isGlass={isGlass}
                     />
