@@ -315,6 +315,27 @@ const CATEGORY_LABELS: Record<string, Record<AppLocale, string>> = {
   RECOVERY: { sv: 'Återhämtning', en: 'Recovery' },
 }
 
+const PILLAR_ORDER = [
+  'POSTERIOR_CHAIN',
+  'KNEE_DOMINANCE',
+  'UNILATERAL',
+  'FOOT_ANKLE',
+  'ANTI_ROTATION_CORE',
+  'UPPER_BODY',
+] as const
+
+const KNOWN_PILLAR_VALUES = new Set<string>(PILLAR_ORDER)
+
+const PILLAR_LABELS: Record<string, Record<AppLocale, string>> = {
+  ALL: { sv: 'Alla klasser', en: 'All classes' },
+  POSTERIOR_CHAIN: { sv: 'Bakre kedja', en: 'Posterior chain' },
+  KNEE_DOMINANCE: { sv: 'Knädominant', en: 'Knee dominance' },
+  UNILATERAL: { sv: 'Unilateralt', en: 'Unilateral' },
+  FOOT_ANKLE: { sv: 'Fot / fotled', en: 'Foot & ankle' },
+  ANTI_ROTATION_CORE: { sv: 'Anti-rotation / core', en: 'Anti-rotation / core' },
+  UPPER_BODY: { sv: 'Överkropp', en: 'Upper body' },
+}
+
 function sectionLabel(type: SectionType, locale: AppLocale): string {
   return SECTION_LABELS[type][locale]
 }
@@ -325,6 +346,10 @@ function phaseLabel(value: string, locale: AppLocale): string {
 
 function categoryLabel(value: string, locale: AppLocale): string {
   return CATEGORY_LABELS[value]?.[locale] ?? value
+}
+
+function pillarLabel(value: string, locale: AppLocale): string {
+  return PILLAR_LABELS[value]?.[locale] ?? value.replace(/_/g, ' ')
 }
 
 function intensityLabel(value: CardioIntensity, locale: AppLocale): string {
@@ -475,6 +500,7 @@ export function SectionWorkoutBuilder({
   const [availableExercises, setAvailableExercises] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('ALL')
+  const [pillarFilter, setPillarFilter] = useState('ALL')
   const [browseMode, setBrowseMode] = useState<'all' | 'favorites' | 'most-used'>('all')
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [mostUsedIds, setMostUsedIds] = useState<string[]>([])
@@ -513,6 +539,21 @@ export function SectionWorkoutBuilder({
     }
     setCategoryFilter(sectionToCategory[targetSection])
   }, [targetSection])
+
+  const pillarOptions = useMemo(() => {
+    const availablePillars = new Set<string>()
+
+    availableExercises.forEach((exercise) => {
+      if (exercise.pillar) availablePillars.add(exercise.pillar)
+    })
+
+    const orderedKnownPillars = PILLAR_ORDER.filter((pillar) => availablePillars.has(pillar))
+    const customPillars = Array.from(availablePillars)
+      .filter((pillar) => !KNOWN_PILLAR_VALUES.has(pillar))
+      .sort((a, b) => pillarLabel(a, locale).localeCompare(pillarLabel(b, locale), locale))
+
+    return ['ALL', ...orderedKnownPillars, ...customPillars]
+  }, [availableExercises, locale])
 
   // Drag state
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -784,7 +825,8 @@ export function SectionWorkoutBuilder({
       const matchesCategory = normalizedSearch.length > 0
         ? true
         : matchesStrengthLibraryCategoryFilter(ex, categoryFilter)
-      return matchesSearch && matchesCategory
+      const matchesPillar = pillarFilter === 'ALL' || ex.pillar === pillarFilter
+      return matchesSearch && matchesCategory && matchesPillar
     })
   })()
 
@@ -1538,6 +1580,19 @@ export function SectionWorkoutBuilder({
                         {sectionLabel(t, locale)}
                       </SelectItem>
                     ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={pillarFilter} onValueChange={setPillarFilter}>
+                <SelectTrigger className="h-8 text-xs col-span-2">
+                  <SelectValue placeholder={text(locale, 'Klass', 'Class')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {pillarOptions.map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {pillarLabel(value, locale)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
