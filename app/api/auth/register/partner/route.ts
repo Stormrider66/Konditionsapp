@@ -5,6 +5,7 @@ import { handleApiError } from '@/lib/api-error'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { rateLimitJsonResponse, getRequestIp } from '@/lib/api/rate-limit'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -24,6 +25,13 @@ export async function POST(request: NextRequest) {
   let locale = resolveRequestLocale(request)
 
   try {
+    const ip = getRequestIp(request)
+    const rateLimited = await rateLimitJsonResponse('auth:register-partner', ip, {
+      limit: 5,
+      windowSeconds: 60 * 60,
+    })
+    if (rateLimited) return rateLimited
+
     const body = await request.json()
     const data = registerSchema.parse(body)
     locale = resolveRequestLocale(request, data.language)

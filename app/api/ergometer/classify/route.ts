@@ -11,6 +11,7 @@ import { ErgometerType, ErgometerTestProtocol, SportType } from '@prisma/client'
 import { classifyPerformance, BenchmarkInput } from '@/lib/training-engine/ergometer/benchmarks';
 import { logError } from '@/lib/logger-console'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { RATE_LIMITS, rateLimitIp } from '@/lib/api/rate-limit'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -33,6 +34,9 @@ export async function POST(request: NextRequest) {
   const locale = resolveRequestLocale(request)
 
   try {
+    const rateLimited = await rateLimitIp(request, RATE_LIMITS.calculation, 'ergometer:classify')
+    if (rateLimited) return rateLimited
+
     const body = await request.json();
     const validated = classifySchema.parse(body);
 
@@ -80,6 +84,9 @@ export async function GET(request: NextRequest) {
   const locale = resolveRequestLocale(request)
 
   try {
+    const rateLimited = await rateLimitIp(request, RATE_LIMITS.calculation, 'ergometer:classify')
+    if (rateLimited) return rateLimited
+
     const { searchParams } = new URL(request.url);
     const ergometerType = searchParams.get('ergometerType') as ErgometerType | null;
     const testProtocol = searchParams.get('testProtocol') as ErgometerTestProtocol | null;

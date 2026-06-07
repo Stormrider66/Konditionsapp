@@ -7,7 +7,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
-import { logAuthEventClient } from '@/lib/auth/log-auth-event-client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
@@ -69,34 +68,30 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const supabase = createClient()
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          password: data.password,
+        }),
       })
 
-      if (error) {
-        // Log failed login attempt for security monitoring
-        logAuthEventClient({
-          eventType: 'LOGIN_FAILURE',
-          email: data.email,
-          failureReason: error.message,
-        })
+      if (!response.ok) {
+        const description =
+          response.status === 429
+            ? t('loginRateLimited')
+            : response.status === 401
+              ? t('invalidCredentials')
+              : t('couldNotLoginLater')
 
         toast({
           title: t('loginFailed'),
-          description: error.message,
+          description,
           variant: 'destructive',
         })
         return
       }
-
-      // Log successful login
-      logAuthEventClient({
-        eventType: 'LOGIN_SUCCESS',
-        userId: authData.user?.id,
-        email: data.email,
-      })
 
       toast({
         title: t('welcomeMessage'),
@@ -106,12 +101,6 @@ export default function LoginPage() {
       router.push('/')
       router.refresh()
     } catch (_error) {
-      logAuthEventClient({
-        eventType: 'LOGIN_FAILURE',
-        email: data.email,
-        failureReason: 'client_exception',
-      })
-
       toast({
         title: t('errorOccurred'),
         description: t('couldNotLoginLater'),

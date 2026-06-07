@@ -2109,6 +2109,7 @@
     "invalidEmail": "Ange en giltig e-postadress",
     "passwordMinLength": "Lösenordet måste vara minst 6 tecken",
     "invalidCredentials": "Felaktig e-post eller lösenord",
+    "loginRateLimited": "För många inloggningsförsök. Vänta några minuter och försök igen.",
     "loginFailed": "Inloggning misslyckades",
     "accountCreated": "Konto skapat! Kontrollera din e-post för att verifiera.",
     "logoutSuccess": "Du har loggats ut",

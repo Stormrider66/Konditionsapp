@@ -2113,6 +2113,7 @@
     "male": "Male",
     "female": "Female",
     "invalidCredentials": "Invalid email or password",
+    "loginRateLimited": "Too many login attempts. Wait a few minutes and try again.",
     "loginFailed": "Login failed",
     "accountCreated": "Account created! Check your email to verify.",
     "logoutSuccess": "You have been logged out",

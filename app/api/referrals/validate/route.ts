@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
+import { rateLimitIp } from '@/lib/api/rate-limit'
 
 const validateSchema = z.object({
   code: z.string().min(1, 'Referral code is required'),
@@ -21,6 +22,12 @@ function t(locale: AppLocale, en: string, sv: string): string {
 export async function POST(request: NextRequest) {
   const locale = resolveRequestLocale(request)
   try {
+    const rateLimited = await rateLimitIp(request, {
+      limit: 30,
+      windowSeconds: 60,
+    }, 'referrals:validate')
+    if (rateLimited) return rateLimited
+
     const body = await request.json()
 
     const validationResult = validateSchema.safeParse(body)

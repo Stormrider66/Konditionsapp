@@ -5,8 +5,15 @@
 // then redirect to a friendly status page. No auth — the token IS the auth.
 import { NextRequest, NextResponse } from 'next/server'
 import { consumeReplyToVerificationToken } from '@/lib/email/reply-to-verification'
+import { rateLimitIp } from '@/lib/api/rate-limit'
 
 export async function GET(request: NextRequest) {
+  const rateLimited = await rateLimitIp(request, {
+    limit: 30,
+    windowSeconds: 60,
+  }, 'branding:reply-to:verify')
+  if (rateLimited) return rateLimited
+
   const token = request.nextUrl.searchParams.get('token') || ''
   const locale = request.nextUrl.searchParams.get('locale') === 'sv' ? 'sv' : 'en'
   const result = await consumeReplyToVerificationToken(token, locale)

@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { rateLimitIp } from '@/lib/api/rate-limit'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -14,6 +15,12 @@ function t(locale: AppLocale, en: string, sv: string): string {
 
 export async function GET(request: NextRequest) {
   const locale = resolveRequestLocale(request)
+  const rateLimited = await rateLimitIp(request, {
+    limit: 30,
+    windowSeconds: 60,
+  }, 'business-invitations:validate')
+  if (rateLimited) return rateLimited
+
   const code = request.nextUrl.searchParams.get('code')
 
   if (!code) {
