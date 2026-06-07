@@ -271,4 +271,97 @@ describe('food scan API route', () => {
       fiberGrams: 2.7,
     })
   })
+
+  it('passes clarification answers into the Gemini prompt for a retry', async () => {
+    mockGenerateObject.mockResolvedValue({
+      object: {
+        success: true,
+        items: [
+          {
+            name: 'Corn pasta',
+            category: 'GRAIN',
+            estimatedGrams: 200,
+            portionDescription: '1 serving',
+            calories: 310,
+            proteinGrams: 6,
+            carbsGrams: 66,
+            fatGrams: 2,
+            fiberGrams: 4,
+          },
+        ],
+        totals: {
+          calories: 310,
+          proteinGrams: 6,
+          carbsGrams: 66,
+          fatGrams: 2,
+          fiberGrams: 4,
+        },
+        mealDescription: 'Corn pasta',
+        suggestedMealType: 'LUNCH',
+        confidence: 0.85,
+        notes: [],
+      },
+      usage: { inputTokens: 100, outputTokens: 50 },
+    })
+
+    const formData = new FormData()
+    formData.append('image', new File(['image'], 'meal.png', { type: 'image/png' }))
+    formData.append('clarificationQuestion', 'Is the main food pasta, rice, or potatoes?')
+    formData.append('clarificationAnswer', 'It is corn pasta, about 200 g')
+
+    const request = new Request('http://localhost/api/ai/food-scan', {
+      method: 'POST',
+      body: formData,
+    }) as unknown as NextRequest
+
+    const response = await POST(request)
+
+    expect(response.status).toBe(200)
+    const content = mockGenerateObject.mock.calls[0][0].messages[0].content as Array<{
+      type: string
+      text?: string
+    }>
+    const prompt = content.find((part) => part.type === 'text')?.text ?? ''
+    expect(prompt).toContain('Previous question: Is the main food pasta, rice, or potatoes?')
+    expect(prompt).toContain('User answer: It is corn pasta, about 200 g')
+  })
+
+  it('adds a fallback clarification question when Gemini returns unsuccessful without one', async () => {
+    mockGenerateObject.mockResolvedValue({
+      object: {
+        success: false,
+        items: [],
+        totals: {
+          calories: 0,
+          proteinGrams: 0,
+          carbsGrams: 0,
+          fatGrams: 0,
+          fiberGrams: 0,
+        },
+        mealDescription: '',
+        confidence: 0.1,
+        notes: ['unclear image'],
+      },
+      usage: { inputTokens: 100, outputTokens: 50 },
+    })
+
+    const formData = new FormData()
+    formData.append('image', new File(['image'], 'meal.png', { type: 'image/png' }))
+
+    const request = new Request('http://localhost/api/ai/food-scan', {
+      method: 'POST',
+      body: formData,
+    }) as unknown as NextRequest
+
+    const response = await POST(request)
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.result).toMatchObject({
+      success: false,
+      clarification: {
+        question: 'I could not identify the main food clearly. What is it?',
+      },
+    })
+  })
 })

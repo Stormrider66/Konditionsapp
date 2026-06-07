@@ -41,6 +41,7 @@ export const maxDuration = 60
 export const dynamic = 'force-dynamic'
 
 const MEMORY_CONFIDENCE_THRESHOLD = 0.75
+const CLARIFICATION_CONFIDENCE_THRESHOLD = 0.35
 const RECIPE_AMOUNT_UNITS = new Set<RecipeAmountUnit>(['g', 'ml', 'dl', 'st', 'portion'])
 
 const WEEKDAY_LABEL_SV = [
@@ -74,6 +75,8 @@ function buildPrompt({
   memoryContext,
   savedRecipeContext,
   userContext,
+  clarificationQuestion,
+  clarificationAnswer,
   locale,
 }: {
   clientHour: number | null
@@ -82,6 +85,8 @@ function buildPrompt({
   memoryContext: string | null
   savedRecipeContext: string | null
   userContext: string | null
+  clarificationQuestion: string | null
+  clarificationAnswer: string | null
   locale: AppLocale
 }) {
   const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
@@ -105,6 +110,13 @@ function buildPrompt({
       : `\nUSER CONTEXT (important information - prioritize this over your own estimates):\n${userContext}\n\nIf the user gave a specific weight (for example "200g meat"), use EXACTLY that weight instead of estimating.\nIf the user specified a specific food (for example "venison mince" instead of beef mince), use that food's nutrition values.\n\n`
     : ''
 
+  const clarificationBlock =
+    clarificationQuestion && clarificationAnswer
+      ? locale === 'sv'
+        ? `\nFÖRTYDLIGANDE EFTER OSÄKER BILD:\nTidigare fråga: ${clarificationQuestion}\nAnvändarens svar: ${clarificationAnswer}\n\nAnalysera bilden igen och använd svaret som stark kontext för identitet, tillagning och portionsstorlek. Om svaret identifierar maten, sätt success till true och returnera en komplett analys.\n\n`
+        : `\nCLARIFICATION AFTER UNCERTAIN IMAGE:\nPrevious question: ${clarificationQuestion}\nUser answer: ${clarificationAnswer}\n\nAnalyze the image again and use the answer as strong context for identity, preparation, and portion size. If the answer identifies the food, set success to true and return a complete analysis.\n\n`
+      : ''
+
   const enhancedBlock = enhancedMode
     ? locale === 'sv'
       ? `\n\nUTÖKAD ANALYS (detaljerade makrosubkategorier):\n8. Fettfördelning per matvara: mättade, enkelomättade, fleromättade fettsyror (gram)\n9. Kolhydratfördelning per matvara: socker och komplexa kolhydrater (stärkelse) i gram\n10. Proteinkvalitet: ange om matvaran är en komplett proteinkälla (alla essentiella aminosyror)\n11. Proteinkälla per matvara: proteinSource ska vara ANIMAL, PLANT, MIXED eller UNKNOWN. Animaliskt är inte alltid samma sak som komplett; soja/tofu/tempeh och quinoa kan vara kompletta växtkällor.\n12. Summera fett- och kolhydratsubkategorier i totals`
@@ -115,7 +127,7 @@ function buildPrompt({
   return `Du är en expert på näringslära och matidentifiering. Analysera denna bild av en måltid och uppskatta kalorier och makronäringsämnen.
 Skriv alla användarsynliga namn, portionsbeskrivningar, måltidsbeskrivningar och anteckningar på ${outputLanguage}.
 
-${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}INSTRUKTIONER:
+${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}${clarificationBlock}INSTRUKTIONER:
 1. Identifiera varje separat matvara/ingrediens i bilden
 2. Uppskatta portionsstorlek i gram och beskriv portionen på svenska (t.ex. "1 skiva", "2 dl", "1 portion")
 3. Beräkna kalorier och makros (protein, kolhydrater, fett, fiber) per matvara
@@ -123,6 +135,7 @@ ${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}INSTRUKTIONER:
 5. Ge en kort svensk beskrivning av måltiden
 6. Föreslå vilken måltidstyp det troligtvis är (frukost, lunch, middag, mellanmål etc.)${clientHour != null ? ' — följ tidsregeln ovan' : ''}
 7. Ange din konfidensgrad (0-1) baserat på bildens tydlighet och hur väl du kan identifiera maten
+8. Om bilden verkar visa mat men du inte kan identifiera huvudmaten tillräckligt säkert för en användbar uppskattning, sätt success till false, items till en tom array, totals till 0-värden, confidence till max ${CLARIFICATION_CONFIDENCE_THRESHOLD}, och fyll clarification.question med exakt EN kort fråga som användaren kan svara på. Fråga först om matens identitet, inte om små detaljer.
 
 VIKTIGT:
 - Om bilden inte visar mat, sätt success till false
@@ -136,7 +149,7 @@ VIKTIGT:
   return `You are a nutrition and food-identification expert. Analyze this meal photo and estimate calories and macronutrients.
 Write all user-facing item names, portion descriptions, meal descriptions, and notes in ${outputLanguage}. Memory context may contain Swedish food names or correction notes; use it for calibration, but keep the final user-facing output in ${outputLanguage}.
 
-${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}INSTRUCTIONS:
+${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}${clarificationBlock}INSTRUCTIONS:
 1. Identify each separate food item or ingredient in the image
 2. Estimate portion size in grams and describe the portion in English (for example "1 slice", "2 dl", "1 serving")
 3. Calculate calories and macros (protein, carbohydrates, fat, fiber) per food item
@@ -144,6 +157,7 @@ ${timeLine}${recipeBlock}${memoryBlock}${userContextBlock}INSTRUCTIONS:
 5. Provide a brief English description of the meal
 6. Suggest the most likely meal type (breakfast, lunch, dinner, snack, etc.)${clientHour != null ? ' - follow the time rule above' : ''}
 7. Set confidence (0-1) based on image clarity and how well you can identify the food
+8. If the image appears to show food but you cannot identify the main food confidently enough for a useful estimate, set success to false, items to an empty array, totals to zero values, confidence to at most ${CLARIFICATION_CONFIDENCE_THRESHOLD}, and fill clarification.question with exactly ONE short question the user can answer. Ask about food identity first, not minor details.
 
 IMPORTANT:
 - If the image does not show food, set success to false
@@ -397,6 +411,28 @@ function applySavedRecipeNutrition({
   }
 }
 
+function getFallbackClarificationQuestion(locale: AppLocale): string {
+  return t(
+    locale,
+    'I could not identify the main food clearly. What is it?',
+    'Jag kunde inte identifiera huvudmaten tydligt. Vad är det?'
+  )
+}
+
+function withFallbackClarification(
+  result: FoodPhotoAnalysisResult,
+  locale: AppLocale
+): FoodPhotoAnalysisResult {
+  if (result.success || result.clarification?.question?.trim()) return result
+
+  return {
+    ...result,
+    clarification: {
+      question: getFallbackClarificationQuestion(locale),
+    },
+  }
+}
+
 export async function POST(request: NextRequest) {
   let locale: AppLocale = resolveRequestLocale(request)
   try {
@@ -439,6 +475,10 @@ export async function POST(request: NextRequest) {
       : null
 
     const userContext = (formData.get('context') as string | null)?.trim() || null
+    const clarificationQuestion =
+      (formData.get('clarificationQuestion') as string | null)?.trim() || null
+    const clarificationAnswer =
+      (formData.get('clarificationAnswer') as string | null)?.trim() || null
     const selectedRecipeId = (formData.get('recipeId') as string | null)?.trim() || null
     const selectedRecipeAmount = parsePositiveNumber(formData.get('recipeAmount'))
     const selectedRecipeAmountUnit = parseRecipeAmountUnit(formData.get('recipeAmountUnit'))
@@ -610,6 +650,8 @@ export async function POST(request: NextRequest) {
       memoryContext: null,
       savedRecipeContext: selectedRecipeContext?.text ?? null,
       userContext,
+      clarificationQuestion,
+      clarificationAnswer,
       locale,
     })
 
@@ -661,6 +703,8 @@ export async function POST(request: NextRequest) {
           memoryContext: memory.text,
           savedRecipeContext: selectedRecipeContext?.text ?? null,
           userContext,
+          clarificationQuestion,
+          clarificationAnswer,
           locale,
         })
 
@@ -730,6 +774,7 @@ export async function POST(request: NextRequest) {
       locale,
     })
     finalResult = savedRecipeApplication.result
+    finalResult = withFallbackClarification(finalResult, locale)
     const savedRecipeUsed = savedRecipeApplication.applied
 
     // Log cost (fire-and-forget; do not block the response on logging failure)

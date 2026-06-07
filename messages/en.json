@@ -13044,7 +13044,9 @@
         "tooManyRequests": "Too many requests. Try again in a moment.",
         "athleteModeRequired": "You need to activate athlete mode to scan food. Go to settings and activate athlete mode.",
         "analyzeFailed": "Could not analyze the image. Try again.",
+        "analyzeTimeout": "The analysis took too long. Try again or add a short hint about the meal.",
         "noFoodIdentified": "Could not identify food. Try taking a new photo.",
+        "clarificationAnswerRequired": "Answer the question before trying again.",
         "network": "A network error occurred. Check your connection and try again.",
         "saveMeal": "Could not save the meal",
         "saveRecipe": "Could not save recipe",
@@ -13085,6 +13087,7 @@
         "stopRecording": "Stop recording",
         "recordVoiceCorrection": "Record voice correction",
         "updateAnalysis": "Update analysis",
+        "retryAnalysis": "Try again",
         "saveRecipe": "Save recipe",
         "newImage": "New image",
         "saveMeal": "Save meal",
@@ -13092,6 +13095,11 @@
         "done": "Done"
       },
       "analyzing": "Analyzing your meal...",
+      "clarification": {
+        "title": "One quick check",
+        "answerLabel": "Your answer",
+        "answerPlaceholder": "E.g. \"rice with chicken\" or \"corn pasta, about 200 g\""
+      },
       "saving": "Saving meal...",
       "macros": {
         "protein": "Protein",

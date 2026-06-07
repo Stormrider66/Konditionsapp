@@ -13404,7 +13404,9 @@
         "tooManyRequests": "För många förfrågningar. Försök igen om en stund.",
         "athleteModeRequired": "Du behöver aktivera atletläge för att skanna mat. Gå till inställningar och aktivera atletläge.",
         "analyzeFailed": "Kunde inte analysera bilden. Försök igen.",
+        "analyzeTimeout": "Analysen tog för lång tid. Försök igen eller lägg till en kort ledtråd om måltiden.",
         "noFoodIdentified": "Kunde inte identifiera mat. Försök ta en ny bild.",
+        "clarificationAnswerRequired": "Svara på frågan innan du försöker igen.",
         "network": "Ett nätverksfel uppstod. Kontrollera din anslutning och försök igen.",
         "saveMeal": "Kunde inte spara måltiden",
         "saveRecipe": "Kunde inte spara recept",
@@ -13445,6 +13447,7 @@
         "stopRecording": "Stoppa inspelning",
         "recordVoiceCorrection": "Spela in röstkorrigering",
         "updateAnalysis": "Uppdatera analys",
+        "retryAnalysis": "Försök igen",
         "saveRecipe": "Spara recept",
         "newImage": "Ny bild",
         "saveMeal": "Spara måltid",
@@ -13452,6 +13455,11 @@
         "done": "Klar"
       },
       "analyzing": "Analyserar din måltid...",
+      "clarification": {
+        "title": "En snabb fråga",
+        "answerLabel": "Ditt svar",
+        "answerPlaceholder": "T.ex. \"ris med kyckling\" eller \"majspasta, ungefär 200 g\""
+      },
       "saving": "Sparar måltid...",
       "macros": {
         "protein": "Protein",

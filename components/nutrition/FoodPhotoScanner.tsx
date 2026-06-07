@@ -44,6 +44,8 @@ import {
 
 const SESSION_KEY = 'food-scanner-state'
 const MAX_NORMALIZED_IMAGE_DIMENSION = 1600
+const ANALYZE_TIMEOUT_MS = 55_000
+const MAX_CLARIFICATION_ATTEMPTS = 1
 import type { FoodPhotoAnalysisResult } from '@/lib/validations/gemini-schemas'
 import {
   calculateFoodTotals,
@@ -72,7 +74,23 @@ import {
   type RecipeAmountUnit,
 } from '@/lib/nutrition/saved-recipe-scaling'
 
-type Step = 'CAPTURE' | 'ANALYZING' | 'REVIEW' | 'SAVING' | 'DONE'
+type Step = 'CAPTURE' | 'ANALYZING' | 'CLARIFY' | 'REVIEW' | 'SAVING' | 'DONE'
+
+type FoodScanApiResponse = {
+  result: FoodPhotoAnalysisResult
+  enhancedMode?: boolean
+  memoryUsed?: boolean
+  portionSnaps?: unknown[]
+}
+
+const getClarificationQuestion = (result: FoodPhotoAnalysisResult) =>
+  result.clarification?.question?.trim() || null
+
+const isAbortError = (error: unknown) =>
+  typeof error === 'object' &&
+  error !== null &&
+  'name' in error &&
+  error.name === 'AbortError'
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
   BREAKFAST: 'mealTypes.breakfast',
@@ -314,6 +332,7 @@ export function FoodPhotoScanner({
   const router = useRouter()
   const fileInputId = useId()
   const cameraInputId = useId()
+  const clarificationAnswerId = useId()
   const [step, setStep] = useState<Step>('CAPTURE')
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -368,6 +387,9 @@ export function FoodPhotoScanner({
   // Pre-analysis context (user-provided hints before scanning)
   const [userContext, setUserContext] = useState('')
   const [showContextInput, setShowContextInput] = useState(false)
+  const [clarifyingQuestion, setClarifyingQuestion] = useState<string | null>(null)
+  const [clarificationAnswer, setClarificationAnswer] = useState('')
+  const [clarificationAttempts, setClarificationAttempts] = useState(0)
 
   // Refinement state
   const [refinementText, setRefinementText] = useState('')
@@ -561,6 +583,9 @@ export function FoodPhotoScanner({
     }
 
     clearError()
+    setClarifyingQuestion(null)
+    setClarificationAnswer('')
+    setClarificationAttempts(0)
     setShowNativeCameraFallback(false)
     clearSessionStorage()
     const requestId = selectionRequestIdRef.current + 1
@@ -604,6 +629,107 @@ export function FoodPhotoScanner({
     setSavedRecipesOpen(false)
   }
 
+  const buildFoodScanFormData = (clarification?: { question: string; answer: string }) => {
+    if (!imageFile) return null
+
+    const formData = new FormData()
+    formData.append('image', imageFile)
+    const now = new Date()
+    formData.append('clientHour', String(now.getHours()))
+    formData.append('clientDayOfWeek', String(now.getDay()))
+    if (userContext.trim()) {
+      formData.append('context', userContext.trim())
+    }
+    if (clarification) {
+      formData.append('clarificationQuestion', clarification.question)
+      formData.append('clarificationAnswer', clarification.answer)
+    }
+    if (selectedRecipe) {
+      formData.append('recipeId', selectedRecipe.id)
+      formData.append('recipeAmount', recipeAmount)
+      formData.append('recipeAmountUnit', recipeAmountUnit)
+      if (recipePieceGrams.trim()) {
+        formData.append('recipePieceGrams', recipePieceGrams.trim())
+      }
+    }
+
+    return formData
+  }
+
+  const postFoodScan = async (formData: FormData): Promise<FoodScanApiResponse> => {
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), ANALYZE_TIMEOUT_MS)
+
+    try {
+      const response = await fetch('/api/ai/food-scan', {
+        method: 'POST',
+        body: formData,
+        signal: controller.signal,
+      })
+
+      if (response.status === 429) throw new Error(t('errors.tooManyRequests'))
+      if (response.status === 401) throw new Error(t('errors.athleteModeRequired'))
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) throw allowanceError
+        throw new Error(data?.error || t('errors.analyzeFailed'))
+      }
+
+      return (await response.json()) as FoodScanApiResponse
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  const applyFoodScanResponse = (
+    data: FoodScanApiResponse,
+    clarificationAttemptCount: number
+  ) => {
+    const result = data.result
+
+    if (!result.success) {
+      const question = getClarificationQuestion(result)
+      if (question && clarificationAttemptCount < MAX_CLARIFICATION_ATTEMPTS) {
+        setClarifyingQuestion(question)
+        setClarificationAnswer('')
+        setStep('CLARIFY')
+        return
+      }
+
+      showError(t('errors.noFoodIdentified'))
+      setStep('CAPTURE')
+      return
+    }
+
+    // Populate review state
+    setEnhancedMode(data.enhancedMode ?? false)
+    setMemoryUsed(Boolean(data.memoryUsed))
+    setPortionSnapCount(Array.isArray(data.portionSnaps) ? data.portionSnaps.length : 0)
+    setRecipeSaveMessage(null)
+    setRecipeSaveError(null)
+    setClarifyingQuestion(null)
+    setClarificationAnswer('')
+    setClarificationAttempts(0)
+
+    // Snapshot the AI's first response so we can capture corrections on save.
+    initialAiItemsRef.current = result.items.map((i) => ({ ...i }))
+    initialAiConfidenceRef.current =
+      typeof result.confidence === 'number' ? result.confidence : null
+    refinedRef.current = clarificationAttemptCount > 0
+
+    setItems(result.items.map((item) => createEditableFoodItem(item, foodScanLocale)))
+    setMealDescription(result.mealDescription)
+    setConfidence(result.confidence)
+    if (result.suggestedMealType && !defaultMealType) {
+      setMealType(result.suggestedMealType)
+    }
+    setNotes(result.notes?.length ? result.notes.join('\n') : '')
+
+    setStep('REVIEW')
+  }
+
   const handleAnalyze = async () => {
     if (!imageFile) return
 
@@ -613,93 +739,67 @@ export function FoodPhotoScanner({
       return
     }
 
+    const formData = buildFoodScanFormData()
+    if (!formData) return
+
+    setStep('ANALYZING')
+    clearError()
+    setClarifyingQuestion(null)
+    setClarificationAnswer('')
+    setClarificationAttempts(0)
+
+    try {
+      const data = await postFoodScan(formData)
+      applyFoodScanResponse(data, 0)
+    } catch (err) {
+      const message = isAbortError(err)
+        ? t('errors.analyzeTimeout')
+        : err instanceof Error
+          ? err.message
+          : t('errors.network')
+      if (isAiAllowanceExhaustedError(err)) {
+        showAiAllowanceError(err)
+      } else {
+        showError(message)
+      }
+      setStep('CAPTURE')
+    }
+  }
+
+  const handleClarificationSubmit = async () => {
+    if (!clarifyingQuestion) return
+    const answer = clarificationAnswer.trim()
+    if (!answer) {
+      showError(t('errors.clarificationAnswerRequired'))
+      return
+    }
+
+    const formData = buildFoodScanFormData({
+      question: clarifyingQuestion,
+      answer,
+    })
+    if (!formData) return
+
+    const nextAttempts = clarificationAttempts + 1
+    setClarificationAttempts(nextAttempts)
     setStep('ANALYZING')
     clearError()
 
     try {
-      const formData = new FormData()
-      formData.append('image', imageFile)
-      const now = new Date()
-      formData.append('clientHour', String(now.getHours()))
-      formData.append('clientDayOfWeek', String(now.getDay()))
-      if (userContext.trim()) {
-        formData.append('context', userContext.trim())
+      const data = await postFoodScan(formData)
+      applyFoodScanResponse(data, nextAttempts)
+    } catch (err) {
+      const message = isAbortError(err)
+        ? t('errors.analyzeTimeout')
+        : err instanceof Error
+          ? err.message
+          : t('errors.network')
+      if (isAiAllowanceExhaustedError(err)) {
+        showAiAllowanceError(err)
+      } else {
+        showError(message)
       }
-      if (selectedRecipe) {
-        formData.append('recipeId', selectedRecipe.id)
-        formData.append('recipeAmount', recipeAmount)
-        formData.append('recipeAmountUnit', recipeAmountUnit)
-        if (recipePieceGrams.trim()) {
-          formData.append('recipePieceGrams', recipePieceGrams.trim())
-        }
-      }
-
-      const response = await fetch('/api/ai/food-scan', {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (response.status === 429) {
-        showError(t('errors.tooManyRequests'))
-        setStep('CAPTURE')
-        return
-      }
-
-      if (response.status === 401) {
-        showError(t('errors.athleteModeRequired'))
-        setStep('CAPTURE')
-        return
-      }
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null)
-        const allowanceError = parseAiAllowanceError(data)
-        if (allowanceError) {
-          showAiAllowanceError(allowanceError)
-          setStep('CAPTURE')
-          return
-        }
-        showError(data?.error || t('errors.analyzeFailed'))
-        setStep('CAPTURE')
-        return
-      }
-
-      const data = await response.json()
-      const result: FoodPhotoAnalysisResult = data.result
-
-      if (!result.success) {
-        showError(t('errors.noFoodIdentified'))
-        setStep('CAPTURE')
-        return
-      }
-
-      // Populate review state
-      setEnhancedMode(data.enhancedMode ?? false)
-      setMemoryUsed(Boolean(data.memoryUsed))
-      setPortionSnapCount(Array.isArray(data.portionSnaps) ? data.portionSnaps.length : 0)
-      setRecipeSaveMessage(null)
-      setRecipeSaveError(null)
-
-      // Snapshot the AI's first response so we can capture corrections on save.
-      initialAiItemsRef.current = result.items.map((i) => ({ ...i }))
-      initialAiConfidenceRef.current =
-        typeof result.confidence === 'number' ? result.confidence : null
-      refinedRef.current = false
-
-      setItems(result.items.map((item) => createEditableFoodItem(item, foodScanLocale)))
-      setMealDescription(result.mealDescription)
-      setConfidence(result.confidence)
-      if (result.suggestedMealType && !defaultMealType) {
-        setMealType(result.suggestedMealType)
-      }
-      if (result.notes?.length) {
-        setNotes(result.notes.join('\n'))
-      }
-
-      setStep('REVIEW')
-    } catch {
-      showError(t('errors.network'))
-      setStep('CAPTURE')
+      setStep('CLARIFY')
     }
   }
 
@@ -882,6 +982,9 @@ export function FoodPhotoScanner({
     refinedRef.current = false
     setUserContext('')
     setShowContextInput(false)
+    setClarifyingQuestion(null)
+    setClarificationAnswer('')
+    setClarificationAttempts(0)
     setRefinementText('')
     setIsRefining(false)
     setIsRecording(false)
@@ -1553,6 +1656,68 @@ export function FoodPhotoScanner({
           )}
           <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
           <p className="text-sm text-slate-600 dark:text-slate-300">{t('analyzing')}</p>
+        </div>
+      )}
+
+      {/* CLARIFY step */}
+      {step === 'CLARIFY' && clarifyingQuestion && (
+        <div className="space-y-4">
+          {imagePreview && (
+            <div className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100 max-h-40 dark:border-white/10 dark:bg-transparent">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={imagePreview}
+                alt={t('image.mealAlt')}
+                className="w-full h-auto max-h-40 object-contain bg-slate-100 dark:bg-black/20"
+              />
+            </div>
+          )}
+
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-400/25 dark:bg-amber-400/10">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                  {t('clarification.title')}
+                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-100/80">
+                  {clarifyingQuestion}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor={clarificationAnswerId} className={scannerLabelClass}>
+              {t('clarification.answerLabel')}
+            </label>
+            <Textarea
+              id={clarificationAnswerId}
+              value={clarificationAnswer}
+              onChange={(event) => setClarificationAnswer(event.target.value)}
+              placeholder={t('clarification.answerPlaceholder')}
+              className={cn(scannerControlClass, 'text-sm min-h-[76px]')}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-950 dark:border-white/10 dark:bg-white/5 dark:text-white dark:hover:bg-white/10"
+              onClick={handleReset}
+            >
+              <RotateCw className="h-4 w-4 mr-2" />
+              {t('actions.newImage')}
+            </Button>
+            <Button
+              className="flex-1 gap-2"
+              onClick={handleClarificationSubmit}
+              disabled={!clarificationAnswer.trim()}
+            >
+              <RefreshCw className="h-4 w-4" />
+              {t('actions.retryAnalysis')}
+            </Button>
+          </div>
         </div>
       )}
 

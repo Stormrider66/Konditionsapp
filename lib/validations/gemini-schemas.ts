@@ -467,6 +467,14 @@ export const FoodPhotoAnalysisSchema = z.object({
     .describe('Suggested meal type based on contents and time of day'),
   confidence: z.number().min(0).max(1).describe('Overall confidence in the analysis (0-1)'),
   notes: z.array(z.string()).optional().describe('Additional notes or caveats about the analysis'),
+  clarification: z
+    .object({
+      question: z
+        .string()
+        .describe('One concise question to ask the user when the food appears present but cannot be identified confidently'),
+    })
+    .optional()
+    .describe('Clarification request for uncertain food photos. Only include when success is false because a user answer could resolve the uncertainty.'),
 });
 
 export type FoodPhotoAnalysisResult = z.infer<typeof FoodPhotoAnalysisSchema>;

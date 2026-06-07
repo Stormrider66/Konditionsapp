@@ -54,6 +54,7 @@ describe('FoodPhotoScanner', () => {
   let refineResponse: Record<string, unknown>
   let recipeRequestBody: Record<string, unknown> | null
   let scanRequestFormData: Record<string, string> | null
+  let scanResponses: Array<Record<string, unknown>>
 
   beforeAll(() => {
     Object.defineProperty(URL, 'createObjectURL', {
@@ -116,6 +117,12 @@ describe('FoodPhotoScanner', () => {
     refineRequestBody = null
     recipeRequestBody = null
     scanRequestFormData = null
+    scanResponses = [
+      {
+        result: baseAnalysisResult,
+        enhancedMode: false,
+      },
+    ]
     refineResponse = {
       result: {
         success: true,
@@ -162,10 +169,10 @@ describe('FoodPhotoScanner', () => {
           return {
             ok: true,
             status: 200,
-            json: async () => ({
+            json: async () => scanResponses.shift() ?? {
               result: baseAnalysisResult,
               enhancedMode: false,
-            }),
+            },
           } as Response
         }
 
@@ -422,6 +429,87 @@ describe('FoodPhotoScanner', () => {
         recipeAmount: '95',
         recipeAmountUnit: 'g',
       })
+    })
+  })
+
+  it('asks for one clarification and retries the photo scan with the answer', async () => {
+    scanResponses = [
+      {
+        result: {
+          success: false,
+          items: [],
+          totals: {
+            calories: 0,
+            proteinGrams: 0,
+            carbsGrams: 0,
+            fatGrams: 0,
+            fiberGrams: 0,
+          },
+          mealDescription: '',
+          confidence: 0.2,
+          notes: ['osäker bild'],
+          clarification: {
+            question: 'Är huvudmaten pasta, ris eller potatis?',
+          },
+        },
+        enhancedMode: false,
+      },
+      {
+        result: {
+          success: true,
+          items: [
+            {
+              name: 'Majspasta',
+              category: 'GRAIN',
+              estimatedGrams: 200,
+              portionDescription: '1 portion',
+              calories: 310,
+              proteinGrams: 6,
+              carbsGrams: 66,
+              fatGrams: 2,
+              fiberGrams: 4,
+            },
+          ],
+          totals: {
+            calories: 310,
+            proteinGrams: 6,
+            carbsGrams: 66,
+            fatGrams: 2,
+            fiberGrams: 4,
+          },
+          mealDescription: 'Majspasta',
+          suggestedMealType: 'LUNCH',
+          confidence: 0.82,
+          notes: [],
+        },
+        enhancedMode: false,
+      },
+    ]
+
+    const user = userEvent.setup()
+    const { container } = renderScanner()
+
+    const fileInput = container.querySelector('input[type="file"]:not([capture])')
+    expect(fileInput).not.toBeNull()
+
+    const file = new File(['image'], 'meal.png', { type: 'image/png' })
+    fireEvent.change(fileInput as HTMLInputElement, {
+      target: { files: [file] },
+    })
+
+    await user.click(await screen.findByRole('button', { name: /analysera måltid/i }))
+
+    expect(await screen.findByText(/är huvudmaten pasta, ris eller potatis/i)).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/ditt svar/i), 'Det är majspasta, cirka 200 g')
+    await user.click(screen.getByRole('button', { name: /^försök igen$/i }))
+
+    await waitFor(() => {
+      expect(scanRequestFormData).toMatchObject({
+        clarificationQuestion: 'Är huvudmaten pasta, ris eller potatis?',
+        clarificationAnswer: 'Det är majspasta, cirka 200 g',
+      })
+      expect(screen.getByDisplayValue('Majspasta')).toBeInTheDocument()
     })
   })
 
