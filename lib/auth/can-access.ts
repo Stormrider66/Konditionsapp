@@ -3,15 +3,7 @@ import {
   canAccessCoachPlatform,
   canAccessPhysioPlatform,
 } from '@/lib/user-capabilities'
-
-const BUSINESS_EXERCISE_ROLES = [
-  'OWNER',
-  'ADMIN',
-  'COACH',
-  'PHYSICAL_TRAINER',
-  'ASSISTANT_COACH',
-  'PHYSIO',
-]
+import { getActiveExerciseBusinessIdsForUser } from '@/lib/exercises/exercise-business-access'
 
 /**
  * Check if current user can access a training program.
@@ -175,8 +167,8 @@ export async function canAccessClient(
 /**
  * Check if current user can access an exercise.
  *  - Public exercises are accessible to everyone
- *  - Coaches see exercises they created
- *  - Athletes see exercises created by their coach
+ *  - Coaches see exercises they created or any exercise shared with their businesses
+ *  - Athletes see exercises created by their coach or shared with their business
  *  - Admins see everything
  */
 export async function canAccessExercise(
@@ -195,7 +187,12 @@ export async function canAccessExercise(
 
   const exercise = await prisma.exercise.findUnique({
     where: { id: exerciseId },
-    select: { isPublic: true, coachId: true, businessId: true },
+    select: {
+      isPublic: true,
+      coachId: true,
+      businessId: true,
+      businessShares: { select: { businessId: true } },
+    },
   })
 
   if (!exercise) return false
@@ -203,26 +200,20 @@ export async function canAccessExercise(
 
   if (await canAccessCoachPlatform(userId)) {
     if (exercise.coachId === userId) return true
-    if (!exercise.businessId) return false
-
-    const membership = await prisma.businessMember.findFirst({
-      where: {
-        userId,
-        businessId: exercise.businessId,
-        isActive: true,
-        role: { in: BUSINESS_EXERCISE_ROLES },
-      },
-      select: { id: true },
-    })
-
-    return Boolean(membership)
+    const businessIds = new Set(await getActiveExerciseBusinessIdsForUser(userId))
+    if (exercise.businessId && businessIds.has(exercise.businessId)) return true
+    return exercise.businessShares.some((share) => businessIds.has(share.businessId))
   }
 
   if (user.role === 'ATHLETE') {
     const coachId = user.athleteAccount?.client.userId
     if (coachId && exercise.coachId === coachId) return true
     const businessId = user.athleteAccount?.client.businessId
-    return Boolean(businessId && exercise.businessId === businessId)
+    return Boolean(
+      businessId &&
+      (exercise.businessId === businessId ||
+        exercise.businessShares.some((share) => share.businessId === businessId))
+    )
   }
 
   return false

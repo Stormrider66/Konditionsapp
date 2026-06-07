@@ -9,17 +9,15 @@ import {
   getStrengthStudioExerciseWhereInput,
   isStrengthStudioSurface,
 } from '@/lib/strength/exercise-library-surface'
+import {
+  getActiveExerciseBusinessIdsForUser,
+  getBusinessExerciseAccessClauses,
+  isStarExerciseShareRequest,
+  resolveExerciseBusinessMembershipId,
+  resolveStarExerciseShareScope,
+} from '@/lib/exercises/exercise-business-access'
 
-const BUSINESS_EXERCISE_ROLES = [
-  'OWNER',
-  'ADMIN',
-  'COACH',
-  'PHYSICAL_TRAINER',
-  'ASSISTANT_COACH',
-  'PHYSIO',
-]
-
-type ExerciseVisibility = 'PRIVATE' | 'BUSINESS'
+type ExerciseVisibility = 'PRIVATE' | 'BUSINESS' | 'STAR_NETWORK'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -45,47 +43,9 @@ function isValidSortField(field: string): field is AllowedSortField {
   return ALLOWED_SORT_FIELDS.includes(field as AllowedSortField)
 }
 
-async function getActiveBusinessIdsForUser(userId: string): Promise<string[]> {
-  const memberships = await prisma.businessMember.findMany({
-    where: {
-      userId,
-      isActive: true,
-      role: { in: BUSINESS_EXERCISE_ROLES },
-      business: { isActive: true },
-    },
-    select: { businessId: true },
-  })
-
-  return (memberships ?? []).map((membership) => membership.businessId)
-}
-
-function businessExerciseAccessClauses(businessIds: string[]): Prisma.ExerciseWhereInput[] {
-  if (businessIds.length === 0) return []
-  return [
-    { businessId: { in: businessIds } },
-    { businessShares: { some: { businessId: { in: businessIds } } } },
-  ]
-}
-
-async function resolveRequestedExerciseBusinessId(userId: string, request: NextRequest): Promise<string | null> {
-  const scope = getRequestedBusinessScope(request)
-  if (!scope.businessId && !scope.businessSlug) return null
-
-  const membership = await prisma.businessMember.findFirst({
-    where: {
-      userId,
-      isActive: true,
-      role: { in: BUSINESS_EXERCISE_ROLES },
-      ...(scope.businessId ? { businessId: scope.businessId } : {}),
-      business: {
-        isActive: true,
-        ...(scope.businessSlug ? { slug: scope.businessSlug } : {}),
-      },
-    },
-    select: { businessId: true },
-  })
-
-  return membership?.businessId ?? null
+function parseExerciseVisibility(value: unknown): ExerciseVisibility {
+  if (isStarExerciseShareRequest(value)) return 'STAR_NETWORK'
+  return value === 'BUSINESS' ? 'BUSINESS' : 'PRIVATE'
 }
 
 export async function GET(request: NextRequest) {
@@ -122,11 +82,11 @@ export async function GET(request: NextRequest) {
     if (user.role === 'ADMIN') {
       // no additional restrictions
     } else if (hasCoachAccess) {
-      const businessIds = await getActiveBusinessIdsForUser(user.id)
+      const businessIds = await getActiveExerciseBusinessIdsForUser(user.id)
       accessWhere.OR = [
         { isPublic: true },
         { coachId: user.id },
-        ...businessExerciseAccessClauses(businessIds),
+        ...getBusinessExerciseAccessClauses(businessIds),
       ]
     } else if (user.role === 'ATHLETE') {
       const resolved = await resolveAthleteClientId()
@@ -143,7 +103,7 @@ export async function GET(request: NextRequest) {
       accessWhere.OR = [
         { isPublic: true },
         ...(coachId ? [{ coachId }] : []),
-        ...(businessId ? businessExerciseAccessClauses([businessId]) : []),
+        ...(businessId ? getBusinessExerciseAccessClauses([businessId]) : []),
       ]
     } else {
       accessWhere.OR = [{ isPublic: true }]
@@ -235,7 +195,10 @@ export async function GET(request: NextRequest) {
             where,
             orderBy: { [sortBy]: sortOrder },
             skip: offset,
-            take: limit
+            take: limit,
+            include: {
+              _count: { select: { businessShares: true } },
+            },
         }),
         prisma.exercise.count({ where })
     ])
@@ -283,10 +246,14 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const visibility: ExerciseVisibility = body.visibility === 'BUSINESS' ? 'BUSINESS' : 'PRIVATE'
-        const requestedBusinessId = visibility === 'BUSINESS'
-          ? await resolveRequestedExerciseBusinessId(user.id, request)
+        const visibility = parseExerciseVisibility(body.visibility)
+        const requestedScope = getRequestedBusinessScope(request)
+        const starShareScope = visibility === 'STAR_NETWORK'
+          ? await resolveStarExerciseShareScope(user.id, requestedScope, { isAdmin: user.role === 'ADMIN' })
           : null
+        const requestedBusinessId = visibility === 'BUSINESS'
+          ? await resolveExerciseBusinessMembershipId(user.id, requestedScope)
+          : starShareScope?.primaryBusinessId ?? null
 
         if (visibility === 'BUSINESS' && !requestedBusinessId) {
           return NextResponse.json(
@@ -294,15 +261,20 @@ export async function POST(request: NextRequest) {
             { status: 403 }
           )
         }
+        if (visibility === 'STAR_NETWORK' && !starShareScope) {
+          return NextResponse.json(
+            { error: t(locale, 'Star network sharing requires an active Star business membership', 'Delning till Star-nätverket kräver ett aktivt medlemskap i en Star-verksamhet') },
+            { status: 403 }
+          )
+        }
 
-        // Coaches can only create private/business exercises. Admins may create system/public exercises.
+        // Coaches can only create private/business/shared exercises. Admins may create system/public exercises.
         const isPublic = user.role === 'ADMIN' ? Boolean(body.isPublic) : false
         const coachId =
           isPublic ? null : (user.role === 'ADMIN' && typeof body.coachId === 'string' ? body.coachId : user.id)
         const businessId = isPublic ? null : requestedBusinessId
 
-        const exercise = await prisma.exercise.create({
-            data: {
+        const exerciseData = {
                 name: body.name,
                 nameSv: body.nameSv || body.name,
                 nameEn: body.nameEn || body.name,
@@ -320,8 +292,20 @@ export async function POST(request: NextRequest) {
                 isPublic,
                 coachId,
                 businessId,
-            }
-        })
+        }
+        const exercise = starShareScope && !isPublic
+          ? await prisma.$transaction(async (tx) => {
+              const created = await tx.exercise.create({ data: exerciseData })
+              await tx.exerciseBusinessShare.createMany({
+                data: starShareScope.businessIds.map((sharedBusinessId) => ({
+                  exerciseId: created.id,
+                  businessId: sharedBusinessId,
+                })),
+                skipDuplicates: true,
+              })
+              return created
+            })
+          : await prisma.exercise.create({ data: exerciseData })
         
         return NextResponse.json(exercise, { status: 201 })
     } catch (error) {

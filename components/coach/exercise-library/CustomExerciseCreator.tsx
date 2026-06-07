@@ -55,6 +55,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Save, X, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { getBusinessScopeHeaders, getBusinessSlugFromPathname } from '@/lib/business-scope-client'
+import { isStarExerciseLibrarySlug } from '@/lib/exercises/star-exercise-library'
 
 interface CustomExerciseCreatorProps {
   open: boolean
@@ -76,7 +77,7 @@ interface ExerciseFormData {
   difficulty: string
   videoUrl: string
   imageUrl: string
-  visibility: 'PRIVATE' | 'BUSINESS'
+  visibility: 'PRIVATE' | 'BUSINESS' | 'STAR_NETWORK'
   plyometricIntensity: PlyometricIntensity | ''
   contactsPerRep: number | null
 }
@@ -89,6 +90,7 @@ export function CustomExerciseCreator({
   const { toast } = useToast()
   const pathname = usePathname()
   const businessSlug = getBusinessSlugFromPathname(pathname)
+  const canShareWithStarNetwork = isStarExerciseLibrarySlug(businessSlug)
   const businessHeaders = getBusinessScopeHeaders(pathname)
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -115,6 +117,11 @@ export function CustomExerciseCreator({
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const visibilityLabel = (visibility: ExerciseFormData['visibility']) => {
+    if (visibility === 'STAR_NETWORK') return 'Star network'
+    return visibility === 'BUSINESS' ? 'Business library' : 'Only me'
+  }
 
   // Handle input change
   const handleChange = (field: keyof ExerciseFormData, value: any) => {
@@ -206,9 +213,7 @@ export function CustomExerciseCreator({
 
       toast({
         title: 'Exercise created',
-        description: `${exercise.name} has been added to ${
-          formData.visibility === 'BUSINESS' ? 'your business library' : 'your custom library'
-        }`,
+        description: `${exercise.name} has been added to ${visibilityLabel(formData.visibility).toLowerCase()}.`,
       })
 
       onSuccess(exercise.id, exercise)
@@ -292,7 +297,7 @@ export function CustomExerciseCreator({
               {formData.difficulty && <Badge variant="outline">{formData.difficulty}</Badge>}
               {formData.equipment && <Badge variant="outline">{formData.equipment}</Badge>}
               <Badge variant="outline">
-                {formData.visibility === 'BUSINESS' ? 'Business library' : 'Only me'}
+                {visibilityLabel(formData.visibility)}
               </Badge>
             </div>
 
@@ -378,7 +383,7 @@ export function CustomExerciseCreator({
           <DialogHeader>
             <DialogTitle>Create Custom Exercise</DialogTitle>
             <DialogDescription>
-              Add a new exercise to your personal or business library
+              Add a new exercise to your personal, business, or shared library
             </DialogDescription>
           </DialogHeader>
 
@@ -440,7 +445,7 @@ export function CustomExerciseCreator({
                   <RadioGroup
                     value={formData.visibility}
                     onValueChange={(value) => handleChange('visibility', value)}
-                    className="mt-2 grid gap-3 sm:grid-cols-2"
+                    className={`mt-2 grid gap-3 ${canShareWithStarNetwork ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
                   >
                     <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-muted/50">
                       <RadioGroupItem value="PRIVATE" className="mt-1" />
@@ -458,6 +463,17 @@ export function CustomExerciseCreator({
                           <span className="block text-sm font-medium">Business</span>
                           <span className="block text-xs text-muted-foreground">
                             Visible for coaches and staff in this business.
+                          </span>
+                        </span>
+                      </label>
+                    )}
+                    {canShareWithStarNetwork && (
+                      <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-3 hover:bg-muted/50">
+                        <RadioGroupItem value="STAR_NETWORK" className="mt-1" />
+                        <span>
+                          <span className="block text-sm font-medium">Star network</span>
+                          <span className="block text-xs text-muted-foreground">
+                            Visible in Star by TH, Star by Thomson, and Skellefteå AIK.
                           </span>
                         </span>
                       </label>

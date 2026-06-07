@@ -27,6 +27,9 @@ const mockPrisma = vi.hoisted(() => ({
     count: vi.fn(),
     create: vi.fn(),
   },
+  business: {
+    findMany: vi.fn(),
+  },
   businessMember: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
@@ -352,6 +355,7 @@ describe('POST /api/exercises', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetCurrentUser.mockResolvedValue({ id: 'test-user', role: 'COACH' })
+    mockPrisma.business.findMany.mockResolvedValue([])
     mockPrisma.businessMember.findMany.mockResolvedValue([])
     mockPrisma.businessMember.findFirst.mockResolvedValue(null)
   })
@@ -577,6 +581,87 @@ describe('POST /api/exercises', () => {
         biomechanicalPillar: 'POSTERIOR_CHAIN',
         visibility: 'BUSINESS',
       })
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(403)
+      expect(mockPrisma.exercise.create).not.toHaveBeenCalled()
+    })
+
+    it('creates and shares a Star network exercise for active Star business staff', async () => {
+      const businesses = [
+        { id: 'business-thomson', slug: 'star-by-thomson' },
+        { id: 'business-th', slug: 'star-by-th' },
+        { id: 'business-aik', slug: 'skelleftea-aik' },
+      ]
+      const newExercise = {
+        id: 'star-ex',
+        name: 'Shared Star Exercise',
+        category: 'STRENGTH',
+        biomechanicalPillar: 'POSTERIOR_CHAIN',
+        isPublic: false,
+        coachId: 'test-user',
+        businessId: 'business-thomson',
+      }
+      const tx = {
+        exercise: { create: vi.fn().mockResolvedValue(newExercise) },
+        exerciseBusinessShare: { createMany: vi.fn().mockResolvedValue({ count: 3 }) },
+      }
+
+      mockPrisma.business.findMany.mockResolvedValue(businesses)
+      mockPrisma.businessMember.findMany.mockResolvedValue([
+        { businessId: 'business-thomson', business: { slug: 'star-by-thomson' } },
+      ])
+      mockPrisma.$transaction.mockImplementationOnce(async (callback) => callback(tx))
+
+      const request = createPostRequest(
+        {
+          name: 'Shared Star Exercise',
+          category: 'STRENGTH',
+          biomechanicalPillar: 'POSTERIOR_CHAIN',
+          visibility: 'STAR_NETWORK',
+        },
+        { 'x-business-slug': 'star-by-thomson' },
+      )
+
+      const response = await POST(request)
+
+      expect(response.status).toBe(201)
+      expect(tx.exercise.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          name: 'Shared Star Exercise',
+          businessId: 'business-thomson',
+          coachId: 'test-user',
+          isPublic: false,
+        }),
+      })
+      expect(tx.exerciseBusinessShare.createMany).toHaveBeenCalledWith({
+        data: expect.arrayContaining([
+          { exerciseId: 'star-ex', businessId: 'business-thomson' },
+          { exerciseId: 'star-ex', businessId: 'business-th' },
+          { exerciseId: 'star-ex', businessId: 'business-aik' },
+        ]),
+        skipDuplicates: true,
+      })
+    })
+
+    it('rejects Star network sharing without active Star business membership', async () => {
+      mockPrisma.business.findMany.mockResolvedValue([
+        { id: 'business-thomson', slug: 'star-by-thomson' },
+        { id: 'business-th', slug: 'star-by-th' },
+        { id: 'business-aik', slug: 'skelleftea-aik' },
+      ])
+      mockPrisma.businessMember.findMany.mockResolvedValue([])
+
+      const request = createPostRequest(
+        {
+          name: 'Shared Star Exercise',
+          category: 'STRENGTH',
+          biomechanicalPillar: 'POSTERIOR_CHAIN',
+          visibility: 'STAR_NETWORK',
+        },
+        { 'x-business-slug': 'star-by-thomson' },
+      )
 
       const response = await POST(request)
 

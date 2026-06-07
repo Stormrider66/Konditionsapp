@@ -67,12 +67,16 @@ import {
   EyeOff,
   ImagePlus,
   Loader2,
+  Lock,
+  Building2,
+  Share2,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { useLocale } from '@/i18n/client'
-import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import { getBusinessScopeHeaders, getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { isStrengthStudioExercise } from '@/lib/strength/exercise-library-filters'
+import { isStarExerciseLibrarySlug } from '@/lib/exercises/star-exercise-library'
 
 type AppLocale = 'en' | 'sv'
 
@@ -87,6 +91,10 @@ interface ExerciseLibraryBrowserProps {
   surface?: 'all' | 'strength-studio'
 }
 
+type LibraryExercise = Exercise & {
+  _count?: { businessShares?: number }
+}
+
 export function ExerciseLibraryBrowser({
   onSelectExercise,
   mode = 'browse',
@@ -96,9 +104,11 @@ export function ExerciseLibraryBrowser({
   const { toast } = useToast()
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const pathname = usePathname()
+  const businessSlug = useMemo(() => getBusinessSlugFromPathname(pathname), [pathname])
+  const canShareWithStarNetwork = isStarExerciseLibrarySlug(businessSlug)
   const businessHeaders = useMemo(() => getBusinessScopeHeaders(pathname), [pathname])
   const exerciseDisplayName = useCallback(
-    (exercise: Exercise) => locale === 'sv'
+    (exercise: LibraryExercise) => locale === 'sv'
       ? exercise.nameSv || exercise.name
       : exercise.nameEn || exercise.name,
     [locale],
@@ -106,7 +116,7 @@ export function ExerciseLibraryBrowser({
 
   // View state
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null)
+  const [selectedExercise, setSelectedExercise] = useState<LibraryExercise | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
 
   // Filter state
@@ -125,7 +135,7 @@ export function ExerciseLibraryBrowser({
   const [totalCount, setTotalCount] = useState(0)
 
   // Data state
-  const [exercises, setExercises] = useState<Exercise[]>([])
+  const [exercises, setExercises] = useState<LibraryExercise[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
@@ -342,18 +352,20 @@ export function ExerciseLibraryBrowser({
 
   const getVisibilityLabel = (exercise: Exercise) => {
     if (exercise.isPublic) return 'System'
+    if ((exercise as LibraryExercise)._count?.businessShares) return 'Star network'
     if (exercise.businessId) return 'Business'
     return 'Only me'
   }
 
   const getVisibilityBadgeClass = (exercise: Exercise) => {
     if (exercise.isPublic) return 'border-blue-200 bg-blue-50 text-blue-700'
+    if ((exercise as LibraryExercise)._count?.businessShares) return 'border-violet-200 bg-violet-50 text-violet-700'
     if (exercise.businessId) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     return 'border-slate-200 bg-slate-50 text-slate-700'
   }
 
   // Render exercise card (grid view)
-  const renderExerciseCard = (exercise: Exercise) => {
+  const renderExerciseCard = (exercise: LibraryExercise) => {
     const isFavorite = favorites.has(exercise.id)
     const imageUrls = exercise.imageUrls as string[] | null
 
@@ -437,7 +449,7 @@ export function ExerciseLibraryBrowser({
   }
 
   // Delete exercise (custom only)
-  const deleteExercise = async (exercise: Exercise) => {
+  const deleteExercise = async (exercise: LibraryExercise) => {
     try {
       const response = await fetch(`/api/exercises/${exercise.id}`, {
         method: 'DELETE',
@@ -470,7 +482,7 @@ export function ExerciseLibraryBrowser({
   }
 
   // Hide exercise from library view
-  const hideExercise = async (exercise: Exercise) => {
+  const hideExercise = async (exercise: LibraryExercise) => {
     try {
       const response = await fetch('/api/exercises/hidden', {
         method: 'POST',
@@ -504,7 +516,7 @@ export function ExerciseLibraryBrowser({
   }
 
   // Render exercise row (list view)
-  const renderExerciseRow = (exercise: Exercise) => {
+  const renderExerciseRow = (exercise: LibraryExercise) => {
     const isFavorite = favorites.has(exercise.id)
 
     return (
@@ -600,6 +612,9 @@ export function ExerciseLibraryBrowser({
 
               {/* Badges */}
               <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className={getVisibilityBadgeClass(selectedExercise)}>
+                  {getVisibilityLabel(selectedExercise)}
+                </Badge>
                 {selectedExercise.biomechanicalPillar && (
                   <Badge className={getPillarColor(selectedExercise.biomechanicalPillar)}>
                     {selectedExercise.biomechanicalPillar.replace(/_/g, ' ')}
@@ -629,6 +644,42 @@ export function ExerciseLibraryBrowser({
                   <p className="text-gray-700 whitespace-pre-line">
                     {selectedExercise.instructions}
                   </p>
+                </div>
+              )}
+
+              {!selectedExercise.isPublic && (
+                <div>
+                  <h4 className="font-semibold mb-2">Visibility</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant={getVisibilityLabel(selectedExercise) === 'Only me' ? 'default' : 'outline'}
+                      size="sm"
+                      onClick={() => updateExerciseVisibility(selectedExercise, 'PRIVATE')}
+                    >
+                      <Lock className="h-4 w-4 mr-2" />
+                      Only me
+                    </Button>
+                    {businessSlug && (
+                      <Button
+                        variant={getVisibilityLabel(selectedExercise) === 'Business' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => updateExerciseVisibility(selectedExercise, 'BUSINESS')}
+                      >
+                        <Building2 className="h-4 w-4 mr-2" />
+                        Business
+                      </Button>
+                    )}
+                    {canShareWithStarNetwork && (
+                      <Button
+                        variant={getVisibilityLabel(selectedExercise) === 'Star network' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => updateExerciseVisibility(selectedExercise, 'STAR_NETWORK')}
+                      >
+                        <Share2 className="h-4 w-4 mr-2" />
+                        Star network
+                      </Button>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -719,6 +770,52 @@ export function ExerciseLibraryBrowser({
         </DialogContent>
       </Dialog>
     )
+  }
+
+  const updateExerciseVisibility = async (
+    exercise: LibraryExercise,
+    visibility: 'PRIVATE' | 'BUSINESS' | 'STAR_NETWORK'
+  ) => {
+    try {
+      const response = await fetch(`/api/exercises/${exercise.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', ...(businessHeaders ?? {}) },
+        body: JSON.stringify({ visibility }),
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        toast({
+          title: copy(locale, 'Could not update visibility', 'Kunde inte uppdatera synlighet'),
+          description: data.error || copy(locale, 'Only the owning coach can change this exercise.', 'Endast ägande coach kan ändra denna övning.'),
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const nextExercise: LibraryExercise = {
+        ...exercise,
+        ...data,
+        _count: {
+          ...(exercise._count ?? {}),
+          businessShares: visibility === 'STAR_NETWORK' ? 3 : 0,
+        },
+      }
+
+      setSelectedExercise(nextExercise)
+      setExercises((prev) => prev.map((item) => item.id === exercise.id ? nextExercise : item))
+      toast({
+        title: copy(locale, 'Visibility updated', 'Synlighet uppdaterad'),
+        description: copy(locale, `${exerciseDisplayName(nextExercise)} is now ${getVisibilityLabel(nextExercise).toLowerCase()}.`, `${exerciseDisplayName(nextExercise)} är nu ${getVisibilityLabel(nextExercise).toLowerCase()}.`),
+      })
+      void fetchExercises()
+    } catch {
+      toast({
+        title: copy(locale, 'Error', 'Fel'),
+        description: copy(locale, 'Could not update visibility', 'Kunde inte uppdatera synlighet'),
+        variant: 'destructive',
+      })
+    }
   }
 
   return (

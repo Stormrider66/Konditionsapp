@@ -11,12 +11,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
-import { canAccessExercise } from '@/lib/auth-utils'
+import { canAccessExercise, getRequestedBusinessScope } from '@/lib/auth-utils'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { Prisma } from '@prisma/client'
+import {
+  isStarExerciseShareRequest,
+  resolveExerciseBusinessMembershipId,
+  resolveStarExerciseShareScope,
+} from '@/lib/exercises/exercise-business-access'
+
+type ExerciseVisibility = 'PRIVATE' | 'BUSINESS' | 'STAR_NETWORK'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function parseExerciseVisibility(value: unknown): ExerciseVisibility {
+  if (isStarExerciseShareRequest(value)) return 'STAR_NETWORK'
+  return value === 'BUSINESS' ? 'BUSINESS' : 'PRIVATE'
 }
 
 /**
@@ -93,6 +106,7 @@ export async function PUT(
       difficulty,
       videoUrl,
       imageUrl,
+      visibility,
       plyometricIntensity,
       contactsPerRep,
     } = body
@@ -150,27 +164,77 @@ export async function PUT(
       return NextResponse.json({ error: t(locale, 'Forbidden', 'Saknar behörighet') }, { status: 403 })
     }
 
+    const requestedVisibility = visibility === undefined ? null : parseExerciseVisibility(visibility)
+    const requestedScope = getRequestedBusinessScope(request)
+    const starShareScope = requestedVisibility === 'STAR_NETWORK'
+      ? await resolveStarExerciseShareScope(user.id, requestedScope, { isAdmin: user.role === 'ADMIN' })
+      : null
+    const requestedBusinessId = requestedVisibility === 'BUSINESS'
+      ? await resolveExerciseBusinessMembershipId(user.id, requestedScope)
+      : starShareScope?.primaryBusinessId
+
+    if (requestedVisibility === 'BUSINESS' && !requestedBusinessId) {
+      return NextResponse.json(
+        { error: t(locale, 'Business visibility requires an active business membership', 'Synlighet för verksamhet kräver ett aktivt verksamhetsmedlemskap') },
+        { status: 403 }
+      )
+    }
+    if (requestedVisibility === 'STAR_NETWORK' && !starShareScope) {
+      return NextResponse.json(
+        { error: t(locale, 'Star network sharing requires an active Star business membership', 'Delning till Star-nätverket kräver ett aktivt medlemskap i en Star-verksamhet') },
+        { status: 403 }
+      )
+    }
+
+    const updateData: Prisma.ExerciseUncheckedUpdateInput = {
+      ...(name && { name }),
+      ...(nameSv && { nameSv }),
+      ...(nameEn && { nameEn }),
+      ...(category && { category }),
+      ...(muscleGroup && { muscleGroup }),
+      ...(biomechanicalPillar && { biomechanicalPillar }),
+      ...(progressionLevel && { progressionLevel }),
+      ...(description !== undefined && { description }),
+      ...(instructions !== undefined && { instructions }),
+      ...(equipment !== undefined && { equipment }),
+      ...(difficulty && { difficulty }),
+      ...(videoUrl !== undefined && { videoUrl }),
+      ...(imageUrl !== undefined && { imageUrl }),
+      ...(plyometricIntensity && { plyometricIntensity }),
+      ...(contactsPerRep !== undefined && { contactsPerRep }),
+      ...(requestedVisibility === 'PRIVATE' && { businessId: null }),
+      ...(requestedVisibility === 'BUSINESS' && requestedBusinessId && { businessId: requestedBusinessId }),
+      ...(requestedVisibility === 'STAR_NETWORK' && starShareScope && {
+        businessId: starShareScope.primaryBusinessId,
+      }),
+    }
+
     // Update exercise (custom exercises can update all fields)
-    const updated = await prisma.exercise.update({
-      where: { id: exerciseId },
-      data: {
-        ...(name && { name }),
-        ...(nameSv && { nameSv }),
-        ...(nameEn && { nameEn }),
-        ...(category && { category }),
-        ...(muscleGroup && { muscleGroup }),
-        ...(biomechanicalPillar && { biomechanicalPillar }),
-        ...(progressionLevel && { progressionLevel }),
-        ...(description !== undefined && { description }),
-        ...(instructions !== undefined && { instructions }),
-        ...(equipment !== undefined && { equipment }),
-        ...(difficulty && { difficulty }),
-        ...(videoUrl !== undefined && { videoUrl }),
-        ...(imageUrl !== undefined && { imageUrl }),
-        ...(plyometricIntensity && { plyometricIntensity }),
-        ...(contactsPerRep !== undefined && { contactsPerRep }),
-      },
-    })
+    const updated = requestedVisibility
+      ? await prisma.$transaction(async (tx) => {
+          const exercise = await tx.exercise.update({
+            where: { id: exerciseId },
+            data: updateData,
+          })
+
+          if (requestedVisibility === 'STAR_NETWORK' && starShareScope) {
+            await tx.exerciseBusinessShare.createMany({
+              data: starShareScope.businessIds.map((businessId) => ({
+                exerciseId,
+                businessId,
+              })),
+              skipDuplicates: true,
+            })
+          } else {
+            await tx.exerciseBusinessShare.deleteMany({ where: { exerciseId } })
+          }
+
+          return exercise
+        })
+      : await prisma.exercise.update({
+          where: { id: exerciseId },
+          data: updateData,
+        })
 
     return NextResponse.json(updated, { status: 200 })
   } catch (error: unknown) {

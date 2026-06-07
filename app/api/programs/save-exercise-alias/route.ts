@@ -19,15 +19,10 @@ import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { prisma } from '@/lib/prisma'
-
-const BUSINESS_EXERCISE_ROLES = [
-  'OWNER',
-  'ADMIN',
-  'COACH',
-  'PHYSICAL_TRAINER',
-  'ASSISTANT_COACH',
-  'PHYSIO',
-]
+import {
+  getActiveExerciseBusinessIdsForUser,
+  getBusinessExerciseAccessClauses,
+} from '@/lib/exercises/exercise-business-access'
 
 export const runtime = 'nodejs'
 
@@ -82,7 +77,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No owning coach context' }, { status: 400 })
     }
 
-    const businessIds = await getActiveBusinessIdsForUser(aliasOwnerId)
+    const businessIds = await getActiveExerciseBusinessIdsForUser(aliasOwnerId)
 
     // Verify the Exercise is visible to this coach. This
     // prevents a drive-by alias save pointing at a stranger's custom exercise.
@@ -92,7 +87,7 @@ export async function POST(request: NextRequest) {
         OR: [
           { isPublic: true },
           { coachId: aliasOwnerId },
-          ...businessExerciseAccessClauses(businessIds),
+          ...getBusinessExerciseAccessClauses(businessIds),
         ],
       },
       select: { id: true },
@@ -130,25 +125,4 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return handleApiError(error)
   }
-}
-
-async function getActiveBusinessIdsForUser(userId: string): Promise<string[]> {
-  const memberships = await prisma.businessMember.findMany({
-    where: {
-      userId,
-      isActive: true,
-      role: { in: BUSINESS_EXERCISE_ROLES },
-      business: { isActive: true },
-    },
-    select: { businessId: true },
-  })
-  return memberships.map((membership) => membership.businessId)
-}
-
-function businessExerciseAccessClauses(businessIds: string[]) {
-  if (businessIds.length === 0) return []
-  return [
-    { businessId: { in: businessIds } },
-    { businessShares: { some: { businessId: { in: businessIds } } } },
-  ]
 }

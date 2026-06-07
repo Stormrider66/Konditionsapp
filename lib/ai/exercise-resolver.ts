@@ -21,19 +21,14 @@ import {
   scoreNameAgainstRow,
   tokenize,
 } from '@/lib/ai/library-name-match'
+import {
+  getActiveExerciseBusinessIdsForUser,
+  getBusinessExerciseAccessClauses,
+} from '@/lib/exercises/exercise-business-access'
 
 const MAX_NAMES_PER_REQUEST = 200
 const AUTO_ASSIGN_THRESHOLD = 0.95
 const POOL_CAP = 500
-
-const BUSINESS_EXERCISE_ROLES = [
-  'OWNER',
-  'ADMIN',
-  'COACH',
-  'PHYSICAL_TRAINER',
-  'ASSISTANT_COACH',
-  'PHYSIO',
-]
 
 export interface ResolveHints {
   categoryHint?: string
@@ -277,13 +272,13 @@ export async function deriveExerciseResolverScope(params: {
     return { accessWhere: {}, aliasOwnerId: userId }
   }
   if (hasCoachAccess) {
-    const businessIds = await getActiveBusinessIdsForUser(userId)
+    const businessIds = await getActiveExerciseBusinessIdsForUser(userId)
     return {
       accessWhere: {
         OR: [
           { isPublic: true },
           { coachId: userId },
-          ...businessExerciseAccessClauses(businessIds),
+          ...getBusinessExerciseAccessClauses(businessIds),
         ],
       },
       aliasOwnerId: userId,
@@ -301,32 +296,11 @@ export async function deriveExerciseResolverScope(params: {
         OR: [
           { isPublic: true },
           ...(coachId ? [{ coachId }] : []),
-          ...(businessId ? businessExerciseAccessClauses([businessId]) : []),
+          ...(businessId ? getBusinessExerciseAccessClauses([businessId]) : []),
         ],
       },
       aliasOwnerId: coachId ?? null,
     }
   }
   return { accessWhere: { OR: [{ isPublic: true }] }, aliasOwnerId: null }
-}
-
-async function getActiveBusinessIdsForUser(userId: string): Promise<string[]> {
-  const memberships = await prisma.businessMember.findMany({
-    where: {
-      userId,
-      isActive: true,
-      role: { in: BUSINESS_EXERCISE_ROLES },
-      business: { isActive: true },
-    },
-    select: { businessId: true },
-  })
-  return memberships.map((membership) => membership.businessId)
-}
-
-function businessExerciseAccessClauses(businessIds: string[]): Prisma.ExerciseWhereInput[] {
-  if (businessIds.length === 0) return []
-  return [
-    { businessId: { in: businessIds } },
-    { businessShares: { some: { businessId: { in: businessIds } } } },
-  ]
 }
