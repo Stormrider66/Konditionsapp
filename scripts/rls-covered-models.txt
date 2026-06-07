@@ -107,6 +107,7 @@ ErgometerFieldTest
 ErgometerThreshold
 ErgometerZone
 Exercise
+ExerciseBusinessShare
 ExerciseEffectiveness
 ExerciseFavorite
 ExerciseNameAlias
