@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-import { canAccessClient, requireCoach } from '@/lib/auth-utils'
+import { resolveAthleteClientId } from '@/lib/auth-utils'
 import {
   EXTERNAL_ATHLETE_ACCESS_DEFAULT_SCOPES,
   buildExternalAthleteAccessUrl,
@@ -18,26 +18,21 @@ function t(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest) {
   let locale: AppLocale = resolveRequestLocale(request)
 
   try {
-    const user = await requireCoach()
-    locale = resolveRequestLocale(request, user.language)
-    const { id: clientId } = await params
-    const includeRevoked = request.nextUrl.searchParams.get('includeRevoked') === 'true'
-
-    const hasAccess = await canAccessClient(user.id, clientId)
-    if (!hasAccess) {
-      return NextResponse.json({ error: t(locale, 'Athlete not found', 'Aktiven hittades inte') }, { status: 404 })
+    const athleteAccess = await resolveAthleteClientId()
+    if (!athleteAccess) {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
+
+    locale = resolveRequestLocale(request, athleteAccess.user.language)
+    const includeRevoked = request.nextUrl.searchParams.get('includeRevoked') === 'true'
 
     const grants = await prisma.athleteExternalAccess.findMany({
       where: {
-        athleteClientId: clientId,
+        athleteClientId: athleteAccess.clientId,
         ...(includeRevoked ? {} : { revokedAt: null }),
       },
       include: {
@@ -48,10 +43,7 @@ export async function GET(
 
     return NextResponse.json({ externalAccess: grants.map(serializeExternalAthleteAccess) })
   } catch (error) {
-    logError('List external athlete access error:', error)
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
-    }
+    logError('List athlete-owned external access error:', error)
     return NextResponse.json(
       { error: t(locale, 'Failed to list external access', 'Misslyckades med att hämta extern åtkomst') },
       { status: 500 }
@@ -59,24 +51,18 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest) {
   let locale: AppLocale = resolveRequestLocale(request)
 
   try {
-    const user = await requireCoach()
-    locale = resolveRequestLocale(request, user.language)
-    const { id: clientId } = await params
-
-    const hasAccess = await canAccessClient(user.id, clientId)
-    if (!hasAccess) {
-      return NextResponse.json({ error: t(locale, 'Athlete not found', 'Aktiven hittades inte') }, { status: 404 })
+    const athleteAccess = await resolveAthleteClientId()
+    if (!athleteAccess) {
+      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
+    locale = resolveRequestLocale(request, athleteAccess.user.language)
     const client = await prisma.client.findUnique({
-      where: { id: clientId },
+      where: { id: athleteAccess.clientId },
       select: { id: true, businessId: true },
     })
     if (!client) {
@@ -103,7 +89,7 @@ export async function POST(
         tokenHash: hashExternalAthleteAccessToken(token),
         athleteClientId: client.id,
         businessId: client.businessId,
-        createdByUserId: user.id,
+        createdByUserId: athleteAccess.user.id,
         viewerName: parsed.data.viewerName,
         viewerEmail: parsed.data.viewerEmail,
         organizationName: parsed.data.organizationName,
@@ -124,10 +110,7 @@ export async function POST(
       shareUrl: buildExternalAthleteAccessUrl(request.nextUrl.origin, token),
     }, { status: 201 })
   } catch (error) {
-    logError('Create external athlete access error:', error)
-    if (error instanceof Error && error.message === 'Unauthorized') {
-      return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
-    }
+    logError('Create athlete-owned external access error:', error)
     return NextResponse.json(
       { error: t(locale, 'Failed to create external access', 'Misslyckades med att skapa extern åtkomst') },
       { status: 500 }

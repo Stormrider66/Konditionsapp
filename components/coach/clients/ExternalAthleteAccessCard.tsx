@@ -33,8 +33,10 @@ interface ExternalAccessGrant {
 }
 
 interface ExternalAthleteAccessCardProps {
-  clientId: string
-  clientName: string
+  clientId?: string
+  clientName?: string
+  endpoint?: string
+  mode?: 'coach' | 'athlete'
 }
 
 function label(locale: string, en: string, sv: string) {
@@ -53,6 +55,8 @@ function formatDate(value: string | null, locale: string) {
 export function ExternalAthleteAccessCard({
   clientId,
   clientName,
+  endpoint,
+  mode = 'coach',
 }: ExternalAthleteAccessCardProps) {
   const locale = useLocale()
   const { toast } = useToast()
@@ -73,11 +77,13 @@ export function ExternalAthleteAccessCard({
     note: '',
   })
 
+  const isAthleteMode = mode === 'athlete'
+  const accessEndpoint = endpoint ?? (clientId ? `/api/clients/${clientId}/external-access` : '/api/athlete/external-access')
   const activeGrants = grants.filter((grant) => grant.status === 'active')
 
   const loadGrants = useCallback(async () => {
     try {
-      const response = await fetch(`/api/clients/${clientId}/external-access`)
+      const response = await fetch(accessEndpoint)
       const data = await response.json()
       setGrants(response.ok ? data.externalAccess || [] : [])
     } catch {
@@ -85,7 +91,7 @@ export function ExternalAthleteAccessCard({
     } finally {
       setLoading(false)
     }
-  }, [clientId])
+  }, [accessEndpoint])
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -99,7 +105,7 @@ export function ExternalAthleteAccessCard({
     setCreating(true)
     setShareUrl(null)
     try {
-      const response = await fetch(`/api/clients/${clientId}/external-access`, {
+      const response = await fetch(accessEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -130,8 +136,12 @@ export function ExternalAthleteAccessCard({
       })
       await loadGrants()
       toast({
-        title: label(locale, 'Player access created', 'Spelarlänk skapad'),
-        description: label(locale, 'Copy the link and send it to the external staff member.', 'Kopiera länken och skicka den till extern personal.'),
+        title: isAthleteMode
+          ? label(locale, 'Trainer access created', 'Tränarlänk skapad')
+          : label(locale, 'Player access created', 'Spelarlänk skapad'),
+        description: isAthleteMode
+          ? label(locale, 'Copy the link and send it to your external coach or trainer.', 'Kopiera länken och skicka den till din externa coach eller tränare.')
+          : label(locale, 'Copy the link and send it to the external staff member.', 'Kopiera länken och skicka den till extern personal.'),
       })
     } catch (error) {
       toast({
@@ -147,7 +157,7 @@ export function ExternalAthleteAccessCard({
   async function revokeGrant(grantId: string) {
     setRevokingId(grantId)
     try {
-      const response = await fetch(`/api/clients/${clientId}/external-access/${grantId}`, {
+      const response = await fetch(`${accessEndpoint}/${grantId}`, {
         method: 'DELETE',
       })
       if (!response.ok) {
@@ -194,10 +204,14 @@ export function ExternalAthleteAccessCard({
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold dark:text-white">
-              {label(locale, 'External staff access', 'Extern personalåtkomst')}
+              {isAthleteMode
+                ? label(locale, 'External trainer access', 'Extern tränaråtkomst')
+                : label(locale, 'External staff access', 'Extern personalåtkomst')}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {label(locale, 'Share this athlete’s calendar, workouts, and tests only.', 'Dela endast denna aktives kalender, pass och tester.')}
+              {isAthleteMode
+                ? label(locale, 'Invite an outside coach or physical trainer to view only your calendar, workouts, and tests.', 'Bjud in en extern coach eller fystränare att endast se din kalender, dina pass och tester.')
+                : label(locale, 'Share this athlete’s calendar, workouts, and tests only.', 'Dela endast denna aktives kalender, pass och tester.')}
             </p>
           </div>
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-950 text-white dark:bg-white dark:text-slate-950">
@@ -210,7 +224,9 @@ export function ExternalAthleteAccessCard({
             {activeGrants.length} {label(locale, 'active link(s)', 'aktiva länk(ar)')}
           </p>
           <p className="mt-1 text-muted-foreground">
-            {label(locale, 'Read-only, athlete-scoped access.', 'Läsbar åtkomst begränsad till aktiv.')}
+            {isAthleteMode
+              ? label(locale, 'Read-only links that you can revoke anytime.', 'Läsbara länkar som du kan återkalla när som helst.')
+              : label(locale, 'Read-only, athlete-scoped access.', 'Läsbar åtkomst begränsad till aktiv.')}
           </p>
         </div>
 
@@ -224,16 +240,22 @@ export function ExternalAthleteAccessCard({
           <DialogTrigger asChild>
             <Button size="sm" className="w-full">
               <Plus className="mr-2 h-4 w-4" />
-              {label(locale, 'Create external link', 'Skapa extern länk')}
+              {isAthleteMode
+                ? label(locale, 'Invite external trainer', 'Bjud in extern tränare')
+                : label(locale, 'Create external link', 'Skapa extern länk')}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>
-                {label(locale, 'External player access', 'Extern spelaråtkomst')}
+                {isAthleteMode
+                  ? label(locale, 'External trainer access', 'Extern tränaråtkomst')
+                  : label(locale, 'External player access', 'Extern spelaråtkomst')}
               </DialogTitle>
               <DialogDescription>
-                {label(locale, `Create a read-only link for ${clientName}.`, `Skapa en läsbar länk för ${clientName}.`)}
+                {isAthleteMode
+                  ? label(locale, 'Create a read-only link for your training calendar, workouts, and test results.', 'Skapa en läsbar länk till din träningskalender, dina pass och testresultat.')
+                  : label(locale, `Create a read-only link for ${clientName || 'this athlete'}.`, `Skapa en läsbar länk för ${clientName || 'denna aktiv'}.`)}
               </DialogDescription>
             </DialogHeader>
 
@@ -299,7 +321,9 @@ export function ExternalAthleteAccessCard({
             <DialogFooter>
               <Button type="button" onClick={createGrant} disabled={creating}>
                 {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
-                {label(locale, 'Create link', 'Skapa länk')}
+                {isAthleteMode
+                  ? label(locale, 'Create trainer link', 'Skapa tränarlänk')
+                  : label(locale, 'Create link', 'Skapa länk')}
               </Button>
             </DialogFooter>
           </DialogContent>

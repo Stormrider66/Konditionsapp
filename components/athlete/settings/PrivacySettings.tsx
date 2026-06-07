@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Shield, Eye, EyeOff, Users } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
+import { ExternalAthleteAccessCard } from '@/components/coach/clients/ExternalAthleteAccessCard'
 
 interface Permission {
   key: string
@@ -199,6 +200,8 @@ export function PrivacySettings() {
           </div>
         </CardContent>
       </Card>
+
+      <ExternalAthleteAccessCard mode="athlete" endpoint="/api/athlete/external-access" />
 
       {/* Quick actions */}
       <div className="flex gap-2">
