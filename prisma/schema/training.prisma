@@ -424,6 +424,7 @@ model Exercise {
 
   coach               User?                 @relation(fields: [coachId], references: [id], onDelete: SetNull)
   business            Business?             @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  businessShares      ExerciseBusinessShare[]
   segments            WorkoutSegment[]
   progressionTracking ProgressionTracking[]
   oneRepMaxHistory    OneRepMaxHistory[]
@@ -483,6 +484,20 @@ model Exercise {
   @@index([isRehabExercise])
   @@index([progressionExerciseId])
   @@index([regressionExerciseId])
+}
+
+model ExerciseBusinessShare {
+  id         String   @id @default(uuid())
+  exerciseId String
+  businessId String
+  createdAt  DateTime @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseId, businessId])
+  @@index([businessId])
+  @@index([exerciseId])
 }
 
 /**

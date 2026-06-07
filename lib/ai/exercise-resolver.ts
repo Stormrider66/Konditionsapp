@@ -26,6 +26,15 @@ const MAX_NAMES_PER_REQUEST = 200
 const AUTO_ASSIGN_THRESHOLD = 0.95
 const POOL_CAP = 500
 
+const BUSINESS_EXERCISE_ROLES = [
+  'OWNER',
+  'ADMIN',
+  'COACH',
+  'PHYSICAL_TRAINER',
+  'ASSISTANT_COACH',
+  'PHYSIO',
+]
+
 export interface ResolveHints {
   categoryHint?: string
   pillarHint?: string
@@ -268,23 +277,56 @@ export async function deriveExerciseResolverScope(params: {
     return { accessWhere: {}, aliasOwnerId: userId }
   }
   if (hasCoachAccess) {
+    const businessIds = await getActiveBusinessIdsForUser(userId)
     return {
-      accessWhere: { OR: [{ isPublic: true }, { coachId: userId }] },
+      accessWhere: {
+        OR: [
+          { isPublic: true },
+          { coachId: userId },
+          ...businessExerciseAccessClauses(businessIds),
+        ],
+      },
       aliasOwnerId: userId,
     }
   }
   if (userRole === 'ATHLETE' && athleteClientId) {
     const client = await prisma.client.findUnique({
       where: { id: athleteClientId },
-      select: { userId: true },
+      select: { userId: true, businessId: true },
     })
     const coachId = client?.userId ?? undefined
+    const businessId = client?.businessId ?? undefined
     return {
-      accessWhere: coachId
-        ? { OR: [{ isPublic: true }, { coachId }] }
-        : { OR: [{ isPublic: true }] },
+      accessWhere: {
+        OR: [
+          { isPublic: true },
+          ...(coachId ? [{ coachId }] : []),
+          ...(businessId ? businessExerciseAccessClauses([businessId]) : []),
+        ],
+      },
       aliasOwnerId: coachId ?? null,
     }
   }
   return { accessWhere: { OR: [{ isPublic: true }] }, aliasOwnerId: null }
+}
+
+async function getActiveBusinessIdsForUser(userId: string): Promise<string[]> {
+  const memberships = await prisma.businessMember.findMany({
+    where: {
+      userId,
+      isActive: true,
+      role: { in: BUSINESS_EXERCISE_ROLES },
+      business: { isActive: true },
+    },
+    select: { businessId: true },
+  })
+  return memberships.map((membership) => membership.businessId)
+}
+
+function businessExerciseAccessClauses(businessIds: string[]): Prisma.ExerciseWhereInput[] {
+  if (businessIds.length === 0) return []
+  return [
+    { businessId: { in: businessIds } },
+    { businessShares: { some: { businessId: { in: businessIds } } } },
+  ]
 }

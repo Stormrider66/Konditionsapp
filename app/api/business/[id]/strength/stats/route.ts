@@ -61,6 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             { isPublic: true },
             { coachId: { in: coachUserIds } },
             { businessId },
+            { businessShares: { some: { businessId } } },
           ],
         },
       }),
@@ -69,6 +70,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           OR: [
             { coachId: { in: coachUserIds } },
             { businessId },
+            { businessShares: { some: { businessId } } },
           ],
           createdAt: { gte: weekStart, lte: weekEnd },
         },

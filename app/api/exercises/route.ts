@@ -59,6 +59,14 @@ async function getActiveBusinessIdsForUser(userId: string): Promise<string[]> {
   return (memberships ?? []).map((membership) => membership.businessId)
 }
 
+function businessExerciseAccessClauses(businessIds: string[]): Prisma.ExerciseWhereInput[] {
+  if (businessIds.length === 0) return []
+  return [
+    { businessId: { in: businessIds } },
+    { businessShares: { some: { businessId: { in: businessIds } } } },
+  ]
+}
+
 async function resolveRequestedExerciseBusinessId(userId: string, request: NextRequest): Promise<string | null> {
   const scope = getRequestedBusinessScope(request)
   if (!scope.businessId && !scope.businessSlug) return null
@@ -118,7 +126,7 @@ export async function GET(request: NextRequest) {
       accessWhere.OR = [
         { isPublic: true },
         { coachId: user.id },
-        ...(businessIds.length > 0 ? [{ businessId: { in: businessIds } }] : []),
+        ...businessExerciseAccessClauses(businessIds),
       ]
     } else if (user.role === 'ATHLETE') {
       const resolved = await resolveAthleteClientId()
@@ -135,7 +143,7 @@ export async function GET(request: NextRequest) {
       accessWhere.OR = [
         { isPublic: true },
         ...(coachId ? [{ coachId }] : []),
-        ...(businessId ? [{ businessId }] : []),
+        ...(businessId ? businessExerciseAccessClauses([businessId]) : []),
       ]
     } else {
       accessWhere.OR = [{ isPublic: true }]

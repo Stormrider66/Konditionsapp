@@ -57,7 +57,12 @@ export async function GET() {
       exerciseAccessWhere.OR = [
         { isPublic: true },
         { coachId: userId },
-        ...(businessIds.length > 0 ? [{ businessId: { in: businessIds } }] : []),
+        ...(businessIds.length > 0
+          ? [
+              { businessId: { in: businessIds } },
+              { businessShares: { some: { businessId: { in: businessIds } } } },
+            ]
+          : []),
       ]
     } else {
       exerciseAccessWhere.OR = [{ isPublic: true }]
