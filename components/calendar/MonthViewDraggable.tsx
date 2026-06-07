@@ -87,7 +87,9 @@ export function MonthViewDraggable({
     const handleKeyUp = (event: KeyboardEvent) => {
       if (event.key !== 'Shift') return
       shiftPressedRef.current = false
-      setActiveDragAction((current) => (activeItem ? 'move' : current))
+      setActiveDragAction((current) =>
+        activeItem ? (isCopyOnlyCalendarItem(activeItem) ? 'copy' : 'move') : current
+      )
     }
     const handleBlur = () => {
       shiftPressedRef.current = false
@@ -188,7 +190,7 @@ export function MonthViewDraggable({
     if (item) {
       setActiveItem(item)
       setActiveDragAction(
-        hasShiftKey(event.activatorEvent) || shiftPressedRef.current ? 'copy' : 'move'
+        isCopyOnlyCalendarItem(item) || hasShiftKey(event.activatorEvent) || shiftPressedRef.current ? 'copy' : 'move'
       )
     }
   }, [])
@@ -222,7 +224,10 @@ export function MonthViewDraggable({
       if (isSameDay(originalDate, newDate)) return
 
       const dragAction =
-        activeDragAction === 'copy' || hasShiftKey(event.activatorEvent) || shiftPressedRef.current
+        isCopyOnlyCalendarItem(item) ||
+        activeDragAction === 'copy' ||
+        hasShiftKey(event.activatorEvent) ||
+        shiftPressedRef.current
           ? 'copy'
           : 'move'
 
@@ -377,13 +382,16 @@ function isScheduledWorkoutEvent(item: UnifiedCalendarItem): boolean {
     item.type === 'CALENDAR_EVENT' &&
     item.metadata.eventType === 'SCHEDULED_WORKOUT' &&
     item.metadata.isVirtualAssignment !== true &&
-    item.metadata.isReadOnly !== true &&
-    !isCompletedCalendarItem(item)
+    item.metadata.isReadOnly !== true
   )
 }
 
 function isMovableCalendarItem(item: UnifiedCalendarItem): boolean {
   return item.type === 'WORKOUT' || isScheduledWorkoutEvent(item)
+}
+
+function isCopyOnlyCalendarItem(item: UnifiedCalendarItem): boolean {
+  return isScheduledWorkoutEvent(item) && isCompletedCalendarItem(item)
 }
 
 interface DroppableDayCellProps {
@@ -581,6 +589,7 @@ interface DraggableItemProps {
 function DraggableItem({ item, onItemClick, locale }: DraggableItemProps) {
   const isDraggable = isMovableCalendarItem(item)
   const isCompleted = isCompletedCalendarItem(item)
+  const isCopyOnly = isCopyOnlyCalendarItem(item)
   const preview = getMonthPreview(item, locale)
 
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -614,9 +623,13 @@ function DraggableItem({ item, onItemClick, locale }: DraggableItemProps) {
       style={isDraggable ? { touchAction: 'none' } : undefined}
       title={
         isDraggable
-          ? locale === 'sv'
-            ? 'Dra för att flytta. Håll Shift medan du drar för att kopiera.'
-            : 'Drag to move. Hold Shift while dragging to copy.'
+          ? isCopyOnly
+            ? locale === 'sv'
+              ? 'Dra för att kopiera detta genomförda pass.'
+              : 'Drag to copy this completed workout.'
+            : locale === 'sv'
+              ? 'Dra för att flytta. Håll Shift medan du drar för att kopiera.'
+              : 'Drag to move. Hold Shift while dragging to copy.'
           : undefined
       }
       {...(isDraggable ? { ...attributes, ...listeners } : {})}
