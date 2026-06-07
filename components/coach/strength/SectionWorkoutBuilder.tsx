@@ -106,9 +106,15 @@ import { useLocale } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import {
   getDefaultTrainingYear,
+  useWorkoutLibraryAthletes,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagField,
   WorkoutTeamYearFields,
 } from '@/components/workouts/WorkoutLibraryMetadataFields'
+import {
+  getWorkoutAthleteIdFromTags,
+  setWorkoutAthleteTag,
+} from '@/lib/workouts/business-tags'
 
 // Types
 type SectionType = 'WARMUP' | 'MAIN' | 'PREHAB' | 'CORE' | 'COOLDOWN'
@@ -340,6 +346,7 @@ interface SectionWorkoutBuilderProps {
     phase: string
     teamId?: string | null
     trainingYear?: number | null
+    tags?: string[]
     exercises: Array<{
       exerciseId: string
       exerciseName: string
@@ -422,12 +429,14 @@ interface SectionWorkoutBuilderProps {
       }>
     }
   } | null
+  businessId?: string
   onSaved?: (sessionId?: string, sessionName?: string) => void
   onCancel?: () => void
 }
 
 export function SectionWorkoutBuilder({
   initialData,
+  businessId,
   onSaved,
   onCancel,
 }: SectionWorkoutBuilderProps) {
@@ -439,8 +448,12 @@ export function SectionWorkoutBuilder({
   const [phase, setPhase] = useState('Base')
   const [teamId, setTeamId] = useState<string | null>(initialData?.teamId ?? null)
   const [trainingYear, setTrainingYear] = useState<number | null>(initialData?.trainingYear ?? getDefaultTrainingYear())
+  const [athleteTagClientId, setAthleteTagClientId] = useState<string | null>(
+    getWorkoutAthleteIdFromTags(initialData?.tags)
+  )
   const [saving, setSaving] = useState(false)
   const { teams } = useWorkoutLibraryTeams(businessHeaders ?? undefined)
+  const { athletes } = useWorkoutLibraryAthletes(businessHeaders ?? undefined, businessId)
 
   // Section states
   const [sections, setSections] = useState<Record<SectionType, SectionConfig>>({
@@ -509,6 +522,7 @@ export function SectionWorkoutBuilder({
       setDescription(initialData.description || '')
       setTeamId(initialData.teamId ?? null)
       setTrainingYear(initialData.trainingYear ?? null)
+      setAthleteTagClientId(getWorkoutAthleteIdFromTags(initialData.tags))
 
       // Map phase
       const phaseKey = Object.entries(PHASE_MAP).find(
@@ -1185,6 +1199,7 @@ export function SectionWorkoutBuilder({
         estimatedDuration: Math.round(estimatedDuration),
         totalSets,
         totalExercises,
+        tags: setWorkoutAthleteTag(initialData?.tags, athleteTagClientId),
       }
 
       const editingSessionId = saveAsNewVersion ? undefined : initialData?.id
@@ -1269,6 +1284,11 @@ export function SectionWorkoutBuilder({
                   trainingYear={trainingYear}
                   onTeamIdChange={setTeamId}
                   onTrainingYearChange={setTrainingYear}
+                />
+                <WorkoutAthleteTagField
+                  athletes={athletes}
+                  athleteId={athleteTagClientId}
+                  onAthleteIdChange={setAthleteTagClientId}
                 />
               </div>
               <div className="space-y-2 w-[150px]">

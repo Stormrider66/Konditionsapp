@@ -79,8 +79,15 @@ import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calenda
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 import { getExerciseDisplayName } from '@/lib/exercises/display-name';
 import {
+  getWorkoutAthleteIdFromTags,
+  getWorkoutAthleteTag,
+} from '@/lib/workouts/business-tags';
+import {
+  useWorkoutLibraryAthletes,
   useTeamNameLookup,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagBadge,
+  WorkoutAthleteTagFilter,
   WorkoutTeamYearBadges,
   WorkoutTeamYearFilters,
 } from '@/components/workouts/WorkoutLibraryMetadataFields';
@@ -171,6 +178,7 @@ const COPY: Record<AppLocale, {
   edit: string;
   assign: string;
   plan: string;
+  useForCalendarDay: string;
   remove: string;
 }> = {
   en: {
@@ -207,6 +215,7 @@ const COPY: Record<AppLocale, {
     edit: 'Edit',
     assign: 'Assign',
     plan: 'Plan',
+    useForCalendarDay: 'Use for this day',
     remove: 'Delete',
   },
   sv: {
@@ -243,6 +252,7 @@ const COPY: Record<AppLocale, {
     edit: 'Redigera',
     assign: 'Tilldela',
     plan: 'Planera',
+    useForCalendarDay: 'Använd för denna dag',
     remove: 'Ta bort',
   },
 };
@@ -274,21 +284,31 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   const pathname = usePathname();
   const appLocale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const copy = COPY[appLocale];
+  const fromCalendar = searchParams.get('fromCalendar') === 'true';
+  const deployExisting = searchParams.get('deployExisting') === 'true';
+  const calendarClientId = searchParams.get('clientId');
+  const calendarDate = searchParams.get('date');
   const [workouts, setWorkouts] = useState<HybridWorkout[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [formatFilter, setFormatFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [athleteFilter, setAthleteFilter] = useState<string>(
+    searchParams.get('athleteFilter') || (deployExisting && calendarClientId ? calendarClientId : 'all')
+  );
   const [benchmarkOnly] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(
-    searchParams.get('fromCalendar') === 'true'
+    fromCalendar && !deployExisting
   );
   const [isImportOpen, setIsImportOpen] = useState(false);
   const [importedInitialData, setImportedInitialData] = useState<
     Parameters<typeof HybridWorkoutBuilder>[0]['initialData'] | null
   >(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab');
+    return tab === 'custom' || tab === 'benchmarks' || tab === 'all' ? tab : 'all';
+  });
   const [selectedWorkout, setSelectedWorkout] = useState<HybridWorkout | null>(null);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [deleteWorkout, setDeleteWorkout] = useState<HybridWorkout | null>(null);
@@ -302,9 +322,6 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
   const teamCalendarLink = useTeamCalendarWorkoutLink('HYBRID');
 
   // Calendar assignment flow
-  const fromCalendar = searchParams.get('fromCalendar') === 'true';
-  const calendarClientId = searchParams.get('clientId');
-  const calendarDate = searchParams.get('date');
   const editWorkoutId = searchParams.get('editWorkoutId');
   const appliedEditWorkoutIdRef = useRef<string | null>(null);
   const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null);
@@ -320,7 +337,13 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     ...(businessId ? { 'x-business-id': businessId } : {}),
   }), [businessId, pathname]);
   const { teams } = useWorkoutLibraryTeams(businessHeaders);
+  const { athletes } = useWorkoutLibraryAthletes(businessHeaders, businessId);
   const teamNames = useTeamNameLookup(teams);
+  const athleteNames = useMemo(() => {
+    const names = new Map<string, string>();
+    athletes.forEach((athlete) => names.set(athlete.id, athlete.name));
+    return names;
+  }, [athletes]);
 
   useEffect(() => {
     if (!editWorkoutId || appliedEditWorkoutIdRef.current === editWorkoutId) return;
@@ -418,6 +441,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
       if (formatFilter && formatFilter !== 'all') params.set('format', formatFilter);
       if (teamFilter && teamFilter !== 'all') params.set('teamId', teamFilter);
       if (yearFilter && yearFilter !== 'all') params.set('trainingYear', yearFilter);
+      if (athleteFilter && athleteFilter !== 'all') params.append('tag', getWorkoutAthleteTag(athleteFilter));
       if (benchmarkOnly) params.set('benchmarkOnly', 'true');
       params.set('limit', '50');
 
@@ -433,7 +457,7 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
     } finally {
       setLoading(false);
     }
-  }, [benchmarkOnly, businessHeaders, formatFilter, search, teamFilter, yearFilter]);
+  }, [athleteFilter, benchmarkOnly, businessHeaders, formatFilter, search, teamFilter, yearFilter]);
 
   useEffect(() => {
     void fetchWorkouts();
@@ -576,6 +600,12 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
           onYearFilterChange={setYearFilter}
           className="flex flex-col gap-3 md:flex-row"
         />
+        <WorkoutAthleteTagFilter
+          athletes={athletes}
+          athleteFilter={athleteFilter}
+          onAthleteFilterChange={setAthleteFilter}
+          className="w-full md:w-[180px]"
+        />
       </div>
 
       {/* Tabs */}
@@ -605,8 +635,14 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
             onView={handleOpenSheet}
             onEdit={handleEdit}
             onPlan={setPlanWorkout}
+            onUseForCalendar={
+              fromCalendar && deployExisting && calendarClientId && calendarDate
+                ? (workout) => setCalendarAssignSessionId(workout.id)
+                : undefined
+            }
             onDelete={setDeleteWorkout}
             teamNames={teamNames}
+            athleteNames={athleteNames}
           />
         </TabsContent>
 
@@ -638,8 +674,14 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
                     onView={handleOpenSheet}
                     onEdit={handleEdit}
                     onPlan={setPlanWorkout}
+                    onUseForCalendar={
+                      fromCalendar && deployExisting && calendarClientId && calendarDate
+                        ? (workout) => setCalendarAssignSessionId(workout.id)
+                        : undefined
+                    }
                     onDelete={setDeleteWorkout}
                     teamNames={teamNames}
+                    athleteNames={athleteNames}
                   />
                 </div>
               );
@@ -675,8 +717,14 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
               onView={handleOpenSheet}
               onEdit={handleEdit}
               onPlan={setPlanWorkout}
+              onUseForCalendar={
+                fromCalendar && deployExisting && calendarClientId && calendarDate
+                  ? (workout) => setCalendarAssignSessionId(workout.id)
+                  : undefined
+              }
               onDelete={setDeleteWorkout}
               teamNames={teamNames}
+              athleteNames={athleteNames}
             />
           )}
         </TabsContent>
@@ -879,8 +927,10 @@ interface WorkoutGridProps {
   onView?: (workout: HybridWorkout) => void;
   onEdit?: (workout: HybridWorkout) => void;
   onPlan?: (workout: HybridWorkout) => void;
+  onUseForCalendar?: (workout: HybridWorkout) => void;
   onDelete?: (workout: HybridWorkout) => void;
   teamNames: Map<string, string>;
+  athleteNames: Map<string, string>;
 }
 
 function WorkoutGrid({
@@ -895,8 +945,10 @@ function WorkoutGrid({
   onView,
   onEdit,
   onPlan,
+  onUseForCalendar,
   onDelete,
   teamNames,
+  athleteNames,
 }: WorkoutGridProps) {
   if (loading) {
     return (
@@ -935,6 +987,8 @@ function WorkoutGrid({
         const glowColor =
           workout.scalingLevel === 'RX' ? 'emerald' : workout.scalingLevel === 'SCALED' ? 'amber' : 'blue';
         const teamName = workout.teamId ? teamNames.get(workout.teamId) ?? 'Lag' : null;
+        const athleteTagId = getWorkoutAthleteIdFromTags(workout.tags);
+        const athleteName = athleteTagId ? athleteNames.get(athleteTagId) : null;
 
         return (
           <GlassCard
@@ -958,7 +1012,20 @@ function WorkoutGrid({
                   </GlassCardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {onPlan && (
+                  {onUseForCalendar ? (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-8"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onUseForCalendar(workout);
+                      }}
+                    >
+                      <CalendarPlus className="mr-1.5 h-3.5 w-3.5" />
+                      {copy.useForCalendarDay}
+                    </Button>
+                  ) : onPlan && (
                     <Button
                       type="button"
                       variant="outline"
@@ -1035,6 +1102,11 @@ function WorkoutGrid({
                 trainingYear={workout.trainingYear}
                 className="mt-3 flex flex-wrap gap-1"
               />
+              {athleteName && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  <WorkoutAthleteTagBadge athleteName={athleteName} />
+                </div>
+              )}
               {workout._count?.results > 0 && (
                 <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground font-mono">
                   <Target className="h-3 w-3 text-emerald-500" />

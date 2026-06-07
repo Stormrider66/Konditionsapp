@@ -35,9 +35,11 @@ import { toAgilityWorkoutBundle } from '@/components/workouts/import/converters'
 import { TeamCalendarStudioContextBanner } from '@/components/coach/team-calendar/TeamCalendarStudioContextBanner'
 import { useTeamCalendarWorkoutLink } from '@/lib/team-calendar/use-team-calendar-workout-link'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import { getWorkoutAthleteTag } from '@/lib/workouts/business-tags'
 import {
   useTeamNameLookup,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagFilter,
   WorkoutTeamYearFilters,
 } from '@/components/workouts/WorkoutLibraryMetadataFields'
 
@@ -68,13 +70,23 @@ export default function AgilityStudioClient({
   const t = useTranslations('agilityStudio')
   const searchParams = useSearchParams()
   const pathname = usePathname()
-  const [activeTab, setActiveTab] = useState('drills')
+  const fromCalendar = searchParams.get('fromCalendar') === 'true'
+  const deployExisting = searchParams.get('deployExisting') === 'true'
+  const calendarClientId = searchParams.get('clientId')
+  const calendarDate = searchParams.get('date')
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get('tab')
+    return tab === 'workouts' || deployExisting ? 'workouts' : 'drills'
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [developmentStage, setDevelopmentStage] = useState<DevelopmentStage | 'all'>('all')
   const [teamFilter, setTeamFilter] = useState<string>('all')
   const [yearFilter, setYearFilter] = useState<string>('all')
+  const [athleteFilter, setAthleteFilter] = useState<string>(
+    searchParams.get('athleteFilter') || (deployExisting && calendarClientId ? calendarClientId : 'all')
+  )
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(
-    searchParams.get('fromCalendar') === 'true'
+    fromCalendar && !deployExisting
   )
   const [builderInitialStep, setBuilderInitialStep] = useState<1 | 2 | 3 | 4>(
     searchParams.get('fromCalendar') === 'true' ? 1 : 1
@@ -90,9 +102,6 @@ export default function AgilityStudioClient({
   const teamCalendarLink = useTeamCalendarWorkoutLink('AGILITY')
 
   // Calendar assignment flow
-  const fromCalendar = searchParams.get('fromCalendar') === 'true'
-  const calendarClientId = searchParams.get('clientId')
-  const calendarDate = searchParams.get('date')
   const [calendarAssignSessionId, setCalendarAssignSessionId] = useState<string | null>(null)
 
   const businessSlug = useMemo(() => {
@@ -118,6 +127,7 @@ export default function AgilityStudioClient({
         if (developmentStage !== 'all') params.set('developmentStage', developmentStage)
         if (teamFilter !== 'all') params.set('teamId', teamFilter)
         if (yearFilter !== 'all') params.set('trainingYear', yearFilter)
+        if (athleteFilter !== 'all') params.append('tag', getWorkoutAthleteTag(athleteFilter))
         params.set('limit', '100')
 
         const response = await fetch(`/api/agility-workouts?${params}`, {
@@ -139,7 +149,7 @@ export default function AgilityStudioClient({
     void fetchWorkouts()
 
     return () => controller.abort()
-  }, [businessHeaders, developmentStage, searchQuery, teamFilter, yearFilter])
+  }, [athleteFilter, businessHeaders, developmentStage, searchQuery, teamFilter, yearFilter])
 
   const handleWorkoutCreated = async (newWorkout: AgilityWorkout) => {
     setWorkouts(prev => [newWorkout, ...prev])
@@ -237,6 +247,12 @@ export default function AgilityStudioClient({
           onYearFilterChange={setYearFilter}
           className="flex flex-col gap-3 sm:flex-row"
         />
+        <WorkoutAthleteTagFilter
+          athletes={initialAthletes}
+          athleteFilter={athleteFilter}
+          onAthleteFilterChange={setAthleteFilter}
+          className="w-full sm:w-[180px]"
+        />
       </div>
 
       {/* Tabs */}
@@ -298,6 +314,11 @@ export default function AgilityStudioClient({
             athletes={initialAthletes}
             searchQuery={searchQuery}
             onDelete={handleWorkoutDeleted}
+            onUseForCalendar={
+              fromCalendar && deployExisting && calendarClientId && calendarDate
+                ? (workout) => setCalendarAssignSessionId(workout.id)
+                : undefined
+            }
             businessId={businessId}
             teamNames={teamNames}
           />

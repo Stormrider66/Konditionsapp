@@ -31,7 +31,9 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const searchParams = useSearchParams()
   const pathname = usePathname()
-  const [activeTab, setActiveTab] = React.useState('builder')
+  const [activeTab, setActiveTab] = React.useState(() =>
+    searchParams.get('tab') === 'library' ? 'library' : 'builder'
+  )
   const [editSession, setEditSession] = React.useState<CardioSessionData | null>(null)
   const [showAutoGenerate, setShowAutoGenerate] = React.useState(false)
   const [showImporter, setShowImporter] = React.useState(false)
@@ -39,6 +41,7 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
+  const deployExisting = searchParams.get('deployExisting') === 'true'
   const calendarClientId = searchParams.get('clientId')
   const calendarDate = searchParams.get('date')
   const editSessionId = searchParams.get('editSessionId')
@@ -157,6 +160,14 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
         <TabsContent value="library" className="space-y-4">
           <CardioSessionLibrary
             businessId={businessId}
+            calendarAssignTarget={
+              fromCalendar && deployExisting && calendarClientId && calendarDate
+                ? { clientId: calendarClientId, date: calendarDate }
+                : undefined
+            }
+            onCalendarAssignSession={(session) => {
+              setCalendarAssignSessionId(session.id)
+            }}
             onNewSession={() => {
               setEditSession(null)
               setActiveTab('builder')

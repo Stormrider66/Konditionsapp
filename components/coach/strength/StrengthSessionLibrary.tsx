@@ -64,8 +64,15 @@ import { countStrengthSessionExercises } from '@/lib/strength/session-sections';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 import { visibleStrengthSessionTags } from '@/lib/strength/session-business-tags';
 import {
+  getWorkoutAthleteIdFromTags,
+  getWorkoutAthleteTag,
+} from '@/lib/workouts/business-tags';
+import {
+  useWorkoutLibraryAthletes,
   useTeamNameLookup,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagBadge,
+  WorkoutAthleteTagFilter,
   WorkoutTeamYearBadges,
   WorkoutTeamYearFilters,
 } from '@/components/workouts/WorkoutLibraryMetadataFields';
@@ -137,6 +144,11 @@ interface StrengthSessionLibraryProps {
   onEditSession?: (session: StrengthSessionData) => void;
   onDuplicateSession?: (session: StrengthSessionData) => void;
   businessId?: string;
+  calendarAssignTarget?: {
+    clientId: string;
+    date: string;
+  };
+  onCalendarAssignSession?: (session: StrengthSessionData) => void;
 }
 
 const phaseLabels: Record<string, { label: LocalizedLabel; color: string }> = {
@@ -168,6 +180,8 @@ export function StrengthSessionLibrary({
   onEditSession,
   onDuplicateSession,
   businessId,
+  calendarAssignTarget,
+  onCalendarAssignSession,
 }: StrengthSessionLibraryProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const themeContext = useWorkoutThemeOptional();
@@ -187,10 +201,17 @@ export function StrengthSessionLibrary({
   const [phaseFilter, setPhaseFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [athleteFilter, setAthleteFilter] = useState<string>(calendarAssignTarget?.clientId ?? 'all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [copyingTemplate, setCopyingTemplate] = useState<string | null>(null);
   const { teams } = useWorkoutLibraryTeams(businessHeaders);
+  const { athletes } = useWorkoutLibraryAthletes(businessHeaders, businessId);
   const teamNames = useTeamNameLookup(teams);
+  const athleteNames = useMemo(() => {
+    const names = new Map<string, string>();
+    athletes.forEach((athlete) => names.set(athlete.id, athlete.name));
+    return names;
+  }, [athletes]);
 
   // Sheet state
   const [sheetSession, setSheetSession] = useState<StrengthSessionData | null>(null);
@@ -219,6 +240,7 @@ export function StrengthSessionLibrary({
       if (phaseFilter && phaseFilter !== 'all') params.set('phase', phaseFilter);
       if (teamFilter && teamFilter !== 'all') params.set('teamId', teamFilter);
       if (yearFilter && yearFilter !== 'all') params.set('trainingYear', yearFilter);
+      if (athleteFilter && athleteFilter !== 'all') params.append('tag', getWorkoutAthleteTag(athleteFilter));
       params.set('limit', '50');
 
       const response = await fetch(`/api/strength-sessions?${params}`, {
@@ -233,7 +255,7 @@ export function StrengthSessionLibrary({
     } finally {
       setLoading(false);
     }
-  }, [businessHeaders, search, phaseFilter, teamFilter, yearFilter]);
+  }, [athleteFilter, businessHeaders, search, phaseFilter, teamFilter, yearFilter]);
 
   useEffect(() => {
     void Promise.resolve().then(fetchSessions);
@@ -484,6 +506,11 @@ export function StrengthSessionLibrary({
               onTeamFilterChange={setTeamFilter}
               onYearFilterChange={setYearFilter}
             />
+            <WorkoutAthleteTagFilter
+              athletes={athletes}
+              athleteFilter={athleteFilter}
+              onAthleteFilterChange={setAthleteFilter}
+            />
           </div>
 
           {/* Sessions Grid */}
@@ -516,6 +543,8 @@ export function StrengthSessionLibrary({
             const exerciseCount = countStrengthSessionExercises(session);
             const visibleTags = visibleStrengthSessionTags(session.tags);
             const teamName = session.teamId ? teamNames.get(session.teamId) ?? copy(locale, 'Team', 'Lag') : null;
+            const athleteTagId = getWorkoutAthleteIdFromTags(session.tags);
+            const athleteName = athleteTagId ? athleteNames.get(athleteTagId) : null;
 
             return (
               <Card
@@ -579,7 +608,26 @@ export function StrengthSessionLibrary({
                     trainingYear={session.trainingYear}
                     className="mt-3 flex flex-wrap gap-1"
                   />
+                  {athleteName && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      <WorkoutAthleteTagBadge athleteName={athleteName} />
+                    </div>
+                  )}
 
+                  {calendarAssignTarget && onCalendarAssignSession && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="mt-3 mr-2"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onCalendarAssignSession(session);
+                      }}
+                    >
+                      <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
+                      {copy(locale, 'Use for this day', 'Använd för denna dag')}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline"

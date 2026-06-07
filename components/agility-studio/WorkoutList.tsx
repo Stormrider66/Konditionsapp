@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,9 +59,15 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import type { AgilityWorkout } from '@/types'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
-import { visibleWorkoutTags } from '@/lib/workouts/business-tags'
+import {
+  getWorkoutAthleteIdFromTags,
+  visibleWorkoutTags,
+} from '@/lib/workouts/business-tags'
 import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog'
-import { WorkoutTeamYearBadges } from '@/components/workouts/WorkoutLibraryMetadataFields'
+import {
+  WorkoutAthleteTagBadge,
+  WorkoutTeamYearBadges,
+} from '@/components/workouts/WorkoutLibraryMetadataFields'
 
 interface Athlete {
   id: string
@@ -77,6 +83,7 @@ interface WorkoutListProps {
   onEdit?: (workout: AgilityWorkout) => void
   onDelete: (workoutId: string) => void
   onDuplicate?: (workout: AgilityWorkout) => void
+  onUseForCalendar?: (workout: AgilityWorkout) => void
   businessId?: string
   teamNames: Map<string, string>
 }
@@ -88,11 +95,14 @@ export function WorkoutList({
   onEdit,
   onDelete,
   onDuplicate,
+  onUseForCalendar,
   businessId,
   teamNames,
 }: WorkoutListProps) {
   const t = useTranslations('agilityStudio')
   const tCommon = useTranslations('common')
+  const locale = useLocale()
+  const useForCalendarDay = locale === 'sv' ? 'Använd för denna dag' : 'Use for this day'
   const pathname = usePathname()
   const businessHeaders = useMemo(() => ({
     ...(getBusinessScopeHeaders(pathname) ?? {}),
@@ -119,6 +129,11 @@ export function WorkoutList({
   // Multi-date / weekly repeat state
   const [repeatEnabled, setRepeatEnabled] = useState(false)
   const [occurrences, setOccurrences] = useState(DEFAULT_OCCURRENCES)
+  const athleteNames = useMemo(() => {
+    const names = new Map<string, string>()
+    athletes.forEach((athlete) => names.set(athlete.id, athlete.name))
+    return names
+  }, [athletes])
 
   const filteredWorkouts = workouts.filter(workout => {
     if (!searchQuery) return true
@@ -273,6 +288,8 @@ export function WorkoutList({
           {filteredWorkouts.map(workout => {
             const visibleTags = visibleWorkoutTags(workout.tags)
             const teamName = workout.teamId ? teamNames.get(workout.teamId) ?? 'Lag' : null
+            const athleteTagId = getWorkoutAthleteIdFromTags(workout.tags)
+            const athleteName = athleteTagId ? athleteNames.get(athleteTagId) : null
 
             return (
             <Card key={workout.id}>
@@ -299,6 +316,12 @@ export function WorkoutList({
                         <Users className="h-4 w-4 mr-2" />
                         {t('workout.assign')}
                       </DropdownMenuItem>
+                      {onUseForCalendar && (
+                        <DropdownMenuItem onClick={() => onUseForCalendar(workout)}>
+                          <CalendarPlus className="h-4 w-4 mr-2" />
+                          {useForCalendarDay}
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuItem onClick={() => setPlanningWorkout(workout)}>
                         <CalendarPlus className="h-4 w-4 mr-2" />
                         Planera i lagkalendern
@@ -371,6 +394,22 @@ export function WorkoutList({
                   trainingYear={workout.trainingYear}
                   className="mt-3 flex flex-wrap gap-1"
                 />
+                {athleteName && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    <WorkoutAthleteTagBadge athleteName={athleteName} />
+                  </div>
+                )}
+                {onUseForCalendar && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="mt-4 mr-2"
+                    onClick={() => onUseForCalendar(workout)}
+                  >
+                    <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
+                    {useForCalendarDay}
+                  </Button>
+                )}
                 <Button
                   type="button"
                   variant="outline"

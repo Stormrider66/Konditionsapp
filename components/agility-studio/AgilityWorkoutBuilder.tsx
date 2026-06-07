@@ -48,9 +48,16 @@ import { HOCKEY_AGILITY_PRESETS, type HockeyAgilityPreset } from '@/lib/hockey/h
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import {
   getDefaultTrainingYear,
+  useWorkoutLibraryAthletes,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagField,
   WorkoutTeamYearFields,
 } from '@/components/workouts/WorkoutLibraryMetadataFields'
+import {
+  getWorkoutAthleteIdFromTags,
+  setWorkoutAthleteTag,
+  visibleWorkoutTags,
+} from '@/lib/workouts/business-tags'
 
 type AppLocale = 'en' | 'sv'
 
@@ -194,6 +201,10 @@ export function AgilityWorkoutBuilder({
   const [isTemplate, setIsTemplate] = useState(initialWorkout?.isTemplate || false)
   const [primaryFocus, setPrimaryFocus] = useState(initialWorkout?.primaryFocus ?? undefined)
   const [tags, setTags] = useState<string[]>(initialWorkout?.tags ?? [])
+  const [athleteTagClientId, setAthleteTagClientId] = useState<string | null>(
+    getWorkoutAthleteIdFromTags(initialWorkout?.tags)
+  )
+  const { athletes } = useWorkoutLibraryAthletes(businessHeaders, businessId)
 
   const filteredDrills = drills.filter(drill => {
     if (
@@ -317,7 +328,7 @@ export function AgilityWorkoutBuilder({
           developmentStage,
           targetSports,
           primaryFocus,
-          tags,
+          tags: setWorkoutAthleteTag(tags, athleteTagClientId),
           isTemplate,
           drills: selectedDrills.map(d => ({
             drillId: d.drill.id,
@@ -752,6 +763,11 @@ export function AgilityWorkoutBuilder({
                 onTeamIdChange={setTeamId}
                 onTrainingYearChange={setTrainingYear}
               />
+              <WorkoutAthleteTagField
+                athletes={athletes}
+                athleteId={athleteTagClientId}
+                onAthleteIdChange={setAthleteTagClientId}
+              />
 
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -779,9 +795,9 @@ export function AgilityWorkoutBuilder({
                   )}
                   {primaryFocus && <div>{t('builder.focus')}: {t(`categories.${primaryFocus}`)}</div>}
                 </div>
-                {tags.length > 0 && (
+                {visibleWorkoutTags(tags).length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {tags.map((tag) => (
+                    {visibleWorkoutTags(tags).map((tag) => (
                       <Badge key={tag} variant="outline" className="text-xs">
                         {tag}
                       </Badge>

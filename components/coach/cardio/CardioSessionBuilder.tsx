@@ -47,9 +47,15 @@ import { useLocale } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
 import {
   getDefaultTrainingYear,
+  useWorkoutLibraryAthletes,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagField,
   WorkoutTeamYearFields,
 } from '@/components/workouts/WorkoutLibraryMetadataFields'
+import {
+  getWorkoutAthleteIdFromTags,
+  setWorkoutAthleteTag,
+} from '@/lib/workouts/business-tags'
 
 // Types
 type CardioFlatSegment = {
@@ -407,6 +413,9 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
   const [sport, setSport] = useState('RUNNING')
   const [teamId, setTeamId] = useState<string | null>(initialData?.teamId ?? null)
   const [trainingYear, setTrainingYear] = useState<number | null>(initialData?.trainingYear ?? getDefaultTrainingYear())
+  const [athleteTagClientId, setAthleteTagClientId] = useState<string | null>(
+    getWorkoutAthleteIdFromTags(initialData?.tags)
+  )
   const [segments, setSegments] = useState<CardioSegment[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [sessionDate, setSessionDate] = useState<Date | null>(null)
@@ -416,6 +425,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
   const [patternDialogOpen, setPatternDialogOpen] = useState(false)
   const [availableExercises, setAvailableExercises] = useState<LibraryExercise[]>([])
   const { teams } = useWorkoutLibraryTeams(businessHeaders)
+  const { athletes } = useWorkoutLibraryAthletes(businessHeaders, businessId)
 
   // Load initial data when editing
   useEffect(() => {
@@ -425,6 +435,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
       setSport(initialData.sport || 'RUNNING')
       setTeamId(initialData.teamId ?? null)
       setTrainingYear(initialData.trainingYear ?? null)
+      setAthleteTagClientId(getWorkoutAthleteIdFromTags(initialData.tags))
       setSegments(
         initialData.segments.map((s: any) => {
           if (s.type === 'CORE' || s.type === 'PREHAB' || s.type === 'PLYOMETRIC') {
@@ -681,6 +692,7 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
         sport,
         teamId,
         trainingYear,
+        tags: setWorkoutAthleteTag(initialData?.tags, athleteTagClientId),
         segments: segmentData,
       }
 
@@ -1156,6 +1168,11 @@ export function CardioSessionBuilder({ initialData, onSaved, onCancel, businessI
                   trainingYear={trainingYear}
                   onTeamIdChange={setTeamId}
                   onTrainingYearChange={setTrainingYear}
+                />
+                <WorkoutAthleteTagField
+                  athletes={athletes}
+                  athleteId={athleteTagClientId}
+                  onAthleteIdChange={setAthleteTagClientId}
                 />
               </div>
               <div className="space-y-2 w-[150px]">

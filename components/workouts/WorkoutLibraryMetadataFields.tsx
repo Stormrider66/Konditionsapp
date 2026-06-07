@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { CalendarDays, Users } from 'lucide-react'
+import { CalendarDays, UserRound, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
 import {
@@ -18,26 +18,35 @@ const NONE_VALUE = 'none'
 type AppLocale = 'en' | 'sv'
 
 const COPY: Record<AppLocale, {
+  athlete: string
   team: string
   year: string
+  noAthlete: string
   noTeam: string
   noYear: string
+  allAthletes: string
   allTeams: string
   allYears: string
 }> = {
   en: {
+    athlete: 'Athlete',
     team: 'Team',
     year: 'Year',
+    noAthlete: 'No athlete tag',
     noTeam: 'No team',
     noYear: 'No year',
+    allAthletes: 'All athletes',
     allTeams: 'All teams',
     allYears: 'All years',
   },
   sv: {
+    athlete: 'Atlet',
     team: 'Lag',
     year: 'År',
+    noAthlete: 'Ingen atlet',
     noTeam: 'Inget lag',
     noYear: 'Inget år',
+    allAthletes: 'Alla atleter',
     allTeams: 'Alla lag',
     allYears: 'Alla år',
   },
@@ -48,12 +57,23 @@ export interface WorkoutLibraryTeamOption {
   name: string
 }
 
+export interface WorkoutLibraryAthleteOption {
+  id: string
+  name: string
+  email?: string | null
+}
+
 interface TeamsResponse {
   success?: boolean
   data?: Array<{
     id: string
     name: string
   }>
+}
+
+interface AthletesResponse {
+  clients?: WorkoutLibraryAthleteOption[]
+  data?: WorkoutLibraryAthleteOption[]
 }
 
 export function getDefaultTrainingYear() {
@@ -110,12 +130,104 @@ export function useWorkoutLibraryTeams(headers?: HeadersInit) {
   return { teams, loading }
 }
 
+export function useWorkoutLibraryAthletes(headers?: HeadersInit, businessId?: string) {
+  const [athletes, setAthletes] = useState<WorkoutLibraryAthleteOption[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadAthletes() {
+      setLoading(true)
+      try {
+        const url = businessId
+          ? `/api/business/${businessId}/clients`
+          : '/api/clients?limit=500'
+        const response = await fetch(url, {
+          headers,
+          signal: controller.signal,
+        })
+
+        if (!response.ok) {
+          setAthletes([])
+          return
+        }
+
+        const data = (await response.json()) as AthletesResponse
+        setAthletes(data.clients ?? data.data ?? [])
+      } catch {
+        if (!controller.signal.aborted) {
+          setAthletes([])
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadAthletes()
+
+    return () => controller.abort()
+  }, [businessId, headers])
+
+  return { athletes, loading }
+}
+
 export function useTeamNameLookup(teams: WorkoutLibraryTeamOption[]) {
   return useMemo(() => {
     const names = new Map<string, string>()
     teams.forEach((team) => names.set(team.id, team.name))
     return names
   }, [teams])
+}
+
+interface WorkoutAthleteTagFieldProps {
+  athletes: WorkoutLibraryAthleteOption[]
+  athleteId: string | null
+  onAthleteIdChange: (athleteId: string | null) => void
+  className?: string
+  labels?: {
+    athlete?: string
+    noAthlete?: string
+  }
+}
+
+export function WorkoutAthleteTagField({
+  athletes,
+  athleteId,
+  onAthleteIdChange,
+  className,
+  labels,
+}: WorkoutAthleteTagFieldProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const defaults = COPY[locale]
+  const copy = {
+    athlete: labels?.athlete ?? defaults.athlete,
+    noAthlete: labels?.noAthlete ?? defaults.noAthlete,
+  }
+
+  return (
+    <div className={className ?? 'space-y-2'}>
+      <Label>{copy.athlete}</Label>
+      <Select
+        value={athleteId ?? NONE_VALUE}
+        onValueChange={(value) => onAthleteIdChange(value === NONE_VALUE ? null : value)}
+      >
+        <SelectTrigger>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value={NONE_VALUE}>{copy.noAthlete}</SelectItem>
+          {athletes.map((athlete) => (
+            <SelectItem key={athlete.id} value={athlete.id}>
+              {athlete.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
 }
 
 interface WorkoutTeamYearFieldsProps {
@@ -256,6 +368,44 @@ export function WorkoutTeamYearFilters({
   )
 }
 
+interface WorkoutAthleteTagFilterProps {
+  athletes: WorkoutLibraryAthleteOption[]
+  athleteFilter: string
+  onAthleteFilterChange: (athleteId: string) => void
+  className?: string
+  labels?: {
+    allAthletes?: string
+  }
+}
+
+export function WorkoutAthleteTagFilter({
+  athletes,
+  athleteFilter,
+  onAthleteFilterChange,
+  className,
+  labels,
+}: WorkoutAthleteTagFilterProps) {
+  const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
+  const defaults = COPY[locale]
+  const allAthletes = labels?.allAthletes ?? defaults.allAthletes
+
+  return (
+    <Select value={athleteFilter} onValueChange={onAthleteFilterChange}>
+      <SelectTrigger className={className ?? 'w-full sm:w-[180px]'}>
+        <SelectValue placeholder={allAthletes} />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={ALL_VALUE}>{allAthletes}</SelectItem>
+        {athletes.map((athlete) => (
+          <SelectItem key={athlete.id} value={athlete.id}>
+            {athlete.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
 interface WorkoutTeamYearBadgesProps {
   teamName?: string | null
   trainingYear?: number | null
@@ -286,5 +436,21 @@ export function WorkoutTeamYearBadges({
         </Badge>
       )}
     </div>
+  )
+}
+
+interface WorkoutAthleteTagBadgeProps {
+  athleteName?: string | null
+  className?: string
+}
+
+export function WorkoutAthleteTagBadge({ athleteName, className }: WorkoutAthleteTagBadgeProps) {
+  if (!athleteName) return null
+
+  return (
+    <Badge variant="outline" className={className ?? 'gap-1 text-xs'}>
+      <UserRound className="h-3 w-3" />
+      {athleteName}
+    </Badge>
   )
 }

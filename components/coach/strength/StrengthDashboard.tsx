@@ -231,7 +231,9 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
   const pathname = usePathname()
   const [showCreator, setShowCreator] = React.useState(false)
   const [showImporter, setShowImporter] = React.useState(false)
-  const [activeTab, setActiveTab] = React.useState('builder')
+  const [activeTab, setActiveTab] = React.useState(() =>
+    searchParams.get('tab') === 'sessions' ? 'sessions' : 'builder'
+  )
   const [editSession, setEditSession] = React.useState<StrengthSessionData | null>(null)
   const [useSectionBuilder, setUseSectionBuilder] = React.useState(true) // Default to section builder
   const [stats, setStats] = useState<StrengthStats | null>(null)
@@ -250,6 +252,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
 
   // Calendar assignment flow
   const fromCalendar = searchParams.get('fromCalendar') === 'true'
+  const deployExisting = searchParams.get('deployExisting') === 'true'
   const calendarClientId = searchParams.get('clientId')
   const calendarDate = searchParams.get('date')
   const editSessionId = searchParams.get('editSessionId')
@@ -715,6 +718,16 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
               setActiveTab('builder')
             }}
             businessId={businessId}
+            calendarAssignTarget={
+              fromCalendar && deployExisting && calendarClientId && calendarDate
+                ? { clientId: calendarClientId, date: calendarDate }
+                : undefined
+            }
+            onCalendarAssignSession={(session) => {
+              if (session.id) {
+                setCalendarAssignSessionId(session.id)
+              }
+            }}
           />
         </TabsContent>
 
@@ -790,6 +803,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
           {useSectionBuilder ? (
             <SectionWorkoutBuilder
               initialData={editSession}
+              businessId={businessId}
               onSaved={async (sessionId, sessionName) => {
                 if (teamCalendarLink.fromTeamCalendar && sessionId) {
                   await teamCalendarLink.linkSavedWorkout(sessionId, sessionName)

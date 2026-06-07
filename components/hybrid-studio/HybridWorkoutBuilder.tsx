@@ -76,9 +76,15 @@ import { useLocale } from '@/i18n/client';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
 import {
   getDefaultTrainingYear,
+  useWorkoutLibraryAthletes,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagField,
   WorkoutTeamYearFields,
 } from '@/components/workouts/WorkoutLibraryMetadataFields';
+import {
+  getWorkoutAthleteIdFromTags,
+  setWorkoutAthleteTag,
+} from '@/lib/workouts/business-tags';
 
 interface Exercise {
   id: string;
@@ -789,7 +795,11 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData, businessId
     buildInitialMetconBlocks(initialData)
   );
   const [tags, setTags] = useState<string[]>(initialData?.tags || []);
+  const [athleteTagClientId, setAthleteTagClientId] = useState<string | null>(
+    getWorkoutAthleteIdFromTags(initialData?.tags)
+  );
   const { teams } = useWorkoutLibraryTeams(businessHeaders);
+  const { athletes } = useWorkoutLibraryAthletes(businessHeaders, businessId);
 
   // Section data
   const [warmupData, setWarmupData] = useState<HybridSectionData | undefined>(initialData?.warmupData);
@@ -1104,7 +1114,7 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData, businessId
         scalingLevel,
         teamId,
         trainingYear,
-        tags,
+        tags: setWorkoutAthleteTag(tags, athleteTagClientId),
         movements: flatMovements.map((m, index) => ({
           exerciseId: m.exerciseId,
           order: index + 1,
@@ -1332,6 +1342,11 @@ export function HybridWorkoutBuilder({ onSave, onCancel, initialData, businessId
             trainingYear={trainingYear}
             onTeamIdChange={setTeamId}
             onTrainingYearChange={setTrainingYear}
+          />
+          <WorkoutAthleteTagField
+            athletes={athletes}
+            athleteId={athleteTagClientId}
+            onAthleteIdChange={setAthleteTagClientId}
           />
 
           {/* Format-specific fields */}

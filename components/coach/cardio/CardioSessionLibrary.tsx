@@ -52,10 +52,17 @@ import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkout
 import { PlanTeamWorkoutDialog } from '@/components/coach/team-calendar/PlanTeamWorkoutDialog';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
-import { visibleWorkoutTags } from '@/lib/workouts/business-tags';
 import {
+  getWorkoutAthleteIdFromTags,
+  getWorkoutAthleteTag,
+  visibleWorkoutTags,
+} from '@/lib/workouts/business-tags';
+import {
+  useWorkoutLibraryAthletes,
   useTeamNameLookup,
   useWorkoutLibraryTeams,
+  WorkoutAthleteTagBadge,
+  WorkoutAthleteTagFilter,
   WorkoutTeamYearBadges,
   WorkoutTeamYearFilters,
 } from '@/components/workouts/WorkoutLibraryMetadataFields';
@@ -64,6 +71,11 @@ interface CardioSessionLibraryProps {
   onNewSession?: () => void;
   onEditSession?: (session: CardioSessionData) => void;
   businessId?: string;
+  calendarAssignTarget?: {
+    clientId: string;
+    date: string;
+  };
+  onCalendarAssignSession?: (session: CardioSessionData) => void;
 }
 
 type AppLocale = 'en' | 'sv';
@@ -122,6 +134,8 @@ export function CardioSessionLibrary({
   onNewSession,
   onEditSession,
   businessId,
+  calendarAssignTarget,
+  onCalendarAssignSession,
 }: CardioSessionLibraryProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const themeContext = useWorkoutThemeOptional();
@@ -138,8 +152,15 @@ export function CardioSessionLibrary({
   const [sportFilter, setSportFilter] = useState<string>('all');
   const [teamFilter, setTeamFilter] = useState<string>('all');
   const [yearFilter, setYearFilter] = useState<string>('all');
+  const [athleteFilter, setAthleteFilter] = useState<string>(calendarAssignTarget?.clientId ?? 'all');
   const { teams } = useWorkoutLibraryTeams(businessHeaders);
+  const { athletes } = useWorkoutLibraryAthletes(businessHeaders, businessId);
   const teamNames = useTeamNameLookup(teams);
+  const athleteNames = useMemo(() => {
+    const names = new Map<string, string>();
+    athletes.forEach((athlete) => names.set(athlete.id, athlete.name));
+    return names;
+  }, [athletes]);
 
   // Sheet state
   const [sheetSession, setSheetSession] = useState<CardioSessionData | null>(null);
@@ -168,6 +189,7 @@ export function CardioSessionLibrary({
       if (sportFilter && sportFilter !== 'all') params.set('sport', sportFilter);
       if (teamFilter && teamFilter !== 'all') params.set('teamId', teamFilter);
       if (yearFilter && yearFilter !== 'all') params.set('trainingYear', yearFilter);
+      if (athleteFilter && athleteFilter !== 'all') params.append('tag', getWorkoutAthleteTag(athleteFilter));
       params.set('limit', '50');
 
       const response = await fetch(`/api/cardio-sessions?${params}`, {
@@ -182,7 +204,7 @@ export function CardioSessionLibrary({
     } finally {
       setLoading(false);
     }
-  }, [businessHeaders, search, sportFilter, teamFilter, yearFilter]);
+  }, [athleteFilter, businessHeaders, search, sportFilter, teamFilter, yearFilter]);
 
   useEffect(() => {
     void Promise.resolve().then(fetchSessions);
@@ -285,6 +307,11 @@ export function CardioSessionLibrary({
           onTeamFilterChange={setTeamFilter}
           onYearFilterChange={setYearFilter}
         />
+        <WorkoutAthleteTagFilter
+          athletes={athletes}
+          athleteFilter={athleteFilter}
+          onAthleteFilterChange={setAthleteFilter}
+        />
         {onNewSession && (
           <Button onClick={onNewSession}>
             <Plus className="h-4 w-4 mr-2" />
@@ -323,6 +350,8 @@ export function CardioSessionLibrary({
             const segments = session.segments || [];
             const visibleTags = visibleWorkoutTags(session.tags);
             const teamName = session.teamId ? teamNames.get(session.teamId) ?? copy(locale, 'Team', 'Lag') : null;
+            const athleteTagId = getWorkoutAthleteIdFromTags(session.tags);
+            const athleteName = athleteTagId ? athleteNames.get(athleteTagId) : null;
 
             return (
               <Card
@@ -394,7 +423,26 @@ export function CardioSessionLibrary({
                     trainingYear={session.trainingYear}
                     className="mt-3 flex flex-wrap gap-1"
                   />
+                  {athleteName && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      <WorkoutAthleteTagBadge athleteName={athleteName} />
+                    </div>
+                  )}
 
+                  {calendarAssignTarget && onCalendarAssignSession && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="mt-3 mr-2"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onCalendarAssignSession(session);
+                      }}
+                    >
+                      <CalendarPlus className="h-3.5 w-3.5 mr-1.5" />
+                      {copy(locale, 'Use for this day', 'Använd för denna dag')}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
