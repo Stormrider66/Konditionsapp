@@ -5,6 +5,10 @@ import { getRequestedBusinessScope, resolveAthleteClientId } from '@/lib/auth-ut
 import { Prisma, WorkoutType, BiomechanicalPillar, ProgressionLevel, PlyometricIntensity } from '@prisma/client'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import {
+  getStrengthStudioExerciseWhereInput,
+  isStrengthStudioSurface,
+} from '@/lib/strength/exercise-library-surface'
 
 const BUSINESS_EXERCISE_ROLES = [
   'OWNER',
@@ -101,6 +105,7 @@ export async function GET(request: NextRequest) {
     const equipment = searchParams.get('equipment')
     const intensity = searchParams.get('intensity')
     const isPublic = searchParams.get('isPublic')
+    const surface = searchParams.get('surface')
     // NOTE: We intentionally do not allow arbitrary coachId/userId filtering here.
     // The endpoint always scopes results to what the current user can access.
 
@@ -212,6 +217,7 @@ export async function GET(request: NextRequest) {
       AND: [
         accessWhere,
         filtersWhere,
+        ...(isStrengthStudioSurface(surface) ? [getStrengthStudioExerciseWhereInput()] : []),
         ...(hiddenIds.length > 0 ? [{ id: { notIn: hiddenIds } }] : []),
       ],
     }

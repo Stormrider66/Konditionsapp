@@ -219,7 +219,9 @@ export function BulkPRImportDialog({
           fetch(`/api/teams/${teamId}/analysis-summary${teamQuery}`, {
             headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
           }),
-          fetch('/api/exercises?limit=500'),
+          fetch('/api/exercises?limit=500&surface=strength-studio', {
+            headers: businessSlug ? { 'x-business-slug': businessSlug } : undefined,
+          }),
         ])
         if (teamRes.ok) {
           const body = await teamRes.json()

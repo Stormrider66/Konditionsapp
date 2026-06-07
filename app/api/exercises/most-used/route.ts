@@ -10,6 +10,10 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import {
+  getStrengthStudioExerciseWhereInput,
+  isStrengthStudioSurface,
+} from '@/lib/strength/exercise-library-surface'
 
 export async function GET(request?: Request) {
   let locale: AppLocale = resolveLocale(request)
@@ -66,7 +70,26 @@ export async function GET(request?: Request) {
       .slice(0, 50)
       .map(([exerciseId, count]) => ({ exerciseId, count }))
 
-    return NextResponse.json({ success: true, data: ranked })
+    const surface = request ? new URL(request.url).searchParams.get('surface') : null
+    if (!isStrengthStudioSurface(surface) || ranked.length === 0) {
+      return NextResponse.json({ success: true, data: ranked })
+    }
+
+    const allowedExercises = await prisma.exercise.findMany({
+      where: {
+        AND: [
+          getStrengthStudioExerciseWhereInput(),
+          { id: { in: ranked.map((item) => item.exerciseId) } },
+        ],
+      },
+      select: { id: true },
+    })
+    const allowedIds = new Set(allowedExercises.map((exercise) => exercise.id))
+
+    return NextResponse.json({
+      success: true,
+      data: ranked.filter((item) => allowedIds.has(item.exerciseId)),
+    })
   } catch (error) {
     logger.error('Error fetching most-used exercises', {}, error)
     return NextResponse.json(

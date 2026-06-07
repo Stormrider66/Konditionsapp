@@ -10,6 +10,10 @@ import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import {
+  getStrengthStudioExerciseWhereInput,
+  isStrengthStudioSurface,
+} from '@/lib/strength/exercise-library-surface'
 
 export async function GET(request?: NextRequest) {
   let locale: AppLocale = resolveLocale(request)
@@ -21,8 +25,12 @@ export async function GET(request?: NextRequest) {
     }
     locale = resolveLocale(request, user.language)
 
+    const surface = request ? new URL(request.url).searchParams.get('surface') : null
     const favorites = await prisma.exerciseFavorite.findMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        ...(isStrengthStudioSurface(surface) ? { exercise: getStrengthStudioExerciseWhereInput() } : {}),
+      },
       select: { exerciseId: true },
     })
 

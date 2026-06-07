@@ -100,6 +100,7 @@ import { CustomExerciseCreator } from '@/components/coach/exercise-library/Custo
 import { PrintWorkoutButton } from '@/components/workouts/print/PrintWorkoutButton'
 import {
   PREHAB_STABILITY_FILTER,
+  isStrengthStudioExercise,
   matchesStrengthLibraryCategoryFilter,
 } from '@/lib/strength/exercise-library-filters'
 import { useLocale } from '@/i18n/client'
@@ -200,6 +201,7 @@ interface LibraryExercise {
   rehabPhases?: string[]
   targetBodyParts?: string[]
   contraindications?: string[]
+  movementCategory?: string | null
   equipmentTypes?: string[]
   iconCategory?: string
 }
@@ -494,6 +496,7 @@ export function SectionWorkoutBuilder({
     rehabPhases: e.rehabPhases,
     targetBodyParts: e.targetBodyParts,
     contraindications: e.contraindications,
+    movementCategory: e.movementCategory,
     equipmentTypes: e.equipmentTypes,
     iconCategory: e.iconCategory,
   }), [locale])
@@ -673,7 +676,7 @@ export function SectionWorkoutBuilder({
   // Fetch exercises
   const fetchExercises = useCallback(async (search = '') => {
     try {
-      const params = new URLSearchParams({ limit: '500' })
+      const params = new URLSearchParams({ limit: '500', surface: 'strength-studio' })
       const trimmedSearch = search.trim()
       if (trimmedSearch) params.set('search', trimmedSearch)
 
@@ -683,7 +686,7 @@ export function SectionWorkoutBuilder({
       if (res.ok) {
         const data = await res.json()
         const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
-        setAvailableExercises(exercisesList.map(mapLibraryExercise))
+        setAvailableExercises(exercisesList.map(mapLibraryExercise).filter(isStrengthStudioExercise))
       }
     } catch (e) {
       console.error('Failed to fetch exercises', e)
@@ -703,7 +706,7 @@ export function SectionWorkoutBuilder({
   useEffect(() => {
     async function loadFavorites() {
       try {
-        const res = await fetch('/api/exercises/favorites')
+        const res = await fetch('/api/exercises/favorites?surface=strength-studio')
         if (res.ok) {
           const data = await res.json()
           if (data.data) setFavoriteIds(new Set(data.data))
@@ -712,7 +715,7 @@ export function SectionWorkoutBuilder({
     }
     async function loadMostUsed() {
       try {
-        const res = await fetch('/api/exercises/most-used')
+        const res = await fetch('/api/exercises/most-used?surface=strength-studio')
         if (res.ok) {
           const data = await res.json()
           if (data.data) setMostUsedIds(data.data.map((d: any) => d.exerciseId))

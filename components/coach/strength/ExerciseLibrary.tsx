@@ -19,6 +19,7 @@ import {
 import { filterExercisesByEquipment } from '@/lib/equipment-filter'
 import {
   PREHAB_STABILITY_FILTER,
+  isStrengthStudioExercise,
   matchesStrengthLibraryCategoryFilter,
 } from '@/lib/strength/exercise-library-filters'
 
@@ -50,7 +51,7 @@ export function ExerciseLibrary() {
     async function fetchExercises() {
         try {
             // Fetch all exercises (limit=500 to get all)
-            const res = await fetch('/api/exercises?limit=500')
+            const res = await fetch('/api/exercises?limit=500&surface=strength-studio')
             if (res.ok) {
                 const data = await res.json()
                 // Handle both array and object response structure
@@ -59,6 +60,8 @@ export function ExerciseLibrary() {
                 setExercises(exercisesList.map((e: any) => ({
                     id: e.id,
                     name: e.name,
+                    nameSv: e.nameSv,
+                    nameEn: e.nameEn,
                     category: e.category,
                     pillar: e.biomechanicalPillar || 'UNKNOWN',
                     progressionLevel: e.progressionLevel,
@@ -69,9 +72,12 @@ export function ExerciseLibrary() {
                     difficulty: e.difficulty || 'Intermediate',
                     muscleGroup: e.muscleGroup || 'General',
                     equipment: e.equipment || 'None',
+                    equipmentTypes: e.equipmentTypes,
+                    movementCategory: e.movementCategory,
+                    iconCategory: e.iconCategory,
                     description: e.description || '',
                     videoUrl: e.videoUrl
-                })))
+                })).filter(isStrengthStudioExercise))
             }
         } catch (e) {
             console.error("Failed to fetch exercises", e)

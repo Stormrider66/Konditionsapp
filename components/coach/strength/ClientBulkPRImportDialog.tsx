@@ -162,7 +162,7 @@ export function ClientBulkPRImportDialog({
     async function load() {
       setIsLoading(true)
       try {
-        const res = await fetch('/api/exercises?limit=500')
+        const res = await fetch('/api/exercises?limit=500&surface=strength-studio')
         if (res.ok) {
           const body = await res.json()
           const list = Array.isArray(body) ? body : body.exercises ?? []

@@ -14,6 +14,11 @@ import {
   deriveExerciseResolverScope,
   resolveExercises,
 } from '@/lib/ai/exercise-resolver'
+import {
+  getStrengthStudioExerciseWhereInput,
+  isStrengthStudioSurface,
+} from '@/lib/strength/exercise-library-surface'
+import { isStrengthStudioExerciseNameCandidate } from '@/lib/strength/exercise-library-filters'
 
 export const runtime = 'nodejs'
 
@@ -21,6 +26,7 @@ interface ResolveRequestBody {
   names: string[]
   categoryHint?: string
   pillarHint?: string
+  surface?: string
 }
 
 export async function POST(request: NextRequest) {
@@ -47,10 +53,17 @@ export async function POST(request: NextRequest) {
       athleteClientId,
     })
 
+    const useStrengthSurface = isStrengthStudioSurface(body?.surface)
+    const names = useStrengthSurface
+      ? rawNames.filter(isStrengthStudioExerciseNameCandidate)
+      : rawNames
+
     const result = await resolveExercises({
-      names: rawNames,
+      names,
       aliasOwnerId,
-      accessWhere,
+      accessWhere: useStrengthSurface
+        ? { AND: [accessWhere, getStrengthStudioExerciseWhereInput()] }
+        : accessWhere,
       hints: {
         categoryHint: body?.categoryHint,
         pillarHint: body?.pillarHint,

@@ -43,6 +43,8 @@ import {
   resolveExercises,
   type Resolution,
 } from '@/lib/ai/exercise-resolver'
+import { isStrengthStudioExerciseNameCandidate } from '@/lib/strength/exercise-library-filters'
+import { getStrengthStudioExerciseWhereInput } from '@/lib/strength/exercise-library-surface'
 import { createDistributedJsonCache } from '@/lib/distributed-json-cache'
 import {
   EmptyPdfError,
@@ -66,7 +68,7 @@ const PARSE_CACHE_TTL_MS = 60 * 60 * 1000
 const parseCache = createDistributedJsonCache<{
   aiOutput: string
   modelDisplayName: string
-}>('programs:import-parse:v2') // bump when SYSTEM_PROMPT meaningfully changes
+}>('programs:import-parse:v3') // bump when SYSTEM_PROMPT meaningfully changes
 
 function text(locale: AppLocale, enText: string, svText: string): string {
   return locale === 'sv' ? svText : enText
@@ -396,18 +398,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Strip generic placeholder names ("Övning 1", "Exercise 2") that the
-    // model sometimes emits when it skips reading the source detail table
-    // properly. We'd rather show no name (forcing manual map) than a fake
-    // one that pollutes the alias table downstream.
-    const cleaned = stripPlaceholderExerciseNames(aiOutput)
+    // Strip placeholder/non-strength names that would otherwise pollute the
+    // strength exercise alias pool and library matching.
+    const cleaned = stripInvalidExerciseNames(aiOutput)
     if (cleaned.placeholdersStripped > 0) {
       aiOutput = cleaned.aiOutput
       warnings.push(
         text(
           locale,
-          `The model returned ${cleaned.placeholdersStripped} placeholder name${cleaned.placeholdersStripped === 1 ? '' : 's'} (for example "Exercise 1") instead of the real names. Try "Fix format" to run it again, or map them manually in the panel.`,
-          `Modellen returnerade ${cleaned.placeholdersStripped} platshållarnamn (t.ex. "Övning 1") istället för de riktiga namnen. Kör "Fixa format" för att försöka igen, eller mappa manuellt i panelen.`
+          `The model returned ${cleaned.placeholdersStripped} placeholder or non-strength exercise name${cleaned.placeholdersStripped === 1 ? '' : 's'} (for example "Exercise 1" or a cardio block). Try "Fix format" to run it again, or map real strength exercises manually in the panel.`,
+          `Modellen returnerade ${cleaned.placeholdersStripped} platshållar- eller icke-styrkenamn (t.ex. "Övning 1" eller ett konditionsblock). Kör "Fixa format" för att försöka igen, eller mappa riktiga styrkeövningar manuellt i panelen.`
         )
       )
     }
@@ -423,7 +423,10 @@ export async function POST(request: NextRequest) {
           names,
           aliasOwnerId: aiKeyOwnerId,
           accessWhere: {
-            OR: [{ isPublic: true }, { coachId: aiKeyOwnerId }],
+            AND: [
+              { OR: [{ isPublic: true }, { coachId: aiKeyOwnerId }] },
+              getStrengthStudioExerciseWhereInput(),
+            ],
           },
         })
         resolutions = res.resolutions
@@ -515,7 +518,7 @@ function isPlaceholderName(name: string | undefined | null): boolean {
   return PLACEHOLDER_NAME_RE.test(name.trim())
 }
 
-function stripPlaceholderExerciseNames(aiOutput: string): {
+function stripInvalidExerciseNames(aiOutput: string): {
   aiOutput: string
   placeholdersStripped: number
 } {
@@ -546,7 +549,8 @@ function stripPlaceholderExerciseNames(aiOutput: string): {
     for (const day of Object.values(phase.weeklyTemplate)) {
       if (!day || day.type === 'REST' || !day.segments) continue
       for (const seg of day.segments) {
-        if (isPlaceholderName(seg.exerciseName)) {
+        const name = seg.exerciseName?.trim()
+        if (isPlaceholderName(name) || (name && !isStrengthStudioExerciseNameCandidate(name))) {
           delete seg.exerciseName
           stripped++
         }
@@ -646,6 +650,7 @@ PER-WEEK VARIATION — two common patterns, handle both:
 
 EXERCISE NAMES & STRENGTH DATA
 - On segments where type == "exercise" ALWAYS populate exerciseName. Use the cleanest human-readable form — "Back Squat", "Knäböj (bar)", "Bench Press". Strip rep/set/weight clutter: prefer "Back Squat" over "Back Squat 3x8 @ 80 kg".
+- NEVER populate exerciseName for rest rows, notes, headings, warm-up/cooldown cardio, running/rowing/bike/ski intervals, or whole workout blocks like "1000m löpning", "1200m rodd", "25 cal assault bike + 10 burpees", "A1", or "3-4 varv av". Put those into type:"work"/"interval"/"rest", description, or notes instead.
 - NEVER invent an exerciseId — leave that field out entirely; we map names to IDs in a separate step.
 - Populate rpe, rir, tempo, muscleGroup, rest whenever the source mentions them. These fields are where rich programs live or die.
 - Use repsCount for ambiguous rep schemes ("10-12", "AMRAP", "30 s", "max") and reps only when the source gives a single integer.

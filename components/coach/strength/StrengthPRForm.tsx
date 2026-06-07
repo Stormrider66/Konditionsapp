@@ -74,7 +74,7 @@ export function StrengthPRForm({ clientId, clientName: _clientName, onSuccess, o
   useEffect(() => {
     async function fetchExercises() {
       try {
-        const response = await fetch('/api/exercises?limit=200')
+        const response = await fetch('/api/exercises?limit=200&surface=strength-studio')
         if (response.ok) {
           const data = await response.json()
           setExercises(data.exercises || data)

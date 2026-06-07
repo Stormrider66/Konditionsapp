@@ -699,7 +699,7 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
         </TabsList>
 
         <TabsContent value="library" className="space-y-4">
-          <ExerciseLibraryBrowser mode="browse" />
+          <ExerciseLibraryBrowser mode="browse" surface="strength-studio" />
         </TabsContent>
 
         <TabsContent value="sessions" className="space-y-4">

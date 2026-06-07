@@ -376,7 +376,7 @@ export function ImportProgramClient({
       const res = await fetch('/api/programs/resolve-exercises', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ names }),
+        body: JSON.stringify({ names, surface: 'strength-studio' }),
       })
       if (!res.ok) throw new Error('Resolver request failed')
       const data = (await res.json()) as { resolutions: Resolution[] }

@@ -321,6 +321,30 @@ describe('GET /api/exercises', () => {
 
       expect(response.status).toBe(200)
     })
+
+    it('applies the Strength Studio surface filter', async () => {
+      const request = createGetRequest({ surface: 'strength-studio' })
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      const findManyArgs = mockPrisma.exercise.findMany.mock.calls.at(-1)?.[0]
+      expect(findManyArgs?.where?.AND).toEqual(expect.arrayContaining([
+        expect.objectContaining({
+          AND: expect.arrayContaining([
+            expect.objectContaining({
+              category: { in: expect.arrayContaining(['STRENGTH', 'PLYOMETRIC', 'CORE']) },
+            }),
+            expect.objectContaining({
+              NOT: expect.objectContaining({
+                equipmentTypes: expect.objectContaining({
+                  hasSome: expect.arrayContaining(['RUNNING', 'ASSAULT_BIKE']),
+                }),
+              }),
+            }),
+          ]),
+        }),
+      ]))
+    })
   })
 })
 

@@ -127,7 +127,7 @@ export async function resolveExercises(
   const aliasExerciseIds = Array.from(new Set(aliasHits.values()))
   const aliasExerciseRows = aliasExerciseIds.length
     ? await prisma.exercise.findMany({
-        where: { id: { in: aliasExerciseIds } },
+        where: { AND: [accessWhere, { id: { in: aliasExerciseIds } }] },
         select: {
           id: true,
           name: true,
@@ -140,8 +140,11 @@ export async function resolveExercises(
       })
     : []
   const aliasExerciseById = new Map(aliasExerciseRows.map((e) => [e.id, e]))
+  const validAliasHits = new Map(
+    Array.from(aliasHits.entries()).filter(([, exerciseId]) => aliasExerciseById.has(exerciseId))
+  )
 
-  const namesForFuzzy = uniqueNames.filter((n) => !aliasHits.has(n))
+  const namesForFuzzy = uniqueNames.filter((n) => !validAliasHits.has(n))
 
   // ─── Fuzzy candidate pool ─────────────────────────────────────────────
   const fuzzyTokenSet = new Set<string>()
@@ -172,7 +175,7 @@ export async function resolveExercises(
     : []
 
   const resolutions: Resolution[] = uniqueNames.map((name) => {
-    const aliased = aliasHits.get(name)
+    const aliased = validAliasHits.get(name)
     if (aliased) {
       const ex = aliasExerciseById.get(aliased)
       if (ex) {

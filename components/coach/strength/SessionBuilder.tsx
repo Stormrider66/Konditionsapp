@@ -35,6 +35,7 @@ import { toast } from 'sonner'
 import { filterExercisesByEquipment } from '@/lib/equipment-filter'
 import {
   PREHAB_STABILITY_FILTER,
+  isStrengthStudioExercise,
   matchesStrengthLibraryCategoryFilter,
 } from '@/lib/strength/exercise-library-filters'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
@@ -151,7 +152,7 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
   useEffect(() => {
     async function fetchExercises() {
       try {
-        const res = await fetch('/api/exercises?limit=500', {
+        const res = await fetch('/api/exercises?limit=500&surface=strength-studio', {
           headers: businessHeaders,
         })
         if (res.ok) {
@@ -160,22 +161,27 @@ export function SessionBuilder({ initialData, onSaved, onCancel }: SessionBuilde
           const exercisesList = Array.isArray(data) ? data : (data.exercises || [])
 
           setAvailableExercises(exercisesList.map((e: any) => ({
-            id: e.id,
-            name: e.name,
-            category: e.category,
-            pillar: e.biomechanicalPillar,
-            muscleGroup: e.muscleGroup,
+                  id: e.id,
+                  name: e.name,
+                  nameSv: e.nameSv,
+                  nameEn: e.nameEn,
+                  category: e.category,
+                  pillar: e.biomechanicalPillar,
+                  muscleGroup: e.muscleGroup,
             description: e.description,
             instructions: e.instructions,
             progressionLevel: e.progressionLevel,
             isRehabExercise: e.isRehabExercise,
             rehabPhases: e.rehabPhases,
-            targetBodyParts: e.targetBodyParts,
-            contraindications: e.contraindications,
-            equipment: e.equipment || 'None',
-            defaultSets: 3,
-            defaultReps: e.category === 'STRENGTH' ? '8-10' : '10'
-          })))
+                  targetBodyParts: e.targetBodyParts,
+                  contraindications: e.contraindications,
+                  movementCategory: e.movementCategory,
+                  equipmentTypes: e.equipmentTypes,
+                  iconCategory: e.iconCategory,
+                  equipment: e.equipment || 'None',
+                  defaultSets: 3,
+                  defaultReps: e.category === 'STRENGTH' ? '8-10' : '10'
+          })).filter(isStrengthStudioExercise))
         }
       } catch (e) {
         console.error("Failed to fetch exercises", e)

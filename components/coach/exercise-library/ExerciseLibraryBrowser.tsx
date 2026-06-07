@@ -72,6 +72,7 @@ import { useToast } from '@/components/ui/use-toast'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { useLocale } from '@/i18n/client'
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client'
+import { isStrengthStudioExercise } from '@/lib/strength/exercise-library-filters'
 
 type AppLocale = 'en' | 'sv'
 
@@ -83,12 +84,14 @@ interface ExerciseLibraryBrowserProps {
   onSelectExercise?: (exercise: Exercise) => void
   mode?: 'browse' | 'select' // 'browse' for library view, 'select' for adding to workout
   userId?: string
+  surface?: 'all' | 'strength-studio'
 }
 
 export function ExerciseLibraryBrowser({
   onSelectExercise,
   mode = 'browse',
   userId,
+  surface = 'all',
 }: ExerciseLibraryBrowserProps) {
   const { toast } = useToast()
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
@@ -153,6 +156,7 @@ export function ExerciseLibraryBrowser({
         params.append('userId', userId)
         params.append('isPublic', 'false')
       }
+      if (surface === 'strength-studio') params.append('surface', 'strength-studio')
       params.append('limit', pageSize.toString())
       params.append('offset', ((currentPage - 1) * pageSize).toString())
 
@@ -162,7 +166,11 @@ export function ExerciseLibraryBrowser({
       if (!response.ok) throw new Error('Failed to fetch exercises')
 
       const data = await response.json()
-      setExercises(data.exercises || [])
+      const nextExercises = data.exercises || []
+      setExercises(surface === 'strength-studio'
+        ? nextExercises.filter(isStrengthStudioExercise)
+        : nextExercises
+      )
       setTotalPages(data.pagination?.totalPages || 1)
       setTotalCount(data.pagination?.totalCount || 0)
     } catch (error: any) {
@@ -184,6 +192,7 @@ export function ExerciseLibraryBrowser({
     selectedEquipment,
     showCustomOnly,
     userId,
+    surface,
     pageSize,
     currentPage,
     toast,
@@ -197,7 +206,10 @@ export function ExerciseLibraryBrowser({
   useEffect(() => {
     async function loadFavorites() {
       try {
-        const response = await fetch('/api/exercises/favorites')
+        const url = surface === 'strength-studio'
+          ? '/api/exercises/favorites?surface=strength-studio'
+          : '/api/exercises/favorites'
+        const response = await fetch(url)
         if (response.ok) {
           const data = await response.json()
           if (data.data) {
@@ -209,7 +221,7 @@ export function ExerciseLibraryBrowser({
       }
     }
     loadFavorites()
-  }, [])
+  }, [surface])
 
   // Fetch image stats on mount
   useEffect(() => {
@@ -832,7 +844,14 @@ export function ExerciseLibraryBrowser({
                     <SelectItem value="STRENGTH">Strength</SelectItem>
                     <SelectItem value="PLYOMETRIC">Plyometric</SelectItem>
                     <SelectItem value="CORE">Core</SelectItem>
-                    <SelectItem value="MOBILITY">Mobility</SelectItem>
+                    {surface === 'strength-studio' ? (
+                      <>
+                        <SelectItem value="WARMUP">Warm-up</SelectItem>
+                        <SelectItem value="RECOVERY">Recovery</SelectItem>
+                      </>
+                    ) : (
+                      <SelectItem value="MOBILITY">Mobility</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

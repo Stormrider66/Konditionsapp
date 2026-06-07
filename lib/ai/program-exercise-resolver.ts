@@ -13,6 +13,7 @@
  */
 
 import type { ParsedProgram, ParsedWorkoutSegment } from '@/lib/ai/program-parser'
+import { isStrengthStudioExerciseNameCandidate } from '@/lib/strength/exercise-library-filters'
 
 export type ExerciseMappings = Record<string, string>
 
@@ -50,9 +51,10 @@ export function extractExerciseNames(aiOutput: string): string[] {
       const segments = (day as { segments?: ParsedWorkoutSegment[] }).segments
       if (!segments) continue
       for (const seg of segments) {
+        if (seg.type !== 'exercise') continue
         if (seg.exerciseName && !seg.exerciseId) {
           const clean = seg.exerciseName.trim()
-          if (clean.length > 0) names.add(clean)
+          if (isStrengthStudioExerciseNameCandidate(clean)) names.add(clean)
         }
       }
     }

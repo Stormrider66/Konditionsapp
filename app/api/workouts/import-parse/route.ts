@@ -52,6 +52,8 @@ import {
   resolveExercises,
   type Resolution,
 } from '@/lib/ai/exercise-resolver'
+import { isStrengthStudioExerciseNameCandidate } from '@/lib/strength/exercise-library-filters'
+import { getStrengthStudioExerciseWhereInput } from '@/lib/strength/exercise-library-surface'
 import {
   EmptyPdfError,
   formatEmptyPdfError,
@@ -332,7 +334,9 @@ export async function POST(request: NextRequest) {
     let resolutions: Resolution[] = []
     if (parsed.success && importTypeNeedsResolution(workoutType)) {
       try {
-        const names = extractResolvableNames(parsed.workout)
+        const names = workoutType === 'STRENGTH'
+          ? extractResolvableNames(parsed.workout).filter(isStrengthStudioExerciseNameCandidate)
+          : extractResolvableNames(parsed.workout)
         if (names.length > 0) {
           if (workoutType === 'AGILITY') {
             resolutions = await resolveDrillNames(names, aiKeyOwnerId)
@@ -341,9 +345,16 @@ export async function POST(request: NextRequest) {
             const res = await resolveExercises({
               names,
               aliasOwnerId: aiKeyOwnerId,
-              accessWhere: {
-                OR: [{ isPublic: true }, { coachId: aiKeyOwnerId }],
-              },
+              accessWhere: workoutType === 'STRENGTH'
+                ? {
+                    AND: [
+                      { OR: [{ isPublic: true }, { coachId: aiKeyOwnerId }] },
+                      getStrengthStudioExerciseWhereInput(),
+                    ],
+                  }
+                : {
+                    OR: [{ isPublic: true }, { coachId: aiKeyOwnerId }],
+                  },
             })
             resolutions = res.resolutions
           }
