@@ -108,6 +108,9 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     this.opts = {
       filters: options.filters ?? [
         { services: [FITNESS_MACHINE_SERVICE] },
+        // Older Wattbikes (Performance Monitor "b") broadcast as a plain Cycling
+        // Power meter — no FTMS, often no "Wattbike" name — so match that too.
+        { services: [CYCLING_POWER_SERVICE] },
         { namePrefix: 'Wattbike' },
       ],
       autoReconnect: options.autoReconnect ?? true,
