@@ -37,6 +37,8 @@ interface SegmentLoggingFormProps {
   plannedZone?: number
   plannedPower?: number
   showPower?: boolean
+  /** Bike-measured average watts to pre-fill the avg-power field (Wattbike capture). */
+  defaultAvgPower?: number
   isBenchmark?: boolean
   /** When set, the following rest runs as a live countdown that auto-submits. */
   restCountdownSeconds?: number
@@ -81,6 +83,7 @@ export function SegmentLoggingForm({
   plannedZone,
   plannedPower,
   showPower = false,
+  defaultAvgPower,
   isBenchmark = false,
   restCountdownSeconds,
   restHandoffAt = 0,
@@ -98,7 +101,9 @@ export function SegmentLoggingForm({
   const [actualDistance, setActualDistance] = useState<string>('')
   const [actualAvgHR, setActualAvgHR] = useState<string>('')
   const [actualMaxHR, setActualMaxHR] = useState<string>('')
-  const [actualAvgPower, setActualAvgPower] = useState<string>('')
+  const [actualAvgPower, setActualAvgPower] = useState<string>(
+    defaultAvgPower != null ? String(Math.round(defaultAvgPower)) : ''
+  )
   const [notes, setNotes] = useState<string>('')
 
   // Format time for display

@@ -32,6 +32,8 @@ import {
   Clock,
   Headphones,
   HeadphoneOff,
+  Bluetooth,
+  Gauge,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -45,8 +47,9 @@ import {
 } from '@/hooks/use-voice-coach'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
+import { useWattbike } from '@/hooks/use-wattbike'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
-import { useTranslations } from '@/i18n/client'
+import { useTranslations, useLocale } from '@/i18n/client'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -161,6 +164,18 @@ export function CardioFocusModeWorkout({
   const liveCoachConnectedRef = useRef(false)
   const hr = useAthleteHR(liveCoachConnectedRef.current)
 
+  // Live Wattbike power (focus-mode). All UI/effects below are gated on a
+  // power-based workout + an actually-connected bike, so non-bike sessions are
+  // unaffected. tw() handles the few new strings without touching the shared catalogs.
+  const locale = useLocale()
+  const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
+  const wb = useWattbike()
+  const [ergEnabled, setErgEnabled] = useState(true)
+  const [measuredForForm, setMeasuredForForm] = useState<{ actualAvgPower?: number; actualMaxPower?: number }>({})
+  const segPowerRef = useRef<number[]>([])
+  const segMaxRef = useRef(0)
+  const accumulatingRef = useRef(false)
+
   // Live AI Voice Coach (Gemini Live API)
   const liveCoach = useLiveVoiceCoach({
     assignmentId,
@@ -229,6 +244,55 @@ export function CardioFocusModeWorkout({
     : 0
   const restCountdownForForm = followingRestSeconds > 0 ? followingRestSeconds : undefined
 
+  // Does this workout involve power at all? Gates the whole Wattbike strip.
+  const usesPower = segments.some(
+    (s) =>
+      equipmentUsesPower(s.equipment) ||
+      s.plannedPower != null ||
+      s.powerRelPercent != null ||
+      s.isBenchmark === true
+  )
+
+  // Average / peak watts measured for the current segment's effort.
+  const segmentMeasured = useCallback((): { actualAvgPower?: number; actualMaxPower?: number } => {
+    const arr = segPowerRef.current
+    if (arr.length === 0) return {}
+    return {
+      actualAvgPower: Math.round(arr.reduce((a, b) => a + b, 0) / arr.length),
+      actualMaxPower: Math.round(segMaxRef.current),
+    }
+  }, [])
+
+  // Subscribe once to the BLE stream; collect samples only during a work effort.
+  useEffect(() => {
+    const off = wb.client.on('data', (s) => {
+      if (!accumulatingRef.current || typeof s.power !== 'number') return
+      segPowerRef.current.push(s.power)
+      if (s.power > segMaxRef.current) segMaxRef.current = s.power
+    })
+    return off
+  }, [wb.client])
+
+  // Only accumulate while a work segment's timer is on screen.
+  useEffect(() => {
+    accumulatingRef.current =
+      wb.status === 'connected' && viewState === 'timer' && isWorkType(currentSegment?.type)
+  }, [wb.status, viewState, currentIndex, currentSegment])
+
+  // Reset the per-segment accumulator when the segment changes.
+  useEffect(() => {
+    segPowerRef.current = []
+    segMaxRef.current = 0
+  }, [currentIndex])
+
+  // ERG: set the bike's resistance to the segment's target watts (opt-out via toggle).
+  useEffect(() => {
+    if (!ergEnabled || wb.status !== 'connected' || !wb.canControl) return
+    if (!isWorkType(currentSegment?.type) || typeof currentTargetPower !== 'number') return
+    void wb.setTargetPower(currentTargetPower)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, currentTargetPower, ergEnabled, wb.status, wb.canControl])
+
   // Advance to a segment and show its timer. Auto-started intervals begin running
   // immediately — the get-ready heads-up is the "ten seconds left" cue on the
   // previous segment's timer, not a separate break.
@@ -272,6 +336,7 @@ export function CardioFocusModeWorkout({
 
     const nextIdx = currentIndex + 1
     const nextSeg = segments[nextIdx]
+    const measured = isWorkType(currentSegment?.type) ? segmentMeasured() : {}
 
     // Auto-log the finished segment and roll straight into the next one (no form).
     const autoAdvance = (data: { completed: boolean; skipped: boolean; actualDuration?: number }) => {
@@ -299,7 +364,7 @@ export function CardioFocusModeWorkout({
     // straight to the next station with no time to type, so auto-log this effort
     // and auto-start the next one immediately (no logging form, no break).
     if (isWorkType(currentSegment?.type) && isWorkType(nextSeg?.type)) {
-      autoAdvance({ completed: true, skipped: false, actualDuration: currentSegment?.plannedDuration })
+      autoAdvance({ completed: true, skipped: false, actualDuration: currentSegment?.plannedDuration, ...measured })
       return
     }
 
@@ -309,13 +374,15 @@ export function CardioFocusModeWorkout({
     if (!liveCoachActive) {
       voice.speak(buildSegmentCompleteCue(nextSeg), 'high')
     }
+    setMeasuredForForm(measured)
     setViewState('logging')
-  }, [currentSegment, currentIndex, segments, voice, liveCoachActive, onSegmentComplete])
+  }, [currentSegment, currentIndex, segments, voice, liveCoachActive, onSegmentComplete, segmentMeasured])
 
   // Handle timer skip - mark as skipped and move on
   const handleTimerSkip = useCallback(() => {
+    setMeasuredForForm(segmentMeasured())
     setViewState('logging')
-  }, [])
+  }, [segmentMeasured])
 
   // Handle segment logging submit
   const handleSegmentSubmit = async (data: {
@@ -333,14 +400,21 @@ export function CardioFocusModeWorkout({
     if (isSubmitting) return
     setIsSubmitting(true)
 
+    // Fold in bike-measured power: avg already pre-fills the form, max has no field.
+    const merged = {
+      ...data,
+      actualAvgPower: data.actualAvgPower ?? measuredForForm.actualAvgPower,
+      actualMaxPower: data.actualMaxPower ?? measuredForForm.actualMaxPower,
+    }
+
     try {
-      await onSegmentComplete(currentIndex, data)
+      await onSegmentComplete(currentIndex, merged)
 
       // Update local state
       setSegments((prev) =>
         prev.map((seg, idx) =>
           idx === currentIndex
-            ? { ...seg, ...data }
+            ? { ...seg, ...merged }
             : seg
         )
       )
@@ -513,6 +587,66 @@ export function CardioFocusModeWorkout({
         </div>
       </div>
 
+      {/* Live Wattbike strip — only for power workouts */}
+      {usesPower && (
+        <div className="px-4 py-2 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-white/5">
+          {wb.status === 'connected' ? (
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-baseline gap-1.5">
+                <Gauge className="h-4 w-4 self-center text-blue-500" />
+                <span className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">
+                  {wb.latest?.power ?? 0}
+                </span>
+                <span className="text-xs text-slate-500">W</span>
+                {typeof currentTargetPower === 'number' && (
+                  <span className="text-xs text-slate-400">
+                    / {currentTargetPower} W {tw('mål', 'target')}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                {wb.latest?.cadence != null && (
+                  <span className="tabular-nums">{Math.round(wb.latest.cadence)} rpm</span>
+                )}
+                {wb.canControl && (
+                  <button
+                    type="button"
+                    onClick={() => setErgEnabled((v) => !v)}
+                    title={tw('Sätt motståndet automatiskt till målet (ERG)', 'Auto-set resistance to target (ERG)')}
+                    className={cn(
+                      'rounded-md px-2 py-1 text-xs font-bold',
+                      ergEnabled
+                        ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                        : 'bg-slate-100 text-slate-400 dark:bg-white/10'
+                    )}
+                  >
+                    ERG
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void wb.connect()}
+              disabled={!wb.isSupported || wb.status === 'connecting' || wb.status === 'reconnecting'}
+              className="w-full"
+              title={
+                !wb.isSupported
+                  ? tw('Live-data kräver Chrome på Android eller dator', 'Live bike data needs Chrome on Android or desktop')
+                  : undefined
+              }
+            >
+              <Bluetooth className="mr-2 h-4 w-4" />
+              {wb.status === 'connecting' || wb.status === 'reconnecting'
+                ? tw('Ansluter…', 'Connecting…')
+                : tw('Anslut Wattbike', 'Connect Wattbike')}
+            </Button>
+          )}
+        </div>
+      )}
+
       {/* Main content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="min-h-full w-full flex flex-col items-center justify-center p-4">
@@ -572,6 +706,7 @@ export function CardioFocusModeWorkout({
             plannedPace={currentSegment.plannedPace}
             plannedZone={currentSegment.plannedZone}
             plannedPower={currentTargetPower}
+            defaultAvgPower={measuredForForm.actualAvgPower}
             showPower={
               (currentSegment.type === 'INTERVAL' || currentSegment.type === 'STEADY' || currentSegment.type === 'HILL') &&
               (equipmentUsesPower(currentSegment.equipment) ||
