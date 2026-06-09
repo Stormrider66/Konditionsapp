@@ -48,6 +48,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useWattbike } from '@/hooks/use-wattbike';
+import { useLivePowerPush } from '@/hooks/use-live-power-push';
 import {
   WattbikeRecorder,
   buildErgometerTestRequest,
@@ -102,7 +103,9 @@ const fmtTime = (sec: number) =>
 export function WattbikeCapture({ clientId, onSaved, className }: WattbikeCaptureProps) {
   const locale = getAppLocale(useLocale());
   const { toast } = useToast();
-  const wb = useWattbike();
+  const wb = useWattbike({ reconnectKnownOnMount: true });
+  // If the athlete is in a live team session, mirror their power to the coach grid.
+  useLivePowerPush(wb.client, wb.status === 'connected');
 
   const [protocol, setProtocol] = useState<WattbikeProtocol>('TT_20MIN');
   const [phase, setPhase] = useState<Phase>('idle');

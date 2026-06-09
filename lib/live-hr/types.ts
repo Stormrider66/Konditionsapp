@@ -27,6 +27,11 @@ export interface LiveHRParticipantData {
   clientName: string
   heartRate: number | null
   zone: number | null
+  // Live cycling power (Wattbike); absent/null when the athlete isn't streaming
+  // power. Optional so HR-only construction sites need no change.
+  power?: number | null
+  cadence?: number | null
+  powerZone?: number | null
   lastUpdated: string | null
   isStale: boolean // true if no reading in last 10 seconds
   joinedAt: string
@@ -43,6 +48,7 @@ export interface LiveHRStreamData {
     totalParticipants: number
     activeParticipants: number // With recent readings
     avgHeartRate: number | null
+    avgPower: number | null
     zoneDistribution: {
       zone1: number
       zone2: number
@@ -59,6 +65,16 @@ export interface PushHRReadingInput {
   heartRate: number
   deviceId?: string
   timestamp?: string // ISO string, defaults to now
+}
+
+// Live power push from an athlete's Wattbike. The active session is resolved
+// server-side, so the device only streams the reading.
+export interface PushPowerReadingInput {
+  power: number
+  cadence?: number
+  heartRate?: number // if the bike relays a paired strap
+  deviceId?: string
+  timestamp?: string
 }
 
 // Session with full details
@@ -101,6 +117,20 @@ export function getZoneFromHR(hr: number, thresholds: ZoneThresholds): number {
   if (hr <= thresholds.zone2Max) return 2
   if (hr <= thresholds.zone3Max) return 3
   if (hr <= thresholds.zone4Max) return 4
+  return 5
+}
+
+/**
+ * Map watts to a 1-5 zone from % of FTP (null if no FTP set), so power reuses
+ * the same colour scale as HR on the coach grid. ~Coggan boundaries collapsed to 5.
+ */
+export function getPowerZone(power: number, ftp: number | null | undefined): number | null {
+  if (!ftp || ftp <= 0) return null
+  const pct = (power / ftp) * 100
+  if (pct < 60) return 1
+  if (pct < 76) return 2
+  if (pct < 91) return 3
+  if (pct <= 105) return 4
   return 5
 }
 

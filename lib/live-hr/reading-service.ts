@@ -8,10 +8,12 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import {
   PushHRReadingInput,
+  PushPowerReadingInput,
   LiveHRStreamData,
   LiveHRParticipantData,
   LiveHRSessionStatus,
   STALE_THRESHOLD_MS,
+  getPowerZone,
 } from './types'
 import { getAthleteZones } from '@/lib/integrations/zone-distribution-service'
 
@@ -77,6 +79,67 @@ export async function pushHRReading(
 }
 
 /**
+ * Push a live power reading from an athlete's Wattbike. Resolves the athlete's
+ * active session, looks up their Wattbike FTP for the power zone, and writes a
+ * reading. Returns false (no throw) when the athlete isn't in an active session.
+ */
+export async function pushPowerReading(
+  clientId: string,
+  input: PushPowerReadingInput
+): Promise<boolean> {
+  try {
+    const participant = await prisma.liveHRParticipant.findFirst({
+      where: { clientId, session: { status: 'ACTIVE' } },
+      orderBy: { joinedAt: 'desc' },
+    })
+
+    if (!participant) return false
+
+    // Power zone from the athlete's Wattbike FTP, if one is on file.
+    const threshold = await prisma.ergometerThreshold.findUnique({
+      where: { clientId_ergometerType: { clientId, ergometerType: 'WATTBIKE' } },
+      select: { ftp: true },
+    })
+    const powerZone = getPowerZone(input.power, threshold?.ftp ?? null)
+
+    // HR zone too, if the bike relays a paired strap.
+    let hrZone: number | null = null
+    if (typeof input.heartRate === 'number') {
+      const athleteZones = await getAthleteZones(clientId)
+      if (athleteZones) {
+        hrZone = getZoneFromHR(input.heartRate, athleteZones.zones, athleteZones.maxHR)
+      }
+    }
+
+    const timestamp = input.timestamp ? new Date(input.timestamp) : new Date()
+
+    await prisma.$transaction([
+      prisma.liveHRReading.create({
+        data: {
+          participantId: participant.id,
+          heartRate: input.heartRate ?? null,
+          zone: hrZone,
+          power: Math.round(input.power),
+          cadence: typeof input.cadence === 'number' ? Math.round(input.cadence) : null,
+          powerZone,
+          deviceId: input.deviceId,
+          timestamp,
+        },
+      }),
+      prisma.liveHRParticipant.update({
+        where: { id: participant.id },
+        data: { lastReading: timestamp },
+      }),
+    ])
+
+    return true
+  } catch (error) {
+    logger.error('Failed to push power reading', { clientId }, error)
+    return false
+  }
+}
+
+/**
  * Get HR zone from heart rate and training zones
  */
 function getZoneFromHR(
@@ -113,7 +176,9 @@ export async function getSessionStreamData(
           client: { select: { id: true, name: true } },
           readings: {
             orderBy: { timestamp: 'desc' },
-            take: 1,
+            // HR and power can arrive on separate readings (strap vs bike), so
+            // take a short window and pick the latest of each below.
+            take: 12,
           },
         },
       },
@@ -125,6 +190,8 @@ export async function getSessionStreamData(
   const now = Date.now()
   const participants: LiveHRParticipantData[] = session.participants.map((p) => {
     const latestReading = p.readings[0]
+    const latestHR = p.readings.find((r) => r.heartRate != null)
+    const latestPower = p.readings.find((r) => r.power != null)
     const lastUpdated = latestReading?.timestamp ?? p.lastReading
     const isStale = !lastUpdated || now - new Date(lastUpdated).getTime() > STALE_THRESHOLD_MS
 
@@ -132,26 +199,34 @@ export async function getSessionStreamData(
       id: p.id,
       clientId: p.client.id,
       clientName: p.client.name,
-      heartRate: latestReading?.heartRate ?? null,
-      zone: latestReading?.zone ?? null,
+      heartRate: latestHR?.heartRate ?? null,
+      zone: latestHR?.zone ?? null,
+      power: latestPower?.power ?? null,
+      cadence: latestPower?.cadence ?? null,
+      powerZone: latestPower?.powerZone ?? null,
       lastUpdated: lastUpdated?.toISOString() ?? null,
       isStale,
       joinedAt: p.joinedAt.toISOString(),
     }
   })
 
-  // Calculate summary
-  const activeParticipants = participants.filter((p) => !p.isStale && p.heartRate !== null)
+  // Calculate summary (HR and power tracked independently — a session can have either or both)
+  const hrActive = participants.filter((p) => !p.isStale && p.heartRate !== null)
+  const powerActive = participants.filter((p) => !p.isStale && p.power !== null)
+  const activeParticipants = participants.filter(
+    (p) => !p.isStale && (p.heartRate !== null || p.power !== null)
+  )
   const avgHeartRate =
-    activeParticipants.length > 0
-      ? Math.round(
-          activeParticipants.reduce((sum, p) => sum + (p.heartRate ?? 0), 0) /
-            activeParticipants.length
-        )
+    hrActive.length > 0
+      ? Math.round(hrActive.reduce((sum, p) => sum + (p.heartRate ?? 0), 0) / hrActive.length)
+      : null
+  const avgPower =
+    powerActive.length > 0
+      ? Math.round(powerActive.reduce((sum, p) => sum + (p.power ?? 0), 0) / powerActive.length)
       : null
 
   const zoneDistribution = { zone1: 0, zone2: 0, zone3: 0, zone4: 0, zone5: 0 }
-  for (const p of activeParticipants) {
+  for (const p of hrActive) {
     if (p.zone === 1) zoneDistribution.zone1++
     else if (p.zone === 2) zoneDistribution.zone2++
     else if (p.zone === 3) zoneDistribution.zone3++
@@ -169,6 +244,7 @@ export async function getSessionStreamData(
       totalParticipants: participants.length,
       activeParticipants: activeParticipants.length,
       avgHeartRate,
+      avgPower,
       zoneDistribution,
     },
   }
@@ -195,10 +271,12 @@ export async function getParticipantRecentReadings(
     orderBy: { timestamp: 'asc' },
   })
 
-  return readings.map((r) => ({
-    timestamp: r.timestamp.toISOString(),
-    heartRate: r.heartRate,
-  }))
+  return readings
+    .filter((r) => r.heartRate != null)
+    .map((r) => ({
+      timestamp: r.timestamp.toISOString(),
+      heartRate: r.heartRate as number,
+    }))
 }
 
 /**

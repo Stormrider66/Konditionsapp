@@ -34,6 +34,8 @@ export interface UseWattbikeResult {
   canControl: boolean;
   /** Open the chooser and connect. Call from a click/tap handler. */
   connect: () => Promise<void>;
+  /** Silently reconnect to the last-paired bike (no chooser). True on success. */
+  reconnectKnown: () => Promise<boolean>;
   disconnect: () => Promise<void>;
   /** Set ERG target wattage (no-op if the device can't be controlled). */
   setTargetPower: (watts: number) => Promise<void>;
@@ -41,8 +43,13 @@ export interface UseWattbikeResult {
   client: WattbikeClient;
 }
 
+export interface UseWattbikeOptions extends WattbikeClientOptions {
+  /** On mount, silently try reconnecting to the last-paired bike (no chooser). */
+  reconnectKnownOnMount?: boolean;
+}
+
 export function useWattbike(
-  options: WattbikeClientOptions = {},
+  options: UseWattbikeOptions = {},
 ): UseWattbikeResult {
   // One client per mount, created once. Options are read on creation only —
   // changing filters mid-session would mean reconnecting anyway.
@@ -85,6 +92,22 @@ export function useWattbike(
     }
   }, [client]);
 
+  const reconnectKnown = useCallback(async () => {
+    setError(null);
+    try {
+      return await client.reconnectKnown();
+    } catch {
+      return false;
+    }
+  }, [client]);
+
+  // Fixed-setup convenience: silently reconnect to the last bike on mount.
+  useEffect(() => {
+    if (!options.reconnectKnownOnMount) return;
+    void client.reconnectKnown().catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [client]);
+
   const disconnect = useCallback(async () => {
     await client.disconnect();
   }, [client]);
@@ -105,6 +128,7 @@ export function useWattbike(
     deviceName,
     canControl,
     connect,
+    reconnectKnown,
     disconnect,
     setTargetPower,
     client,

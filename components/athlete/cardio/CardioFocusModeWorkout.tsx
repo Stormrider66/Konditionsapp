@@ -48,6 +48,7 @@ import {
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { useWattbike } from '@/hooks/use-wattbike'
+import { useLivePowerPush } from '@/hooks/use-live-power-push'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 import { useTranslations, useLocale } from '@/i18n/client'
 
@@ -169,7 +170,9 @@ export function CardioFocusModeWorkout({
   // unaffected. tw() handles the few new strings without touching the shared catalogs.
   const locale = useLocale()
   const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
-  const wb = useWattbike()
+  const wb = useWattbike({ reconnectKnownOnMount: true })
+  // Stream power to the coach's live team grid when the athlete is in a session.
+  const { activeSessionId: liveSessionId } = useLivePowerPush(wb.client, wb.status === 'connected')
   const [ergEnabled, setErgEnabled] = useState(true)
   const [measuredForForm, setMeasuredForForm] = useState<{ actualAvgPower?: number; actualMaxPower?: number }>({})
   const segPowerRef = useRef<number[]>([])
@@ -605,6 +608,12 @@ export function CardioFocusModeWorkout({
                 )}
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
+                {liveSessionId && (
+                  <span className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+                    {tw('Live till coach', 'Live to coach')}
+                  </span>
+                )}
                 {wb.latest?.cadence != null && (
                   <span className="tabular-nums">{Math.round(wb.latest.cadence)} rpm</span>
                 )}

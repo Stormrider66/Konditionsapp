@@ -1653,11 +1653,16 @@ model LiveHRReading {
   participantId String
   participant   LiveHRParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
 
-  heartRate Int // BPM
+  heartRate Int? // BPM (null for power-only readings, e.g. a Wattbike with no strap)
   timestamp DateTime @default(now())
 
-  zone     Int? // 1-5 calculated from athlete's zones
+  zone     Int? // 1-5 HR zone calculated from athlete's zones
   deviceId String? // Future: identify source device
+
+  // Live cycling power (Wattbike). Present on power readings, null on HR-only readings.
+  power     Int? // watts
+  cadence   Int? // rpm
+  powerZone Int? // 1-5 power zone from % of the athlete's FTP
 
   @@index([participantId, timestamp])
 }

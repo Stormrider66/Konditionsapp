@@ -46,6 +46,10 @@ const OP_RESPONSE_CODE = 0x80;
 
 const RESULT_SUCCESS = 0x01;
 
+// Remembers the last-paired bike (origin-scoped) so a fixed setup can silently
+// reconnect via getDevices() without showing the chooser again.
+const LAST_DEVICE_STORAGE_KEY = 'wattbike:lastDeviceId';
+
 // ---- Tiny typed event emitter ----------------------------------------------
 
 type Handler<T> = (payload: T) => void;
@@ -164,6 +168,51 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     );
 
     await this.openGatt();
+    this.rememberDevice();
+  }
+
+  /**
+   * Reconnect to a previously-paired bike WITHOUT the chooser, using the Web
+   * Bluetooth getDevices() permission list. No user gesture required — ideal
+   * for a fixed gym setup where the same tablet always sits on the same bike.
+   * Returns false (no throw) when unsupported, nothing is remembered, or the
+   * bike is out of range, so the caller can fall back to connect().
+   */
+  async reconnectKnown(preferredId?: string): Promise<boolean> {
+    const known = await WattbikeClient.listKnownDevices();
+    if (known.length === 0) return false;
+
+    const wantedId = preferredId ?? this.readRememberedId();
+    const device =
+      (wantedId ? known.find((d) => d.id === wantedId) : undefined) ||
+      known.find((d) => (d.name ?? '').toLowerCase().includes('wattbike')) ||
+      known[0];
+    if (!device) return false;
+
+    this.intentionalDisconnect = false;
+    this.setStatus('connecting');
+    this.device = device;
+    device.addEventListener('gattserverdisconnected', this.handleGattDisconnected);
+
+    try {
+      // The bike may be out of range; bound the attempt so the UI never hangs.
+      await this.withTimeout(this.openGatt(), 6000);
+      this.rememberDevice();
+      return true;
+    } catch {
+      this.setStatus('disconnected');
+      return false;
+    }
+  }
+
+  /** Previously-granted Wattbike/FTMS devices for this origin (Chrome only). */
+  static async listKnownDevices(): Promise<BluetoothDevice[]> {
+    if (!WattbikeClient.isSupported()) return [];
+    const bt = navigator.bluetooth as Bluetooth & {
+      getDevices?: () => Promise<BluetoothDevice[]>;
+    };
+    if (typeof bt.getDevices !== 'function') return [];
+    return bt.getDevices().catch(() => []);
   }
 
   /** Cleanly tear down notifications and drop the GATT link. */
@@ -176,6 +225,34 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     } finally {
       this.setStatus('disconnected');
     }
+  }
+
+  private rememberDevice(): void {
+    try {
+      if (this.device?.id && typeof localStorage !== 'undefined') {
+        localStorage.setItem(LAST_DEVICE_STORAGE_KEY, this.device.id);
+      }
+    } catch {
+      /* private mode / storage disabled — non-fatal */
+    }
+  }
+
+  private readRememberedId(): string | undefined {
+    try {
+      if (typeof localStorage === 'undefined') return undefined;
+      return localStorage.getItem(LAST_DEVICE_STORAGE_KEY) ?? undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), ms),
+      ),
+    ]);
   }
 
   // -- ERG / control ---------------------------------------------------------
