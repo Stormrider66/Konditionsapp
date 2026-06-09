@@ -240,7 +240,8 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
 
   if (availableErgometers.length === 0) {
     return (
-      <Card>
+      <div className="space-y-4">
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5" />
@@ -260,7 +261,10 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
             </p>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+        {/* Let an athlete record their first ergometer test, even with no data yet. */}
+        <WattbikeCapture clientId={clientId} />
+      </div>
     );
   }
 
