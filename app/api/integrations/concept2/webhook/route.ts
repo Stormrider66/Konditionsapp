@@ -15,6 +15,7 @@ import { prisma } from '@/lib/prisma';
 import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
 import { getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { verifyWebhookUrlToken } from '@/lib/integrations/webhook-url-token'
 import type {
   Concept2Result,
   Concept2EquipmentType,
@@ -24,6 +25,11 @@ import type {
 // Webhook verify token (set in environment)
 const CONCEPT2_WEBHOOK_VERIFY_TOKEN =
   process.env.CONCEPT2_WEBHOOK_VERIFY_TOKEN;
+
+// Concept2 does not sign webhook POSTs. When set, require ?token=<secret> in
+// the webhook URL registered with Concept2 so only Concept2-originated events
+// are accepted (re-register the webhook with the token to enable).
+const CONCEPT2_WEBHOOK_URL_TOKEN = process.env.CONCEPT2_WEBHOOK_URL_TOKEN;
 
 // Soft rate limit: return 200 (received) if exceeded to avoid retry storms
 const concept2WebhookLimiter = createCustomRateLimiter('webhook:concept2', {
@@ -193,6 +199,10 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyWebhookUrlToken(request.nextUrl.searchParams.get('token'), CONCEPT2_WEBHOOK_URL_TOKEN)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const ip = getRequestIp(request)
     const rl = await concept2WebhookLimiter.check(ip)
     if (!rl.success) {
@@ -314,14 +324,32 @@ export async function POST(request: NextRequest) {
         logger.error('Failed to sync Concept2 result', { clientId, resultId: result.id }, error)
       }
     } else if (eventType === 'result-deleted' && result_id) {
-      // Delete the result
-      // Note: We don't have user_id in delete events, so we delete by result ID
-      const deleted = await prisma.concept2Result.deleteMany({
+      // Delete events carry no user_id, so resolve the owner from the stored
+      // result and require an active Concept2 connection before honoring the
+      // delete (mirrors the add/update ownership check above).
+      const existing = await prisma.concept2Result.findUnique({
         where: { concept2Id: result_id },
+        select: { id: true, clientId: true },
       });
 
-      if (deleted.count > 0) {
-        logger.debug('Deleted Concept2 result', { resultId: result_id })
+      if (existing) {
+        const token = await prisma.integrationToken.findFirst({
+          where: {
+            type: 'CONCEPT2',
+            clientId: existing.clientId,
+            syncEnabled: true,
+          },
+          select: { id: true },
+        });
+
+        if (token) {
+          await prisma.concept2Result.delete({ where: { id: existing.id } });
+          logger.debug('Deleted Concept2 result', { resultId: result_id })
+        } else {
+          logger.info('Ignoring Concept2 delete for client without active connection', {
+            resultId: result_id,
+          })
+        }
       }
     }
 

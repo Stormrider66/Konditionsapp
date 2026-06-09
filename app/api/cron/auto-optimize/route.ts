@@ -8,6 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { runIteration } from '@/lib/auto-optimize/iteration-engine'
 import { generateCandidate } from '@/lib/auto-optimize/candidate-generator'
@@ -23,12 +24,8 @@ import { TEST_SCENARIOS } from '@/lib/auto-optimize/test-scenarios'
 import type { EvaluationResult, PromptSlot } from '@/lib/auto-optimize/types'
 
 export async function POST(request: NextRequest) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
   const results: Array<{
     slot: string

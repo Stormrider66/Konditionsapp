@@ -15,9 +15,15 @@ import { getStravaActivity } from '@/lib/integrations/strava/client';
 import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
 import { getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
+import { verifyWebhookUrlToken } from '@/lib/integrations/webhook-url-token'
 
 // Webhook verify token (set in environment)
 const STRAVA_WEBHOOK_VERIFY_TOKEN = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN;
+
+// Strava does not sign webhook POSTs. When set, require ?token=<secret> in
+// the callback URL registered with Strava so only Strava-originated events
+// are accepted (re-register the subscription with the token to enable).
+const STRAVA_WEBHOOK_URL_TOKEN = process.env.STRAVA_WEBHOOK_URL_TOKEN;
 
 // Soft rate limit: return 200 (received) if exceeded to avoid retry storms
 const stravaWebhookLimiter = createCustomRateLimiter('webhook:strava', {
@@ -128,6 +134,10 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyWebhookUrlToken(request.nextUrl.searchParams.get('token'), STRAVA_WEBHOOK_URL_TOKEN)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const ip = getRequestIp(request)
     const rl = await stravaWebhookLimiter.check(ip)
     if (!rl.success) {

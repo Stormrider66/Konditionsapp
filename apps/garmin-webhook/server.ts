@@ -7,11 +7,17 @@ import {
   processGarminWebhookPayloadAsync,
   verifyGarminWebhookRequest,
 } from '@/lib/integrations/garmin/webhook-service'
+import { verifyWebhookUrlToken } from '@/lib/integrations/webhook-url-token'
 
 const PORT = Number(process.env.PORT || 8080)
 const HOST = process.env.HOST || '0.0.0.0'
 const MAX_BODY_BYTES = 100 * 1024 * 1024
 const VERIFY_TOKEN = process.env.GARMIN_WEBHOOK_VERIFY_TOKEN
+
+// Garmin does not sign webhook POSTs. When set, require ?token=<secret> in
+// the webhook URL registered in the Garmin developer portal so only
+// Garmin-originated events are accepted (re-register the URL to enable).
+const URL_TOKEN = process.env.GARMIN_WEBHOOK_URL_TOKEN
 
 function sendJson(res: http.ServerResponse, status: number, body: unknown) {
   res.statusCode = status
@@ -72,6 +78,11 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method !== 'POST') {
     sendJson(res, 405, { error: 'Method not allowed' })
+    return
+  }
+
+  if (!verifyWebhookUrlToken(url.searchParams.get('token'), URL_TOKEN)) {
+    sendJson(res, 401, { error: 'Unauthorized' })
     return
   }
 

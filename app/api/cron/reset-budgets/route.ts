@@ -16,6 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
@@ -25,13 +26,8 @@ import { logger } from '@/lib/logger'
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authError = verifyCronAuth(request)
+    if (authError) return authError
 
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)

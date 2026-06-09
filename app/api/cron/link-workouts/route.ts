@@ -10,6 +10,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { findMatchingGarminActivity, findMatchingAdHocWorkout, linkAdHocToGarmin } from '@/lib/training/adhoc-garmin-matcher'
 import { logger } from '@/lib/logger'
@@ -20,12 +21,8 @@ export const maxDuration = 30
 
 export async function GET(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authError = verifyCronAuth(request)
+    if (authError) return authError
 
     const since = subDays(new Date(), 3) // Only look at last 3 days
     let linked = 0

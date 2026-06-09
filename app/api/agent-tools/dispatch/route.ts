@@ -20,6 +20,7 @@ import { dispatchEvent, type AgentEventType } from '@/lib/managed-agents'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser, canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
+import { timingSafeStringEqual } from '@/lib/security/timing-safe'
 
 const VALID_EVENT_TYPES: AgentEventType[] = [
   'GARMIN_ACTIVITY', 'GARMIN_SLEEP', 'GARMIN_HRV', 'GARMIN_DAILY',
@@ -52,7 +53,7 @@ async function authenticate(req: NextRequest): Promise<AuthResult> {
         ),
       }
     }
-    if (providedSecret !== expectedSecret) {
+    if (!timingSafeStringEqual(providedSecret, expectedSecret)) {
       return {
         kind: 'rejected',
         response: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),

@@ -9,7 +9,7 @@ import 'server-only';
 
 import Stripe from 'stripe';
 import { prisma } from '@/lib/prisma';
-import { AthleteSubscriptionTier, SubscriptionStatus } from '@prisma/client';
+import { AthleteSubscriptionTier, Prisma, SubscriptionStatus } from '@prisma/client';
 import { getTierFeatures } from '@/lib/auth/tier-utils';
 import { calculateAndRecordRevenueShare } from '@/lib/coach/revenue-share';
 import { sendPaymentFailedEmail } from '@/lib/email';
@@ -440,9 +440,17 @@ async function handleAiTopUpCheckoutComplete(
 
     await getOrCreateAiAllowanceAccount(clientId, new Date(), tx);
 
+    // Stripe retries webhook deliveries, so two of them can race past the
+    // ACTIVE check above. Activation must grant credits exactly once: the
+    // conditional update only matches while the purchase is still inactive,
+    // and the create relies on the unique constraint on
+    // stripeCheckoutSessionId — the losing delivery activates nothing and
+    // must not increment the balance.
+    let activated = false;
+
     if (existing) {
-      await tx.aITopUpPurchase.update({
-        where: { id: existing.id },
+      const updated = await tx.aITopUpPurchase.updateMany({
+        where: { id: existing.id, status: { not: 'ACTIVE' } },
         data: {
           stripePaymentIntentId: paymentIntentId,
           amountPaidSek: parsedAmountPaidSek,
@@ -451,19 +459,32 @@ async function handleAiTopUpCheckoutComplete(
           status: 'ACTIVE',
         },
       });
+      activated = updated.count === 1;
     } else {
-      await tx.aITopUpPurchase.create({
-        data: {
-          clientId,
-          stripeCheckoutSessionId: session.id,
-          stripePaymentIntentId: paymentIntentId,
-          amountPaidSek: parsedAmountPaidSek,
-          creditsSek: parsedCreditsSek,
-          creditsRemainingSek: parsedCreditsSek,
-          status: 'ACTIVE',
-          expiresAt: getAiTopUpExpiresAt(),
-        },
-      });
+      try {
+        await tx.aITopUpPurchase.create({
+          data: {
+            clientId,
+            stripeCheckoutSessionId: session.id,
+            stripePaymentIntentId: paymentIntentId,
+            amountPaidSek: parsedAmountPaidSek,
+            creditsSek: parsedCreditsSek,
+            creditsRemainingSek: parsedCreditsSek,
+            status: 'ACTIVE',
+            expiresAt: getAiTopUpExpiresAt(),
+          },
+        });
+        activated = true;
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+          return;
+        }
+        throw error;
+      }
+    }
+
+    if (!activated) {
+      return;
     }
 
     await tx.aIAllowanceAccount.update({

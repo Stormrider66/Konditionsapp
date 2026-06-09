@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const tx = vi.hoisted(() => ({
   aITopUpPurchase: {
     findUnique: vi.fn(),
-    update: vi.fn(),
+    updateMany: vi.fn(),
     create: vi.fn(),
   },
   aIAllowanceAccount: {
@@ -49,6 +49,7 @@ vi.mock('@/lib/logger', () => ({
   },
 }))
 
+import { Prisma } from '@prisma/client'
 import { handleStripeWebhook } from '@/lib/payments/stripe'
 
 function topUpEvent(overrides: Record<string, unknown> = {}) {
@@ -78,7 +79,7 @@ describe('Stripe AI top-up webhook handling', () => {
     mockTransaction.mockImplementation(async (callback) => callback(tx))
     mockGetOrCreateAiAllowanceAccount.mockResolvedValue({ id: 'allowance_1' })
     tx.aITopUpPurchase.findUnique.mockResolvedValue({ id: 'purchase_1', status: 'PENDING' })
-    tx.aITopUpPurchase.update.mockResolvedValue({})
+    tx.aITopUpPurchase.updateMany.mockResolvedValue({ count: 1 })
     tx.aITopUpPurchase.create.mockResolvedValue({})
     tx.aIAllowanceAccount.update.mockResolvedValue({})
   })
@@ -91,8 +92,8 @@ describe('Stripe AI top-up webhook handling', () => {
       message: 'AI top-up activated for client client_1',
     })
     expect(mockGetOrCreateAiAllowanceAccount).toHaveBeenCalledWith('client_1', expect.any(Date), tx)
-    expect(tx.aITopUpPurchase.update).toHaveBeenCalledWith({
-      where: { id: 'purchase_1' },
+    expect(tx.aITopUpPurchase.updateMany).toHaveBeenCalledWith({
+      where: { id: 'purchase_1', status: { not: 'ACTIVE' } },
       data: {
         stripePaymentIntentId: 'pi_1',
         amountPaidSek: 99,
@@ -116,8 +117,32 @@ describe('Stripe AI top-up webhook handling', () => {
 
     expect(result.handled).toBe(true)
     expect(mockGetOrCreateAiAllowanceAccount).not.toHaveBeenCalled()
-    expect(tx.aITopUpPurchase.update).not.toHaveBeenCalled()
+    expect(tx.aITopUpPurchase.updateMany).not.toHaveBeenCalled()
     expect(tx.aITopUpPurchase.create).not.toHaveBeenCalled()
+    expect(tx.aIAllowanceAccount.update).not.toHaveBeenCalled()
+  })
+
+  it('does not credit when a concurrent delivery activated the purchase first', async () => {
+    tx.aITopUpPurchase.updateMany.mockResolvedValue({ count: 0 })
+
+    const result = await handleStripeWebhook(topUpEvent() as any)
+
+    expect(result.handled).toBe(true)
+    expect(tx.aIAllowanceAccount.update).not.toHaveBeenCalled()
+  })
+
+  it('does not credit when a concurrent delivery created the purchase first', async () => {
+    tx.aITopUpPurchase.findUnique.mockResolvedValue(null)
+    tx.aITopUpPurchase.create.mockRejectedValue(
+      new Prisma.PrismaClientKnownRequestError('Unique constraint failed', {
+        code: 'P2002',
+        clientVersion: 'test',
+      })
+    )
+
+    const result = await handleStripeWebhook(topUpEvent() as any)
+
+    expect(result.handled).toBe(true)
     expect(tx.aIAllowanceAccount.update).not.toHaveBeenCalled()
   })
 

@@ -133,6 +133,11 @@ INTERNAL_DISPATCH_SECRET    # Shared secret for /api/agent-tools/dispatch webhoo
 RESEND_API_KEY / STRIPE_SECRET_KEY / NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY / STRIPE_WEBHOOK_SECRET
 # Integrations
 STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET / GARMIN_CONSUMER_KEY / GARMIN_CONSUMER_SECRET
+# Webhook URL tokens (opt-in gates — Strava/Garmin/Concept2 don't sign POSTs).
+# When set, the webhook URL registered with the provider MUST include
+# ?token=<value>, otherwise events are rejected with 401. Set the env var and
+# re-register the provider webhook URL together.
+STRAVA_WEBHOOK_URL_TOKEN / GARMIN_WEBHOOK_URL_TOKEN / CONCEPT2_WEBHOOK_URL_TOKEN
 # Optional
 NEXT_PUBLIC_SENTRY_DSN / UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN / YOUTUBE_API_KEY
 ```

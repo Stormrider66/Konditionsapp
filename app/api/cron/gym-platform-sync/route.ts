@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { syncConnection } from '@/lib/integrations/gym-platforms/sync-engine'
@@ -10,11 +11,8 @@ import { subMinutes } from 'date-fns'
  * Should run every 15 minutes via Vercel Cron.
  */
 export async function POST(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
   try {
     const now = new Date()

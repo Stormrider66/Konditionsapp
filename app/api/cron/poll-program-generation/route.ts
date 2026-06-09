@@ -16,6 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { generateMultiPartProgram, type GenerationContext } from '@/lib/ai/program-generator'
@@ -26,13 +27,8 @@ import { generateMultiPartProgram, type GenerationContext } from '@/lib/ai/progr
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authError = verifyCronAuth(request)
+    if (authError) return authError
 
     // Find pending sessions (not started or stalled)
     const pendingSessions = await prisma.programGenerationSession.findMany({

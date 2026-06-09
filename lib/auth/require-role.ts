@@ -69,9 +69,12 @@ export async function requireAdminRole(requiredRoles: AdminRole[]): Promise<Admi
 
   if (!fullUser) throw new Error('Unauthorized: user not found')
 
-  // role = ADMIN users automatically get SUPER_ADMIN privileges.
-  if (fullUser.role === 'ADMIN') {
-    return { ...user, adminRole: fullUser.adminRole || 'SUPER_ADMIN' } as AdminUser
+  // Admin-panel privileges come only from an explicit adminRole — role=ADMIN
+  // alone is not enough, so a corrupted/mis-set role field can't silently
+  // escalate to SUPER_ADMIN. Existing role=ADMIN users were backfilled with
+  // adminRole=SUPER_ADMIN in migration 20260609_backfill_admin_role.
+  if (fullUser.adminRole === 'SUPER_ADMIN') {
+    return { ...user, adminRole: 'SUPER_ADMIN' } as AdminUser
   }
 
   if (!fullUser.adminRole || !requiredRoles.includes(fullUser.adminRole as AdminRole)) {

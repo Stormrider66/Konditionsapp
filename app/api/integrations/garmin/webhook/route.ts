@@ -17,10 +17,16 @@ import {
   processGarminWebhookPayloadAsync,
   verifyGarminWebhookRequest,
 } from '@/lib/integrations/garmin/webhook-service'
+import { verifyWebhookUrlToken } from '@/lib/integrations/webhook-url-token'
 
 export const maxDuration = 60
 
 const GARMIN_WEBHOOK_VERIFY_TOKEN = process.env.GARMIN_WEBHOOK_VERIFY_TOKEN
+
+// Garmin does not sign webhook POSTs. When set, require ?token=<secret> in
+// the webhook URL registered in the Garmin developer portal so only
+// Garmin-originated events are accepted (re-register the URL to enable).
+const GARMIN_WEBHOOK_URL_TOKEN = process.env.GARMIN_WEBHOOK_URL_TOKEN
 
 const garminWebhookLimiter = createCustomRateLimiter('webhook:garmin', {
   limit: 1000,
@@ -39,6 +45,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    if (!verifyWebhookUrlToken(request.nextUrl.searchParams.get('token'), GARMIN_WEBHOOK_URL_TOKEN)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const ip = getRequestIp(request)
     const rl = await garminWebhookLimiter.check(ip)
     if (!rl.success) {
