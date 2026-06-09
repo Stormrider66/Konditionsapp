@@ -238,6 +238,7 @@ export function LiveHRDashboard({
         totalParticipants={data.summary.totalParticipants}
         activeParticipants={data.summary.activeParticipants}
         avgHeartRate={data.summary.avgHeartRate}
+        avgPower={data.summary.avgPower}
         zoneDistribution={data.summary.zoneDistribution}
       />
 

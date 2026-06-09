@@ -11,13 +11,15 @@ import {
   GlassCardContent,
 } from '@/components/ui/GlassCard'
 import { ZONE_COLORS } from '@/lib/live-hr/types'
-import { Heart, Users, Activity } from 'lucide-react'
+import { Heart, Users, Activity, Bike } from 'lucide-react'
 import { useLocale } from '@/i18n/client'
+import { cn } from '@/lib/utils'
 
 interface SessionSummaryProps {
   totalParticipants: number
   activeParticipants: number
   avgHeartRate: number | null
+  avgPower?: number | null
   zoneDistribution: {
     zone1: number
     zone2: number
@@ -33,18 +35,21 @@ const COPY: Record<AppLocale, {
   athletes: string
   activeSignal: string
   averageHeartRate: string
+  averagePower: string
   zoneDistribution: string
 }> = {
   en: {
     athletes: 'Athletes',
     activeSignal: 'Active signal',
     averageHeartRate: 'Avg heart rate',
+    averagePower: 'Avg power',
     zoneDistribution: 'Zone distribution',
   },
   sv: {
     athletes: 'Atleter',
     activeSignal: 'Aktiv signal',
     averageHeartRate: 'Snitt puls',
+    averagePower: 'Snitt effekt',
     zoneDistribution: 'Zonfördelning',
   },
 }
@@ -53,14 +58,16 @@ export function SessionSummary({
   totalParticipants,
   activeParticipants,
   avgHeartRate,
+  avgPower,
   zoneDistribution,
 }: SessionSummaryProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
   const total = Object.values(zoneDistribution).reduce((sum, count) => sum + count, 0)
+  const showPower = avgPower != null
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div className={cn('grid grid-cols-2 gap-4 mb-6', showPower ? 'md:grid-cols-5' : 'md:grid-cols-4')}>
       {/* Total participants */}
       <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-sm">
         <GlassCardContent className="flex items-center gap-3 p-4">
@@ -95,6 +102,22 @@ export function SessionSummary({
           </div>
         </GlassCardContent>
       </GlassCard>
+
+      {/* Average power (only when a rider is streaming watts) */}
+      {showPower && (
+        <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-sm">
+          <GlassCardContent className="flex items-center gap-3 p-4">
+            <Bike className="h-8 w-8 text-amber-500" />
+            <div>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">
+                {avgPower ?? '-'}
+                <span className="text-sm font-normal text-slate-500 dark:text-slate-400"> W</span>
+              </p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{copy.averagePower}</p>
+            </div>
+          </GlassCardContent>
+        </GlassCard>
+      )}
 
       {/* Zone distribution */}
       <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-sm">
