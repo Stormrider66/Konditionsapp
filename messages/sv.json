@@ -4334,7 +4334,19 @@
       "statZones": "5+",
       "statZonesLabel": "Zonmodeller",
       "statCustom": "100%",
-      "statCustomLabel": "Anpassat"
+      "statCustomLabel": "Anpassat",
+      "statSports": "17",
+      "statSportsLabel": "Sporter"
+    },
+    "howItWorks": {
+      "title": "Så fungerar det",
+      "subtitle": "Från fysiologiskt test till individanpassad träning — i tre steg.",
+      "step1Title": "Testa",
+      "step1Description": "Gör ett laktat-, VO2max- eller fälttest — eller synka data från Strava, Garmin och Concept2.",
+      "step2Title": "Analysera",
+      "step2Description": "Trösklar, träningszoner och tävlingsprognoser beräknas automatiskt med vetenskaplig precision.",
+      "step3Title": "Träna",
+      "step3Description": "Få AI-drivna program som anpassas efter din dagsform, skador och mål — varje dag."
     },
     "features": {
       "title": "Allt du behöver för att utvecklas",
@@ -11816,7 +11828,12 @@
         "defaultTitle": "Övning",
         "labels": {
           "published": "Publicerad",
-          "draft": "Utkast"
+          "draft": "Utkast",
+          "title": "Titel",
+          "description": "Beskrivning",
+          "sport": "Sport",
+          "assignToTeam": "Tilldela lag",
+          "noTeam": "Inget lag"
         },
         "placeholders": {
           "title": "Övningens namn",
@@ -11904,11 +11921,19 @@
           },
           "undo": "Ångra (Ctrl+Z)",
           "deleteSelected": "Radera vald (Del)",
-          "clearAll": "Rensa allt"
+          "clearAll": "Rensa allt",
+          "exportPng": "Ladda ner som bild (PNG)"
         },
         "hockeyPresets": {
           "attack": "Anfall 5",
-          "defense": "Försvar 5"
+          "defense": "Försvar 5",
+          "fiveOnFive": "5 mot 5",
+          "powerplay": "Powerplay 1-3-1",
+          "penaltyKill": "Boxplay (PK)",
+          "breakout": "Uppspel",
+          "forecheck": "Forecheck 1-2-2",
+          "tacticsLabel": "Taktik",
+          "tacticsPlaceholder": "Lägg till uppställning..."
         },
         "options": {
           "position": "Position:",
@@ -11922,7 +11947,11 @@
           "color": "Färg:",
           "player": "Spelare:",
           "annotationLabel": "Text:",
-          "auto": "Auto"
+          "auto": "Auto",
+          "customLabel": "Nr"
+        },
+        "toasts": {
+          "exportFailed": "Kunde inte skapa bilden"
         },
         "hints": {
           "selectMovementEndpoint": "Klicka på slutpunkt...",

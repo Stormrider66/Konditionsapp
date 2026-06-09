@@ -11,6 +11,13 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   MousePointer2,
   UserPlus,
   MoveRight,
@@ -19,11 +26,11 @@ import {
   Trash2,
   Undo2,
   RotateCcw,
-  ShieldPlus,
-  UsersRound,
   Copy,
   Layers3,
+  Download,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import type { DrillStructure } from './IceHockeyRink'
 import {
   getSportConfig,
@@ -121,6 +128,92 @@ const HOCKEY_DEFENSE_UNIT: Player[] = [
   { id: 'preset-away-g', x: 189, y: 42.5, label: 'G', team: 'away' },
 ]
 
+type HockeyPresetKind =
+  | 'attack'
+  | 'defense'
+  | 'fiveOnFive'
+  | 'powerplay'
+  | 'penaltyKill'
+  | 'breakout'
+  | 'forecheck'
+
+interface HockeyPreset {
+  players: Player[]
+  movements?: Omit<Movement, 'id'>[]
+}
+
+// Rink coordinates: 200x85, home attacks right (goal lines x=11/189, blue lines x≈75/125)
+const HOCKEY_PRESETS: Record<HockeyPresetKind, HockeyPreset> = {
+  attack: { players: HOCKEY_ATTACK_UNIT },
+  defense: { players: HOCKEY_DEFENSE_UNIT },
+  fiveOnFive: { players: [...HOCKEY_ATTACK_UNIT, ...HOCKEY_DEFENSE_UNIT] },
+  powerplay: {
+    players: [
+      { id: 'preset-pp-d', x: 139, y: 42.5, label: 'D1', team: 'home' },
+      { id: 'preset-pp-lw', x: 161, y: 13, label: 'LW', team: 'home' },
+      { id: 'preset-pp-c', x: 164, y: 42.5, label: 'C', team: 'home' },
+      { id: 'preset-pp-rw', x: 161, y: 72, label: 'RW', team: 'home' },
+      { id: 'preset-pp-f', x: 183, y: 42.5, label: 'F1', team: 'home' },
+      { id: 'preset-pp-pk1', x: 168, y: 31, label: 'F1', team: 'away' },
+      { id: 'preset-pp-pk2', x: 168, y: 54, label: 'F2', team: 'away' },
+      { id: 'preset-pp-pk3', x: 182, y: 33, label: 'D1', team: 'away' },
+      { id: 'preset-pp-pk4', x: 182, y: 52, label: 'D2', team: 'away' },
+      { id: 'preset-pp-g', x: 189, y: 42.5, label: 'G', team: 'away' },
+    ],
+  },
+  penaltyKill: {
+    players: [
+      { id: 'preset-pk-g', x: 11, y: 42.5, label: 'G', team: 'home' },
+      { id: 'preset-pk-d1', x: 18, y: 33, label: 'D1', team: 'home' },
+      { id: 'preset-pk-d2', x: 18, y: 52, label: 'D2', team: 'home' },
+      { id: 'preset-pk-f1', x: 32, y: 31, label: 'F1', team: 'home' },
+      { id: 'preset-pk-f2', x: 32, y: 54, label: 'F2', team: 'home' },
+    ],
+  },
+  breakout: {
+    players: [
+      { id: 'preset-bo-g', x: 11, y: 40, label: 'G', team: 'home' },
+      { id: 'preset-bo-d1', x: 6, y: 47, label: 'D1', team: 'home' },
+      { id: 'preset-bo-d2', x: 20, y: 16, label: 'D2', team: 'home' },
+      { id: 'preset-bo-lw', x: 58, y: 8, label: 'LW', team: 'home' },
+      { id: 'preset-bo-rw', x: 58, y: 77, label: 'RW', team: 'home' },
+      { id: 'preset-bo-c', x: 36, y: 57, label: 'C', team: 'home' },
+    ],
+    movements: [
+      { fromX: 6, fromY: 47, toX: 20, toY: 16, type: 'pass', phase: 1, dashed: true },
+      { fromX: 20, fromY: 16, toX: 58, toY: 8, type: 'pass', phase: 2, dashed: true },
+      { fromX: 36, fromY: 57, toX: 58, toY: 42, type: 'skate', phase: 2 },
+      { fromX: 58, fromY: 8, toX: 60, toY: 40, type: 'pass', phase: 3, dashed: true },
+      { fromX: 60, fromY: 40, toX: 92, toY: 42, type: 'skate', phase: 3 },
+    ],
+  },
+  forecheck: {
+    players: [
+      { id: 'preset-fc-f1', x: 165, y: 42.5, label: 'F1', team: 'home' },
+      { id: 'preset-fc-f2', x: 132, y: 20, label: 'F2', team: 'home' },
+      { id: 'preset-fc-f3', x: 132, y: 65, label: 'F3', team: 'home' },
+      { id: 'preset-fc-d1', x: 98, y: 25, label: 'D1', team: 'home' },
+      { id: 'preset-fc-d2', x: 98, y: 60, label: 'D2', team: 'home' },
+      { id: 'preset-fc-ag', x: 189, y: 42.5, label: 'G', team: 'away' },
+      { id: 'preset-fc-ad1', x: 184, y: 53, label: 'D1', team: 'away' },
+      { id: 'preset-fc-ad2', x: 176, y: 16, label: 'D2', team: 'away' },
+      { id: 'preset-fc-ac', x: 160, y: 42.5, label: 'C', team: 'away' },
+      { id: 'preset-fc-alw', x: 146, y: 11, label: 'LW', team: 'away' },
+      { id: 'preset-fc-arw', x: 146, y: 74, label: 'RW', team: 'away' },
+    ],
+  },
+}
+
+const HOCKEY_PRESET_ORDER: HockeyPresetKind[] = [
+  'attack',
+  'defense',
+  'fiveOnFive',
+  'powerplay',
+  'penaltyKill',
+  'breakout',
+  'forecheck',
+]
+
 function clonePresetPlayer(player: Player): Player {
   return { ...player, id: nextId(player.id) }
 }
@@ -204,19 +297,79 @@ export function InteractiveDrillEditor({
   }, [pushHistory, emitChange])
 
   const addHockeyPreset = useCallback(
-    (kind: 'attack' | 'defense' | 'fiveOnFive') => {
+    (kind: HockeyPresetKind) => {
+      const preset = HOCKEY_PRESETS[kind]
+      if (!preset) return
       pushHistory()
-      const presetPlayers = kind === 'attack'
-        ? HOCKEY_ATTACK_UNIT
-        : kind === 'defense'
-          ? HOCKEY_DEFENSE_UNIT
-          : [...HOCKEY_ATTACK_UNIT, ...HOCKEY_DEFENSE_UNIT]
-      const updated = [...players, ...presetPlayers.map(clonePresetPlayer)]
-      setPlayers(updated)
-      emitChange(updated, movements, zones, annotations)
+      const updatedPlayers = [...players, ...preset.players.map(clonePresetPlayer)]
+      let updatedMovements = movements
+      if (preset.movements && preset.movements.length > 0) {
+        const phaseOffset = movements.reduce((max, m) => Math.max(max, movementPhaseValue(m)), 0)
+        updatedMovements = [
+          ...movements,
+          ...preset.movements.map((m) => ({
+            ...m,
+            id: nextId('m'),
+            phase: (m.phase ?? 1) + phaseOffset,
+          })),
+        ]
+        setMovements(updatedMovements)
+      }
+      setPlayers(updatedPlayers)
+      emitChange(updatedPlayers, updatedMovements, zones, annotations)
     },
     [pushHistory, players, movements, zones, annotations, emitChange]
   )
+
+  const exportPng = useCallback(() => {
+    const svg = svgRef.current
+    if (!svg) return
+    try {
+      const clone = svg.cloneNode(true) as SVGSVGElement
+      clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+      const scale = 8
+      const width = Math.round((SURFACE_W + VIEWBOX_PADDING * 2) * scale)
+      const height = Math.round((SURFACE_H + VIEWBOX_PADDING * 2) * scale)
+      clone.setAttribute('width', String(width))
+      clone.setAttribute('height', String(height))
+      const data = new XMLSerializer().serializeToString(clone)
+      const svgUrl = URL.createObjectURL(new Blob([data], { type: 'image/svg+xml;charset=utf-8' }))
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          URL.revokeObjectURL(svgUrl)
+          toast.error(t('editor.toasts.exportFailed'))
+          return
+        }
+        ctx.fillStyle = '#ffffff'
+        ctx.fillRect(0, 0, width, height)
+        ctx.drawImage(img, 0, 0, width, height)
+        URL.revokeObjectURL(svgUrl)
+        canvas.toBlob((png) => {
+          if (!png) {
+            toast.error(t('editor.toasts.exportFailed'))
+            return
+          }
+          const link = document.createElement('a')
+          link.href = URL.createObjectURL(png)
+          link.download = 'drill.png'
+          link.click()
+          URL.revokeObjectURL(link.href)
+        }, 'image/png')
+      }
+      img.onerror = () => {
+        URL.revokeObjectURL(svgUrl)
+        toast.error(t('editor.toasts.exportFailed'))
+      }
+      img.src = svgUrl
+    } catch {
+      toast.error(t('editor.toasts.exportFailed'))
+    }
+  }, [SURFACE_W, SURFACE_H, t])
 
   // ─── SVG coordinate conversion ────────────────────────────────────
 
@@ -688,6 +841,41 @@ export function InteractiveDrillEditor({
             </TooltipTrigger>
             <TooltipContent side="bottom">{t('editor.toolbar.clearAll')}</TooltipContent>
           </Tooltip>
+
+          {/* Export as PNG */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={exportPng}
+                disabled={players.length === 0 && movements.length === 0 && zones.length === 0 && annotations.length === 0}
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">{t('editor.toolbar.exportPng')}</TooltipContent>
+          </Tooltip>
+
+          {/* Tactical setups (ice hockey) */}
+          {sportType === 'ICE_HOCKEY' && (
+            <>
+              <div className="w-px h-6 bg-border mx-1" />
+              <Select value="" onValueChange={(v) => addHockeyPreset(v as HockeyPresetKind)}>
+                <SelectTrigger className="h-8 w-[180px] text-xs" aria-label={t('editor.hockeyPresets.tacticsLabel')}>
+                  <SelectValue placeholder={t('editor.hockeyPresets.tacticsPlaceholder')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {HOCKEY_PRESET_ORDER.map((kind) => (
+                    <SelectItem key={kind} value={kind} className="text-xs">
+                      {t(`editor.hockeyPresets.${kind}`)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </>
+          )}
         </div>
 
         {/* Tool-specific options */}
@@ -731,37 +919,15 @@ export function InteractiveDrillEditor({
                   {t('editor.options.teamAway')}
                 </Button>
               </div>
-              {sportType === 'ICE_HOCKEY' && (
-                <div className="flex items-center gap-1.5">
-                  <Label className="text-xs">{t('editor.options.quick')}</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1 text-xs"
-                    onClick={() => addHockeyPreset('attack')}
-                  >
-                    <UsersRound className="h-3.5 w-3.5" />
-                    {t('editor.hockeyPresets.attack')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1 text-xs"
-                    onClick={() => addHockeyPreset('defense')}
-                  >
-                    <ShieldPlus className="h-3.5 w-3.5" />
-                    {t('editor.hockeyPresets.defense')}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 gap-1 text-xs"
-                    onClick={() => addHockeyPreset('fiveOnFive')}
-                  >
-                    5v5
-                  </Button>
-                </div>
-              )}
+              <div className="flex items-center gap-1.5">
+                <Label className="text-xs whitespace-nowrap">{t('editor.options.customLabel')}</Label>
+                <Input
+                  value={playerLabel}
+                  onChange={(e) => setPlayerLabel(e.target.value.slice(0, 3))}
+                  maxLength={3}
+                  className="h-7 w-14 text-xs"
+                />
+              </div>
             </>
           )}
 
@@ -884,6 +1050,13 @@ export function InteractiveDrillEditor({
                   </Button>
                 ))}
               </div>
+              <Input
+                value={selectedPlayer.label}
+                onChange={(e) => updateSelectedPlayer({ label: e.target.value.slice(0, 3) })}
+                maxLength={3}
+                className="h-6 w-12 text-[10px]"
+                aria-label={t('editor.options.customLabel')}
+              />
             </div>
             <div className="flex items-center gap-1">
               <Button
