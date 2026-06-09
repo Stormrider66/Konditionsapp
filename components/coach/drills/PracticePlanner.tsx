@@ -29,9 +29,11 @@ import {
   Copy,
   Printer,
   Users,
+  Activity,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useTranslations } from '@/i18n/client'
+import { estimatePracticeLoad } from '@/lib/drills/practice-load'
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -82,8 +84,10 @@ interface PracticeBlock {
   durationMinutes: number
   workRest?: string
   coachingNotes?: string
+  lineAssignment?: string
   structure?: DrillStructure
   templateId?: string
+  drillId?: string
 }
 
 interface Team {
@@ -186,6 +190,11 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
     [blocks]
   )
 
+  const loadEstimate = useMemo(
+    () => estimatePracticeLoad(blocks, practiceIntensity),
+    [blocks, practiceIntensity]
+  )
+
   const addCustomBlock = useCallback(() => {
     setBlocks((prev) => [
       ...prev,
@@ -234,6 +243,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         description: drill.description || undefined,
         durationMinutes: 15,
         structure: JSON.parse(JSON.stringify(drill.structure)),
+        drillId: drill.id,
       }
       setBlocks((prev) => [...prev, newBlock])
     },
@@ -315,7 +325,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         .map((block, index) => {
           const blockLines = [
             `${index + 1}. ${formatTime(block.startMin)}-${formatTime(block.endMin)} ${block.title} (${block.durationMinutes} ${t('minutesLabel')})`,
-            `${t('planSummary.focus')}: ${focusLabel(block.focus)}${block.workRest ? ` | ${t('planSummary.workRest')}: ${block.workRest}` : ''}`,
+            `${t('planSummary.focus')}: ${focusLabel(block.focus)}${block.workRest ? ` | ${t('planSummary.workRest')}: ${block.workRest}` : ''}${block.lineAssignment ? ` | ${t('fields.lines')}: ${block.lineAssignment}` : ''}`,
             block.description ? block.description : null,
             audience === 'staff' && block.coachingNotes
               ? `${t('planSummary.coachingNotes')}: ${block.coachingNotes}`
@@ -423,7 +433,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         (b) =>
           [
             `${formatTime(b.startMin)}-${formatTime(b.endMin)} ${b.title} (${b.durationMinutes} ${t('minutesLabel')})`,
-            `  ${t('planSummary.focus')}: ${focusLabel(b.focus)}${b.workRest ? ` | ${t('planSummary.workRest')}: ${b.workRest}` : ''}`,
+            `  ${t('planSummary.focus')}: ${focusLabel(b.focus)}${b.workRest ? ` | ${t('planSummary.workRest')}: ${b.workRest}` : ''}${b.lineAssignment ? ` | ${t('fields.lines')}: ${b.lineAssignment}` : ''}`,
             b.description ? `  ${b.description}` : null,
             b.coachingNotes ? `  ${t('planSummary.coachingNotes')}: ${b.coachingNotes}` : null,
           ].filter(Boolean).join('\n')
@@ -440,6 +450,32 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
 
     const fullDescription = `${t('descriptionTitle')} — ${totalMinutes} ${t('minutesLabel')}\n${meta ? `\n${meta}` : ''}\n\n${planText}`
 
+    // Structured plan: drill references, line assignments and estimated load
+    // (the server uses this to feed each player's ACWR load monitoring)
+    const practicePlan = {
+      version: 1,
+      phase: practicePhase,
+      intensity: practiceIntensity,
+      lineGroups: lineGroups || undefined,
+      goalieNotes: goalieNotes || undefined,
+      coachNotes: coachNotes || undefined,
+      totalMinutes,
+      estimatedLoad: {
+        totalLoad: loadEstimate.totalLoad,
+        averageRpe: loadEstimate.averageRpe,
+      },
+      blocks: blocks.map((b) => ({
+        title: b.title,
+        focus: b.focus,
+        durationMinutes: b.durationMinutes,
+        workRest: b.workRest,
+        coachingNotes: b.coachingNotes,
+        lineAssignment: b.lineAssignment,
+        drillId: b.drillId,
+        templateId: b.templateId,
+      })),
+    }
+
     setSaving(true)
     try {
       const res = await fetch(`/api/coach/teams/${teamId}/events`, {
@@ -447,17 +483,22 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title || `${t('defaultTitle')} ${date}`,
-          description: fullDescription,
+          description: fullDescription.slice(0, 2000),
           type: 'PRACTICE',
           startDate: `${date}T${startTime || '17:00'}:00`,
           endDate: `${date}T${formatTime(totalMinutes)}:00`,
           allDay: false,
+          practicePlan,
         }),
       })
 
       if (!res.ok) throw new Error('Failed')
 
+      const saved = await res.json().catch(() => null)
       toast.success(t('toasts.saved'))
+      if (saved?.trainingLoadEntries > 0) {
+        toast.info(t('toasts.loadRegistered', { count: saved.trainingLoadEntries }))
+      }
       // Reset
       setBlocks(defaultBlocks)
       setTitle('')
@@ -609,14 +650,22 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               <ClipboardList className="h-5 w-5" />
               {t('timeline.title')}
             </GlassCardTitle>
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" />
-              {t('timeline.totalMinutes', { count: totalMinutes })}
-              {startTime && (
-                <span className="ml-1">
-                  ({formatTime(0)}–{formatTime(totalMinutes)})
-                </span>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              {loadEstimate.totalLoad > 0 && (
+                <Badge variant="outline" className="gap-1 font-normal" title={t('load.hint')}>
+                  <Activity className="h-3 w-3 text-amber-500" />
+                  {t('load.summary', { tss: loadEstimate.totalLoad, rpe: loadEstimate.averageRpe })}
+                </Badge>
               )}
+              <span className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                {t('timeline.totalMinutes', { count: totalMinutes })}
+                {startTime && (
+                  <span className="ml-1">
+                    ({formatTime(0)}–{formatTime(totalMinutes)})
+                  </span>
+                )}
+              </span>
             </div>
           </div>
         </GlassCardHeader>
@@ -696,7 +745,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[160px_160px_1fr]">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[150px_110px_150px_1fr]">
                 <div className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">{t('fields.focus')}</Label>
                   <Select
@@ -721,6 +770,15 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                     value={block.workRest || ''}
                     onChange={(e) => updateBlock(block.id, { workRest: e.target.value || undefined })}
                     placeholder={t('placeholders.workRest')}
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">{t('fields.lines')}</Label>
+                  <Input
+                    value={block.lineAssignment || ''}
+                    onChange={(e) => updateBlock(block.id, { lineAssignment: e.target.value || undefined })}
+                    placeholder={t('placeholders.lines')}
                     className="h-7 text-xs"
                   />
                 </div>

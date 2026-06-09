@@ -2559,7 +2559,8 @@
           "goalieNotes": "T.ex. separat uppvärmning, skottvolym, teknikfokus...",
           "coachNotes": "Nyckelbudskap, påminnelser, belastningsstyrning...",
           "workRest": "T.ex. 40/20",
-          "coaching": "Nyckelpunkt för blocket..."
+          "coaching": "Nyckelpunkt för blocket...",
+          "lines": "T.ex. Kedja 1+2"
         },
         "blocks": {
           "defaultWarmupTitle": "Uppvärmning",
@@ -2607,7 +2608,12 @@
         "fields": {
           "focus": "Fokus",
           "workRest": "Arbete/vila",
-          "coaching": "Coachning"
+          "coaching": "Coachning",
+          "lines": "Kedjor/grupper"
+        },
+        "load": {
+          "summary": "~{tss} TSS · RPE {rpe}",
+          "hint": "Beräknad träningsbelastning — sparas till varje spelares belastningsuppföljning (ACWR) när passet sparas"
         },
         "actions": {
           "showDiagram": "Visa diagram",
@@ -2640,6 +2646,7 @@
         },
         "toasts": {
           "saved": "Träningsplan sparad i kalendern!",
+          "loadRegistered": "Beräknad belastning registrerad för {count} spelarpass",
           "saveFailed": "Kunde inte spara träningsplanen",
           "staffPlanCopied": "Ledarblad kopierat",
           "playerPlanCopied": "Spelarversion kopierad",
@@ -11948,12 +11955,14 @@
           "player": "Spelare:",
           "annotationLabel": "Text:",
           "auto": "Auto",
-          "customLabel": "Nr"
+          "customLabel": "Nr",
+          "curve": "Kurva"
         },
         "toasts": {
           "exportFailed": "Kunde inte skapa bilden"
         },
         "hints": {
+          "dragCurveHandle": "Dra i det orange handtaget för att forma banan",
           "selectMovementEndpoint": "Klicka på slutpunkt...",
           "drawZone": "Klicka på andra hörnet...",
           "placeAnnotation": "Klicka på rinken för att placera",

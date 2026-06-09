@@ -2559,7 +2559,8 @@
           "goalieNotes": "e.g. separate warm-up, shot volume, technique focus...",
           "coachNotes": "Key messages, reminders, workload control...",
           "workRest": "e.g. 40/20",
-          "coaching": "Key point for this block..."
+          "coaching": "Key point for this block...",
+          "lines": "e.g. Line 1+2"
         },
         "blocks": {
           "defaultWarmupTitle": "Warm-up",
@@ -2607,7 +2608,12 @@
         "fields": {
           "focus": "Focus",
           "workRest": "Work/rest",
-          "coaching": "Coaching"
+          "coaching": "Coaching",
+          "lines": "Lines/groups"
+        },
+        "load": {
+          "summary": "~{tss} TSS · RPE {rpe}",
+          "hint": "Estimated session load — saved to each player's load monitoring (ACWR) when the practice is saved"
         },
         "actions": {
           "showDiagram": "Show diagram",
@@ -2640,6 +2646,7 @@
         },
         "toasts": {
           "saved": "Practice plan saved to calendar!",
+          "loadRegistered": "Estimated load registered for {count} player sessions",
           "saveFailed": "Could not save practice plan",
           "staffPlanCopied": "Staff sheet copied",
           "playerPlanCopied": "Player version copied",
@@ -11615,12 +11622,14 @@
           "player": "Player",
           "annotationLabel": "Text:",
           "auto": "Auto",
-          "customLabel": "No."
+          "customLabel": "No.",
+          "curve": "Curve"
         },
         "toasts": {
           "exportFailed": "Could not create the image"
         },
         "hints": {
+          "dragCurveHandle": "Drag the orange handle to shape the path",
           "selectMovementEndpoint": "Click end point...",
           "drawZone": "Click opposite corner...",
           "placeAnnotation": "Click rink to place",

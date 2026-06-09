@@ -29,6 +29,7 @@ import {
   Copy,
   Layers3,
   Download,
+  Spline,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { DrillStructure } from './IceHockeyRink'
@@ -36,6 +37,12 @@ import {
   getSportConfig,
   type DrillSportType,
 } from '@/remotion/drills/surfaces'
+import {
+  defaultControlPoint,
+  isCurved,
+  movementMidpoint,
+  movementPathD,
+} from '@/remotion/drills/movement-path'
 import { useLocale, useTranslations } from '@/i18n/client'
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -59,6 +66,9 @@ interface Movement {
   fromY: number
   toX: number
   toY: number
+  // Optional quadratic bezier control point for curved skating paths
+  controlX?: number
+  controlY?: number
   type: MovementType
   playerId?: string | null
   phase?: number
@@ -254,6 +264,7 @@ export function InteractiveDrillEditor({
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [draggingControlId, setDraggingControlId] = useState<string | null>(null)
   const [movementStart, setMovementStart] = useState<{ x: number; y: number; playerId?: string | null } | null>(null)
   const [zoneStart, setZoneStart] = useState<{ x: number; y: number } | null>(null)
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null)
@@ -413,6 +424,17 @@ export function InteractiveDrillEditor({
       const pos = svgPoint(e.clientX, e.clientY)
 
       if (activeTool === 'select') {
+        // Curve control handle of the selected movement takes priority
+        const selected = movements.find((m) => m.id === selectedId)
+        if (selected && isCurved(selected)) {
+          const dx = (selected.controlX as number) - pos.x
+          const dy = (selected.controlY as number) - pos.y
+          if (dx * dx + dy * dy < 16) {
+            pushHistory()
+            setDraggingControlId(selected.id)
+            return
+          }
+        }
         const player = findPlayerAt(pos.x, pos.y)
         if (player) {
           setSelectedId(player.id)
@@ -515,7 +537,7 @@ export function InteractiveDrillEditor({
     },
     [
       activeTool, svgPoint, findPlayerAt, pushHistory, emitChange,
-      players, movements, zones, annotations,
+      players, movements, zones, annotations, selectedId,
       playerLabel, playerTeam, movementType, movementStart,
       zoneStart, zoneColor, annotationText, movementPhase,
     ]
@@ -532,6 +554,13 @@ export function InteractiveDrillEditor({
         return
       }
 
+      if (draggingControlId) {
+        setMovements((prev) =>
+          prev.map((m) => (m.id === draggingControlId ? { ...m, controlX: pos.x, controlY: pos.y } : m))
+        )
+        return
+      }
+
       if (activeTool === 'movement' && movementStart) {
         setMousePos(pos)
       }
@@ -539,15 +568,16 @@ export function InteractiveDrillEditor({
         setMousePos(pos)
       }
     },
-    [svgPoint, draggingId, activeTool, movementStart, zoneStart]
+    [svgPoint, draggingId, draggingControlId, activeTool, movementStart, zoneStart]
   )
 
   const handleMouseUp = useCallback(() => {
-    if (draggingId) {
+    if (draggingId || draggingControlId) {
       setDraggingId(null)
+      setDraggingControlId(null)
       emitChange(players, movements, zones, annotations)
     }
-  }, [draggingId, players, movements, zones, annotations, emitChange])
+  }, [draggingId, draggingControlId, players, movements, zones, annotations, emitChange])
 
   // ─── Touch handlers (map to mouse events) ─────────────────────────
 
@@ -1112,6 +1142,32 @@ export function InteractiveDrillEditor({
                 className="h-6 w-16 text-[10px]"
               />
             </div>
+            <div className="flex items-center gap-1">
+              <Button
+                variant={isCurved(selectedMovement) ? 'default' : 'outline'}
+                size="sm"
+                className="h-6 gap-1 text-[10px]"
+                onClick={() => {
+                  if (isCurved(selectedMovement)) {
+                    updateSelectedMovement({ controlX: undefined, controlY: undefined })
+                  } else {
+                    const control = defaultControlPoint(selectedMovement)
+                    updateSelectedMovement({
+                      controlX: Math.max(0, Math.min(SURFACE_W, control.x)),
+                      controlY: Math.max(0, Math.min(SURFACE_H, control.y)),
+                    })
+                  }
+                }}
+              >
+                <Spline className="h-3 w-3" />
+                {t('editor.options.curve')}
+              </Button>
+              {isCurved(selectedMovement) && (
+                <span className="text-[10px] text-muted-foreground">
+                  {t('editor.hints.dragCurveHandle')}
+                </span>
+              )}
+            </div>
             {selectedMovement.type === 'skate' && (
               <div className="flex items-center gap-1">
                 <Label className="text-xs">{t('editor.options.player')}</Label>
@@ -1302,6 +1358,8 @@ export function InteractiveDrillEditor({
             {movements.map((m) => {
               const color = m.color || MOVEMENT_STYLES[m.type]?.color || '#1a1a1a'
               const markerId = `ed-arrow-${m.type}`
+              const mid = movementMidpoint(m)
+              const isSelected = selectedId === m.id
               return (
                 <g
                   key={m.id}
@@ -1312,45 +1370,75 @@ export function InteractiveDrillEditor({
                     }
                   }}
                 >
-                  <line
-                    x1={m.fromX}
-                    y1={m.fromY}
-                    x2={m.toX}
-                    y2={m.toY}
-                    stroke={selectedId === m.id ? '#000' : color}
-                    strokeWidth={selectedId === m.id ? 1 : m.type === 'shot' ? 0.8 : 0.6}
+                  <path
+                    d={movementPathD(m)}
+                    fill="none"
+                    stroke={isSelected ? '#000' : color}
+                    strokeWidth={isSelected ? 1 : m.type === 'shot' ? 0.8 : 0.6}
                     strokeDasharray={m.dashed || m.type === 'pass' ? '1.5 1' : undefined}
                     markerEnd={`url(#${markerId})`}
                   />
-                  {/* Invisible fat line for easier click target */}
-                  <line
-                    x1={m.fromX}
-                    y1={m.fromY}
-                    x2={m.toX}
-                    y2={m.toY}
+                  {/* Invisible fat path for easier click target */}
+                  <path
+                    d={movementPathD(m)}
+                    fill="none"
                     stroke="transparent"
                     strokeWidth={3}
                   />
                   {m.phase && (
                     <g>
                       <circle
-                        cx={(m.fromX + m.toX) / 2}
-                        cy={(m.fromY + m.toY) / 2}
+                        cx={mid.x}
+                        cy={mid.y}
                         r="2.3"
                         fill="white"
-                        stroke={selectedId === m.id ? '#000' : color}
+                        stroke={isSelected ? '#000' : color}
                         strokeWidth="0.4"
                       />
                       <text
-                        x={(m.fromX + m.toX) / 2}
-                        y={(m.fromY + m.toY) / 2 + 0.8}
+                        x={mid.x}
+                        y={mid.y + 0.8}
                         textAnchor="middle"
                         fontSize="2.4"
-                        fill={selectedId === m.id ? '#000' : color}
+                        fill={isSelected ? '#000' : color}
                         fontWeight="700"
                       >
                         {m.phase}
                       </text>
+                    </g>
+                  )}
+                  {/* Curve control handle (selected movement only) */}
+                  {isSelected && isCurved(m) && (
+                    <g>
+                      <line
+                        x1={m.fromX}
+                        y1={m.fromY}
+                        x2={m.controlX}
+                        y2={m.controlY}
+                        stroke="#f59e0b"
+                        strokeWidth="0.25"
+                        strokeDasharray="0.8 0.8"
+                        opacity={0.7}
+                      />
+                      <line
+                        x1={m.toX}
+                        y1={m.toY}
+                        x2={m.controlX}
+                        y2={m.controlY}
+                        stroke="#f59e0b"
+                        strokeWidth="0.25"
+                        strokeDasharray="0.8 0.8"
+                        opacity={0.7}
+                      />
+                      <circle
+                        cx={m.controlX}
+                        cy={m.controlY}
+                        r="2"
+                        fill="#f59e0b"
+                        stroke="white"
+                        strokeWidth="0.4"
+                        style={{ cursor: 'grab' }}
+                      />
                     </g>
                   )}
                 </g>

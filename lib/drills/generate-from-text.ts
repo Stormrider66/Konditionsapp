@@ -97,6 +97,7 @@ Guidelines:
 - Place players in realistic starting positions for the described drill
 - Include defenders/opponents when the drill needs pressure, backcheck, forecheck, 1v1, 2v1, 3v2, 5v5, or tactical realism
 - For skating/running movements, set "playerId" to the moving player's id
+- For curved skating paths (crossovers, swings, loops behind the net), add an optional "controlX"/"controlY" quadratic bezier control point to the movement
 - Use "phase" to show living play: all movements with the same phase happen at the same time; later phases happen after earlier phases
 - Give every active player a skate movement in the relevant phase when they should move, including defenders
 - Use zones to highlight tactical areas
