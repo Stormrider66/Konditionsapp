@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErgometerFieldTestForm } from '@/components/coach/ergometer-tests';
+import { WattbikeCapture } from '@/components/athlete/wattbike';
 import { useLocale } from '@/i18n/client';
 import { Plus, Activity, TrendingUp, Users, ArrowLeft } from 'lucide-react';
 
@@ -275,7 +276,15 @@ export default function CoachErgometerTestsPage() {
 
       {/* Client selected - show tabs */}
       {selectedClientId && !showNewTestForm && (
-        <Tabs defaultValue="tests" className="space-y-6">
+        <div className="space-y-6">
+          {/* Live BLE capture — coach capture station, covers iOS athletes */}
+          <WattbikeCapture
+            clientId={selectedClientId}
+            onSaved={() => {
+              void fetchClientData();
+            }}
+          />
+          <Tabs defaultValue="tests" className="space-y-6">
           <TabsList className="bg-slate-100 dark:bg-slate-900/40 border border-slate-200 dark:border-white/5 p-1 rounded-xl gap-1 w-fit flex">
             <TabsTrigger value="tests" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{t.tabs.tests}</TabsTrigger>
             <TabsTrigger value="zones" className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white data-[state=active]:bg-white dark:data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-600 dark:data-[state=active]:text-blue-400 data-[state=active]:border data-[state=active]:border-slate-200/80 dark:data-[state=active]:border-blue-500/30 data-[state=active]:shadow-sm">{t.tabs.zones}</TabsTrigger>
@@ -334,7 +343,8 @@ export default function CoachErgometerTestsPage() {
               </GlassCardContent>
             </GlassCard>
           </TabsContent>
-        </Tabs>
+          </Tabs>
+        </div>
       )}
     </div>
   );

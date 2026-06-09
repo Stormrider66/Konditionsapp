@@ -33,6 +33,7 @@ import {
   Waves,
 } from 'lucide-react';
 import { Concept2WorkoutList } from './integrations';
+import { WattbikeCapture } from '@/components/athlete/wattbike';
 import { TeamRankCard } from './TeamRankCard';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
 import { PerformancePredictionCard } from './predictions';
@@ -467,6 +468,11 @@ export function ErgometerDashboard({ clientId }: ErgometerDashboardProps) {
       {/* Team Ranking */}
       <div className="mt-6">
         <TeamRankCard clientId={clientId} />
+      </div>
+
+      {/* Wattbike live capture (Android/desktop; iOS shows coach-capture guidance) */}
+      <div className="mt-6">
+        <WattbikeCapture clientId={clientId} />
       </div>
 
       {/* Concept2 Synced Workouts */}
