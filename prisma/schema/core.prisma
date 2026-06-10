@@ -643,6 +643,9 @@ model Client {
   // Team Sports Match Schedule relations
   matchSchedule ExternalMatchSchedule[]
 
+  // Tactics board (taktiktavla) relations
+  drillViews TeamDrillView[]
+
   // Sport-Specific Testing System relations
   sportTests SportTest[] @relation("ClientSportTests")
 
@@ -2165,17 +2168,39 @@ model TeamDrill {
   isPublished Boolean  @default(false)
   publishedAt DateTime?
 
+  // Practice day this drill belongs to (UTC midnight, calendar day semantics).
+  // Drives the "Today's tactics" section in the athlete daily view.
+  scheduledDate DateTime? @db.Date
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   team      Team?    @relation(fields: [teamId], references: [id], onDelete: SetNull)
   business  Business @relation("BusinessDrills", fields: [businessId], references: [id], onDelete: Cascade)
   createdBy User     @relation("CreatedDrills", fields: [createdById], references: [id])
+  views     TeamDrillView[]
 
   @@index([teamId])
   @@index([businessId])
   @@index([createdById])
   @@index([sportType])
+  @@index([scheduledDate])
+}
+
+// Tracks which athletes have opened a published drill, so coaches can see
+// who has prepared before practice.
+model TeamDrillView {
+  id             String    @id @default(uuid())
+  drillId        String
+  clientId       String
+  viewedAt       DateTime  @default(now())
+  acknowledgedAt DateTime?
+
+  drill  TeamDrill @relation(fields: [drillId], references: [id], onDelete: Cascade)
+  client Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([drillId, clientId])
+  @@index([clientId])
 }
 
 model BroadcastNotification {

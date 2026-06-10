@@ -36,6 +36,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [teamId, setTeamId] = useState('')
+  const [scheduledDate, setScheduledDate] = useState('')
   const [saving, setSaving] = useState(false)
   const [showAnimation, setShowAnimation] = useState(false)
   const [sportType, setSportType] = useState<DrillSportType>('ICE_HOCKEY')
@@ -74,6 +75,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
           structure,
           sourceType: 'MANUAL_EDITOR',
           isPublished: publish,
+          scheduledDate: scheduledDate || null,
         }),
       })
 
@@ -84,6 +86,7 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
       setTitle('')
       setDescription('')
       setTeamId('')
+      setScheduledDate('')
       setStructure({ players: [], movements: [], zones: [], annotations: [] })
       setShowAnimation(false)
     } catch {
@@ -200,6 +203,16 @@ export function DrillEditorPage({ teams }: DrillEditorPageProps) {
                 </Select>
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label>{t('common.labels.scheduledDate')}</Label>
+              <Input
+                type="date"
+                value={scheduledDate}
+                onChange={(e) => setScheduledDate(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">{t('common.hints.scheduledDate')}</p>
+            </div>
 
             <div className="flex gap-2 pt-2">
               <Button

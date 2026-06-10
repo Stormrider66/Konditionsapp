@@ -7,7 +7,8 @@ import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillSportType } from '@/remotion/drills/surfaces'
 import { Button } from '@/components/ui/button'
-import { ClipboardList, Play, Download } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { ClipboardList, Play, Download, Send, Undo2, Eye, CalendarDays, CheckCircle2 } from 'lucide-react'
 import { exportDrillPDF } from '@/lib/drills/export-pdf'
 import { toast } from 'sonner'
 import { useLocale, useTranslations } from '@/i18n/client'
@@ -20,9 +21,25 @@ interface Drill {
   structure: DrillStructure
   sourceType: string
   isPublished: boolean
+  scheduledDate: string | null
   createdAt: string
   team: { name: string } | null
   createdBy: { name: string }
+  _count?: { views: number }
+}
+
+interface DrillViewStatus {
+  total: number
+  viewed: number
+  acknowledged: number
+  athletes: Array<{
+    clientId: string
+    name: string
+    jerseyNumber: number | null
+    position: string | null
+    viewedAt: string | null
+    acknowledgedAt: string | null
+  }>
 }
 
 interface DrillListProps {
@@ -33,6 +50,15 @@ function formatDate(iso: string, locale: 'en' | 'sv'): string {
   return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function formatScheduledDay(iso: string, locale: 'en' | 'sv'): string {
+  return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC', // scheduledDate is a calendar day stored at UTC midnight
+  })
+}
+
 export function DrillList({ teamId }: DrillListProps) {
   const t = useTranslations('components.drills')
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
@@ -40,6 +66,8 @@ export function DrillList({ teamId }: DrillListProps) {
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [animatingId, setAnimatingId] = useState<string | null>(null)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [viewStatus, setViewStatus] = useState<Record<string, DrillViewStatus>>({})
   const rinkRef = useRef<HTMLDivElement>(null)
 
   const handleExportPDF = useCallback(
@@ -88,6 +116,53 @@ export function DrillList({ teamId }: DrillListProps) {
     void fetchDrills()
   }, [teamId, t])
 
+  const fetchViewStatus = useCallback(async (drillId: string) => {
+    try {
+      const res = await fetch(`/api/coach/drills/${drillId}/views`)
+      if (res.ok) {
+        const data: DrillViewStatus = await res.json()
+        setViewStatus((prev) => ({ ...prev, [drillId]: data }))
+      }
+    } catch {
+      // non-critical — leave status hidden
+    }
+  }, [])
+
+  const toggleExpanded = useCallback(
+    (drill: Drill) => {
+      setExpandedId((prev) => {
+        const next = prev === drill.id ? null : drill.id
+        if (next && drill.isPublished && !viewStatus[drill.id]) {
+          void fetchViewStatus(drill.id)
+        }
+        return next
+      })
+    },
+    [fetchViewStatus, viewStatus]
+  )
+
+  const patchDrill = useCallback(
+    async (drill: Drill, payload: Record<string, unknown>, successMessage: string) => {
+      setUpdatingId(drill.id)
+      try {
+        const res = await fetch(`/api/coach/drills/${drill.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) throw new Error('Failed')
+        const data = await res.json()
+        setDrills((prev) => prev.map((d) => (d.id === drill.id ? { ...d, ...data.drill } : d)))
+        toast.success(successMessage)
+      } catch {
+        toast.error(t('common.errors.updateFailed'))
+      } finally {
+        setUpdatingId(null)
+      }
+    },
+    [t]
+  )
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -110,93 +185,215 @@ export function DrillList({ teamId }: DrillListProps) {
 
   return (
     <div className="space-y-3">
-      {drills.map((drill) => (
-        <Card
-          key={drill.id}
-          className="cursor-pointer hover:shadow-md transition-shadow"
-          onClick={() => setExpandedId(expandedId === drill.id ? null : drill.id)}
-        >
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between mb-1">
-              <div>
-                <h3 className="font-semibold">{drill.title}</h3>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                  <span>{formatDate(drill.createdAt, locale)}</span>
-                  <span>·</span>
-                  <span>{drill.createdBy.name}</span>
-                  {drill.team && (
-                    <>
-                      <span>·</span>
-                      <span>{drill.team.name}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {drill.sourceType === 'CLIPBOARD_PHOTO' && (
-                  <Badge variant="outline" className="text-[10px]">AI</Badge>
-                )}
-                <Badge variant={drill.isPublished ? 'default' : 'secondary'} className="text-[10px]">
-                  {drill.isPublished ? t('common.labels.published') : t('common.labels.draft')}
-                </Badge>
-              </div>
-            </div>
-
-            {drill.description && (
-              <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{drill.description}</p>
-            )}
-
-            {/* Expanded: show rink + animate toggle */}
-            {expandedId === drill.id && (
-              <div className="mt-4 pt-4 border-t space-y-3">
-                {animatingId === drill.id ? (
-                  <DrillAnimationPlayer
-                    title={drill.title}
-                    description={drill.description || undefined}
-                    structure={drill.structure}
-                    locale={locale}
-                    sportType={(drill.sportType as DrillSportType) || 'ICE_HOCKEY'}
-                  />
-                ) : (
-                  <div ref={rinkRef}>
-                    <IceHockeyRink structure={drill.structure} className="mx-auto" />
+      {drills.map((drill) => {
+        const status = viewStatus[drill.id]
+        return (
+          <Card
+            key={drill.id}
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => toggleExpanded(drill)}
+          >
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-1">
+                <div>
+                  <h3 className="font-semibold">{drill.title}</h3>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                    <span>{formatDate(drill.createdAt, locale)}</span>
+                    <span>·</span>
+                    <span>{drill.createdBy.name}</span>
+                    {drill.team && (
+                      <>
+                        <span>·</span>
+                        <span>{drill.team.name}</span>
+                      </>
+                    )}
                   </div>
-                )}
-
-                {/* Action buttons */}
-                <div className="flex justify-center gap-2">
-                  {drill.structure.movements?.length > 0 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setAnimatingId(animatingId === drill.id ? null : drill.id)
-                      }}
-                    >
-                      <Play className="h-3.5 w-3.5 mr-1.5" />
-                      {animatingId === drill.id ? t('common.actions.showDiagram') : t('common.actions.animate')}
-                    </Button>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {drill.scheduledDate && (
+                    <Badge variant="outline" className="text-[10px] gap-1">
+                      <CalendarDays className="h-3 w-3" />
+                      {formatScheduledDay(drill.scheduledDate, locale)}
+                    </Badge>
                   )}
-                  {animatingId !== drill.id && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void handleExportPDF(drill)
-                      }}
-                    >
-                      <Download className="h-3.5 w-3.5 mr-1.5" />
-                      PDF
-                    </Button>
+                  {drill.sourceType === 'CLIPBOARD_PHOTO' && (
+                    <Badge variant="outline" className="text-[10px]">AI</Badge>
                   )}
+                  <Badge variant={drill.isPublished ? 'default' : 'secondary'} className="text-[10px]">
+                    {drill.isPublished ? t('common.labels.published') : t('common.labels.draft')}
+                  </Badge>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      ))}
+
+              {drill.description && (
+                <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{drill.description}</p>
+              )}
+
+              {/* Expanded: show rink + animate toggle */}
+              {expandedId === drill.id && (
+                <div className="mt-4 pt-4 border-t space-y-3">
+                  {animatingId === drill.id ? (
+                    <DrillAnimationPlayer
+                      title={drill.title}
+                      description={drill.description || undefined}
+                      structure={drill.structure}
+                      locale={locale}
+                      sportType={(drill.sportType as DrillSportType) || 'ICE_HOCKEY'}
+                    />
+                  ) : (
+                    <div ref={rinkRef}>
+                      <IceHockeyRink structure={drill.structure} className="mx-auto" />
+                    </div>
+                  )}
+
+                  {/* Schedule for a practice day */}
+                  <div
+                    className="flex items-center justify-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">{t('common.labels.scheduledDate')}</span>
+                    <Input
+                      type="date"
+                      className="h-8 w-auto text-xs"
+                      value={drill.scheduledDate ? drill.scheduledDate.slice(0, 10) : ''}
+                      disabled={updatingId === drill.id}
+                      onChange={(e) =>
+                        void patchDrill(
+                          drill,
+                          { scheduledDate: e.target.value || null },
+                          t('common.toasts.scheduleUpdated')
+                        )
+                      }
+                    />
+                  </div>
+
+                  {/* Prep status (published drills only) */}
+                  {drill.isPublished && status && (
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                      {/* Summary counters */}
+                      <div className="flex items-center justify-center gap-4 text-xs font-medium">
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <Eye className="h-3.5 w-3.5" />
+                          {t('common.labels.seenBy', { viewed: status.viewed, total: status.total })}
+                        </span>
+                        <span className="flex items-center gap-1 text-green-600">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {t('common.labels.confirmedCount', { count: status.acknowledged })}
+                        </span>
+                      </div>
+
+                      {/* Roster breakdown */}
+                      {status.total > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-xs max-w-md mx-auto">
+                          {/* Not seen */}
+                          {status.athletes.filter((a) => !a.viewedAt).length > 0 && (
+                            <div>
+                              <p className="font-medium text-red-600 mb-0.5">{t('common.labels.notSeen')}</p>
+                              {status.athletes
+                                .filter((a) => !a.viewedAt)
+                                .map((a) => (
+                                  <p key={a.clientId} className="text-muted-foreground truncate">
+                                    {a.jerseyNumber != null ? `#${a.jerseyNumber} ` : ''}{a.name}
+                                  </p>
+                                ))}
+                            </div>
+                          )}
+
+                          {/* Viewed but not acknowledged */}
+                          {status.athletes.filter((a) => a.viewedAt && !a.acknowledgedAt).length > 0 && (
+                            <div>
+                              <p className="font-medium text-amber-600 mb-0.5">{t('common.labels.viewedOnly')}</p>
+                              {status.athletes
+                                .filter((a) => a.viewedAt && !a.acknowledgedAt)
+                                .map((a) => (
+                                  <p key={a.clientId} className="text-muted-foreground truncate">
+                                    {a.jerseyNumber != null ? `#${a.jerseyNumber} ` : ''}{a.name}
+                                  </p>
+                                ))}
+                            </div>
+                          )}
+
+                          {/* Acknowledged */}
+                          {status.athletes.filter((a) => a.acknowledgedAt).length > 0 && (
+                            <div>
+                              <p className="font-medium text-green-600 mb-0.5">{t('common.labels.confirmed')}</p>
+                              {status.athletes
+                                .filter((a) => a.acknowledgedAt)
+                                .map((a) => (
+                                  <p key={a.clientId} className="text-muted-foreground truncate">
+                                    {a.jerseyNumber != null ? `#${a.jerseyNumber} ` : ''}{a.name}
+                                  </p>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action buttons */}
+                  <div className="flex justify-center gap-2">
+                    {drill.structure.movements?.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setAnimatingId(animatingId === drill.id ? null : drill.id)
+                        }}
+                      >
+                        <Play className="h-3.5 w-3.5 mr-1.5" />
+                        {animatingId === drill.id ? t('common.actions.showDiagram') : t('common.actions.animate')}
+                      </Button>
+                    )}
+                    {animatingId !== drill.id && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          void handleExportPDF(drill)
+                        }}
+                      >
+                        <Download className="h-3.5 w-3.5 mr-1.5" />
+                        PDF
+                      </Button>
+                    )}
+                    <Button
+                      variant={drill.isPublished ? 'outline' : 'default'}
+                      size="sm"
+                      disabled={updatingId === drill.id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void patchDrill(
+                          drill,
+                          { isPublished: !drill.isPublished },
+                          drill.isPublished
+                            ? t('common.toasts.unpublished')
+                            : t('common.toasts.published')
+                        )
+                      }}
+                    >
+                      {drill.isPublished ? (
+                        <>
+                          <Undo2 className="h-3.5 w-3.5 mr-1.5" />
+                          {t('common.actions.unpublish')}
+                        </>
+                      ) : (
+                        <>
+                          <Send className="h-3.5 w-3.5 mr-1.5" />
+                          {t('common.actions.publish')}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

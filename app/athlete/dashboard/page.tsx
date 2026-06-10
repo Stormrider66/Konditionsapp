@@ -773,7 +773,7 @@ export default async function AthleteDashboardPage() {
 
           <IntervalResultsHistory />
 
-          <AthleteDrillList />
+          <AthleteDrillList athletePosition={client.position ?? undefined} />
         </div>
 
         {/* Right Column (1/3) */}
