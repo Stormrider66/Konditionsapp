@@ -293,14 +293,17 @@ function ActivityCard({
                   locale: dateFnsLocale,
                 })}
               </span>
-              <Badge className={`text-xs px-1.5 py-0 ${
-                activity.source === 'strava' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400' :
-                activity.source === 'ai' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400' :
-                activity.source === 'adhoc' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
-                'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-              }`}>
-                {sourceConfig.icon} {sourceLabel}
-              </Badge>
+              {/* For pure Garmin rows the attribution below is the source label */}
+              {activity.source !== 'garmin' && (
+                <Badge className={`text-xs px-1.5 py-0 ${
+                  activity.source === 'strava' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400' :
+                  activity.source === 'ai' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400' :
+                  activity.source === 'adhoc' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
+                  'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                }`}>
+                  {sourceConfig.icon} {sourceLabel}
+                </Badge>
+              )}
               {/* Brand guidelines: attribution adjacent to the title */}
               {(activity.source === 'garmin' || activity.source === 'adhoc+garmin') && (
                 <GarminAttribution deviceModel={activity.deviceModel} />
@@ -396,9 +399,12 @@ function ActivityCard({
                 locale: dateFnsLocale,
               })}
             </span>
-            <Badge className={`text-xs px-1.5 py-0 ${sourceConfig.color}`}>
-              {sourceConfig.icon} {sourceLabel}
-            </Badge>
+            {/* For pure Garmin rows the attribution below is the source label */}
+            {activity.source !== 'garmin' && (
+              <Badge className={`text-xs px-1.5 py-0 ${sourceConfig.color}`}>
+                {sourceConfig.icon} {sourceLabel}
+              </Badge>
+            )}
             {/* Brand guidelines: attribution adjacent to the title */}
             {(activity.source === 'garmin' || activity.source === 'adhoc+garmin') && (
               <GarminAttribution deviceModel={activity.deviceModel} />
