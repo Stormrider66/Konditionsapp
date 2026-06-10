@@ -259,10 +259,9 @@ export async function getDashboardWeeklyLoad(clientId: string): Promise<Dashboar
       where: {
         clientId,
         date: { gte: twentyEightDaysAgo },
-        // The nightly ACWR cron writes a daily summary row whose dailyLoad
-        // duplicates that day's workout rows. Only workout-sourced rows have
-        // acwr unset, so filter to those to avoid double counting.
-        acwr: null,
+        // WORKOUT rows only — ACWR_SUMMARY rows duplicate the day's
+        // workout rows' dailyLoad and would double-count.
+        source: 'WORKOUT',
       },
       select: {
         dailyLoad: true,

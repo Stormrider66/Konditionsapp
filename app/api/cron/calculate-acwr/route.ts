@@ -112,10 +112,9 @@ export async function POST(request: NextRequest) {
         const yesterday = new Date(today)
         yesterday.setDate(yesterday.getDate() - 1)
 
-        // Sum all workout-sourced load entries for yesterday. Rows written by
-        // this cron carry the EWMA results and always have `acwr` set, so
-        // excluding them avoids double counting; workout rows (strength,
-        // cardio, hybrid, agility, team practice, ad-hoc) never set it.
+        // Sum all workout-sourced load entries for yesterday. Rows written
+        // by this cron are ACWR_SUMMARY and duplicate the workout rows'
+        // dailyLoad, so they must be excluded from the sum.
         const yesterdayLoad = await prisma.trainingLoad.aggregate({
           where: {
             clientId: athlete.id,
@@ -123,17 +122,17 @@ export async function POST(request: NextRequest) {
               gte: yesterday,
               lt: today,
             },
-            acwr: null,
+            source: 'WORKOUT',
           },
           _sum: { dailyLoad: true },
         })
 
         const dailyTSS = yesterdayLoad._sum.dailyLoad || 0
 
-        // Get most recent ACWR carrier entry for this athlete (rows with EWMA
-        // values — a plain workout row would reset the moving averages)
+        // Get most recent ACWR carrier entry for this athlete (a plain
+        // workout row would reset the moving averages)
         const previousEntry = await prisma.trainingLoad.findFirst({
-          where: { clientId: athlete.id, acuteLoad: { not: null } },
+          where: { clientId: athlete.id, source: 'ACWR_SUMMARY' },
           orderBy: { date: 'desc' },
         })
 
@@ -161,6 +160,7 @@ export async function POST(request: NextRequest) {
           data: {
             clientId: athlete.id,
             date: today,
+            source: 'ACWR_SUMMARY',
             dailyLoad: dailyTSS,
             loadType: 'TSS',
             duration: 0, // Will be updated from actual workout logs

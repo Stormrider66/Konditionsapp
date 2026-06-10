@@ -273,13 +273,13 @@ async function fetchAthleteData(
       select: { id: true },
     });
 
-    // Workout-sourced rows only (acwr: null) — the nightly ACWR cron's
-    // summary rows duplicate dailyLoad and would skew the team average.
+    // WORKOUT rows only — ACWR_SUMMARY rows duplicate dailyLoad and would
+    // skew the team average.
     const teamLoads = await prisma.trainingLoad.findMany({
       where: {
         clientId: { in: teamClients.map(c => c.id) },
         date: { gte: startDate, lte: endDate },
-        acwr: null,
+        source: 'WORKOUT',
       },
     });
 
@@ -302,15 +302,15 @@ async function fetchAthleteData(
       name: athlete.name,
       sport: athlete.sportProfile?.primarySport || 'RUNNING',
     },
-    // Merge rows per date: dailyLoad comes from workout-sourced rows (acwr
-    // unset); acwr comes from the nightly cron's summary row, whose dailyLoad
-    // duplicates the workout rows and must not be added.
+    // Merge rows per date: dailyLoad comes from WORKOUT rows; acwr comes
+    // from the ACWR_SUMMARY row, whose dailyLoad duplicates the workout
+    // rows and must not be added.
     trainingLoads: (() => {
       const loadByDate = new Map<string, { date: string; dailyLoad: number; acwr: number | null }>();
       for (const l of trainingLoads) {
         const date = l.date.toISOString().split('T')[0];
         const entry = loadByDate.get(date) ?? { date, dailyLoad: 0, acwr: null };
-        if (l.acwr == null) {
+        if (l.source === 'WORKOUT') {
           entry.dailyLoad += l.dailyLoad || 0;
         } else {
           entry.acwr = l.acwr;

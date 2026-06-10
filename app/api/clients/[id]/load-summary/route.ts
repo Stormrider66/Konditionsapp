@@ -46,10 +46,13 @@ export async function GET(
     const since = new Date()
     since.setDate(since.getDate() - HISTORY_DAYS)
 
+    // ACWR_SUMMARY rows only — this endpoint reads exclusively the EWMA
+    // fields, which workout rows never carry.
     const rows = await prisma.trainingLoad.findMany({
       where: {
         clientId,
         date: { gte: since },
+        source: 'ACWR_SUMMARY',
       },
       orderBy: { date: 'asc' },
       select: {

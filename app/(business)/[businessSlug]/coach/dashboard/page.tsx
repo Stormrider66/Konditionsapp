@@ -199,13 +199,13 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
       take: 50,
     }),
 
-    // Training load data for ACWR calculation. Workout-sourced rows only
-    // (acwr: null) — the nightly cron's summary rows duplicate dailyLoad.
+    // Training load data for ACWR calculation. WORKOUT rows only —
+    // ACWR_SUMMARY rows duplicate dailyLoad.
     prisma.trainingLoad.findMany({
       where: {
         client: clientWhere,
         date: { gte: subDays(now, 7) },
-        acwr: null,
+        source: 'WORKOUT',
       },
       select: {
         clientId: true,

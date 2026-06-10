@@ -167,7 +167,7 @@ async function getLatestACWRData(
 ): Promise<{ acwr: number; acwrZone: string; injuryRisk: string } | undefined> {
   try {
     const load = await prisma.trainingLoad.findFirst({
-      where: { clientId, acwr: { not: null } },
+      where: { clientId, source: 'ACWR_SUMMARY' },
       orderBy: { date: 'desc' },
       select: { acwr: true, acwrZone: true, injuryRisk: true },
     })

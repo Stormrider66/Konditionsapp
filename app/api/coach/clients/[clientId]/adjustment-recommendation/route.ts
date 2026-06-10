@@ -58,7 +58,7 @@ export async function GET(_request: NextRequest, { params }: RouteContext) {
 
     // Most recent TrainingLoad row with a computed ACWR.
     const latestLoad = await prisma.trainingLoad.findFirst({
-      where: { clientId, acwr: { not: null } },
+      where: { clientId, source: 'ACWR_SUMMARY' },
       orderBy: { date: 'desc' },
       select: { date: true, acwr: true, acwrZone: true, injuryRisk: true },
     })

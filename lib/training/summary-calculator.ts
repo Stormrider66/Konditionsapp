@@ -135,14 +135,13 @@ async function fetchWeeklyTrainingData(
     adHocWorkouts,
     sportProfile,
   ] = await Promise.all([
-    // Daily training loads (already calculated TSS). Exclude the nightly
-    // ACWR cron's summary rows (acwr set) — their dailyLoad duplicates the
-    // day's workout rows and would double-count the weekly totals.
+    // Daily training loads (already calculated TSS). WORKOUT rows only —
+    // ACWR_SUMMARY rows duplicate dailyLoad and would double-count totals.
     prisma.trainingLoad.findMany({
       where: {
         clientId,
         date: { gte: weekStart, lte: weekEnd },
-        acwr: null,
+        source: 'WORKOUT',
       },
     }),
 
@@ -597,7 +596,7 @@ export async function calculateWeeklySummary(
     where: {
       clientId,
       date: { lte: weekEnd },
-      acwr: { not: null },
+      source: 'ACWR_SUMMARY',
     },
     orderBy: { date: 'desc' },
   })

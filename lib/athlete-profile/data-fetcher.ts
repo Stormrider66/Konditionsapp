@@ -286,6 +286,7 @@ interface TrainingProgramData {
 interface TrainingLoadData {
   id: string
   date: Date
+  source: 'WORKOUT' | 'ACWR_SUMMARY'
   dailyLoad: number
   loadType: string
   acuteLoad: number | null

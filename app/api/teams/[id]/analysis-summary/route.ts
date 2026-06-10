@@ -118,7 +118,7 @@ export async function GET(
       prisma.trainingLoad.findMany({
         where: {
           clientId: { in: memberIds },
-          acwr: { not: null },
+          source: 'ACWR_SUMMARY',
         },
         orderBy: { date: 'desc' },
         select: {

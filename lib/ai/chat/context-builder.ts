@@ -169,8 +169,10 @@ export async function buildChatContext(
 
       if (athleteCheck.sportProfile) {
         const [trainingLoad, strengthData, plannedCount, completedCount] = await Promise.all([
+          // Latest ACWR_SUMMARY row — the coach context reads the EWMA
+          // fields, which workout rows never carry.
           prisma.trainingLoad.findFirst({
-            where: { clientId: athleteId },
+            where: { clientId: athleteId, source: 'ACWR_SUMMARY' },
             orderBy: { date: 'desc' },
           }),
           prisma.strengthSessionAssignment.findMany({

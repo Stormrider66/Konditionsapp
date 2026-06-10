@@ -835,17 +835,32 @@ model DailyMetricsProcessingJob {
 // TRAINING LOAD & ACWR TRACKING
 // ============================================
 
+/// Discriminates the two kinds of TrainingLoad rows:
+/// - WORKOUT: written when a session is logged (strength/cardio/hybrid/
+///   agility/WOD/ad-hoc/team practice/program log). Carries the session's
+///   own dailyLoad; EWMA fields are null.
+/// - ACWR_SUMMARY: one row per athlete per day written by the nightly
+///   calculate-acwr cron. Its dailyLoad DUPLICATES the previous day's
+///   WORKOUT rows; it is the only carrier of acuteLoad/chronicLoad/acwr.
+/// Load sums must filter to WORKOUT; ACWR reads must filter to ACWR_SUMMARY.
+enum TrainingLoadSource {
+  WORKOUT
+  ACWR_SUMMARY
+}
+
 /// Daily training load with ACWR calculation using EWMA method
 model TrainingLoad {
   id       String   @id @default(uuid())
   clientId String
   date     DateTime @db.Date
 
+  source TrainingLoadSource @default(WORKOUT)
+
   // Daily training load
   dailyLoad Float // TSS or TRIMP value
   loadType  String // "TSS", "TRIMP_EDWARDS", "TRIMP_BANISTER", "TRIMP_LUCIA"
 
-  // ACWR calculations
+  // ACWR calculations (ACWR_SUMMARY rows only)
   acuteLoad   Float? // 7-day EWMA
   chronicLoad Float? // 28-day EWMA
   acwr        Float? // Acute:Chronic ratio
@@ -868,6 +883,7 @@ model TrainingLoad {
   createdAt DateTime @default(now())
 
   @@index([clientId, date])
+  @@index([clientId, source, date]) // Load sums (WORKOUT) and latest ACWR (ACWR_SUMMARY)
   @@index([clientId, acwrZone]) // Filter by ACWR risk zone
   @@index([clientId, injuryRisk]) // Filter by injury risk level
 }

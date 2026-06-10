@@ -133,9 +133,9 @@ export async function gatherTrainingSummaryData(
 
   if (!summary) return null
 
-  // Get ACWR data from training loads
+  // Get ACWR data from training loads (only ACWR_SUMMARY rows carry it)
   const latestLoad = await prisma.trainingLoad.findFirst({
-    where: { clientId },
+    where: { clientId, source: 'ACWR_SUMMARY' },
     orderBy: { date: 'desc' },
     select: { acuteLoad: true, chronicLoad: true, acwr: true },
   })

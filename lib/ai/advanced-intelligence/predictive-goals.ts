@@ -162,10 +162,9 @@ export async function predictRaceTimes(
       orderBy: { completedAt: 'desc' },
       take: 100,
     }),
-    // Workout-sourced rows only (acwr: null) — the nightly ACWR cron's
-    // summary rows duplicate dailyLoad.
+    // WORKOUT rows only — ACWR_SUMMARY rows duplicate dailyLoad.
     prisma.trainingLoad.findMany({
-      where: { clientId, acwr: null },
+      where: { clientId, source: 'WORKOUT' },
       orderBy: { date: 'desc' },
       take: 90,
     }),
@@ -214,10 +213,9 @@ export async function calculateTrainingReadiness(
   const daysToGoal = Math.ceil((goalDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
 
   const [trainingLoads, checkIns] = await Promise.all([
-    // Workout-sourced rows only (acwr: null) — the nightly ACWR cron's
-    // summary rows duplicate dailyLoad.
+    // WORKOUT rows only — ACWR_SUMMARY rows duplicate dailyLoad.
     prisma.trainingLoad.findMany({
-      where: { clientId, acwr: null },
+      where: { clientId, source: 'WORKOUT' },
       orderBy: { date: 'desc' },
       take: 42, // 6 weeks
     }),

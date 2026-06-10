@@ -233,9 +233,9 @@ Phase: ${program.currentPhase || 'Unknown'}
   // Weekly summaries
   const weeklyData = groupByWeek(trainingLoads);
   weeklyData.forEach((week, index) => {
-    // Load comes from workout-sourced rows (acwr unset); the nightly cron's
-    // summary rows duplicate dailyLoad but are the only carriers of ACWR.
-    const workoutRows = week.filter(d => d.acwr == null);
+    // Load comes from WORKOUT rows; ACWR_SUMMARY rows duplicate dailyLoad
+    // but are the only carriers of ACWR.
+    const workoutRows = week.filter(d => d.source === 'WORKOUT');
     const avgLoad = workoutRows.length > 0
       ? workoutRows.reduce((sum, d) => sum + (d.dailyLoad || 0), 0) / workoutRows.length
       : 0;

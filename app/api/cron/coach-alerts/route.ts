@@ -554,7 +554,7 @@ async function checkHighACWR(
   const recentLoad = await prisma.trainingLoad.findFirst({
     where: {
       clientId,
-      acwr: { not: null },
+      source: 'ACWR_SUMMARY',
     },
     orderBy: { date: 'desc' },
     select: {

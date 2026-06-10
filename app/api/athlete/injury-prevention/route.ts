@@ -64,10 +64,10 @@ export async function GET(request: NextRequest) {
     const { clientId, user } = resolved
     locale = resolveRequestLocale(request, user.language)
 
-    // Get latest training load with ACWR data. Only the nightly cron's
-    // summary rows carry acwr — a newer workout row would otherwise mask it.
+    // Get latest training load with ACWR data. Only ACWR_SUMMARY rows carry
+    // acwr — a newer workout row would otherwise mask it.
     const latestLoad = await prisma.trainingLoad.findFirst({
-      where: { clientId, acwr: { not: null } },
+      where: { clientId, source: 'ACWR_SUMMARY' },
       orderBy: { date: 'desc' },
       select: {
         acwr: true,
@@ -81,13 +81,13 @@ export async function GET(request: NextRequest) {
     const fourteenDaysAgo = new Date()
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14)
 
-    // ACWR-carrying rows only — workout-sourced rows have null EWMA fields
-    // and would render as zero-dips in the load history chart.
+    // ACWR_SUMMARY rows only — workout rows have null EWMA fields and would
+    // render as zero-dips in the load history chart.
     const loadHistory = await prisma.trainingLoad.findMany({
       where: {
         clientId,
         date: { gte: fourteenDaysAgo },
-        acwr: { not: null },
+        source: 'ACWR_SUMMARY',
       },
       orderBy: { date: 'asc' },
       select: {

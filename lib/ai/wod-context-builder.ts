@@ -304,13 +304,13 @@ export async function buildWODContext(clientId: string, locale: AppLocale = 'en'
       take: 10,
     }),
 
-    // 7. Weekly training load. Workout-sourced rows only (acwr: null) — the
-    // nightly ACWR cron's summary rows duplicate dailyLoad.
+    // 7. Weekly training load. WORKOUT rows only — ACWR_SUMMARY rows
+    // duplicate dailyLoad.
     prisma.trainingLoad.findMany({
       where: {
         clientId,
         date: { gte: sevenDaysAgo },
-        acwr: null,
+        source: 'WORKOUT',
       },
       select: {
         dailyLoad: true,

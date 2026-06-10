@@ -88,9 +88,9 @@ export async function GET(req: NextRequest) {
         orderBy: { date: 'desc' },
         take: 7,
       }),
-      // Latest training load with ACWR
+      // Latest training load with ACWR (only ACWR_SUMMARY rows carry it)
       prisma.trainingLoad.findFirst({
-        where: { clientId },
+        where: { clientId, source: 'ACWR_SUMMARY' },
         orderBy: { date: 'desc' },
       }),
       // Recent completed workouts

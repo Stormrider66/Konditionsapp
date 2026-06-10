@@ -15,10 +15,10 @@ export async function perceiveTrainingLoad(
   clientId: string
 ): Promise<TrainingLoadData> {
   // Get the most recent EWMA-carrying record (written by the nightly ACWR
-  // cron). Workout-sourced rows have null acuteLoad/chronicLoad — without
-  // the filter, a workout logged after the cron run would read as acwr 0.
+  // cron). Without the filter, a workout logged after the cron run would
+  // read as acwr 0.
   const latestLoad = await prisma.trainingLoad.findFirst({
-    where: { clientId, acuteLoad: { not: null } },
+    where: { clientId, source: 'ACWR_SUMMARY' },
     orderBy: { date: 'desc' },
   })
 
@@ -30,7 +30,7 @@ export async function perceiveTrainingLoad(
     where: {
       clientId,
       date: { lte: sevenDaysAgo },
-      acuteLoad: { not: null },
+      source: 'ACWR_SUMMARY',
     },
     orderBy: { date: 'desc' },
   })
@@ -87,13 +87,13 @@ export async function getTrainingLoadHistory(
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)
 
-  // Only the nightly ACWR cron's summary rows carry the EWMA fields;
-  // workout-sourced rows would show up as acwr=0 noise in the history.
+  // Only ACWR_SUMMARY rows carry the EWMA fields; workout rows would show
+  // up as acwr=0 noise in the history.
   const loads = await prisma.trainingLoad.findMany({
     where: {
       clientId,
       date: { gte: startDate },
-      acuteLoad: { not: null },
+      source: 'ACWR_SUMMARY',
     },
     orderBy: { date: 'asc' },
   })
@@ -128,13 +128,13 @@ export async function getWeeklyLoadSummary(
   const weekStart = new Date()
   weekStart.setDate(weekStart.getDate() - 7)
 
-  // Get training loads for the week. Workout-sourced rows only (acwr: null)
-  // — the nightly ACWR cron's summary rows duplicate dailyLoad.
+  // Get training loads for the week. WORKOUT rows only — ACWR_SUMMARY rows
+  // duplicate dailyLoad.
   const loads = await prisma.trainingLoad.findMany({
     where: {
       clientId,
       date: { gte: weekStart },
-      acwr: null,
+      source: 'WORKOUT',
     },
   })
 
@@ -204,13 +204,13 @@ export async function getConsecutiveHardDays(
   const twoWeeksAgo = new Date()
   twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
 
-  // Workout-sourced rows only (acwr: null) — the nightly ACWR cron's
-  // summary rows duplicate dailyLoad and would create phantom hard days.
+  // WORKOUT rows only — ACWR_SUMMARY rows duplicate dailyLoad and would
+  // create phantom hard days.
   const loads = await prisma.trainingLoad.findMany({
     where: {
       clientId,
       date: { gte: twoWeeksAgo },
-      acwr: null,
+      source: 'WORKOUT',
     },
     orderBy: { date: 'desc' },
   })

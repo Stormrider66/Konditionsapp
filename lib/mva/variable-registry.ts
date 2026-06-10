@@ -119,19 +119,19 @@ function getLatestBodyComp(data: AthleteProfileData) {
 
 /**
  * Helper: get latest training load record carrying the EWMA fields.
- * Only the nightly ACWR cron's summary rows have acuteLoad/chronicLoad/acwr
- * set; workout-sourced rows would yield nulls even when EWMA data exists.
+ * Only ACWR_SUMMARY rows (nightly cron) have acuteLoad/chronicLoad/acwr set;
+ * workout rows would yield nulls even when EWMA data exists.
  */
 function getLatestTrainingLoad(data: AthleteProfileData) {
-  return data.training.trainingLoads.find((l) => l.acwr !== null) ?? null
+  return data.training.trainingLoads.find((l) => l.source === 'ACWR_SUMMARY') ?? null
 }
 
 /**
- * Helper: workout-sourced training load rows (acwr unset). The nightly ACWR
- * cron's summary rows duplicate dailyLoad and would double-count load sums.
+ * Helper: WORKOUT rows only. ACWR_SUMMARY rows duplicate dailyLoad and
+ * would double-count load sums.
  */
 function getWorkoutLoads(data: AthleteProfileData) {
-  return data.training.trainingLoads.filter((l) => l.acwr === null)
+  return data.training.trainingLoads.filter((l) => l.source === 'WORKOUT')
 }
 
 /**

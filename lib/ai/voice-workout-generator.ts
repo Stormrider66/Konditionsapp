@@ -620,7 +620,7 @@ async function getAthleteWarnings(clientId: string, locale: AppLocale): Promise<
 
   // Check ACWR from TrainingLoad
   const latestAcwr = await prisma.trainingLoad.findFirst({
-    where: { clientId, acwr: { not: null } },
+    where: { clientId, source: 'ACWR_SUMMARY' },
     orderBy: { date: 'desc' },
     select: { acwr: true, acwrZone: true },
   })

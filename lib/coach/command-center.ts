@@ -126,14 +126,14 @@ export async function getCoachCommandCenterData({
       },
       orderBy: { date: 'desc' },
     }),
-    // Only the nightly ACWR cron's summary rows carry the EWMA fields read
-    // downstream; an unfiltered "latest row per client" could be a workout
-    // row with acwr null, masking an active DANGER/CRITICAL zone.
+    // Only ACWR_SUMMARY rows carry the EWMA fields read downstream; an
+    // unfiltered "latest row per client" could be a workout row with acwr
+    // null, masking an active DANGER/CRITICAL zone.
     prisma.trainingLoad.findMany({
       where: {
         client: clientWhere,
         date: { gte: subDays(now, 7) },
-        acwr: { not: null },
+        source: 'ACWR_SUMMARY',
       },
       select: {
         clientId: true,

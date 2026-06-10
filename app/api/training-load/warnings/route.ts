@@ -63,15 +63,15 @@ export async function GET() {
 
     const athleteIds = athletes.map(a => a.id)
 
-    // Get most recent ACWR-carrying training load for each athlete. Only the
-    // nightly cron's summary rows have acwr set — without this filter a
-    // workout row logged after the cron run would mask an active warning.
+    // Get the most recent ACWR_SUMMARY row for each athlete — without this
+    // filter a workout row logged after the cron run would mask an active
+    // warning.
     const recentLoads = await prisma.trainingLoad.findMany({
       where: {
         clientId: {
           in: athleteIds,
         },
-        acwr: { not: null },
+        source: 'ACWR_SUMMARY',
       },
       orderBy: {
         date: 'desc',

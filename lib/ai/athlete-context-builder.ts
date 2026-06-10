@@ -354,9 +354,10 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
       },
     }),
 
-    // Training load (ACWR) - latest
+    // Training load (ACWR) - latest ACWR_SUMMARY row (workout rows don't
+    // carry the EWMA fields and would mask the values)
     prisma.trainingLoad.findFirst({
-      where: { clientId },
+      where: { clientId, source: 'ACWR_SUMMARY' },
       orderBy: { date: 'desc' },
       select: {
         date: true,

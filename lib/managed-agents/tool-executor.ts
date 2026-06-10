@@ -268,8 +268,10 @@ async function readReadiness(clientId: string, date?: string): Promise<ToolResul
 }
 
 async function readTrainingLoad(clientId: string): Promise<ToolResult> {
+  // Latest ACWR_SUMMARY row — the EWMA fields returned below are only
+  // carried by the nightly cron's rows.
   const load = await prisma.trainingLoad.findFirst({
-    where: { clientId },
+    where: { clientId, source: 'ACWR_SUMMARY' },
     orderBy: { date: 'desc' },
   })
 
@@ -603,7 +605,7 @@ async function detectMilestones(clientId: string): Promise<ToolResult> {
 
 async function calculateInjuryRisk(clientId: string): Promise<ToolResult> {
   const [load, injuries, metrics] = await Promise.all([
-    prisma.trainingLoad.findFirst({ where: { clientId }, orderBy: { date: 'desc' } }),
+    prisma.trainingLoad.findFirst({ where: { clientId, source: 'ACWR_SUMMARY' }, orderBy: { date: 'desc' } }),
     prisma.injuryAssessment.count({ where: { clientId } }),
     prisma.dailyMetrics.findFirst({ where: { clientId }, orderBy: { date: 'desc' } }),
   ])
@@ -1049,9 +1051,9 @@ async function getAthletesNeedingAttention(coachId: string): Promise<ToolResult>
       })
     }
 
-    // Check ACWR
+    // Check ACWR (only ACWR_SUMMARY rows carry it)
     const load = await prisma.trainingLoad.findFirst({
-      where: { clientId: client.id },
+      where: { clientId: client.id, source: 'ACWR_SUMMARY' },
       orderBy: { date: 'desc' },
     })
 

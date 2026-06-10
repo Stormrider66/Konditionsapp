@@ -449,9 +449,9 @@ export async function buildTrainingContext(
   }
   longestStreak = Math.max(longestStreak, currentStreak)
 
-  // Calculate average weekly TSS from workout-sourced rows only — the
-  // nightly ACWR cron's summary rows (acwr set) duplicate dailyLoad.
-  const tssValues = trainingLoads.filter((t) => t.acwr === null && t.dailyLoad !== null).map((t) => t.dailyLoad)
+  // Calculate average weekly TSS from WORKOUT rows only — ACWR_SUMMARY rows
+  // duplicate dailyLoad.
+  const tssValues = trainingLoads.filter((t) => t.source === 'WORKOUT' && t.dailyLoad !== null).map((t) => t.dailyLoad)
   const avgWeeklyTSS = tssValues.length > 0
     ? tssValues.reduce((a, b) => a + b, 0) / weeks
     : 0

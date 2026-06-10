@@ -83,13 +83,13 @@ export async function GET(request: NextRequest) {
         orderBy: { date: 'desc' },
       }),
 
-      // 3. Latest TrainingLoad per client — ACWR. Only the nightly cron's
-      // summary rows carry acwr; a newer workout row would otherwise mask it.
+      // 3. Latest TrainingLoad per client — ACWR. Only ACWR_SUMMARY rows
+      // carry acwr; a newer workout row would otherwise mask it.
       prisma.trainingLoad.findMany({
         where: {
           client: clientWhere,
           date: { gte: subDays(now, 7) },
-          acwr: { not: null },
+          source: 'ACWR_SUMMARY',
         },
         select: {
           clientId: true,

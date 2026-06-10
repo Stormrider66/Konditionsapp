@@ -173,7 +173,7 @@ export async function getTeamRosterStatus(
       where: {
         clientId: { in: memberIds },
         date: { gte: readinessSince, lt: dayEnd },
-        acwrZone: { not: null },
+        source: 'ACWR_SUMMARY',
       },
       select: { clientId: true, acwrZone: true },
       orderBy: { date: 'desc' },

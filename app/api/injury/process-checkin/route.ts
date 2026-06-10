@@ -674,9 +674,10 @@ async function getACWRRisk(clientId: string): Promise<{
   acwr: number | null
 }> {
   try {
-    // Get most recent training load record
+    // Get most recent ACWR-carrying training load record — a workout row
+    // logged after the nightly cron would otherwise mask the ACWR.
     const recentLoad = await prisma.trainingLoad.findFirst({
-      where: { clientId },
+      where: { clientId, source: 'ACWR_SUMMARY' },
       orderBy: { date: 'desc' },
     })
 

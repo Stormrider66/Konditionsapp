@@ -92,10 +92,10 @@ export async function analyzePeriodization(
       : null,
   ])
 
-  // Load sums must use workout-sourced rows only — the nightly ACWR cron's
-  // summary rows duplicate dailyLoad. The full array (with the cron rows) is
-  // still needed where the stored acwr value is read.
-  const workoutLoads = trainingLoads.filter(l => l.acwr === null)
+  // Load sums must use WORKOUT rows only — ACWR_SUMMARY rows duplicate
+  // dailyLoad. The full array (with the summary rows) is still needed where
+  // the stored acwr value is read.
+  const workoutLoads = trainingLoads.filter(l => l.source === 'WORKOUT')
 
   // Determine current phase from program or infer
   const currentPhase = determineCurrentPhase(program, workoutLogs, workoutLoads, locale)
