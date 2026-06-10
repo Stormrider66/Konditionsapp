@@ -20,7 +20,6 @@ import {
   Lock,
   BookOpen,
   Save,
-  ShieldCheck,
   Check,
   ChevronDown,
   Mic,
@@ -32,7 +31,6 @@ import {
   Radio,
   PhoneOff,
 } from 'lucide-react'
-import { Checkbox } from '@/components/ui/checkbox'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { ChatActionCard, type ChatActionResult } from '@/components/ai-studio/ChatActionCard'
 import {
@@ -56,9 +54,8 @@ import { ChatProgramProgressCard } from './ChatProgramProgressCard'
 import { ChatProgramPreviewCard } from './ChatProgramPreviewCard'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import type { MergedProgram } from '@/lib/ai/program-generator'
-import { AIChatUsageMeter, AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
+import { AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import Link from 'next/link'
 import { useFloatingChatDrag } from '@/components/ai-studio/useFloatingChatDrag'
 import {
   getAiAllowanceUpgradeMessage,
@@ -67,6 +64,12 @@ import {
 import { AiAllowanceBlockedAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 import { VoiceModesGuide } from '@/components/ai-studio/VoiceModesGuide'
 import { useAthleteChatVoice } from './useAthleteChatVoice'
+import {
+  AthleteChatConsentPanel,
+  AthleteChatLoadingPanel,
+  AthleteChatNoAccessPanel,
+  AthleteChatSubscriptionPanel,
+} from './AthleteChatGateScreens'
 import { AISkillPicker, type AISkillOption } from '@/components/ai/AISkillPicker'
 import { useLocale, useTranslations } from '@/i18n/client'
 import {
@@ -955,206 +958,42 @@ export function AthleteFloatingChat({
 
   // Loading config
   if (isLoadingConfig) {
-    return (
-      <div
-        className={cn(
-          'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 left-3 right-3 h-[200px] sm:left-auto sm:right-6 sm:w-[380px]'
-        )}
-        style={panelFloatingStyle}
-        data-floating-chat-root
-      >
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">{t('header.title')}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
-    )
+    return <AthleteChatLoadingPanel style={panelFloatingStyle} onClose={handleClose} />
   }
 
   // No AI access (coach hasn't configured keys)
   if (hasAIAccess === false) {
-    return (
-      <div
-        className={cn(
-          'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 left-3 right-3 h-[300px] sm:left-auto sm:right-6 sm:w-[380px]'
-        )}
-        style={panelFloatingStyle}
-        data-floating-chat-root
-      >
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">{t('header.title')}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex-1 flex items-center justify-center p-6 text-center">
-          <div>
-            <Sparkles className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">{t('accessUnavailable.title')}</h3>
-            <p className="text-sm text-muted-foreground">
-              {t('accessUnavailable.description')}
-            </p>
-          </div>
-        </div>
-      </div>
-    )
+    return <AthleteChatNoAccessPanel style={panelFloatingStyle} onClose={handleClose} />
   }
 
   // Subscription error (limit reached)
   if (subscriptionError) {
     return (
-      <div
-        className={cn(
-          'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 left-3 right-3 h-[350px] sm:left-auto sm:right-6 sm:w-[380px]'
-        )}
+      <AthleteChatSubscriptionPanel
         style={panelFloatingStyle}
-        data-floating-chat-root
-      >
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-amber-500 to-orange-500 rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <Lock className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">{t('subscription.title')}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => {
-              setSubscriptionError(null)
-              handleClose()
-            }}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex-1 flex items-center justify-center p-6 text-center">
-          <div>
-            <Lock className="h-12 w-12 mx-auto mb-4 text-amber-500" />
-            <h3 className="font-semibold mb-2">{subscriptionError.message}</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {t('subscription.description')}
-            </p>
-            {subscriptionStatus && subscriptionStatus.limit > 0 && (
-              <div className="mb-4">
-                <AIChatUsageMeter
-                  used={subscriptionStatus.used}
-                  limit={subscriptionStatus.limit}
-                />
-              </div>
-            )}
-            <Link href={`${basePath}${subscriptionError.upgradeUrl || '/athlete/subscription'}`}>
-              <Button className="bg-amber-600 hover:bg-amber-700">
-                {subscriptionError.actionLabel || t('subscription.action')}
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
+        onClose={() => {
+          setSubscriptionError(null)
+          handleClose()
+        }}
+        error={subscriptionError}
+        usage={subscriptionStatus}
+      />
     )
   }
 
   // GDPR consent required
   if (consentStatus === 'required') {
     return (
-      <div
-        className={cn(
-          'fixed z-50 bg-background border rounded-lg shadow-2xl flex flex-col',
-          'bottom-6 left-3 right-3 max-h-[420px] sm:left-auto sm:right-6 sm:w-[380px]'
-        )}
+      <AthleteChatConsentPanel
         style={panelFloatingStyle}
-        data-floating-chat-root
-      >
-        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-emerald-600 to-teal-600 rounded-t-lg">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-white" />
-            <span className="font-semibold text-white">{t('consent.title')}</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-8 w-8 text-white hover:bg-white/20"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-        <div className="flex-1 p-5 overflow-y-auto">
-          <div className="text-center mb-4">
-            <ShieldCheck className="h-10 w-10 mx-auto mb-3 text-emerald-600" />
-            <h3 className="font-semibold mb-1">{t('consent.heading')}</h3>
-            <p className="text-xs text-muted-foreground">
-              {t('consent.description')}
-            </p>
-          </div>
-          <div className="space-y-3 mb-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <Checkbox
-                checked={consentDataProcessing}
-                onCheckedChange={(checked) => setConsentDataProcessing(checked === true)}
-                className="mt-0.5"
-              />
-              <div>
-                <span className="text-sm font-medium">{t('consent.trainingDataLabel')}</span>
-                <p className="text-xs text-muted-foreground">
-                  {t('consent.trainingDataDescription')}
-                </p>
-              </div>
-            </label>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <Checkbox
-                checked={consentHealthData}
-                onCheckedChange={(checked) => setConsentHealthData(checked === true)}
-                className="mt-0.5"
-              />
-              <div>
-                <span className="text-sm font-medium">{t('consent.healthDataLabel')}</span>
-                <p className="text-xs text-muted-foreground">
-                  {t('consent.healthDataDescription')}
-                </p>
-              </div>
-            </label>
-          </div>
-          <Button
-            onClick={handleGrantConsent}
-            disabled={!consentDataProcessing || !consentHealthData || isGrantingConsent}
-            className="w-full bg-emerald-600 hover:bg-emerald-700"
-          >
-            {isGrantingConsent ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <ShieldCheck className="h-4 w-4 mr-2" />
-            )}
-            {t('consent.approve')}
-          </Button>
-          <p className="text-[10px] text-muted-foreground text-center mt-2">
-            {t('consent.revokeHint')}
-          </p>
-        </div>
-      </div>
+        onClose={handleClose}
+        dataProcessing={consentDataProcessing}
+        onDataProcessingChange={setConsentDataProcessing}
+        healthData={consentHealthData}
+        onHealthDataChange={setConsentHealthData}
+        isGranting={isGrantingConsent}
+        onGrant={() => { void handleGrantConsent() }}
+      />
     )
   }
 

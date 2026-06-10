@@ -43,7 +43,9 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
   // Volatile options (input value, send function) are read through a ref so
   // the callbacks below keep stable identities without going stale.
   const optionsRef = useRef(options)
-  optionsRef.current = options
+  useEffect(() => {
+    optionsRef.current = options
+  })
   const addAssistantNotice = useCallback((content: string) => {
     optionsRef.current.addAssistantNotice(content)
   }, [])
