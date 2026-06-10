@@ -1,6 +1,6 @@
 # Athlete Profile (Coach Mode) — IA Redesign & Implementation Plan
 
-Status: **design approved, implementation not started** (2026-06-06)
+Status: **implemented — all phases 0–4 shipped** (2026-06-06; commits `4a8a2a15` phases 0–2, `5c479188` phases 3–4, `5c9bb870` team-plan surfacing, `7156644b` endurance-table gating). The deferred Phase-0 step 3 (server-side parallel data loading, no more fetch-on-mount waterfall) shipped 2026-06-10 (`7224f427`). Remaining optional: orphaned IntegrationToken cleanup; full legacy endurance-table replacement.
 Scope: the coach-mode athlete profile at `app/(business)/[businessSlug]/coach/clients/[id]/page.tsx`.
 
 ---
