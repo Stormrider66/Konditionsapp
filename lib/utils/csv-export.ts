@@ -108,6 +108,53 @@ export function exportClientsToCSV(clients: Client[], localeValue?: string): voi
   downloadCSV(csv, filename)
 }
 
+interface ExportableMealLog {
+  date: string
+  mealType: string
+  time?: string | null
+  description: string
+  calories?: number | null
+  proteinGrams?: number | null
+  carbsGrams?: number | null
+  fatGrams?: number | null
+  fiberGrams?: number | null
+}
+
+/**
+ * Export meal logs to CSV (one row per meal)
+ */
+export function exportMealsToCSV(meals: ExportableMealLog[], localeValue?: string): void {
+  const locale = getExportLocale(localeValue)
+  if (meals.length === 0) return
+
+  const data = meals.map((meal) => ({
+    date: format(new Date(meal.date), 'yyyy-MM-dd'),
+    mealType: meal.mealType,
+    time: meal.time || '',
+    description: meal.description,
+    calories: meal.calories ?? '',
+    proteinGrams: meal.proteinGrams ?? '',
+    carbsGrams: meal.carbsGrams ?? '',
+    fatGrams: meal.fatGrams ?? '',
+    fiberGrams: meal.fiberGrams ?? '',
+  }))
+
+  const headers = [
+    'date',
+    'mealType',
+    'time',
+    'description',
+    'calories',
+    'proteinGrams',
+    'carbsGrams',
+    'fatGrams',
+    'fiberGrams',
+  ]
+  const csv = convertToCSV(data, headers)
+  const filename = `${text(locale, 'kost', 'nutrition')}_${format(new Date(), 'yyyy-MM-dd')}.csv`
+  downloadCSV(csv, filename)
+}
+
 /**
  * Export test data to CSV
  */

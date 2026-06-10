@@ -347,6 +347,14 @@ export interface GuidanceGeneratorInput {
     muscleMassKg?: number
     bmrKcal?: number
   } | null
+  /** Races from the athlete's race calendar within the next ~7 days.
+   * Drives isRaceWeek and the pre-race carb-load trigger. */
+  upcomingRaces?: Array<{
+    date: Date
+    name?: string | null
+    distance?: string | null
+    classification?: string | null
+  }> | null
 }
 
 // ==========================================

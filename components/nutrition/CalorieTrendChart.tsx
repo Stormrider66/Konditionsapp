@@ -13,6 +13,7 @@ import {
 } from 'recharts'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { TrendingUp } from 'lucide-react'
+import { useLocale, useTranslations } from '@/i18n/client'
 
 interface DailyTotal {
   date: string
@@ -26,14 +27,14 @@ interface CalorieTrendChartProps {
   dailyTotals: DailyTotal[]
 }
 
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr)
-  const day = d.getDate()
-  const months = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'aug', 'sep', 'okt', 'nov', 'dec']
-  return `${day} ${months[d.getMonth()]}`
+function formatDateLabel(dateStr: string, locale: string): string {
+  // Day keys are UTC midnights — format in UTC so the label can't shift a day.
+  return new Date(dateStr).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' })
 }
 
 export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
+  const t = useTranslations('components.calorieTrendChart')
+  const locale = useLocale()
   const axisColor = 'hsl(var(--muted-foreground))'
   const gridColor = 'hsl(var(--border))'
   const tooltipStyle = {
@@ -53,12 +54,12 @@ export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
       )
 
       return {
-        date: formatDateLabel(day.date),
+        date: formatDateLabel(day.date, locale),
         calories: Math.round(day.calories),
         movingAvg,
       }
     })
-  }, [dailyTotals])
+  }, [dailyTotals, locale])
 
   const avgCalories = dailyTotals.length > 0
     ? Math.round(dailyTotals.reduce((s, d) => s + d.calories, 0) / dailyTotals.length)
@@ -70,10 +71,10 @@ export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
         <div className="flex items-center justify-between">
           <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 flex items-center gap-2">
             <TrendingUp className="h-4 w-4" />
-            Kalorier per dag
+            {t('title')}
           </GlassCardTitle>
           <span className="text-sm text-slate-500 dark:text-slate-400">
-            Snitt: <span className="text-slate-900 dark:text-white font-medium">{avgCalories} kcal</span>
+            {t('average')} <span className="text-slate-900 dark:text-white font-medium">{avgCalories} kcal</span>
           </span>
         </div>
       </GlassCardHeader>
@@ -97,7 +98,7 @@ export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
                 dataKey="calories"
                 fill="rgba(6,182,212,0.4)"
                 radius={[3, 3, 0, 0]}
-                name="Kalorier"
+                name={t('series.calories')}
               />
               <Line
                 type="monotone"
@@ -105,7 +106,7 @@ export function CalorieTrendChart({ dailyTotals }: CalorieTrendChartProps) {
                 stroke="#06b6d4"
                 strokeWidth={2}
                 dot={false}
-                name="7-dagars snitt"
+                name={t('series.movingAvg')}
               />
             </ComposedChart>
           </ResponsiveContainer>

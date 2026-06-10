@@ -9,8 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Loader2, UtensilsCrossed, TrendingUp, PieChart, Pencil, Trash2 } from 'lucide-react'
+import { Loader2, UtensilsCrossed, TrendingUp, PieChart, Pencil, Trash2, Download } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import { QuickMealLog, type EditMealData } from '@/components/athlete/nutrition/QuickMealLog'
+import { exportMealsToCSV } from '@/lib/utils/csv-export'
+import { localDayKey } from '@/lib/nutrition/day-key'
 import { MealType } from '@prisma/client'
 import {
   BarChart,
@@ -126,6 +129,37 @@ export function FoodHistoryPage() {
   const [timelineData, setTimelineData] = useState<TimelineMeal[]>([])
   const [editingMeal, setEditingMeal] = useState<EditMealData | null>(null)
   const [deletingMealId, setDeletingMealId] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportCSV = async () => {
+    setExporting(true)
+    try {
+      const rangeDays: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, '365d': 365 }
+      const endKey = localDayKey()
+      const startKey = range === 'all'
+        ? '2000-01-01'
+        : localDayKey(new Date(Date.now() - (rangeDays[range] ?? 30) * 24 * 60 * 60 * 1000))
+      const res = await fetch(`/api/meals?startDate=${startKey}&endDate=${endKey}`)
+      if (!res.ok) return
+      const json = await res.json()
+      const meals = (json.data?.meals ?? []) as Array<{
+        date: string
+        mealType: string
+        time: string | null
+        description: string
+        calories: number | null
+        proteinGrams: number | null
+        carbsGrams: number | null
+        fatGrams: number | null
+        fiberGrams: number | null
+      }>
+      exportMealsToCSV(meals, locale)
+    } catch {
+      // Silently fail, consistent with fetchData
+    } finally {
+      setExporting(false)
+    }
+  }
 
   const handleDeleteMeal = async (mealId: string) => {
     if (!confirm(t('confirmDeleteMeal'))) return
@@ -209,6 +243,16 @@ export function FoodHistoryPage() {
             ))}
           </SelectContent>
         </Select>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={handleExportCSV}
+          disabled={exporting}
+        >
+          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+          {t('export.csv')}
+        </Button>
       </div>
 
       {loading ? (

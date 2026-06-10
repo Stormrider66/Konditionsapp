@@ -166,6 +166,17 @@ export async function GET(request: NextRequest) {
       }),
     ])
 
+    // Races within the next 7 days drive race-week messaging and the
+    // pre-race carb-load trigger in the generator.
+    const upcomingRaces = await prisma.race.findMany({
+      where: {
+        clientId: client.id,
+        date: { gte: todayStart, lte: addDays(todayEnd, 7) },
+      },
+      select: { date: true, name: true, distance: true, classification: true },
+      orderBy: { date: 'asc' },
+    })
+
     // Map to WorkoutContext type
     const mapToContext = (
       w: {
@@ -345,6 +356,7 @@ export async function GET(request: NextRequest) {
             muscleMassKg: bodyComposition?.muscleMassKg ?? undefined,
           }
         : undefined,
+      upcomingRaces,
     }
 
     // Generate guidance

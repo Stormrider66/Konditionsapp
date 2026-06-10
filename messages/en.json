@@ -12553,6 +12553,14 @@
         "description": "Your wrapped — monthly and yearly overview"
       }
     },
+    "calorieTrendChart": {
+      "title": "Calories per day",
+      "average": "Avg:",
+      "series": {
+        "calories": "Calories",
+        "movingAvg": "7-day average"
+      }
+    },
     "goalAdherenceCard": {
       "title": "Goal adherence",
       "subtitle": "Share of days within ±10% of that day's target",
@@ -12571,6 +12579,9 @@
         "ninetyDays": "Last 3 months",
         "oneYear": "Last year",
         "allTime": "All time"
+      },
+      "export": {
+        "csv": "Export CSV"
       },
       "views": {
         "topFoods": "Top foods",

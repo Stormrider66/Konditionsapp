@@ -317,4 +317,43 @@ describe('generateDailyGuidance', () => {
       expect(t.macroWarnings.join(' ')).toContain('Custom protein percentage adjusted')
     })
   })
+
+  describe('race week', () => {
+    it('flags race week when a race is within 7 days', () => {
+      const input = createInput([])
+      input.upcomingRaces = [
+        { date: new Date('2026-03-21T10:00:00.000Z'), name: 'Spring 10K', distance: '10K', classification: 'A' },
+      ]
+      const guidance = generateDailyGuidance(input)
+      expect(guidance.isRaceWeek).toBe(true)
+    })
+
+    it('stays false with no races or races beyond 7 days', () => {
+      const noRaces = generateDailyGuidance(createInput([]))
+      expect(noRaces.isRaceWeek).toBe(false)
+
+      const farRace = createInput([])
+      farRace.upcomingRaces = [
+        { date: new Date('2026-04-15T10:00:00.000Z'), name: 'Marathon', distance: 'MARATHON' },
+      ]
+      expect(generateDailyGuidance(farRace).isRaceWeek).toBe(false)
+    })
+
+    it('triggers carb load within 48h of a half marathon or longer, not for short races', () => {
+      const marathonEve = createInput([])
+      marathonEve.upcomingRaces = [
+        { date: new Date('2026-03-18T09:00:00.000Z'), name: 'Marathon', distance: 'MARATHON' },
+      ]
+      const loaded = generateDailyGuidance(marathonEve)
+      expect(loaded.targets.carbLoadCategory).toBe('CARB_LOAD')
+
+      const fiveKEve = createInput([])
+      fiveKEve.upcomingRaces = [
+        { date: new Date('2026-03-18T09:00:00.000Z'), name: 'Parkrun', distance: '5K' },
+      ]
+      const notLoaded = generateDailyGuidance(fiveKEve)
+      expect(notLoaded.targets.carbLoadCategory).not.toBe('CARB_LOAD')
+      expect(notLoaded.isRaceWeek).toBe(true)
+    })
+  })
 })

@@ -102,8 +102,22 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
   const isDoubleDay = fuelingRelevantTodaysWorkouts.length >= 2
   const goalType = goal?.goalType
 
-  // Determine if it's race week (look for race in next 7 days)
-  const isRaceWeek = false // TODO: Integrate with race calendar
+  // Race week: any race-calendar entry within the next 7 days.
+  const DAY_MS = 24 * 60 * 60 * 1000
+  const upcomingRaces = input.upcomingRaces ?? []
+  const msUntilRace = (raceDate: Date) =>
+    (raceDate instanceof Date ? raceDate : new Date(raceDate)).getTime() - currentTime.getTime()
+  const isRaceWeek = upcomingRaces.some((race) => {
+    const ms = msUntilRace(race.date)
+    return ms >= -DAY_MS && ms <= 7 * DAY_MS
+  })
+  // Pre-race carb load (10–12 g/kg per timing-rules) applies in the final
+  // 48h before glycogen-limited events — half marathon and up. Shorter
+  // races don't deplete glycogen enough to warrant loading.
+  const carbLoadTrigger = upcomingRaces.some((race) => {
+    const ms = msUntilRace(race.date)
+    return ms >= 0 && ms <= 2 * DAY_MS && /MARATHON|HALF|ULTRA/i.test(race.distance ?? '')
+  })
 
   // Calculate daily targets
   const targets = calculateDailyTargets(
@@ -117,6 +131,7 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
       currentDate: currentTime,
       gender: client.gender,
       primarySport: sportProfile?.primarySport,
+      carbLoadTrigger,
     }
   )
 

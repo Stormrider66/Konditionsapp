@@ -12913,6 +12913,14 @@
         "description": "Din wrapped — månads- och årsöversikt"
       }
     },
+    "calorieTrendChart": {
+      "title": "Kalorier per dag",
+      "average": "Snitt:",
+      "series": {
+        "calories": "Kalorier",
+        "movingAvg": "7-dagars snitt"
+      }
+    },
     "goalAdherenceCard": {
       "title": "Måluppfyllelse",
       "subtitle": "Andel dagar inom ±10% av dagens mål",
@@ -12931,6 +12939,9 @@
         "ninetyDays": "Senaste 3 månaderna",
         "oneYear": "Senaste året",
         "allTime": "Alla tider"
+      },
+      "export": {
+        "csv": "Exportera CSV"
       },
       "views": {
         "topFoods": "Topplivsmedel",

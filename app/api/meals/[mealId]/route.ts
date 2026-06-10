@@ -176,6 +176,43 @@ export async function PATCH(
     }
 
     const { items, ...mealUpdate } = data
+
+    // Keep the denormalized MealLog totals in sync with a replaced item
+    // breakdown: any total field NOT explicitly sent in the payload is
+    // recomputed from the new items, so the meal can't drift from its own
+    // breakdown. Explicitly sent totals are respected (a meal-level estimate
+    // may intentionally exceed a partial breakdown).
+    if (items !== undefined && items.length > 0) {
+      type Item = NonNullable<typeof items>[number]
+      const sum = (pick: (item: Item) => number | undefined) =>
+        items.reduce((acc, item) => acc + (pick(item) ?? 0), 0)
+      const round1 = (value: number) => Math.round(value * 10) / 10
+      // null when no item carries the field — unknown, not known-zero.
+      const sumOrNull = (pick: (item: Item) => number | undefined) =>
+        items.some((item) => pick(item) != null) ? round1(sum(pick)) : null
+
+      const recomputed = {
+        calories: Math.round(sum((i) => i.calories)),
+        proteinGrams: round1(sum((i) => i.proteinGrams)),
+        carbsGrams: round1(sum((i) => i.carbsGrams)),
+        fatGrams: round1(sum((i) => i.fatGrams)),
+        fiberGrams: sumOrNull((i) => i.fiberGrams),
+        saturatedFatGrams: sumOrNull((i) => i.saturatedFatGrams),
+        monounsaturatedFatGrams: sumOrNull((i) => i.monounsaturatedFatGrams),
+        polyunsaturatedFatGrams: sumOrNull((i) => i.polyunsaturatedFatGrams),
+        sugarGrams: sumOrNull((i) => i.sugarGrams),
+        complexCarbsGrams: sumOrNull((i) => i.complexCarbsGrams),
+      }
+      for (const [key, value] of Object.entries(recomputed)) {
+        if ((mealUpdate as Record<string, unknown>)[key] === undefined) {
+          ;(mealUpdate as Record<string, unknown>)[key] = value
+        }
+      }
+      if (mealUpdate.proteinGrams != null) {
+        mealUpdate.isHighProtein = mealUpdate.proteinGrams >= 20
+      }
+    }
+
     const meal = await prisma.$transaction(async (tx) => {
       const updated = await tx.mealLog.update({
         where: { id: mealId },
