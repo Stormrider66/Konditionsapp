@@ -10,6 +10,12 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { hasProTierAccess } from '@/lib/subscription/require-feature-access'
+import {
+  detectFormat,
+  extractSimcaSummaryFromContent,
+  validateSimcaImport,
+  matchRoster,
+} from '@/lib/mva/simca-parse'
 import type { Prisma, SportType } from '@prisma/client'
 
 const MAX_IMPORT_CHARS = 1_000_000
@@ -26,18 +32,6 @@ async function getUserLocale(userId: string): Promise<AppLocale> {
     select: { language: true },
   })
   return appUser?.language === 'sv' ? 'sv' : 'en'
-}
-
-function detectFormat(fileName: string, content: string): 'json' | 'csv' | 'text' {
-  const lower = fileName.toLowerCase()
-  if (lower.endsWith('.json')) return 'json'
-  if (lower.endsWith('.csv') || lower.endsWith('.tsv')) return 'csv'
-  const trimmed = content.trim()
-  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-    return 'json'
-  }
-  if (trimmed.includes(',') || trimmed.includes('\t') || trimmed.includes(';')) return 'csv'
-  return 'text'
 }
 
 function countRows(content: string): number {
@@ -65,14 +59,6 @@ function readDelimitedMetadata(content: string): { exportVersion?: string; expor
     exportVersion: byHeader.get('simca_export_version') || undefined,
     exportPreset: byHeader.get('simca_export_preset') || undefined,
     exportedAt: byHeader.get('simca_export_generated_at') || undefined,
-  }
-}
-
-function tryParseJson(content: string): unknown | null {
-  try {
-    return JSON.parse(content)
-  } catch {
-    return null
   }
 }
 
@@ -147,6 +133,12 @@ export async function GET(
           exportVersion?: string
           exportPreset?: string
           exportedAt?: string
+          detectedAthletes?: number
+          detectedVip?: number
+          matchedRoster?: number
+          unmatchedSimca?: number
+          importedByName?: string
+          warnings?: { code: string; severity: 'info' | 'warning'; messageEn: string; messageSv: string }[]
         }
 
         return {
@@ -159,6 +151,12 @@ export async function GET(
           exportVersion: config.exportVersion ?? null,
           exportPreset: config.exportPreset ?? null,
           exportedAt: config.exportedAt ?? null,
+          detectedAthletes: config.detectedAthletes ?? null,
+          detectedVip: config.detectedVip ?? null,
+          matchedRoster: config.matchedRoster ?? null,
+          unmatchedSimca: config.unmatchedSimca ?? null,
+          importedByName: config.importedByName ?? null,
+          warnings: config.warnings ?? [],
         }
       }),
     })
@@ -199,11 +197,29 @@ export async function POST(
     }
 
     const format = detectFormat(fileName, content)
-    const parsedJson = format === 'json' ? tryParseJson(content) : null
+    const parsedJson = format === 'json'
+      ? (() => { try { return JSON.parse(content) } catch { return null } })()
+      : null
     const rowCount = format === 'json' ? 0 : countRows(content)
     const columnCount = format === 'json' ? 0 : countColumns(content)
     const metadata = format === 'csv' ? readDelimitedMetadata(content) : {}
     const sport: SportType = auth.team.sportType || 'GENERAL_FITNESS'
+
+    // Parse the SIMCA artifact up-front instead of deferring to compare time,
+    // so the coach learns immediately what was recognized and validated.
+    const summary = extractSimcaSummaryFromContent(content, format)
+    const warnings = validateSimcaImport(summary, rowCount, format)
+
+    // Match recognized athletes against the team roster + record provenance.
+    const [roster, importer] = await Promise.all([
+      prisma.team.findUnique({
+        where: { id: teamId },
+        select: { members: { select: { id: true, name: true } } },
+      }),
+      prisma.user.findUnique({ where: { id: auth.user.id }, select: { name: true, email: true } }),
+    ])
+    const rosterMatch = matchRoster(summary.athletes, roster?.members ?? [])
+    const importedByName = importer?.name || importer?.email || 'Unknown'
 
     const model = await prisma.mVAModel.create({
       data: {
@@ -221,7 +237,14 @@ export async function POST(
           exportPreset: metadata.exportPreset ?? null,
           exportedAt: metadata.exportedAt ?? null,
           importedAt: new Date().toISOString(),
-        } as Prisma.InputJsonValue,
+          importedBy: auth.user.id,
+          importedByName,
+          detectedAthletes: summary.athletes.length,
+          detectedVip: summary.vipScores.length,
+          matchedRoster: rosterMatch.matched.length,
+          unmatchedSimca: rosterMatch.unmatchedSimca.length,
+          warnings,
+        } as unknown as Prisma.InputJsonValue,
         xVariables: [],
         nObservations: rowCount,
         nXVariables: columnCount,
@@ -232,7 +255,9 @@ export async function POST(
           format,
           content,
           json: parsedJson,
-        } as Prisma.InputJsonValue,
+          summary,
+          rosterMatch,
+        } as unknown as Prisma.InputJsonValue,
         status: 'IMPORTED',
       },
     })
@@ -245,6 +270,12 @@ export async function POST(
         format,
         rowCount,
         columnCount,
+        detectedAthletes: summary.athletes.length,
+        detectedVip: summary.vipScores.length,
+        matchedRoster: rosterMatch.matched.length,
+        unmatchedSimca: rosterMatch.unmatchedSimca,
+        unmatchedRoster: rosterMatch.unmatchedRoster,
+        warnings,
       },
     })
   } catch (error) {

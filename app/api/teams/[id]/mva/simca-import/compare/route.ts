@@ -1,43 +1,20 @@
 /**
  * Compare two imported SIMCA artifacts.
  *
- * The first pass intentionally accepts loose SIMCA exports. It extracts
- * common score/outlier/VIP columns from JSON or delimited text so coaches can
- * compare monthly result files without needing one exact desktop export shape.
+ * Parsing/extraction lives in lib/mva/simca-parse (shared with the import
+ * route). Imports created after the structured-summary change carry a
+ * pre-parsed `summary` in modelData; older imports are parsed on the fly so
+ * historic files still compare.
  */
 
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { hasProTierAccess } from '@/lib/subscription/require-feature-access'
+import { extractSimcaSummary } from '@/lib/mva/simca-parse'
+import type { SimcaAthleteScore, SimcaSummary, SimcaImportWarning } from '@/lib/mva/simca-parse'
 
 type AppLocale = 'en' | 'sv'
-
-interface SimcaAthleteScore {
-  key: string
-  name: string
-  pc1: number | null
-  pc2: number | null
-  hotellingT2: number | null
-  dmodx: number | null
-  isOutlier: boolean
-}
-
-interface SimcaVipScore {
-  key: string
-  variableName: string
-  vip: number
-  coefficient: number | null
-}
-
-interface SimcaSummary {
-  athletes: SimcaAthleteScore[]
-  vipScores: SimcaVipScore[]
-}
-
-function normalizeKey(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9åäö]/gi, '')
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -51,159 +28,13 @@ async function getUserLocale(userId: string): Promise<AppLocale> {
   return appUser?.language === 'sv' ? 'sv' : 'en'
 }
 
-function safeNumber(value: unknown): number | null {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value !== 'string') return null
-  const parsed = Number(value.trim().replace(',', '.'))
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-function safeString(value: unknown): string | null {
-  if (typeof value === 'string' && value.trim()) return value.trim()
-  if (typeof value === 'number') return String(value)
-  return null
-}
-
-function safeBoolean(value: unknown): boolean {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'number') return value !== 0
-  if (typeof value !== 'string') return false
-  const normalized = value.trim().toLowerCase()
-  return ['1', 'true', 'yes', 'ja', 'outlier', 'outside', 'utanför'].includes(normalized)
-}
-
-function parseDelimitedLine(line: string, delimiter: string): string[] {
-  const cells: string[] = []
-  let cell = ''
-  let quoted = false
-
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i]
-    const next = line[i + 1]
-
-    if (char === '"' && quoted && next === '"') {
-      cell += '"'
-      i += 1
-    } else if (char === '"') {
-      quoted = !quoted
-    } else if (char === delimiter && !quoted) {
-      cells.push(cell.trim())
-      cell = ''
-    } else {
-      cell += char
-    }
+/** Prefer the structured summary stored at import time; fall back to parsing. */
+function getSummary(modelData: unknown): SimcaSummary {
+  const data = modelData as { summary?: SimcaSummary } | null
+  if (data?.summary && Array.isArray(data.summary.athletes) && Array.isArray(data.summary.vipScores)) {
+    return data.summary
   }
-
-  cells.push(cell.trim())
-  return cells
-}
-
-function parseDelimitedRows(content: string): Record<string, string>[] {
-  const lines = content.split(/\r?\n/).filter((line) => line.trim())
-  if (lines.length < 2) return []
-
-  const headerLine = lines[0]
-  const delimiter = headerLine.includes('\t') ? '\t' : headerLine.includes(';') ? ';' : ','
-  const headers = parseDelimitedLine(headerLine, delimiter)
-
-  return lines.slice(1).map((line) => {
-    const cells = parseDelimitedLine(line, delimiter)
-    const row: Record<string, string> = {}
-    headers.forEach((header, index) => {
-      row[header] = cells[index] ?? ''
-    })
-    return row
-  })
-}
-
-function getValue(row: Record<string, unknown>, candidates: string[]): unknown {
-  const normalizedCandidates = candidates.map(normalizeKey)
-  const entries = Object.entries(row).map(([key, value]) => [normalizeKey(key), value] as const)
-  const exact = entries.find(([key]) => normalizedCandidates.includes(key))
-  if (exact) return exact[1]
-
-  const partial = entries.find(([key]) => normalizedCandidates.some((candidate) => key.includes(candidate)))
-  return partial?.[1]
-}
-
-function rowToAthlete(row: Record<string, unknown>): SimcaAthleteScore | null {
-  const name = safeString(getValue(row, ['athlete', 'athleteName', 'player', 'playerName', 'object', 'objectName', 'name', 'id']))
-  if (!name) return null
-
-  const pc1 = safeNumber(getValue(row, ['pc1', 't1', 'score1', 'component1']))
-  const pc2 = safeNumber(getValue(row, ['pc2', 'score2', 'component2']))
-  const hotellingT2 = safeNumber(getValue(row, ['hotelling', 'hotellingT2', 't2hotelling', 'tSquared']))
-  const dmodx = safeNumber(getValue(row, ['dmodx', 'dmodxps', 'distanceToModel']))
-  const outlierValue = getValue(row, ['outlier', 'isOutlier', 'outside', 'flag'])
-
-  if (pc1 === null && pc2 === null && hotellingT2 === null && dmodx === null && outlierValue === undefined) {
-    return null
-  }
-
-  return {
-    key: normalizeKey(name),
-    name,
-    pc1,
-    pc2,
-    hotellingT2,
-    dmodx,
-    isOutlier: safeBoolean(outlierValue),
-  }
-}
-
-function rowToVip(row: Record<string, unknown>): SimcaVipScore | null {
-  const variableName = safeString(getValue(row, ['variable', 'variableName', 'xVariable', 'x', 'name']))
-  const vip = safeNumber(getValue(row, ['vip', 'vipScore', 'vipPred', 'variableImportance']))
-  if (!variableName || vip === null) return null
-
-  return {
-    key: normalizeKey(variableName),
-    variableName,
-    vip,
-    coefficient: safeNumber(getValue(row, ['coefficient', 'coeff', 'coef', 'loading', 'p1'])),
-  }
-}
-
-function collectObjectRows(value: unknown, rows: Record<string, unknown>[] = []): Record<string, unknown>[] {
-  if (Array.isArray(value)) {
-    value.forEach((item) => {
-      if (item && typeof item === 'object' && !Array.isArray(item)) {
-        rows.push(item as Record<string, unknown>)
-      } else {
-        collectObjectRows(item, rows)
-      }
-    })
-    return rows
-  }
-
-  if (value && typeof value === 'object') {
-    Object.values(value).forEach((child) => collectObjectRows(child, rows))
-  }
-
-  return rows
-}
-
-function uniqueByKey<T extends { key: string }>(items: T[]): T[] {
-  const seen = new Set<string>()
-  return items.filter((item) => {
-    if (seen.has(item.key)) return false
-    seen.add(item.key)
-    return true
-  })
-}
-
-function extractSimcaSummary(modelData: unknown): SimcaSummary {
-  const data = modelData as { content?: string; json?: unknown; format?: string }
-  const rows = data.json
-    ? collectObjectRows(data.json)
-    : data.content
-      ? parseDelimitedRows(data.content)
-      : []
-
-  const athletes = uniqueByKey(rows.map(rowToAthlete).filter((item): item is SimcaAthleteScore => Boolean(item)))
-  const vipScores = uniqueByKey(rows.map(rowToVip).filter((item): item is SimcaVipScore => Boolean(item)))
-
-  return { athletes, vipScores }
+  return extractSimcaSummary(modelData)
 }
 
 function distance(
@@ -214,6 +45,64 @@ function distance(
   const pc1Delta = current.pc1 - baseline.pc1
   const pc2Delta = baseline.pc2 !== null && current.pc2 !== null ? current.pc2 - baseline.pc2 : 0
   return Math.sqrt(pc1Delta ** 2 + pc2Delta ** 2)
+}
+
+interface ImportConfig {
+  fileName?: string
+  exportPreset?: string | null
+  exportVersion?: string | null
+}
+
+/**
+ * Warn when the two artifacts are unlikely to be directly comparable:
+ * different export presets/versions, or barely-overlapping athlete sets.
+ */
+function compatibilityWarnings(
+  baselineConfig: ImportConfig,
+  currentConfig: ImportConfig,
+  baselineSummary: SimcaSummary,
+  currentSummary: SimcaSummary,
+  matchedAthletes: number
+): SimcaImportWarning[] {
+  const warnings: SimcaImportWarning[] = []
+
+  if (
+    baselineConfig.exportPreset &&
+    currentConfig.exportPreset &&
+    baselineConfig.exportPreset !== currentConfig.exportPreset
+  ) {
+    warnings.push({
+      code: 'preset_mismatch',
+      severity: 'warning',
+      messageEn: `The two files came from different export presets (${baselineConfig.exportPreset} vs ${currentConfig.exportPreset}). Variables may differ, so VIP changes can be misleading.`,
+      messageSv: `Filerna kommer från olika exportförinställningar (${baselineConfig.exportPreset} vs ${currentConfig.exportPreset}). Variabler kan skilja sig, så VIP-förändringar kan vara missvisande.`,
+    })
+  }
+
+  if (
+    baselineConfig.exportVersion &&
+    currentConfig.exportVersion &&
+    baselineConfig.exportVersion !== currentConfig.exportVersion
+  ) {
+    warnings.push({
+      code: 'version_mismatch',
+      severity: 'info',
+      messageEn: `The files use different export versions (${baselineConfig.exportVersion} vs ${currentConfig.exportVersion}). Column meaning may have shifted between versions.`,
+      messageSv: `Filerna använder olika exportversioner (${baselineConfig.exportVersion} vs ${currentConfig.exportVersion}). Kolumnernas betydelse kan ha ändrats mellan versioner.`,
+    })
+  }
+
+  const smaller = Math.min(baselineSummary.athletes.length, currentSummary.athletes.length)
+  if (smaller > 0 && matchedAthletes / smaller < 0.5) {
+    warnings.push({
+      code: 'low_overlap',
+      severity: 'warning',
+      messageEn: `Only ${matchedAthletes} of ${smaller} players matched by name between the two files. Check naming consistency — most players could not be paired.`,
+      messageSv: `Bara ${matchedAthletes} av ${smaller} spelare matchades på namn mellan filerna. Kontrollera namngivningen — de flesta spelare kunde inte paras ihop.`,
+    })
+  }
+
+  return warnings
 }
 
 async function authorizeTeam(teamId: string) {
@@ -292,8 +181,8 @@ export async function GET(
       return NextResponse.json({ success: false, error: t(auth.locale, 'SIMCA import not found', 'SIMCA-import hittades inte') }, { status: 404 })
     }
 
-    const baselineSummary = extractSimcaSummary(baseline.modelData)
-    const currentSummary = extractSimcaSummary(current.modelData)
+    const baselineSummary = getSummary(baseline.modelData)
+    const currentSummary = getSummary(current.modelData)
     const baselineAthletes = new Map(baselineSummary.athletes.map((item) => [item.key, item]))
     const currentAthletes = new Map(currentSummary.athletes.map((item) => [item.key, item]))
     const baselineVip = new Map(baselineSummary.vipScores.map((item) => [item.key, item]))
@@ -358,8 +247,19 @@ export async function GET(
       .filter((item) => item.vip >= 1 && (currentVip.get(item.key)?.vip ?? 0) < 1)
       .map((item) => item.variableName)
 
-    const baselineConfig = baseline.config as { fileName?: string }
-    const currentConfig = current.config as { fileName?: string }
+    const baselineConfig = (baseline.config ?? {}) as ImportConfig
+    const currentConfig = (current.config ?? {}) as ImportConfig
+
+    // Matched athletes overall (not just the top-10 movement slice).
+    const matchedAthleteCount = Array.from(currentAthletes.keys()).filter((key) => baselineAthletes.has(key)).length
+
+    const warnings = compatibilityWarnings(
+      baselineConfig,
+      currentConfig,
+      baselineSummary,
+      currentSummary,
+      matchedAthleteCount
+    )
 
     return NextResponse.json({
       success: true,
@@ -379,13 +279,14 @@ export async function GET(
           vipDetected: currentSummary.vipScores.length,
         },
         summary: {
-          matchedAthletes: athleteMovement.length,
+          matchedAthletes: matchedAthleteCount,
           matchedVipVariables: vipChanges.length,
           newOutlierCount: newOutliers.length,
           resolvedOutlierCount: resolvedOutliers.length,
           newTopVipCount: newTopVip.length,
           resolvedTopVipCount: resolvedTopVip.length,
         },
+        warnings,
         athleteMovement,
         newOutliers,
         resolvedOutliers,

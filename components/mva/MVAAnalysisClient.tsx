@@ -176,6 +176,12 @@ interface SimcaImportArtifact {
   exportVersion?: string | null
   exportPreset?: string | null
   exportedAt?: string | null
+  detectedAthletes?: number | null
+  detectedVip?: number | null
+  matchedRoster?: number | null
+  unmatchedSimca?: number | null
+  importedByName?: string | null
+  warnings?: MVAWarning[]
 }
 
 interface SimcaExportPreset {
@@ -209,6 +215,7 @@ interface SimcaComparisonResult {
     newTopVipCount: number
     resolvedTopVipCount: number
   }
+  warnings?: MVAWarning[]
   athleteMovement: {
     athleteName: string
     baselinePc1: number | null
@@ -481,6 +488,14 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [simcaCurrentId, setSimcaCurrentId] = useState<string>('')
   const [simcaComparing, setSimcaComparing] = useState(false)
   const [simcaComparison, setSimcaComparison] = useState<SimcaComparisonResult | null>(null)
+  const [simcaLastImport, setSimcaLastImport] = useState<{
+    detectedAthletes: number
+    detectedVip: number
+    matchedRoster: number
+    unmatchedSimca: string[]
+    unmatchedRoster: string[]
+    warnings: MVAWarning[]
+  } | null>(null)
   const simcaFileInputRef = useRef<HTMLInputElement | null>(null)
 
   const fetchVariables = useCallback(async () => {
@@ -617,6 +632,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
     setSimcaImporting(true)
     setSimcaImportMessage(null)
     setSimcaImportError(null)
+    setSimcaLastImport(null)
     try {
       const content = await file.text()
       const res = await fetch(`/api/teams/${teamId}/mva/simca-import`, {
@@ -635,6 +651,14 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       const rows = json.data.rowCount ? `${json.data.rowCount} ${t('rader', 'rows')}` : 'JSON'
       const cols = json.data.columnCount ? `, ${json.data.columnCount} ${t('kolumner', 'columns')}` : ''
       setSimcaImportMessage(`${t('Importerad', 'Imported')}: ${json.data.fileName} (${rows}${cols})`)
+      setSimcaLastImport({
+        detectedAthletes: json.data.detectedAthletes ?? 0,
+        detectedVip: json.data.detectedVip ?? 0,
+        matchedRoster: json.data.matchedRoster ?? 0,
+        unmatchedSimca: json.data.unmatchedSimca ?? [],
+        unmatchedRoster: json.data.unmatchedRoster ?? [],
+        warnings: json.data.warnings ?? [],
+      })
       await fetchSimcaImports()
     } catch {
       setSimcaImportError(t('Nätverksfel vid SIMCA-import', 'Network error during SIMCA import'))
@@ -774,6 +798,34 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           {simcaImportError && <span className="text-red-600 dark:text-red-400">{simcaImportError}</span>}
         </div>
       )}
+      {simcaLastImport && (
+        <div className="border-t px-6 py-3 text-xs dark:border-white/10">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+            <span>{t('Igenkända spelare', 'Recognized players')}: <strong className="dark:text-white">{simcaLastImport.detectedAthletes}</strong></span>
+            <span>{t('VIP-variabler', 'VIP variables')}: <strong className="dark:text-white">{simcaLastImport.detectedVip}</strong></span>
+            <span>{t('Matchade mot truppen', 'Matched to roster')}: <strong className="dark:text-white">{simcaLastImport.matchedRoster}</strong></span>
+          </div>
+          {simcaLastImport.unmatchedSimca.length > 0 && (
+            <p className="mt-1 text-amber-600 dark:text-amber-400">
+              {t('Ej matchade namn i filen', 'Unmatched names in file')}: {simcaLastImport.unmatchedSimca.slice(0, 8).join(', ')}
+            </p>
+          )}
+          {simcaLastImport.unmatchedRoster.length > 0 && (
+            <p className="mt-1 text-muted-foreground">
+              {t('Saknas i filen', 'Missing from file')}: {simcaLastImport.unmatchedRoster.slice(0, 8).join(', ')}
+            </p>
+          )}
+          {simcaLastImport.warnings.length > 0 && (
+            <ul className="mt-2 space-y-1">
+              {simcaLastImport.warnings.map((w) => (
+                <li key={w.code} className={w.severity === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}>
+                  • {locale === 'sv' ? w.messageSv : w.messageEn}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       {(simcaImportsLoading || simcaImports.length > 0) && (
         <div className="border-t px-6 py-3 dark:border-white/10">
           <p className="mb-2 text-xs font-medium text-muted-foreground">{t('Senaste SIMCA-importer', 'Latest SIMCA imports')}</p>
@@ -819,10 +871,21 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                     {item.columnCount > 0 && ` · ${item.columnCount} ${t('kolumner', 'columns')}`}
                     {item.exportPreset && ` · ${item.exportPreset}`}
                   </div>
+                  {(item.detectedAthletes != null || item.matchedRoster != null) && (
+                    <div className="mt-1 text-[10px] text-muted-foreground">
+                      {item.detectedAthletes != null && `${item.detectedAthletes} ${t('spelare', 'players')}`}
+                      {item.detectedVip != null && ` · ${item.detectedVip} VIP`}
+                      {item.matchedRoster != null && ` · ${item.matchedRoster} ${t('matchade', 'matched')}`}
+                      {(item.warnings?.length ?? 0) > 0 && (
+                        <span className="ml-1 text-amber-600 dark:text-amber-400">⚠ {item.warnings!.length}</span>
+                      )}
+                    </div>
+                  )}
                   {item.exportVersion && (
                     <div className="mt-1 text-[10px] text-muted-foreground">
                       {item.exportVersion}
                       {item.exportedAt && ` · ${t('exporterad', 'exported')} ${new Date(item.exportedAt).toLocaleDateString(dateLocale)}`}
+                      {item.importedByName && ` · ${t('av', 'by')} ${item.importedByName}`}
                     </div>
                   )}
                 </div>
@@ -883,6 +946,15 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
 
           {simcaComparison && (
             <div className="mt-4 space-y-3 rounded-md border p-3 text-xs dark:border-white/10">
+              {(simcaComparison.warnings?.length ?? 0) > 0 && (
+                <div className="rounded border border-amber-300 bg-amber-50 p-2 dark:border-amber-500/30 dark:bg-amber-500/10">
+                  {simcaComparison.warnings!.map((w) => (
+                    <p key={w.code} className={w.severity === 'warning' ? 'text-amber-700 dark:text-amber-300' : 'text-muted-foreground'}>
+                      • {locale === 'sv' ? w.messageSv : w.messageEn}
+                    </p>
+                  ))}
+                </div>
+              )}
               <div className="grid gap-2 md:grid-cols-3">
                 <div>
                   <p className="font-medium dark:text-white">{simcaComparison.summary.matchedAthletes}</p>
