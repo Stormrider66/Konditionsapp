@@ -1335,6 +1335,8 @@ model Message {
   @@index([workoutId])
   @@index([createdAt])
   @@index([isRead])
+  @@index([receiverId, createdAt]) // Inbox/unread fetches, newest-first
+  @@index([senderId, receiverId]) // Conversation-partner filtering
 }
 
 // ============================================
