@@ -26,6 +26,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { rollupAssignmentProgression } from '@/lib/training-engine/progression/assignment-rollup'
@@ -38,21 +39,8 @@ const LOOKBACK_DAYS = 30
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret to prevent unauthorized access (REQUIRED)
-    const authHeader = request.headers.get('authorization')
-    const cronSecret = process.env.CRON_SECRET
-
-    if (!cronSecret) {
-      logger.error('CRON_SECRET environment variable is not configured', {})
-      return NextResponse.json(
-        { error: 'Server misconfiguration: CRON_SECRET not set' },
-        { status: 500 }
-      )
-    }
-
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    const authError = verifyCronAuth(request)
+    if (authError) return authError
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
