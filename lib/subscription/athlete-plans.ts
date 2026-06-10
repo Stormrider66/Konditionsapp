@@ -11,10 +11,14 @@ export const ATHLETE_PLAN_PRICING: Record<
   PRO: { monthlySek: 399, yearlySek: 3990 },
 }
 
+// Retired 2026-06-10: per-tier message counters are no longer enforced.
+// The monthly SEK allowance (ATHLETE_AI_ALLOWANCE_SEK) is the only AI chat
+// gate. All tiers are -1 (unlimited messages) so provisioning paths that
+// copy these values keep writing a consistent, inert field.
 export const ATHLETE_LEGACY_AI_CHAT_LIMITS: Record<AthletePlanTier, number> = {
-  FREE: 10,
-  STANDARD: 50,
-  PRO: 500,
+  FREE: -1,
+  STANDARD: -1,
+  PRO: -1,
   ELITE: -1,
 }
 

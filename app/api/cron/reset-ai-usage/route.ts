@@ -2,8 +2,9 @@
 /**
  * Monthly AI Usage Reset Cron Job
  *
- * Resets the AI chat message usage counters for all athlete subscriptions
- * at the beginning of each month.
+ * Rolls over expired AI allowance accounts (SEK budgets) at the beginning
+ * of each month. Legacy per-tier chat message counters were retired
+ * 2026-06-10 — the allowance is the only AI chat usage gate.
  *
  * Trigger: Cron job (1st of each month at 00:05 AM)
  * Method: POST /api/cron/reset-ai-usage
@@ -11,7 +12,6 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resetExpiredAiAllowanceAccounts } from '@/lib/ai/billing/allowance'
 
@@ -38,28 +38,14 @@ export async function POST(request: NextRequest) {
     logger.info('Starting monthly AI usage reset job')
 
     const now = new Date()
-
-    const [legacyMessageResult, allowanceResult] = await Promise.all([
-      prisma.athleteSubscription.updateMany({
-        where: {
-          aiChatMessagesUsed: { gt: 0 },
-        },
-        data: {
-          aiChatMessagesUsed: 0,
-        },
-      }),
-      resetExpiredAiAllowanceAccounts(now),
-    ])
+    const allowanceResult = await resetExpiredAiAllowanceAccounts(now)
 
     logger.info('AI usage reset complete', {
-      legacyMessageResetCount: legacyMessageResult.count,
       allowanceResetCount: allowanceResult.resetCount,
     })
 
     return NextResponse.json({
       success: true,
-      resetCount: legacyMessageResult.count,
-      legacyMessageResetCount: legacyMessageResult.count,
       allowanceResetCount: allowanceResult.resetCount,
       allowancePeriodStart: allowanceResult.periodStart.toISOString(),
       allowancePeriodEnd: allowanceResult.periodEnd.toISOString(),

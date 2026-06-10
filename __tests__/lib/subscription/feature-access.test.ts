@@ -55,7 +55,7 @@ describe('checkAthleteFeatureAccess', () => {
       paymentSource: 'DIRECT',
       stripeSubscriptionId: null,
       aiChatEnabled: true,
-      aiChatMessagesLimit: 10,
+      aiChatMessagesLimit: -1,
       aiChatMessagesUsed: 0,
     })
 
@@ -65,14 +65,10 @@ describe('checkAthleteFeatureAccess', () => {
       where: { clientId: 'client-1' },
       data: {
         aiChatEnabled: true,
-        aiChatMessagesLimit: 10,
+        aiChatMessagesLimit: -1,
       },
     })
-    expect(result).toEqual({
-      allowed: true,
-      currentUsage: 0,
-      limit: 10,
-    })
+    expect(result).toEqual({ allowed: true })
   })
 
   it('does not inherit athlete-only features from a coach subscription', async () => {

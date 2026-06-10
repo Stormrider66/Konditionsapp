@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { incrementAIChatUsage } from '@/lib/subscription/feature-access'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { extractMemoriesFromConversation, saveMemories } from '@/lib/ai/memory-extractor'
 import { logAiUsage, withAiContext, type AiProviderTag } from '@/lib/ai/usage-logger'
@@ -121,18 +120,6 @@ export function buildOnFinishHandler(input: BuildOnFinishInput) {
         })
       } catch (error) {
         logger.error('Error saving messages', { conversationId }, error)
-      }
-    }
-
-    if (isAthleteChat && athleteClientId) {
-      try {
-        await incrementAIChatUsage(athleteClientId)
-      } catch (usageError) {
-        logger.warn(
-          'Failed to increment AI chat usage',
-          { clientId: athleteClientId },
-          usageError
-        )
       }
     }
 

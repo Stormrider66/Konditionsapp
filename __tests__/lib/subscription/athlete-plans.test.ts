@@ -21,8 +21,10 @@ describe('athlete plan configuration', () => {
     expect(selfServeCopy.toLowerCase()).not.toContain('unlimited')
   })
 
-  it('uses a finite Pro legacy chat cap until shared AI credits launch', () => {
-    expect(ATHLETE_LEGACY_AI_CHAT_LIMITS.PRO).toBeGreaterThan(0)
-    expect(ATHLETE_LEGACY_AI_CHAT_LIMITS.PRO).not.toBe(-1)
+  it('keeps every retired legacy chat limit at unlimited (-1)', () => {
+    // SEK allowance is the only AI chat gate since 2026-06-10; a finite
+    // value reappearing here would silently re-enable message counting
+    // in provisioning paths.
+    expect(Object.values(ATHLETE_LEGACY_AI_CHAT_LIMITS)).toEqual([-1, -1, -1, -1])
   })
 })

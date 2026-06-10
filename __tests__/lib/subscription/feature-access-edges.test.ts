@@ -94,28 +94,14 @@ describe('checkAthleteFeatureAccess — AI chat limits', () => {
     vi.clearAllMocks()
   })
 
-  it('denies at exactly the monthly limit (LIMIT_REACHED)', async () => {
-    stubSub({ aiChatMessagesLimit: 10, aiChatMessagesUsed: 10 })
-    const result = await checkAthleteFeatureAccess('client-a', 'ai_chat')
-    expect(result.allowed).toBe(false)
-    expect(result.code).toBe('LIMIT_REACHED')
-    expect(result.currentUsage).toBe(10)
-    expect(result.limit).toBe(10)
-  })
-
-  it('denies above the monthly limit (LIMIT_REACHED)', async () => {
+  // Message counters were retired 2026-06-10: stored limits/usage no longer
+  // gate access — the monthly SEK allowance is the only AI chat usage gate.
+  it('ignores stored message counters even when usage exceeds the legacy limit', async () => {
     stubSub({ aiChatMessagesLimit: 10, aiChatMessagesUsed: 11 })
     const result = await checkAthleteFeatureAccess('client-a', 'ai_chat')
-    expect(result.allowed).toBe(false)
-    expect(result.code).toBe('LIMIT_REACHED')
-  })
-
-  it('allows under the limit and reports progress fields', async () => {
-    stubSub({ aiChatMessagesLimit: 50, aiChatMessagesUsed: 25 })
-    const result = await checkAthleteFeatureAccess('client-a', 'ai_chat')
     expect(result.allowed).toBe(true)
-    expect(result.currentUsage).toBe(25)
-    expect(result.limit).toBe(50)
+    expect(result.code).toBeUndefined()
+    expect(result.limit).toBeUndefined()
   })
 
   it('treats limit=-1 as unlimited, omits the limit field', async () => {

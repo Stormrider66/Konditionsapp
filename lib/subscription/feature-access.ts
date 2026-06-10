@@ -269,24 +269,9 @@ export async function checkAthleteFeatureAccess(
         }
       }
 
-      // Check usage limits
-      const limit = subscription.aiChatMessagesLimit
-      if (limit !== -1 && subscription.aiChatMessagesUsed >= limit) {
-        return {
-          allowed: false,
-          reason: subscriptionText(locale, `You have reached your monthly AI chat limit (${limit} messages).`, `Du har nått din månatliga AI-chattgräns (${limit} meddelanden).`),
-          code: 'LIMIT_REACHED',
-          upgradeUrl: '/athlete/subscription',
-          currentUsage: subscription.aiChatMessagesUsed,
-          limit,
-        }
-      }
-
-      return {
-        allowed: true,
-        currentUsage: subscription.aiChatMessagesUsed,
-        limit: limit === -1 ? undefined : limit,
-      }
+      // Message counters are retired — the monthly SEK allowance
+      // (requireAiAllowance) is the only usage gate for AI chat.
+      return { allowed: true }
     }
 
     case 'video_analysis': {
@@ -417,40 +402,6 @@ async function checkCoachSubscriptionStatusImpl(
 
 /** Per-request memoized coach subscription lookup. */
 export const checkCoachSubscriptionStatus = cache(checkCoachSubscriptionStatusImpl)
-
-/**
- * Increment AI chat usage for an athlete
- * Should be called after each successful AI chat response
- */
-export async function incrementAIChatUsage(clientId: string): Promise<void> {
-  await prisma.athleteSubscription.update({
-    where: { clientId },
-    data: {
-      aiChatMessagesUsed: {
-        increment: 1,
-      },
-    },
-  })
-}
-
-/**
- * Reset monthly AI chat usage for all athletes
- * Should be called by a monthly cron job
- */
-export async function resetMonthlyAIChatUsage(): Promise<number> {
-  const result = await prisma.athleteSubscription.updateMany({
-    where: {
-      aiChatMessagesUsed: {
-        gt: 0,
-      },
-    },
-    data: {
-      aiChatMessagesUsed: 0,
-    },
-  })
-
-  return result.count
-}
 
 /**
  * Get feature access summary for an athlete

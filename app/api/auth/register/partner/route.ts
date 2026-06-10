@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
             status: 'ACTIVE',
             paymentSource: 'DIRECT',
             aiChatEnabled: true,
-            aiChatMessagesLimit: 10,
+            aiChatMessagesLimit: -1, // message counters retired; SEK allowance is the gate
             videoAnalysisEnabled: false,
             garminEnabled: false,
             stravaEnabled: false,
