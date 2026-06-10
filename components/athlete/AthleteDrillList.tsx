@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import type { DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 import { AthleteDrillViewer } from './AthleteDrillViewer'
-import { ClipboardList, ChevronDown, ChevronUp, CalendarDays } from 'lucide-react'
+import { ClipboardList, ChevronDown, ChevronUp, CalendarDays, CheckCircle2 } from 'lucide-react'
 import { useLocale, useTranslations } from '@/i18n/client'
 
 interface Drill {
@@ -16,21 +17,20 @@ interface Drill {
   structure: DrillStructure
   scheduledDate: string | null
   viewedAt: string | null
+  acknowledgedAt: string | null
   createdAt: string
   team: { name: string } | null
   createdBy: { name: string }
 }
 
 interface AthleteDrillListProps {
-  athletePosition?: string // e.g. "LW" — highlight on rink
+  athletePosition?: string
 }
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US', { day: 'numeric', month: 'short' })
 }
 
-// scheduledDate is a calendar day (UTC midnight) — compare its date part
-// against the athlete's local calendar day.
 function localDayKey(date: Date): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -61,6 +61,7 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
   const [drills, setDrills] = useState<Drill[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [acknowledgingId, setAcknowledgingId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchDrills = async () => {
@@ -87,6 +88,32 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
     void fetch(`/api/athlete/drills/${drill.id}/view`, { method: 'POST' }).catch(() => {})
   }, [])
 
+  const handleAcknowledge = useCallback(async (drill: Drill) => {
+    if (drill.acknowledgedAt) return
+    setAcknowledgingId(drill.id)
+    try {
+      const res = await fetch(`/api/athlete/drills/${drill.id}/view`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ acknowledge: true }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setDrills((prev) =>
+          prev.map((d) =>
+            d.id === drill.id
+              ? { ...d, viewedAt: data.viewedAt, acknowledgedAt: data.acknowledgedAt }
+              : d
+          )
+        )
+      }
+    } catch {
+      // non-critical
+    } finally {
+      setAcknowledgingId(null)
+    }
+  }, [])
+
   const toggleExpanded = useCallback(
     (drill: Drill) => {
       setExpandedId((prev) => {
@@ -110,6 +137,7 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
 
   const renderDrill = (drill: Drill, list: Drill[], highlight = false) => {
     const isExpanded = expandedId === drill.id
+    const isAcknowledged = !!drill.acknowledgedAt
     return (
       <div key={drill.id} className={highlight ? 'rounded-lg border border-primary/30 bg-primary/5 px-3' : ''}>
         <div
@@ -118,6 +146,9 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
+              {isAcknowledged && (
+                <CheckCircle2 className="h-3.5 w-3.5 text-green-600 flex-shrink-0" />
+              )}
               <p className="font-medium text-sm truncate">{drill.title}</p>
               {!drill.viewedAt && (
                 <Badge className="text-[9px] px-1.5 py-0 shrink-0">{t('newBadge')}</Badge>
@@ -152,6 +183,28 @@ export function AthleteDrillList({ athletePosition }: AthleteDrillListProps) {
               sportType={drill.sportType}
               highlightPosition={athletePosition}
             />
+
+            {/* Acknowledge button */}
+            <div className="flex justify-center pt-1">
+              {isAcknowledged ? (
+                <div className="flex items-center gap-1.5 text-green-600 text-sm font-medium">
+                  <CheckCircle2 className="h-4 w-4" />
+                  {t('acknowledged')}
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  disabled={acknowledgingId === drill.id}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    void handleAcknowledge(drill)
+                  }}
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" />
+                  {acknowledgingId === drill.id ? t('acknowledging') : t('acknowledge')}
+                </Button>
+              )}
+            </div>
           </div>
         )}
 

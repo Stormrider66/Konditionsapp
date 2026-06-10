@@ -2190,10 +2190,11 @@ model TeamDrill {
 // Tracks which athletes have opened a published drill, so coaches can see
 // who has prepared before practice.
 model TeamDrillView {
-  id       String   @id @default(uuid())
-  drillId  String
-  clientId String
-  viewedAt DateTime @default(now())
+  id             String    @id @default(uuid())
+  drillId        String
+  clientId       String
+  viewedAt       DateTime  @default(now())
+  acknowledgedAt DateTime?
 
   drill  TeamDrill @relation(fields: [drillId], references: [id], onDelete: Cascade)
   client Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)

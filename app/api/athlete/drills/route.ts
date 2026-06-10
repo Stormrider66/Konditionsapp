@@ -52,7 +52,7 @@ export async function GET(request?: Request) {
         createdBy: { select: { name: true } },
         views: {
           where: { clientId },
-          select: { viewedAt: true },
+          select: { viewedAt: true, acknowledgedAt: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -63,6 +63,7 @@ export async function GET(request?: Request) {
       drills: drills.map(({ views, ...drill }) => ({
         ...drill,
         viewedAt: views[0]?.viewedAt ?? null,
+        acknowledgedAt: views[0]?.acknowledgedAt ?? null,
       })),
     })
   } catch (error) {

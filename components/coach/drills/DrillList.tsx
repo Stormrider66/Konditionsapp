@@ -8,7 +8,7 @@ import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillSportType } from '@/remotion/drills/surfaces'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ClipboardList, Play, Download, Send, Undo2, Eye, CalendarDays } from 'lucide-react'
+import { ClipboardList, Play, Download, Send, Undo2, Eye, CalendarDays, CheckCircle2 } from 'lucide-react'
 import { exportDrillPDF } from '@/lib/drills/export-pdf'
 import { toast } from 'sonner'
 import { useLocale, useTranslations } from '@/i18n/client'
@@ -31,12 +31,14 @@ interface Drill {
 interface DrillViewStatus {
   total: number
   viewed: number
+  acknowledged: number
   athletes: Array<{
     clientId: string
     name: string
     jerseyNumber: number | null
     position: string | null
     viewedAt: string | null
+    acknowledgedAt: string | null
   }>
 }
 
@@ -266,21 +268,66 @@ export function DrillList({ teamId }: DrillListProps) {
                     />
                   </div>
 
-                  {/* Seen-by status (published drills only) */}
+                  {/* Prep status (published drills only) */}
                   {drill.isPublished && status && (
-                    <div className="text-center space-y-1" onClick={(e) => e.stopPropagation()}>
-                      <p className="text-xs font-medium flex items-center justify-center gap-1.5">
-                        <Eye className="h-3.5 w-3.5" />
-                        {t('common.labels.seenBy', { viewed: status.viewed, total: status.total })}
-                      </p>
-                      {status.viewed < status.total && status.total > 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {t('common.labels.notSeenBy')}{' '}
-                          {status.athletes
-                            .filter((a) => !a.viewedAt)
-                            .map((a) => (a.jerseyNumber != null ? `#${a.jerseyNumber} ${a.name}` : a.name))
-                            .join(', ')}
-                        </p>
+                    <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                      {/* Summary counters */}
+                      <div className="flex items-center justify-center gap-4 text-xs font-medium">
+                        <span className="flex items-center gap-1 text-muted-foreground">
+                          <Eye className="h-3.5 w-3.5" />
+                          {t('common.labels.seenBy', { viewed: status.viewed, total: status.total })}
+                        </span>
+                        <span className="flex items-center gap-1 text-green-600">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          {t('common.labels.confirmedCount', { count: status.acknowledged })}
+                        </span>
+                      </div>
+
+                      {/* Roster breakdown */}
+                      {status.total > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-1 text-xs max-w-md mx-auto">
+                          {/* Not seen */}
+                          {status.athletes.filter((a) => !a.viewedAt).length > 0 && (
+                            <div>
+                              <p className="font-medium text-red-600 mb-0.5">{t('common.labels.notSeen')}</p>
+                              {status.athletes
+                                .filter((a) => !a.viewedAt)
+                                .map((a) => (
+                                  <p key={a.clientId} className="text-muted-foreground truncate">
+                                    {a.jerseyNumber != null ? `#${a.jerseyNumber} ` : ''}{a.name}
+                                  </p>
+                                ))}
+                            </div>
+                          )}
+
+                          {/* Viewed but not acknowledged */}
+                          {status.athletes.filter((a) => a.viewedAt && !a.acknowledgedAt).length > 0 && (
+                            <div>
+                              <p className="font-medium text-amber-600 mb-0.5">{t('common.labels.viewedOnly')}</p>
+                              {status.athletes
+                                .filter((a) => a.viewedAt && !a.acknowledgedAt)
+                                .map((a) => (
+                                  <p key={a.clientId} className="text-muted-foreground truncate">
+                                    {a.jerseyNumber != null ? `#${a.jerseyNumber} ` : ''}{a.name}
+                                  </p>
+                                ))}
+                            </div>
+                          )}
+
+                          {/* Acknowledged */}
+                          {status.athletes.filter((a) => a.acknowledgedAt).length > 0 && (
+                            <div>
+                              <p className="font-medium text-green-600 mb-0.5">{t('common.labels.confirmed')}</p>
+                              {status.athletes
+                                .filter((a) => a.acknowledgedAt)
+                                .map((a) => (
+                                  <p key={a.clientId} className="text-muted-foreground truncate">
+                                    {a.jerseyNumber != null ? `#${a.jerseyNumber} ` : ''}{a.name}
+                                  </p>
+                                ))}
+                            </div>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}

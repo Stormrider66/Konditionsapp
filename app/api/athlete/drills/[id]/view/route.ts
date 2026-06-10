@@ -2,6 +2,7 @@
  * Athlete Drill View API
  *
  * POST - Mark a published drill as viewed by the current athlete.
+ *        Body: { acknowledge?: true } — also records explicit acknowledgement.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -23,6 +24,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     if (!clientId) {
       return NextResponse.json({ error: t(locale, 'No athlete profile', 'Ingen atletprofil') }, { status: 400 })
+    }
+
+    let acknowledge = false
+    try {
+      const body = await req.json()
+      acknowledge = body?.acknowledge === true
+    } catch {
+      // empty body = view-only (no acknowledge)
     }
 
     const client = await prisma.client.findUnique({
@@ -51,11 +60,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const view = await prisma.teamDrillView.upsert({
       where: { drillId_clientId: { drillId: drill.id, clientId } },
-      create: { drillId: drill.id, clientId },
-      update: {}, // keep first-view timestamp
+      create: {
+        drillId: drill.id,
+        clientId,
+        acknowledgedAt: acknowledge ? new Date() : null,
+      },
+      update: acknowledge
+        ? { acknowledgedAt: new Date() }
+        : {}, // view-only: don't overwrite an existing acknowledgement
     })
 
-    return NextResponse.json({ viewedAt: view.viewedAt })
+    return NextResponse.json({
+      viewedAt: view.viewedAt,
+      acknowledgedAt: view.acknowledgedAt,
+    })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })

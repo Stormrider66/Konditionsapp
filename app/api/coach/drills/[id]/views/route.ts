@@ -45,23 +45,28 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       }),
       prisma.teamDrillView.findMany({
         where: { drillId: drill.id },
-        select: { clientId: true, viewedAt: true },
+        select: { clientId: true, viewedAt: true, acknowledgedAt: true },
       }),
     ])
 
-    const viewedAtByClient = new Map(views.map((v) => [v.clientId, v.viewedAt]))
+    const viewByClient = new Map(views.map((v) => [v.clientId, v]))
 
-    const athletes = roster.map((client) => ({
-      clientId: client.id,
-      name: client.name,
-      jerseyNumber: client.jerseyNumber,
-      position: client.position,
-      viewedAt: viewedAtByClient.get(client.id) ?? null,
-    }))
+    const athletes = roster.map((client) => {
+      const v = viewByClient.get(client.id)
+      return {
+        clientId: client.id,
+        name: client.name,
+        jerseyNumber: client.jerseyNumber,
+        position: client.position,
+        viewedAt: v?.viewedAt ?? null,
+        acknowledgedAt: v?.acknowledgedAt ?? null,
+      }
+    })
 
     return NextResponse.json({
       total: athletes.length,
       viewed: athletes.filter((a) => a.viewedAt !== null).length,
+      acknowledged: athletes.filter((a) => a.acknowledgedAt !== null).length,
       athletes,
     })
   } catch (error) {

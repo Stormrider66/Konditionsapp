@@ -11848,8 +11848,12 @@
           "assignToTeam": "Tilldela lag",
           "noTeam": "Inget lag",
           "scheduledDate": "Träningsdatum",
-          "seenBy": "Sedd av {viewed} av {total} spelare",
-          "notSeenBy": "Ej sedd av:"
+          "seenBy": "Sedd av {viewed} av {total}",
+          "notSeenBy": "Ej sedd av:",
+          "confirmedCount": "{count} bekräftade",
+          "notSeen": "Ej sedd",
+          "viewedOnly": "Öppnad",
+          "confirmed": "Bekräftad"
         },
         "placeholders": {
           "title": "Övningens namn",
@@ -16729,7 +16733,10 @@
       "todaySection": "Dagens taktik",
       "upcomingSection": "Kommande",
       "earlierSection": "Tidigare",
-      "newBadge": "Ny"
+      "newBadge": "Ny",
+      "acknowledge": "Jag har gått igenom detta",
+      "acknowledging": "Bekräftar...",
+      "acknowledged": "Genomgången"
     },
     "preWorkoutNudgeCard": {
       "time": {

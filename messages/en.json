@@ -11531,8 +11531,12 @@
           "assignToTeam": "Assign to team",
           "noTeam": "No team",
           "scheduledDate": "Practice date",
-          "seenBy": "Seen by {viewed} of {total} athletes",
-          "notSeenBy": "Not seen by:"
+          "seenBy": "Seen by {viewed} of {total}",
+          "notSeenBy": "Not seen by:",
+          "confirmedCount": "{count} confirmed",
+          "notSeen": "Not seen",
+          "viewedOnly": "Opened",
+          "confirmed": "Confirmed"
         }
       },
       "list": {
@@ -16369,7 +16373,10 @@
       "todaySection": "Today's tactics",
       "upcomingSection": "Upcoming",
       "earlierSection": "Earlier",
-      "newBadge": "New"
+      "newBadge": "New",
+      "acknowledge": "I've reviewed this",
+      "acknowledging": "Confirming...",
+      "acknowledged": "Reviewed"
     },
     "preWorkoutNudgeCard": {
       "time": {
