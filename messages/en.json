@@ -4125,10 +4125,10 @@
     "customPricing": "Custom pricing",
     "allPlansInclude": "All plans include",
     "starter": {
-      "name": "Starter",
+      "name": "Free",
       "description": "Perfect for getting started",
       "price": "0",
-      "athletes": "2 athletes",
+      "athletes": "1 athlete (trial)",
       "features": {
         "lactateTests": "Lactate tests & reports",
         "trainingZones": "Training zones",
@@ -4137,13 +4137,13 @@
       }
     },
     "professional": {
-      "name": "Professional",
+      "name": "Basic",
       "description": "For the serious coach",
-      "priceMonthly": "299",
-      "priceYearly": "249",
-      "athletes": "15 athletes",
+      "priceMonthly": "499",
+      "priceYearly": "416",
+      "athletes": "20 athletes",
       "features": {
-        "allStarter": "Everything in Starter",
+        "allStarter": "Everything in Free",
         "advancedPrograms": "Advanced training programs",
         "aiStudio": "AI Studio",
         "videoAnalysis": "Video analysis",
@@ -4152,13 +4152,13 @@
       }
     },
     "business": {
-      "name": "Business",
+      "name": "Pro",
       "description": "For PT studios and clubs",
-      "priceMonthly": "799",
-      "priceYearly": "665",
-      "athletes": "50 athletes",
+      "priceMonthly": "1499",
+      "priceYearly": "1249",
+      "athletes": "100 athletes",
       "features": {
-        "allProfessional": "Everything in Professional",
+        "allProfessional": "Everything in Basic",
         "multipleCoaches": "Multiple coaches",
         "teamManagement": "Team management",
         "customBranding": "Custom branding",
@@ -4171,7 +4171,7 @@
       "description": "For federations and large organizations",
       "athletes": "Unlimited athletes",
       "features": {
-        "allBusiness": "Everything in Business",
+        "allBusiness": "Everything in Pro",
         "unlimitedAthletes": "Unlimited athletes",
         "sso": "Single Sign-On (SSO)",
         "customIntegrations": "Custom integrations",
@@ -4189,7 +4189,7 @@
       "title": "Frequently asked questions",
       "trial": {
         "question": "Is there a free trial?",
-        "answer": "Yes! The Starter plan is completely free and you can use it as long as you want with up to 2 athletes."
+        "answer": "Yes! You start on the Free plan with a trial period and room for 1 athlete, so you can try the platform before upgrading."
       },
       "changePlan": {
         "question": "Can I change my plan at any time?",
@@ -4197,7 +4197,7 @@
       },
       "payment": {
         "question": "What payment methods are accepted?",
-        "answer": "We accept all major credit cards via Stripe. Invoicing is also available for Business and Enterprise plans."
+        "answer": "We accept all major credit cards via Stripe. Invoicing is also available for Pro and Enterprise plans."
       },
       "cancelAnytime": {
         "question": "Can I cancel at any time?",

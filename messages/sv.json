@@ -4125,10 +4125,10 @@
     "customPricing": "Anpassad prissättning",
     "allPlansInclude": "Alla planer inkluderar",
     "starter": {
-      "name": "Starter",
+      "name": "Free",
       "description": "Perfekt för att komma igång",
       "price": "0",
-      "athletes": "2 atleter",
+      "athletes": "1 atlet (provperiod)",
       "features": {
         "lactateTests": "Laktattester & rapporter",
         "trainingZones": "Träningszoner",
@@ -4137,13 +4137,13 @@
       }
     },
     "professional": {
-      "name": "Professional",
+      "name": "Basic",
       "description": "För den seriösa tränaren",
-      "priceMonthly": "299",
-      "priceYearly": "249",
-      "athletes": "15 atleter",
+      "priceMonthly": "499",
+      "priceYearly": "416",
+      "athletes": "20 atleter",
       "features": {
-        "allStarter": "Allt i Starter",
+        "allStarter": "Allt i Free",
         "advancedPrograms": "Avancerade träningsprogram",
         "aiStudio": "AI Studio",
         "videoAnalysis": "Videoanalys",
@@ -4152,13 +4152,13 @@
       }
     },
     "business": {
-      "name": "Business",
+      "name": "Pro",
       "description": "För PT-studios och klubbar",
-      "priceMonthly": "799",
-      "priceYearly": "665",
-      "athletes": "50 atleter",
+      "priceMonthly": "1499",
+      "priceYearly": "1249",
+      "athletes": "100 atleter",
       "features": {
-        "allProfessional": "Allt i Professional",
+        "allProfessional": "Allt i Basic",
         "multipleCoaches": "Flera tränare",
         "teamManagement": "Teamhantering",
         "customBranding": "Egen logotyp",
@@ -4171,7 +4171,7 @@
       "description": "För förbund och stora organisationer",
       "athletes": "Obegränsat antal atleter",
       "features": {
-        "allBusiness": "Allt i Business",
+        "allBusiness": "Allt i Pro",
         "unlimitedAthletes": "Obegränsat antal atleter",
         "sso": "Single Sign-On (SSO)",
         "customIntegrations": "Anpassade integrationer",
@@ -4189,7 +4189,7 @@
       "title": "Vanliga frågor",
       "trial": {
         "question": "Finns det en gratis provperiod?",
-        "answer": "Ja! Starter-planen är helt gratis och du kan använda den så länge du vill med upp till 2 atleter."
+        "answer": "Ja! Du börjar på Free-planen med en provperiod och plats för 1 atlet, så att du kan testa plattformen innan du uppgraderar."
       },
       "changePlan": {
         "question": "Kan jag byta plan när som helst?",
@@ -4197,7 +4197,7 @@
       },
       "payment": {
         "question": "Vilka betalningsmetoder accepteras?",
-        "answer": "Vi accepterar alla större kreditkort via Stripe. Fakturering är också möjlig för Business och Enterprise-planer."
+        "answer": "Vi accepterar alla större kreditkort via Stripe. Fakturering är också möjlig för Pro- och Enterprise-planer."
       },
       "cancelAnytime": {
         "question": "Kan jag avsluta när som helst?",
