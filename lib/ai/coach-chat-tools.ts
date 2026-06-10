@@ -16,6 +16,7 @@ import { createCalendarTools } from './coach-tools/calendar-tools'
 import { createWorkoutTools } from './coach-tools/workout-tools'
 import { createNavigationTools } from './coach-tools/navigation-tools'
 import { createMessagingTools } from './coach-tools/messaging-tools'
+import { createMonitoringTools } from './coach-tools/monitoring-tools'
 import { getConfirmedAiCapabilityIds } from '@/lib/ai/capabilities/registry'
 import {
   type AiActionDraftContext,
@@ -57,6 +58,7 @@ export function createCoachChatTools(
     ...createWorkoutTools(ctx),
     ...createNavigationTools(ctx),
     ...createMessagingTools(ctx),
+    ...createMonitoringTools(ctx),
   }
 
   if (!operationContext?.enabled) return tools

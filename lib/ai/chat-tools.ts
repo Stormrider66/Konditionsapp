@@ -27,6 +27,7 @@ import {
   type AiActionDraftContext,
   wrapToolsWithAiActionDrafts,
 } from '@/lib/ai/capabilities/action-drafts'
+import { createAthleteReadTools } from '@/lib/ai/athlete-read-tools'
 
 /** Capabilities that control which tools are available */
 export interface ChatToolCapabilities {
@@ -64,6 +65,8 @@ export function createChatTools(
       }
     : undefined
   const tools: Record<string, any> = { // eslint-disable-line
+    ...createAthleteReadTools(clientId, locale),
+
     createTodayWorkout: tool({
       description:
         chatText(

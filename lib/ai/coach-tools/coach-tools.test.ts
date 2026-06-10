@@ -34,6 +34,12 @@ const EXPECTED_TOOL_KEYS = [
   'suggestCoachNavigation',
   // messaging-tools
   'prepareCoachMessageDraft',
+  // monitoring-tools
+  'getAthletesNeedingAttention',
+  'getAthleteStatusSummary',
+  'getAthleteReadinessHistory',
+  'getAthleteTrainingLoad',
+  'getAthleteTestResults',
 ] as const
 
 describe('createCoachChatTools', () => {
