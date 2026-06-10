@@ -120,9 +120,13 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number; ima
     output: 0.012,
     imageOutput: 0.067, // Approx. $0.134 per 2K image = $67 per 1M image output tokens
   },
-  // Google embedding models (output cost is 0 — embeddings are input-only)
+  // Embedding models (output cost is 0 — embeddings are input-only)
   'gemini-embedding-2-preview': {
     input: 0.0002, // $0.20 per 1M input tokens
+    output: 0,
+  },
+  'text-embedding-3-small': {
+    input: 0.00002, // $0.02 per 1M input tokens
     output: 0,
   },
   // Google Live API model (text token rates — audio charged separately)
@@ -150,11 +154,25 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number; ima
   },
   'gpt-5.5': {
     input: 0.005, // $5.00 per 1M input tokens
-    output: 0.015, // $15.00 per 1M output tokens
+    output: 0.030, // $30.00 per 1M output tokens (matches AI_MODELS pricing on cost pages)
   },
   'gpt-5.3-instant': {
     input: 0.001, // $1.00 per 1M input tokens
     output: 0.003, // $3.00 per 1M output tokens
+  },
+  'gpt-5.4-nano': {
+    input: 0.0002, // $0.20 per 1M input tokens
+    output: 0.00125, // $1.25 per 1M output tokens
+  },
+  'gpt-5.4-mini': {
+    input: 0.00075, // $0.75 per 1M input tokens
+    output: 0.0045, // $4.50 per 1M output tokens
+  },
+  // The powerful-intent Anthropic tier in types/ai-models.ts resolves to
+  // claude-opus-4-6; priced as the 4.x Opus family.
+  'claude-opus-4-6': {
+    input: 0.005, // $5.00 per 1M input tokens
+    output: 0.025, // $25.00 per 1M output tokens
   },
 };
 

@@ -36,6 +36,7 @@ import {
 import { resolveAiModel, getMaxOutputTokens } from '@/lib/ai/chat/model-selector'
 import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import type { KnowledgeSkillAccessMode } from '@/lib/ai/skill-access'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
@@ -262,12 +263,22 @@ export async function POST(request: NextRequest) {
       : ''
     const pageAndCapabilityContext = [pageContext, capabilityContext].filter(Boolean).join('\n\n')
 
+    // Attribution for every AI call in this request (chat completion via the
+    // usage-logging middleware, plus RAG embedding calls in context building).
+    // The athlete clientId is what routes the cost to the allowance debit.
+    const aiUsageContext = {
+      userId,
+      clientId: isAthleteChat ? athleteClientId ?? null : null,
+      category: isAthleteChat ? 'athlete_chat' : 'coach_chat',
+      conversationId: conversationId ?? null,
+    }
+
     // ── 5. Build context (athlete bio + sport + calendar + RAG + web) ──
     const embeddingKeys: EmbeddingKeys = {
       googleKey: decryptedKeys.googleKey,
       openaiKey: decryptedKeys.openaiKey,
     }
-    const context = await buildChatContext({
+    const context = await withAiContext(aiUsageContext, () => buildChatContext({
       messages,
       isAthleteChat,
       athleteClientId,
@@ -287,7 +298,7 @@ export async function POST(request: NextRequest) {
       selectedSkillIds,
       skillAccessMode,
       locale: responseLocale,
-    })
+    }))
 
     // ── 6. System prompt ────────────────────────────────────────────
     const systemPrompt = isAthleteChat && context.athleteSystemPrompt
@@ -338,7 +349,10 @@ export async function POST(request: NextRequest) {
     })
 
     // ── 8. Stream ───────────────────────────────────────────────────
-    const result = streamText({
+    // The usage-logging middleware captures the AsyncLocalStorage context
+    // when the provider call starts, so wrapping the streamText kickoff is
+    // sufficient for the stream-finish log to stay attributed.
+    const result = await withAiContext(aiUsageContext, async () => streamText({
       model: modelResult.aiModel as LanguageModel,
       system: systemPrompt,
       messages: coreMessages,
@@ -399,7 +413,7 @@ export async function POST(request: NextRequest) {
         usageLoggedByMiddleware: modelResult.usageLoggedByMiddleware,
         locale: responseLocale,
       }),
-    })
+    }))
 
     // ── 9. Response ─────────────────────────────────────────────────
     try {

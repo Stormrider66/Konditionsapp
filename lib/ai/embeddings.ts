@@ -14,6 +14,7 @@ import OpenAI from 'openai';
 import { prisma } from '@/lib/prisma';
 import { getResolvedAiKeys } from '@/lib/user-api-keys';
 import { logger } from '@/lib/logger';
+import { getAiContext, logAiUsage } from '@/lib/ai/usage-logger';
 import {
   createGoogleGenAIClient,
   embedContent as geminiEmbedContent,
@@ -115,9 +116,11 @@ export async function generateEmbedding(
       outputDimensionality: EMBEDDING_DIMENSIONS,
       taskType,
     });
+    const tokens = Math.ceil(text.length / 4); // Estimate — Gemini API doesn't return token count
+    logEmbeddingUsage('GOOGLE', GOOGLE_EMBEDDING_MODEL, tokens);
     return {
       embedding: result.values,
-      tokens: Math.ceil(text.length / 4), // Estimate — Gemini API doesn't return token count
+      tokens,
       model: GOOGLE_EMBEDDING_MODEL,
       provider: 'google',
     };
@@ -131,6 +134,7 @@ export async function generateEmbedding(
     dimensions: EMBEDDING_DIMENSIONS,
   });
 
+  logEmbeddingUsage('OPENAI', OPENAI_EMBEDDING_MODEL, response.usage.total_tokens);
   return {
     embedding: response.data[0].embedding,
     tokens: response.usage.total_tokens,
@@ -160,6 +164,8 @@ export async function generateEmbeddings(
       texts,
       { outputDimensionality: EMBEDDING_DIMENSIONS, taskType },
     );
+    const totalTokens = texts.reduce((sum, t) => sum + Math.ceil(t.length / 4), 0);
+    logEmbeddingUsage('GOOGLE', GOOGLE_EMBEDDING_MODEL, totalTokens);
     return results.map((r, i) => ({
       embedding: r.values,
       tokens: Math.ceil(texts[i].length / 4),
@@ -172,6 +178,7 @@ export async function generateEmbeddings(
   const openai = new OpenAI({ apiKey: key });
   const batchSize = 100;
   const allResults: EmbeddingResult[] = [];
+  let totalTokens = 0;
 
   for (let i = 0; i < texts.length; i += batchSize) {
     const batch = texts.slice(i, i + batchSize);
@@ -180,6 +187,7 @@ export async function generateEmbeddings(
       input: batch,
       dimensions: EMBEDDING_DIMENSIONS,
     });
+    totalTokens += response.usage.total_tokens;
     for (const item of response.data) {
       allResults.push({
         embedding: item.embedding,
@@ -190,7 +198,24 @@ export async function generateEmbeddings(
     }
   }
 
+  logEmbeddingUsage('OPENAI', OPENAI_EMBEDDING_MODEL, totalTokens);
   return allResults;
+}
+
+/**
+ * Meter an embedding call. Attribution comes from the caller's withAiContext
+ * scope (e.g. the chat route); calls without context are logged under the
+ * 'embeddings' category instead of warning as fully unknown.
+ */
+function logEmbeddingUsage(provider: 'GOOGLE' | 'OPENAI', model: string, inputTokens: number): void {
+  if (inputTokens <= 0) return;
+  logAiUsage({
+    provider,
+    model,
+    inputTokens,
+    outputTokens: 0,
+    category: getAiContext()?.category ?? 'embeddings',
+  });
 }
 
 // ─── Text Chunking ──────────────────────────────────────────────────────────

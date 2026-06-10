@@ -18,6 +18,7 @@ import type { LanguageModelV2Middleware, LanguageModelV2StreamPart, LanguageMode
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { GEMINI_PRICING } from './gemini-config'
+import { AI_MODELS } from '@/types/ai-models'
 import { recordAiUsageDebit, usdToSek } from './billing/allowance'
 
 export type AiProviderTag = 'GOOGLE' | 'ANTHROPIC' | 'OPENAI'
@@ -44,10 +45,29 @@ export function getAiContext(): AiUsageContext | undefined {
   return ctxStore.getStore()
 }
 
+const warnedUnknownPricingModels = new Set<string>()
+
 export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
   const pricing = GEMINI_PRICING[model]
-  if (!pricing) return 0
-  return (inputTokens / 1000) * pricing.input + (outputTokens / 1000) * pricing.output
+  if (pricing) {
+    return (inputTokens / 1000) * pricing.input + (outputTokens / 1000) * pricing.output
+  }
+
+  // Fall back to the AI_MODELS catalog (pricing per 1M tokens) so a model
+  // missing from GEMINI_PRICING is never silently billed at $0.
+  const catalogModel = AI_MODELS.find((m) => m.modelId === model || m.id === model)
+  if (catalogModel?.pricing) {
+    return (
+      (inputTokens / 1_000_000) * catalogModel.pricing.input +
+      (outputTokens / 1_000_000) * catalogModel.pricing.output
+    )
+  }
+
+  if ((inputTokens > 0 || outputTokens > 0) && !warnedUnknownPricingModels.has(model)) {
+    warnedUnknownPricingModels.add(model)
+    logger.warn('[ai-usage] no pricing found for model — cost logged as 0', { model })
+  }
+  return 0
 }
 
 export function estimateImageCostUsd(model: string, inputTokens: number, outputTokens: number): number {
@@ -171,9 +191,17 @@ export function usageLoggingMiddleware(provider: AiProviderTag): LanguageModelV2
     middlewareVersion: 'v2',
 
     async wrapGenerate({ doGenerate, model }) {
+      // Capture attribution now — the surrounding withAiContext scope is
+      // guaranteed to be active at call time.
+      const ctx = getAiContext()
       const result = await doGenerate()
       try {
         logAiUsage({
+          userId: ctx?.userId,
+          clientId: ctx?.clientId,
+          category: ctx?.category,
+          conversationId: ctx?.conversationId,
+          researchSessionId: ctx?.researchSessionId,
           provider,
           model: model.modelId,
           inputTokens: result.usage?.inputTokens ?? 0,
@@ -188,6 +216,10 @@ export function usageLoggingMiddleware(provider: AiProviderTag): LanguageModelV2
     },
 
     async wrapStream({ doStream, model }) {
+      // Capture attribution at call time: the TransformStream flush below is
+      // driven by the response consumer, where the AsyncLocalStorage scope
+      // that wrapped the AI call is no longer reliably active.
+      const ctx = getAiContext()
       const result = await doStream()
 
       let finalUsage: LanguageModelV2Usage | undefined
@@ -203,6 +235,11 @@ export function usageLoggingMiddleware(provider: AiProviderTag): LanguageModelV2
             if (!finalUsage) return
             try {
               logAiUsage({
+                userId: ctx?.userId,
+                clientId: ctx?.clientId,
+                category: ctx?.category,
+                conversationId: ctx?.conversationId,
+                researchSessionId: ctx?.researchSessionId,
                 provider,
                 model: model.modelId,
                 inputTokens: finalUsage.inputTokens ?? 0,
