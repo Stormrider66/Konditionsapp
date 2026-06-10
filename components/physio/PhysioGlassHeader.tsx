@@ -14,9 +14,7 @@ import {
     Activity,
     MessageSquare,
     AlertTriangle,
-    FileText,
     ChevronDown,
-    Clipboard,
     Ban,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -92,7 +90,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
             label: tPhysioHeader('groups.tools'),
             icon: ClipboardList,
             items: [
-                { href: physioHref('/screenings'), label: tPhysioHeader('nav.movementScreens'), icon: Clipboard },
+                // "/screenings" removed — no screenings feature exists yet
                 { href: physioHref('/restrictions'), label: tPhysioHeader('nav.restrictions'), icon: Ban },
                 { href: physioHref('/acute-reports'), label: tPhysioHeader('nav.acuteReports'), icon: AlertTriangle },
             ]
@@ -102,7 +100,7 @@ export function PhysioGlassHeader({ user, businessSlug }: PhysioGlassHeaderProps
             icon: Menu,
             items: [
                 { href: physioHref('/messages'), label: tPhysioHeader('nav.careTeam'), icon: MessageSquare },
-                { href: physioHref('/reports'), label: tPhysioHeader('nav.reports'), icon: FileText },
+                // "/reports" removed — no reports page exists yet
                 { href: physioHref('/settings'), label: tPhysioHeader('nav.settings'), icon: Settings },
             ]
         }

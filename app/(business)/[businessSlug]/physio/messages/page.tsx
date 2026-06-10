@@ -7,7 +7,6 @@ import {
     MessageSquare,
     Search,
     Filter,
-    Plus,
     Clock,
     ChevronRight,
     AlertTriangle,
@@ -15,7 +14,6 @@ import {
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -138,12 +136,8 @@ export default function BusinessPhysioMessagesPage() {
                     <h1 className="text-3xl font-bold text-white mb-2">Care Team Messages</h1>
                     <p className="text-slate-400">Communicate with coaches and athletes about injuries and rehab</p>
                 </div>
-                <Button asChild className="bg-purple-500 hover:bg-purple-600">
-                    <Link href={`${basePath}/messages/new`}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Thread
-                    </Link>
-                </Button>
+                {/* "New Thread" removed — no thread-creation page exists yet;
+                    threads are opened from injury reports */}
             </div>
 
             {/* Search and Filters */}
@@ -198,14 +192,8 @@ export default function BusinessPhysioMessagesPage() {
                         <MessageSquare className="w-16 h-16 mx-auto mb-4 text-slate-600" />
                         <p className="text-slate-400 text-lg">No threads found</p>
                         <p className="text-slate-500 text-sm mt-2 mb-4">
-                            Start a care team conversation about an athlete
+                            Care team threads are opened from athlete injury reports
                         </p>
-                        <Button asChild className="bg-purple-500 hover:bg-purple-600">
-                            <Link href={`${basePath}/messages/new`}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Thread
-                            </Link>
-                        </Button>
                     </CardContent>
                 </Card>
             ) : (

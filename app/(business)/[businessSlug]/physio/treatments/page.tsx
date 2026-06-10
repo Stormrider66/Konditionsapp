@@ -8,7 +8,6 @@ import {
     Search,
     Filter,
     Plus,
-    ChevronRight,
     User,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -179,12 +178,10 @@ export default function BusinessPhysioTreatmentsPage() {
             ) : (
                 <div className="space-y-3">
                     {treatments.map((treatment) => (
-                        <Link
-                            key={treatment.id}
-                            href={`${basePath}/treatments/${treatment.id}`}
-                            className="block"
-                        >
-                            <Card className="bg-slate-900/50 border-white/10 hover:border-emerald-500/30 transition-all">
+                        // No treatment detail page exists yet — render as a
+                        // plain card instead of a dead link.
+                        <div key={treatment.id} className="block">
+                            <Card className="bg-slate-900/50 border-white/10">
                                 <CardContent className="p-5">
                                     <div className="flex items-start justify-between">
                                         <div className="flex items-start gap-4">
@@ -226,7 +223,6 @@ export default function BusinessPhysioTreatmentsPage() {
                                                     )}
                                                 </div>
                                             )}
-                                            <ChevronRight className="w-5 h-5 text-slate-600" />
                                         </div>
                                     </div>
                                     {treatment.modalitiesUsed && treatment.modalitiesUsed.length > 0 && (
@@ -245,7 +241,7 @@ export default function BusinessPhysioTreatmentsPage() {
                                     )}
                                 </CardContent>
                             </Card>
-                        </Link>
+                        </div>
                     ))}
                 </div>
             )}

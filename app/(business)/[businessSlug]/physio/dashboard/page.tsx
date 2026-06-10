@@ -351,10 +351,11 @@ export default function BusinessPhysioDashboardPage() {
                                 <span className="text-slate-200">New Rehab Program</span>
                             </Link>
                         </Button>
+                        {/* "New Screening" removed — no screenings feature exists yet */}
                         <Button asChild variant="outline" className="h-20 flex-col gap-2 bg-slate-800/50 border-white/10 hover:bg-slate-800 hover:border-orange-500/30">
-                            <Link href={`${basePath}/screenings/new`}>
+                            <Link href={`${basePath}/restrictions/new`}>
                                 <TrendingUp className="w-6 h-6 text-orange-500" />
-                                <span className="text-slate-200">New Screening</span>
+                                <span className="text-slate-200">New Restriction</span>
                             </Link>
                         </Button>
                         <Button asChild variant="outline" className="h-20 flex-col gap-2 bg-slate-800/50 border-white/10 hover:bg-slate-800 hover:border-purple-500/30">
