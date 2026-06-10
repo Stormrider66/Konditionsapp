@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { GarminAttribution } from '@/components/ui/GarminAttribution';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -417,6 +418,8 @@ export function TrainingTrendChart({
             <p className="text-xs text-muted-foreground">{t('summary.avgWorkouts')}</p>
           </div>
         </div>
+
+        <GarminAttribution derived className="mt-3" />
       </CardContent>
     </Card>
   );

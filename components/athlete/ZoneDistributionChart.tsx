@@ -34,6 +34,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
+import { GarminAttribution } from '@/components/ui/GarminAttribution';
 import {
   Heart,
   Activity,
@@ -403,6 +404,8 @@ export function ZoneDistributionChart({
             </div>
           </div>
         )}
+
+        <GarminAttribution derived className="mt-3" />
       </GlassCardContent>
     </GlassCard>
   );
