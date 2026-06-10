@@ -114,6 +114,7 @@ export async function POST(
         athleteIds: result.athleteIds,
         athleteNames: result.athleteNames,
         aiInsight: result.aiInsight ?? null,
+        warnings: result.warnings,
         excludedAthletes: result.preprocessedData.excludedAthletes,
         excludedVariables: result.preprocessedData.excludedVariables,
         imputedCells: result.preprocessedData.imputedCells,

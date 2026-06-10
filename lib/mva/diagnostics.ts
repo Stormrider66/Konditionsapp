@@ -1,35 +1,23 @@
 import type { AthleteDiagnostics, VariableContribution } from './types'
+import { fCriticalValue } from './fdist'
+
+// Re-exported so existing imports (and tests) can resolve it from diagnostics.
+export { fCriticalValue }
 
 /**
- * F-distribution critical value approximation for Hotelling's T² limit.
- * Uses the Satterthwaite approximation for moderate sample sizes.
+ * Hotelling's T² control limit.
+ * T²_lim = A(n-1)/(n-A) · F(alpha; A, n-A)
  */
 function hotellingT2Limit(nObs: number, nComp: number, alpha: number): number {
-  // T² ~ (A * (n-1)) / (n - A) * F(A, n-A, alpha)
-  // Approximation: for alpha = 0.05 or 0.01 with typical n and A
   const A = nComp
   const n = nObs
-
-  // Simple F critical value approximation (adequate for n > 10)
-  // Using Wilson-Hilferty approximation
-  const df1 = A
   const df2 = n - A
-
   if (df2 <= 0) return Infinity
 
-  // For alpha = 0.05: z = 1.645, alpha = 0.01: z = 2.326
-  const z = alpha === 0.01 ? 2.326 : 1.645
+  const fCrit = fCriticalValue(A, df2, alpha)
+  if (!isFinite(fCrit)) return Infinity
 
-  // Wilson-Hilferty approximation for F critical value
-  const h1 = 2 / (9 * df1)
-  const h2 = 2 / (9 * df2)
-  const fCrit = Math.pow(
-    ((1 - h2 + z * Math.sqrt(h2)) / (1 - h1 - z * Math.sqrt(h1))),
-    3
-  )
-
-  // Convert F to T² limit
-  return (A * (n - 1) / (n - A)) * Math.max(fCrit, 0)
+  return (A * (n - 1) / (n - A)) * fCrit
 }
 
 /**
@@ -47,35 +35,36 @@ function computeHotellingT2(scores: number[], eigenvalues: number[]): number {
 }
 
 /**
- * Compute DModX (distance to model in X-space) for a single observation.
- * This is the RMS of the residual — how well the model represents this observation.
+ * Residual sum of squares for a single observation in X-space.
+ * Used both for the per-observation DModX and for the pooled model
+ * standard deviation s0.
  */
-function computeDModX(
+function residualSumOfSquares(
   originalRow: number[],
   allScoresRow: number[],
   loadingsMatrix: number[][],
   nComponents: number
 ): number {
   const nVars = originalRow.length
-
-  // Reconstruct observation from model: X_hat = scores * loadings^T
-  const reconstructed: number[] = new Array(nVars).fill(0)
-  for (let j = 0; j < nVars; j++) {
-    for (let a = 0; a < nComponents; a++) {
-      reconstructed[j] += allScoresRow[a] * loadingsMatrix[j][a]
-    }
-  }
-
-  // Residual = original - reconstructed
   let sumSq = 0
   for (let j = 0; j < nVars; j++) {
-    const diff = originalRow[j] - reconstructed[j]
+    let reconstructed = 0
+    for (let a = 0; a < nComponents; a++) {
+      reconstructed += allScoresRow[a] * loadingsMatrix[j][a]
+    }
+    const diff = originalRow[j] - reconstructed
     sumSq += diff * diff
   }
+  return sumSq
+}
 
-  // Degrees of freedom correction
+/**
+ * DModX (distance to model in X-space) for a single observation — the RMS of
+ * the model residual over the residual degrees of freedom (K - A).
+ */
+function computeDModX(residualSS: number, nVars: number, nComponents: number): number {
   const dof = nVars - nComponents
-  return dof > 0 ? Math.sqrt(sumSq / dof) : Math.sqrt(sumSq)
+  return dof > 0 ? Math.sqrt(residualSS / dof) : Math.sqrt(residualSS)
 }
 
 /**
@@ -115,6 +104,52 @@ function computeContributions(
 }
 
 /**
+ * DModX critical distance using the standard SIMCA F-test (Eriksson et al.).
+ *
+ *   s0   = sqrt( SSE_total / ((N - A - 1)(K - A)) )   — pooled model std
+ *   DCrit = s0 · sqrt( F(alpha; K - A, (N - A - 1)(K - A)) )
+ *
+ * This replaces the earlier mean + 2·SD heuristic, which was a data-driven
+ * spread rather than a statistical control limit and flagged the top of any
+ * distribution regardless of whether a true outlier existed.
+ *
+ * Falls back to mean + 2·SD only when the degrees of freedom are too small for
+ * the F-test to be defined (very small squad / very few residual dimensions).
+ */
+function dmodxControlLimits(
+  residualSSValues: number[],
+  dmodxValues: number[],
+  nVars: number,
+  nComponents: number
+): { dmodxLimit95: number; dmodxLimit99: number; usedFallback: boolean } {
+  const nObs = residualSSValues.length
+  const df1 = nVars - nComponents // K - A
+  const df2 = (nObs - nComponents - 1) * df1 // (N - A - 1)(K - A)
+
+  if (df1 > 0 && df2 > 0) {
+    const totalSS = residualSSValues.reduce((sum, v) => sum + v, 0)
+    const s0 = Math.sqrt(totalSS / df2)
+    const f95 = fCriticalValue(df1, df2, 0.05)
+    const f99 = fCriticalValue(df1, df2, 0.01)
+    if (isFinite(f95) && isFinite(f99) && s0 > 0) {
+      return {
+        dmodxLimit95: s0 * Math.sqrt(f95),
+        dmodxLimit99: s0 * Math.sqrt(f99),
+        usedFallback: false,
+      }
+    }
+  }
+
+  // Fallback: distribution-free spread when the F-test is undefined.
+  const mean = dmodxValues.reduce((a, b) => a + b, 0) / Math.max(nObs, 1)
+  const variance = nObs > 1
+    ? dmodxValues.reduce((sum, v) => sum + (v - mean) ** 2, 0) / (nObs - 1)
+    : 0
+  const std = Math.sqrt(variance)
+  return { dmodxLimit95: mean + 2 * std, dmodxLimit99: mean + 3 * std, usedFallback: true }
+}
+
+/**
  * Compute all diagnostics for PCA results.
  */
 export function computeDiagnostics(
@@ -133,20 +168,25 @@ export function computeDiagnostics(
   t2Limit95: number
   t2Limit99: number
   dmodxLimit: number
+  dmodxLimit99: number
 } {
   const nObs = scores.length
+  const nVars = variableIds.length
 
   // Compute T² limits
   const t2Limit95 = hotellingT2Limit(nObs, nComponents, 0.05)
   const t2Limit99 = hotellingT2Limit(nObs, nComponents, 0.01)
 
-  // Compute DModX for all observations and derive limit
+  // First pass: per-observation T², residual SS and DModX.
   const dmodxValues: number[] = []
+  const residualSSValues: number[] = []
   const diagnostics: AthleteDiagnostics[] = []
 
   for (let i = 0; i < nObs; i++) {
     const t2 = computeHotellingT2(scores[i], eigenvalues)
-    const dmodx = computeDModX(originalMatrix[i], allScores[i], loadings, nComponents)
+    const residualSS = residualSumOfSquares(originalMatrix[i], allScores[i], loadings, nComponents)
+    const dmodx = computeDModX(residualSS, nVars, nComponents)
+    residualSSValues.push(residualSS)
     dmodxValues.push(dmodx)
 
     const topContributors = computeContributions(
@@ -169,17 +209,17 @@ export function computeDiagnostics(
     })
   }
 
-  // DModX limit: based on mean + 2*std of DModX values (approximation)
-  const dmodxMean = dmodxValues.reduce((a, b) => a + b, 0) / nObs
-  const dmodxStd = Math.sqrt(
-    dmodxValues.reduce((sum, v) => sum + (v - dmodxMean) ** 2, 0) / (nObs - 1)
+  // F-based DModX control limits.
+  const { dmodxLimit95, dmodxLimit99 } = dmodxControlLimits(
+    residualSSValues,
+    dmodxValues,
+    nVars,
+    nComponents
   )
-  const dmodxLimit = dmodxMean + 2 * dmodxStd
 
-  // Set DModX outlier flags
   for (const d of diagnostics) {
-    d.isOutlierDModX = d.dmodx > dmodxLimit
+    d.isOutlierDModX = d.dmodx > dmodxLimit95
   }
 
-  return { diagnostics, t2Limit95, t2Limit99, dmodxLimit }
+  return { diagnostics, t2Limit95, t2Limit99, dmodxLimit: dmodxLimit95, dmodxLimit99 }
 }

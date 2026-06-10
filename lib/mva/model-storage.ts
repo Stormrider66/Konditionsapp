@@ -40,6 +40,9 @@ export async function saveModel({
     t2Limit95: result.t2Limit95,
     t2Limit99: result.t2Limit99,
     dmodxLimit: result.dmodxLimit,
+    dmodxLimit99: result.dmodxLimit99,
+    warnings: result.warnings,
+    imputedCells: result.preprocessedData.imputedCells,
   }
 
   return prisma.$transaction(async (tx) => {
@@ -109,6 +112,7 @@ export async function savePLSModel({
     yObserved: result.yObserved,
     yPredicted: result.yPredicted,
     aiInsight: result.aiInsight ?? null,
+    warnings: result.warnings,
     means: result.preprocessedData.means,
     stds: result.preprocessedData.stds,
     xVariableIds: result.xVariableIds,
@@ -170,7 +174,7 @@ export async function loadLatestModel(teamId: string, locale: AppLocale = 'en') 
   })
   const nameMap = new Map(athletes.map((a) => [a.id, a.name]))
 
-  const modelData = model.modelData as {
+  const modelData = model.modelData as unknown as {
     loadings: number[][]
     eigenvalues: number[]
     means: number[]
@@ -180,6 +184,9 @@ export async function loadLatestModel(teamId: string, locale: AppLocale = 'en') 
     t2Limit95: number
     t2Limit99: number
     dmodxLimit: number
+    dmodxLimit99?: number
+    warnings?: import('./types').MVAWarning[]
+    imputedCells?: number
   }
 
   // Build variableId → category map from registry
@@ -209,6 +216,8 @@ export async function loadLatestModel(teamId: string, locale: AppLocale = 'en') 
     t2Limit95: modelData.t2Limit95,
     t2Limit99: modelData.t2Limit99,
     dmodxLimit: modelData.dmodxLimit,
+    dmodxLimit99: modelData.dmodxLimit99 ?? modelData.dmodxLimit,
+    warnings: modelData.warnings ?? [],
     config: model.config,
     nObservations: model.nObservations,
     nXVariables: model.nXVariables,
@@ -249,7 +258,7 @@ export async function loadLatestPLSModel(teamId: string, locale: AppLocale = 'en
   })
   const nameMap = new Map(athletes.map((a) => [a.id, a.name]))
 
-  const modelData = model.modelData as {
+  const modelData = model.modelData as unknown as {
     xLoadings: number[][]
     xWeights: number[][]
     coefficients: number[][]
@@ -262,6 +271,7 @@ export async function loadLatestPLSModel(teamId: string, locale: AppLocale = 'en
     yObserved: number[]
     yPredicted: number[]
     aiInsight: { summary: string; keyDrivers: string[]; recommendations: string[] } | null
+    warnings?: import('./types').MVAWarning[]
     means: number[]
     stds: number[]
     xVariableIds: string[]
@@ -294,6 +304,7 @@ export async function loadLatestPLSModel(teamId: string, locale: AppLocale = 'en
     yObserved: modelData.yObserved,
     yPredicted: modelData.yPredicted,
     aiInsight: modelData.aiInsight,
+    warnings: modelData.warnings ?? [],
     xVariableIds: modelData.xVariableIds,
     xVariableNames: modelData.xVariableIds.map((variableId, index) =>
       localizedVariableName(variableId, modelData.xVariableNames[index] ?? variableId, locale)

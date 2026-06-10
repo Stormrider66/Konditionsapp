@@ -1,6 +1,7 @@
 import { PCA } from 'ml-pca'
 import type { PreprocessedData, PCAModelResult } from './types'
 import { computeDiagnostics } from './diagnostics'
+import { assessPCAReliability } from './reliability'
 
 /**
  * Run PCA on preprocessed data.
@@ -56,7 +57,7 @@ export function runPCA(preprocessed: PreprocessedData): PCAModelResult {
   }
 
   // Compute diagnostics (T², DModX)
-  const { diagnostics, t2Limit95, t2Limit99, dmodxLimit } = computeDiagnostics(
+  const { diagnostics, t2Limit95, t2Limit99, dmodxLimit, dmodxLimit99 } = computeDiagnostics(
     scores,
     selectedEigenvalues,
     matrix,
@@ -69,7 +70,7 @@ export function runPCA(preprocessed: PreprocessedData): PCAModelResult {
     nComponents
   )
 
-  return {
+  const result: PCAModelResult = {
     scores,
     loadings,
     eigenvalues: selectedEigenvalues,
@@ -84,6 +85,11 @@ export function runPCA(preprocessed: PreprocessedData): PCAModelResult {
     t2Limit95,
     t2Limit99,
     dmodxLimit,
+    dmodxLimit99,
+    warnings: [],
     preprocessedData: preprocessed,
   }
+
+  result.warnings = assessPCAReliability(result)
+  return result
 }

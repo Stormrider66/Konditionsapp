@@ -95,6 +95,8 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
           t2Limit95: latestModel.t2Limit95,
           t2Limit99: latestModel.t2Limit99,
           dmodxLimit: latestModel.dmodxLimit,
+          dmodxLimit99: latestModel.dmodxLimit99,
+          warnings: latestModel.warnings,
           athleteScores: latestModel.athleteScores,
         } : null}
         initialPLSModel={latestPLSModel ? {
@@ -111,6 +113,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
           yObserved: latestPLSModel.yObserved,
           yPredicted: latestPLSModel.yPredicted,
           aiInsight: latestPLSModel.aiInsight,
+          warnings: latestPLSModel.warnings,
           xVariableIds: latestPLSModel.xVariableIds,
           xVariableNames: latestPLSModel.xVariableNames,
           variableCategories: latestPLSModel.variableCategories,

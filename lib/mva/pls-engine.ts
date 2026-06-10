@@ -1,6 +1,7 @@
 import { PLS } from 'ml-pls'
 import type { PreprocessedData, PLSModelResult, VIPScore } from './types'
 import { MVA_VARIABLE_REGISTRY } from './variable-registry'
+import { assessPLSReliability } from './reliability'
 
 // ml-pls returns Matrix objects from ml-matrix; we convert them to plain arrays
 type MatrixLike = { to2DArray?: () => number[][] } | number[][]
@@ -78,7 +79,7 @@ export function runPLS(preprocessed: PreprocessedData, yVariableId: string): PLS
   // VIP scores — use PBQ for variable-level regression coefficients
   const vipScores = computeVIP(W, T, xVariableIds, xVariableNames, PBQ)
 
-  return {
+  const result: PLSModelResult = {
     xScores: T,
     xLoadings: P,
     xWeights: W,
@@ -96,8 +97,12 @@ export function runPLS(preprocessed: PreprocessedData, yVariableId: string): PLS
     yVariableName: variableNames[yIndex],
     athleteIds,
     athleteNames,
+    warnings: [],
     preprocessedData: preprocessed,
   }
+
+  result.warnings = assessPLSReliability(result)
+  return result
 }
 
 /**

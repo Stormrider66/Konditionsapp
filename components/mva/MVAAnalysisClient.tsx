@@ -31,6 +31,13 @@ interface AthleteScore {
   topContributors: { variableId: string; variableName: string; contribution: number; direction: string }[] | null
 }
 
+interface MVAWarning {
+  code: string
+  severity: 'info' | 'warning'
+  messageEn: string
+  messageSv: string
+}
+
 interface MVAModelData {
   id: string
   createdAt: string
@@ -46,6 +53,8 @@ interface MVAModelData {
   t2Limit95: number
   t2Limit99: number
   dmodxLimit: number
+  dmodxLimit99?: number
+  warnings?: MVAWarning[]
   athleteScores: AthleteScore[]
 }
 
@@ -63,6 +72,7 @@ interface PLSModelData {
   yObserved: number[]
   yPredicted: number[]
   aiInsight: PLSInsight | null
+  warnings?: MVAWarning[]
   xVariableIds: string[]
   xVariableNames: string[]
   variableCategories?: Record<string, string>
@@ -113,6 +123,8 @@ interface ComputeResponse {
   t2Limit95: number
   t2Limit99: number
   dmodxLimit: number
+  dmodxLimit99?: number
+  warnings?: MVAWarning[]
   excludedAthletes: { name: string; reason: string }[]
   excludedVariables: { name: string; reason: string }[]
   imputedCells: number
@@ -137,6 +149,7 @@ interface PLSComputeResponse {
   athleteIds: string[]
   athleteNames: string[]
   aiInsight: PLSInsight | null
+  warnings?: MVAWarning[]
   excludedAthletes: { name: string; reason: string }[]
   excludedVariables: { name: string; reason: string }[]
   imputedCells: number
@@ -226,6 +239,33 @@ function formatSigned(value: number | null, digits = 2): string {
   if (value === null) return 'n/a'
   const sign = value > 0 ? '+' : ''
   return `${sign}${value.toFixed(digits)}`
+}
+
+function MVAWarningsBanner({ warnings, locale }: { warnings?: MVAWarning[]; locale: 'en' | 'sv' }) {
+  if (!warnings || warnings.length === 0) return null
+  const hasWarning = warnings.some((w) => w.severity === 'warning')
+  return (
+    <div
+      className={`mb-4 rounded-lg border p-3 text-xs ${
+        hasWarning
+          ? 'border-amber-300 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10'
+          : 'border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5'
+      }`}
+    >
+      <div className="mb-1 flex items-center gap-2 font-medium dark:text-white">
+        <AlertTriangle className={`h-4 w-4 ${hasWarning ? 'text-amber-500' : 'text-slate-400'}`} />
+        {locale === 'sv' ? 'Modellens tillförlitlighet' : 'Model reliability'}
+      </div>
+      <ul className="space-y-1">
+        {warnings.map((w) => (
+          <li key={w.code} className="flex gap-2 text-muted-foreground">
+            <span className={w.severity === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400'}>•</span>
+            <span>{locale === 'sv' ? w.messageSv : w.messageEn}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
 type ArchetypeId = 'explosive' | 'strength' | 'aerobic' | 'recovery' | 'balanced'
@@ -1003,6 +1043,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           excludedAthletes: computeResult.excludedAthletes,
           excludedVariables: computeResult.excludedVariables,
           imputedCells: computeResult.imputedCells,
+          warnings: computeResult.warnings ?? [],
           createdAt: new Date().toISOString(),
         }
       : model
@@ -1022,6 +1063,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
             excludedAthletes: [],
             excludedVariables: [],
             imputedCells: 0,
+            warnings: model.warnings ?? [],
             createdAt: model.createdAt,
           }
         : null
@@ -1082,6 +1124,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
               <p className="text-red-600 dark:text-red-400 text-sm">{error}</p>
             </div>
           )}
+
+          <MVAWarningsBanner warnings={displayData.warnings} locale={locale} />
 
           <Tabs defaultValue="scores" className="w-full">
             <TabsList className="grid w-full grid-cols-4">
@@ -1257,6 +1301,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
         excludedAthletes: plsResult.excludedAthletes,
         excludedVariables: plsResult.excludedVariables,
         imputedCells: plsResult.imputedCells,
+        warnings: plsResult.warnings ?? [],
         createdAt: new Date().toISOString(),
       }
     : plsModel
@@ -1279,6 +1324,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
           excludedAthletes: [],
           excludedVariables: [],
           imputedCells: 0,
+          warnings: plsModel.warnings ?? [],
           createdAt: plsModel.createdAt,
         }
       : null
@@ -1348,6 +1394,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
             <p className="text-red-600 dark:text-red-400 text-sm">{plsError}</p>
           </div>
         )}
+
+        <MVAWarningsBanner warnings={plsDisplay.warnings} locale={locale} />
 
         <Tabs defaultValue="drivers" className="w-full">
           <TabsList className={`grid w-full ${hasInsight ? 'grid-cols-4' : 'grid-cols-3'}`}>

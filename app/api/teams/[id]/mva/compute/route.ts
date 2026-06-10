@@ -104,6 +104,8 @@ export async function POST(
         t2Limit95: result.t2Limit95,
         t2Limit99: result.t2Limit99,
         dmodxLimit: result.dmodxLimit,
+        dmodxLimit99: result.dmodxLimit99,
+        warnings: result.warnings,
         excludedAthletes: result.preprocessedData.excludedAthletes,
         excludedVariables: result.preprocessedData.excludedVariables,
         imputedCells: result.preprocessedData.imputedCells,

@@ -187,6 +187,18 @@ export interface PreprocessedData {
   imputedCells: number
 }
 
+/**
+ * A model-quality / reliability warning surfaced to the coach.
+ * Pure data (no UI), localized message pair so the API and the client
+ * can render in the active locale without re-deriving the condition.
+ */
+export interface MVAWarning {
+  code: string
+  severity: 'info' | 'warning'
+  messageEn: string
+  messageSv: string
+}
+
 export interface PCAModelResult {
   scores: number[][] // [observations x components]
   loadings: number[][] // [variables x components]
@@ -201,7 +213,9 @@ export interface PCAModelResult {
   diagnostics: AthleteDiagnostics[]
   t2Limit95: number
   t2Limit99: number
-  dmodxLimit: number
+  dmodxLimit: number // 95% F-based critical distance
+  dmodxLimit99: number // 99% F-based critical distance
+  warnings: MVAWarning[]
   preprocessedData: PreprocessedData
 }
 
@@ -253,6 +267,7 @@ export interface PLSModelResult {
   yVariableName: string
   athleteIds: string[]
   athleteNames: string[]
+  warnings: MVAWarning[]
   preprocessedData: PreprocessedData
   aiInsight?: PLSInsight | null
 }
