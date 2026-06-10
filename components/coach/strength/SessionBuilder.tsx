@@ -10,7 +10,6 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-  defaultDropAnimationSideEffects,
   DragStartEvent,
   DragEndEvent
 } from '@dnd-kit/core'
@@ -22,11 +21,11 @@ import {
   useSortable
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search, Download, Loader2, X, MapPin, Copy } from 'lucide-react'
+import { GripVertical, Plus, Trash2, Dumbbell, Timer, RotateCcw, Search, Loader2, X, MapPin, Copy } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
