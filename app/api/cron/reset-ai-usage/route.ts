@@ -15,6 +15,8 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resetExpiredAiAllowanceAccounts } from '@/lib/ai/billing/allowance'
 
+export const maxDuration = 60
+
 export async function POST(request: NextRequest) {
   try {
     // Verify cron secret to prevent unauthorized access

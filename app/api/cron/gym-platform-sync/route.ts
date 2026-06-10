@@ -10,6 +10,8 @@ import { subMinutes } from 'date-fns'
  * Periodic sync of all active gym platform connections.
  * Should run every 15 minutes via Vercel Cron.
  */
+export const maxDuration = 300
+
 export async function POST(request: NextRequest) {
   const authError = verifyCronAuth(request)
   if (authError) return authError

@@ -33,7 +33,7 @@ import { rollupAssignmentProgression } from '@/lib/training-engine/progression/a
 import { rollupWorkoutLogProgression } from '@/lib/training-engine/progression/workout-log-rollup'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60
+export const maxDuration = 300
 
 const LOOKBACK_DAYS = 30
 

@@ -28,6 +28,8 @@ function parseBoundedInt(
 }
 
 // GET /api/cron/expire-ai-action-drafts - Expire stale pending AI confirmation drafts
+export const maxDuration = 60
+
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

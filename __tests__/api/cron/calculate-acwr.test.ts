@@ -4,8 +4,8 @@
  * ACWR drives injury risk classification for every active athlete. A
  * silent bug here either misses athletes (they never get their daily
  * load recorded) or miscategorizes them (a DANGER athlete reads
- * OPTIMAL). Pin auth, batch processing, per-athlete error isolation,
- * and the zone boundary math.
+ * OPTIMAL). Pin auth, batched processing, idempotent re-runs, and the
+ * zone boundary math.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -14,7 +14,8 @@ import { NextRequest } from 'next/server'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     client: { findMany: vi.fn() },
-    trainingLoad: { findFirst: vi.fn(), create: vi.fn(), aggregate: vi.fn() },
+    trainingLoad: { findMany: vi.fn(), groupBy: vi.fn(), createMany: vi.fn() },
+    $queryRaw: vi.fn(),
   },
 }))
 
@@ -36,14 +37,26 @@ function buildRequest(auth: string | null) {
   })
 }
 
+function createManyArgs() {
+  return vi.mocked(prisma.trainingLoad.createMany).mock.calls[0]?.[0] as {
+    data: Array<Record<string, unknown>>
+  }
+}
+
 describe('POST /api/cron/calculate-acwr', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     process.env.CRON_SECRET = SECRET
     vi.mocked(prisma.client.findMany).mockResolvedValue([])
-    vi.mocked(prisma.trainingLoad.findFirst).mockResolvedValue(null)
-    vi.mocked(prisma.trainingLoad.aggregate).mockResolvedValue({ _sum: { dailyLoad: null } } as any)
-    vi.mocked(prisma.trainingLoad.create).mockResolvedValue({} as any)
+    // No summaries written yet today
+    vi.mocked(prisma.trainingLoad.findMany).mockResolvedValue([])
+    // No workout load yesterday
+    vi.mocked(prisma.trainingLoad.groupBy).mockResolvedValue([] as never)
+    // No prior ACWR carrier entries
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([])
+    vi.mocked(prisma.trainingLoad.createMany).mockImplementation(
+      (async (args: { data: unknown[] }) => ({ count: args.data.length })) as never
+    )
   })
 
   it('returns 500 when CRON_SECRET is not set', async () => {
@@ -73,14 +86,14 @@ describe('POST /api/cron/calculate-acwr', () => {
     expect(body.processed).toBe(0)
     expect(body.updated).toBe(0)
     expect(body.errors).toBe(0)
-    expect(prisma.trainingLoad.create).not.toHaveBeenCalled()
+    expect(prisma.trainingLoad.createMany).not.toHaveBeenCalled()
   })
 
-  it('creates a TrainingLoad row per active athlete', async () => {
+  it('creates a TrainingLoad row per active athlete in one batched write', async () => {
     vi.mocked(prisma.client.findMany).mockResolvedValue([
       { id: 'client-1', name: 'Alice' },
       { id: 'client-2', name: 'Bob' },
-    ] as any)
+    ] as never)
 
     const res = await postCron(buildRequest(`Bearer ${SECRET}`))
     const body = await res.json()
@@ -88,83 +101,92 @@ describe('POST /api/cron/calculate-acwr', () => {
     expect(res.status).toBe(200)
     expect(body.updated).toBe(2)
     expect(body.processed).toBe(2)
-    expect(prisma.trainingLoad.create).toHaveBeenCalledTimes(2)
+    expect(prisma.trainingLoad.createMany).toHaveBeenCalledTimes(1)
+    expect(createManyArgs().data).toHaveLength(2)
+    expect(createManyArgs().data.map((r) => r.clientId)).toEqual([
+      'client-1',
+      'client-2',
+    ])
   })
 
-  it('isolates per-athlete failures — one athlete failing does not abort the run', async () => {
+  it('skips athletes that already have a summary today — re-runs are idempotent', async () => {
     vi.mocked(prisma.client.findMany).mockResolvedValue([
       { id: 'client-1', name: 'Alice' },
       { id: 'client-2', name: 'Bob' },
-    ] as any)
-    // First athlete's create throws, second succeeds.
-    vi.mocked(prisma.trainingLoad.create)
-      .mockRejectedValueOnce(new Error('FK violation'))
-      .mockResolvedValueOnce({} as any)
+    ] as never)
+    // client-1 was already processed by an earlier (partial) run today.
+    vi.mocked(prisma.trainingLoad.findMany).mockResolvedValue([
+      { clientId: 'client-1' },
+    ] as never)
+
+    const res = await postCron(buildRequest(`Bearer ${SECRET}`))
+    const body = await res.json()
+
+    expect(res.status).toBe(200)
+    expect(body.skipped).toBe(1)
+    expect(body.processed).toBe(1)
+    expect(body.updated).toBe(1)
+    expect(createManyArgs().data.map((r) => r.clientId)).toEqual(['client-2'])
+  })
+
+  it('is a no-op when every athlete already has a summary today', async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([
+      { id: 'client-1', name: 'Alice' },
+    ] as never)
+    vi.mocked(prisma.trainingLoad.findMany).mockResolvedValue([
+      { clientId: 'client-1' },
+    ] as never)
 
     const res = await postCron(buildRequest(`Bearer ${SECRET}`))
     const body = await res.json()
 
     expect(res.status).toBe(200)
     expect(body.success).toBe(true)
-    expect(body.errors).toBe(1)
-    expect(body.updated).toBe(1)
-    expect(body.processed).toBe(2)
+    expect(body.skipped).toBe(1)
+    expect(body.updated).toBe(0)
+    expect(prisma.trainingLoad.createMany).not.toHaveBeenCalled()
   })
 
-  it('classifies an athlete with elevated acute load into DANGER zone', async () => {
+  it('classifies an athlete with elevated acute load into CRITICAL zone', async () => {
     vi.mocked(prisma.client.findMany).mockResolvedValue([
       { id: 'client-1', name: 'Alice' },
-    ] as any)
-    // Most-recent training load: acute 80, chronic 40 — daily=0 yesterday.
-    // EWMA: acute = 0.4*0 + 0.6*80 = 48. chronic = 0.1*0 + 0.9*40 = 36.
-    // ACWR = 48/36 ≈ 1.33 → CAUTION zone
-    // Let's pin something more unambiguous: start from acute 110, chronic 60.
-    // acute new = 0.4*0 + 0.6*110 = 66. chronic new = 0.1*0 + 0.9*60 = 54.
-    // ACWR = 66/54 ≈ 1.22 → OPTIMAL (< 1.3).
-    // For DANGER, need ACWR > 1.5. With dailyTSS=0, ratio is chronic/acute
-    // decay, so it decreases over time. Start from acute 200, chronic 90:
-    // acute new = 0.6 * 200 = 120. chronic new = 0.9 * 90 = 81.
-    // ACWR = 120/81 ≈ 1.48 → CAUTION.
-    // Use dailyTSS>0: yesterday's workout rows sum to 300 (e.g. strength
-    // 180 + team practice 120 — the aggregate sums all workout-sourced rows).
-    vi.mocked(prisma.trainingLoad.aggregate).mockResolvedValue({
-      _sum: { dailyLoad: 300 },
-    } as any)
+    ] as never)
+    // Yesterday's workout rows sum to 300 (e.g. strength 180 + team
+    // practice 120 — the grouped sum covers all workout-sourced rows).
+    vi.mocked(prisma.trainingLoad.groupBy).mockResolvedValue([
+      { clientId: 'client-1', _sum: { dailyLoad: 300 } },
+    ] as never)
     // Most-recent carrier entry with prior EWMA values
-    vi.mocked(prisma.trainingLoad.findFirst).mockResolvedValue({
-      id: 'tl-prev',
-      clientId: 'client-1',
-      acuteLoad: 60,
-      chronicLoad: 50,
-    } as any)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      { clientId: 'client-1', acuteLoad: 60, chronicLoad: 50 },
+    ])
 
     await postCron(buildRequest(`Bearer ${SECRET}`))
 
     // Acute new = 0.4*300 + 0.6*60 = 156.
     // Chronic new = 0.1*300 + 0.9*50 = 75.
     // ACWR = 156/75 ≈ 2.08 → CRITICAL, VERY_HIGH.
-    const createArgs = vi.mocked(prisma.trainingLoad.create).mock.calls[0]?.[0]
-    expect(createArgs.data.acwrZone).toBe('CRITICAL')
-    expect(createArgs.data.injuryRisk).toBe('VERY_HIGH')
-    expect(createArgs.data.dailyLoad).toBe(300)
-    expect(createArgs.data.acuteLoad).toBeCloseTo(156, 0)
-    expect(createArgs.data.chronicLoad).toBeCloseTo(75, 0)
+    const row = createManyArgs().data[0]
+    expect(row.acwrZone).toBe('CRITICAL')
+    expect(row.injuryRisk).toBe('VERY_HIGH')
+    expect(row.dailyLoad).toBe(300)
+    expect(row.acuteLoad).toBeCloseTo(156, 0)
+    expect(row.chronicLoad).toBeCloseTo(75, 0)
   })
 
   it('seeds EWMA from the daily load when no prior training load exists', async () => {
     vi.mocked(prisma.client.findMany).mockResolvedValue([
       { id: 'client-1', name: 'Alice' },
-    ] as any)
-    // No yesterday load (aggregate sum null from beforeEach), no prior entry.
-    vi.mocked(prisma.trainingLoad.findFirst).mockResolvedValue(null)
+    ] as never)
+    // No yesterday load (groupBy empty from beforeEach), no prior entry.
 
     await postCron(buildRequest(`Bearer ${SECRET}`))
 
     // dailyTSS = 0, previousEWMA = null → acute = 0, chronic = 0,
     // ACWR = 0 (chronic guard avoids divide-by-zero) → DETRAINING, LOW.
-    const createArgs = vi.mocked(prisma.trainingLoad.create).mock.calls[0]?.[0]
-    expect(createArgs.data.acwr).toBe(0)
-    expect(createArgs.data.acwrZone).toBe('DETRAINING')
-    expect(createArgs.data.injuryRisk).toBe('LOW')
+    const row = createManyArgs().data[0]
+    expect(row.acwr).toBe(0)
+    expect(row.acwrZone).toBe('DETRAINING')
+    expect(row.injuryRisk).toBe('LOW')
   })
 })

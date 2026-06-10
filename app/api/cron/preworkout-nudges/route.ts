@@ -40,6 +40,8 @@ type AthletePage = {
   } | null
 }
 
+export const maxDuration = 300
+
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

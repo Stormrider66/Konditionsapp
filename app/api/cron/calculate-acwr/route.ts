@@ -32,9 +32,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 
+export const maxDuration = 300
+
 // EWMA smoothing factor
 const ACUTE_ALPHA = 0.4 // 7-day EWMA
 const CHRONIC_ALPHA = 0.1 // 28-day EWMA
+
+const CREATE_CHUNK_SIZE = 1000
 
 interface ACWRZone {
   zone: 'DETRAINING' | 'OPTIMAL' | 'CAUTION' | 'DANGER' | 'CRITICAL'
@@ -102,103 +106,136 @@ export async function POST(request: NextRequest) {
 
     logger.info('Found active athletes', { count: activeAthletes.length })
 
-    let processed = 0
-    let updated = 0
-    let errors = 0
+    const allIds = activeAthletes.map((a) => a.id)
 
-    for (const athlete of activeAthletes) {
-      try {
-        // Get yesterday's date range
-        const yesterday = new Date(today)
-        yesterday.setDate(yesterday.getDate() - 1)
+    // Skip athletes that already have today's summary so a re-run (or a
+    // retry after a partial failure) resumes instead of writing duplicates.
+    const existingToday = await prisma.trainingLoad.findMany({
+      where: {
+        clientId: { in: allIds },
+        source: 'ACWR_SUMMARY',
+        date: today,
+      },
+      select: { clientId: true },
+    })
+    const alreadyProcessed = new Set(existingToday.map((r) => r.clientId))
+    const athletes = activeAthletes.filter((a) => !alreadyProcessed.has(a.id))
 
-        // Sum all workout-sourced load entries for yesterday. Rows written
-        // by this cron are ACWR_SUMMARY and duplicate the workout rows'
-        // dailyLoad, so they must be excluded from the sum.
-        const yesterdayLoad = await prisma.trainingLoad.aggregate({
-          where: {
-            clientId: athlete.id,
-            date: {
-              gte: yesterday,
-              lt: today,
-            },
-            source: 'WORKOUT',
-          },
-          _sum: { dailyLoad: true },
-        })
+    if (athletes.length === 0) {
+      logger.info('ACWR calculation complete', {
+        processed: 0,
+        total: activeAthletes.length,
+        skipped: alreadyProcessed.size,
+        updated: 0,
+        errors: 0,
+      })
+      return NextResponse.json({
+        success: true,
+        processed: 0,
+        skipped: alreadyProcessed.size,
+        updated: 0,
+        errors: 0,
+        timestamp: today.toISOString(),
+      })
+    }
 
-        const dailyTSS = yesterdayLoad._sum.dailyLoad || 0
+    const ids = athletes.map((a) => a.id)
 
-        // Get most recent ACWR carrier entry for this athlete (a plain
-        // workout row would reset the moving averages)
-        const previousEntry = await prisma.trainingLoad.findFirst({
-          where: { clientId: athlete.id, source: 'ACWR_SUMMARY' },
-          orderBy: { date: 'desc' },
-        })
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
 
-        // Calculate new EWMA values
-        const acuteLoad = calculateEWMA(
-          previousEntry?.acuteLoad ?? null,
-          dailyTSS,
-          ACUTE_ALPHA
-        )
+    // Sum all workout-sourced load entries for yesterday in one grouped
+    // query. Rows written by this cron are ACWR_SUMMARY and duplicate the
+    // workout rows' dailyLoad, so they must be excluded from the sum.
+    const loadSums = await prisma.trainingLoad.groupBy({
+      by: ['clientId'],
+      where: {
+        clientId: { in: ids },
+        date: {
+          gte: yesterday,
+          lt: today,
+        },
+        source: 'WORKOUT',
+      },
+      _sum: { dailyLoad: true },
+    })
+    const loadByClient = new Map(
+      loadSums.map((r) => [r.clientId, r._sum.dailyLoad || 0])
+    )
 
-        const chronicLoad = calculateEWMA(
-          previousEntry?.chronicLoad ?? null,
-          dailyTSS,
-          CHRONIC_ALPHA
-        )
+    // Most recent ACWR carrier entry per athlete (a plain workout row would
+    // reset the moving averages). DISTINCT ON walks the
+    // (clientId, source, date) index instead of one findFirst per athlete.
+    const previousEntries = await prisma.$queryRaw<
+      { clientId: string; acuteLoad: number | null; chronicLoad: number | null }[]
+    >`
+      SELECT DISTINCT ON ("clientId") "clientId", "acuteLoad", "chronicLoad"
+      FROM "TrainingLoad"
+      WHERE "source" = 'ACWR_SUMMARY' AND "clientId" = ANY(${ids})
+      ORDER BY "clientId", "date" DESC
+    `
+    const previousByClient = new Map(previousEntries.map((r) => [r.clientId, r]))
 
-        // Calculate ACWR (avoid division by zero)
-        const acwr = chronicLoad > 0 ? acuteLoad / chronicLoad : 0
+    const rows = athletes.map((athlete) => {
+      const dailyTSS = loadByClient.get(athlete.id) || 0
+      const previousEntry = previousByClient.get(athlete.id)
 
-        // Determine zone and injury risk
-        const { zone, injuryRisk } = determineACWRZone(acwr)
+      const acuteLoad = calculateEWMA(
+        previousEntry?.acuteLoad ?? null,
+        dailyTSS,
+        ACUTE_ALPHA
+      )
+      const chronicLoad = calculateEWMA(
+        previousEntry?.chronicLoad ?? null,
+        dailyTSS,
+        CHRONIC_ALPHA
+      )
 
-        // Create new TrainingLoad entry
-        await prisma.trainingLoad.create({
-          data: {
-            clientId: athlete.id,
-            date: today,
-            source: 'ACWR_SUMMARY',
-            dailyLoad: dailyTSS,
-            loadType: 'TSS',
-            duration: 0, // Will be updated from actual workout logs
-            intensity: 'MODERATE', // Default
-            acuteLoad,
-            chronicLoad,
-            acwr,
-            acwrZone: zone,
-            injuryRisk,
-          },
-        })
+      // Calculate ACWR (avoid division by zero)
+      const acwr = chronicLoad > 0 ? acuteLoad / chronicLoad : 0
+      const { zone, injuryRisk } = determineACWRZone(acwr)
 
-        updated++
-        processed++
-
-        // Log if athlete is in danger zone
-        if (zone === 'DANGER' || zone === 'CRITICAL') {
-          logger.warn('Athlete in danger zone', { athleteName: athlete.name, acwr: acwr.toFixed(2), zone })
-        }
-      } catch (athleteError: unknown) {
-        logger.error('Error processing athlete', { athleteName: athlete.name }, athleteError)
-        errors++
-        processed++
+      if (zone === 'DANGER' || zone === 'CRITICAL') {
+        logger.warn('Athlete in danger zone', { athleteName: athlete.name, acwr: acwr.toFixed(2), zone })
       }
+
+      return {
+        clientId: athlete.id,
+        date: today,
+        source: 'ACWR_SUMMARY' as const,
+        dailyLoad: dailyTSS,
+        loadType: 'TSS',
+        duration: 0, // Will be updated from actual workout logs
+        intensity: 'MODERATE', // Default
+        acuteLoad,
+        chronicLoad,
+        acwr,
+        acwrZone: zone,
+        injuryRisk,
+      }
+    })
+
+    let updated = 0
+    for (let i = 0; i < rows.length; i += CREATE_CHUNK_SIZE) {
+      const chunk = rows.slice(i, i + CREATE_CHUNK_SIZE)
+      const result = await prisma.trainingLoad.createMany({ data: chunk })
+      updated += result.count
     }
 
     logger.info('ACWR calculation complete', {
-      processed,
+      processed: athletes.length,
       total: activeAthletes.length,
+      skipped: alreadyProcessed.size,
       updated,
-      errors
+      errors: 0,
     })
 
     return NextResponse.json({
       success: true,
-      processed,
+      processed: athletes.length,
+      skipped: alreadyProcessed.size,
       updated,
-      errors,
+      errors: 0,
       timestamp: today.toISOString(),
     })
   } catch (error: unknown) {

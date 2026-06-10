@@ -467,6 +467,8 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
   return digestData
 }
 
+export const maxDuration = 300
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('authorization')
