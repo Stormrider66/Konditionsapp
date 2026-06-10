@@ -9,7 +9,7 @@
     "garmin-webhook:start": "NODE_ENV=production tsx --tsconfig tsconfig.scripts.json apps/garmin-webhook/server.ts",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=6144 next build",
     "start": "next start",
-    "lint": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --ext .ts,.tsx --max-warnings 1769",
+    "lint": "cross-env NODE_OPTIONS=--max-old-space-size=8192 eslint . --ext .ts,.tsx --max-warnings 1763",
     "pretypecheck": "prisma generate",
     "typecheck": "cross-env NODE_OPTIONS=--max-old-space-size=6144 tsc --noEmit -p tsconfig.json",
     "prepare": "husky",
