@@ -54,7 +54,7 @@ import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
-import { getDashboardRecentActivitySummary, getDashboardWeeklyTSS } from '@/lib/dashboard/activity-insights'
+import { getDashboardRecentActivitySummary, getDashboardWeeklyLoad } from '@/lib/dashboard/activity-insights'
 import { getWODUsageStats } from '@/lib/ai/wod-context-builder'
 import { getLocale, getTranslations } from '@/i18n/server'
 import {
@@ -231,7 +231,7 @@ export default async function AthleteDashboardPage() {
     activePrograms,
     latestMetrics,
     recentLogsWithSetLogs,
-    weeklyTSS,
+    weeklyLoad,
     activeInjuries,
     wodHistory,
     confirmedAdHocWorkouts,
@@ -303,8 +303,8 @@ export default async function AthleteDashboardPage() {
       orderBy: { completedAt: 'desc' },
     }),
 
-    // 6. Weekly training load (sum of dailyLoad for last 7 days)
-    getDashboardWeeklyTSS(clientId),
+    // 6. Weekly training load + personalized target (4-week average)
+    getDashboardWeeklyLoad(clientId),
 
     // 7. Active injuries (not fully recovered)
     prisma.injuryAssessment.findMany({
@@ -595,7 +595,7 @@ export default async function AthleteDashboardPage() {
   // Get readiness data
   const readinessScore = latestMetrics?.readinessScore ?? null
   const hasCheckedInToday = latestMetrics ? latestMetrics.date >= todayStart : false
-  const weeklyTSSTarget = 1000 // Default target, could be from athlete profile
+  const { weeklyTSS, weeklyTSSTarget } = weeklyLoad
 
   // Get next item for rest day card
   const nextItem: DashboardItem | null = upcomingItems.length > 0 ? upcomingItems[0] : null

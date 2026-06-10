@@ -1,4 +1,4 @@
-import { subDays } from 'date-fns'
+import { differenceInCalendarDays, subDays } from 'date-fns'
 import { prisma } from '@/lib/prisma'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
@@ -241,7 +241,15 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
     ?.summary ?? null
 }
 
-export async function getDashboardWeeklyTSS(clientId: string): Promise<number> {
+const DEFAULT_WEEKLY_TSS_TARGET = 400
+
+export interface DashboardWeeklyLoad {
+  weeklyTSS: number
+  weeklyTSSTarget: number
+  targetSource: 'history' | 'default'
+}
+
+export async function getDashboardWeeklyLoad(clientId: string): Promise<DashboardWeeklyLoad> {
   const now = new Date()
   const sevenDaysAgo = subDays(now, 7)
   const twentyEightDaysAgo = subDays(now, 28)
@@ -250,10 +258,15 @@ export async function getDashboardWeeklyTSS(clientId: string): Promise<number> {
     prisma.trainingLoad.findMany({
       where: {
         clientId,
-        date: { gte: sevenDaysAgo },
+        date: { gte: twentyEightDaysAgo },
+        // The nightly ACWR cron writes a daily summary row whose dailyLoad
+        // duplicates that day's workout rows. Only workout-sourced rows have
+        // acwr unset, so filter to those to avoid double counting.
+        acwr: null,
       },
       select: {
         dailyLoad: true,
+        date: true,
       },
     }),
     prisma.stravaActivity.findMany({
@@ -316,14 +329,44 @@ export async function getDashboardWeeklyTSS(clientId: string): Promise<number> {
   const { deduplicated } = deduplicateActivities(dedupInputs)
   const dailyTSS = aggregateTSSByDay(deduplicated)
 
-  let syncedWeeklyTss = 0
+  let weeklyTss = 0
+  let fourWeekTss = 0
+  let earliestActivity: Date | null = null
+
   for (const [dateKey, tss] of Object.entries(dailyTSS)) {
     const date = new Date(dateKey)
+    fourWeekTss += tss
     if (date >= sevenDaysAgo) {
-      syncedWeeklyTss += tss
+      weeklyTss += tss
+    }
+    if (tss > 0 && (!earliestActivity || date < earliestActivity)) {
+      earliestActivity = date
     }
   }
 
-  const manualWeeklyTss = manualTrainingLoads.reduce((sum, load) => sum + (load.dailyLoad || 0), 0)
-  return Math.round(syncedWeeklyTss + manualWeeklyTss)
+  for (const load of manualTrainingLoads) {
+    const value = load.dailyLoad || 0
+    fourWeekTss += value
+    if (load.date >= sevenDaysAgo) {
+      weeklyTss += value
+    }
+    if (value > 0 && (!earliestActivity || load.date < earliestActivity)) {
+      earliestActivity = load.date
+    }
+  }
+
+  const weeklyTSS = Math.round(weeklyTss)
+
+  if (fourWeekTss <= 0 || !earliestActivity) {
+    return { weeklyTSS, weeklyTSSTarget: DEFAULT_WEEKLY_TSS_TARGET, targetSource: 'default' }
+  }
+
+  // Target = average weekly load over the observed history. Athletes with
+  // fewer than four weeks of data are averaged over their actual history so
+  // the target isn't diluted by empty weeks.
+  const historyDays = Math.min(differenceInCalendarDays(now, earliestActivity) + 1, 28)
+  const observedWeeks = Math.min(Math.max(historyDays / 7, 1), 4)
+  const weeklyTSSTarget = Math.max(Math.round(fourWeekTss / observedWeeks / 10) * 10, 100)
+
+  return { weeklyTSS, weeklyTSSTarget, targetSource: 'history' }
 }
