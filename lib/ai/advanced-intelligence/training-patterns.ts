@@ -78,9 +78,10 @@ export async function analyzeTrainingPatterns(
 
   // Fetch training data
   const [workoutLogs, checkIns, trainingLoads] = await Promise.all([
+    // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
     prisma.workoutLog.findMany({
       where: {
-        athleteId: clientId,
+        athlete: { athleteAccount: { clientId } },
         completedAt: { gte: startDate },
       },
       orderBy: { completedAt: 'asc' },

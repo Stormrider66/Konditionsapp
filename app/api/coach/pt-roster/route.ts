@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           name: true,
+          athleteAccount: { select: { userId: true } },
           sportProfile: { select: { primarySport: true } },
         },
       }),
@@ -260,9 +261,19 @@ export async function GET(request: NextRequest) {
       injuryMap.set(i.clientId, i._count.id)
     }
 
+    // WorkoutLog.athleteId is a User.id — re-key these maps by clientId so
+    // the per-client reads below find them.
+    const userIdToClientId = new Map<string, string>()
+    for (const c of clients) {
+      if (c.athleteAccount?.userId) {
+        userIdToClientId.set(c.athleteAccount.userId, c.id)
+      }
+    }
+
     const programActivityMap = new Map<string, Date | null>()
     for (const a of lastActivities) {
-      programActivityMap.set(a.athleteId, a._max.completedAt)
+      const cId = userIdToClientId.get(a.athleteId)
+      if (cId) programActivityMap.set(cId, a._max.completedAt)
     }
 
     const stravaActivityMap = new Map<string, Date | null>()
@@ -295,7 +306,8 @@ export async function GET(request: NextRequest) {
 
     const feedbackMap = new Map<string, number>()
     for (const f of pendingFeedback) {
-      feedbackMap.set(f.athleteId, f._count.id)
+      const cId = userIdToClientId.get(f.athleteId)
+      if (cId) feedbackMap.set(cId, f._count.id)
     }
 
     const complianceMap = new Map<string, { completed: number; planned: number; percent: number | null }>()

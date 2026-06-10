@@ -87,8 +87,10 @@ export async function generatePredictiveGoals(
       orderBy: { date: 'desc' },
       take: 5,
     }),
+    // WorkoutLog.athleteId is a User.id, not a Client.id — resolve via the
+    // athleteAccount relation or the filter silently matches nothing.
     prisma.workoutLog.findMany({
-      where: { athleteId: clientId, completed: true },
+      where: { athlete: { athleteAccount: { clientId } }, completed: true },
       orderBy: { completedAt: 'desc' },
       take: 50,
     }),
@@ -157,8 +159,9 @@ export async function predictRaceTimes(
       orderBy: { date: 'desc' },
       take: 5,
     }),
+    // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
     prisma.workoutLog.findMany({
-      where: { athleteId: clientId, completed: true },
+      where: { athlete: { athleteAccount: { clientId } }, completed: true },
       orderBy: { completedAt: 'desc' },
       take: 100,
     }),

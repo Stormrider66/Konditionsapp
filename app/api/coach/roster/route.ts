@@ -39,6 +39,9 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           name: true,
+          athleteAccount: {
+            select: { userId: true },
+          },
           sportProfile: {
             select: { primarySport: true },
           },
@@ -107,11 +110,18 @@ export async function GET(request: NextRequest) {
       injuryMap.set(i.clientId, i._count.id)
     })
 
-    // Get last workout activity per client
+    // Get last workout activity per client. WorkoutLog.athleteId is a
+    // User.id, so map each client to its athleteAccount userId and back.
+    const userIdToClientId = new Map<string, string>()
+    clients.forEach(c => {
+      if (c.athleteAccount?.userId) {
+        userIdToClientId.set(c.athleteAccount.userId, c.id)
+      }
+    })
     const lastActivities = await prisma.workoutLog.groupBy({
       by: ['athleteId'],
       where: {
-        athleteId: { in: clients.map(c => c.id) },
+        athleteId: { in: [...userIdToClientId.keys()] },
         completed: true,
       },
       _max: { completedAt: true },
@@ -119,7 +129,8 @@ export async function GET(request: NextRequest) {
 
     const activityMap = new Map<string, Date | null>()
     lastActivities.forEach(a => {
-      activityMap.set(a.athleteId, a._max.completedAt)
+      const cId = userIdToClientId.get(a.athleteId)
+      if (cId) activityMap.set(cId, a._max.completedAt)
     })
 
     // Build roster response

@@ -95,9 +95,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const threeMonthsAgo = new Date()
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
 
+    // WorkoutLog.athleteId is a User.id, not a Client.id — resolve via the
+    // athleteAccount relation or the filter silently matches nothing.
     const workoutStats = await prisma.workoutLog.aggregate({
       where: {
-        athleteId: athlete.id,
+        athlete: { athleteAccount: { clientId: athlete.id } },
         completedAt: { gte: threeMonthsAgo },
       },
       _sum: { duration: true },

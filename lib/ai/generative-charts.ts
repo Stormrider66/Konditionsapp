@@ -239,9 +239,10 @@ async function fetchAthleteData(
         })
       : [],
     context === 'all' || context === 'training_load'
-      ? prisma.workoutLog.findMany({
+      ? // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
+        prisma.workoutLog.findMany({
           where: {
-            athleteId: clientId,
+            athlete: { athleteAccount: { clientId } },
             completedAt: { gte: startDate, lte: endDate },
           },
           include: { workout: true },

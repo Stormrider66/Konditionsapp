@@ -69,8 +69,9 @@ export async function analyzePeriodization(
       orderBy: { date: 'desc' },
       take: 42, // 6 weeks
     }),
+    // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
     prisma.workoutLog.findMany({
-      where: { athleteId: clientId, completed: true },
+      where: { athlete: { athleteAccount: { clientId } }, completed: true },
       orderBy: { completedAt: 'desc' },
       take: 30,
     }),

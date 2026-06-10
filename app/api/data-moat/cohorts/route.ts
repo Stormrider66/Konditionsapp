@@ -283,10 +283,13 @@ async function findMatchingAthletes(criteria: z.infer<typeof createCohortSchema>
   const threeMonthsAgo = new Date()
   threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3)
 
+  // WorkoutLog.athleteId is a User.id; athleteIds here are Client.ids, so
+  // scope via the athleteAccount relation. The grouping key itself is only
+  // used for per-athlete sums and never mapped back to clients.
   const workoutStats = await prisma.workoutLog.groupBy({
     by: ['athleteId'],
     where: {
-      athleteId: { in: athleteIds },
+      athlete: { athleteAccount: { clientId: { in: athleteIds } } },
       completedAt: { gte: threeMonthsAgo },
     },
     _sum: { duration: true },

@@ -94,8 +94,9 @@ export async function calculateInjuryRisk(
       orderBy: { date: 'desc' },
       take: 28, // 4 weeks
     }),
+    // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
     prisma.workoutLog.findMany({
-      where: { athleteId: clientId },
+      where: { athlete: { athleteAccount: { clientId } } },
       orderBy: { completedAt: 'desc' },
       take: 30,
     }),

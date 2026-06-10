@@ -105,9 +105,10 @@ export async function analyzeWithDeepThink(
         tests: { orderBy: { testDate: 'desc' }, take: 3 },
       },
     }),
+    // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
     prisma.workoutLog.findMany({
       where: {
-        athleteId: clientId,
+        athlete: { athleteAccount: { clientId } },
         completedAt: { gte: startDate },
       },
       include: { workout: true },

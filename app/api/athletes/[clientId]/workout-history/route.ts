@@ -61,9 +61,11 @@ export async function GET(request: NextRequest, context: RouteContext) {
       dateFilter = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
     }
 
-    // Build where clause
+    // Build where clause. WorkoutLog.athleteId is a User.id, not a
+    // Client.id — resolve via the athleteAccount relation or the filter
+    // silently matches nothing.
     const where: Record<string, unknown> = {
-      athleteId: clientId,
+      athlete: { athleteAccount: { clientId } },
     }
 
     if (dateFilter) {
