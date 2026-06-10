@@ -296,12 +296,17 @@ export async function POST(req: NextRequest, context: RouteContext) {
       return [parent, ...children]
     })
 
-    // Feed estimated on-ice load into athlete ACWR monitoring (best-effort)
+    // Feed estimated on-ice load into athlete ACWR monitoring (best-effort).
+    // Players marked ABSENT in the attendance list are excluded.
     let trainingLoadEntries = 0
     if (parsed.data.type === 'PRACTICE' && practicePlan) {
       trainingLoadEntries = await syncPracticeTrainingLoad({
         teamId,
-        events: events.map((event) => ({ id: event.id, startDate: event.startDate })),
+        events: events.map((event) => ({
+          id: event.id,
+          startDate: event.startDate,
+          attendance: event.attendance,
+        })),
         practicePlan,
       })
     }
