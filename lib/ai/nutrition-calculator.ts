@@ -3,6 +3,19 @@
  *
  * BMR, TDEE, and macro calculations for general fitness and nutrition guidance.
  * Based on scientific formulas: Mifflin-St Jeor, Harris-Benedict, and sport-specific adjustments.
+ *
+ * SCOPE — static estimates only. This module serves:
+ *   - body-composition routes (BMR from scans, which then feeds the timing
+ *     engine as `bodyComposition.bmrKcal`)
+ *   - AI nutrition-plan generation and the coach plan calculator
+ *     (long-term weekly plans, not day-by-day numbers)
+ *
+ * For PER-DAY macro targets (anything answering "what should this athlete
+ * eat today"), do NOT use this module — use the canonical timing engine:
+ * `calculateDailyTargets` / `getDailyTargetsForDays` in lib/nutrition-timing.
+ * It is training-aware (workouts, carb periodization, NEAT, guardrails) and
+ * is what stats adherence, the trend chart, and dashboard cards display.
+ * Both systems share lib/nutrition/macro-guardrails.ts for safety caps.
  */
 
 import {

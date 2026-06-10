@@ -9,6 +9,12 @@
  * - Body composition goals
  * - Dietary preferences and restrictions
  *
+ * CANONICAL for per-day macro targets: any surface showing "what should
+ * this athlete eat today/on day X" must go through `calculateDailyTargets`
+ * (or `getDailyTargetsForDays` for ranges) so numbers never diverge between
+ * surfaces. lib/ai/nutrition-calculator.ts is the separate static-estimate
+ * system (BMR from scans, long-term AI plans) — not for daily targets.
+ *
  * @module lib/nutrition-timing
  */
 

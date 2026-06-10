@@ -78,6 +78,11 @@ lib/
 ### TrainingLoad rows (`source` discriminator)
 Two kinds of rows live in `TrainingLoad`: `WORKOUT` (one per logged session; the default) and `ACWR_SUMMARY` (one per athlete/day from the nightly `calculate-acwr` cron — its `dailyLoad` **duplicates** the day's workout rows, and it is the **only** carrier of `acuteLoad`/`chronicLoad`/`acwr`). Every query must pick a side: load sums filter `source: 'WORKOUT'` (else ~2× double-count); ACWR reads filter `source: 'ACWR_SUMMARY'` (else a workout logged after the 2 AM cron masks the values).
 
+### Nutrition: two target systems, one canonical
+- **Per-day macro targets** ("what should this athlete eat today/on day X") MUST come from the timing engine: `calculateDailyTargets` / `getDailyTargetsForDays` in `lib/nutrition-timing`. Training-aware (workouts, carb periodization, NEAT, guardrails). Used by stats adherence, trend chart, dashboard cards.
+- **Static estimates** (BMR from body-comp scans, long-term AI nutrition plans, coach plan calculator) use `lib/ai/nutrition-calculator.ts`. Never use it for daily targets.
+- **Calendar days**: `MealLog.date` is `@db.Date` = UTC midnight of the athlete's calendar day. Derive/bucket days via `lib/nutrition/day-key.ts` + `getAthleteTimezone()` (`lib/nutrition/athlete-day.ts`) — never server-local `setHours(0,0,0,0)` or `toISOString().split('T')` on timestamps.
+
 ### Code Standards
 - Always use `@/` import prefix
 - Validate with Zod schemas (`lib/validations/schemas.ts`)
