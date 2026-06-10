@@ -11846,7 +11846,10 @@
           "description": "Beskrivning",
           "sport": "Sport",
           "assignToTeam": "Tilldela lag",
-          "noTeam": "Inget lag"
+          "noTeam": "Inget lag",
+          "scheduledDate": "Träningsdatum",
+          "seenBy": "Sedd av {viewed} av {total} spelare",
+          "notSeenBy": "Ej sedd av:"
         },
         "placeholders": {
           "title": "Övningens namn",
@@ -11856,6 +11859,7 @@
         "actions": {
           "saveDraft": "Spara utkast",
           "publish": "Publicera",
+          "unpublish": "Avpublicera",
           "edit": "Redigera",
           "preview": "Förhandsgranska",
           "showDiagram": "Visa diagram",
@@ -11867,7 +11871,12 @@
           "generated": "Övning genererad!",
           "saved": "Övning sparad!",
           "published": "Övning publicerad!",
+          "unpublished": "Övningen avpublicerad",
+          "scheduleUpdated": "Träningsdatum uppdaterat",
           "saveError": "Kunde inte spara övningen"
+        },
+        "hints": {
+          "scheduledDate": "Spelarna ser övningar med dagens datum överst på sin dashboard"
         },
         "errors": {
           "analysisFailed": "Analys misslyckades",
@@ -11882,7 +11891,8 @@
           "copyFailed": "Kunde inte kopiera övning",
           "descriptionTooShort": "Beskriv övningen med minst några ord",
           "nothingToSave": "Ingen övning att spara",
-          "minContent": "Lägg till minst en spelare eller rörelse"
+          "minContent": "Lägg till minst en spelare eller rörelse",
+          "updateFailed": "Kunde inte uppdatera övningen"
         }
       },
       "list": {
@@ -16715,7 +16725,11 @@
       }
     },
     "athleteDrillList": {
-      "title": "Övningar från tränaren"
+      "title": "Övningar från tränaren",
+      "todaySection": "Dagens taktik",
+      "upcomingSection": "Kommande",
+      "earlierSection": "Tidigare",
+      "newBadge": "Ny"
     },
     "preWorkoutNudgeCard": {
       "time": {

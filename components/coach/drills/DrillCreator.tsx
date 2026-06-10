@@ -43,6 +43,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [teamId, setTeamId] = useState('')
+  const [scheduledDate, setScheduledDate] = useState('')
   const [structure, setStructure] = useState<DrillStructure | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [sourceImageUrl] = useState<string | null>(null)
@@ -149,6 +150,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
           sourceType: previewImage ? 'CLIPBOARD_PHOTO' : editorMode ? 'MANUAL_EDITOR' : textPrompt ? 'AI_TEXT' : 'MANUAL',
           sourceImageUrl,
           isPublished: publish,
+          scheduledDate: scheduledDate || null,
         }),
       })
 
@@ -161,6 +163,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
       setStructure(null)
       setPreviewImage(null)
       setTeamId('')
+      setScheduledDate('')
       setEditorMode(false)
       setShowAnimation(false)
       setTextPrompt('')
@@ -429,6 +432,16 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
                   </Select>
                 </div>
               )}
+
+              <div className="space-y-2">
+                <Label>{t('common.labels.scheduledDate')}</Label>
+                <Input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">{t('common.hints.scheduledDate')}</p>
+              </div>
 
               <div className="flex gap-2 pt-2">
                 <Button variant="outline" onClick={() => handleSave(false)} disabled={saving} className="flex-1">

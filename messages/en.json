@@ -11487,6 +11487,7 @@
         "actions": {
           "saveDraft": "Save draft",
           "publish": "Publish",
+          "unpublish": "Unpublish",
           "edit": "Edit",
           "preview": "Preview",
           "showDiagram": "Show diagram",
@@ -11498,7 +11499,12 @@
           "generated": "Drill generated!",
           "saved": "Drill saved!",
           "published": "Drill published!",
+          "unpublished": "Drill unpublished",
+          "scheduleUpdated": "Practice date updated",
           "saveError": "Could not save the drill"
+        },
+        "hints": {
+          "scheduledDate": "Athletes see drills scheduled for today at the top of their dashboard"
         },
         "errors": {
           "analysisFailed": "Analysis failed",
@@ -11513,7 +11519,8 @@
           "copyFailed": "Could not copy the drill",
           "descriptionTooShort": "Describe the drill with at least a few words",
           "nothingToSave": "No drill to save",
-          "minContent": "Add at least one player or movement"
+          "minContent": "Add at least one player or movement",
+          "updateFailed": "Could not update the drill"
         },
         "labels": {
           "published": "Published",
@@ -11522,7 +11529,10 @@
           "description": "Description",
           "sport": "Sport",
           "assignToTeam": "Assign to team",
-          "noTeam": "No team"
+          "noTeam": "No team",
+          "scheduledDate": "Practice date",
+          "seenBy": "Seen by {viewed} of {total} athletes",
+          "notSeenBy": "Not seen by:"
         }
       },
       "list": {
@@ -16355,7 +16365,11 @@
       }
     },
     "athleteDrillList": {
-      "title": "Drills from your coach"
+      "title": "Drills from your coach",
+      "todaySection": "Today's tactics",
+      "upcomingSection": "Upcoming",
+      "earlierSection": "Earlier",
+      "newBadge": "New"
     },
     "preWorkoutNudgeCard": {
       "time": {

@@ -9,6 +9,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { notifyDrillPublished } from '@/lib/notifications/drills'
+
+function parseScheduledDate(value: unknown): Date | null {
+  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
+  const date = new Date(`${value}T00:00:00.000Z`)
+  return Number.isNaN(date.getTime()) ? null : date
+}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -45,6 +52,7 @@ export async function GET(req: NextRequest) {
       include: {
         team: { select: { name: true } },
         createdBy: { select: { name: true } },
+        _count: { select: { views: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 50,
@@ -90,8 +98,13 @@ export async function POST(req: NextRequest) {
         aiAnalysis: body.aiAnalysis || null,
         isPublished: body.isPublished || false,
         publishedAt: body.isPublished ? new Date() : null,
+        scheduledDate: parseScheduledDate(body.scheduledDate),
       },
     })
+
+    if (drill.isPublished) {
+      await notifyDrillPublished(drill.id)
+    }
 
     return NextResponse.json({ drill }, { status: 201 })
   } catch (error) {

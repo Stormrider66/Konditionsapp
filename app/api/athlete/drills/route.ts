@@ -46,15 +46,25 @@ export async function GET(request?: Request) {
         description: true,
         sportType: true,
         structure: true,
+        scheduledDate: true,
         createdAt: true,
         team: { select: { name: true } },
         createdBy: { select: { name: true } },
+        views: {
+          where: { clientId },
+          select: { viewedAt: true },
+        },
       },
       orderBy: { createdAt: 'desc' },
       take: 30,
     })
 
-    return NextResponse.json({ drills })
+    return NextResponse.json({
+      drills: drills.map(({ views, ...drill }) => ({
+        ...drill,
+        viewedAt: views[0]?.viewedAt ?? null,
+      })),
+    })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })

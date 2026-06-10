@@ -882,7 +882,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             { key: 'nutrition-dashboard', node: <NutritionDashboard clientId={clientId} /> },
             { key: 'integrated-recent-activity', node: <IntegratedRecentActivity clientId={clientId} variant="glass" /> },
             { key: 'interval-results-history', node: <IntervalResultsHistory /> },
-            { key: 'athlete-drill-list', node: <AthleteDrillList /> },
+            { key: 'athlete-drill-list', node: <AthleteDrillList athletePosition={client.position ?? undefined} /> },
           ])
             .filter(item => isVisible(item.key))
             .map(item => <div key={item.key}>{item.node}</div>)}
