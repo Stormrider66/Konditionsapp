@@ -112,15 +112,15 @@ export async function generateEmbedding(
 
   if (provider === 'google') {
     const client = createGoogleGenAIClient(key);
+    // Usage is logged inside google-genai-client's embedContent — do not
+    // log here too, or every Google embedding is double-counted.
     const result = await geminiEmbedContent(client, GOOGLE_EMBEDDING_MODEL, text, {
       outputDimensionality: EMBEDDING_DIMENSIONS,
       taskType,
     });
-    const tokens = Math.ceil(text.length / 4); // Estimate — Gemini API doesn't return token count
-    logEmbeddingUsage('GOOGLE', GOOGLE_EMBEDDING_MODEL, tokens);
     return {
       embedding: result.values,
-      tokens,
+      tokens: Math.ceil(text.length / 4), // Estimate — Gemini API doesn't return token count
       model: GOOGLE_EMBEDDING_MODEL,
       provider: 'google',
     };
@@ -158,14 +158,13 @@ export async function generateEmbeddings(
 
   if (provider === 'google') {
     const client = createGoogleGenAIClient(key);
+    // Usage is logged inside google-genai-client — see note in generateEmbedding.
     const results = await geminiBatchEmbedContent(
       client,
       GOOGLE_EMBEDDING_MODEL,
       texts,
       { outputDimensionality: EMBEDDING_DIMENSIONS, taskType },
     );
-    const totalTokens = texts.reduce((sum, t) => sum + Math.ceil(t.length / 4), 0);
-    logEmbeddingUsage('GOOGLE', GOOGLE_EMBEDDING_MODEL, totalTokens);
     return results.map((r, i) => ({
       embedding: r.values,
       tokens: Math.ceil(texts[i].length / 4),
@@ -203,18 +202,19 @@ export async function generateEmbeddings(
 }
 
 /**
- * Meter an embedding call. Attribution comes from the caller's withAiContext
+ * Meter an OpenAI embedding call (the Google path logs inside
+ * google-genai-client). Attribution comes from the caller's withAiContext
  * scope (e.g. the chat route); calls without context are logged under the
- * 'embeddings' category instead of warning as fully unknown.
+ * 'embedding' category instead of warning as fully unknown.
  */
-function logEmbeddingUsage(provider: 'GOOGLE' | 'OPENAI', model: string, inputTokens: number): void {
+function logEmbeddingUsage(provider: 'OPENAI', model: string, inputTokens: number): void {
   if (inputTokens <= 0) return;
   logAiUsage({
     provider,
     model,
     inputTokens,
     outputTokens: 0,
-    category: getAiContext()?.category ?? 'embeddings',
+    category: getAiContext()?.category ?? 'embedding',
   });
 }
 
