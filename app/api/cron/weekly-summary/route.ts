@@ -268,22 +268,33 @@ async function processAthleteSummary(
   currentYear: number
 ): Promise<AthleteSummaryOutcome> {
   try {
-    await saveWeeklySummary(athlete.id, previousWeekStart)
+    const summaryId = await saveWeeklySummary(athlete.id, previousWeekStart)
     await saveMonthlySummary(athlete.id, currentMonth, currentYear)
 
-    await generateVisualReport({
-      reportType: 'training-summary',
-      clientId: athlete.id,
-      coachId: athlete.userId,
-      locale: athlete.user?.language === 'sv' ? 'sv' : 'en',
-      periodStart: previousWeekStart,
-      periodEnd: new Date(previousWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
+    // Only spend an image-generation call when the week contained training.
+    // Without this gate, every registered athlete (including ones who never
+    // logged in) gets a "0 TSS" infographic generated each Monday.
+    const summary = await prisma.weeklyTrainingSummary.findUnique({
+      where: { id: summaryId },
+      select: { workoutCount: true, totalDuration: true },
     })
+    const hasTraining = (summary?.workoutCount ?? 0) > 0 || (summary?.totalDuration ?? 0) > 0
+
+    if (hasTraining) {
+      await generateVisualReport({
+        reportType: 'training-summary',
+        clientId: athlete.id,
+        coachId: athlete.userId,
+        locale: athlete.user?.language === 'sv' ? 'sv' : 'en',
+        periodStart: previousWeekStart,
+        periodEnd: new Date(previousWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000),
+      })
+    }
 
     return {
       status: 'success',
       athleteName: athlete.name,
-      visualReportGenerated: true,
+      visualReportGenerated: hasTraining,
     }
   } catch (error) {
     console.error(`Error calculating summary for athlete ${athlete.id}:`, error)
