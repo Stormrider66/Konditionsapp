@@ -172,7 +172,7 @@ All outbound email is paused until launch. Set `EMAILS_PAUSED=true` in env to su
 
 ## Known Issues
 
-- Lactate curve validation not enforced (users can input decreasing values)
+- Lactate curve quality is warned, not blocked (by design): decreasing values produce `LACTATE_DROP` warnings in the test form, the create/PATCH APIs, and calculation output, but the test still saves. Stage *ranges* (lactate 0–30, HR 40–250, …) are hard-enforced on both create and edit.
 - Economy calculations skip stages without VO2 data
 - PDF export may timeout on slow connections for large reports
 

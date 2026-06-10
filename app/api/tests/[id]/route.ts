@@ -1,5 +1,6 @@
 // app/api/tests/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 import { createClient } from '@/lib/supabase/server'
@@ -8,7 +9,8 @@ import { logger } from '@/lib/logger'
 import { performAllCalculations, ManualThresholdOverrides } from '@/lib/calculations'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { triggerTrialAfterTest } from '@/lib/subscription/trial-trigger'
-import type { Test, Client, TestStage } from '@/types'
+import { testStageApiSchema, detectLactateDecreases } from '@/lib/validations/schemas'
+import type { Test, Client } from '@/types'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 type RouteParams = {
@@ -276,33 +278,68 @@ export async function PATCH(
     // Post-test measurements (peak lactate)
     if (body.postTestMeasurements !== undefined) updateData.postTestMeasurements = body.postTestMeasurements
 
-    // Delete old test stages if new ones provided
+    // Replace test stages if new ones provided. Stages were previously
+    // written unvalidated; enforce the same per-stage schema as the create
+    // route and surface lactate-curve warnings the same way.
+    const warnings: Array<{ type: string; severity: string; message: string; details: unknown }> = []
     if (body.stages && Array.isArray(body.stages)) {
-      await prisma.testStage.deleteMany({
-        where: { testId: id },
-      })
+      // JSON payloads use null for "not provided"; the stage schema models
+      // optional fields as undefined, so strip nulls before validating.
+      const normalizedStages = body.stages.map((stage: Record<string, unknown>) =>
+        Object.fromEntries(Object.entries(stage ?? {}).filter(([, value]) => value !== null))
+      )
+      const stagesValidation = z.array(testStageApiSchema).min(1).safeParse(normalizedStages)
+      if (!stagesValidation.success) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: t(locale, 'Invalid test stage data', 'Ogiltiga teststegsdata'),
+            details: stagesValidation.error.errors,
+          },
+          { status: 400 }
+        )
+      }
+      const stages = stagesValidation.data
 
-      // Create new test stages
-      await prisma.testStage.createMany({
-        data: body.stages.map((stage: Partial<TestStage>, index: number) => ({
-          testId: id,
-          sequence: index,
-          duration: stage.duration,
-          heartRate: stage.heartRate,
-          lactate: stage.lactate,
-          vo2: stage.vo2 || null,
-          speed: stage.speed || null,
-          incline: stage.incline || null,
-          power: stage.power || null,
-          cadence: stage.cadence || null,
-          rer: stage.rer || null,
-          ve: stage.ve || null,
-          vco2: stage.vco2 || null,
-          fatPercent: stage.fatPercent || null,
-          choPercent: stage.choPercent || null,
-          respiratoryRate: stage.respiratoryRate || null,
-        })),
-      })
+      const lactateDrops = detectLactateDecreases(stages)
+      warnings.push(
+        ...lactateDrops.map((drop) => ({
+          type: 'LACTATE_DROP',
+          severity: 'warning',
+          message: locale === 'sv'
+            ? `Laktat sjönk med ${drop.drop} mmol/L från steg ${drop.fromStage} till steg ${drop.toStage}. Testet sparades ändå, men kontrollera värdet innan du använder rapporten skarpt.`
+            : `Lactate dropped by ${drop.drop} mmol/L from stage ${drop.fromStage} to stage ${drop.toStage}. The test was still saved, but check the value before using the report.`,
+          details: drop,
+        }))
+      )
+
+      // Replace atomically — a failed insert must not leave the test stageless
+      await prisma.$transaction([
+        prisma.testStage.deleteMany({
+          where: { testId: id },
+        }),
+        prisma.testStage.createMany({
+          data: stages.map((stage, index) => ({
+            testId: id,
+            sequence: index,
+            duration: stage.duration,
+            heartRate: stage.heartRate,
+            lactate: stage.lactate,
+            vo2: stage.vo2 ?? null,
+            speed: stage.speed ?? null,
+            incline: stage.incline ?? null,
+            power: stage.power ?? null,
+            cadence: stage.cadence ?? null,
+            pace: stage.pace ?? null,
+            rer: stage.rer ?? null,
+            ve: stage.ve ?? null,
+            vco2: stage.vco2 ?? null,
+            fatPercent: stage.fatPercent ?? null,
+            choPercent: stage.choPercent ?? null,
+            respiratoryRate: stage.respiratoryRate ?? null,
+          })),
+        }),
+      ])
     }
 
     // Update test
@@ -353,6 +390,7 @@ export async function PATCH(
     return NextResponse.json({
       success: true,
       data: test,
+      warnings: warnings.length > 0 ? warnings : undefined,
       message: t(locale, 'Test updated successfully', 'Testet uppdaterades'),
     })
   } catch (error) {
