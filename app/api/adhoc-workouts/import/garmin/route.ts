@@ -60,6 +60,7 @@ export async function GET(request: NextRequest) {
         calories: true,
         trainingEffect: true,
         anaerobicEffect: true,
+        deviceName: true,
       },
     })
 
@@ -95,6 +96,7 @@ export async function GET(request: NextRequest) {
       calories: a.calories,
       trainingEffect: a.trainingEffect,
       anaerobicEffect: a.anaerobicEffect,
+      deviceName: a.deviceName,
       alreadyImported: importedActivityIds.has(a.garminActivityId.toString()),
     }))
 

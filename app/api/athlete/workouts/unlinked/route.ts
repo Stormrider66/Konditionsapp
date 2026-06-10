@@ -63,6 +63,7 @@ export async function GET(request: NextRequest) {
         maxHeartrate: true,
         calories: true,
         mappedType: true,
+        deviceName: true,
       },
       orderBy: { startDate: 'desc' },
       take: 50,

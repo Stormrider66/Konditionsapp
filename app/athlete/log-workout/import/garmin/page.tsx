@@ -43,6 +43,7 @@ interface GarminActivity {
   averageHR: number | null
   maxHR: number | null
   calories: number | null
+  deviceName: string | null
   alreadyImported: boolean
 }
 
@@ -220,9 +221,12 @@ export default function GarminImportPage() {
                       </Badge>
                     </div>
 
-                    <p className="text-sm text-muted-foreground mb-2">
+                    <p className="text-sm text-muted-foreground">
                       {format(new Date(activity.startTime), 'PPP', { locale: dateLocale })}
                     </p>
+
+                    {/* Brand guidelines: attribution adjacent to the title, above the metrics */}
+                    <GarminAttribution deviceModel={activity.deviceName} className="mb-2" />
 
                     <div className="flex flex-wrap gap-4 text-sm">
                       {activity.distance != null && activity.distance > 0 && (
@@ -244,7 +248,6 @@ export default function GarminImportPage() {
                         </div>
                       )}
                     </div>
-                    <GarminAttribution className="mt-2" />
                   </div>
 
                   <div className="shrink-0">

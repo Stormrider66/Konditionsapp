@@ -39,6 +39,7 @@ interface UnlinkedGarmin {
   maxHeartrate: number | null
   calories: number | null
   mappedType: string | null
+  deviceName: string | null
 }
 
 interface Suggestion {
@@ -259,7 +260,7 @@ export function WorkoutMergeManager() {
                         {garmin.distance && <span>{formatDistance(garmin.distance)}</span>}
                         {garmin.averageHeartrate && <span>{Math.round(garmin.averageHeartrate)} bpm</span>}
                       </div>
-                      <GarminAttribution className="pt-1" />
+                      <GarminAttribution deviceModel={garmin.deviceName} className="pt-1" />
                     </div>
                   </div>
                 </CardContent>
@@ -301,7 +302,7 @@ export function WorkoutMergeManager() {
                   <span>{formatDateLocalized(g.startDate)}</span>
                   {g.duration && <span>{formatDuration(g.duration)}</span>}
                 </div>
-                <GarminAttribution className="pt-1" />
+                <GarminAttribution deviceModel={g.deviceName} className="pt-1" />
               </div>
             ))}
           </div>
