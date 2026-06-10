@@ -1,35 +1,12 @@
 'use client'
 
-import { useState, useMemo, useCallback, Fragment } from 'react'
+import { useCallback } from 'react'
 import Link from 'next/link'
-import { format } from 'date-fns'
-import { enUS, sv } from 'date-fns/locale'
-import {
-  ChevronDown, ChevronUp, ArrowUpDown, Trash2, Download, Edit2,
-  CheckCircle2, CircleAlert,
-} from 'lucide-react'
+import { CheckCircle2, CircleAlert } from 'lucide-react'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { SearchInput } from '@/components/ui/search-input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { useToast } from '@/hooks/use-toast'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
 import type { PageContext } from '@/components/ai-studio/FloatingAIChat'
@@ -38,7 +15,6 @@ import { exportClientTestsToCSV } from '@/lib/utils/csv-export'
 import { ProgressionChart } from '@/components/charts/ProgressionChart'
 import { SportSpecificAthleteView } from '@/components/coach/sport-views'
 import { PaceValidationDashboard } from '@/components/coach/pace-zones/PaceValidationDashboard'
-import { AnalyzeTestButton } from '@/components/ai/performance-analysis'
 import { ClientVideoAnalyses } from '@/components/coach/video-analysis/ClientVideoAnalyses'
 import { VBTProgressionWidget } from '@/components/athlete/VBTProgressionWidget'
 import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
@@ -53,13 +29,9 @@ import { WellnessTrends } from './WellnessTrends'
 import { TrainingStats } from './TrainingStats'
 import { RecurringExercises } from './RecurringExercises'
 import { HockeyTeamRank } from './HockeyTeamRank'
-import type { Test, TestType, TrainingZone } from '@/types'
 import type {
   ClientWithTests,
   SportProfileSummary,
-  ThresholdSummary,
-  SortField,
-  SortDirection,
   CoachSnapshotTone,
 } from './types'
 
@@ -73,8 +45,6 @@ interface DevelopmentTabProps {
   showPaceZones: boolean
   /** Team id when this is a hockey team athlete; null otherwise (gates team benchmarking). */
   hockeyTeamId: string | null
-  /** Whether to show the legacy endurance-only test table (hidden for team/racket athletes with no endurance tests). */
-  showEnduranceTable: boolean
   newTestHref: string
   developmentStatusTone: CoachSnapshotTone
   latestTestLabel: string
@@ -97,7 +67,6 @@ export function DevelopmentTab({
   sportProfileLoading,
   showPaceZones,
   hockeyTeamId,
-  showEnduranceTable,
   newTestHref,
   developmentStatusTone,
   latestTestLabel,
@@ -112,30 +81,9 @@ export function DevelopmentTab({
 }: DevelopmentTabProps) {
   const t = useTranslations('coach.pages.clientDetail')
   const locale = useLocale()
-  const dateFnsLocale = locale === 'sv' ? sv : enUS
 
   const { toast } = useToast()
   const pageContextApi = usePageContextOptional()
-
-  const [sortField, setSortField] = useState<SortField>('date')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [filterTestType, setFilterTestType] = useState<TestType | 'ALL'>('ALL')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [expandedTestId, setExpandedTestId] = useState<string | null>(null)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
-  const [testToDelete, setTestToDelete] = useState<Test | null>(null)
-  const [deleting, setDeleting] = useState(false)
-
-  const testTypeLabels: Record<TestType, string> = {
-    RUNNING: t('testTypes.running'),
-    CYCLING: t('testTypes.cycling'),
-    SKIING: t('testTypes.skiing'),
-  }
-  const testStatusLabels: Record<string, string> = {
-    COMPLETED: t('testStatus.completed'),
-    DRAFT: t('testStatus.draft'),
-    ARCHIVED: t('testStatus.archived'),
-  }
 
   const handleLoadVideoAnalysisToAI = useCallback((analysis: {
     id: string
@@ -178,105 +126,6 @@ export function DevelopmentTab({
     pageContextApi.setPageContext(context)
   }, [pageContextApi, client.name, locale, t, toast])
 
-  const sortedAndFilteredTests = useMemo(() => {
-    if (!client.tests) return []
-
-    let filtered = [...client.tests]
-
-    if (filterTestType !== 'ALL') {
-      filtered = filtered.filter((test) => test.testType === filterTestType)
-    }
-
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase()
-      filtered = filtered.filter((test) => {
-        const dateString = format(new Date(test.testDate), 'PPP', { locale: dateFnsLocale }).toLowerCase()
-        const notes = test.notes?.toLowerCase() || ''
-        return dateString.includes(search) || notes.includes(search)
-      })
-    }
-
-    filtered.sort((a, b) => {
-      let comparison = 0
-
-      switch (sortField) {
-        case 'date':
-          comparison = new Date(a.testDate).getTime() - new Date(b.testDate).getTime()
-          break
-        case 'type':
-          comparison = a.testType.localeCompare(b.testType)
-          break
-        case 'vo2max':
-          comparison = (a.vo2max || 0) - (b.vo2max || 0)
-          break
-        case 'status':
-          comparison = a.status.localeCompare(b.status)
-          break
-      }
-
-      return sortDirection === 'asc' ? comparison : -comparison
-    })
-
-    return filtered
-  }, [client.tests, filterTestType, searchTerm, sortField, sortDirection, dateFnsLocale])
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('desc')
-    }
-  }
-
-  const toggleExpandTest = (testId: string) => {
-    setExpandedTestId(expandedTestId === testId ? null : testId)
-  }
-
-  const handleDeleteClick = (test: Test, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setTestToDelete(test)
-    setDeleteDialogOpen(true)
-  }
-
-  const handleDeleteConfirm = async () => {
-    if (!testToDelete) return
-
-    setDeleting(true)
-    try {
-      const response = await fetch(`/api/tests/${testToDelete.id}`, {
-        method: 'DELETE',
-      })
-
-      const result = await response.json()
-
-      if (result.success) {
-        toast({
-          title: t('toasts.testDeletedTitle'),
-          description: t('toasts.testDeletedDescription'),
-        })
-        await onRefetchClient()
-        await onRefetchRecentTests()
-        if (expandedTestId === testToDelete.id) {
-          setExpandedTestId(null)
-        }
-      } else {
-        throw new Error(result.error || 'Failed to delete test')
-      }
-    } catch (error) {
-      console.error('Error deleting test:', error)
-      toast({
-        title: t('toasts.errorTitle'),
-        description: t('toasts.testDeleteFailed'),
-        variant: 'destructive',
-      })
-    } finally {
-      setDeleting(false)
-      setDeleteDialogOpen(false)
-      setTestToDelete(null)
-    }
-  }
-
   const handleExportTests = () => {
     if (!client || !client.tests || client.tests.length === 0) {
       toast({
@@ -288,9 +137,9 @@ export function DevelopmentTab({
     }
 
     try {
-      const testsToExport = sortedAndFilteredTests.length > 0
-        ? sortedAndFilteredTests
-        : client.tests
+      const testsToExport = [...client.tests].sort(
+        (a, b) => new Date(b.testDate).getTime() - new Date(a.testDate).getTime()
+      )
 
       exportClientTestsToCSV(testsToExport, client.name, locale)
 
@@ -439,7 +288,15 @@ export function DevelopmentTab({
 
       <TrainingStats clientId={id} />
 
-      <AssessmentTimeline clientId={id} basePath={basePath} />
+      <AssessmentTimeline
+        clientId={id}
+        basePath={basePath}
+        onExportCsv={handleExportTests}
+        onEnduranceTestDeleted={() => {
+          void onRefetchClient()
+          void onRefetchRecentTests()
+        }}
+      />
 
       <PendingPRFeedSingle clientId={id} />
 
@@ -484,390 +341,5 @@ export function DevelopmentTab({
     </div>
   )
 
-  const testsContent = (
-    <>
-      <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
-        <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-            <div>
-              <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('tests.title')}</h2>
-              {(searchTerm || filterTestType !== 'ALL') && client.tests && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {t('tests.showingFiltered', { filtered: sortedAndFilteredTests.length, total: client.tests.length })}
-                </p>
-              )}
-            </div>
-
-            <Link
-              href={newTestHref}
-              className="px-4 py-2 gradient-primary text-white rounded-lg hover:opacity-90 transition self-end sm:self-auto"
-            >
-              {t('tests.newTest')}
-            </Link>
-          </div>
-
-          {client.tests && client.tests.length > 0 && (
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1 sm:max-w-sm">
-                <SearchInput
-                  placeholder={t('tests.searchPlaceholder')}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  onClear={() => setSearchTerm('')}
-                />
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <div className="w-full sm:w-auto">
-                  <Select
-                    value={filterTestType}
-                    onValueChange={(value) => setFilterTestType(value as TestType | 'ALL')}
-                  >
-                    <SelectTrigger id="test-type-filter" className="w-full sm:w-[180px]">
-                      <SelectValue placeholder={t('tests.filterPlaceholder')} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ALL">{t('tests.allTestTypes')}</SelectItem>
-                      <SelectItem value="RUNNING">{testTypeLabels.RUNNING}</SelectItem>
-                      <SelectItem value="CYCLING">{testTypeLabels.CYCLING}</SelectItem>
-                      <SelectItem value="SKIING">{testTypeLabels.SKIING}</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  variant="outline"
-                  onClick={handleExportTests}
-                  className="w-full sm:w-auto"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  {t('actions.exportCsv')}
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {!client.tests || client.tests.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-            <p className="mb-4">{t('tests.emptyTitle')}</p>
-            <Link
-              href={newTestHref}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              {t('tests.createFirst')}
-            </Link>
-          </div>
-        ) : sortedAndFilteredTests.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 dark:text-slate-400">
-            <p className="mb-4">{t('tests.noMatches')}</p>
-            <button
-              onClick={() => {
-                setFilterTestType('ALL')
-                setSearchTerm('')
-              }}
-              className="text-blue-600 hover:text-blue-800 font-medium"
-            >
-              {t('tests.resetFilters')}
-            </button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="inline-block min-w-full align-middle">
-              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 dark:ring-white/10 sm:rounded-lg">
-                <table className="min-w-full divide-y divide-gray-300 dark:divide-white/10">
-                  <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-200 dark:border-white/10">
-                    <tr>
-                      <th className="px-4 py-3 text-left">
-                        <button
-                          onClick={() => handleSort('date')}
-                          className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white"
-                        >
-                          {t('tests.table.date')}
-                          {sortField === 'date' ? (
-                            sortDirection === 'asc' ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="w-4 h-4 opacity-30" />
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left">
-                        <button
-                          onClick={() => handleSort('type')}
-                          className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white"
-                        >
-                          {t('tests.table.type')}
-                          {sortField === 'type' ? (
-                            sortDirection === 'asc' ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="w-4 h-4 opacity-30" />
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left">
-                        <button
-                          onClick={() => handleSort('status')}
-                          className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white"
-                        >
-                          Status
-                          {sortField === 'status' ? (
-                            sortDirection === 'asc' ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="w-4 h-4 opacity-30" />
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left">
-                        <button
-                          onClick={() => handleSort('vo2max')}
-                          className="flex items-center gap-1 text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-gray-900 dark:hover:text-white"
-                        >
-                          VO2max
-                          {sortField === 'vo2max' ? (
-                            sortDirection === 'asc' ? (
-                              <ChevronUp className="w-4 h-4" />
-                            ) : (
-                              <ChevronDown className="w-4 h-4" />
-                            )
-                          ) : (
-                            <ArrowUpDown className="w-4 h-4 opacity-30" />
-                          )}
-                        </button>
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-slate-300">
-                        {t('tests.table.aerobicThreshold')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 dark:text-slate-300">
-                        {t('tests.table.anaerobicThreshold')}
-                      </th>
-                      <th className="px-4 py-3 text-right text-sm font-semibold text-gray-700 dark:text-slate-300">
-                        {t('tests.table.actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-white/10">
-                    {sortedAndFilteredTests.map((test, index) => {
-                      const aerobicThreshold = test.aerobicThreshold as ThresholdSummary | null
-                      const anaerobicThreshold = test.anaerobicThreshold as ThresholdSummary | null
-
-                      const isExpanded = expandedTestId === test.id
-                      const trainingZones = test.trainingZones as TrainingZone[] | null
-                      const previousTest = sortedAndFilteredTests[index + 1]
-
-                      return (
-                        <Fragment key={test.id}>
-                          <tr
-                            className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer"
-                            onClick={() => toggleExpandTest(test.id)}
-                          >
-                            <td className="px-4 py-3 text-sm text-gray-900 dark:text-slate-200">
-                              <div className="flex items-center gap-2">
-                                {isExpanded ? (
-                                  <ChevronUp className="w-4 h-4 text-gray-400" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4 text-gray-400" />
-                                )}
-                                {format(new Date(test.testDate), 'PPP', { locale: dateFnsLocale })}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
-                              {testTypeLabels[test.testType]}
-                            </td>
-                            <td className="px-4 py-3 text-sm">
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  test.status === 'COMPLETED'
-                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
-                                    : test.status === 'DRAFT'
-                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                                    : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300'
-                                }`}
-                              >
-                                {test.status === 'COMPLETED'
-                                  ? testStatusLabels.COMPLETED
-                                  : test.status === 'DRAFT'
-                                  ? testStatusLabels.DRAFT
-                                  : testStatusLabels.ARCHIVED}
-                              </span>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
-                              {test.vo2max ? `${test.vo2max.toFixed(1)}` : '-'}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
-                              {aerobicThreshold?.heartRate ? `${aerobicThreshold.heartRate} bpm` : '-'}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-700 dark:text-slate-300">
-                              {anaerobicThreshold?.heartRate ? `${anaerobicThreshold.heartRate} bpm` : '-'}
-                            </td>
-                            <td className="px-4 py-3 text-sm text-right" onClick={(e) => e.stopPropagation()}>
-                              <div className="flex items-center justify-end gap-2">
-                                <Link
-                                  href={`${basePath}/tests/${test.id}`}
-                                  className="text-blue-600 hover:text-blue-800 font-medium"
-                                >
-                                  {t('actions.view')}
-                                </Link>
-                                <AnalyzeTestButton
-                                  testId={test.id}
-                                  clientId={id}
-                                  previousTestId={previousTest?.id}
-                                  className="h-8 text-xs"
-                                />
-                                <Link
-                                  href={`${basePath}/tests/${test.id}/edit`}
-                                  className="text-blue-600 hover:text-blue-800"
-                                  title={t('actions.editTest')}
-                                >
-                                  <Edit2 className="w-4 h-4" />
-                                </Link>
-                                <button
-                                  onClick={(e) => handleDeleteClick(test, e)}
-                                  className="text-red-600 hover:text-red-800 transition"
-                                  title={t('actions.deleteTest')}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                          {isExpanded && (
-                            <tr key={`${test.id}-expanded`} className="bg-gray-50 dark:bg-slate-800/30">
-                              <td colSpan={7} className="px-4 py-4">
-                                <div className="space-y-4">
-                                  <h4 className="font-semibold text-sm text-gray-700 dark:text-slate-300">
-                                    {t('tests.details.title')}
-                                  </h4>
-
-                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                      <p className="text-xs text-gray-500 dark:text-slate-400">{t('tests.details.maxHr')}</p>
-                                      <p className="text-sm font-medium dark:text-slate-200">
-                                        {test.maxHR ? `${test.maxHR} bpm` : '-'}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-gray-500 dark:text-slate-400">{t('tests.details.maxLactate')}</p>
-                                      <p className="text-sm font-medium dark:text-slate-200">
-                                        {test.maxLactate ? `${test.maxLactate.toFixed(1)} mmol/L` : '-'}
-                                      </p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs text-gray-500 dark:text-slate-400">VO2max</p>
-                                      <p className="text-sm font-medium dark:text-slate-200">
-                                        {test.vo2max ? `${test.vo2max.toFixed(1)} ml/kg/min` : '-'}
-                                      </p>
-                                    </div>
-                                  </div>
-
-                                  {trainingZones && trainingZones.length > 0 && (
-                                    <div className="mt-4">
-                                      <h5 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-2">
-                                        {t('tests.details.trainingZones')}
-                                      </h5>
-                                      <div className="overflow-x-auto">
-                                        <table className="min-w-full text-sm">
-                                          <thead className="bg-gray-100 dark:bg-slate-700/50">
-                                            <tr>
-                                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                {t('tests.details.zone')}
-                                              </th>
-                                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                {t('tests.details.heartRateBpm')}
-                                              </th>
-                                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                {t('tests.details.percentOfMax')}
-                                              </th>
-                                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-slate-400">
-                                                {t('tests.details.description')}
-                                              </th>
-                                            </tr>
-                                          </thead>
-                                          <tbody className="divide-y divide-gray-200 dark:divide-white/10">
-                                            {trainingZones.map((zone, idx) => (
-                                              <tr key={idx}>
-                                                <td className="px-3 py-2 font-medium dark:text-slate-200">{zone.zone}</td>
-                                                <td className="px-3 py-2 dark:text-slate-300">
-                                                  {zone.hrMin} - {zone.hrMax}
-                                                </td>
-                                                <td className="px-3 py-2 dark:text-slate-300">
-                                                  {zone.percentMin}% - {zone.percentMax}%
-                                                </td>
-                                                <td className="px-3 py-2 text-gray-600 dark:text-slate-400">
-                                                  {zone.effect}
-                                                </td>
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {test.notes && (
-                                    <div className="mt-4">
-                                      <h5 className="font-semibold text-sm text-gray-700 dark:text-slate-300 mb-1">
-                                        {t('fields.notes')}
-                                      </h5>
-                                      <p className="text-sm text-gray-600 dark:text-slate-400">{test.notes}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </Fragment>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    </>
-  )
-
-  return (
-    <div className="space-y-4 sm:space-y-6">
-      {developmentContent}
-      {showEnduranceTable && testsContent}
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('deleteDialog.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('deleteDialog.description', {
-                date: testToDelete ? format(new Date(testToDelete.testDate), 'PPP', { locale: dateFnsLocale }) : '',
-              })}
-              <br />
-              <br />
-              {t('deleteDialog.cannotUndo')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>{t('actions.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteConfirm}
-              disabled={deleting}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            >
-              {deleting ? t('actions.deleting') : t('actions.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  )
+  return developmentContent
 }

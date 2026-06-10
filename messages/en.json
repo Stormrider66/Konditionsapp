@@ -3372,7 +3372,8 @@
             "sport": "Field tests",
             "ergometer": "Ergometer",
             "custom": "Custom"
-          }
+          },
+          "showMore": "Show all"
         },
         "wellnessTrends": {
           "title": "Wellness trends",

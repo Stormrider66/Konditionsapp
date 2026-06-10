@@ -23,6 +23,8 @@ export interface AssessmentEntry {
   summary: string | null
   /** True when this row is tied to a team (team test) rather than an individual. */
   isTeamTest: boolean
+  /** Lifecycle status — only ENDURANCE rows have one (null for other kinds). */
+  status: 'COMPLETED' | 'DRAFT' | 'ARCHIVED' | null
 }
 
 export interface AssessmentCounts {

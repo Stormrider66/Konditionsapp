@@ -3372,7 +3372,8 @@
             "sport": "Fälttester",
             "ergometer": "Ergometer",
             "custom": "Anpassade"
-          }
+          },
+          "showMore": "Visa alla"
         },
         "wellnessTrends": {
           "title": "Måendetrender",
@@ -5454,7 +5455,7 @@
           "planned": "Planerat",
           "actual": "Faktiskt",
           "status": "Status",
-        "feedback": "Feedback",
+          "feedback": "Feedback",
           "action": "Åtgärd"
         }
       }

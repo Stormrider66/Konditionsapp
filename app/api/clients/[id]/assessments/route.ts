@@ -116,10 +116,10 @@ export async function GET(
       await Promise.all([
         wants('ENDURANCE')
           ? prisma.test.findMany({
-              where: { clientId, status: { not: 'DRAFT' } },
+              where: { clientId },
               orderBy: { testDate: 'desc' },
               take: limit,
-              select: { id: true, testDate: true, testType: true, vo2max: true, maxHR: true },
+              select: { id: true, testDate: true, testType: true, vo2max: true, maxHR: true, status: true },
             })
           : [],
         wants('HOCKEY_PHYSICAL')
@@ -183,7 +183,7 @@ export async function GET(
               select: { id: true, testDate: true, teamId: true, protocol: { select: { name: true } } },
             })
           : [],
-        prisma.test.count({ where: { clientId, status: { not: 'DRAFT' } } }),
+        prisma.test.count({ where: { clientId } }),
         prisma.hockeyPhysicalTest.count({ where: { clientId } }),
         prisma.sportTest.count({ where: { clientId } }),
         prisma.ergometerFieldTest.count({ where: { clientId } }),
@@ -203,6 +203,7 @@ export async function GET(
         label: enduranceLabel(t.testType, locale),
         summary,
         isTeamTest: false,
+        status: t.status as 'COMPLETED' | 'DRAFT' | 'ARCHIVED',
       })
     }
 
@@ -214,6 +215,7 @@ export async function GET(
         label: tr(locale, 'Hockey physical test', 'Hockey fysprov'),
         summary: hockeySummary(h, locale),
         isTeamTest: h.teamId != null,
+        status: null,
       })
     }
 
@@ -230,6 +232,7 @@ export async function GET(
         label: humanize(s.protocol),
         summary: summaryParts.length > 0 ? summaryParts.join(' · ') : humanize(s.category),
         isTeamTest: false,
+        status: null,
       })
     }
 
@@ -245,6 +248,7 @@ export async function GET(
         label: `${humanize(e.ergometerType)} · ${humanize(e.testProtocol)}`,
         summary,
         isTeamTest: false,
+        status: null,
       })
     }
 
@@ -256,6 +260,7 @@ export async function GET(
         label: c.protocol.name,
         summary: null,
         isTeamTest: c.teamId != null,
+        status: null,
       })
     }
 

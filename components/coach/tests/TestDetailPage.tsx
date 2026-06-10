@@ -10,6 +10,7 @@ import { TestResultsDisplay } from '@/components/coach/tests/TestResultsDisplay'
 import { ReportTemplate } from '@/components/reports/ReportTemplate';
 import { PDFExportButton } from '@/components/reports/PDFExportButton';
 import { SendTestResultButton } from '@/components/coach/tests/SendTestResultButton';
+import { AnalyzeTestButton } from '@/components/ai/performance-analysis';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -53,6 +54,18 @@ export default async function TestDetailPage({ params }: TestPageProps) {
 
   if (labTest && hasLabTestAccess && matchesBusinessContext) {
     const client = labTest.client;
+
+    // Most recent earlier completed test, for the AI analyze comparison
+    const previousTest = await prisma.test.findFirst({
+      where: {
+        clientId: labTest.clientId,
+        status: 'COMPLETED',
+        testDate: { lt: labTest.testDate },
+        id: { not: labTest.id },
+      },
+      orderBy: { testDate: 'desc' },
+      select: { id: true },
+    });
 
     // Re-compute all calculations from raw testStages data
     // This ensures dmaxVisualization, economyData, cyclingData are always available
@@ -135,6 +148,11 @@ export default async function TestDetailPage({ params }: TestPageProps) {
               testId={labTest.id}
               athleteName={client.name}
               athleteEmail={client.email ?? null}
+            />
+            <AnalyzeTestButton
+              testId={labTest.id}
+              clientId={labTest.clientId}
+              previousTestId={previousTest?.id}
             />
           </div>
         </div>
