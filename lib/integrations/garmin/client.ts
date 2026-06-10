@@ -17,6 +17,7 @@ import crypto from 'crypto';
 import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
 import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
 import { logger } from '@/lib/logger'
+import { refreshIntegrationToken } from '@/lib/integrations/token-refresh'
 
 // Garmin API configuration
 const GARMIN_API_BASE = 'https://apis.garmin.com/wellness-api/rest';
@@ -442,23 +443,18 @@ export async function getValidGarminAccessToken(clientId: string): Promise<strin
       return null;
     }
 
-    try {
-      const newTokens = await refreshGarminToken(refreshTokenValue);
-
-      await prisma.integrationToken.update({
-        where: { id: token.id },
-        data: {
-          accessToken: encryptIntegrationSecret(newTokens.access_token)!,
-          refreshToken: encryptIntegrationSecret(newTokens.refresh_token),
+    return refreshIntegrationToken({
+      tokenId: token.id,
+      provider: 'garmin',
+      refresh: async (currentRefreshToken) => {
+        const newTokens = await refreshGarminToken(currentRefreshToken);
+        return {
+          accessToken: newTokens.access_token,
+          refreshToken: newTokens.refresh_token,
           expiresAt: new Date(Date.now() + newTokens.expires_in * 1000),
-        },
-      });
-
-      return newTokens.access_token;
-    } catch (error) {
-      logger.error('Failed to refresh Garmin token', { clientId }, error);
-      return null;
-    }
+        };
+      },
+    });
   }
 
   return accessToken;

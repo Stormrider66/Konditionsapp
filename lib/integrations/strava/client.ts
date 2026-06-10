@@ -7,9 +7,17 @@
 import 'server-only'
 
 import { prisma } from '@/lib/prisma';
-import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { decryptIntegrationSecret } from '@/lib/integrations/crypto'
 import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
 import { logger } from '@/lib/logger'
+import { refreshIntegrationToken } from '@/lib/integrations/token-refresh'
+import {
+  getStravaCooldownMs,
+  recordStravaRateLimitHeaders,
+  msUntilNextQuarterHour,
+  startStravaCooldown,
+  StravaRateLimitError,
+} from '@/lib/integrations/strava/rate-limit'
 
 // Strava API configuration
 const STRAVA_API_BASE = 'https://www.strava.com/api/v3';
@@ -209,23 +217,18 @@ export async function getValidAccessToken(clientId: string): Promise<string | nu
       return null;
     }
 
-    try {
-      const newTokens = await refreshStravaToken(refreshToken);
-
-      await prisma.integrationToken.update({
-        where: { id: token.id },
-        data: {
-          accessToken: encryptIntegrationSecret(newTokens.access_token)!,
-          refreshToken: encryptIntegrationSecret(newTokens.refresh_token),
+    return refreshIntegrationToken({
+      tokenId: token.id,
+      provider: 'strava',
+      refresh: async (currentRefreshToken) => {
+        const newTokens = await refreshStravaToken(currentRefreshToken);
+        return {
+          accessToken: newTokens.access_token,
+          refreshToken: newTokens.refresh_token,
           expiresAt: new Date(newTokens.expires_at * 1000),
-        },
-      });
-
-      return newTokens.access_token;
-    } catch (error) {
-      logger.error('Failed to refresh Strava token', { clientId }, error)
-      return null;
-    }
+        };
+      },
+    });
   }
 
   return accessToken;
@@ -239,6 +242,14 @@ export async function stravaApiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
+  // Strava quotas are app-level: once a window is exhausted every call
+  // fails for every user, so fail fast during a cooldown instead of
+  // spending requests (each 429 still counts against the daily quota).
+  const cooldownMs = await getStravaCooldownMs();
+  if (cooldownMs > 0) {
+    throw new StravaRateLimitError(cooldownMs);
+  }
+
   const accessToken = await getValidAccessToken(clientId);
 
   if (!accessToken) {
@@ -254,8 +265,18 @@ export async function stravaApiRequest<T>(
         Authorization: `Bearer ${accessToken}`,
       },
     },
-    { timeoutMs: 10_000, maxAttempts: 3 }
+    // 429 excluded from retries: retrying a quota error within the same
+    // window can never succeed and burns daily quota.
+    { timeoutMs: 10_000, maxAttempts: 3, retryOnStatuses: [408, 500, 502, 503, 504] }
   )
+
+  await recordStravaRateLimitHeaders(response.headers);
+
+  if (response.status === 429) {
+    const retryAfterMs = msUntilNextQuarterHour();
+    await startStravaCooldown(retryAfterMs, `429 from ${endpoint}`);
+    throw new StravaRateLimitError(retryAfterMs);
+  }
 
   if (!response.ok) {
     const error = await response.text();

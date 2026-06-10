@@ -8,9 +8,10 @@
 import 'server-only'
 
 import { prisma } from '@/lib/prisma';
-import { decryptIntegrationSecret, encryptIntegrationSecret } from '@/lib/integrations/crypto'
+import { decryptIntegrationSecret } from '@/lib/integrations/crypto'
 import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
 import { logger } from '@/lib/logger'
+import { refreshIntegrationToken } from '@/lib/integrations/token-refresh'
 import type {
   Concept2TokenResponse,
   Concept2User,
@@ -147,26 +148,18 @@ export async function getValidAccessToken(clientId: string): Promise<string | nu
       return null;
     }
 
-    try {
-      const newTokens = await refreshConcept2Token(refreshToken);
-
-      // Calculate new expiration time
-      const newExpiresAt = new Date(Date.now() + newTokens.expires_in * 1000);
-
-      await prisma.integrationToken.update({
-        where: { id: token.id },
-        data: {
-          accessToken: encryptIntegrationSecret(newTokens.access_token)!,
-          refreshToken: encryptIntegrationSecret(newTokens.refresh_token),
-          expiresAt: newExpiresAt,
-        },
-      });
-
-      return newTokens.access_token;
-    } catch (error) {
-      logger.error('Failed to refresh Concept2 token', { clientId }, error)
-      return null;
-    }
+    return refreshIntegrationToken({
+      tokenId: token.id,
+      provider: 'concept2',
+      refresh: async (currentRefreshToken) => {
+        const newTokens = await refreshConcept2Token(currentRefreshToken);
+        return {
+          accessToken: newTokens.access_token,
+          refreshToken: newTokens.refresh_token,
+          expiresAt: new Date(Date.now() + newTokens.expires_in * 1000),
+        };
+      },
+    });
   }
 
   return accessToken;

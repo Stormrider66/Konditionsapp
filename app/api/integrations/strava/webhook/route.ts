@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getStravaActivity } from '@/lib/integrations/strava/client';
+import { StravaRateLimitError } from '@/lib/integrations/strava/rate-limit';
 import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
 import { getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
@@ -321,8 +322,17 @@ async function processStravaEvent(
           })
         ).catch(err => logger.warn('Failed to dispatch Strava event to agent', { error: String(err) }))
       } catch (error) {
-        logger.error('Failed to sync Strava activity', { clientId, objectId }, error)
-        // Still return 200 to acknowledge receipt
+        if (error instanceof StravaRateLimitError) {
+          // App-level quota cooldown — the activity is recoverable via a
+          // manual/periodic sync; don't treat as an application error.
+          logger.warn('Skipped Strava activity sync during quota cooldown', {
+            clientId,
+            objectId,
+            retryAfterMs: error.retryAfterMs,
+          })
+        } else {
+          logger.error('Failed to sync Strava activity', { clientId, objectId }, error)
+        }
       }
     } else if (aspectType === 'delete') {
       // Delete the activity
