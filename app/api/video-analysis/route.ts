@@ -194,7 +194,8 @@ export async function GET(request: NextRequest) {
     const exerciseId = searchParams.get('exerciseId');
     const status = searchParams.get('status');
     const videoType = searchParams.get('videoType');
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const parsedLimit = parseInt(searchParams.get('limit') || '20');
+    const limit = Number.isNaN(parsedLimit) ? 20 : Math.min(Math.max(parsedLimit, 1), 100);
 
     if (athleteId) {
       const access = await canAccessAthlete(user.id, athleteId);

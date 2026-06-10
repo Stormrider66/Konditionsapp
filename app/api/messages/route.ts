@@ -17,12 +17,18 @@ const createMessageSchema = z.object({
   workoutId: z.string().uuid().optional(),
 })
 
+// Newest-first cap on a single fetch. Consumers group conversations
+// client-side, so keep this generous — but never unbounded: long-running
+// conversations otherwise grow the payload (and query cost) without limit.
+const MAX_MESSAGES_PER_FETCH = 500
+
 /**
  * GET /api/messages
  * Fetch user's messages (inbox/sent) with filtering
  * Query params:
  * - filter: 'all' | 'unread'
  * - conversationWith: userId (filter by conversation partner)
+ * - limit: max messages to return (newest first), 1-500, default 500
  */
 export async function GET(request: NextRequest) {
   let locale: AppLocale = resolveRequestLocale(request)
@@ -43,6 +49,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const filter = searchParams.get('filter') || 'all'
     const conversationWith = searchParams.get('conversationWith')
+    const parsedLimit = Number.parseInt(searchParams.get('limit') ?? '', 10)
+    const limit = Number.isNaN(parsedLimit)
+      ? MAX_MESSAGES_PER_FETCH
+      : Math.min(Math.max(parsedLimit, 1), MAX_MESSAGES_PER_FETCH)
 
     // Build where clause - user can only see their own messages
     const where: Prisma.MessageWhereInput = {
@@ -98,6 +108,7 @@ export async function GET(request: NextRequest) {
       orderBy: {
         createdAt: 'desc',
       },
+      take: limit,
     })
 
     return NextResponse.json({

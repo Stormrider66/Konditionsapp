@@ -58,19 +58,19 @@ export async function GET(request: NextRequest) {
         })
       : []
 
-    const organizations = await prisma.organization.findMany({
+    // Exclude other businesses' auto-created orgs in JS — inlining them as a
+    // NOT(OR(...)) where-clause grows the SQL by two terms per business on
+    // the platform.
+    const otherBusinessOrgIds = new Set(
+      otherBusinessOrganizations.map((business) => `${business.slug}-org`)
+    )
+    const otherBusinessNames = new Set(
+      otherBusinessOrganizations.map((business) => business.name)
+    )
+
+    const ownedOrganizations = await prisma.organization.findMany({
       where: {
         userId: { in: ownerIds.length ? ownerIds : [user.id] },
-        ...(otherBusinessOrganizations.length > 0
-          ? {
-              NOT: {
-                OR: otherBusinessOrganizations.flatMap((business) => [
-                  { id: `${business.slug}-org` },
-                  { name: business.name },
-                ]),
-              },
-            }
-          : {}),
       },
       include: {
         teams: {
@@ -83,6 +83,11 @@ export async function GET(request: NextRequest) {
         createdAt: 'desc',
       },
     })
+    const organizations = ownedOrganizations.filter(
+      (organization) =>
+        !otherBusinessOrgIds.has(organization.id) &&
+        !otherBusinessNames.has(organization.name)
+    )
     const scopedOrganizations = currentBusiness
       ? organizations.filter((organization) => {
           if (organization.id === `${currentBusiness.slug}-org`) return true
