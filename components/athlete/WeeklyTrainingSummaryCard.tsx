@@ -658,7 +658,7 @@ export function WeeklyTrainingSummaryCard({
             <span>Strava: {summary.stravaActivities}</span>
           )}
           {summary.garminActivities > 0 && (
-            <span>Garmin Connect: {summary.garminActivities}</span>
+            <span>Garmin: {summary.garminActivities}</span>
           )}
           {summary.avgReadiness !== null && (
             <span>Readiness: {summary.avgReadiness.toFixed(1)}</span>
