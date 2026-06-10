@@ -17,6 +17,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import type { AgentType, AgentEvent, EscalationContext } from './types'
 import { resolveAgentModelIntent } from './types'
 import { getOrCreateSession, updateSessionUsage, markSessionError } from './session-manager'
+import { logAiUsage } from '@/lib/ai/usage-logger'
 import { executeReadTool, executeCalculateTool, executeWriteTool } from './tool-executor'
 import { COACHING_AGENT_SYSTEM_PROMPT } from './prompts/coaching-agent'
 import { NUTRITION_AGENT_SYSTEM_PROMPT } from './prompts/nutrition-agent'
@@ -444,7 +445,7 @@ export async function invokeAgent(
   const systemPrompt = AGENT_PROMPTS[agentType] || 'You are a helpful training assistant.'
 
   // Resolve API key - try user keys first, then env
-  const apiKey = await resolveApiKey(event.entityId)
+  const { apiKey, ownerUserId } = await resolveApiKey(event.entityId)
   if (!apiKey) {
     await markSessionError(sessionId, 'No Anthropic API key available')
     return { sessionId, response: '', toolsUsed: [], tokensUsed: 0 }
@@ -462,8 +463,21 @@ export async function invokeAgent(
       maxIterations: 10,
     })
 
-    // Track usage
+    // Track usage on the session, and mirror into AIUsageLog so agent spend
+    // shows up in platform cost breakdowns. No clientId on purpose: agent
+    // actions that should bill an athlete (program generation, WODs) already
+    // debit through their feature-level paths — debiting here would double-
+    // count against the allowance.
     await updateSessionUsage(sessionId, result.tokensUsed, result.estimatedCost)
+    logAiUsage({
+      userId: ownerUserId,
+      category: 'managed_agent',
+      provider: 'ANTHROPIC',
+      model: modelId,
+      inputTokens: result.inputTokens,
+      outputTokens: result.outputTokens,
+      estimatedCost: result.estimatedCost,
+    })
 
     return {
       sessionId,
@@ -495,6 +509,8 @@ interface AgentLoopResult {
   finalResponse: string
   toolsUsed: string[]
   tokensUsed: number
+  inputTokens: number
+  outputTokens: number
   estimatedCost: number
 }
 
@@ -540,6 +556,8 @@ async function runAgentLoop(
         finalResponse,
         toolsUsed,
         tokensUsed: totalInputTokens + totalOutputTokens,
+        inputTokens: totalInputTokens,
+        outputTokens: totalOutputTokens,
         estimatedCost: estimateCost(model, totalInputTokens, totalOutputTokens),
       }
     }
@@ -590,6 +608,8 @@ async function runAgentLoop(
     finalResponse: 'Agent reached maximum iterations without completing.',
     toolsUsed,
     tokensUsed: totalInputTokens + totalOutputTokens,
+    inputTokens: totalInputTokens,
+    outputTokens: totalOutputTokens,
     estimatedCost: estimateCost(model, totalInputTokens, totalOutputTokens),
   }
 }
@@ -602,7 +622,9 @@ async function runAgentLoop(
  * Resolve an Anthropic API key for a given entity.
  * Tries user's stored key first, then falls back to env var.
  */
-async function resolveApiKey(entityId: string): Promise<string | null> {
+async function resolveApiKey(
+  entityId: string
+): Promise<{ apiKey: string | null; ownerUserId: string | null; clientId: string | null }> {
   // Try to find the user associated with this entity
   const client = await prisma.client.findUnique({
     where: { id: entityId },
@@ -611,11 +633,17 @@ async function resolveApiKey(entityId: string): Promise<string | null> {
 
   if (client?.userId) {
     const keys = await getResolvedAiKeys(client.userId)
-    if (keys.anthropicKey) return keys.anthropicKey
+    if (keys.anthropicKey) {
+      return { apiKey: keys.anthropicKey, ownerUserId: client.userId, clientId: entityId }
+    }
   }
 
-  // Fall back to environment variable
-  return process.env.ANTHROPIC_API_KEY || null
+  // Fall back to environment variable (platform-paid, unattributed)
+  return {
+    apiKey: process.env.ANTHROPIC_API_KEY || null,
+    ownerUserId: client?.userId ?? null,
+    clientId: client ? entityId : null,
+  }
 }
 
 /**

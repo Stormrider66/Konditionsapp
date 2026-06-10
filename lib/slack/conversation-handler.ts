@@ -15,6 +15,7 @@ import { replyInThread, addReaction, removeReaction } from './client'
 import { executeOperatorTool } from '@/lib/operator-agents/tool-executor'
 import * as githubCode from './github-code-tools'
 import { MODEL_TIERS } from '@/types/ai-models'
+import { logAiUsage } from '@/lib/ai/usage-logger'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 
@@ -424,6 +425,16 @@ export async function handleSlackMessage(options: {
         system: SLACK_SYSTEM_PROMPT,
         tools,
         messages,
+      })
+
+      // Staff bot on the platform key — log spend for cost visibility
+      // (intentionally unattributed; there is no platform user to bill).
+      logAiUsage({
+        category: 'slack_assistant',
+        provider: 'ANTHROPIC',
+        model,
+        inputTokens: response.usage.input_tokens,
+        outputTokens: response.usage.output_tokens,
       })
 
       if (response.stop_reason === 'end_turn') {
