@@ -1,7 +1,41 @@
 # Team Chat — Design
 
-**Status:** Approved design, not yet built (2026-06-10)
+**Status (2026-06-10):** Slices 1–2 implemented; slice 3 server side implemented.
+**DB apply is pending** (see "Applying to the database" below) — until it runs, the
+chat tab errors at runtime and Realtime stays inactive. Remaining: native app
+(slice 3 client side), slice 4 items.
 **Target:** Coaches on web, athletes on a native app (Expo/React Native, planned).
+
+Implementation map:
+
+| Piece | Where |
+|---|---|
+| Schema | `prisma/schema/chat.prisma` (+ back-relations in `core.prisma`) |
+| Membership/authorization | `lib/chat/membership.ts` |
+| REST API | `app/api/threads/team/[teamId]`, `app/api/threads/[threadId]/{messages,read}`, `app/api/push-tokens` |
+| Coach UI | `app/(business)/[businessSlug]/coach/teams/[teamId]/chat/` + `components/coach/teams/TeamChatPanel.tsx` |
+| Realtime SQL (trigger, `can_access_thread`, RLS) | `prisma/migrations/20260610_team_chat_realtime/migration.sql` |
+| Expo push fan-out | `lib/chat/push.ts` (inert until devices register tokens) |
+
+One deviation from the sketches below: the TypeScript staff path reuses
+`getAccessibleTeam` (`lib/coach/team-access.ts`), which also grants access to
+business-wide roles (OWNER/ADMIN/COACH of the business) — richer than the
+sketch. The SQL mirror includes an approximation of that path; keep both in
+sync when roster rules change.
+
+## Applying to the database
+
+Both steps are manual (per the repo's migration cadence):
+
+```bash
+# 1. Create the chat tables (additive only)
+export $(grep -E '^(DATABASE_URL|DIRECT_DATABASE_URL)=' .env.local | xargs) && npx prisma db push
+
+# 2. Apply the Realtime trigger + RLS
+npx prisma db execute \
+  --file prisma/migrations/20260610_team_chat_realtime/migration.sql \
+  --url "$DIRECT_DATABASE_URL"
+```
 
 ## Product framing
 

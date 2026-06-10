@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { getThreadForUser, touchParticipant } from '@/lib/chat/membership'
+import { sendThreadPush } from '@/lib/chat/push'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -154,6 +155,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
         data: { lastReadAt: now },
       }),
     ])
+
+    // Best-effort; no-op until devices register tokens (lib/chat/push.ts).
+    await sendThreadPush({
+      threadId,
+      senderId: user.id,
+      senderName: message.sender.name,
+      content: data.content,
+    })
 
     return NextResponse.json(message, { status: 201 })
   } catch (error) {

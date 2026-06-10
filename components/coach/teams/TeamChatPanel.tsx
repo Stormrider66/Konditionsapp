@@ -1,11 +1,13 @@
 'use client'
 
 // Team channel chat panel (design: docs/TEAM_CHAT_DESIGN.md).
-// Slice 1 = degraded mode by design: fetch-on-open + 30s polling.
-// Slice 2 swaps the poll for a Supabase Realtime broadcast subscription;
-// everything else here stays as-is.
+// Live updates arrive via a private Supabase Realtime broadcast channel
+// (DB trigger on ThreadMessage → topic `thread:{id}`); a 30s poll remains as
+// the degraded mode for missed broadcasts and failed subscriptions.
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { RealtimeChannel } from '@supabase/supabase-js'
+import { createClient } from '@/lib/supabase/client'
 import { useTranslations, useLocale } from '@/i18n/client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -95,31 +97,66 @@ export function TeamChatPanel({ teamId, businessSlug }: TeamChatPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId, qs])
 
-  // Poll for new messages (replaced by Realtime in slice 2).
+  const fetchNewMessages = useCallback(async () => {
+    if (!threadId) return
+    try {
+      const res = await fetch(`/api/threads/${threadId}/messages?${qs}&limit=50`)
+      if (!res.ok) return
+      const data = await res.json()
+      const incoming: ChatMessage[] = [...data.messages].reverse()
+      setMessages((current) => {
+        const known = new Set(current.map((m) => m.id))
+        const fresh = incoming.filter((m) => !known.has(m.id))
+        if (fresh.length === 0) return current
+        markRead(threadId)
+        return [...current, ...fresh]
+      })
+    } catch {
+      // transient fetch failure — the next poll/broadcast retries
+    }
+  }, [threadId, qs, markRead])
+
+  // Degraded mode: poll while the tab is visible. Covers sessions where the
+  // Realtime subscription fails (e.g. JWT claims absent) or broadcasts drop.
   useEffect(() => {
     if (!threadId) return
 
-    const interval = setInterval(async () => {
-      if (document.hidden) return
-      try {
-        const res = await fetch(`/api/threads/${threadId}/messages?${qs}&limit=50`)
-        if (!res.ok) return
-        const data = await res.json()
-        const incoming: ChatMessage[] = [...data.messages].reverse()
-        setMessages((current) => {
-          const known = new Set(current.map((m) => m.id))
-          const fresh = incoming.filter((m) => !known.has(m.id))
-          if (fresh.length === 0) return current
-          markRead(threadId)
-          return [...current, ...fresh]
-        })
-      } catch {
-        // transient poll failure — next tick retries
-      }
+    const interval = setInterval(() => {
+      if (!document.hidden) void fetchNewMessages()
     }, POLL_INTERVAL_MS)
 
     return () => clearInterval(interval)
-  }, [threadId, qs, markRead])
+  }, [threadId, fetchNewMessages])
+
+  // Live updates: private broadcast channel fed by the ThreadMessage DB
+  // trigger. The payload is the raw row, so we refetch the delta through the
+  // API instead — messages always arrive with sender info attached.
+  useEffect(() => {
+    if (!threadId) return
+
+    const supabase = createClient()
+    let channel: RealtimeChannel | null = null
+    let cancelled = false
+
+    async function subscribe() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (cancelled || !session) return
+
+      await supabase.realtime.setAuth(session.access_token)
+      channel = supabase
+        .channel(`thread:${threadId}`, { config: { private: true } })
+        .on('broadcast', { event: 'INSERT' }, () => void fetchNewMessages())
+        .subscribe()
+    }
+
+    void subscribe()
+    return () => {
+      cancelled = true
+      if (channel) void supabase.removeChannel(channel)
+    }
+  }, [threadId, fetchNewMessages])
 
   useEffect(() => {
     if (shouldScrollRef.current) {
