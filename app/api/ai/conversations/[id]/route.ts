@@ -7,7 +7,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireCoach } from '@/lib/auth-utils'
+import { requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
@@ -25,10 +25,24 @@ export async function GET(
   let locale: AppLocale = resolveRequestLocale(request)
 
   try {
-    const user = await requireCoach()
-    locale = resolveRequestLocale(request, user.language)
+    // Athletes may only read conversations they started themselves; coach
+    // AI Studio conversations about an athlete must stay private.
+    let scopeWhere: { coachId: string } | { athleteId: string; createdByRole: 'ATHLETE' }
+    let rateLimitUserId: string
 
-    const rateLimited = await rateLimitJsonResponse('ai:conversations:get', user.id, {
+    const athleteResolved = await resolveAthleteClientId()
+    if (athleteResolved) {
+      locale = resolveRequestLocale(request, athleteResolved.user.language)
+      scopeWhere = { athleteId: athleteResolved.clientId, createdByRole: 'ATHLETE' }
+      rateLimitUserId = athleteResolved.user.id
+    } else {
+      const user = await requireCoach()
+      locale = resolveRequestLocale(request, user.language)
+      scopeWhere = { coachId: user.id }
+      rateLimitUserId = user.id
+    }
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:get', rateLimitUserId, {
       limit: 60,
       windowSeconds: 60,
     })
@@ -39,7 +53,7 @@ export async function GET(
     const conversation = await prisma.aIConversation.findFirst({
       where: {
         id,
-        coachId: user.id,
+        ...scopeWhere,
       },
       include: {
         athlete: {
@@ -155,10 +169,23 @@ export async function DELETE(
   let locale: AppLocale = resolveRequestLocale(request)
 
   try {
-    const user = await requireCoach()
-    locale = resolveRequestLocale(request, user.language)
+    // Athletes may only delete conversations they started themselves.
+    let scopeWhere: { coachId: string } | { athleteId: string; createdByRole: 'ATHLETE' }
+    let rateLimitUserId: string
 
-    const rateLimited = await rateLimitJsonResponse('ai:conversations:delete', user.id, {
+    const athleteResolved = await resolveAthleteClientId()
+    if (athleteResolved) {
+      locale = resolveRequestLocale(request, athleteResolved.user.language)
+      scopeWhere = { athleteId: athleteResolved.clientId, createdByRole: 'ATHLETE' }
+      rateLimitUserId = athleteResolved.user.id
+    } else {
+      const user = await requireCoach()
+      locale = resolveRequestLocale(request, user.language)
+      scopeWhere = { coachId: user.id }
+      rateLimitUserId = user.id
+    }
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:delete', rateLimitUserId, {
       limit: 20,
       windowSeconds: 60,
     })
@@ -170,7 +197,7 @@ export async function DELETE(
     const existing = await prisma.aIConversation.findFirst({
       where: {
         id,
-        coachId: user.id,
+        ...scopeWhere,
       },
     })
 

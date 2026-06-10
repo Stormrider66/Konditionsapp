@@ -32,10 +32,25 @@ export async function GET(request: NextRequest) {
   let locale = resolveRequestLocale(request)
 
   try {
-    const user = await requireCoach()
-    locale = resolveRequestLocale(request, user.language)
+    // Athlete path first (handles ATHLETE role + COACH in athlete mode):
+    // athletes only ever see conversations they started themselves —
+    // coach AI Studio conversations about them must stay private.
+    let scopeWhere: { coachId: string } | { athleteId: string; createdByRole: 'ATHLETE' }
+    let rateLimitUserId: string
 
-    const rateLimited = await rateLimitJsonResponse('ai:conversations:list', user.id, {
+    const athleteResolved = await resolveAthleteClientId()
+    if (athleteResolved) {
+      locale = resolveRequestLocale(request, athleteResolved.user.language)
+      scopeWhere = { athleteId: athleteResolved.clientId, createdByRole: 'ATHLETE' }
+      rateLimitUserId = athleteResolved.user.id
+    } else {
+      const user = await requireCoach()
+      locale = resolveRequestLocale(request, user.language)
+      scopeWhere = { coachId: user.id }
+      rateLimitUserId = user.id
+    }
+
+    const rateLimited = await rateLimitJsonResponse('ai:conversations:list', rateLimitUserId, {
       limit: 60,
       windowSeconds: 60,
     })
@@ -47,7 +62,7 @@ export async function GET(request: NextRequest) {
 
     const conversations = await prisma.aIConversation.findMany({
       where: {
-        coachId: user.id,
+        ...scopeWhere,
         ...(status !== 'all' ? { status } : {}),
       },
       select: {
@@ -187,6 +202,7 @@ export async function POST(request: NextRequest) {
       data: {
         coachId,
         athleteId: athleteResolved?.clientId || athleteId || null,
+        createdByRole: athleteResolved ? 'ATHLETE' : 'COACH',
         modelUsed,
         provider: resolvedProvider,
         contextDocuments,

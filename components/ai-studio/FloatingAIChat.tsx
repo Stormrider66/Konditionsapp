@@ -20,12 +20,15 @@ import {
   MessageSquare,
   Settings,
   Check,
+  ChevronDown,
   Database,
   BookOpen,
+  History,
   Save,
   AlertTriangle,
   Mic,
   Square,
+  User,
   Volume2,
   VolumeX,
   Zap,
@@ -40,9 +43,12 @@ import {
   getSpeakableAssistantText,
 } from './voice-helpers'
 import { ChatMessage } from './ChatMessage'
+import { ChatHistoryPanel } from './ChatHistoryPanel'
 import { ChatNavigationCard, type ChatNavigationResult } from './ChatNavigationCard'
 import { ChatActionCard, type ChatActionResult } from './ChatActionCard'
 import { AISkillPicker } from '@/components/ai/AISkillPicker'
+import { Input } from '@/components/ui/input'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
@@ -105,6 +111,11 @@ interface QuickPrompt {
   prompt: string
 }
 
+interface AthleteOption {
+  id: string
+  name: string
+}
+
 interface AiCapabilitiesResponse {
   success?: boolean
   operationsEnabled?: boolean
@@ -154,6 +165,15 @@ export function FloatingAIChat({
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  // Athlete context is internal state so the coach can switch athlete mid-session;
+  // the props only seed the initial selection.
+  const [selectedAthleteId, setSelectedAthleteId] = useState<string | undefined>(athleteId)
+  const [selectedAthleteName, setSelectedAthleteName] = useState<string | undefined>(athleteName)
+  const [isAthletePickerOpen, setIsAthletePickerOpen] = useState(false)
+  const [athleteOptions, setAthleteOptions] = useState<AthleteOption[] | null>(null)
+  const [isLoadingAthletes, setIsLoadingAthletes] = useState(false)
+  const [athleteSearch, setAthleteSearch] = useState('')
   const [hasApiKey, setHasApiKey] = useState<boolean | null>(null)
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null)
   const [isLoadingConfig, setIsLoadingConfig] = useState(true)
@@ -703,23 +723,32 @@ export function FloatingAIChat({
     void fetchModelConfig()
   }, [])
 
-  // GDPR: Check athlete consent when athleteId is set
+  // Keep internal athlete selection in sync when the page provides one via props
+  useEffect(() => {
+    if (!athleteId) return
+    void Promise.resolve().then(() => {
+      setSelectedAthleteId(athleteId)
+      setSelectedAthleteName(athleteName)
+    })
+  }, [athleteId, athleteName])
+
+  // GDPR: Check athlete consent when an athlete is selected
   useEffect(() => {
     void Promise.resolve().then(async () => {
-      if (!athleteId) {
+      if (!selectedAthleteId) {
         setAthleteConsentStatus(null)
         return
       }
       setAthleteConsentStatus('loading')
       try {
-        const response = await fetch(`/api/agent/consent?clientId=${athleteId}`)
+        const response = await fetch(`/api/agent/consent?clientId=${selectedAthleteId}`)
         const data = await response.json()
         setAthleteConsentStatus(data.hasRequiredConsent ? 'granted' : 'none')
       } catch {
         setAthleteConsentStatus('none')
       }
     })
-  }, [athleteId])
+  }, [selectedAthleteId])
 
   // Build page context string for the AI
   const buildPageContextString = useCallback(() => {
@@ -1086,6 +1115,105 @@ export function FloatingAIChat({
 
   const isLoading = status === 'streaming' || status === 'submitted'
 
+  // Lazily fetch athlete options the first time the picker is opened
+  const fetchAthleteOptions = useCallback(async () => {
+    if (athleteOptions || isLoadingAthletes) return
+    setIsLoadingAthletes(true)
+    try {
+      const response = await fetch('/api/clients?limit=200')
+      const data = await response.json()
+      if (data.success && Array.isArray(data.data)) {
+        setAthleteOptions(
+          (data.data as Array<{ id: string; name: string }>).map((client) => ({
+            id: client.id,
+            name: client.name,
+          }))
+        )
+      } else {
+        setAthleteOptions([])
+      }
+    } catch {
+      setAthleteOptions([])
+      toast({
+        title: copy.athletesLoadError,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoadingAthletes(false)
+    }
+  }, [athleteOptions, copy.athletesLoadError, isLoadingAthletes, toast])
+
+  const filteredAthleteOptions = useMemo(() => {
+    if (!athleteOptions) return []
+    const query = athleteSearch.trim().toLowerCase()
+    if (!query) return athleteOptions
+    return athleteOptions.filter((athlete) => athlete.name.toLowerCase().includes(query))
+  }, [athleteOptions, athleteSearch])
+
+  const applyAthleteSelection = useCallback((athlete: { id: string; name?: string } | null) => {
+    setIsAthletePickerOpen(false)
+    setAthleteSearch('')
+    if ((athlete?.id ?? undefined) === selectedAthleteId) return
+    setSelectedAthleteId(athlete?.id)
+    setSelectedAthleteName(athlete?.name || undefined)
+    // The athlete context changes the system prompt — start a fresh conversation
+    setMessages([])
+    setAssistantNotices([])
+    setConversationId(null)
+    setDetectedProgram(null)
+    spokenAssistantMessageIdsRef.current.clear()
+    spokenAssistantNoticeIdsRef.current.clear()
+  }, [selectedAthleteId, setMessages])
+
+  const handleLoadConversation = useCallback(async (loadConversationId: string) => {
+    try {
+      const response = await fetch(`/api/ai/conversations/${loadConversationId}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || copy.loadConversationErrorTitle)
+      }
+
+      // Convert to useChat format (AI SDK v5 uses parts array)
+      const chatMessages = (data.messages || []).map((msg: { id: string; role: string; content: string; createdAt?: string }) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        parts: [{ type: 'text' as const, text: msg.content || '' }],
+        createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+      }))
+
+      // Loaded history should not be read aloud by the spoken-replies effect
+      for (const msg of chatMessages) {
+        if (msg.role === 'assistant') {
+          spokenAssistantMessageIdsRef.current.add(msg.id)
+        }
+      }
+
+      setMessages(chatMessages)
+      setConversationId(loadConversationId)
+      setAssistantNotices([])
+      setDetectedProgram(null)
+
+      // Restore the conversation's athlete context
+      if (data.conversation?.athleteId) {
+        setSelectedAthleteId(data.conversation.athleteId)
+        setSelectedAthleteName(data.conversation.athlete?.name ?? undefined)
+      } else {
+        setSelectedAthleteId(undefined)
+        setSelectedAthleteName(undefined)
+      }
+
+      setIsHistoryOpen(false)
+    } catch (error) {
+      toast({
+        title: copy.loadConversationErrorTitle,
+        description: error instanceof Error ? error.message : copy.unexpectedError,
+        variant: 'destructive',
+      })
+    }
+  }, [copy.loadConversationErrorTitle, copy.unexpectedError, setMessages, toast])
+
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -1143,7 +1271,7 @@ export function FloatingAIChat({
 
   async function handlePublishProgram() {
     if (!detectedProgram?.program) return
-    if (!athleteId) {
+    if (!selectedAthleteId) {
       toast({
         title: copy.noAthleteTitle,
         description: copy.noAthleteDescription,
@@ -1164,7 +1292,7 @@ export function FloatingAIChat({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           aiOutput,
-          clientId: athleteId,
+          clientId: selectedAthleteId,
           conversationId,
         }),
       })
@@ -1209,12 +1337,15 @@ export function FloatingAIChat({
       if (detail.open !== false) {
         setIsOpen(true)
       }
+      if (detail.athleteId) {
+        applyAthleteSelection({ id: detail.athleteId, name: detail.athleteName })
+      }
       setInput(detail.message)
     }
 
     window.addEventListener(COACH_FLOATING_CHAT_EVENT, handleCoachChatIntent)
     return () => window.removeEventListener(COACH_FLOATING_CHAT_EVENT, handleCoachChatIntent)
-  }, [cancelVoiceAutoSend])
+  }, [applyAthleteSelection, cancelVoiceAutoSend])
 
   const sendChatMessage = useCallback(async (message: string) => {
     const messageContent = message.trim()
@@ -1234,7 +1365,7 @@ export function FloatingAIChat({
           body: JSON.stringify({
             modelUsed: modelConfig.model,
             provider: modelConfig.provider,
-            athleteId,
+            athleteId: selectedAthleteId,
           }),
         })
         const data = await response.json()
@@ -1253,7 +1384,7 @@ export function FloatingAIChat({
         conversationId: nextConversationId,
         model: modelConfig.model,
         provider: modelConfig.provider,
-        athleteId,
+        athleteId: selectedAthleteId,
         documentIds: [],
         webSearchEnabled: false,
         pageContext: contextStringRef.current,
@@ -1263,12 +1394,12 @@ export function FloatingAIChat({
     })
   }, [
     addAssistantNotice,
-    athleteId,
     conversationId,
     copy.modelLoadingNotice,
     isLoading,
     modelConfig,
     pathBusinessSlug,
+    selectedAthleteId,
     selectedSkillIds,
     sendMessage,
   ])
@@ -1689,6 +1820,16 @@ export function FloatingAIChat({
             <Button
               variant="ghost"
               size="icon"
+              onClick={() => setIsHistoryOpen(true)}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title={copy.chatHistory}
+              aria-label={copy.chatHistory}
+            >
+              <History className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={handleNewChat}
               className="h-8 w-8 text-white hover:bg-white/20"
               title={copy.newConversation}
@@ -1725,6 +1866,74 @@ export function FloatingAIChat({
         <div className="flex items-center justify-between gap-2 px-3 pb-3">
           <div className="flex min-w-0 items-center gap-2">
             {getProviderBadge()}
+            <Popover
+              open={isAthletePickerOpen}
+              onOpenChange={(open) => {
+                setIsAthletePickerOpen(open)
+                if (open) void fetchAthleteOptions()
+              }}
+            >
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="flex min-w-0 items-center gap-1 rounded-full border border-white/30 bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white transition-colors hover:bg-white/25"
+                  title={copy.selectAthlete}
+                  aria-label={copy.selectAthlete}
+                >
+                  <User className="h-3 w-3 shrink-0" />
+                  <span className="max-w-[110px] truncate">
+                    {selectedAthleteName || (selectedAthleteId ? copy.athleteContext : copy.selectAthlete)}
+                  </span>
+                  <ChevronDown className="h-3 w-3 shrink-0" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 p-2" align="start" side="bottom">
+                <Input
+                  placeholder={copy.searchAthletes}
+                  value={athleteSearch}
+                  onChange={(e) => setAthleteSearch(e.target.value)}
+                  className="mb-2 h-8 text-xs"
+                />
+                <div className="max-h-56 overflow-y-auto">
+                  {selectedAthleteId && (
+                    <button
+                      type="button"
+                      onClick={() => applyAthleteSelection(null)}
+                      className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors hover:bg-muted"
+                    >
+                      <X className="h-3.5 w-3.5 shrink-0" />
+                      <span className="flex-1 truncate">{copy.clearAthleteContext}</span>
+                    </button>
+                  )}
+                  {isLoadingAthletes ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : filteredAthleteOptions.length === 0 ? (
+                    <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+                      {copy.noAthletesFound}
+                    </p>
+                  ) : (
+                    filteredAthleteOptions.map((athlete) => (
+                      <button
+                        key={athlete.id}
+                        type="button"
+                        onClick={() => applyAthleteSelection(athlete)}
+                        className={cn(
+                          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted',
+                          athlete.id === selectedAthleteId && 'bg-muted'
+                        )}
+                      >
+                        <span className="flex-1 truncate">{athlete.name}</span>
+                        {athlete.id === selectedAthleteId && (
+                          <Check className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="flex shrink-0 items-center gap-1">
             <VoiceModesGuide className="h-7 w-7" />
@@ -1827,7 +2036,7 @@ export function FloatingAIChat({
       )}
 
       {/* GDPR: Warning when athlete hasn't consented */}
-      {athleteId && athleteConsentStatus === 'none' && (
+      {selectedAthleteId && athleteConsentStatus === 'none' && (
         <div className="px-3 py-2 border-b bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs flex items-center gap-2">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span>{copy.consentMissing}</span>
@@ -1934,12 +2143,12 @@ export function FloatingAIChat({
                   {quickPrompt.label}
                 </Button>
               ))}
-              {!pageContext && athleteName && (
+              {!pageContext && selectedAthleteName && (
                 <>
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setInput(copy.analyzeTrainingPrompt(athleteName))}
+                    onClick={() => setInput(copy.analyzeTrainingPrompt(selectedAthleteName))}
                     className="text-xs"
                   >
                     {copy.analyzeTraining}
@@ -1947,14 +2156,14 @@ export function FloatingAIChat({
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => setInput(copy.createProgramPrompt(athleteName))}
+                    onClick={() => setInput(copy.createProgramPrompt(selectedAthleteName))}
                     className="text-xs"
                   >
                     {copy.createProgram}
                   </Button>
                 </>
               )}
-              {!pageContext && !athleteName && (
+              {!pageContext && !selectedAthleteName && (
                 <>
                   <Button
                     variant="secondary"
@@ -2007,8 +2216,8 @@ export function FloatingAIChat({
                         content: textContent || toolOnlyStatusMessage || '',
                         createdAt: new Date(),
                       }}
-                      athleteId={athleteId}
-                      athleteName={athleteName}
+                      athleteId={selectedAthleteId}
+                      athleteName={selectedAthleteName}
                       conversationId={conversationId}
                     />
                   )}
@@ -2030,8 +2239,8 @@ export function FloatingAIChat({
                   content: notice.content,
                   createdAt: notice.createdAt,
                 }}
-                athleteId={athleteId}
-                athleteName={athleteName}
+                athleteId={selectedAthleteId}
+                athleteName={selectedAthleteName}
                 conversationId={conversationId}
               />
             ))}
@@ -2072,14 +2281,14 @@ export function FloatingAIChat({
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {detectedProgram.program.totalWeeks} {copy.weeks}
-                  {!athleteId && ` - ${copy.chooseAthleteToSave}`}
+                  {!selectedAthleteId && ` - ${copy.chooseAthleteToSave}`}
                 </p>
               </div>
             </div>
             <Button
               size="sm"
               onClick={handlePublishProgram}
-              disabled={isPublishing || !athleteId}
+              disabled={isPublishing || !selectedAthleteId}
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 px-2 shrink-0"
             >
               {isPublishing ? (
@@ -2183,6 +2392,14 @@ export function FloatingAIChat({
           )}
         </div>
       </form>
+
+      {/* Chat history (Sheet renders in a portal above the panel) */}
+      <ChatHistoryPanel
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        currentConversationId={conversationId}
+        onLoadConversation={handleLoadConversation}
+      />
     </div>
   )
 }

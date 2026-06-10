@@ -124,6 +124,11 @@ model AIConversation {
   // Status
   status String @default("ACTIVE") // ACTIVE, ARCHIVED, DELETED
 
+  // Who started the conversation. Athlete chat history must only show
+  // ATHLETE-created conversations — coach AI Studio conversations about an
+  // athlete share the same coachId/athleteId shape and must stay private.
+  createdByRole String @default("COACH") // COACH | ATHLETE
+
   coach                     User                       @relation("CoachConversations", fields: [coachId], references: [id], onDelete: Cascade)
   athlete                   Client?                    @relation("AthleteConversations", fields: [athleteId], references: [id], onDelete: SetNull)
   messages                  AIMessage[]

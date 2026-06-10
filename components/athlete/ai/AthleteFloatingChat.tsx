@@ -17,6 +17,7 @@ import {
   Maximize2,
   Sparkles,
   MessageSquare,
+  History,
   Lock,
   BookOpen,
   Save,
@@ -32,6 +33,7 @@ import {
   PhoneOff,
 } from 'lucide-react'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
+import { ChatHistoryPanel } from '@/components/ai-studio/ChatHistoryPanel'
 import { ChatActionCard, type ChatActionResult } from '@/components/ai-studio/ChatActionCard'
 import {
   formatVoiceDuration,
@@ -139,6 +141,9 @@ export function AthleteFloatingChat({
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false)
+  // Assistant messages restored from history must not be read aloud
+  const historyMessageIdsRef = useRef<Set<string>>(new Set())
   const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null)
   const [selectedIntent, setSelectedIntent] = useState<ModelIntent>('balanced')
   const [availableIntents, setAvailableIntents] = useState<IntentTierOption[]>([])
@@ -778,6 +783,7 @@ export function AthleteFloatingChat({
 
     const textContent = getMessageTextContent(lastMessage.parts)
     if (!textContent) return
+    if (historyMessageIdsRef.current.has(lastMessage.id)) return
 
     const timeout = window.setTimeout(() => {
       speakAssistantMessageOnce(lastMessage.id, textContent)
@@ -819,6 +825,7 @@ export function AthleteFloatingChat({
     setInput('')
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
+    historyMessageIdsRef.current.clear()
     resetSpokenTracking()
   }
 
@@ -833,7 +840,51 @@ export function AthleteFloatingChat({
     setInput('')
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
+    historyMessageIdsRef.current.clear()
     resetSpokenTracking()
+  }
+
+  // Load a previous conversation from the history panel
+  async function handleLoadConversation(loadConversationId: string) {
+    try {
+      const response = await fetch(`/api/ai/conversations/${loadConversationId}`)
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || t('history.loadErrorTitle'))
+      }
+
+      // Convert to useChat format (AI SDK v5 uses parts array)
+      const chatMessages = (data.messages || []).map((msg: { id: string; role: string; content: string; createdAt?: string }) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        parts: [{ type: 'text' as const, text: msg.content || '' }],
+        createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+      }))
+
+      stopAssistantSpeech()
+      cancelVoiceAutoSend()
+      for (const msg of chatMessages) {
+        if (msg.role === 'assistant') {
+          historyMessageIdsRef.current.add(msg.id)
+        }
+      }
+
+      setMessages(chatMessages)
+      setConversationId(loadConversationId)
+      setAssistantNotices([])
+      setDetectedProgram(null)
+      setMentalPrepContext(null)
+      mentalPrepContextRef.current = null
+      setIsHistoryOpen(false)
+    } catch (error) {
+      toast({
+        title: t('history.loadErrorTitle'),
+        description: error instanceof Error ? error.message : t('common.unexpectedError'),
+        variant: 'destructive',
+      })
+    }
   }
 
   function handleQuickPrompt(prompt: string) {
@@ -1023,6 +1074,16 @@ export function AthleteFloatingChat({
             <span className="truncate font-semibold text-white">{t('header.title')}</span>
           </div>
           <div className="flex shrink-0 items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsHistoryOpen(true)}
+              className="h-8 w-8 text-white hover:bg-white/20"
+              title={t('header.history')}
+              aria-label={t('header.history')}
+            >
+              <History className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -1493,6 +1554,14 @@ export function AthleteFloatingChat({
           )}
         </div>
       </form>
+
+      {/* Chat history (Sheet renders in a portal above the panel). */}
+      <ChatHistoryPanel
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        currentConversationId={conversationId}
+        onLoadConversation={(id) => { void handleLoadConversation(id) }}
+      />
     </div>
   )
 }

@@ -16115,9 +16115,13 @@
       "header": {
         "title": "AI-assistent",
         "newConversation": "Ny konversation",
+        "history": "Chatthistorik",
         "minimize": "Minimera chatten",
         "expand": "Expandera chatten",
         "close": "Stäng chatten"
+      },
+      "history": {
+        "loadErrorTitle": "Kunde inte ladda konversationen"
       },
       "model": {
         "fallbackTier": "Balanserad",

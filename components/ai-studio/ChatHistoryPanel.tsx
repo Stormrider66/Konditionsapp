@@ -47,6 +47,8 @@ interface ChatHistoryPanelProps {
   onOpenChange: (open: boolean) => void
   currentConversationId: string | null
   onLoadConversation: (conversationId: string) => void
+  /** Hide the delete affordance (the DELETE endpoint is coach-only). Defaults to true. */
+  canDelete?: boolean
 }
 
 type AppLocale = 'en' | 'sv'
@@ -107,6 +109,7 @@ export function ChatHistoryPanel({
   onOpenChange,
   currentConversationId,
   onLoadConversation,
+  canDelete = true,
 }: ChatHistoryPanelProps) {
   const { toast } = useToast()
   const appLocale = getAppLocale(useLocale())
@@ -268,17 +271,19 @@ export function ChatHistoryPanel({
                                   {formatTime(conv.updatedAt, appLocale)}
                                 </p>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 opacity-0 group-hover:opacity-100 transition"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  setDeleteId(conv.id)
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              {canDelete && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    setDeleteId(conv.id)
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}

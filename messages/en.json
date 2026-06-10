@@ -15755,9 +15755,13 @@
       "header": {
         "title": "AI assistant",
         "newConversation": "New conversation",
+        "history": "Chat history",
         "minimize": "Minimize chat",
         "expand": "Expand chat",
         "close": "Close chat"
+      },
+      "history": {
+        "loadErrorTitle": "Could not load conversation"
       },
       "model": {
         "fallbackTier": "Balanced",
