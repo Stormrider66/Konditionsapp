@@ -5,92 +5,39 @@
  * KnowledgeSkill entries so the floating AI chat can answer "how does the
  * app work?" questions for both athletes and coaches.
  *
- * Unlike scripts/seed-knowledge-base.ts (full wipe-and-reseed), this script
- * is INCREMENTAL and idempotent:
+ * Follows the embedding_v2 pattern from scripts/seed-hockey-knowledge-skill.ts
+ * (768-dim vectors, Google preferred, OpenAI fallback). Incremental and
+ * idempotent:
  *  - Documents are matched on fileUrl; existing ones are re-chunked in place.
  *  - Skills are matched on nameEn; existing ones are updated in place.
  *  - Nothing outside the platform-help corpus is touched.
  *
  * Usage: npx tsx scripts/seed-platform-help.ts
- *
- * API key resolution order matches seed-knowledge-base.ts:
- * 1. OPENAI_API_KEY environment variable
- * 2. First coach with a valid OpenAI key in the database (BYOK)
  */
 
-import { PrismaClient } from '@prisma/client';
-import * as fs from 'fs';
-import * as path from 'path';
-import crypto from 'crypto';
-import OpenAI from 'openai';
-import { config } from 'dotenv';
+import { PrismaClient, type Prisma } from '@prisma/client'
+import { readFileSync, existsSync } from 'fs'
+import { join } from 'path'
+import crypto from 'crypto'
+import { config } from 'dotenv'
 
-config({ path: '.env.local' });
-config({ path: '.env' });
+config({ path: '.env.local' })
+config({ path: '.env' })
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
 
-const PLATFORM_HELP_DIR = path.join(process.cwd(), 'docs', 'platform-help');
-const EMBEDDING_MODEL = 'text-embedding-ada-002';
-const MAX_CHUNK_SIZE = 1000;
+const PLATFORM_HELP_DIR = join(process.cwd(), 'docs', 'platform-help')
+const EMBEDDING_DIMENSIONS = 768
+const GOOGLE_MODEL = 'gemini-embedding-2-preview'
+const OPENAI_MODEL = 'text-embedding-3-small'
+const MAX_CHUNK_SIZE = 1400
 
-// ============================================================================
-// Inline decryption (avoids server-only imports) — same as seed-knowledge-base
-// ============================================================================
-const ENC_PREFIX = 'enc:v1:';
+type Provider = 'google' | 'openai'
 
-function decryptSecret(ciphertext: string): string {
-  if (!ciphertext.startsWith(ENC_PREFIX)) return ciphertext;
-  const raw = process.env.API_KEY_ENCRYPTION_KEY;
-  if (!raw) throw new Error('API_KEY_ENCRYPTION_KEY is not configured');
-  const key = Buffer.from(raw, 'base64');
-  if (key.length !== 32) throw new Error('API_KEY_ENCRYPTION_KEY must decode to 32 bytes');
-  const parts = ciphertext.slice(ENC_PREFIX.length).split(':');
-  if (parts.length !== 3) throw new Error('Invalid encrypted secret format');
-  const [ivB64, tagB64, dataB64] = parts;
-  const decipher = crypto.createDecipheriv(
-    'aes-256-gcm',
-    key,
-    Buffer.from(ivB64, 'base64')
-  );
-  decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
-  return Buffer.concat([
-    decipher.update(Buffer.from(dataB64, 'base64')),
-    decipher.final(),
-  ]).toString('utf8');
-}
-
-async function resolveOpenAIKey(): Promise<{ apiKey: string; systemUserId: string }> {
-  let systemUser = await prisma.user.findFirst({
-    where: { email: 'system@trainomics.app' },
-    select: { id: true },
-  });
-  if (!systemUser) {
-    systemUser = await prisma.user.create({
-      data: { email: 'system@trainomics.app', name: 'System Knowledge Base', role: 'ADMIN' },
-      select: { id: true },
-    });
-    console.log(`  Created system user: ${systemUser.id}`);
-  }
-  const systemUserId = systemUser.id;
-
-  if (process.env.OPENAI_API_KEY) {
-    console.log('  Using OPENAI_API_KEY from environment.\n');
-    return { apiKey: process.env.OPENAI_API_KEY, systemUserId };
-  }
-
-  const apiKeyRow = await prisma.userApiKey.findFirst({
-    where: { openaiKeyValid: true, openaiKeyEncrypted: { not: null } },
-    select: { userId: true, openaiKeyEncrypted: true },
-  });
-  if (!apiKeyRow?.openaiKeyEncrypted) {
-    throw new Error(
-      'No OpenAI API key found. Set OPENAI_API_KEY or ensure a coach has a valid OpenAI key in BYOK settings.'
-    );
-  }
-  const decrypted = decryptSecret(apiKeyRow.openaiKeyEncrypted);
-  console.log(`  Found valid OpenAI key from user ${apiKeyRow.userId.slice(0, 8)}...\n`);
-  return { apiKey: decrypted, systemUserId };
+type Chunk = {
+  content: string
+  index: number
+  metadata: Record<string, unknown>
 }
 
 // ============================================================================
@@ -98,13 +45,13 @@ async function resolveOpenAIKey(): Promise<{ apiKey: string; systemUserId: strin
 // ============================================================================
 
 interface PlatformSkillDef {
-  name: string;
-  nameEn: string;
-  keywords: string[];
-  description: string;
-  docFiles: string[]; // filenames within docs/platform-help/
-  priority: number;
-  maxChunks: number;
+  name: string
+  nameEn: string
+  keywords: string[]
+  description: string
+  docFiles: string[] // filenames within docs/platform-help/
+  priority: number
+  maxChunks: number
 }
 
 const PLATFORM_SKILL_DEFINITIONS: PlatformSkillDef[] = [
@@ -171,7 +118,7 @@ const PLATFORM_SKILL_DEFINITIONS: PlatformSkillDef[] = [
       'training program', 'träningsprogram',
     ],
     description:
-      'Hur träningsprogram fungerar i plattformen: programbyggaren, AI-generering av fleråriga/flerveckorsprogram (metodiker, bakgrundsgenerering), självtränade atleters programgenerering via chatten, tilldelning och kalendervy.',
+      'Hur träningsprogram fungerar i plattformen: programbyggaren, AI-generering av flerveckorsprogram (metodiker, bakgrundsgenerering), självtränade atleters programgenerering via chatten, tilldelning och kalendervy.',
     docFiles: ['training-programs.md'],
     priority: 7,
     maxChunks: 3,
@@ -221,11 +168,11 @@ const PLATFORM_SKILL_DEFINITIONS: PlatformSkillDef[] = [
     name: 'Integrationer (Strava/Garmin/Concept2)',
     nameEn: 'Integrations (Strava/Garmin/Concept2)',
     keywords: [
-      'strava', 'garmin', 'concept2', 'sync', 'synka', 'connect', 'koppla',
+      'strava', 'garmin', 'concept2', 'oura', 'sync', 'synka', 'connect', 'koppla',
       'integration', 'wearable', 'klocka', 'watch',
     ],
     description:
-      'Hur integrationer fungerar: koppla Strava, Garmin och Concept2, vilken data som synkas (aktiviteter, sömn, HRV, ergometerresultat), hur synkade aktiviteter dyker upp och felsökning vid avbruten koppling.',
+      'Hur integrationer fungerar: koppla Strava, Garmin, Concept2 och Oura, vilken data som synkas (aktiviteter, sömn, HRV, ergometerresultat), hur synkade aktiviteter dyker upp och felsökning vid avbruten koppling.',
     docFiles: ['integrations.md'],
     priority: 8,
     maxChunks: 3,
@@ -297,85 +244,247 @@ const PLATFORM_SKILL_DEFINITIONS: PlatformSkillDef[] = [
     priority: 6,
     maxChunks: 3,
   },
-];
+]
 
 // ============================================================================
-// Chunking + embeddings — same logic as seed-knowledge-base.ts
+// Helpers — mirrors scripts/seed-hockey-knowledge-skill.ts
 // ============================================================================
 
-interface ChunkResult {
-  content: string;
-  index: number;
-  metadata: Record<string, unknown>;
+function decryptSecret(ciphertext: string): string {
+  const prefix = 'enc:v1:'
+  if (!ciphertext.startsWith(prefix)) return ciphertext
+
+  const raw = process.env.API_KEY_ENCRYPTION_KEY
+  if (!raw) throw new Error('API_KEY_ENCRYPTION_KEY is not set. Load all vars from .env.local.')
+  const key = Buffer.from(raw, 'base64')
+  if (key.length !== 32) throw new Error('API_KEY_ENCRYPTION_KEY must decode to 32 bytes')
+
+  const parts = ciphertext.slice(prefix.length).split(':')
+  if (parts.length !== 3) throw new Error('Invalid encrypted secret format')
+
+  const [ivB64, tagB64, dataB64] = parts
+  const decipher = crypto.createDecipheriv(
+    'aes-256-gcm',
+    key,
+    Buffer.from(ivB64, 'base64')
+  )
+  decipher.setAuthTag(Buffer.from(tagB64, 'base64'))
+  return Buffer.concat([
+    decipher.update(Buffer.from(dataB64, 'base64')),
+    decipher.final(),
+  ]).toString('utf8')
 }
 
-function chunkText(text: string, filename: string): ChunkResult[] {
-  const chunks: ChunkResult[] = [];
-  const cleanText = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
-  const paragraphs = cleanText.split(/\n\n+/);
+async function resolveSystemUserId(): Promise<string> {
+  const existing = await prisma.user.findFirst({
+    where: { email: 'system@trainomics.app' },
+    select: { id: true },
+  })
+  if (existing) return existing.id
 
-  let currentChunk = '';
-  let chunkIndex = 0;
+  const created = await prisma.user.create({
+    data: { email: 'system@trainomics.app', name: 'System Knowledge Base', role: 'ADMIN' },
+    select: { id: true },
+  })
+  return created.id
+}
+
+async function resolveProvider(): Promise<{ provider: Provider; key: string }> {
+  const forcedProvider = process.env.EMBEDDING_PROVIDER as Provider | undefined
+  const googleKey =
+    process.env.GOOGLE_API_KEY ||
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  if ((!forcedProvider || forcedProvider === 'google') && googleKey) {
+    return { provider: 'google', key: googleKey }
+  }
+  if ((!forcedProvider || forcedProvider === 'openai') && process.env.OPENAI_API_KEY) {
+    return { provider: 'openai', key: process.env.OPENAI_API_KEY }
+  }
+
+  const googleCandidate = await prisma.userApiKey.findFirst({
+    where: {
+      googleKeyValid: true,
+      googleKeyEncrypted: { not: null },
+      user: { role: 'ADMIN' },
+    },
+    select: { googleKeyEncrypted: true, userId: true },
+  })
+  if ((!forcedProvider || forcedProvider === 'google') && googleCandidate?.googleKeyEncrypted) {
+    console.log(`Using Google embedding key from admin ${googleCandidate.userId.slice(0, 8)}...`)
+    return { provider: 'google', key: decryptSecret(googleCandidate.googleKeyEncrypted) }
+  }
+
+  const openaiCandidate = await prisma.userApiKey.findFirst({
+    where: {
+      openaiKeyValid: true,
+      openaiKeyEncrypted: { not: null },
+      user: { role: 'ADMIN' },
+    },
+    select: { openaiKeyEncrypted: true, userId: true },
+  })
+  if ((!forcedProvider || forcedProvider === 'openai') && openaiCandidate?.openaiKeyEncrypted) {
+    console.log(`Using OpenAI embedding key from admin ${openaiCandidate.userId.slice(0, 8)}...`)
+    return { provider: 'openai', key: decryptSecret(openaiCandidate.openaiKeyEncrypted) }
+  }
+
+  throw new Error(
+    'No embedding key found. Set GOOGLE_API_KEY/GEMINI_API_KEY/OPENAI_API_KEY or add a valid admin BYOK key.'
+  )
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+function isRetryableEmbeddingError(error: unknown): boolean {
+  const maybeError = error as { status?: number; message?: string }
+  const message = maybeError?.message ?? ''
+  return (
+    maybeError?.status === 429 ||
+    maybeError?.status === 500 ||
+    maybeError?.status === 502 ||
+    maybeError?.status === 503 ||
+    maybeError?.status === 504 ||
+    /resource exhausted|rate limit|temporarily unavailable|timeout/i.test(message)
+  )
+}
+
+function chunkText(text: string, fileName: string, docName: string): Chunk[] {
+  const cleanText = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim()
+  const paragraphs = cleanText.split(/\n\n+/)
+  const chunks: Chunk[] = []
+  let current = ''
+  let section = docName
+  let index = 0
+
+  const pushChunk = () => {
+    const content = current.trim()
+    if (!content) return
+    chunks.push({
+      content,
+      index,
+      metadata: { fileName, source: 'platform_help', section },
+    })
+    index += 1
+    current = ''
+  }
 
   for (const paragraph of paragraphs) {
-    if (currentChunk.length + paragraph.length > MAX_CHUNK_SIZE) {
-      if (currentChunk.trim()) {
-        chunks.push({
-          content: currentChunk.trim(),
-          index: chunkIndex++,
-          metadata: { filename, chunkType: 'paragraph' },
-        });
-      }
+    const heading = paragraph.match(/^#{1,3}\s+(.+)/)
+    if (heading) section = heading[1].trim()
 
-      if (paragraph.length > MAX_CHUNK_SIZE) {
-        const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph];
-        let sentenceChunk = '';
-        for (const sentence of sentences) {
-          if (sentenceChunk.length + sentence.length > MAX_CHUNK_SIZE) {
-            if (sentenceChunk.trim()) {
-              chunks.push({
-                content: sentenceChunk.trim(),
-                index: chunkIndex++,
-                metadata: { filename, chunkType: 'sentence' },
-              });
-            }
-            sentenceChunk = sentence;
-          } else {
-            sentenceChunk += sentence;
-          }
-        }
-        currentChunk = sentenceChunk;
-      } else {
-        currentChunk = paragraph;
+    if (current.length + paragraph.length + 2 > MAX_CHUNK_SIZE) {
+      pushChunk()
+    }
+
+    if (paragraph.length > MAX_CHUNK_SIZE) {
+      const sentences = paragraph.match(/[^.!?]+[.!?]+/g) || [paragraph]
+      for (const sentence of sentences) {
+        if (current.length + sentence.length + 1 > MAX_CHUNK_SIZE) pushChunk()
+        current += `${current ? ' ' : ''}${sentence.trim()}`
       }
     } else {
-      currentChunk += (currentChunk ? '\n\n' : '') + paragraph;
+      current += `${current ? '\n\n' : ''}${paragraph}`
     }
   }
 
-  if (currentChunk.trim()) {
-    chunks.push({
-      content: currentChunk.trim(),
-      index: chunkIndex,
-      metadata: { filename, chunkType: 'paragraph' },
-    });
-  }
-
-  return chunks;
+  pushChunk()
+  return chunks
 }
 
-async function generateEmbeddings(texts: string[], openai: OpenAI): Promise<number[][]> {
-  const batchSize = 100;
-  const results: number[][] = [];
-  for (let i = 0; i < texts.length; i += batchSize) {
-    const batch = texts.slice(i, i + batchSize);
-    const response = await openai.embeddings.create({ model: EMBEDDING_MODEL, input: batch });
-    for (const item of response.data) results.push(item.embedding);
-    if (i + batchSize < texts.length) {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+async function generateEmbedding(
+  text: string,
+  provider: Provider,
+  key: string,
+  taskType: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'SEMANTIC_SIMILARITY'
+): Promise<number[]> {
+  const retryDelaysMs = [1_500, 4_000, 9_000, 20_000, 45_000]
+
+  for (let attempt = 0; attempt <= retryDelaysMs.length; attempt += 1) {
+    try {
+      return await generateEmbeddingOnce(text, provider, key, taskType)
+    } catch (error) {
+      if (attempt === retryDelaysMs.length || !isRetryableEmbeddingError(error)) {
+        throw error
+      }
+      const delayMs = retryDelaysMs[attempt]
+      console.warn(
+        `Embedding ${provider} call was rate-limited/temporary (${attempt + 1}/${retryDelaysMs.length}). Retrying in ${Math.round(delayMs / 1000)}s...`
+      )
+      await sleep(delayMs)
     }
   }
-  return results;
+
+  throw new Error('Embedding retry loop exited unexpectedly')
+}
+
+async function generateEmbeddingOnce(
+  text: string,
+  provider: Provider,
+  key: string,
+  taskType: 'RETRIEVAL_DOCUMENT' | 'RETRIEVAL_QUERY' | 'SEMANTIC_SIMILARITY'
+): Promise<number[]> {
+  if (provider === 'google') {
+    const { GoogleGenAI } = await import('@google/genai')
+    const client = new GoogleGenAI({ apiKey: key })
+    const response = await client.models.embedContent({
+      model: GOOGLE_MODEL,
+      contents: text,
+      config: {
+        outputDimensionality: EMBEDDING_DIMENSIONS,
+        taskType,
+      },
+    })
+    const values = response.embeddings?.[0]?.values
+    if (!values?.length) throw new Error('Empty embedding from Google')
+    return values
+  }
+
+  const OpenAI = (await import('openai')).default
+  const openai = new OpenAI({ apiKey: key })
+  const response = await openai.embeddings.create({
+    model: OPENAI_MODEL,
+    input: text,
+    dimensions: EMBEDDING_DIMENSIONS,
+  })
+  return response.data[0].embedding
+}
+
+async function getVectorType(): Promise<'extensions.vector' | 'vector'> {
+  try {
+    await prisma.$queryRawUnsafe('SELECT NULL::extensions.vector')
+    return 'extensions.vector'
+  } catch {
+    return 'vector'
+  }
+}
+
+async function ensureVectorColumn(tableName: 'KnowledgeChunk' | 'KnowledgeSkill', vtype: string) {
+  const check = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
+    `SELECT EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = $1 AND column_name = 'embedding_v2'
+    ) as exists`,
+    tableName
+  )
+
+  if (!check[0]?.exists) {
+    await prisma.$executeRawUnsafe(
+      `ALTER TABLE "${tableName}" ADD COLUMN IF NOT EXISTS "embedding_v2" ${vtype}(${EMBEDDING_DIMENSIONS})`
+    )
+  }
+}
+
+function toVectorLiteral(values: number[]): string {
+  const cleaned = values.map((value, index) => {
+    const numberValue = Number(value)
+    if (!Number.isFinite(numberValue)) {
+      throw new Error(`Invalid embedding value at index ${index}`)
+    }
+    return numberValue
+  })
+  return `[${cleaned.join(',')}]`
 }
 
 // ============================================================================
@@ -384,96 +493,102 @@ async function generateEmbeddings(texts: string[], openai: OpenAI): Promise<numb
 
 async function upsertDocument(
   filename: string,
-  openai: OpenAI,
+  provider: Provider,
+  key: string,
+  vtype: string,
   systemUserId: string
 ): Promise<{ id: string; title: string; chunks: number } | null> {
-  const filepath = path.join(PLATFORM_HELP_DIR, filename);
-  if (!fs.existsSync(filepath)) {
-    console.warn(`  ⚠ File not found: platform-help/${filename}`);
-    return null;
+  const filepath = join(PLATFORM_HELP_DIR, filename)
+  if (!existsSync(filepath)) {
+    console.warn(`  ⚠ File not found: platform-help/${filename}`)
+    return null
   }
 
-  const content = fs.readFileSync(filepath, 'utf-8');
-  const titleMatch = content.match(/^#\s+(.+)/m);
-  const title = titleMatch ? titleMatch[1] : filename.replace('.md', '');
-  const fileUrl = `docs/platform-help/${filename}`;
+  const content = readFileSync(filepath, 'utf8')
+  const titleMatch = content.match(/^#\s+(.+)/m)
+  const title = titleMatch ? titleMatch[1] : filename.replace('.md', '')
+  const fileUrl = `docs/platform-help/${filename}`
 
-  let document = await prisma.coachDocument.findFirst({
+  const existing = await prisma.coachDocument.findFirst({
     where: { fileUrl, isSystem: true },
     select: { id: true },
-  });
+  })
 
-  if (document) {
-    await prisma.knowledgeChunk.deleteMany({ where: { documentId: document.id } });
-    await prisma.coachDocument.update({
-      where: { id: document.id },
-      data: {
-        name: title,
-        fileSize: Buffer.byteLength(content, 'utf-8'),
-        description: `Platform help: ${title}`,
-        processingStatus: 'PROCESSING',
-      },
-    });
-  } else {
-    document = await prisma.coachDocument.create({
-      data: {
-        coachId: systemUserId,
-        name: title,
-        fileType: 'MARKDOWN',
-        fileUrl,
-        fileSize: Buffer.byteLength(content, 'utf-8'),
-        description: `Platform help: ${title}`,
-        isSystem: true,
-        processingStatus: 'PROCESSING',
-      },
-      select: { id: true },
-    });
-  }
+  const document = existing
+    ? await prisma.coachDocument.update({
+        where: { id: existing.id },
+        data: {
+          name: title,
+          fileSize: Buffer.byteLength(content, 'utf8'),
+          description: `Platform help: ${title}`,
+          mimeType: 'text/markdown',
+          processingStatus: 'PROCESSING',
+          processingError: null,
+        },
+        select: { id: true },
+      })
+    : await prisma.coachDocument.create({
+        data: {
+          coachId: systemUserId,
+          name: title,
+          fileType: 'MARKDOWN',
+          fileUrl,
+          fileSize: Buffer.byteLength(content, 'utf8'),
+          description: `Platform help: ${title}`,
+          mimeType: 'text/markdown',
+          isSystem: true,
+          processingStatus: 'PROCESSING',
+        },
+        select: { id: true },
+      })
 
-  const chunks = chunkText(content, filename);
-  const embeddings = chunks.length > 0
-    ? await generateEmbeddings(chunks.map((c) => c.content), openai)
-    : [];
+  await prisma.knowledgeChunk.deleteMany({ where: { documentId: document.id } })
 
-  for (let i = 0; i < chunks.length; i++) {
-    const knowledgeChunk = await prisma.knowledgeChunk.create({
+  const chunks = chunkText(content, filename, title)
+  for (const chunk of chunks) {
+    const embedding = await generateEmbedding(chunk.content, provider, key, 'RETRIEVAL_DOCUMENT')
+    const row = await prisma.knowledgeChunk.create({
       data: {
         documentId: document.id,
         coachId: systemUserId,
-        content: chunks[i].content,
-        chunkIndex: chunks[i].index,
-        embeddingModel: EMBEDDING_MODEL,
-        tokenCount: Math.ceil(chunks[i].content.length / 4),
-        metadata: chunks[i].metadata as object,
+        content: chunk.content,
+        chunkIndex: chunk.index,
+        embeddingModel: provider === 'google' ? GOOGLE_MODEL : OPENAI_MODEL,
+        tokenCount: Math.ceil(chunk.content.length / 4),
+        metadata: chunk.metadata as Prisma.InputJsonValue,
       },
-    });
+      select: { id: true },
+    })
+
     await prisma.$executeRawUnsafe(
-      `UPDATE "KnowledgeChunk" SET embedding = $1::vector WHERE id = $2`,
-      `[${embeddings[i].join(',')}]`,
-      knowledgeChunk.id
-    );
+      `UPDATE "KnowledgeChunk" SET "embedding_v2" = $1::${vtype} WHERE id = $2`,
+      toVectorLiteral(embedding),
+      row.id
+    )
   }
 
   await prisma.coachDocument.update({
     where: { id: document.id },
-    data: { processingStatus: 'COMPLETED', chunkCount: chunks.length },
-  });
+    data: { processingStatus: 'COMPLETED', processingError: null, chunkCount: chunks.length },
+  })
 
-  return { id: document.id, title, chunks: chunks.length };
+  return { id: document.id, title, chunks: chunks.length }
 }
 
 async function upsertSkill(
   def: PlatformSkillDef,
   docFileToId: Map<string, string>,
-  openai: OpenAI
+  provider: Provider,
+  key: string,
+  vtype: string
 ): Promise<boolean> {
   const documentIds = def.docFiles
     .map((file) => docFileToId.get(file))
-    .filter((id): id is string => Boolean(id));
+    .filter((id): id is string => Boolean(id))
 
   if (documentIds.length === 0) {
-    console.warn(`  ⚠ No documents resolved for skill "${def.nameEn}" — skipping.`);
-    return false;
+    console.warn(`  ⚠ No documents resolved for skill "${def.nameEn}" — skipping.`)
+    return false
   }
 
   const data = {
@@ -486,33 +601,27 @@ async function upsertSkill(
     documentIds,
     maxChunks: def.maxChunks,
     isActive: true,
-  };
+  }
 
   const existing = await prisma.knowledgeSkill.findFirst({
-    where: { nameEn: def.nameEn },
+    where: { OR: [{ nameEn: def.nameEn }, { name: def.name }] },
     select: { id: true },
-  });
+  })
 
   const skill = existing
-    ? await prisma.knowledgeSkill.update({ where: { id: existing.id }, data })
-    : await prisma.knowledgeSkill.create({ data });
+    ? await prisma.knowledgeSkill.update({ where: { id: existing.id }, data, select: { id: true } })
+    : await prisma.knowledgeSkill.create({ data, select: { id: true } })
 
-  // Description embedding for semantic matching (legacy 1536-dim column; the
-  // runtime embedding_v2 column is backfilled lazily by ensureSkillEmbeddings).
-  const [embedding] = await generateEmbeddings([def.description], openai);
+  // Same text format as the runtime backfill (ensureSkillEmbeddings).
+  const skillText = `${def.name} ${def.nameEn} ${def.description} ${def.keywords.join(' ')}`
+  const embedding = await generateEmbedding(skillText, provider, key, 'SEMANTIC_SIMILARITY')
   await prisma.$executeRawUnsafe(
-    `UPDATE "KnowledgeSkill" SET embedding = $1::vector WHERE id = $2`,
-    `[${embedding.join(',')}]`,
+    `UPDATE "KnowledgeSkill" SET "embedding_v2" = $1::${vtype} WHERE id = $2`,
+    toVectorLiteral(embedding),
     skill.id
-  );
-  // Clear any stale embedding_v2 so the runtime backfill re-embeds the
-  // updated description instead of keeping the old vector.
-  await prisma.$executeRawUnsafe(
-    `UPDATE "KnowledgeSkill" SET embedding_v2 = NULL WHERE id = $1`,
-    skill.id
-  ).catch(() => undefined);
+  )
 
-  return true;
+  return true
 }
 
 // ============================================================================
@@ -520,52 +629,54 @@ async function upsertSkill(
 // ============================================================================
 
 async function seedPlatformHelp() {
-  console.log('Resolving OpenAI API key...');
-  const { apiKey, systemUserId } = await resolveOpenAIKey();
-  const openai = new OpenAI({ apiKey });
+  console.log('Seeding platform-help corpus (incremental)...')
 
-  console.log('Seeding platform-help corpus (incremental)...\n');
+  const systemUserId = await resolveSystemUserId()
+  const { provider, key } = await resolveProvider()
+  const vtype = await getVectorType()
+  await ensureVectorColumn('KnowledgeChunk', vtype)
+  await ensureVectorColumn('KnowledgeSkill', vtype)
 
-  const referencedFiles = new Set<string>();
+  const referencedFiles = new Set<string>()
   for (const def of PLATFORM_SKILL_DEFINITIONS) {
-    for (const file of def.docFiles) referencedFiles.add(file);
+    for (const file of def.docFiles) referencedFiles.add(file)
   }
 
-  const docFileToId = new Map<string, string>();
-  let totalChunks = 0;
+  const docFileToId = new Map<string, string>()
+  let totalChunks = 0
 
   for (const filename of referencedFiles) {
-    console.log(`Processing: platform-help/${filename}`);
-    const result = await upsertDocument(filename, openai, systemUserId);
+    console.log(`Processing: platform-help/${filename}`)
+    const result = await upsertDocument(filename, provider, key, vtype, systemUserId)
     if (result) {
-      docFileToId.set(filename, result.id);
-      totalChunks += result.chunks;
-      console.log(`  ✓ ${result.title} (${result.chunks} chunks)`);
+      docFileToId.set(filename, result.id)
+      totalChunks += result.chunks
+      console.log(`  ✓ ${result.title} (${result.chunks} chunks)`)
     }
   }
 
-  console.log('\nUpserting PLATFORM knowledge skills...');
-  let skillsUpserted = 0;
+  console.log('\nUpserting PLATFORM knowledge skills...')
+  let skillsUpserted = 0
   for (const def of PLATFORM_SKILL_DEFINITIONS) {
-    if (await upsertSkill(def, docFileToId, openai)) {
-      skillsUpserted++;
-      console.log(`  ✓ ${def.nameEn}`);
+    if (await upsertSkill(def, docFileToId, provider, key, vtype)) {
+      skillsUpserted++
+      console.log(`  ✓ ${def.nameEn}`)
     }
   }
 
-  console.log('\n' + '='.repeat(50));
-  console.log('Platform help seeding complete!');
-  console.log(`Documents processed: ${docFileToId.size}`);
-  console.log(`Total chunks created: ${totalChunks}`);
-  console.log(`Skills upserted: ${skillsUpserted}`);
-  console.log('='.repeat(50) + '\n');
+  console.log('\n' + '='.repeat(50))
+  console.log('Platform help seeding complete!')
+  console.log(`Documents processed: ${docFileToId.size}`)
+  console.log(`Total chunks created: ${totalChunks}`)
+  console.log(`Skills upserted: ${skillsUpserted}`)
+  console.log('='.repeat(50) + '\n')
 }
 
 seedPlatformHelp()
   .catch((error) => {
-    console.error('Fatal error:', error);
-    process.exit(1);
+    console.error('Fatal error:', error)
+    process.exit(1)
   })
   .finally(async () => {
-    await prisma.$disconnect();
-  });
+    await prisma.$disconnect()
+  })

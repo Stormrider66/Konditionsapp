@@ -66,6 +66,10 @@ interface KnowledgeSkillAccessOptions {
 // Max total tokens of auto-retrieved content (~4 chars per token)
 const MAX_SKILL_CONTEXT_CHARS = 12000 // ~3000 tokens
 const SKILL_CONTEXT_MATCH_THRESHOLD = 0.68
+// Platform-help questions are often terse ("hur loggar jag ett pass?") and
+// score lower against doc chunks than science questions do, so PLATFORM
+// matches use a slightly lower chunk threshold.
+const PLATFORM_SKILL_CONTEXT_MATCH_THRESHOLD = 0.6
 
 // Track whether skill embeddings have been backfilled this server lifecycle
 let skillEmbeddingsChecked = false
@@ -494,8 +498,11 @@ export async function fetchSkillContext(
   const totalMaxChunks = matchedSkills.reduce((sum, s) => sum + s.maxChunks, 0)
 
   try {
+    const matchThreshold = matchedSkills.some((s) => s.category === 'PLATFORM')
+      ? PLATFORM_SKILL_CONTEXT_MATCH_THRESHOLD
+      : SKILL_CONTEXT_MATCH_THRESHOLD
     const chunks = await searchSystemChunks(query, keys, {
-      matchThreshold: SKILL_CONTEXT_MATCH_THRESHOLD,
+      matchThreshold,
       matchCount: Math.min(totalMaxChunks, 9),
       documentIds: allDocIds,
     })
