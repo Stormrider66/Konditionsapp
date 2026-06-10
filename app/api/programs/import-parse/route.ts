@@ -299,7 +299,7 @@ export async function POST(request: NextRequest) {
       // come out of the same max_tokens budget. Give it a much bigger cap so
       // a few thousand thinking tokens + a full program JSON both fit.
       const MAX_OUTPUT_TOKENS =
-        resolved.provider === 'anthropic' && resolved.modelId === 'claude-opus-4-7'
+        resolved.provider === 'anthropic' && resolved.modelId.startsWith('claude-opus-4-')
           ? 96_000
           : 32_000
       // Some newer reasoning models (Claude Opus 4.7, future thinking-mode

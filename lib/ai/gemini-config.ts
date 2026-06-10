@@ -25,7 +25,7 @@ export const GEMINI_MODELS = {
   FLASH: 'gemini-3.5-flash',
 
   /** Advanced reasoning */
-  PRO: 'gemini-2.5-pro',
+  PRO: 'gemini-3.1-pro-preview',
 
   /** Newest capability, advanced reasoning */
   PRO_PREVIEW: 'gemini-3.1-pro-preview',
@@ -139,6 +139,11 @@ export const GEMINI_PRICING: Record<string, { input: number; output: number; ima
     input: 0.003, // $3.00 per 1M input tokens
     output: 0.015, // $15.00 per 1M output tokens
   },
+  'claude-opus-4-8': {
+    input: 0.005, // $5.00 per 1M input tokens
+    output: 0.025, // $25.00 per 1M output tokens
+  },
+  // Previous-generation Opus — kept for pinned/stored model ids and history.
   'claude-opus-4-7': {
     input: 0.005, // $5.00 per 1M input tokens
     output: 0.025, // $25.00 per 1M output tokens

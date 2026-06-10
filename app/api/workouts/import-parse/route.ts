@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
       // for any sane strength/cardio/hybrid workout. Opus 4.7 still gets a
       // wider budget for its extended-thinking tokens.
       const MAX_OUTPUT_TOKENS =
-        resolved.provider === 'anthropic' && resolved.modelId === 'claude-opus-4-7'
+        resolved.provider === 'anthropic' && resolved.modelId.startsWith('claude-opus-4-')
           ? 64_000
           : 16_000
       const tempField = generationTuning(resolved.modelId, { temperature: 0.1 })

@@ -52,13 +52,14 @@ export function createModelInstance(resolved: ResolvedModel) {
 /**
  * Models where we intentionally omit sampling parameters.
  *
- * Claude Opus 4.7 ships extended thinking on by default and the API rejects
- * `temperature` outright ("`temperature` is deprecated for this model"); the
- * AI SDK then bubbles that up as a 400. Gemini 3.x docs recommend default
- * sampling parameters, so we also omit temperature/topP/topK for those models.
+ * Claude Opus 4.7 and 4.8 reject `temperature`/`top_p`/`top_k` outright
+ * (the API returns a 400); the AI SDK then bubbles that up. Gemini 3.x docs
+ * recommend default sampling parameters, so we also omit temperature/topP/topK
+ * for those models.
  */
 const NO_TEMPERATURE_MODELS = new Set<string>([
   'claude-opus-4-7',
+  'claude-opus-4-8',
 ])
 
 export function modelDeprecatesTemperature(modelId: string): boolean {
