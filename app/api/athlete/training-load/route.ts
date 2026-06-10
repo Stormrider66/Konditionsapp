@@ -70,11 +70,14 @@ export async function GET(request: NextRequest) {
     const twentyEightDaysAgo = new Date(now)
     twentyEightDaysAgo.setDate(twentyEightDaysAgo.getDate() - 28)
 
-    // Fetch manual TrainingLoad entries (from workout logs)
+    // Fetch manual TrainingLoad entries (from workout logs). Exclude the
+    // nightly ACWR cron's summary rows (acwr set) — their dailyLoad
+    // duplicates the day's workout rows.
     const manualTrainingLoads = await prisma.trainingLoad.findMany({
       where: {
         clientId,
         date: { gte: twentyEightDaysAgo },
+        acwr: null,
       },
       select: {
         date: true,

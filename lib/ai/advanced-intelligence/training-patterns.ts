@@ -92,10 +92,13 @@ export async function analyzeTrainingPatterns(
       },
       orderBy: { date: 'asc' },
     }),
+    // Only the ACWR-carrying rows (written by the nightly cron) are used
+    // here; workout-sourced rows would dilute the ACWR consistency ratio.
     prisma.trainingLoad.findMany({
       where: {
         clientId,
         date: { gte: startDate },
+        acwr: { not: null },
       },
       orderBy: { date: 'asc' },
     }),

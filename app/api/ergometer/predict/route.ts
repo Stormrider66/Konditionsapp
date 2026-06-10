@@ -126,9 +126,10 @@ export async function POST(request: NextRequest) {
 
     // Project improvement over time
     if (projectionWeeks) {
-      // Fetch training load data
+      // Fetch training load data. Workout-sourced rows only (acwr: null) —
+      // the nightly ACWR cron's summary rows duplicate dailyLoad.
       const trainingLoads = await prisma.trainingLoad.findMany({
-        where: { clientId },
+        where: { clientId, acwr: null },
         orderBy: { date: 'desc' },
         take: 42, // 6 weeks
       });

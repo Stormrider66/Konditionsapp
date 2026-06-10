@@ -233,7 +233,12 @@ Phase: ${program.currentPhase || 'Unknown'}
   // Weekly summaries
   const weeklyData = groupByWeek(trainingLoads);
   weeklyData.forEach((week, index) => {
-    const avgLoad = week.reduce((sum, d) => sum + (d.dailyLoad || 0), 0) / week.length;
+    // Load comes from workout-sourced rows (acwr unset); the nightly cron's
+    // summary rows duplicate dailyLoad but are the only carriers of ACWR.
+    const workoutRows = week.filter(d => d.acwr == null);
+    const avgLoad = workoutRows.length > 0
+      ? workoutRows.reduce((sum, d) => sum + (d.dailyLoad || 0), 0) / workoutRows.length
+      : 0;
     const avgACWR = week.find(d => d.acwr)?.acwr || null;
     context += `Week -${index + 1}: Avg Load=${avgLoad.toFixed(0)} TSS, ACWR=${avgACWR?.toFixed(2) || 'N/A'}\n`;
   });

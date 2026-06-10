@@ -60,10 +60,13 @@ export async function GET(request: NextRequest) {
         },
         orderBy: { date: 'desc' },
       }),
+      // Only the nightly cron's summary rows carry acwr; a newer workout
+      // row would otherwise mask the latest ACWR for the client.
       prisma.trainingLoad.findMany({
         where: {
           client: clientWhere,
           date: { gte: subDays(now, 7) },
+          acwr: { not: null },
         },
         select: {
           clientId: true,

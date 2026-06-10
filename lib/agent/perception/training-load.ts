@@ -14,9 +14,11 @@ import { getACWRZone } from '../guardrails/safety-bounds'
 export async function perceiveTrainingLoad(
   clientId: string
 ): Promise<TrainingLoadData> {
-  // Get the most recent training load record
+  // Get the most recent EWMA-carrying record (written by the nightly ACWR
+  // cron). Workout-sourced rows have null acuteLoad/chronicLoad — without
+  // the filter, a workout logged after the cron run would read as acwr 0.
   const latestLoad = await prisma.trainingLoad.findFirst({
-    where: { clientId },
+    where: { clientId, acuteLoad: { not: null } },
     orderBy: { date: 'desc' },
   })
 
@@ -28,6 +30,7 @@ export async function perceiveTrainingLoad(
     where: {
       clientId,
       date: { lte: sevenDaysAgo },
+      acuteLoad: { not: null },
     },
     orderBy: { date: 'desc' },
   })
@@ -84,10 +87,13 @@ export async function getTrainingLoadHistory(
   const startDate = new Date()
   startDate.setDate(startDate.getDate() - days)
 
+  // Only the nightly ACWR cron's summary rows carry the EWMA fields;
+  // workout-sourced rows would show up as acwr=0 noise in the history.
   const loads = await prisma.trainingLoad.findMany({
     where: {
       clientId,
       date: { gte: startDate },
+      acuteLoad: { not: null },
     },
     orderBy: { date: 'asc' },
   })
@@ -122,11 +128,13 @@ export async function getWeeklyLoadSummary(
   const weekStart = new Date()
   weekStart.setDate(weekStart.getDate() - 7)
 
-  // Get training loads for the week
+  // Get training loads for the week. Workout-sourced rows only (acwr: null)
+  // — the nightly ACWR cron's summary rows duplicate dailyLoad.
   const loads = await prisma.trainingLoad.findMany({
     where: {
       clientId,
       date: { gte: weekStart },
+      acwr: null,
     },
   })
 
@@ -196,10 +204,13 @@ export async function getConsecutiveHardDays(
   const twoWeeksAgo = new Date()
   twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
 
+  // Workout-sourced rows only (acwr: null) — the nightly ACWR cron's
+  // summary rows duplicate dailyLoad and would create phantom hard days.
   const loads = await prisma.trainingLoad.findMany({
     where: {
       clientId,
       date: { gte: twoWeeksAgo },
+      acwr: null,
     },
     orderBy: { date: 'desc' },
   })

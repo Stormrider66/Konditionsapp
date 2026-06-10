@@ -82,8 +82,10 @@ export async function calculateInjuryRisk(
     injuryHistory,
     bodyComposition,
   ] = await Promise.all([
+    // Workout-sourced rows only (acwr: null) — the nightly ACWR cron's
+    // summary rows duplicate dailyLoad and would inflate the computed ACWR.
     prisma.trainingLoad.findMany({
-      where: { clientId },
+      where: { clientId, acwr: null },
       orderBy: { date: 'desc' },
       take: 56, // 8 weeks
     }),

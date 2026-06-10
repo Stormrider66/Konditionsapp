@@ -273,10 +273,13 @@ async function fetchAthleteData(
       select: { id: true },
     });
 
+    // Workout-sourced rows only (acwr: null) — the nightly ACWR cron's
+    // summary rows duplicate dailyLoad and would skew the team average.
     const teamLoads = await prisma.trainingLoad.findMany({
       where: {
         clientId: { in: teamClients.map(c => c.id) },
         date: { gte: startDate, lte: endDate },
+        acwr: null,
       },
     });
 
@@ -299,11 +302,23 @@ async function fetchAthleteData(
       name: athlete.name,
       sport: athlete.sportProfile?.primarySport || 'RUNNING',
     },
-    trainingLoads: trainingLoads.map(l => ({
-      date: l.date.toISOString().split('T')[0],
-      dailyLoad: l.dailyLoad || 0,
-      acwr: l.acwr,
-    })),
+    // Merge rows per date: dailyLoad comes from workout-sourced rows (acwr
+    // unset); acwr comes from the nightly cron's summary row, whose dailyLoad
+    // duplicates the workout rows and must not be added.
+    trainingLoads: (() => {
+      const loadByDate = new Map<string, { date: string; dailyLoad: number; acwr: number | null }>();
+      for (const l of trainingLoads) {
+        const date = l.date.toISOString().split('T')[0];
+        const entry = loadByDate.get(date) ?? { date, dailyLoad: 0, acwr: null };
+        if (l.acwr == null) {
+          entry.dailyLoad += l.dailyLoad || 0;
+        } else {
+          entry.acwr = l.acwr;
+        }
+        loadByDate.set(date, entry);
+      }
+      return [...loadByDate.values()];
+    })(),
     checkIns: checkIns.map(c => ({
       date: c.date.toISOString().split('T')[0],
       readinessScore: c.readinessScore,

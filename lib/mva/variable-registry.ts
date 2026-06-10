@@ -118,11 +118,20 @@ function getLatestBodyComp(data: AthleteProfileData) {
 }
 
 /**
- * Helper: get latest training load record
+ * Helper: get latest training load record carrying the EWMA fields.
+ * Only the nightly ACWR cron's summary rows have acuteLoad/chronicLoad/acwr
+ * set; workout-sourced rows would yield nulls even when EWMA data exists.
  */
 function getLatestTrainingLoad(data: AthleteProfileData) {
-  const loads = data.training.trainingLoads
-  return loads.length > 0 ? loads[0] : null
+  return data.training.trainingLoads.find((l) => l.acwr !== null) ?? null
+}
+
+/**
+ * Helper: workout-sourced training load rows (acwr unset). The nightly ACWR
+ * cron's summary rows duplicate dailyLoad and would double-count load sums.
+ */
+function getWorkoutLoads(data: AthleteProfileData) {
+  return data.training.trainingLoads.filter((l) => l.acwr === null)
 }
 
 /**
@@ -346,7 +355,7 @@ export const MVA_VARIABLE_REGISTRY: MVAVariable[] = [
     unit: 'TSS',
     extractor: (bundle) => {
       const data = bundle.data
-      return meanOfRecent(data.training.trainingLoads, (tl) => tl.dailyLoad)
+      return meanOfRecent(getWorkoutLoads(data), (tl) => tl.dailyLoad)
     },
   },
   {
@@ -945,7 +954,7 @@ export const MVA_VARIABLE_REGISTRY: MVAVariable[] = [
     extractor: (bundle) => {
       const data = bundle.data
       const series = extractTimeSeries(
-        data.training.trainingLoads,
+        getWorkoutLoads(data),
         (tl) => tl.date,
         (tl) => tl.dailyLoad,
         60

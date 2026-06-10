@@ -170,9 +170,12 @@ export function ProfileHeroSection({ data, viewMode, variant = 'default', basePa
     vo2maxChartData.push(client.manualVo2max)
   }
 
-  // Calculate training load daily values for the last 7 days
+  // Calculate training load daily values for the last 7 days. Workout-sourced
+  // rows only (acwr unset) — the nightly ACWR cron's summary rows duplicate
+  // dailyLoad and would double the sparkline.
   const loadHistory = data.training?.trainingLoads
-    ? [...data.training.trainingLoads]
+    ? data.training.trainingLoads
+        .filter((l) => l.acwr === null)
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
         .slice(-7)
         .map((l) => l.dailyLoad || 0)
