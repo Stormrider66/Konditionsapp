@@ -10,22 +10,10 @@
  * Schedule: Daily at 4 AM
  */
 
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-
-// Verify cron secret to prevent unauthorized access
-function verifyCronSecret(request: Request): boolean {
-  const authHeader = request.headers.get('authorization')
-  const cronSecret = process.env.CRON_SECRET
-
-  if (!cronSecret) {
-    console.warn('CRON_SECRET not configured')
-    return process.env.NODE_ENV === 'development'
-  }
-
-  return authHeader === `Bearer ${cronSecret}`
-}
 
 // Retention periods in days
 const RETENTION = {
@@ -35,10 +23,9 @@ const RETENTION = {
   AUDIT_LOGS: 2555, // 7 years
 }
 
-export async function GET(request: Request) {
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+export async function GET(request: NextRequest) {
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
   const startTime = Date.now()
 
@@ -148,6 +135,6 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   return GET(request)
 }
