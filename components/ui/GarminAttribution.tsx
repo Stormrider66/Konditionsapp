@@ -76,14 +76,11 @@ export function GarminAttribution({
         className="hidden dark:block opacity-60"
         unoptimized
       />
-      {deviceModel ? (
-        <span>{deviceModel.startsWith('Garmin') ? deviceModel : `Garmin ${deviceModel}`}</span>
-      ) : (
-        // Brand guidelines: if the device model is unknown, list "Garmin" as
-        // the data source — "Garmin Connect" is the app name, not a valid
-        // data attribution.
-        <span>Garmin</span>
-      )}
+      {/* Brand guidelines: the tag logo is followed by the device model
+          ("GARMIN [device model]"); with no model the logo alone lists
+          Garmin as the data source. Never "Garmin Connect" — that is the
+          app name, not a data attribution. */}
+      {deviceModel && <span>{deviceModel.replace(/^Garmin\s+/i, '')}</span>}
     </div>
   )
 }

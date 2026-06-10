@@ -25,7 +25,7 @@ import { enUS, sv } from 'date-fns/locale'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc' | 'adhoc+garmin'
   name: string
   type: string
   sport?: string
@@ -69,11 +69,11 @@ interface IntegratedRecentActivityProps {
 const SOURCE_CONFIG = {
   manual: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-gray-100 text-gray-700', icon: '📝' },
   strava: { label: 'Strava', color: 'bg-orange-100 text-orange-700', icon: '🏃' },
-  garmin: { label: 'Garmin Connect', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
+  garmin: { label: 'Garmin', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
   concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
   ai: { label: { en: 'AI session', sv: 'AI-Pass' }, color: 'bg-purple-100 text-purple-700', icon: '✨' },
   adhoc: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
-  'adhoc+garmin': { label: { en: 'Manual + Garmin Connect', sv: 'Manuell + Garmin Connect' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
+  'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
@@ -174,7 +174,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
                 )}
                 {counts.garmin > 0 && (
                   <Badge variant="outline" className="text-xs bg-blue-100 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-500/20">
-                    {counts.garmin} Garmin Connect
+                    {counts.garmin} Garmin
                   </Badge>
                 )}
                 {counts.ai > 0 && (
@@ -227,7 +227,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
               )}
               {counts.garmin > 0 && (
                 <Badge variant="outline" className="text-xs bg-blue-50">
-                  {counts.garmin} Garmin Connect
+                  {counts.garmin} Garmin
                 </Badge>
               )}
               {counts.ai > 0 && (
@@ -301,6 +301,10 @@ function ActivityCard({
               }`}>
                 {sourceConfig.icon} {sourceLabel}
               </Badge>
+              {/* Brand guidelines: attribution adjacent to the title */}
+              {(activity.source === 'garmin' || activity.source === 'adhoc+garmin') && (
+                <GarminAttribution deviceModel={activity.deviceModel} />
+              )}
             </div>
           </div>
 
@@ -373,10 +377,6 @@ function ActivityCard({
         </div>
 
         <ActivityDetails activity={activity} variant="glass" locale={locale} />
-
-        {activity.source === 'garmin' && (
-          <GarminAttribution deviceModel={activity.deviceModel} />
-        )}
       </div>
     )
   }
@@ -399,6 +399,10 @@ function ActivityCard({
             <Badge className={`text-xs px-1.5 py-0 ${sourceConfig.color}`}>
               {sourceConfig.icon} {sourceLabel}
             </Badge>
+            {/* Brand guidelines: attribution adjacent to the title */}
+            {(activity.source === 'garmin' || activity.source === 'adhoc+garmin') && (
+              <GarminAttribution deviceModel={activity.deviceModel} />
+            )}
           </div>
         </div>
 
@@ -471,10 +475,6 @@ function ActivityCard({
       </div>
 
       <ActivityDetails activity={activity} locale={locale} />
-
-      {activity.source === 'garmin' && (
-        <GarminAttribution deviceModel={activity.deviceModel} />
-      )}
 
       {activity.notes && (
         <p className="text-xs text-muted-foreground line-clamp-2">{activity.notes}</p>
