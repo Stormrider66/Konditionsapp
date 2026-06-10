@@ -79,6 +79,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
 
       <MVAAnalysisClient
         teamId={teamId}
+        teamName={team.name}
         teamSportType={team.sportType ?? null}
         initialModel={latestModel ? {
           id: latestModel.id,

@@ -222,6 +222,18 @@ export function extractSimcaSummary(modelData: unknown): SimcaSummary {
 }
 
 /**
+ * Prefer the structured summary stored at import time; fall back to parsing
+ * raw modelData for artifacts imported before summaries were persisted.
+ */
+export function getStoredOrParsedSummary(modelData: unknown): SimcaSummary {
+  const data = modelData as { summary?: SimcaSummary } | null
+  if (data?.summary && Array.isArray(data.summary.athletes) && Array.isArray(data.summary.vipScores)) {
+    return data.summary
+  }
+  return extractSimcaSummary(modelData)
+}
+
+/**
  * Extract athletes + VIP scores directly from raw file content (import time).
  */
 export function extractSimcaSummaryFromContent(content: string, format: SimcaFormat): SimcaSummary {

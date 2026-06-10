@@ -11,7 +11,7 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { hasProTierAccess } from '@/lib/subscription/require-feature-access'
-import { extractSimcaSummary } from '@/lib/mva/simca-parse'
+import { getStoredOrParsedSummary } from '@/lib/mva/simca-parse'
 import type { SimcaAthleteScore, SimcaSummary, SimcaImportWarning } from '@/lib/mva/simca-parse'
 
 type AppLocale = 'en' | 'sv'
@@ -26,15 +26,6 @@ async function getUserLocale(userId: string): Promise<AppLocale> {
     select: { language: true },
   })
   return appUser?.language === 'sv' ? 'sv' : 'en'
-}
-
-/** Prefer the structured summary stored at import time; fall back to parsing. */
-function getSummary(modelData: unknown): SimcaSummary {
-  const data = modelData as { summary?: SimcaSummary } | null
-  if (data?.summary && Array.isArray(data.summary.athletes) && Array.isArray(data.summary.vipScores)) {
-    return data.summary
-  }
-  return extractSimcaSummary(modelData)
 }
 
 function distance(
@@ -181,8 +172,8 @@ export async function GET(
       return NextResponse.json({ success: false, error: t(auth.locale, 'SIMCA import not found', 'SIMCA-import hittades inte') }, { status: 404 })
     }
 
-    const baselineSummary = getSummary(baseline.modelData)
-    const currentSummary = getSummary(current.modelData)
+    const baselineSummary = getStoredOrParsedSummary(baseline.modelData)
+    const currentSummary = getStoredOrParsedSummary(current.modelData)
     const baselineAthletes = new Map(baselineSummary.athletes.map((item) => [item.key, item]))
     const currentAthletes = new Map(currentSummary.athletes.map((item) => [item.key, item]))
     const baselineVip = new Map(baselineSummary.vipScores.map((item) => [item.key, item]))

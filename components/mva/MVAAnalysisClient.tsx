@@ -19,6 +19,14 @@ import { ObservedVsPredicted } from './ObservedVsPredicted'
 import { PLSQualityMetrics } from './PLSQualityMetrics'
 import { PLSInsightCard } from './PLSInsightCard'
 import { useLocale } from '@/i18n/client'
+import {
+  ARCHETYPE_LABELS,
+  ARCHETYPE_DESCRIPTIONS,
+  classifyArchetype,
+  type ArchetypeId,
+} from '@/lib/mva/archetypes'
+import { downloadMVATeamReportPDF, type MVAReportAthlete } from '@/lib/exports/mva-team-report-export'
+import { FileDown } from 'lucide-react'
 
 interface AthleteScore {
   clientId: string
@@ -161,6 +169,7 @@ type AnalysisMode = 'PCA' | 'PLS'
 
 interface MVAAnalysisClientProps {
   teamId: string
+  teamName?: string
   teamSportType?: string | null
   initialModel: MVAModelData | null
   initialPLSModel?: PLSModelData | null
@@ -242,6 +251,13 @@ interface SimcaComparisonResult {
   resolvedTopVip: string[]
 }
 
+interface SimcaTrendResult {
+  imports: { id: string; fileName: string; createdAt: string }[]
+  athletes: { name: string; movement: number; points: { importId: string; pc1: number | null; pc2: number | null; isOutlier: boolean }[] }[]
+  vip: { variableName: string; spread: number; points: { importId: string; vip: number }[] }[]
+  insufficient: boolean
+}
+
 function formatSigned(value: number | null, digits = 2): string {
   if (value === null) return 'n/a'
   const sign = value > 0 ? '+' : ''
@@ -275,8 +291,6 @@ function MVAWarningsBanner({ warnings, locale }: { warnings?: MVAWarning[]; loca
   )
 }
 
-type ArchetypeId = 'explosive' | 'strength' | 'aerobic' | 'recovery' | 'balanced'
-
 interface MVAProfileInsight {
   athlete: AthleteScore
   archetype: ArchetypeId
@@ -287,70 +301,11 @@ interface MVAProfileInsight {
   topDrivers: string[]
 }
 
-const ARCHETYPE_LABELS: Record<'en' | 'sv', Record<ArchetypeId, string>> = {
-  en: {
-    explosive: 'Explosive power profile',
-    strength: 'Strength-dominant profile',
-    aerobic: 'Aerobic/endurance profile',
-    recovery: 'Load and recovery profile',
-    balanced: 'Balanced profile',
-  },
-  sv: {
-    explosive: 'Explosiv powerprofil',
-    strength: 'Styrkedominant profil',
-    aerobic: 'Aerob/uthållig profil',
-    recovery: 'Belastnings- och återhämtningsprofil',
-    balanced: 'Balanserad profil',
-  },
-}
-
-const ARCHETYPE_DESCRIPTIONS: Record<'en' | 'sv', Record<ArchetypeId, string>> = {
-  en: {
-    explosive: 'Driven mainly by sprint, jumps, agility, or MuscleLab power.',
-    strength: 'Driven mainly by 1RM, grip strength, or other maximal strength.',
-    aerobic: 'Driven mainly by VO2, beep, repeated sprints, or endurance measures.',
-    recovery: 'Driven mainly by readiness, sleep, HRV, or load variables.',
-    balanced: 'No single physical domain dominates the profile.',
-  },
-  sv: {
-    explosive: 'Drivs främst av sprint, hopp, agility eller MuscleLab-power.',
-    strength: 'Drivs främst av 1RM, greppstyrka eller annan maximal styrka.',
-    aerobic: 'Drivs främst av VO2, beep, upprepade sprintar eller uthållighetsmått.',
-    recovery: 'Drivs främst av readiness, sömn, HRV eller belastningsvariabler.',
-    balanced: 'Ingen enskild fysisk domän dominerar profilen.',
-  },
-}
-
-function contributorArchetype(contributor: { variableId: string; variableName: string }): ArchetypeId | null {
-  const text = `${contributor.variableId} ${contributor.variableName}`.toLowerCase()
-  if (/(musclelab|power|jump|sprint|agility|velocity|vbt|explosive)/.test(text)) return 'explosive'
-  if (/(squat|clean|bench|pull|grip|strength|1rm|force)/.test(text)) return 'strength'
-  if (/(vo2|beep|endurance|aerobic|7x40|repeat|fatigue|lactate)/.test(text)) return 'aerobic'
-  if (/(sleep|hrv|readiness|recovery|strain|load|fatigue|soreness|oura|garmin)/.test(text)) return 'recovery'
-  return null
-}
-
-function fallbackArchetype(scores: number[]): ArchetypeId {
-  const pc1 = scores[0] ?? 0
-  const pc2 = scores[1] ?? 0
-  if (Math.abs(pc1) < 0.35 && Math.abs(pc2) < 0.35) return 'balanced'
-  if (pc1 >= 0 && pc2 >= 0) return 'explosive'
-  if (pc1 >= 0 && pc2 < 0) return 'strength'
-  if (pc1 < 0 && pc2 >= 0) return 'aerobic'
-  return 'recovery'
-}
-
 function buildProfileInsights(athleteScores: AthleteScore[], locale: 'en' | 'sv'): MVAProfileInsight[] {
   return athleteScores
     .map((athlete) => {
       const topContributors = athlete.topContributors?.slice(0, 5) ?? []
-      const counts = new Map<ArchetypeId, number>()
-      for (const contributor of topContributors) {
-        const archetype = contributorArchetype(contributor)
-        if (archetype) counts.set(archetype, (counts.get(archetype) ?? 0) + Math.abs(contributor.contribution))
-      }
-
-      const archetype = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? fallbackArchetype(athlete.scores)
+      const archetype = classifyArchetype(athlete.topContributors, athlete.scores)
       const magnitude = Math.sqrt(Math.pow(athlete.scores[0] ?? 0, 2) + Math.pow(athlete.scores[1] ?? 0, 2))
 
       return {
@@ -366,7 +321,7 @@ function buildProfileInsights(athleteScores: AthleteScore[], locale: 'en' | 'sv'
     .sort((a, b) => b.magnitude - a.magnitude)
 }
 
-function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }) {
+function MVAProfileInsights({ athleteScores, onExportAthlete }: { athleteScores: AthleteScore[]; onExportAthlete?: (name: string) => void }) {
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const t = (svText: string, enText: string) => locale === 'sv' ? svText : enText
   const insights = buildProfileInsights(athleteScores, locale)
@@ -428,9 +383,20 @@ function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }
                 <p className="font-medium dark:text-white">{insight.athlete.clientName}</p>
                 <p className="text-xs text-muted-foreground">{insight.description}</p>
               </div>
-              <div className="flex shrink-0 gap-1">
+              <div className="flex shrink-0 items-center gap-1">
                 <Badge variant="secondary" className="text-[10px]">{insight.label}</Badge>
                 {insight.watch && <Badge variant="destructive" className="text-[10px]">Outlier</Badge>}
+                {onExportAthlete && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-1.5 text-[10px]"
+                    title={t('Ladda ner spelar-PDF', 'Download player PDF')}
+                    onClick={() => onExportAthlete(insight.athlete.clientName)}
+                  >
+                    <FileDown className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
@@ -449,7 +415,7 @@ function MVAProfileInsights({ athleteScores }: { athleteScores: AthleteScore[] }
   )
 }
 
-export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initialPLSModel }: MVAAnalysisClientProps) {
+export function MVAAnalysisClient({ teamId, teamName, teamSportType, initialModel, initialPLSModel }: MVAAnalysisClientProps) {
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const t = useCallback((svText: string, enText: string) => locale === 'sv' ? svText : enText, [locale])
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
@@ -488,6 +454,8 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
   const [simcaCurrentId, setSimcaCurrentId] = useState<string>('')
   const [simcaComparing, setSimcaComparing] = useState(false)
   const [simcaComparison, setSimcaComparison] = useState<SimcaComparisonResult | null>(null)
+  const [simcaTrend, setSimcaTrend] = useState<SimcaTrendResult | null>(null)
+  const [simcaTrendLoading, setSimcaTrendLoading] = useState(false)
   const [simcaLastImport, setSimcaLastImport] = useState<{
     detectedAthletes: number
     detectedVip: number
@@ -582,6 +550,61 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       setPlsLoading(false)
     }
   }, [teamId, t, yVariableId])
+
+  // Build the report payload from whichever PCA result is currently shown,
+  // grafting in the latest PLS drivers when available.
+  const exportMvaReport = useCallback((focusAthleteName?: string) => {
+    const source = computeResult
+      ? {
+          athleteScores: computeResult.diagnostics,
+          explainedVariance: computeResult.explainedVariance,
+          nObservations: computeResult.nObservations,
+          nVariables: computeResult.nVariables,
+          nComponents: computeResult.nComponents,
+          warnings: computeResult.warnings ?? [],
+        }
+      : model
+        ? {
+            athleteScores: model.athleteScores,
+            explainedVariance: model.explainedVariance,
+            nObservations: model.nObservations,
+            nVariables: model.nXVariables,
+            nComponents: model.nComponents,
+            warnings: model.warnings ?? [],
+          }
+        : null
+    if (!source) return
+
+    const pls = plsResult ?? plsModel
+    downloadMVATeamReportPDF({
+      teamName: teamName ?? 'Team',
+      locale,
+      generatedAt: new Date().toISOString(),
+      nObservations: source.nObservations,
+      nVariables: source.nVariables,
+      nComponents: source.nComponents,
+      explainedVariance: source.explainedVariance,
+      warnings: source.warnings,
+      athletes: source.athleteScores.map((a): MVAReportAthlete => ({
+        clientName: a.clientName,
+        scores: a.scores,
+        hotellingT2: a.hotellingT2,
+        dmodx: a.dmodx,
+        isOutlierT2: a.isOutlierT2,
+        isOutlierDModX: a.isOutlierDModX,
+        topContributors: a.topContributors,
+      })),
+      pls: pls
+        ? {
+            yVariableName: pls.yVariableName,
+            r2Y: pls.r2Y,
+            q2: pls.q2,
+            vipScores: pls.vipScores.map((v) => ({ variableName: v.variableName, vip: v.vip, coefficient: v.coefficient })),
+          }
+        : null,
+      focusAthleteName: focusAthleteName ?? null,
+    })
+  }, [computeResult, model, plsResult, plsModel, teamName, locale])
 
   const fetchSimcaImports = useCallback(async () => {
     setSimcaImportsLoading(true)
@@ -725,6 +748,24 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
       setSimcaComparing(false)
     }
   }, [simcaBaselineId, simcaCurrentId, teamId, t])
+
+  const fetchSimcaTrend = useCallback(async () => {
+    setSimcaTrendLoading(true)
+    setSimcaImportError(null)
+    try {
+      const res = await fetch(`/api/teams/${teamId}/mva/simca-import/trend`)
+      const json = await res.json()
+      if (json.success) {
+        setSimcaTrend(json.data)
+      } else {
+        setSimcaImportError(json.error ?? t('Kunde inte hämta SIMCA-trend', 'Could not load SIMCA trend'))
+      }
+    } catch {
+      setSimcaImportError(t('Nätverksfel vid SIMCA-trend', 'Network error during SIMCA trend'))
+    } finally {
+      setSimcaTrendLoading(false)
+    }
+  }, [teamId, t])
 
   const isHockeyTeam = (fetchedSportType ?? teamSportType) === 'TEAM_ICE_HOCKEY'
   const selectedSimcaExportPreset = simcaExportPresets.find((preset) => preset.id === simcaExportPresetId)
@@ -942,7 +983,103 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
               )}
               {t('Jämför importer', 'Compare imports')}
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={simcaTrendLoading}
+              onClick={() => void fetchSimcaTrend()}
+            >
+              {simcaTrendLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Activity className="mr-2 h-4 w-4" />
+              )}
+              {t('Visa trend', 'Show trend')}
+            </Button>
           </div>
+
+          {simcaTrend && !simcaTrend.insufficient && (
+            <div className="mt-4 space-y-3 rounded-md border p-3 text-xs dark:border-white/10">
+              <p className="font-medium dark:text-white">
+                {t('Trend över', 'Trend across')} {simcaTrend.imports.length} {t('importer', 'imports')}
+              </p>
+              {simcaTrend.athletes.length > 0 && (
+                <div className="overflow-x-auto">
+                  <p className="mb-1 text-muted-foreground">{t('PC1 per spelare (störst rörelse först)', 'PC1 per player (largest movement first)')}</p>
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="text-muted-foreground">
+                        <th className="px-1 py-0.5 text-left">{t('Spelare', 'Player')}</th>
+                        {simcaTrend.imports.map((imp) => (
+                          <th key={imp.id} className="px-1 py-0.5 text-right whitespace-nowrap">
+                            {new Date(imp.createdAt).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {simcaTrend.athletes.slice(0, 8).map((row) => {
+                        const byImport = new Map(row.points.map((p) => [p.importId, p]))
+                        return (
+                          <tr key={row.name} className="border-t dark:border-white/10">
+                            <td className="px-1 py-0.5 font-medium dark:text-white">{row.name}</td>
+                            {simcaTrend.imports.map((imp) => {
+                              const point = byImport.get(imp.id)
+                              return (
+                                <td key={imp.id} className={`px-1 py-0.5 text-right ${point?.isOutlier ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                                  {point?.pc1 != null ? point.pc1.toFixed(2) : '–'}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {simcaTrend.vip.length > 0 && (
+                <div className="overflow-x-auto">
+                  <p className="mb-1 text-muted-foreground">{t('VIP per variabel (störst spridning först)', 'VIP per variable (largest spread first)')}</p>
+                  <table className="w-full text-[11px]">
+                    <thead>
+                      <tr className="text-muted-foreground">
+                        <th className="px-1 py-0.5 text-left">{t('Variabel', 'Variable')}</th>
+                        {simcaTrend.imports.map((imp) => (
+                          <th key={imp.id} className="px-1 py-0.5 text-right whitespace-nowrap">
+                            {new Date(imp.createdAt).toLocaleDateString(dateLocale, { month: 'short', day: 'numeric' })}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {simcaTrend.vip.slice(0, 8).map((row) => {
+                        const byImport = new Map(row.points.map((p) => [p.importId, p]))
+                        return (
+                          <tr key={row.variableName} className="border-t dark:border-white/10">
+                            <td className="px-1 py-0.5 font-medium dark:text-white">{row.variableName}</td>
+                            {simcaTrend.imports.map((imp) => {
+                              const point = byImport.get(imp.id)
+                              return (
+                                <td key={imp.id} className={`px-1 py-0.5 text-right ${point && point.vip >= 1 ? 'font-semibold dark:text-white' : ''}`}>
+                                  {point ? point.vip.toFixed(2) : '–'}
+                                </td>
+                              )
+                            })}
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+          {simcaTrend?.insufficient && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {t('Minst två importer med igenkända data krävs för en trend.', 'At least two imports with recognized data are required for a trend.')}
+            </p>
+          )}
 
           {simcaComparison && (
             <div className="mt-4 space-y-3 rounded-md border p-3 text-xs dark:border-white/10">
@@ -1180,6 +1317,10 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
                 <Settings2 className="mr-2 h-4 w-4" />
                 {t('Konfigurera variabler', 'Configure variables')}
               </Button>
+              <Button onClick={() => exportMvaReport()} variant="outline" size="sm">
+                <FileDown className="mr-2 h-4 w-4" />
+                {t('Exportera rapport', 'Export report')}
+              </Button>
               <Button onClick={() => runAnalysis()} disabled={loading} variant="outline" size="sm">
                 {loading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1210,7 +1351,7 @@ export function MVAAnalysisClient({ teamId, teamSportType, initialModel, initial
             <TabsContent value="scores" className="space-y-6">
               <Card className="dark:bg-slate-900/50 dark:border-white/10">
                 <CardContent className="pt-6">
-                  <MVAProfileInsights athleteScores={displayData.athleteScores} />
+                  <MVAProfileInsights athleteScores={displayData.athleteScores} onExportAthlete={(name) => exportMvaReport(name)} />
                 </CardContent>
               </Card>
               <Card className="dark:bg-slate-900/50 dark:border-white/10">
