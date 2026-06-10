@@ -64,16 +64,25 @@ interface WorkoutInfo {
 
 interface DailyNutritionCardProps {
   date?: Date
+  /** Explicit goal override. When omitted, the card fetches the athlete's
+   * computed daily targets (training-aware) from /api/nutrition/daily-targets. */
   goals?: NutritionGoals
   workoutInfo?: WorkoutInfo
   className?: string
 }
 
-const DEFAULT_GOALS: NutritionGoals = {
+// Last-resort fallback when no goals prop is given and the targets fetch
+// fails — generic adult values, not personalized.
+const FALLBACK_GOALS: NutritionGoals = {
   calories: 2200,
   proteinGrams: 140,
   carbsGrams: 250,
   fatGrams: 75,
+}
+
+function localDateValue(date: Date): string {
+  const offset = date.getTimezoneOffset()
+  return new Date(date.getTime() - offset * 60_000).toISOString().slice(0, 10)
 }
 
 const MEAL_TYPE_ICONS: Record<MealType, typeof Sunrise> = {
@@ -138,7 +147,7 @@ function MacroBar({
 
 export function DailyNutritionCard({
   date = new Date(),
-  goals = DEFAULT_GOALS,
+  goals: goalsProp,
   workoutInfo,
   className,
 }: DailyNutritionCardProps) {
@@ -148,6 +157,7 @@ export function DailyNutritionCard({
   const [isLoading, setIsLoading] = useState(true)
   const [showAddMeal, setShowAddMeal] = useState(false)
   const [editingMeal, setEditingMeal] = useState<EditMealData | null>(null)
+  const [fetchedGoals, setFetchedGoals] = useState<NutritionGoals | null>(null)
   const [dailyTotals, setDailyTotals] = useState({
     calories: 0,
     proteinGrams: 0,
@@ -160,7 +170,35 @@ export function DailyNutritionCard({
     complexCarbsGrams: 0,
   })
 
-  const dateStr = date.toISOString().split('T')[0]
+  const dateStr = localDateValue(date)
+
+  // Personalized daily target (training-aware) when no explicit goals prop.
+  useEffect(() => {
+    if (goalsProp) return
+    let cancelled = false
+    const fetchTargets = async () => {
+      try {
+        const res = await fetch(`/api/nutrition/daily-targets?startDate=${dateStr}&endDate=${dateStr}`)
+        if (!res.ok) return
+        const json = await res.json()
+        const target = json.targets?.[0]
+        if (!cancelled && target) {
+          setFetchedGoals({
+            calories: target.caloriesKcal,
+            proteinGrams: target.proteinG,
+            carbsGrams: target.carbsG,
+            fatGrams: target.fatG,
+          })
+        }
+      } catch {
+        // fall back to FALLBACK_GOALS below
+      }
+    }
+    void fetchTargets()
+    return () => {
+      cancelled = true
+    }
+  }, [goalsProp, dateStr])
 
   const fetchMeals = useCallback(async () => {
     try {
@@ -207,8 +245,13 @@ export function DailyNutritionCard({
     }
   }
 
-  // Adjust goals only when the workout is completed — scheduled but undone workouts shouldn't bump calories
-  const adjustedGoals = workoutInfo?.hasWorkout && workoutInfo.isCompleted
+  // Fetched targets are already workout-aware (the timing engine adds the
+  // day's completed workouts), so the flat workout bump only applies to
+  // prop/fallback goals. Bump only when the workout is completed — scheduled
+  // but undone workouts shouldn't raise calories.
+  const goals = goalsProp ?? fetchedGoals ?? FALLBACK_GOALS
+  const applyWorkoutBump = !fetchedGoals || goalsProp != null
+  const adjustedGoals = applyWorkoutBump && workoutInfo?.hasWorkout && workoutInfo.isCompleted
     ? {
         calories: goals.calories + 300,
         proteinGrams: goals.proteinGrams,
