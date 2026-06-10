@@ -6,13 +6,14 @@ import { GymClientListCard } from '@/components/coach/dashboard/GymClientListCar
 import { CoachTaskCard } from '@/components/coach/dashboard/CoachTaskCard'
 import { SocialMediaCard } from '@/components/coach/dashboard/SocialMediaCard'
 import { CompetitionCard } from '@/components/coach/dashboard/CompetitionCard'
-import { StrengthPRFeed } from '@/components/coach/dashboard/StrengthPRFeed'
+import { StrengthPRFeed, type PRRecord } from '@/components/coach/dashboard/StrengthPRFeed'
 import { CoachQuickActions } from '@/components/coach/dashboard/CoachQuickActions'
 import { CoachAIAssistantPanel } from '@/components/coach/CoachAIAssistantPanel'
 
 interface GymDashboardLayoutProps {
   basePath: string
   pendingFeedbackCount: number
+  recentPRs?: PRRecord[]
   visible?: Set<string>
   orderMap?: Map<string, number>
 }
@@ -20,6 +21,7 @@ interface GymDashboardLayoutProps {
 export function GymDashboardLayout({
   basePath,
   pendingFeedbackCount,
+  recentPRs = [],
   visible,
   orderMap,
 }: GymDashboardLayoutProps) {
@@ -37,7 +39,7 @@ export function GymDashboardLayout({
     { key: 'coach-tasks', node: <CoachTaskCard /> },
     { key: 'social-media', node: <SocialMediaCard basePath={basePath} /> },
     { key: 'competitions', node: <CompetitionCard basePath={basePath} /> },
-    { key: 'strength-pr-feed', node: <StrengthPRFeed recentPRs={[]} /> },
+    { key: 'strength-pr-feed', node: <StrengthPRFeed recentPRs={recentPRs} /> },
     { key: 'coach-ai-assistant', node: <CoachAIAssistantPanel basePath={basePath} /> },
   ]).filter(w => isVisible(w.key))
 

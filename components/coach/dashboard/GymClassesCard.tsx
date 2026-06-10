@@ -57,18 +57,14 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
 
   const fetchClasses = useCallback(async () => {
     try {
-      // Fetch from both internal classes API and synced gym platform classes
-      const [internalRes, syncedRes] = await Promise.allSettled([
-        fetch(`/api/coach/gym/classes/today?date=${new Date().toISOString().split('T')[0]}`),
+      // Classes come from synced gym platforms. (An internal classes API
+      // was once planned — /api/coach/gym/classes/today — but never built;
+      // there is no GymClass model.)
+      const [syncedRes] = await Promise.allSettled([
         fetch('/api/coach/gym-platform/synced-classes'),
       ])
 
       const allClasses: ClassSchedule[] = []
-
-      if (internalRes.status === 'fulfilled' && internalRes.value.ok) {
-        const data = await internalRes.value.json()
-        allClasses.push(...(data.classes || []))
-      }
 
       if (syncedRes.status === 'fulfilled' && syncedRes.value.ok) {
         const data = await syncedRes.value.json()

@@ -298,10 +298,20 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
 
   // GYM-specific server queries for stat cards
   let gymStats: { activeAssignments: number; prsThisWeek: number; plateauCount: number } | undefined
+  let recentPRs: Array<{
+    id: string
+    clientId: string
+    clientName: string
+    exerciseName: string
+    oneRepMax: number
+    previousMax: number | null
+    date: string
+    source: string
+  }> = []
   if (mode === 'GYM') {
     const gymWeekStart = startOfWeek(now, { weekStartsOn: 1 })
     const gymWeekEnd = endOfWeek(now, { weekStartsOn: 1 })
-    const [activeAssignments, prsThisWeek, plateauData] = await Promise.all([
+    const [activeAssignments, prsThisWeek, plateauData, prRows] = await Promise.all([
       prisma.strengthSessionAssignment.count({
         where: {
           athlete: clientWhere,
@@ -324,7 +334,57 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
         select: { clientId: true, exerciseId: true },
         distinct: ['clientId', 'exerciseId'],
       }),
+      // This week's PRs for the StrengthPRFeed (KG only — the feed renders kg)
+      prisma.oneRepMaxHistory.findMany({
+        where: {
+          client: clientWhere,
+          date: { gte: sevenDaysAgo },
+          unit: 'KG',
+        },
+        orderBy: { date: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          clientId: true,
+          exerciseId: true,
+          date: true,
+          oneRepMax: true,
+          source: true,
+          client: { select: { name: true } },
+          exercise: { select: { name: true } },
+        },
+      }),
     ])
+
+    // Previous max per client+exercise so the feed can show the delta
+    const previousRows = prRows.length > 0
+      ? await prisma.oneRepMaxHistory.findMany({
+          where: {
+            unit: 'KG',
+            date: { lt: sevenDaysAgo },
+            OR: prRows.map(r => ({ clientId: r.clientId, exerciseId: r.exerciseId })),
+          },
+          orderBy: { date: 'desc' },
+          select: { clientId: true, exerciseId: true, oneRepMax: true },
+        })
+      : []
+    const previousMaxByPair = new Map<string, number>()
+    for (const row of previousRows) {
+      const key = `${row.clientId}:${row.exerciseId}`
+      if (!previousMaxByPair.has(key)) previousMaxByPair.set(key, row.oneRepMax)
+    }
+
+    recentPRs = prRows.map(r => ({
+      id: r.id,
+      clientId: r.clientId,
+      clientName: r.client.name,
+      exerciseName: r.exercise.name,
+      oneRepMax: r.oneRepMax,
+      previousMax: previousMaxByPair.get(`${r.clientId}:${r.exerciseId}`) ?? null,
+      date: r.date.toISOString(),
+      source: r.source,
+    }))
+
     gymStats = {
       activeAssignments,
       prsThisWeek,
@@ -773,6 +833,7 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
           <GymDashboardLayout
             basePath={basePath}
             pendingFeedbackCount={logsNeedingFeedback.length}
+            recentPRs={recentPRs}
             visible={visible}
             orderMap={orderMap}
           />
