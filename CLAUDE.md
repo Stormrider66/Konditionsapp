@@ -83,6 +83,9 @@ Two kinds of rows live in `TrainingLoad`: `WORKOUT` (one per logged session; the
 - **Static estimates** (BMR from body-comp scans, long-term AI nutrition plans, coach plan calculator) use `lib/ai/nutrition-calculator.ts`. Never use it for daily targets.
 - **Calendar days**: `MealLog.date` is `@db.Date` = UTC midnight of the athlete's calendar day. Derive/bucket days via `lib/nutrition/day-key.ts` + `getAthleteTimezone()` (`lib/nutrition/athlete-day.ts`) — never server-local `setHours(0,0,0,0)` or `toISOString().split('T')` on timestamps.
 
+### athleteId ID spaces
+`WorkoutLog.athleteId` is a **User.id** — the only athleteId in the schema referencing User. Every other model's `athleteId` (assignments, AdHocWorkout, session logs, etc.) is a **Client.id**. Passing the wrong one matches nothing — no error, just silently empty results. With only a clientId in hand, query WorkoutLog via the relation: `athlete: { athleteAccount: { clientId } }` (or resolve `client.athleteAccount.userId` first when you need to map grouped results back to clients).
+
 ### Code Standards
 - Always use `@/` import prefix
 - Validate with Zod schemas (`lib/validations/schemas.ts`)
