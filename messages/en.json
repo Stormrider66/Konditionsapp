@@ -3853,7 +3853,17 @@
           "followUp": "Follow-up",
           "roster": "Roster",
           "medical": "Health",
+          "chat": "Chat",
           "analysis": "Analytics"
+        },
+        "chat": {
+          "title": "Team chat",
+          "subtitle": "Visible to the whole team and coaching staff",
+          "placeholder": "Write a message…",
+          "empty": "No messages yet. Start the conversation!",
+          "loadOlder": "Load older messages",
+          "loadError": "Could not load the team chat",
+          "sendError": "Could not send the message"
         },
         "cockpit": {
           "schedule": {

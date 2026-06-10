@@ -3853,7 +3853,17 @@
           "followUp": "Uppföljning",
           "roster": "Trupp",
           "medical": "Hälsa",
+          "chat": "Chatt",
           "analysis": "Analys"
+        },
+        "chat": {
+          "title": "Lagchatt",
+          "subtitle": "Synlig för hela laget och tränarstaben",
+          "placeholder": "Skriv ett meddelande…",
+          "empty": "Inga meddelanden ännu. Starta konversationen!",
+          "loadOlder": "Ladda äldre meddelanden",
+          "loadError": "Kunde inte ladda lagchatten",
+          "sendError": "Kunde inte skicka meddelandet"
         },
         "cockpit": {
           "schedule": {

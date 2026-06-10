@@ -202,6 +202,12 @@ model User {
   sentMessages     Message[]         @relation("SentMessages")
   receivedMessages Message[]         @relation("ReceivedMessages")
   athleteAccount   AthleteAccount?
+
+  // Team chat (docs/TEAM_CHAT_DESIGN.md)
+  createdThreads       Thread[]            @relation("UserCreatedThreads")
+  threadMessages       ThreadMessage[]     @relation("UserThreadMessages")
+  threadParticipations ThreadParticipant[] @relation("UserThreadParticipations")
+  devicePushTokens     DevicePushToken[]   @relation("UserPushTokens")
   subscription     Subscription?
   // AI Studio relations
   coachDocuments   CoachDocument[]   @relation("CoachDocuments")
@@ -442,6 +448,9 @@ model Team {
   // Shared staff notes
   notes TeamNote[]
 
+  // Team chat (docs/TEAM_CHAT_DESIGN.md)
+  chatThreads Thread[] @relation("TeamChatThreads")
+
   // Hockey physical tests
   hockeyPhysicalTests HockeyPhysicalTest[]
 
@@ -516,6 +525,9 @@ model Client {
   trainingPrograms TrainingProgram[]
   athletePlans     AthletePlan[]
   athleteAccount   AthleteAccount?
+
+  // Team chat (docs/TEAM_CHAT_DESIGN.md)
+  chatThreads Thread[] @relation("ClientChatThreads")
 
   // Training Engine relationships
   athleteProfile        AthleteProfile?

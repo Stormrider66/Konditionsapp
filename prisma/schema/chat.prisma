@@ -1,0 +1,105 @@
+// Team chat — generalized threads (design: docs/TEAM_CHAT_DESIGN.md)
+//
+// All user IDs here are User.id (not Client.id). An athlete can only chat if
+// their Client has an athleteAccount → User.
+
+enum ThreadType {
+  TEAM_CHANNEL // one per team — membership derived from roster
+  GROUP        // explicit participant list (coach + physio + athlete, etc.)
+  DIRECT       // 1:1 coach↔athlete (v2 — fold the legacy Message model in here)
+}
+
+enum ThreadStatus {
+  OPEN
+  ARCHIVED
+}
+
+model Thread {
+  id          String       @id @default(uuid())
+  businessId  String? // tenant scope
+  type        ThreadType
+  status      ThreadStatus @default(OPEN)
+  title       String? // null for TEAM_CHANNEL (title = team name)
+  createdById String
+
+  // Scope — which population rule applies
+  teamId   String? // required when type = TEAM_CHANNEL
+  clientId String? // athlete-centric GROUP threads (care-team style)
+
+  // Anchors — optional domain context. Plain columns (no FK) so anchoring new
+  // entity types never requires schema churn.
+  workoutLogId String?
+  teamEventId  String?
+  anchorType   String? // e.g. 'TEST', 'INJURY_ASSESSMENT', 'PROGRAM'
+  anchorId     String?
+
+  lastMessageAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  createdBy    User                @relation("UserCreatedThreads", fields: [createdById], references: [id])
+  team         Team?               @relation("TeamChatThreads", fields: [teamId], references: [id], onDelete: Cascade)
+  client       Client?             @relation("ClientChatThreads", fields: [clientId], references: [id], onDelete: Cascade)
+  messages     ThreadMessage[]
+  participants ThreadParticipant[]
+
+  @@unique([teamId, type]) // one TEAM_CHANNEL per team
+  @@index([businessId])
+  @@index([clientId])
+  @@index([createdById])
+  @@index([lastMessageAt])
+}
+
+model ThreadMessage {
+  id               String    @id @default(uuid())
+  threadId         String
+  senderId         String // User.id
+  content          String    @db.Text
+  attachments      Json? // [{ url, name, type }] — Supabase Storage paths
+  mentionedUserIds String[]  @default([])
+  replyToId        String? // shallow reply-to, not full threading
+  editedAt         DateTime?
+  deletedAt        DateTime? // soft delete — moderation + GDPR erasure
+  createdAt        DateTime  @default(now())
+
+  thread  Thread          @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  sender  User            @relation("UserThreadMessages", fields: [senderId], references: [id])
+  replyTo ThreadMessage?  @relation("MessageReplies", fields: [replyToId], references: [id])
+  replies ThreadMessage[] @relation("MessageReplies")
+
+  @@index([threadId, createdAt]) // the pagination query
+  @@index([senderId])
+}
+
+model ThreadParticipant {
+  id          String    @id @default(uuid())
+  threadId    String
+  userId      String // User.id
+  role        String    @default("MEMBER") // OWNER | COACH | PHYSIO | ATHLETE | MEMBER
+  lastReadAt  DateTime? // unread cursor — replaces per-message readByUserIds
+  notifyPush  Boolean   @default(true)
+  notifyEmail Boolean   @default(false)
+  mutedUntil  DateTime?
+  isActive    Boolean   @default(true)
+  joinedAt    DateTime  @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user   User   @relation("UserThreadParticipations", fields: [userId], references: [id])
+
+  @@unique([threadId, userId])
+  @@index([userId, isActive]) // "my threads" / badge query
+}
+
+model DevicePushToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique // Expo push token (or FCM/APNs raw later)
+  platform   String // 'ios' | 'android' | 'web'
+  provider   String   @default("expo")
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation("UserPushTokens", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

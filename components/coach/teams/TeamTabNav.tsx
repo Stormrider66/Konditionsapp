@@ -12,6 +12,7 @@ import {
   Users,
   HeartPulse,
   BarChart3,
+  MessageCircle,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -37,6 +38,7 @@ const TEAM_TABS: TeamTab[] = [
   { key: 'followUp', labelKey: 'tabs.followUp', icon: ClipboardCheck, segment: '/uppfoljning', activeSegments: ['uppfoljning'] },
   { key: 'roster', labelKey: 'tabs.roster', icon: Users, segment: '/trupp', activeSegments: ['trupp'] },
   { key: 'medical', labelKey: 'tabs.medical', icon: HeartPulse, segment: '/medical', activeSegments: ['medical'] },
+  { key: 'chat', labelKey: 'tabs.chat', icon: MessageCircle, segment: '/chat', activeSegments: ['chat'] },
   {
     key: 'analysis',
     labelKey: 'tabs.analysis',
