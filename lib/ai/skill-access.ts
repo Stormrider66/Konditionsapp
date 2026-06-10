@@ -12,6 +12,7 @@ const ATHLETE_COACHED_SAFE_CATEGORIES = new Set([
   'MONITORING',
   'MOBILITY',
   'PSYCHOLOGY',
+  'PLATFORM',
 ])
 
 const ATHLETE_SELF_COACHED_SAFE_CATEGORIES = new Set([
@@ -23,6 +24,7 @@ const ATHLETE_SELF_COACHED_SAFE_CATEGORIES = new Set([
   'PERFORMANCE',
   'MOBILITY',
   'PSYCHOLOGY',
+  'PLATFORM',
 ])
 
 export function getAllowedKnowledgeSkillCategories(mode: KnowledgeSkillAccessMode): Set<string> | null {

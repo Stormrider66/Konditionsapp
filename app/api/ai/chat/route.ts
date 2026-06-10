@@ -291,7 +291,7 @@ export async function POST(request: NextRequest) {
 
     // ── 6. System prompt ────────────────────────────────────────────
     const systemPrompt = isAthleteChat && context.athleteSystemPrompt
-      ? `${context.athleteSystemPrompt}\n${visibleActionResponsePolicy(responseLocale)}\n## OUTPUT LANGUAGE\n${responseLocale === 'sv' ? 'Svara på svenska om inte atleten uttryckligen ber om ett annat språk.' : 'Respond in English unless the athlete explicitly asks for another language.'}\n${pageAndCapabilityContext}\n`
+      ? `${context.athleteSystemPrompt}\n${visibleActionResponsePolicy(responseLocale)}\n## OUTPUT LANGUAGE\n${responseLocale === 'sv' ? 'Svara på svenska om inte atleten uttryckligen ber om ett annat språk.' : 'Respond in English unless the athlete explicitly asks for another language.'}\n${context.skillContext}\n${pageAndCapabilityContext}\n`
       : buildCoachSystemPrompt({
           locale: responseLocale,
           pageContext: pageAndCapabilityContext,
