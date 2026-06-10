@@ -11,6 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
 import { getRequestIp } from '@/lib/api/rate-limit'
@@ -21,6 +22,8 @@ import type {
   Concept2EquipmentType,
   Concept2WebhookPayload,
 } from '@/lib/integrations/concept2';
+
+export const maxDuration = 60
 
 // Webhook verify token (set in environment)
 const CONCEPT2_WEBHOOK_VERIFY_TOKEN =
@@ -219,145 +222,164 @@ export async function POST(request: NextRequest) {
       deletedResultId: payload?.data?.result_id,
     });
 
-    const { type: eventType, result, result_id } = payload.data;
-
-    // For add/update events, we have the full result
-    if ((eventType === 'result-added' || eventType === 'result-updated') && result) {
-      // Find the client with this Concept2 user ID
-      const token = await prisma.integrationToken.findFirst({
-        where: {
-          type: 'CONCEPT2',
-          externalUserId: result.user_id.toString(),
-          syncEnabled: true,
-        },
-      });
-
-      if (!token) {
-        logger.info('No active Concept2 connection for user', { userId: result.user_id })
-        return NextResponse.json({ received: true });
-      }
-
-      const clientId = token.clientId;
-
-      try {
-        // Map equipment type
-        const typeInfo = EQUIPMENT_TYPE_MAP[result.type] || {
-          type: 'CROSS_TRAINING',
-          intensity: 'MODERATE',
-        };
-
-        // Calculate metrics
-        const pace500m = calculatePace500m(result);
-        const intensity = determineIntensity(result, pace500m);
-        const tss = calculateTSS(result);
-        const trimp = calculateTRIMP(result);
-
-        // Parse date
-        const workoutDate = new Date(result.date.replace(' ', 'T') + 'Z');
-
-        // Upsert result
-        await prisma.concept2Result.upsert({
-          where: { concept2Id: result.id },
-          update: {
-            type: result.type,
-            workoutType: result.workout_type,
-            date: workoutDate,
-            timezone: result.timezone,
-            comments: result.comments,
-            distance: result.distance,
-            time: result.time,
-            calories: result.calories_total,
-            strokeRate: result.stroke_rate,
-            dragFactor: result.drag_factor,
-            avgHeartRate: result.heart_rate?.average,
-            maxHeartRate: result.heart_rate?.max,
-            minHeartRate: result.heart_rate?.min,
-            pace: pace500m,
-            splits: result.workout as object,
-            hasStrokeData: result.stroke_data || false,
-            tss,
-            trimp,
-            mappedType: typeInfo.type,
-            mappedIntensity: intensity,
-            isVerified: result.verified || false,
-          },
-          create: {
-            clientId,
-            concept2Id: result.id,
-            type: result.type,
-            workoutType: result.workout_type,
-            date: workoutDate,
-            timezone: result.timezone,
-            comments: result.comments,
-            distance: result.distance,
-            time: result.time,
-            calories: result.calories_total,
-            strokeRate: result.stroke_rate,
-            dragFactor: result.drag_factor,
-            avgHeartRate: result.heart_rate?.average,
-            maxHeartRate: result.heart_rate?.max,
-            minHeartRate: result.heart_rate?.min,
-            pace: pace500m,
-            splits: result.workout as object,
-            hasStrokeData: result.stroke_data || false,
-            tss,
-            trimp,
-            mappedType: typeInfo.type,
-            mappedIntensity: intensity,
-            isVerified: result.verified || false,
-          },
-        });
-
-        logger.debug('Synced Concept2 result', { clientId, resultId: result.id })
-
-        // Dispatch to Managed Agent (non-blocking)
-        import('@/lib/managed-agents').then(({ dispatchEvent }) =>
-          dispatchEvent({
-            id: crypto.randomUUID(),
-            type: 'CONCEPT2_RESULT',
-            entityId: clientId,
-            data: { equipmentType: result.type, distance: result.distance, duration: result.time / 10, tss },
-            timestamp: new Date(),
-          })
-        ).catch(err => logger.warn('Failed to dispatch Concept2 event to agent', { error: String(err) }))
-      } catch (error) {
-        logger.error('Failed to sync Concept2 result', { clientId, resultId: result.id }, error)
-      }
-    } else if (eventType === 'result-deleted' && result_id) {
-      // Delete events carry no user_id, so resolve the owner from the stored
-      // result and require an active Concept2 connection before honoring the
-      // delete (mirrors the add/update ownership check above).
-      const existing = await prisma.concept2Result.findUnique({
-        where: { concept2Id: result_id },
-        select: { id: true, clientId: true },
-      });
-
-      if (existing) {
-        const token = await prisma.integrationToken.findFirst({
-          where: {
-            type: 'CONCEPT2',
-            clientId: existing.clientId,
-            syncEnabled: true,
-          },
-          select: { id: true },
-        });
-
-        if (token) {
-          await prisma.concept2Result.delete({ where: { id: existing.id } });
-          logger.debug('Deleted Concept2 result', { resultId: result_id })
-        } else {
-          logger.info('Ignoring Concept2 delete for client without active connection', {
-            resultId: result_id,
-          })
-        }
-      }
+    if (!payload?.data) {
+      return NextResponse.json({ received: true });
     }
 
-    // Always return 200 to acknowledge receipt
-    return NextResponse.json({ received: true });
+    // Ack immediately and process after the response is committed —
+    // Concept2 times out slow webhook deliveries and retries them, so DB
+    // work must not block the 200.
+    after(async () => {
+      try {
+        await processConcept2Event(payload.data)
+      } catch (error) {
+        logger.error('Concept2 webhook background processing failed', {
+          type: payload.data.type,
+          resultId: payload.data.result?.id ?? payload.data.result_id,
+        }, error)
+      }
+    })
+
+    return NextResponse.json({ received: true, queued: true });
   } catch (error) {
     logger.error('Concept2 webhook error', {}, error)
     // Return 200 even on error to prevent retries
     return NextResponse.json({ received: true, error: 'Processing error' });
+  }
+}
+
+async function processConcept2Event(data: Concept2WebhookPayload['data']): Promise<void> {
+  const { type: eventType, result, result_id } = data;
+
+  // For add/update events, we have the full result
+  if ((eventType === 'result-added' || eventType === 'result-updated') && result) {
+    // Find the client with this Concept2 user ID
+    const token = await prisma.integrationToken.findFirst({
+      where: {
+        type: 'CONCEPT2',
+        externalUserId: result.user_id.toString(),
+        syncEnabled: true,
+      },
+    });
+
+    if (!token) {
+      logger.info('No active Concept2 connection for user', { userId: result.user_id })
+      return;
+    }
+
+    const clientId = token.clientId;
+
+    try {
+      // Map equipment type
+      const typeInfo = EQUIPMENT_TYPE_MAP[result.type] || {
+        type: 'CROSS_TRAINING',
+        intensity: 'MODERATE',
+      };
+
+      // Calculate metrics
+      const pace500m = calculatePace500m(result);
+      const intensity = determineIntensity(result, pace500m);
+      const tss = calculateTSS(result);
+      const trimp = calculateTRIMP(result);
+
+      // Parse date
+      const workoutDate = new Date(result.date.replace(' ', 'T') + 'Z');
+
+      // Upsert result
+      await prisma.concept2Result.upsert({
+        where: { concept2Id: result.id },
+        update: {
+          type: result.type,
+          workoutType: result.workout_type,
+          date: workoutDate,
+          timezone: result.timezone,
+          comments: result.comments,
+          distance: result.distance,
+          time: result.time,
+          calories: result.calories_total,
+          strokeRate: result.stroke_rate,
+          dragFactor: result.drag_factor,
+          avgHeartRate: result.heart_rate?.average,
+          maxHeartRate: result.heart_rate?.max,
+          minHeartRate: result.heart_rate?.min,
+          pace: pace500m,
+          splits: result.workout as object,
+          hasStrokeData: result.stroke_data || false,
+          tss,
+          trimp,
+          mappedType: typeInfo.type,
+          mappedIntensity: intensity,
+          isVerified: result.verified || false,
+        },
+        create: {
+          clientId,
+          concept2Id: result.id,
+          type: result.type,
+          workoutType: result.workout_type,
+          date: workoutDate,
+          timezone: result.timezone,
+          comments: result.comments,
+          distance: result.distance,
+          time: result.time,
+          calories: result.calories_total,
+          strokeRate: result.stroke_rate,
+          dragFactor: result.drag_factor,
+          avgHeartRate: result.heart_rate?.average,
+          maxHeartRate: result.heart_rate?.max,
+          minHeartRate: result.heart_rate?.min,
+          pace: pace500m,
+          splits: result.workout as object,
+          hasStrokeData: result.stroke_data || false,
+          tss,
+          trimp,
+          mappedType: typeInfo.type,
+          mappedIntensity: intensity,
+          isVerified: result.verified || false,
+        },
+      });
+
+      logger.debug('Synced Concept2 result', { clientId, resultId: result.id })
+
+      // Dispatch to Managed Agent (non-blocking)
+      import('@/lib/managed-agents').then(({ dispatchEvent }) =>
+        dispatchEvent({
+          id: crypto.randomUUID(),
+          type: 'CONCEPT2_RESULT',
+          entityId: clientId,
+          data: { equipmentType: result.type, distance: result.distance, duration: result.time / 10, tss },
+          timestamp: new Date(),
+        })
+      ).catch(err => logger.warn('Failed to dispatch Concept2 event to agent', { error: String(err) }))
+    } catch (error) {
+      logger.error('Failed to sync Concept2 result', { clientId, resultId: result.id }, error)
+    }
+  } else if (eventType === 'result-deleted' && result_id) {
+    // Delete events carry no user_id, so resolve the owner from the stored
+    // result and require an active Concept2 connection before honoring the
+    // delete (mirrors the add/update ownership check above).
+    const existing = await prisma.concept2Result.findUnique({
+      where: { concept2Id: result_id },
+      select: { id: true, clientId: true },
+    });
+
+    if (existing) {
+      const token = await prisma.integrationToken.findFirst({
+        where: {
+          type: 'CONCEPT2',
+          clientId: existing.clientId,
+          syncEnabled: true,
+        },
+        select: { id: true },
+      });
+
+      if (token) {
+        await prisma.concept2Result.delete({ where: { id: existing.id } });
+        logger.debug('Deleted Concept2 result', { resultId: result_id })
+      } else {
+        logger.info('Ignoring Concept2 delete for client without active connection', {
+          resultId: result_id,
+        })
+      }
+    }
   }
 }

@@ -10,12 +10,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+import { after } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getStravaActivity } from '@/lib/integrations/strava/client';
 import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
 import { getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { verifyWebhookUrlToken } from '@/lib/integrations/webhook-url-token'
+
+export const maxDuration = 60
 
 // Webhook verify token (set in environment)
 const STRAVA_WEBHOOK_VERIFY_TOKEN = process.env.STRAVA_WEBHOOK_VERIFY_TOKEN;
@@ -169,158 +172,179 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ received: true })
     }
 
-    // Find the client with this Strava athlete ID
-    const token = await prisma.integrationToken.findFirst({
-      where: {
-        type: 'STRAVA',
-        externalUserId: ownerId.toString(),
-        syncEnabled: true,
-      },
-    });
-
-    if (!token) {
-      logger.info('No active Strava connection for athlete', { ownerId: owner_id })
-      // Return 200 to acknowledge receipt (Strava will retry otherwise)
-      return NextResponse.json({ received: true });
-    }
-
-    const clientId = token.clientId;
-
-    // Handle different event types
-    if (objectType === 'activity') {
-      if (aspectType === 'create' || aspectType === 'update') {
-        // Fetch and sync the activity
-        try {
-          const activity = await getStravaActivity(clientId, objectId);
-
-          const typeInfo = ACTIVITY_TYPE_MAP[activity.type] || {
-            type: 'OTHER',
-            intensity: 'MODERATE',
-          };
-
-          const tss = calculateTSS(
-            activity.moving_time,
-            activity.average_heartrate,
-            activity.average_speed,
-            activity.weighted_average_watts
-          );
-          const trimp = calculateTRIMP(
-            activity.moving_time,
-            activity.average_heartrate,
-            activity.type
-          );
-
-          await prisma.stravaActivity.upsert({
-            where: { stravaId: objectId.toString() },
-            update: {
-              name: activity.name,
-              type: activity.type,
-              sportType: activity.sport_type,
-              startDate: new Date(activity.start_date),
-              distance: activity.distance,
-              movingTime: activity.moving_time,
-              elapsedTime: activity.elapsed_time,
-              elevationGain: activity.total_elevation_gain,
-              averageSpeed: activity.average_speed,
-              maxSpeed: activity.max_speed,
-              averageHeartrate: activity.average_heartrate,
-              maxHeartrate: activity.max_heartrate,
-              averageCadence: activity.average_cadence,
-              averageWatts: activity.average_watts,
-              weightedAverageWatts: activity.weighted_average_watts,
-              kilojoules: activity.kilojoules,
-              sufferScore: activity.suffer_score,
-              calories: activity.calories,
-              description: activity.description,
-              trainer: activity.trainer,
-              manual: activity.manual,
-              mapPolyline: activity.map?.summary_polyline,
-              tss,
-              trimp,
-              mappedType: typeInfo.type,
-              mappedIntensity: typeInfo.intensity,
-              splitsMetric: activity.splits_metric as object,
-              laps: activity.laps as object,
-            },
-            create: {
-              clientId,
-              stravaId: objectId.toString(),
-              name: activity.name,
-              type: activity.type,
-              sportType: activity.sport_type,
-              startDate: new Date(activity.start_date),
-              distance: activity.distance,
-              movingTime: activity.moving_time,
-              elapsedTime: activity.elapsed_time,
-              elevationGain: activity.total_elevation_gain,
-              averageSpeed: activity.average_speed,
-              maxSpeed: activity.max_speed,
-              averageHeartrate: activity.average_heartrate,
-              maxHeartrate: activity.max_heartrate,
-              averageCadence: activity.average_cadence,
-              averageWatts: activity.average_watts,
-              weightedAverageWatts: activity.weighted_average_watts,
-              kilojoules: activity.kilojoules,
-              sufferScore: activity.suffer_score,
-              calories: activity.calories,
-              description: activity.description,
-              trainer: activity.trainer,
-              manual: activity.manual,
-              mapPolyline: activity.map?.summary_polyline,
-              tss,
-              trimp,
-              mappedType: typeInfo.type,
-              mappedIntensity: typeInfo.intensity,
-              splitsMetric: activity.splits_metric as object,
-              laps: activity.laps as object,
-            },
-          });
-
-          logger.debug('Synced Strava activity', { clientId, objectId })
-
-          // Dispatch to Managed Agent (non-blocking)
-          import('@/lib/managed-agents').then(({ dispatchEvent }) =>
-            dispatchEvent({
-              id: crypto.randomUUID(),
-              type: 'STRAVA_ACTIVITY',
-              entityId: clientId,
-              data: { activityType: activity.type, distance: activity.distance, duration: activity.moving_time, tss },
-              timestamp: new Date(),
-            })
-          ).catch(err => logger.warn('Failed to dispatch Strava event to agent', { error: String(err) }))
-        } catch (error) {
-          logger.error('Failed to sync Strava activity', { clientId, objectId }, error)
-          // Still return 200 to acknowledge receipt
-        }
-      } else if (aspectType === 'delete') {
-        // Delete the activity
-        await prisma.stravaActivity.deleteMany({
-          where: {
-            clientId,
-            stravaId: objectId.toString(),
-          },
-        });
-        logger.debug('Deleted Strava activity', { clientId, objectId })
+    // Ack immediately and process after the response is committed. Strava
+    // times out slow webhook deliveries and retries them; doing the
+    // activity fetch + DB writes inline turns a morning sync wave into a
+    // retry storm.
+    after(async () => {
+      try {
+        await processStravaEvent(objectType, aspectType, ownerId, objectId)
+      } catch (error) {
+        logger.error('Strava webhook background processing failed', {
+          objectType,
+          aspectType,
+          objectId,
+        }, error)
       }
-    } else if (objectType === 'athlete') {
-      if (aspectType === 'delete' || aspectType === 'deauthorize') {
-        // User revoked access - disable sync
-        await prisma.integrationToken.update({
-          where: { id: token.id },
-          data: {
-            syncEnabled: false,
-            lastSyncError: 'User deauthorized the application',
-          },
-        });
-        logger.info('Disabled Strava sync (athlete deauthorized)', { clientId })
-      }
-    }
+    })
 
-    // Always return 200 to acknowledge receipt
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, queued: true });
   } catch (error) {
     logger.error('Strava webhook error', {}, error)
     // Return 200 even on error to prevent retries
     return NextResponse.json({ received: true, error: 'Processing error' });
+  }
+}
+
+async function processStravaEvent(
+  objectType: string,
+  aspectType: string,
+  ownerId: number | string,
+  objectId: number
+): Promise<void> {
+  // Find the client with this Strava athlete ID
+  const token = await prisma.integrationToken.findFirst({
+    where: {
+      type: 'STRAVA',
+      externalUserId: ownerId.toString(),
+      syncEnabled: true,
+    },
+  });
+
+  if (!token) {
+    logger.info('No active Strava connection for athlete', { ownerId })
+    return;
+  }
+
+  const clientId = token.clientId;
+
+  // Handle different event types
+  if (objectType === 'activity') {
+    if (aspectType === 'create' || aspectType === 'update') {
+      // Fetch and sync the activity
+      try {
+        const activity = await getStravaActivity(clientId, objectId);
+
+        const typeInfo = ACTIVITY_TYPE_MAP[activity.type] || {
+          type: 'OTHER',
+          intensity: 'MODERATE',
+        };
+
+        const tss = calculateTSS(
+          activity.moving_time,
+          activity.average_heartrate,
+          activity.average_speed,
+          activity.weighted_average_watts
+        );
+        const trimp = calculateTRIMP(
+          activity.moving_time,
+          activity.average_heartrate,
+          activity.type
+        );
+
+        await prisma.stravaActivity.upsert({
+          where: { stravaId: objectId.toString() },
+          update: {
+            name: activity.name,
+            type: activity.type,
+            sportType: activity.sport_type,
+            startDate: new Date(activity.start_date),
+            distance: activity.distance,
+            movingTime: activity.moving_time,
+            elapsedTime: activity.elapsed_time,
+            elevationGain: activity.total_elevation_gain,
+            averageSpeed: activity.average_speed,
+            maxSpeed: activity.max_speed,
+            averageHeartrate: activity.average_heartrate,
+            maxHeartrate: activity.max_heartrate,
+            averageCadence: activity.average_cadence,
+            averageWatts: activity.average_watts,
+            weightedAverageWatts: activity.weighted_average_watts,
+            kilojoules: activity.kilojoules,
+            sufferScore: activity.suffer_score,
+            calories: activity.calories,
+            description: activity.description,
+            trainer: activity.trainer,
+            manual: activity.manual,
+            mapPolyline: activity.map?.summary_polyline,
+            tss,
+            trimp,
+            mappedType: typeInfo.type,
+            mappedIntensity: typeInfo.intensity,
+            splitsMetric: activity.splits_metric as object,
+            laps: activity.laps as object,
+          },
+          create: {
+            clientId,
+            stravaId: objectId.toString(),
+            name: activity.name,
+            type: activity.type,
+            sportType: activity.sport_type,
+            startDate: new Date(activity.start_date),
+            distance: activity.distance,
+            movingTime: activity.moving_time,
+            elapsedTime: activity.elapsed_time,
+            elevationGain: activity.total_elevation_gain,
+            averageSpeed: activity.average_speed,
+            maxSpeed: activity.max_speed,
+            averageHeartrate: activity.average_heartrate,
+            maxHeartrate: activity.max_heartrate,
+            averageCadence: activity.average_cadence,
+            averageWatts: activity.average_watts,
+            weightedAverageWatts: activity.weighted_average_watts,
+            kilojoules: activity.kilojoules,
+            sufferScore: activity.suffer_score,
+            calories: activity.calories,
+            description: activity.description,
+            trainer: activity.trainer,
+            manual: activity.manual,
+            mapPolyline: activity.map?.summary_polyline,
+            tss,
+            trimp,
+            mappedType: typeInfo.type,
+            mappedIntensity: typeInfo.intensity,
+            splitsMetric: activity.splits_metric as object,
+            laps: activity.laps as object,
+          },
+        });
+
+        logger.debug('Synced Strava activity', { clientId, objectId })
+
+        // Dispatch to Managed Agent (non-blocking)
+        import('@/lib/managed-agents').then(({ dispatchEvent }) =>
+          dispatchEvent({
+            id: crypto.randomUUID(),
+            type: 'STRAVA_ACTIVITY',
+            entityId: clientId,
+            data: { activityType: activity.type, distance: activity.distance, duration: activity.moving_time, tss },
+            timestamp: new Date(),
+          })
+        ).catch(err => logger.warn('Failed to dispatch Strava event to agent', { error: String(err) }))
+      } catch (error) {
+        logger.error('Failed to sync Strava activity', { clientId, objectId }, error)
+        // Still return 200 to acknowledge receipt
+      }
+    } else if (aspectType === 'delete') {
+      // Delete the activity
+      await prisma.stravaActivity.deleteMany({
+        where: {
+          clientId,
+          stravaId: objectId.toString(),
+        },
+      });
+      logger.debug('Deleted Strava activity', { clientId, objectId })
+    }
+  } else if (objectType === 'athlete') {
+    if (aspectType === 'delete' || aspectType === 'deauthorize') {
+      // User revoked access - disable sync
+      await prisma.integrationToken.update({
+        where: { id: token.id },
+        data: {
+          syncEnabled: false,
+          lastSyncError: 'User deauthorized the application',
+        },
+      });
+      logger.info('Disabled Strava sync (athlete deauthorized)', { clientId })
+    }
   }
 }
