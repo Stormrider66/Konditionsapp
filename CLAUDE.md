@@ -75,6 +75,9 @@ lib/
 - Test stages must be sorted by `sequence` before calculations
 - Check `testType` for relevant fields: Running→`speed`, Cycling→`power`, Skiing→`pace`
 
+### TrainingLoad rows (`source` discriminator)
+Two kinds of rows live in `TrainingLoad`: `WORKOUT` (one per logged session; the default) and `ACWR_SUMMARY` (one per athlete/day from the nightly `calculate-acwr` cron — its `dailyLoad` **duplicates** the day's workout rows, and it is the **only** carrier of `acuteLoad`/`chronicLoad`/`acwr`). Every query must pick a side: load sums filter `source: 'WORKOUT'` (else ~2× double-count); ACWR reads filter `source: 'ACWR_SUMMARY'` (else a workout logged after the 2 AM cron masks the values).
+
 ### Code Standards
 - Always use `@/` import prefix
 - Validate with Zod schemas (`lib/validations/schemas.ts`)
