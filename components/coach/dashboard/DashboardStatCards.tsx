@@ -180,19 +180,32 @@ export function DashboardStatCards({
         <DashboardStatCard
           title={t('dashboardStats.readiness')}
           value={
-            <div className="flex items-center gap-3 mt-1">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{readinessDistribution.high}</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{readinessDistribution.medium}</span>
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{readinessDistribution.low}</span>
-              </span>
+            <div className="w-full mt-1 space-y-2">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{readinessDistribution.high}</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                  <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{readinessDistribution.medium}</span>
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                  <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{readinessDistribution.low}</span>
+                </span>
+              </div>
+              {(() => {
+                const total = readinessDistribution.high + readinessDistribution.medium + readinessDistribution.low
+                if (total === 0) return null
+                return (
+                  <div className="flex h-1.5 w-full overflow-hidden rounded-full bg-slate-200/60 dark:bg-white/10">
+                    <div className="bg-emerald-500" style={{ width: `${(readinessDistribution.high / total) * 100}%` }} />
+                    <div className="bg-amber-500" style={{ width: `${(readinessDistribution.medium / total) * 100}%` }} />
+                    <div className="bg-red-500" style={{ width: `${(readinessDistribution.low / total) * 100}%` }} />
+                  </div>
+                )
+              })()}
             </div>
           }
           subtext={t('dashboardStats.teamReadinessToday')}

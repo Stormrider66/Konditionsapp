@@ -54,6 +54,7 @@ Player labels: Use standard hockey abbreviations (C, LW, RW, LD, RD, G) or numbe
 Movement types: "skate" (solid arrow), "pass" (dashed blue), "shot" (red arrow), "puck" (dotted).
 Team: "home" (red) for the team executing the drill, "away" (blue) for opponents/passive players.
 For skating movements, set "playerId" to the moving player's id.
+If a drawn skating route is clearly curved (swing, loop behind the net, crossover arc), add an optional "controlX"/"controlY" quadratic bezier control point to the movement so the curve is preserved.
 Use "phase" to show timing: all movements with the same phase happen simultaneously, later phases happen after earlier phases.
 Include all visible defenders/opponents and their movement routes when pressure or defensive timing is shown.
 

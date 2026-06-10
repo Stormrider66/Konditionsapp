@@ -22,6 +22,10 @@ import {
   TEAM_EVENT_TYPES,
 } from '@/lib/team-calendar/event-types'
 import { getTeamCalendarWritableTeam } from '@/lib/team-calendar/permissions'
+import {
+  clearPracticeTrainingLoad,
+  resyncPracticeTrainingLoadForEvents,
+} from '@/lib/team-calendar/practice-training-load'
 import { resolveWorkoutBusinessScope } from '@/lib/workouts/business-scope'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
@@ -357,6 +361,29 @@ export async function PATCH(req: NextRequest, context: RouteContext) {
       return updated
     })
 
+    // Re-sync estimated practice load when anything load-relevant changed
+    // (attendance, plan, date or event type) — including recurrence
+    // siblings touched by applyToWeeks.
+    const loadRelevantChange =
+      parsed.data.attendance !== undefined ||
+      parsed.data.practicePlan !== undefined ||
+      parsed.data.startDate !== undefined ||
+      parsed.data.type !== undefined
+    if (loadRelevantChange) {
+      let affectedIds = [eventId]
+      if (applyToWeeks > 1) {
+        const siblings = await prisma.teamEvent.findMany({
+          where: {
+            teamId,
+            OR: [{ id: recurrenceRootId }, { recurrenceParentId: recurrenceRootId }],
+          },
+          select: { id: true },
+        })
+        affectedIds = Array.from(new Set([eventId, ...siblings.map((sibling) => sibling.id)]))
+      }
+      await resyncPracticeTrainingLoadForEvents(affectedIds)
+    }
+
     await syncTeamWorkoutBroadcastRosters(
       [event.assignedBroadcastId],
       { businessId: businessScope.businessId, assignedBy: user.id }
@@ -408,6 +435,9 @@ export async function DELETE(req: NextRequest, context: RouteContext) {
     }
 
     await prisma.teamEvent.deleteMany({ where: { id: eventId, teamId } })
+
+    // Drop the estimated load rows that were tied to this practice
+    await clearPracticeTrainingLoad([eventId])
 
     return NextResponse.json({ success: true })
   } catch (error) {

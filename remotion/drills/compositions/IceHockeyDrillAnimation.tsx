@@ -10,6 +10,7 @@ import { DrillPlayer } from "../components/DrillPlayer";
 import { Puck } from "../components/Puck";
 import { AnimatedMovement } from "../components/AnimatedMovement";
 import { PhaseOverlay } from "../components/PhaseOverlay";
+import { pointOnMovement } from "../movement-path";
 
 // ─── Sport surface mapping (inline to avoid index barrel in Remotion) ────
 
@@ -50,6 +51,9 @@ interface Movement {
   fromY: number;
   toX: number;
   toY: number;
+  // Optional quadratic bezier control point for curved skating paths
+  controlX?: number;
+  controlY?: number;
   type: "skate" | "pass" | "shot" | "puck";
   playerId?: string | null;
   phase?: number;
@@ -208,10 +212,22 @@ function computePlayerPositions(
         [0, 1],
         { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
       );
-      positions.set(assignment.playerId, {
-        x: interpolate(progress, [0, 1], [basePos.x, entry.movement.toX]),
-        y: interpolate(progress, [0, 1], [basePos.y, entry.movement.toY]),
-      });
+      // Follow the movement's geometry (curved or straight), anchored at the
+      // player's current position rather than the drawn start point.
+      positions.set(
+        assignment.playerId,
+        pointOnMovement(
+          {
+            fromX: basePos.x,
+            fromY: basePos.y,
+            toX: entry.movement.toX,
+            toY: entry.movement.toY,
+            controlX: entry.movement.controlX,
+            controlY: entry.movement.controlY,
+          },
+          progress
+        )
+      );
     }
   }
 
@@ -281,10 +297,7 @@ export const IceHockeyDrillAnimation: React.FC<IceHockeyDrillAnimationProps> = (
       [0, 1],
       { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
     );
-    return {
-      x: interpolate(progress, [0, 1], [activePuck.movement.fromX, activePuck.movement.toX]),
-      y: interpolate(progress, [0, 1], [activePuck.movement.fromY, activePuck.movement.toY]),
-    };
+    return pointOnMovement(activePuck.movement, progress);
   }, [activePuck, frame]);
 
   // Build phase labels from movements (sport-aware)
@@ -354,6 +367,8 @@ export const IceHockeyDrillAnimation: React.FC<IceHockeyDrillAnimationProps> = (
             fromY={entry.movement.fromY}
             toX={entry.movement.toX}
             toY={entry.movement.toY}
+            controlX={entry.movement.controlX}
+            controlY={entry.movement.controlY}
             startFrame={entry.startFrame}
             endFrame={entry.endFrame}
             type={entry.movement.type}

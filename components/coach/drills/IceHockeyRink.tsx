@@ -9,6 +9,8 @@
  * Coordinate system: 0,0 = top-left, 200x85 (proportional to 60m x 26m)
  */
 
+import { movementMidpoint, movementPathD } from '@/remotion/drills/movement-path'
+
 interface Player {
   id: string
   x: number // 0-200
@@ -24,6 +26,9 @@ interface Movement {
   fromY: number
   toX: number
   toY: number
+  // Optional quadratic bezier control point for curved skating paths
+  controlX?: number
+  controlY?: number
   type: 'skate' | 'pass' | 'shot' | 'puck'
   playerId?: string | null
   phase?: number
@@ -154,13 +159,12 @@ export function IceHockeyRink({ structure, width = 600, className = '' }: IceHoc
       {structure.movements.map((m) => {
         const color = m.color || (m.type === 'pass' ? '#2563eb' : m.type === 'shot' ? '#dc2626' : '#1a1a1a')
         const markerId = m.type === 'pass' ? 'arrowPass' : m.type === 'shot' ? 'arrowShot' : 'arrowSkate'
+        const mid = movementMidpoint(m)
         return (
           <g key={m.id}>
-            <line
-              x1={m.fromX}
-              y1={m.fromY}
-              x2={m.toX}
-              y2={m.toY}
+            <path
+              d={movementPathD(m)}
+              fill="none"
               stroke={color}
               strokeWidth={m.type === 'shot' ? '0.8' : '0.6'}
               strokeDasharray={m.dashed || m.type === 'pass' ? '1.5 1' : undefined}
@@ -169,16 +173,16 @@ export function IceHockeyRink({ structure, width = 600, className = '' }: IceHoc
             {m.phase && (
               <g>
                 <circle
-                  cx={(m.fromX + m.toX) / 2}
-                  cy={(m.fromY + m.toY) / 2}
+                  cx={mid.x}
+                  cy={mid.y}
                   r="2.3"
                   fill="white"
                   stroke={color}
                   strokeWidth="0.35"
                 />
                 <text
-                  x={(m.fromX + m.toX) / 2}
-                  y={(m.fromY + m.toY) / 2 + 0.8}
+                  x={mid.x}
+                  y={mid.y + 0.8}
                   textAnchor="middle"
                   fontSize="2.4"
                   fill={color}

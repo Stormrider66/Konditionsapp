@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import type { DrillStructure } from '@/components/coach/drills/IceHockeyRink'
 import { getSportConfig, type DrillSportType } from '@/remotion/drills/surfaces'
+import { movementPathD } from '@/remotion/drills/movement-path'
 import { DrillAnimationPlayer } from '@/components/coach/drills/DrillAnimationPlayer'
 import {
   ChevronLeft,
@@ -158,12 +159,10 @@ export function AthleteDrillViewer({
             const color = m.color || MOVEMENT_COLORS[m.type] || '#1a1a1a'
             const isCurrentStep = i === currentStep
             return (
-              <line
+              <path
                 key={m.id}
-                x1={m.fromX}
-                y1={m.fromY}
-                x2={m.toX}
-                y2={m.toY}
+                d={movementPathD(m)}
+                fill="none"
                 stroke={color}
                 strokeWidth={isCurrentStep ? 1.2 : 0.6}
                 strokeDasharray={m.dashed || m.type === 'pass' ? '1.5 1' : undefined}

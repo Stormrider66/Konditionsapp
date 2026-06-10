@@ -1,11 +1,12 @@
 'use client'
 
-import { User, Dumbbell, Building2, Trophy } from 'lucide-react'
+import { User, Dumbbell, Building2, Trophy, FlaskConical, LineChart, Zap } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { LandingHeader } from '@/components/landing/LandingHeader'
 import { LandingFooter } from '@/components/landing/LandingFooter'
 import { CTASection } from '@/components/landing/CTASection'
 import { SegmentCard } from '@/components/landing/SegmentCard'
+import { HeroProductVisual } from '@/components/landing/HeroProductVisual'
 
 export function LandingPage() {
   const t = useTranslations('landing')
@@ -53,10 +54,42 @@ export function LandingPage() {
                   <p className="text-sm text-slate-400 uppercase tracking-wider mt-1">{t('hero.statCustomLabel')}</p>
                 </div>
                 <div>
-                  <p className="text-3xl font-bold text-white">17</p>
-                  <p className="text-sm text-slate-400 uppercase tracking-wider mt-1">Sports</p>
+                  <p className="text-3xl font-bold text-white">{t('hero.statSports')}</p>
+                  <p className="text-sm text-slate-400 uppercase tracking-wider mt-1">{t('hero.statSportsLabel')}</p>
                 </div>
               </div>
+            </div>
+
+            <div className="mt-16 lg:mt-20">
+              <HeroProductVisual />
+            </div>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="py-24 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">{t('howItWorks.title')}</h2>
+              <p className="mt-4 text-lg text-muted-foreground">{t('howItWorks.subtitle')}</p>
+            </div>
+            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+              {[
+                { icon: FlaskConical, step: '1', titleKey: 'howItWorks.step1Title', descKey: 'howItWorks.step1Description', gradient: 'from-blue-500 to-cyan-500' },
+                { icon: LineChart, step: '2', titleKey: 'howItWorks.step2Title', descKey: 'howItWorks.step2Description', gradient: 'from-emerald-500 to-teal-500' },
+                { icon: Zap, step: '3', titleKey: 'howItWorks.step3Title', descKey: 'howItWorks.step3Description', gradient: 'from-amber-500 to-orange-500' },
+              ].map(({ icon: Icon, step, titleKey, descKey, gradient }) => (
+                <div key={step} className="relative rounded-2xl border bg-card p-8 shadow-sm transition-all hover:shadow-lg hover:-translate-y-1">
+                  <span className="absolute top-6 right-6 text-5xl font-extrabold text-muted-foreground/10 select-none">
+                    {step}
+                  </span>
+                  <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br ${gradient} text-white shadow-lg mb-5`}>
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-xl font-semibold mb-2">{t(titleKey)}</h3>
+                  <p className="text-muted-foreground leading-relaxed">{t(descKey)}</p>
+                </div>
+              ))}
             </div>
           </div>
         </section>

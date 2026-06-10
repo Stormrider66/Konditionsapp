@@ -14,7 +14,7 @@ import { NextRequest } from 'next/server'
 vi.mock('@/lib/prisma', () => ({
   prisma: {
     client: { findMany: vi.fn() },
-    trainingLoad: { findFirst: vi.fn(), create: vi.fn() },
+    trainingLoad: { findFirst: vi.fn(), create: vi.fn(), aggregate: vi.fn() },
   },
 }))
 
@@ -42,6 +42,7 @@ describe('POST /api/cron/calculate-acwr', () => {
     process.env.CRON_SECRET = SECRET
     vi.mocked(prisma.client.findMany).mockResolvedValue([])
     vi.mocked(prisma.trainingLoad.findFirst).mockResolvedValue(null)
+    vi.mocked(prisma.trainingLoad.aggregate).mockResolvedValue({ _sum: { dailyLoad: null } } as any)
     vi.mocked(prisma.trainingLoad.create).mockResolvedValue({} as any)
   })
 
@@ -124,21 +125,18 @@ describe('POST /api/cron/calculate-acwr', () => {
     // decay, so it decreases over time. Start from acute 200, chronic 90:
     // acute new = 0.6 * 200 = 120. chronic new = 0.9 * 90 = 81.
     // ACWR = 120/81 ≈ 1.48 → CAUTION.
-    // Use dailyTSS>0: mock existing yesterday load of 300.
-    vi.mocked(prisma.trainingLoad.findFirst)
-      // 1st call: yesterday's existing load (dailyLoad=300)
-      .mockResolvedValueOnce({
-        id: 'tl-yesterday',
-        clientId: 'client-1',
-        dailyLoad: 300,
-      } as any)
-      // 2nd call: most-recent entry with prior EWMA values
-      .mockResolvedValueOnce({
-        id: 'tl-prev',
-        clientId: 'client-1',
-        acuteLoad: 60,
-        chronicLoad: 50,
-      } as any)
+    // Use dailyTSS>0: yesterday's workout rows sum to 300 (e.g. strength
+    // 180 + team practice 120 — the aggregate sums all workout-sourced rows).
+    vi.mocked(prisma.trainingLoad.aggregate).mockResolvedValue({
+      _sum: { dailyLoad: 300 },
+    } as any)
+    // Most-recent carrier entry with prior EWMA values
+    vi.mocked(prisma.trainingLoad.findFirst).mockResolvedValue({
+      id: 'tl-prev',
+      clientId: 'client-1',
+      acuteLoad: 60,
+      chronicLoad: 50,
+    } as any)
 
     await postCron(buildRequest(`Bearer ${SECRET}`))
 
@@ -157,7 +155,7 @@ describe('POST /api/cron/calculate-acwr', () => {
     vi.mocked(prisma.client.findMany).mockResolvedValue([
       { id: 'client-1', name: 'Alice' },
     ] as any)
-    // No yesterday load, no prior entry — both findFirst calls return null.
+    // No yesterday load (aggregate sum null from beforeEach), no prior entry.
     vi.mocked(prisma.trainingLoad.findFirst).mockResolvedValue(null)
 
     await postCron(buildRequest(`Bearer ${SECRET}`))

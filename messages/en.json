@@ -2559,7 +2559,8 @@
           "goalieNotes": "e.g. separate warm-up, shot volume, technique focus...",
           "coachNotes": "Key messages, reminders, workload control...",
           "workRest": "e.g. 40/20",
-          "coaching": "Key point for this block..."
+          "coaching": "Key point for this block...",
+          "lines": "e.g. Line 1+2"
         },
         "blocks": {
           "defaultWarmupTitle": "Warm-up",
@@ -2607,7 +2608,12 @@
         "fields": {
           "focus": "Focus",
           "workRest": "Work/rest",
-          "coaching": "Coaching"
+          "coaching": "Coaching",
+          "lines": "Lines/groups"
+        },
+        "load": {
+          "summary": "~{tss} TSS · RPE {rpe}",
+          "hint": "Estimated session load — saved to each player's load monitoring (ACWR) when the practice is saved"
         },
         "actions": {
           "showDiagram": "Show diagram",
@@ -2640,6 +2646,7 @@
         },
         "toasts": {
           "saved": "Practice plan saved to calendar!",
+          "loadRegistered": "Estimated load registered for {count} player sessions",
           "saveFailed": "Could not save practice plan",
           "staffPlanCopied": "Staff sheet copied",
           "playerPlanCopied": "Player version copied",
@@ -4395,7 +4402,19 @@
       "statZones": "5+",
       "statZonesLabel": "Zone models",
       "statCustom": "100%",
-      "statCustomLabel": "Customized"
+      "statCustomLabel": "Customized",
+      "statSports": "17",
+      "statSportsLabel": "Sports"
+    },
+    "howItWorks": {
+      "title": "How it works",
+      "subtitle": "From physiological test to personalized training — in three steps.",
+      "step1Title": "Test",
+      "step1Description": "Run a lactate, VO2max or field test — or sync data from Strava, Garmin and Concept2.",
+      "step2Title": "Analyze",
+      "step2Description": "Thresholds, training zones and race predictions are calculated automatically with scientific precision.",
+      "step3Title": "Train",
+      "step3Description": "Get AI-powered programs that adapt to your readiness, injuries and goals — every day."
     },
     "features": {
       "title": "Everything you need to improve",
@@ -11492,7 +11511,12 @@
         },
         "labels": {
           "published": "Published",
-          "draft": "Draft"
+          "draft": "Draft",
+          "title": "Title",
+          "description": "Description",
+          "sport": "Sport",
+          "assignToTeam": "Assign to team",
+          "noTeam": "No team"
         }
       },
       "list": {
@@ -11571,11 +11595,19 @@
           },
           "undo": "Undo (Ctrl+Z)",
           "deleteSelected": "Delete selected (Del)",
-          "clearAll": "Clear all"
+          "clearAll": "Clear all",
+          "exportPng": "Download as image (PNG)"
         },
         "hockeyPresets": {
           "attack": "Attack 5",
-          "defense": "Defense 5"
+          "defense": "Defense 5",
+          "fiveOnFive": "5 vs 5",
+          "powerplay": "Powerplay 1-3-1",
+          "penaltyKill": "Penalty kill box",
+          "breakout": "Breakout",
+          "forecheck": "Forecheck 1-2-2",
+          "tacticsLabel": "Tactics",
+          "tacticsPlaceholder": "Add setup..."
         },
         "options": {
           "position": "Position",
@@ -11589,9 +11621,15 @@
           "color": "Color:",
           "player": "Player",
           "annotationLabel": "Text:",
-          "auto": "Auto"
+          "auto": "Auto",
+          "customLabel": "No.",
+          "curve": "Curve"
+        },
+        "toasts": {
+          "exportFailed": "Could not create the image"
         },
         "hints": {
+          "dragCurveHandle": "Drag the orange handle to shape the path",
           "selectMovementEndpoint": "Click end point...",
           "drawZone": "Click opposite corner...",
           "placeAnnotation": "Click rink to place",
