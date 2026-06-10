@@ -25,7 +25,8 @@ import {
     Sparkles,
     Library,
     HeartHandshake,
-    Trophy
+    Trophy,
+    Radar
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
@@ -147,6 +148,7 @@ export function BusinessAthleteHeader({
                 { href: `${basePath}/athlete/vbt`, label: t('nav.vbtData'), icon: Gauge },
                 { href: `${basePath}/athlete/concept2`, label: t('nav.concept2'), icon: Ship },
                 { href: `${basePath}/athlete/video-analysis`, label: t('nav.videoAnalysis'), icon: Video },
+                { href: `${basePath}/athlete/team-profile`, label: t('nav.teamProfile'), icon: Radar },
             ]
         },
         more: {
