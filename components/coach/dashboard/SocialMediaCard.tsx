@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { useToast } from '@/hooks/use-toast'
 
 interface SocialPostData {
   id: string
@@ -63,6 +64,7 @@ interface SocialMediaCardProps {
 
 export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
   const t = useTranslations('components.socialMediaCard')
+  const { toast } = useToast()
   const locale = useLocale()
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [posts, setPosts] = useState<SocialPostData[]>([])
@@ -107,9 +109,17 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
       if (res.ok) {
         const data = await res.json()
         setGeneratedCaption(data.caption)
+      } else {
+        toast({
+          title: locale === 'sv' ? 'Kunde inte generera text' : 'Could not generate caption',
+          variant: 'destructive',
+        })
       }
     } catch {
-      // ignore
+      toast({
+        title: locale === 'sv' ? 'Kunde inte generera text' : 'Could not generate caption',
+        variant: 'destructive',
+      })
     } finally {
       setGenerating(false)
     }

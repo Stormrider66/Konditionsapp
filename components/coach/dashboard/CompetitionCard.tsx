@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
 import {
   Trophy,
   Users,
@@ -59,16 +60,20 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
   const t = useTranslations('components.competitionCard')
   const [competitions, setCompetitions] = useState<CompetitionData[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const fetchCompetitions = useCallback(async () => {
+    setLoadFailed(false)
     try {
       const res = await fetch('/api/coach/competitions')
       if (res.ok) {
         const data = await res.json()
         setCompetitions(data.competitions || [])
+      } else {
+        setLoadFailed(true)
       }
     } catch {
-      // ignore
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -107,6 +112,8 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : loadFailed ? (
+          <CardLoadError onRetry={() => void fetchCompetitions()} />
         ) : activeCompetitions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Trophy className="h-8 w-8 mx-auto mb-2 opacity-50" />

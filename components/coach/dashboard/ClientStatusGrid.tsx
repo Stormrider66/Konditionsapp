@@ -12,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { ClientStatusCard, type PTClientStatus } from '@/components/coach/dashboard/ClientStatusCard'
 import { AthleteDetailSheet } from '@/components/coach/dashboard/AthleteDetailSheet'
+import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
 import { useTranslations } from '@/i18n/client'
 
 type FilterType = 'all' | 'attention'
@@ -103,6 +104,7 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
   const t = useTranslations('components.clientStatusGrid')
   const [roster, setRoster] = useState<PTClientStatus[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [filter, setFilter] = useState<FilterType>('all')
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
 
@@ -117,9 +119,13 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
       if (res.ok) {
         const data = await res.json()
         setRoster(data.roster || [])
+        setLoadFailed(false)
+      } else {
+        setLoadFailed(true)
       }
     } catch (err) {
       console.error('Failed to fetch PT roster:', err)
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -158,6 +164,10 @@ export function ClientStatusGrid({ basePath }: ClientStatusGridProps) {
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     )
+  }
+
+  if (loadFailed) {
+    return <CardLoadError onRetry={() => void fetchRoster()} />
   }
 
   if (roster.length === 0) {

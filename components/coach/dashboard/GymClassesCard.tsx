@@ -8,6 +8,7 @@ import {
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
+import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
 import {
   Calendar,
   Users,
@@ -54,8 +55,10 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
   const timeLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [classes, setClasses] = useState<ClassSchedule[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
 
   const fetchClasses = useCallback(async () => {
+    setLoadFailed(false)
     try {
       // Classes come from synced gym platforms. (An internal classes API
       // was once planned — /api/coach/gym/classes/today — but never built;
@@ -65,6 +68,10 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
       ])
 
       const allClasses: ClassSchedule[] = []
+
+      if (syncedRes.status === 'rejected' || !syncedRes.value.ok) {
+        setLoadFailed(true)
+      }
 
       if (syncedRes.status === 'fulfilled' && syncedRes.value.ok) {
         const data = await syncedRes.value.json()
@@ -122,6 +129,8 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : loadFailed ? (
+          <CardLoadError onRetry={() => void fetchClasses()} />
         ) : classes.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />

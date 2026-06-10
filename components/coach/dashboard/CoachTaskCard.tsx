@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
 import {
   CheckCircle2,
   Circle,
@@ -58,19 +59,23 @@ export function CoachTaskCard() {
   const dateLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   const [tasks, setTasks] = useState<CoachTaskData[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [newTitle, setNewTitle] = useState('')
   const [adding, setAdding] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
 
   const fetchTasks = useCallback(async () => {
+    setLoadFailed(false)
     try {
       const res = await fetch('/api/coach/tasks')
       if (res.ok) {
         const data = await res.json()
         setTasks(data.tasks || [])
+      } else {
+        setLoadFailed(true)
       }
     } catch {
-      // ignore
+      setLoadFailed(true)
     } finally {
       setLoading(false)
     }
@@ -171,6 +176,8 @@ export function CoachTaskCard() {
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
+        ) : loadFailed ? (
+          <CardLoadError onRetry={() => void fetchTasks()} />
         ) : pendingTasks.length === 0 && completedTasks.length === 0 ? (
           <div className="text-center py-4 text-muted-foreground">
             <ListTodo className="h-8 w-8 mx-auto mb-2 opacity-50" />
