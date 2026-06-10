@@ -168,7 +168,7 @@ Definitions of terms you will meet across the platform, grouped by area.
 
 **Role** — Every user is a coach, athlete, physio, or admin, which controls which portal and features they see.
 
-**Coach tiers** — Coach subscription levels with athlete limits: FREE (trial, 1 athlete), BASIC (5), PRO (50), ENTERPRISE (unlimited). The limit is enforced when adding athletes.
+**Coach tiers** — Coach subscription levels with athlete limits: FREE (trial, 1 athlete), BASIC (20), PRO (100), ENTERPRISE (unlimited). The limit is enforced when adding athletes.
 
 **Athlete tiers** — Athlete subscription levels: FREE, STANDARD, PRO, and ELITE. Higher tiers unlock integrations (STANDARD+), program generation (STANDARD+), video analysis and advanced intelligence (PRO+), and larger AI allowances; ELITE adds a personal coach arrangement with custom AI credits.
 

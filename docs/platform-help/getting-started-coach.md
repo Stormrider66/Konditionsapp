@@ -17,7 +17,7 @@ Which items appear is adapted to your business type (for example a personal-trai
 
 ## How it works
 
-**Athletes.** The **Athletes** page lists your clients with search and team filters. You can add athletes directly, send invitations, or use Browse Athletes. Each athlete has a profile with tests, programs, logs, and monitoring data. Coach subscription tiers cap how many athletes you can manage (FREE trial: 1, BASIC: 5, PRO: 50, ENTERPRISE: unlimited).
+**Athletes.** The **Athletes** page lists your clients with search and team filters. You can add athletes directly, send invitations, or use Browse Athletes. Each athlete has a profile with tests, programs, logs, and monitoring data. Coach subscription tiers cap how many athletes you can manage (FREE trial: 1, BASIC: 20, PRO: 100, ENTERPRISE: unlimited).
 
 **The studios.** Dedicated builders for different training styles: **Strength Studio** (strength sessions and progressions), **Cardio Studio** (endurance sessions), **Hybrid Studio** (CrossFit-, HYROX-, and functional-fitness-style workouts), **Agility Studio** (agility drills and workouts), and **Cross-Training**. **AI Studio** is a chat workspace where you create training programs with AI — select an athlete, attach documents as context, and chat; it also handles long multi-phase program generation.
 

@@ -10,7 +10,7 @@ Two ways: create the athlete yourself under **Clients → New**, or send an invi
 
 ### Q: How many athletes can I have on my plan?
 
-FREE (trial) allows 1 athlete, BASIC 5, PRO 50, and ENTERPRISE is unlimited. The limit is checked when you create a new athlete — if you've reached it you'll be asked to upgrade. Coaches who are members of a business have their limit managed at the business level instead.
+FREE (trial) allows 1 athlete, BASIC 20, PRO 100, and ENTERPRISE is unlimited. The limit is checked when you create a new athlete — if you've reached it you'll be asked to upgrade. Coaches who are members of a business have their limit managed at the business level instead.
 
 ### Q: How does the free trial work?
 
