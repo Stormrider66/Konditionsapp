@@ -6,6 +6,7 @@ import { getCurrentUser } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { rollupWorkoutLogProgression } from '@/lib/training-engine/progression/workout-log-rollup'
 
 /**
  * PUT /api/workouts/[id]/logs/[logId]
@@ -127,6 +128,16 @@ export async function PUT(
           notes: body.fuelingLog.notes,
         },
       })
+    }
+
+    // Roll logged strength sets up into ProgressionTracking + PRs on completion
+    // (best-effort — the nightly strength-progression-sweep cron self-heals failures).
+    if (body.completed === true) {
+      try {
+        await rollupWorkoutLogProgression(log.id)
+      } catch (rollupError) {
+        logger.error('Progression rollup on workout log completion failed', { workoutLogId: log.id }, rollupError)
+      }
     }
 
     return NextResponse.json({

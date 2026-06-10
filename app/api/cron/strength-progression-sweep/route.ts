@@ -2,13 +2,16 @@
 /**
  * Nightly Strength Progression Sweep
  *
- * Rolls up StrengthSessionAssignment SetLogs into ProgressionTracking +
- * OneRepMaxHistory for sessions that never reached COMPLETED. The focus-mode
- * completion hook handles the happy path, but athletes who log sets and then
- * close the app (assignment stuck in PENDING/SCHEDULED/MODIFIED) never trigger
- * it — their logged work stays invisible on the progression dashboards.
+ * Rolls up logged strength SetLogs into ProgressionTracking + OneRepMaxHistory
+ * for sessions that never completed, across both SetLog parents:
+ * StrengthSessionAssignment (assignment focus-mode) and WorkoutLog (program
+ * workout focus-mode). The completion hooks handle the happy path, but
+ * athletes who log sets and then close the app (assignment stuck in
+ * PENDING/SCHEDULED/MODIFIED, workout log never marked completed) never
+ * trigger them — their logged work stays invisible on the progression
+ * dashboards.
  *
- * COMPLETED assignments are swept too: the completion hook is best-effort
+ * Completed sessions are swept too: the completion hooks are best-effort
  * (errors are logged, not retried), so this self-heals silent failures.
  * SKIPPED assignments are excluded — skipping is an explicit signal from the
  * coach/athlete that the session shouldn't count.
@@ -26,6 +29,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { rollupAssignmentProgression } from '@/lib/training-engine/progression/assignment-rollup'
+import { rollupWorkoutLogProgression } from '@/lib/training-engine/progression/workout-log-rollup'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -82,9 +86,36 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // WorkoutLog path (program workout focus-mode). completedAt drives the
+    // rollup day; logs never marked completed fall back to createdAt.
+    const workoutLogs = await prisma.workoutLog.findMany({
+      where: {
+        OR: [
+          { completedAt: { gte: lookbackStart, lt: today } },
+          { completedAt: null, createdAt: { gte: lookbackStart, lt: today } },
+        ],
+        setLogs: { some: {} },
+      },
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    })
+
+    for (const workoutLog of workoutLogs) {
+      try {
+        const result = await rollupWorkoutLogProgression(workoutLog.id)
+        created += result.created
+        skipped += result.skipped
+        prs += result.prs
+      } catch (error) {
+        errors++
+        logger.warn('Strength progression sweep failed for workout log', { workoutLogId: workoutLog.id }, error)
+      }
+    }
+
     if (created > 0 || prs > 0 || errors > 0) {
       logger.info('Strength progression sweep finished', {
         assignments: assignments.length,
+        workoutLogs: workoutLogs.length,
         created,
         skipped,
         prs,
@@ -95,6 +126,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       assignments: assignments.length,
+      workoutLogs: workoutLogs.length,
       created,
       skipped,
       prs,
