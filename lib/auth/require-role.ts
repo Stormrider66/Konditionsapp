@@ -45,6 +45,17 @@ export interface AdminUser extends User {
   adminRole: AdminRole | null
 }
 
+export function resolveEffectiveAdminRole(
+  role: UserRole | string | null | undefined,
+  adminRole: AdminRole | string | null | undefined
+): AdminRole | null {
+  if (adminRole === 'SUPER_ADMIN' || adminRole === 'ADMIN' || adminRole === 'SUPPORT') {
+    return adminRole
+  }
+
+  return role === 'ADMIN' ? 'SUPER_ADMIN' : null
+}
+
 /**
  * Require user to have an admin role.
  * @param requiredRoles - admin roles that are allowed
@@ -69,19 +80,20 @@ export async function requireAdminRole(requiredRoles: AdminRole[]): Promise<Admi
 
   if (!fullUser) throw new Error('Unauthorized: user not found')
 
-  // Admin-panel privileges come only from an explicit adminRole — role=ADMIN
-  // alone is not enough, so a corrupted/mis-set role field can't silently
-  // escalate to SUPER_ADMIN. Existing role=ADMIN users were backfilled with
-  // adminRole=SUPER_ADMIN in migration 20260609_backfill_admin_role.
-  if (fullUser.adminRole === 'SUPER_ADMIN') {
+  // Migration 20260609_backfill_admin_role sets adminRole=SUPER_ADMIN for
+  // legacy role=ADMIN users. Keep that same effective role during deploys
+  // where the code reaches production before the backfill has completed.
+  const effectiveAdminRole = resolveEffectiveAdminRole(fullUser.role, fullUser.adminRole)
+
+  if (effectiveAdminRole === 'SUPER_ADMIN') {
     return { ...user, adminRole: 'SUPER_ADMIN' } as AdminUser
   }
 
-  if (!fullUser.adminRole || !requiredRoles.includes(fullUser.adminRole as AdminRole)) {
+  if (!effectiveAdminRole || !requiredRoles.includes(effectiveAdminRole)) {
     throw new Error(`Forbidden: requires one of these roles: ${requiredRoles.join(', ')}`)
   }
 
-  return { ...user, adminRole: fullUser.adminRole as AdminRole } as AdminUser
+  return { ...user, adminRole: effectiveAdminRole } as AdminUser
 }
 
 export async function hasAdminRole(requiredRoles: AdminRole[]): Promise<boolean> {

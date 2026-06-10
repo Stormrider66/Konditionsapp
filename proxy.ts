@@ -816,7 +816,8 @@ export async function proxy(request: NextRequest) {
 
       if (pathname.startsWith('/admin')) {
         const adminRole = claims.adminRole
-        if (role !== 'ADMIN' && !adminRole) {
+        const hasPlatformAdminAccess = Boolean(adminRole) || role === 'ADMIN'
+        if (!hasPlatformAdminAccess) {
           if (role === 'COACH') {
             const slug = await lookupPrimarySlug()
             return NextResponse.redirect(new URL(slug ? `/${slug}/coach/dashboard` : '/', request.url))
