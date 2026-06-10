@@ -46,6 +46,10 @@
       "schedule": "0 3 * * *"
     },
     {
+      "path": "/api/cron/strength-progression-sweep",
+      "schedule": "45 3 * * *"
+    },
+    {
       "path": "/api/cron/injury-digest",
       "schedule": "0 7 * * 1"
     },
