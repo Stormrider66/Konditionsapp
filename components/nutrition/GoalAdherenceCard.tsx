@@ -1,12 +1,14 @@
 'use client'
 
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { useTranslations } from '@/i18n/client'
 
 interface GoalAdherence {
   calories: number
   protein: number
   carbs: number
   fat: number
+  daysEvaluated?: number
 }
 
 interface GoalAdherenceCardProps {
@@ -25,28 +27,25 @@ function getTextColor(value: number): string {
   return 'text-red-400'
 }
 
-const MACROS = [
-  { key: 'calories' as const, label: 'Kalorier' },
-  { key: 'protein' as const, label: 'Protein' },
-  { key: 'carbs' as const, label: 'Kolhydrater' },
-  { key: 'fat' as const, label: 'Fett' },
-]
+const MACRO_KEYS = ['calories', 'protein', 'carbs', 'fat'] as const
 
 export function GoalAdherenceCard({ adherence }: GoalAdherenceCardProps) {
+  const t = useTranslations('components.goalAdherenceCard')
+
   return (
     <GlassCard>
       <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">Konsekvens</GlassCardTitle>
-        <p className="text-xs text-slate-500">Andel dagar inom ±10% av snitt</p>
+        <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400">{t('title')}</GlassCardTitle>
+        <p className="text-xs text-slate-500">{t('subtitle')}</p>
       </GlassCardHeader>
       <GlassCardContent>
         <div className="space-y-3">
-          {MACROS.map((macro) => {
-            const value = adherence[macro.key]
+          {MACRO_KEYS.map((key) => {
+            const value = adherence[key]
             return (
-              <div key={macro.key} className="space-y-1">
+              <div key={key} className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-600 dark:text-slate-400">{macro.label}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-400">{t(`macros.${key}`)}</span>
                   <span className={`text-xs font-medium ${getTextColor(value)}`}>
                     {value}%
                   </span>
@@ -60,6 +59,11 @@ export function GoalAdherenceCard({ adherence }: GoalAdherenceCardProps) {
               </div>
             )
           })}
+          {typeof adherence.daysEvaluated === 'number' && (
+            <p className="text-[11px] text-slate-500 pt-1">
+              {t('daysEvaluated', { days: adherence.daysEvaluated })}
+            </p>
+          )}
         </div>
       </GlassCardContent>
     </GlassCard>

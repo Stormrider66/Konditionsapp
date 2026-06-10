@@ -12553,6 +12553,17 @@
         "description": "Your wrapped — monthly and yearly overview"
       }
     },
+    "goalAdherenceCard": {
+      "title": "Goal adherence",
+      "subtitle": "Share of days within ±10% of that day's target",
+      "daysEvaluated": "{days} days evaluated",
+      "macros": {
+        "calories": "Calories",
+        "protein": "Protein",
+        "carbs": "Carbs",
+        "fat": "Fat"
+      }
+    },
     "foodHistoryPage": {
       "ranges": {
         "sevenDays": "Last 7 days",

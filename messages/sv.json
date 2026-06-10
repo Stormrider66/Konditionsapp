@@ -12913,6 +12913,17 @@
         "description": "Din wrapped — månads- och årsöversikt"
       }
     },
+    "goalAdherenceCard": {
+      "title": "Måluppfyllelse",
+      "subtitle": "Andel dagar inom ±10% av dagens mål",
+      "daysEvaluated": "{days} dagar utvärderade",
+      "macros": {
+        "calories": "Kalorier",
+        "protein": "Protein",
+        "carbs": "Kolhydrater",
+        "fat": "Fett"
+      }
+    },
     "foodHistoryPage": {
       "ranges": {
         "sevenDays": "Senaste 7 dagarna",

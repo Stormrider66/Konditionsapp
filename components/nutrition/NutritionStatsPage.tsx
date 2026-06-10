@@ -51,6 +51,7 @@ interface GoalAdherence {
   protein: number
   carbs: number
   fat: number
+  daysEvaluated?: number
 }
 
 interface MacroRatio {

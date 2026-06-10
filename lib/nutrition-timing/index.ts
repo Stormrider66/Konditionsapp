@@ -127,3 +127,6 @@ export {
 } from './generators/tip-generator'
 
 export { generateDailyGuidance, calculateDailyTargets } from './generators/guidance-generator'
+
+export { getDailyTargetsForDays, targetDayKey } from './daily-targets-range'
+export type { DailyTargetsForDay, DailyTargetsRangeInput } from './daily-targets-range'

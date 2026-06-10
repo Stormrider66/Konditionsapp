@@ -12,6 +12,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { inferCompleteProtein, inferProteinSource, normalizeProteinSource } from '@/lib/nutrition/protein-quality'
+import { getDailyTargetsForDays } from '@/lib/nutrition-timing'
 import { getTranslations } from '@/i18n/server'
 import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
@@ -217,33 +218,46 @@ export async function GET(request: NextRequest) {
       restDays: restDayCount,
     }
 
-    // Goal adherence (% of days within 10% of macro target)
-    // Use custom percentages if available, otherwise use approximate defaults
+    // Goal adherence: % of logged days within ±10% of that day's computed
+    // macro target (training-aware, from the canonical timing engine).
+    // Only computed when the athlete has set up a nutrition goal.
     let goalAdherence = null
     if (nutritionGoal && dailyTotals.length > 0) {
-      // We'd need actual computed targets. For simplicity, calculate adherence
-      // based on consistency (days meeting their own daily average within ±10%)
-      const avgCal = dailyTotals.reduce((s, d) => s + d.calories, 0) / dailyTotals.length
-      const avgP = dailyTotals.reduce((s, d) => s + d.protein, 0) / dailyTotals.length
-      const avgC = dailyTotals.reduce((s, d) => s + d.carbs, 0) / dailyTotals.length
-      const avgF = dailyTotals.reduce((s, d) => s + d.fat, 0) / dailyTotals.length
+      try {
+        const dailyTargets = await getDailyTargetsForDays({
+          clientId,
+          dayKeys: dailyTotals.map((d) => d.date),
+          locale,
+        })
+        const targetsByDate = new Map(
+          (dailyTargets ?? []).map((entry) => [entry.date, entry.targets])
+        )
 
-      const withinRange = (value: number, target: number) =>
-        target > 0 && Math.abs(value - target) / target <= 0.1
+        const withinRange = (value: number, target: number) =>
+          target > 0 && Math.abs(value - target) / target <= 0.1
 
-      goalAdherence = {
-        calories: Math.round(
-          (dailyTotals.filter((d) => withinRange(d.calories, avgCal)).length / dailyTotals.length) * 100
-        ),
-        protein: Math.round(
-          (dailyTotals.filter((d) => withinRange(d.protein, avgP)).length / dailyTotals.length) * 100
-        ),
-        carbs: Math.round(
-          (dailyTotals.filter((d) => withinRange(d.carbs, avgC)).length / dailyTotals.length) * 100
-        ),
-        fat: Math.round(
-          (dailyTotals.filter((d) => withinRange(d.fat, avgF)).length / dailyTotals.length) * 100
-        ),
+        const evaluated = dailyTotals.filter((d) => targetsByDate.has(d.date))
+        if (evaluated.length > 0) {
+          const adherencePercent = (pick: (d: (typeof evaluated)[number], t: NonNullable<ReturnType<typeof targetsByDate.get>>) => boolean) =>
+            Math.round(
+              (evaluated.filter((d) => pick(d, targetsByDate.get(d.date)!)).length / evaluated.length) * 100
+            )
+
+          goalAdherence = {
+            calories: adherencePercent((d, t) => withinRange(d.calories, t.caloriesKcal)),
+            protein: adherencePercent((d, t) => withinRange(d.protein, t.proteinG)),
+            carbs: adherencePercent((d, t) => withinRange(d.carbs, t.carbsG)),
+            fat: adherencePercent((d, t) => withinRange(d.fat, t.fatG)),
+            daysEvaluated: evaluated.length,
+          }
+        }
+      } catch (err) {
+        // Adherence is a secondary stat — degrade to null rather than failing
+        // the whole stats response.
+        logger.warn('Nutrition stats: goal adherence computation failed', {
+          clientId,
+          error: err instanceof Error ? err.message : String(err),
+        })
       }
     }
 
