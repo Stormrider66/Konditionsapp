@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { getISOWeek } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CreateEventDialog } from './CreateEventDialog'
@@ -1258,7 +1259,7 @@ export function TeamCalendarView({
                 }
                 const isWeekend = date.getDay() === 0 || date.getDay() === 6
                 const dayName = date.toLocaleDateString(dateLocale(locale), { weekday: 'short' }).toUpperCase()
-                const weekNumber = Math.ceil((((date.getTime() - new Date(date.getFullYear(), 0, 1).getTime()) / 86400000) + new Date(date.getFullYear(), 0, 1).getDay() + 1) / 7)
+                const weekNumber = getISOWeek(date)
                 const planBlock = activeTeamPlan ? planBlockForDate(activeTeamPlan.blocks, date) : null
                 const planBlockIndex = planBlock && activeTeamPlan
                   ? activeTeamPlan.blocks.findIndex((block) => block.id === planBlock.id)

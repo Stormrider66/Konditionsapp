@@ -396,9 +396,11 @@ function t(locale: AppLocale, en: string, sv: string): string {
 }
 
 function getWeekNumber(date: Date): number {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1)
-  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7)
+  // Monday-anchored epoch week. Only used as a relative bucketing key, so
+  // unlike week-of-year it stays unique and ordered across year boundaries
+  // (a Dec→Jan lookback window would otherwise merge unrelated weeks).
+  const MS_PER_WEEK = 7 * 86400000
+  return Math.floor((date.getTime() - 4 * 86400000) / MS_PER_WEEK)
 }
 
 function calculateTrend(values: number[]): 'increasing' | 'stable' | 'decreasing' {

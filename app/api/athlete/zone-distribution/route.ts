@@ -92,9 +92,10 @@ export async function GET(request: Request) {
 
       switch (period) {
         case 'week':
-          // Get Monday of i weeks ago
+          // Get Monday of i weeks ago. (getDay() is 0 on Sundays, so the
+          // naive "- getDay() + 1" would put the week start at tomorrow.)
           startDate = new Date(now)
-          startDate.setDate(startDate.getDate() - startDate.getDay() + 1 - i * 7)
+          startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7) - i * 7)
           startDate.setHours(0, 0, 0, 0)
           endDate = new Date(startDate)
           endDate.setDate(endDate.getDate() + 6)

@@ -142,7 +142,8 @@ export function AgilityAnalyticsDashboard({
       .forEach(r => {
         const date = new Date(r.session.sessionDate)
         const weekStart = new Date(date)
-        weekStart.setDate(date.getDate() - date.getDay())
+        // Monday-start weeks (getDay() is 0 on Sundays)
+        weekStart.setDate(date.getDate() - ((date.getDay() + 6) % 7))
         const weekKey = format(weekStart, 'yyyy-MM-dd')
 
         if (!weeks[weekKey]) {
