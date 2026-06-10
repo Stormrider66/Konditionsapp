@@ -15,6 +15,8 @@ import { enUS, sv } from 'date-fns/locale'
 import { ActiveProgramSummary } from '@/types/prisma-types'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME, type WorkoutTheme } from '@/lib/themes'
 import { NewProgramDialog } from '@/components/athlete/workout/NewProgramDialog'
+import { WODGeneratorModal } from '@/components/athlete/wod'
+import type { WODResponse } from '@/types/wod'
 
 type AppLocale = 'en' | 'sv'
 
@@ -32,6 +34,7 @@ interface ActiveProgramsProps {
   basePath?: string
   lastCompletedProgram?: { id: string; name: string; endDate: Date }
   athleteContext?: { isAICoached: boolean; hasCoach: boolean }
+  wodUsage?: { remaining: number; isUnlimited: boolean }
 }
 
 export function ActivePrograms({
@@ -40,6 +43,7 @@ export function ActivePrograms({
   basePath = '',
   lastCompletedProgram,
   athleteContext,
+  wodUsage,
 }: ActiveProgramsProps) {
   const locale = getAppLocale(useLocale())
   const themeContext = useWorkoutThemeOptional()
@@ -54,6 +58,7 @@ export function ActivePrograms({
             basePath={basePath}
             lastCompletedProgram={lastCompletedProgram}
             athleteContext={athleteContext}
+            wodUsage={wodUsage}
           />
         )
       }
@@ -100,6 +105,7 @@ export function ActivePrograms({
           basePath={basePath}
           lastCompletedProgram={lastCompletedProgram}
           athleteContext={athleteContext}
+          wodUsage={wodUsage}
         />
       )
     }
@@ -266,17 +272,27 @@ function WhatsNextCard({
   basePath,
   lastCompletedProgram,
   athleteContext,
+  wodUsage,
 }: {
   variant: 'default' | 'glass'
   basePath: string
   lastCompletedProgram: { id: string; name: string; endDate: Date }
   athleteContext?: { isAICoached: boolean; hasCoach: boolean }
+  wodUsage?: { remaining: number; isUnlimited: boolean }
 }) {
   const locale = getAppLocale(useLocale())
   const router = useRouter()
   const [showDialog, setShowDialog] = useState(false)
+  const [showWODModal, setShowWODModal] = useState(false)
   const [notifyingCoach, setNotifyingCoach] = useState(false)
   const [coachNotified, setCoachNotified] = useState(false)
+
+  const handleWODGenerated = (response: WODResponse) => {
+    setShowWODModal(false)
+    if (response.metadata?.requestId) {
+      router.push(`${basePath}/athlete/wod/${response.metadata.requestId}`)
+    }
+  }
 
   const handleNotifyCoach = async () => {
     if (coachNotified) return
@@ -334,13 +350,26 @@ function WhatsNextCard({
         size="sm"
         className="w-full justify-start gap-2"
         onClick={() => {
-          router.push(`${basePath}/athlete/wod`)
-          router.refresh()
+          if (wodUsage) {
+            setShowWODModal(true)
+          } else {
+            router.push(`${basePath}/athlete/wod/history`)
+          }
         }}
       >
         <Dumbbell className="h-4 w-4 text-green-500" />
         {t(locale, 'Träna fritt med WOD', 'Train freely with WOD')}
       </Button>
+
+      {wodUsage && (
+        <WODGeneratorModal
+          open={showWODModal}
+          onOpenChange={setShowWODModal}
+          onWODGenerated={handleWODGenerated}
+          remainingWODs={wodUsage.remaining}
+          isUnlimited={wodUsage.isUnlimited}
+        />
+      )}
 
       <NewProgramDialog
         open={showDialog}

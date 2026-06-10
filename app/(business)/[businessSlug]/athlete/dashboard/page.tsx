@@ -6,7 +6,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslations } from '@/i18n/server'
 import { SportType } from '@prisma/client'
-import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks } from 'date-fns'
+import { addDays, startOfDay, endOfDay, subDays, format, differenceInWeeks, startOfWeek } from 'date-fns'
 import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
@@ -267,6 +267,8 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         return null // Running uses default dashboard widgets
     }
   }
+
+  const sportDashboard = renderSportDashboard()
 
   const todayStart = startOfDay(now)
   const todayEnd = endOfDay(now)
@@ -720,9 +722,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
   const wodUsageStats = await getWODUsageStats(clientId, client.athleteSubscription?.tier || 'FREE')
 
   // Calculate WOD stats
-  const startOfWeek = startOfDay(addDays(now, -now.getDay() + 1)) // Monday
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday
   const wodStats = {
-    thisWeek: wodHistory.filter(w => w.status === 'COMPLETED' && w.completedAt && new Date(w.completedAt) >= startOfWeek).length,
+    thisWeek: wodHistory.filter(w => w.status === 'COMPLETED' && w.completedAt && new Date(w.completedAt) >= weekStart).length,
     totalCompleted: wodHistory.filter(w => w.status === 'COMPLETED').length,
     totalMinutes: wodHistory
       .filter(w => w.status === 'COMPLETED')
@@ -853,9 +855,9 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
         ))}
 
       {/* Sport-Specific Dashboard */}
-      {isVisible('sport-specific-dashboard') && renderSportDashboard() && (
+      {isVisible('sport-specific-dashboard') && sportDashboard && (
         <div className="mb-8">
-          {renderSportDashboard()}
+          {sportDashboard}
         </div>
       )}
 
@@ -914,6 +916,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
                   endDate: lastCompletedProgram.endDate,
                 } : undefined}
                 athleteContext={dashboardAthleteContext}
+                wodUsage={{ remaining: wodUsageStats.remaining, isUnlimited: wodUsageStats.isUnlimited }}
               />
             ) },
             { key: 'wod-history-summary', node: <WODHistorySummary recentWods={wodHistory} stats={wodStats} basePath={basePath} /> },

@@ -219,7 +219,7 @@ export function AgentRecommendationsPanel({
                 className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`}
               />
             </Button>
-            <Link href={`${basePath}/settings/agent`}>
+            <Link href={`${basePath}/athlete/settings/agent`}>
               <Button variant="ghost" size="icon" className="h-8 w-8">
                 <Settings className="h-4 w-4" />
               </Button>

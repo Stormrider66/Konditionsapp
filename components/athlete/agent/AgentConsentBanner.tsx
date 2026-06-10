@@ -248,7 +248,7 @@ export function AgentConsentBanner({
               </>
             )}
           </Button>
-          <Link href={`${basePath}/settings/agent`}>
+          <Link href={`${basePath}/athlete/settings/agent`}>
             <Button variant="outline" size="icon">
               <ChevronRight className="h-4 w-4" />
             </Button>
