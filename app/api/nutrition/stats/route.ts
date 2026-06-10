@@ -7,12 +7,14 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { addDays, startOfDay } from 'date-fns'
+import { addDays } from 'date-fns'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { inferCompleteProtein, inferProteinSource, normalizeProteinSource } from '@/lib/nutrition/protein-quality'
 import { getDailyTargetsForDays } from '@/lib/nutrition-timing'
+import { dayKeyInTimeZone, utcDateFromDayKey } from '@/lib/nutrition/day-key'
+import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
 import { getTranslations } from '@/i18n/server'
 import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
@@ -23,21 +25,21 @@ const RANGE_DAYS: Record<string, number> = {
   '90d': 90,
 }
 
-function parseDateParam(value: string | null): Date | null {
+function parseDayKeyParam(value: string | null): string | null {
   if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
 
   const [year, month, day] = value.split('-').map(Number)
-  const date = new Date(year, month - 1, day)
+  const date = new Date(Date.UTC(year, month - 1, day))
 
   if (
-    date.getFullYear() !== year ||
-    date.getMonth() !== month - 1 ||
-    date.getDate() !== day
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
   ) {
     return null
   }
 
-  return date
+  return value
 }
 
 export async function GET(request: NextRequest) {
@@ -55,10 +57,16 @@ export async function GET(request: NextRequest) {
 
     const range = request.nextUrl.searchParams.get('range') || '30d'
     const days = RANGE_DAYS[range] || 30
-    const requestedDate = parseDateParam(request.nextUrl.searchParams.get('date'))
+
+    // MealLog.date is @db.Date (UTC midnight of the athlete's calendar day),
+    // so range bounds are UTC midnights derived from the athlete's timezone —
+    // independent of the server's timezone.
+    const timezone = await getAthleteTimezone(clientId)
+    const todayKey = dayKeyInTimeZone(new Date(), timezone)
+    const requestedKey = parseDayKeyParam(request.nextUrl.searchParams.get('date'))
     const startDate = range === '1d'
-      ? startOfDay(requestedDate ?? new Date())
-      : new Date(Date.now() - days * 24 * 60 * 60 * 1000)
+      ? utcDateFromDayKey(requestedKey ?? todayKey)
+      : new Date(utcDateFromDayKey(todayKey).getTime() - (days - 1) * 24 * 60 * 60 * 1000)
     const endDate = range === '1d' ? addDays(startDate, 1) : null
 
     // Parallel queries
@@ -109,12 +117,17 @@ export async function GET(request: NextRequest) {
         },
       }),
 
+      // completedAt is a real timestamp (not @db.Date) — pad the fetch window
+      // by a day on each side and let the timezone-aware day-key
+      // classification below decide which calendar day a workout belongs to.
       prisma.workoutLog.findMany({
         where: {
           workout: {
             day: { week: { program: { clientId } } },
           },
-          completedAt: endDate ? { gte: startDate, lt: endDate } : { gte: startDate },
+          completedAt: endDate
+            ? { gte: addDays(startDate, -1), lt: addDays(endDate, 1) }
+            : { gte: addDays(startDate, -1) },
         },
         select: {
           completedAt: true,
@@ -163,11 +176,11 @@ export async function GET(request: NextRequest) {
     // Weekly averages (group by ISO week)
     const weeklyMap = new Map<string, { days: typeof dailyTotals }>()
     for (const day of dailyTotals) {
-      const d = new Date(day.date)
-      const yearWeek = `${d.getFullYear()}-W${String(getISOWeek(d)).padStart(2, '0')}`
-      const week = weeklyMap.get(yearWeek) || { days: [] }
-      week.days.push(day)
-      weeklyMap.set(yearWeek, week)
+      const { year, week } = getISOWeekParts(new Date(day.date))
+      const yearWeek = `${year}-W${String(week).padStart(2, '0')}`
+      const entry = weeklyMap.get(yearWeek) || { days: [] }
+      entry.days.push(day)
+      weeklyMap.set(yearWeek, entry)
     }
 
     const weeklyAverages = Array.from(weeklyMap.entries()).map(([week, data]) => {
@@ -189,11 +202,13 @@ export async function GET(request: NextRequest) {
       avgCalories: Math.round(data.totalCalories / data.count),
     }))
 
-    // Protein timing vs workouts
+    // Protein timing vs workouts — bucket each workout's timestamp into the
+    // athlete's calendar day (a 23:30 workout in Stockholm is still that day,
+    // even though its UTC date is the next day).
     const workoutDates = new Set(
       workoutLogs
         .filter((w) => w.completedAt)
-        .map((w) => w.completedAt!.toISOString().split('T')[0])
+        .map((w) => dayKeyInTimeZone(w.completedAt!, timezone))
     )
 
     let workoutDayProtein = 0
@@ -438,9 +453,14 @@ function calculateNutritionQuality(meals: Array<{
   }
 }
 
-function getISOWeek(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+// Input dates are UTC midnights ('yyyy-MM-dd' day keys), so use UTC
+// accessors throughout — local accessors would shift the day on non-UTC
+// servers. Returns the ISO week-year (which differs from the calendar year
+// around New Year) together with the week number.
+function getISOWeekParts(date: Date): { year: number; week: number } {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7))
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+  const week = Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7)
+  return { year: d.getUTCFullYear(), week }
 }

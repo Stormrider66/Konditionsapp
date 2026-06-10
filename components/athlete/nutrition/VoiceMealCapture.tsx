@@ -16,6 +16,7 @@ import { Mic, MicOff, Loader2, Check, AlertCircle, Sparkles } from 'lucide-react
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
 import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
+import { localDayKey } from '@/lib/nutrition/day-key'
 import { useTranslations } from '@/i18n/client'
 
 interface VoiceMealCaptureProps {
@@ -171,7 +172,7 @@ export function VoiceMealCapture({ onMealSaved, onClose }: VoiceMealCaptureProps
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          date: new Date().toISOString().split('T')[0],
+          date: localDayKey(),
           mealType,
           description: transcribedText.trim(),
           mergeRecent: true,

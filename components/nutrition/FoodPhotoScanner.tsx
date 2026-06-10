@@ -53,6 +53,7 @@ import {
   type NutrientDensity,
 } from '@/lib/nutrition/food-scan-recalculation'
 import { guessDefaultMealType } from '@/lib/nutrition/guess-meal-type'
+import { localDayKey } from '@/lib/nutrition/day-key'
 import {
   type AiAllowanceExhaustedError,
   getAiAllowanceUpgradeMessage,
@@ -138,7 +139,7 @@ export function FoodPhotoScanner({
   const [mealTime, setMealTime] = useState(
     new Date().toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   )
-  const [mealDate] = useState(defaultDate || new Date().toISOString().split('T')[0])
+  const [mealDate] = useState(defaultDate || localDayKey())
   const [mealDescription, setMealDescription] = useState('')
   const [notes, setNotes] = useState('')
   const [confidence, setConfidence] = useState(0)

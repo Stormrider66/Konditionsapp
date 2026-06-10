@@ -11,6 +11,8 @@ import {
   normalizeProteinSource,
   PROTEIN_SOURCE_VALUES,
 } from '@/lib/nutrition/protein-quality'
+import { dayKeyFromInput, dayKeyInTimeZone, utcDateFromDayKey } from '@/lib/nutrition/day-key'
+import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
 
 // Validation schema for creating a meal log
 const createMealSchema = z.object({
@@ -129,21 +131,27 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
 
+    // MealLog.date is @db.Date (UTC midnight of the athlete's calendar day),
+    // so all filters must be UTC midnights — never server-local midnights.
+    const timezone = await getAthleteTimezone(clientId)
+    const toUtcDate = (value: string): Date | undefined => {
+      const key = dayKeyFromInput(value, timezone)
+      return key ? utcDateFromDayKey(key) : undefined
+    }
+
     let dateFilter: { gte?: Date; lte?: Date } | Date | undefined
 
     if (dateParam) {
       // Single date query
-      dateFilter = new Date(dateParam)
+      dateFilter = toUtcDate(dateParam)
     } else if (startDate || endDate) {
       dateFilter = {
-        gte: startDate ? new Date(startDate) : undefined,
-        lte: endDate ? new Date(endDate) : undefined,
+        gte: startDate ? toUtcDate(startDate) : undefined,
+        lte: endDate ? toUtcDate(endDate) : undefined,
       }
     } else {
-      // Default to today
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      dateFilter = today
+      // Default to the athlete's current calendar day
+      dateFilter = utcDateFromDayKey(dayKeyInTimeZone(new Date(), timezone))
     }
 
     const meals = await prisma.mealLog.findMany({
@@ -242,8 +250,18 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data
-    const mealDate = new Date(data.date)
-    mealDate.setHours(0, 0, 0, 0)
+    // Normalize to UTC midnight of the athlete's calendar day (@db.Date
+    // convention). Date-only strings keep their calendar date; timestamps
+    // are interpreted in the athlete's timezone, not the server's.
+    const timezone = await getAthleteTimezone(clientId)
+    const mealDayKey = dayKeyFromInput(data.date, timezone)
+    if (!mealDayKey) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid date format' },
+        { status: 400 }
+      )
+    }
+    const mealDate = utcDateFromDayKey(mealDayKey)
 
     // Auto-detect high protein
     const isHighProtein = data.isHighProtein ?? (data.proteinGrams && data.proteinGrams >= 20)
