@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { hasProTierAccess } from '@/lib/subscription/require-feature-access'
 import type { Prisma, SportType } from '@prisma/client'
 
 const MAX_IMPORT_CHARS = 1_000_000
@@ -92,11 +93,8 @@ async function authorizeTeam(teamId: string) {
     return { error: NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 }) }
   }
 
-  const subscription = await prisma.subscription.findUnique({
-    where: { userId: user.id },
-  })
-
-  if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
+  // Platform admins bypass the PRO-tier gate
+  if (!(await hasProTierAccess(user.id))) {
     const locale = await getUserLocale(user.id)
     return {
       error: NextResponse.json(

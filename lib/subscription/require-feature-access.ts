@@ -131,6 +131,16 @@ export async function isPlatformAdmin(userId: string): Promise<boolean> {
 }
 
 /**
+ * PRO-tier gate (PRO/ENTERPRISE) used by multivariate analysis surfaces.
+ * Platform admins bypass.
+ */
+export async function hasProTierAccess(userId: string): Promise<boolean> {
+  if (await isPlatformAdmin(userId)) return true
+  const subscription = await prisma.subscription.findUnique({ where: { userId } })
+  return !!subscription && ['PRO', 'ENTERPRISE'].includes(subscription.tier)
+}
+
+/**
  * Check coach subscription for a coach-only feature. Returns a 403 NextResponse if denied, null if allowed.
  * Trial coaches are allowed access (matching existing behavior).
  * Platform admins (role=ADMIN or adminRole set) bypass all gates.

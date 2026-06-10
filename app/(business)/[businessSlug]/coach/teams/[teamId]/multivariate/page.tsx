@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
-import { checkCoachSubscriptionStatus } from '@/lib/subscription/feature-access'
+import { hasProTierAccess } from '@/lib/subscription/require-feature-access'
 import { loadLatestModel, loadLatestPLSModel } from '@/lib/mva/model-storage'
 import { MVAAnalysisClient } from '@/components/mva/MVAAnalysisClient'
 import { TeamAnalysisSubNav } from '@/components/coach/teams/TeamAnalysisSubNav'
@@ -38,9 +38,8 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
     notFound()
   }
 
-  // Check subscription tier
-  const subscription = await checkCoachSubscriptionStatus(user.id)
-  const hasPro = ['PRO', 'ENTERPRISE'].includes(subscription.tier)
+  // Check subscription tier (platform admins bypass subscription gates)
+  const hasPro = await hasProTierAccess(user.id)
 
   if (!hasPro) {
     return (

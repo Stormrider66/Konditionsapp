@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { hasProTierAccess } from '@/lib/subscription/require-feature-access'
 import { analyzeTeam } from '@/lib/mva/team-analyzer'
 import { MVA_VARIABLE_REGISTRY } from '@/lib/mva/variable-registry'
 import type { SportType } from '@prisma/client'
@@ -47,11 +48,8 @@ export async function POST(
       return NextResponse.json({ success: false, error: 'Team not found' }, { status: 404 })
     }
 
-    // Check coach subscription (PRO/ENTERPRISE)
-    const subscription = await prisma.subscription.findUnique({
-      where: { userId: user.id },
-    })
-    if (!subscription || !['PRO', 'ENTERPRISE'].includes(subscription.tier)) {
+    // Check coach subscription (PRO/ENTERPRISE) — platform admins bypass
+    if (!(await hasProTierAccess(user.id))) {
       return NextResponse.json(
         { success: false, error: t(locale, 'A PRO subscription is required for multivariate analysis', 'PRO-prenumeration krävs för multivariat analys') },
         { status: 403 }

@@ -1,7 +1,9 @@
 import { prisma } from '@/lib/prisma'
+import { isPlatformAdmin } from '@/lib/subscription/require-feature-access'
 
 /** Does this coach have any athlete slots left on their subscription? */
 export async function hasReachedAthleteLimit(userId: string): Promise<boolean> {
+  if (await isPlatformAdmin(userId)) return false // platform admins bypass subscription limits
   const subscription = await prisma.subscription.findUnique({ where: { userId } })
   if (!subscription) return true // no subscription ≈ FREE with 0 slots
   if (subscription.maxAthletes === -1) return false // -1 = unlimited
