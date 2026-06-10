@@ -77,7 +77,9 @@ import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recip
 
 export default async function AthleteDashboardPage() {
   const { user, clientId, isCoachInAthleteMode } = await requireAthleteOrCoachInAthleteMode()
-  const t = await getTranslations('pages.athlete.dashboard')
+  // Same namespace as the business-scoped dashboard — `pages.athlete.dashboard`
+  // does not exist in the message files and rendered raw keys.
+  const t = await getTranslations('athletePages.dashboard')
   const locale = (await getLocale()) === 'sv' ? 'sv' : 'en'
 
   // Ensure widgets that build URLs can route correctly in business-scoped setups

@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { eachDayOfInterval, isValid, parseISO } from 'date-fns'
-import { getDailyTargetsForDays, targetDayKey } from '@/lib/nutrition-timing'
+import { getDailyTargetsForDays, targetDayKey } from '@/lib/nutrition-timing/daily-targets-range'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 

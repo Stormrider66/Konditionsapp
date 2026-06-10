@@ -8,6 +8,7 @@
  * (planned + completed for today/future, completed only for past days).
  */
 
+import 'server-only'
 import { prisma } from '@/lib/prisma'
 import { startOfDay, endOfDay, format, parseISO, isValid } from 'date-fns'
 import { calculateDailyTargets } from './generators/guidance-generator'

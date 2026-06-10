@@ -134,5 +134,8 @@ export {
 
 export { generateDailyGuidance, calculateDailyTargets } from './generators/guidance-generator'
 
-export { getDailyTargetsForDays, targetDayKey } from './daily-targets-range'
-export type { DailyTargetsForDay, DailyTargetsRangeInput } from './daily-targets-range'
+// NOTE: ./daily-targets-range is deliberately NOT re-exported here. It
+// imports the Prisma client, and this barrel is consumed by client
+// components (NutritionTimingCard, NutritionDashboard, …) — re-exporting it
+// pulls Prisma into the browser bundle and crashes the page. Server code
+// imports it directly from '@/lib/nutrition-timing/daily-targets-range'.
