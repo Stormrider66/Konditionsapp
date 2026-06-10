@@ -12,10 +12,8 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import {
   type CoachToolContext,
-  type CoachToolClient,
   toolText,
-  findAccessibleCoachClients,
-  getAccessibleCoachClientById,
+  resolveAccessibleCoachClient,
   resolveCoachToolBusinessId,
 } from './shared'
 
@@ -23,66 +21,7 @@ function isoDate(date: Date): string {
   return date.toISOString().slice(0, 10)
 }
 
-type ResolveResult =
-  | { ok: true; client: CoachToolClient }
-  | { ok: false; result: Record<string, unknown> }
-
-/** Resolve clientId/athleteName to one accessible client, or a tool-result error. */
-async function resolveClient(
-  ctx: CoachToolContext,
-  clientId: string | undefined,
-  athleteName: string | undefined
-): Promise<ResolveResult> {
-  const { coachUserId, businessSlug, locale } = ctx
-
-  if (clientId) {
-    const client = await getAccessibleCoachClientById(coachUserId, clientId, businessSlug)
-    if (!client) {
-      return {
-        ok: false,
-        result: {
-          success: false,
-          error: toolText(locale, 'The athlete was not found or is outside your access.', 'Atleten hittades inte eller ligger utanför din behörighet.'),
-        },
-      }
-    }
-    return { ok: true, client }
-  }
-
-  if (!athleteName) {
-    return {
-      ok: false,
-      result: {
-        success: false,
-        error: toolText(locale, 'Provide clientId or athleteName.', 'Ange clientId eller athleteName.'),
-      },
-    }
-  }
-
-  const candidates = await findAccessibleCoachClients(coachUserId, athleteName, businessSlug, 6)
-  const exactMatches = candidates.filter(
-    (candidate) => candidate.name.toLowerCase() === athleteName.toLowerCase()
-  )
-  const client = exactMatches.length === 1 ? exactMatches[0] : candidates.length === 1 ? candidates[0] : null
-  if (client) return { ok: true, client }
-
-  return {
-    ok: false,
-    result: {
-      success: false,
-      needsClarification: candidates.length > 1,
-      error:
-        candidates.length === 0
-          ? toolText(locale, `I found no accessible athlete matching "${athleteName}".`, `Jag hittade ingen tillgänglig atlet som matchar "${athleteName}".`)
-          : toolText(locale, `I found several possible athletes matching "${athleteName}".`, `Jag hittade flera möjliga atleter som matchar "${athleteName}".`),
-      candidates: candidates.map((candidate) => ({
-        id: candidate.id,
-        name: candidate.name,
-        team: candidate.team?.name ?? null,
-      })),
-    },
-  }
-}
+const resolveClient = resolveAccessibleCoachClient
 
 export function createMonitoringTools(ctx: CoachToolContext) {
   const { coachUserId, businessSlug, locale } = ctx

@@ -40,6 +40,8 @@ const EXPECTED_TOOL_KEYS = [
   'getAthleteReadinessHistory',
   'getAthleteTrainingLoad',
   'getAthleteTestResults',
+  // assignment-tools
+  'assignSessionToAthlete',
 ] as const
 
 describe('createCoachChatTools', () => {

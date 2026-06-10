@@ -8,6 +8,7 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 import { createAthleteReadTools } from '@/lib/ai/athlete-read-tools'
+import { createAthleteWorkoutWriteTools } from '@/lib/ai/athlete-workout-tools'
 
 // The complete set of read-tool keys the athlete chat must always expose.
 const EXPECTED_TOOL_KEYS = [
@@ -17,6 +18,11 @@ const EXPECTED_TOOL_KEYS = [
   'getMyReadinessHistory',
   'getMyPersonalRecords',
   'getMyActiveInjuries',
+] as const
+
+const EXPECTED_WRITE_TOOL_KEYS = [
+  'logCompletedWorkout',
+  'completeAssignedWorkout',
 ] as const
 
 describe('createAthleteReadTools', () => {
@@ -34,6 +40,20 @@ describe('createAthleteReadTools', () => {
   it('returns Vercel AI SDK tool definitions with an execute function', () => {
     const tools = createAthleteReadTools('client-1', 'en') as Record<string, { execute?: unknown }>
     for (const key of EXPECTED_TOOL_KEYS) {
+      expect(typeof tools[key].execute).toBe('function')
+    }
+  })
+})
+
+describe('createAthleteWorkoutWriteTools', () => {
+  it('returns exactly the expected set of tool keys', () => {
+    const tools = createAthleteWorkoutWriteTools('client-1', 'en')
+    expect(Object.keys(tools).sort()).toEqual([...EXPECTED_WRITE_TOOL_KEYS].sort())
+  })
+
+  it('returns Vercel AI SDK tool definitions with an execute function', () => {
+    const tools = createAthleteWorkoutWriteTools('client-1', 'en') as Record<string, { execute?: unknown }>
+    for (const key of EXPECTED_WRITE_TOOL_KEYS) {
       expect(typeof tools[key].execute).toBe('function')
     }
   })
