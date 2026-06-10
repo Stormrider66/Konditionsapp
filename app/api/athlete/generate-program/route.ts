@@ -17,6 +17,10 @@ import { logger } from '@/lib/logger'
 import { generateAIProgram } from '@/lib/agent/program-generator'
 import { z } from 'zod'
 import { requireFeatureAccess } from '@/lib/subscription/require-feature-access'
+import {
+  AI_ALLOWANCE_MINIMUM_REMAINING_SEK,
+  requireAiAllowance,
+} from '@/lib/ai/billing/require-ai-allowance'
 
 const generateProgramSchema = z.object({
   sport: z.string(),
@@ -91,6 +95,15 @@ export async function POST(request: NextRequest) {
     const featureDenied = await requireFeatureAccess(clientId, 'program_generation')
     if (featureDenied) {
       return featureDenied
+    }
+
+    // Program generation is the most expensive AI call an athlete can
+    // trigger — gate on allowance like the coach-initiated path does.
+    const allowanceDenied = await requireAiAllowance(clientId, {
+      minimumRemainingSek: AI_ALLOWANCE_MINIMUM_REMAINING_SEK.longRunning,
+    })
+    if (allowanceDenied) {
+      return allowanceDenied
     }
 
     const subscription = client.athleteSubscription

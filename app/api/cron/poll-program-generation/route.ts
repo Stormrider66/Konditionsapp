@@ -20,6 +20,8 @@ import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { generateMultiPartProgram, type GenerationContext } from '@/lib/ai/program-generator'
+import { getAiAllowanceStatus, hasAiAllowanceRemaining } from '@/lib/ai/billing/allowance'
+import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK } from '@/lib/ai/billing/require-ai-allowance'
 
 // ============================================
 // POST - Poll and Process Pending Sessions
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         coachId: true,
+        athleteId: true,
         athleteContext: true,
         provider: true,
         modelUsed: true,
@@ -85,6 +88,32 @@ export async function POST(request: NextRequest) {
           })
           results.push({ sessionId: session.id, status: 'FAILED', error: 'Max retries' })
           continue
+        }
+
+        // Re-check the athlete's AI allowance at execution time. Creation
+        // gates it too, but allowance can drain between request and pickup,
+        // and a multi-part generation is the most expensive AI call there
+        // is. Fail terminally — a blocked PENDING session would otherwise
+        // occupy one of the 5 per-run slots forever.
+        if (session.athleteId) {
+          const { account, remainingSek } = await getAiAllowanceStatus(session.athleteId)
+          if (
+            account.status !== 'ACTIVE' ||
+            !hasAiAllowanceRemaining(account) ||
+            remainingSek < AI_ALLOWANCE_MINIMUM_REMAINING_SEK.longRunning
+          ) {
+            await prisma.programGenerationSession.update({
+              where: { id: session.id },
+              data: {
+                status: 'FAILED',
+                errorMessage: 'AI allowance exhausted',
+                errorCode: 'AI_ALLOWANCE_EXHAUSTED',
+                completedAt: new Date(),
+              },
+            })
+            results.push({ sessionId: session.id, status: 'FAILED', error: 'AI allowance exhausted' })
+            continue
+          }
         }
 
         // Get API key for provider
