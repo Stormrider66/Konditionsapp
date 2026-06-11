@@ -147,7 +147,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     // Completed strength session assignments
     prisma.strengthSessionAssignment.findMany({
       where: {
-        athleteId: user.id,
+        athleteId: clientId,
         status: 'COMPLETED',
         completedAt: { gte: startDate, lte: now },
       },
@@ -159,7 +159,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     // Completed cardio session assignments
     prisma.cardioSessionAssignment.findMany({
       where: {
-        athleteId: user.id,
+        athleteId: clientId,
         status: 'COMPLETED',
         completedAt: { gte: startDate, lte: now },
       },
@@ -171,7 +171,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     // Completed hybrid workout assignments
     prisma.hybridWorkoutAssignment.findMany({
       where: {
-        athleteId: user.id,
+        athleteId: clientId,
         status: 'COMPLETED',
         completedAt: { gte: startDate, lte: now },
       },
@@ -183,7 +183,7 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     // Completed agility workout assignments
     prisma.agilityWorkoutAssignment.findMany({
       where: {
-        athleteId: user.id,
+        athleteId: clientId,
         status: 'COMPLETED',
         completedAt: { gte: startDate, lte: now },
       },
