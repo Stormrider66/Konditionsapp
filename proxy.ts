@@ -2,6 +2,7 @@
 import { type NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { readJwtClaims, type AppClaims } from '@/lib/auth/jwt-claims'
+import { parseBearerJwt } from '@/lib/auth/bearer'
 import { isVerifiedLoadTestBypassRequest } from '@/lib/load-test-bypass'
 
 type CachedAuthUser = { id: string; email: string | null; appMetadata: Record<string, unknown> | null } | null
@@ -508,7 +509,14 @@ export async function proxy(request: NextRequest) {
     pathname === '/api/integrations/garmin/webhook' ||
     pathname === '/api/integrations/concept2/webhook'
 
-  if (isApiRoute && isMutatingMethod && !isWebhookRoute) {
+  // Bearer-authenticated requests (mobile app) are exempt: CSRF defends
+  // ambient cookie credentials, and a cross-site attacker cannot attach a
+  // custom Authorization header without a CORS preflight we never approve.
+  // Safe because getCurrentUser() fails closed on an invalid bearer token —
+  // it never falls back to the cookie session (lib/auth/bearer.ts).
+  const hasJwtBearer = parseBearerJwt(request.headers.get('authorization')) !== null
+
+  if (isApiRoute && isMutatingMethod && !isWebhookRoute && !hasJwtBearer) {
     const requestOrigin = request.nextUrl.origin
     const originHeader = request.headers.get('origin')
     const refererHeader = request.headers.get('referer')
