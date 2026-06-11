@@ -10,30 +10,12 @@ import { canvasBlockSchema } from '@/lib/ai-canvas/block-schema'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
-import { hasEmbeddingKeys } from '@/lib/ai/embeddings'
+import { resolveCanvasSkillContext } from '@/lib/ai-canvas/skill-context'
+import { canvasTemplateIdSchema, TEMPLATE_GUIDANCE } from '@/lib/ai-canvas/template-guidance'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
-import {
-  fetchSkillContext,
-  getKnowledgeSkillDisplayName,
-  hasExplicitKnowledgeSkillRequest,
-  matchKnowledgeSkills,
-  resolveKnowledgeSkillsByIds,
-  resolveRequestedKnowledgeSkills,
-} from '@/lib/ai/knowledge-skills'
 import { logger } from '@/lib/logger'
 
-const templateSchema = z.enum([
-  'blank',
-  'athlete-review',
-  'weekly-briefing',
-  'team-risk',
-  'program-notes',
-  'athlete-progress-report',
-  'team-monthly-report',
-  'program-audit',
-  'test-interpretation-report',
-  'return-to-training-plan',
-])
+const templateSchema = canvasTemplateIdSchema
 
 const requestSchema = z.object({
   businessSlug: z.string().min(1).max(80),
@@ -55,39 +37,6 @@ const canvasResponseSchema = z.object({
   assistantMessage: z.string().trim().min(1).max(400),
   blocks: z.array(canvasBlockSchema).min(2).max(7),
 })
-
-const TEMPLATE_GUIDANCE: Record<z.infer<typeof templateSchema>, string> = {
-  blank: 'Create the most useful canvas structure for the coach request.',
-  'athlete-review': 'Create an athlete review with current state, interpretation, risks or data gaps, and next steps.',
-  'weekly-briefing': 'Create a weekly coach briefing with priorities, follow-ups, and decisions.',
-  'team-risk': 'Create a team risk scan with signals, likely causes, and safe follow-up actions.',
-  'program-notes': 'Create program planning notes with goals, block structure, key sessions, and checkpoints.',
-  'athlete-progress-report': [
-    'Create a polished athlete progress report.',
-    'Use a report structure: executive summary, evidence snapshot, development signals, risks/data gaps, recommendations, next steps.',
-    'Write as a coach-facing deliverable that can later be exported or shared after coach review.',
-  ].join(' '),
-  'team-monthly-report': [
-    'Create a polished team monthly report.',
-    'Use a report structure: executive summary, team status, testing/data coverage, training completion/readiness signals, risks, next-month priorities.',
-    'Keep it concise and decision-oriented for coaches or staff.',
-  ].join(' '),
-  'program-audit': [
-    'Create a program audit.',
-    'Use a report structure: program purpose, fit against current data, load/risk review, missing context, recommended changes, coach decisions.',
-    'Do not rewrite the full program unless asked; focus on audit findings and actionable adjustments.',
-  ].join(' '),
-  'test-interpretation-report': [
-    'Create a test interpretation report.',
-    'Use a report structure: test overview, physiological interpretation, training implications, limitations/missing data, next testing/training decisions.',
-    'Do not invent thresholds or values that are not in the context.',
-  ].join(' '),
-  'return-to-training-plan': [
-    'Create a cautious return-to-training plan.',
-    'Use a report structure: current status, constraints, phased progression, monitoring checkpoints, warning signs, coach actions.',
-    'Stay non-medical and advise professional medical input when pain/illness/red flags are unclear.',
-  ].join(' '),
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -206,49 +155,15 @@ export async function POST(request: NextRequest) {
       locale,
     })
     const resolvedContextSummary = liveContextSummary || contextSummary
-    const embeddingKeys = {
-      googleKey: keys.googleKey,
-      openaiKey: keys.openaiKey,
-    }
-    let skillContext = ''
-    let skillsUsed: string[] = []
-    let missingSelectedSkillIds: string[] = []
-    if (hasEmbeddingKeys(embeddingKeys)) {
-      try {
-        const selectedSkills = selectedSkillIds.length > 0
-          ? await resolveKnowledgeSkillsByIds(selectedSkillIds, { maxSkills: 5 })
-          : { matched: [], missingIds: [] }
-        missingSelectedSkillIds = selectedSkills.missingIds
-        const requestedSkills = selectedSkills.matched.length === 0 && hasExplicitKnowledgeSkillRequest(prompt)
-          ? await resolveRequestedKnowledgeSkills(prompt, { maxSkills: 5 })
-          : []
-        const matchedSkills = selectedSkills.matched.length > 0
-          ? selectedSkills.matched
-          : requestedSkills.length > 0
-            ? requestedSkills
-            : await matchKnowledgeSkills(prompt, embeddingKeys, { maxSkills: 3 })
-        if (matchedSkills.length > 0) {
-          const result = await fetchSkillContext(prompt, matchedSkills, embeddingKeys, locale)
-          const selectedIntro = selectedSkills.matched.length > 0
-            ? `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS', 'VALDA KUNSKAPSSKILLS')}\n${selectedSkills.matched.map((skill) => `- ${getKnowledgeSkillDisplayName(skill, locale)}`).join('\n')}\n`
-            : ''
-          const requestedIntro = selectedSkills.matched.length === 0 && requestedSkills.length > 0
-            ? `\n## ${t(locale, 'REQUESTED KNOWLEDGE SKILLS', 'EFTERFRÅGADE KUNSKAPSSKILLS')}\n${requestedSkills.map((skill) => `- ${getKnowledgeSkillDisplayName(skill, locale)}`).join('\n')}\n`
-            : ''
-          const missingIntro = missingSelectedSkillIds.length > 0
-            ? `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Mention this visibly if relevant.', 'Nämn detta synligt om det är relevant.')}\n`
-            : ''
-          skillContext = `${selectedIntro}${requestedIntro}${missingIntro}${result.context}`
-          skillsUsed = result.skillsUsed.length > 0
-            ? result.skillsUsed
-            : matchedSkills.map((skill) => getKnowledgeSkillDisplayName(skill, locale))
-        } else if (missingSelectedSkillIds.length > 0) {
-          skillContext = `\n## ${t(locale, 'SELECTED KNOWLEDGE SKILLS THAT COULD NOT BE USED', 'VALDA KUNSKAPSSKILLS SOM INTE KUNDE ANVÄNDAS')}\n${missingSelectedSkillIds.map((id) => `- ${id}`).join('\n')}\n${t(locale, 'Mention this visibly.', 'Nämn detta synligt.')}\n`
-        }
-      } catch (error) {
-        logger.warn('AI canvas skill retrieval failed', {}, error)
-      }
-    }
+    const { skillContext, skillsUsed, missingSelectedSkillIds } = await resolveCanvasSkillContext({
+      prompt,
+      selectedSkillIds,
+      embeddingKeys: {
+        googleKey: keys.googleKey,
+        openaiKey: keys.openaiKey,
+      },
+      locale,
+    })
 
     const model = createModelInstance(resolved)
     const result = await withAiContext(
