@@ -6,6 +6,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
 import { buildCanvasAnalyticsBlocks, buildCanvasContextSummary } from '@/lib/ai-canvas/context-builder'
+import { canvasBlockSchema } from '@/lib/ai-canvas/block-schema'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { resolveModel } from '@/types/ai-models'
@@ -47,42 +48,6 @@ const requestSchema = z.object({
     dataKeys: z.array(z.enum(['tests', 'sessions', 'programs', 'readiness', 'notes'])).max(5),
   }).optional(),
   selectedSkillIds: z.array(z.string().uuid()).max(5).optional(),
-})
-
-const canvasBlockSchema = z.object({
-  type: z.enum(['heading', 'text', 'checklist', 'table', 'insight', 'actions', 'metric-row', 'risk-list', 'trend-summary', 'chart']),
-  title: z.string().trim().min(1).max(120).optional(),
-  content: z.string().trim().max(1400).optional(),
-  items: z.array(z.string().trim().min(1).max(180)).max(8).optional(),
-  columns: z.array(z.string().trim().min(1).max(60)).max(5).optional(),
-  rows: z.array(z.array(z.string().trim().min(1).max(180)).max(5)).max(8).optional(),
-  metrics: z.array(z.object({
-    label: z.string().trim().min(1).max(80),
-    value: z.string().trim().min(1).max(80),
-    detail: z.string().trim().max(140).optional(),
-    tone: z.enum(['neutral', 'positive', 'warning', 'danger']).optional(),
-  })).max(8).optional(),
-  risks: z.array(z.object({
-    title: z.string().trim().min(1).max(120),
-    description: z.string().trim().min(1).max(240),
-    priority: z.enum(['low', 'medium', 'high']),
-    meta: z.string().trim().max(140).optional(),
-  })).max(10).optional(),
-  trends: z.array(z.object({
-    label: z.string().trim().min(1).max(100),
-    value: z.string().trim().min(1).max(100),
-    direction: z.enum(['up', 'down', 'flat']),
-    detail: z.string().trim().max(180).optional(),
-  })).max(10).optional(),
-  chartType: z.enum(['bar', 'line']).optional(),
-  unit: z.string().trim().max(24).optional(),
-  points: z.array(z.object({
-    label: z.string().trim().min(1).max(40),
-    value: z.number().finite(),
-    detail: z.string().trim().max(120).optional(),
-  })).max(12).optional(),
-  tone: z.enum(['neutral', 'positive', 'warning']).optional(),
-  source: z.enum(['manual', 'ai', 'template', 'analytics']).optional(),
 })
 
 const canvasResponseSchema = z.object({
