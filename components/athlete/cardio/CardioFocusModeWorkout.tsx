@@ -71,6 +71,7 @@ interface FocusModeSegment {
   plannedDistance?: number
   plannedPace?: number
   plannedZone?: number
+  plannedCalories?: number
   plannedPower?: number
   powerRelPercent?: number
   powerRelTo?: 'OPENER' | 'FTP' | 'CP'
@@ -234,6 +235,12 @@ export function CardioFocusModeWorkout({
   // delta between the first and last sample seen while accumulating.
   const segDistStartRef = useRef<number | null>(null)
   const segDistLastRef = useRef<number | null>(null)
+  // Machine calories are cumulative too. The live per-segment kcal is kept in
+  // state tagged with its segment index, so a stale value never renders after
+  // advancing (state is only ever written from the BLE data callback).
+  const segCalStartRef = useRef<number | null>(null)
+  const currentIndexRef = useRef(initialSegmentIndex)
+  const [calLive, setCalLive] = useState<{ idx: number; kcal: number } | null>(null)
   const accumulatingRef = useRef(false)
 
   // Live AI Voice Coach (Gemini Live API)
@@ -347,10 +354,11 @@ export function CardioFocusModeWorkout({
   // work effort. Re-subscribes when the segment routes to another machine.
   useEffect(() => {
     if (!activeClient) return
-    // Distance is cumulative per machine — a device swap mid-segment must
-    // restart the delta from the new machine's counter.
+    // Distance and calories are cumulative per machine — a device swap
+    // mid-segment must restart the deltas from the new machine's counters.
     segDistStartRef.current = null
     segDistLastRef.current = null
+    segCalStartRef.current = null
     const off = activeClient.on('data', (s) => {
       if (!accumulatingRef.current) return
       if (typeof s.power === 'number') {
@@ -362,6 +370,12 @@ export function CardioFocusModeWorkout({
       if (s.source === 'ftms-rower' && typeof s.distance === 'number') {
         if (segDistStartRef.current == null) segDistStartRef.current = s.distance
         segDistLastRef.current = s.distance
+      }
+      if (typeof s.calories === 'number') {
+        if (segCalStartRef.current == null) segCalStartRef.current = s.calories
+        const kcal = Math.max(0, Math.round(s.calories - segCalStartRef.current))
+        const idx = currentIndexRef.current
+        setCalLive((prev) => (prev?.idx === idx && prev.kcal === kcal ? prev : { idx, kcal }))
       }
     })
     return off
@@ -379,7 +393,12 @@ export function CardioFocusModeWorkout({
     segMaxRef.current = 0
     segDistStartRef.current = null
     segDistLastRef.current = null
+    segCalStartRef.current = null
+    currentIndexRef.current = currentIndex
   }, [currentIndex])
+
+  // Live kcal burned in the current segment (null until the machine reports energy).
+  const liveSegmentCalories = calLive && calLive.idx === currentIndex ? calLive.kcal : null
 
   // ERG: set the bike's resistance to the segment's target watts (opt-out via
   // toggle). Bikes with a motor brake only — airbikes and rowing ergs are
@@ -482,6 +501,22 @@ export function CardioFocusModeWorkout({
     setMeasuredForForm(segmentMeasured())
     setViewState('logging')
   }, [segmentMeasured])
+
+  // Calorie-target efforts without a duration ("18 cal row") complete
+  // themselves when the machine's counter reaches the target.
+  const calAutoFiredRef = useRef(false)
+  useEffect(() => {
+    calAutoFiredRef.current = false
+  }, [currentIndex])
+  useEffect(() => {
+    if (preStartSetup || viewState !== 'timer' || calAutoFiredRef.current) return
+    const target = currentSegment?.plannedCalories
+    if (!target || currentSegment?.plannedDuration || !isWorkType(currentSegment?.type)) return
+    if (liveSegmentCalories != null && liveSegmentCalories >= target) {
+      calAutoFiredRef.current = true
+      handleTimerComplete()
+    }
+  }, [liveSegmentCalories, currentSegment, viewState, preStartSetup, handleTimerComplete])
 
   // Handle segment logging submit
   const handleSegmentSubmit = async (data: {
@@ -717,6 +752,11 @@ export function CardioFocusModeWorkout({
                     {tw('Live till coach', 'Live to coach')}
                   </span>
                 )}
+                {currentSegment.plannedCalories != null && liveSegmentCalories != null && (
+                  <span className="tabular-nums font-semibold text-orange-500">
+                    {liveSegmentCalories}/{currentSegment.plannedCalories} cal
+                  </span>
+                )}
                 {activeDevice.kind === 'rower' ? (
                   <>
                     {activeDevice.latest?.pace != null && (
@@ -819,6 +859,8 @@ export function CardioFocusModeWorkout({
             paceUnit={equipmentIsRowing(currentSegment.equipment) ? '/500m' : '/km'}
             targetZone={currentSegment.plannedZone}
             targetDistance={currentSegment.plannedDistance}
+            targetCalories={currentSegment.plannedCalories}
+            liveCalories={liveSegmentCalories ?? undefined}
             targetPower={currentTargetPower}
             targetPowerPending={currentTargetPowerPending}
             notes={currentSegment.notes}
@@ -844,6 +886,24 @@ export function CardioFocusModeWorkout({
                 <p className="text-xl font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest">km</p>
               </div>
             )}
+            {currentSegment.plannedCalories && (
+              // Calorie effort: count live from the machine and auto-complete at
+              // the target (see the calorie effect); without a machine it's the
+              // plain target + manual complete.
+              <div className="space-y-1">
+                <p className="text-6xl font-black text-slate-900 dark:text-white tracking-tighter tabular-nums">
+                  {activeConnected && liveSegmentCalories != null ? (
+                    <>
+                      {liveSegmentCalories}
+                      <span className="text-slate-300 dark:text-slate-600"> / {currentSegment.plannedCalories}</span>
+                    </>
+                  ) : (
+                    currentSegment.plannedCalories
+                  )}
+                </p>
+                <p className="text-xl font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest">cal</p>
+              </div>
+            )}
             {currentSegment.notes && (
               <div className="bg-white/50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10 backdrop-blur-sm">
                 <p className="text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{currentSegment.notes}</p>
@@ -865,6 +925,7 @@ export function CardioFocusModeWorkout({
             plannedPace={currentSegment.plannedPace}
             paceUnit={equipmentIsRowing(currentSegment.equipment) ? '/500m' : '/km'}
             plannedZone={currentSegment.plannedZone}
+            plannedCalories={currentSegment.plannedCalories}
             plannedPower={currentTargetPower}
             defaultAvgPower={measuredForForm.actualAvgPower}
             defaultDistance={measuredForForm.actualDistance}

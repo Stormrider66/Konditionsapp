@@ -21,6 +21,7 @@ import {
   Check,
   SkipForward,
   Zap,
+  Flame,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
@@ -36,6 +37,7 @@ interface SegmentLoggingFormProps {
   plannedPace?: number
   plannedZone?: number
   plannedPower?: number
+  plannedCalories?: number
   /** Unit suffix for the planned-pace display. Default '/km'; '/500m' for row/ski erg. */
   paceUnit?: string
   showPower?: boolean
@@ -86,6 +88,7 @@ export function SegmentLoggingForm({
   plannedPace,
   plannedZone,
   plannedPower,
+  plannedCalories,
   paceUnit = '/km',
   showPower = false,
   defaultAvgPower,
@@ -228,6 +231,12 @@ export function SegmentLoggingForm({
               <div className="flex items-center gap-1">
                 <Zap className="h-3 w-3 text-muted-foreground" />
                 {plannedPower} W
+              </div>
+            )}
+            {plannedCalories != null && (
+              <div className="flex items-center gap-1">
+                <Flame className="h-3 w-3 text-muted-foreground" />
+                {plannedCalories} cal
               </div>
             )}
           </div>

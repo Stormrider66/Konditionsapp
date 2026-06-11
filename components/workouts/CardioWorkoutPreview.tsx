@@ -30,6 +30,7 @@ interface CardioFocusApiSegment {
   plannedDistance?: number
   plannedPace?: number
   plannedZone?: number
+  plannedCalories?: number
   plannedPower?: number
   powerRelPercent?: number
   powerRelTo?: 'OPENER' | 'FTP' | 'CP'
@@ -345,6 +346,7 @@ export function CardioWorkoutPreview({
           plannedDistance: s.plannedDistance,
           plannedPace: s.plannedPace,
           plannedZone: s.plannedZone,
+          plannedCalories: s.plannedCalories,
           plannedPower: s.plannedPower,
           powerRelPercent: s.powerRelPercent,
           powerRelTo: s.powerRelTo,

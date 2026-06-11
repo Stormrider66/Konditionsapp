@@ -71,6 +71,7 @@ export interface FocusModeSegment {
   plannedDistance?: number
   plannedPace?: number
   plannedZone?: number
+  plannedCalories?: number // kcal target (airbike/rower intervals)
   plannedPower?: number // absolute watt target (parsed)
   powerRelPercent?: number // relative power target, e.g. 80
   powerRelTo?: CardioRelativeRef // what the % is relative to (OPENER/FTP/CP)
@@ -299,6 +300,11 @@ export function buildCardioFocusModeSegments({
             plannedDistance: step.distance ? step.distance / 1000 : undefined,
             plannedPace: parsePaceToSeconds(step.pace),
             plannedZone: step.zone,
+            plannedCalories:
+              step.calories ??
+              (step.targetType === 'calories' && step.targetValue
+                ? parseInt(step.targetValue, 10) || undefined
+                : undefined),
             notes: noteParts.join(' - '),
             equipment: step.equipment,
             ...powerFields({
@@ -346,6 +352,7 @@ export function buildCardioFocusModeSegments({
           plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
           plannedPace: parsePaceToSeconds(seg.pace),
           plannedZone: seg.zone,
+          plannedCalories: seg.calories,
           notes: noteParts.join(' - '),
           equipment: seg.equipment,
           ...powerFields({
@@ -397,6 +404,7 @@ export function buildCardioFocusModeSegments({
       plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
       plannedPace: parsePaceToSeconds(seg.pace),
       plannedZone: seg.zone,
+      plannedCalories: seg.calories,
       notes: noteParts.join(' - ') || seg.notes,
       equipment: seg.equipment,
       ...powerFields({

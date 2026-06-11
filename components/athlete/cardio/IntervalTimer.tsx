@@ -23,6 +23,7 @@ import {
   Route,
   Gauge,
   Zap,
+  Flame,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
@@ -46,6 +47,10 @@ interface IntervalTimerProps {
   targetZone?: number
   /** Target distance in km (optional) */
   targetDistance?: number
+  /** Target calories for the segment (optional) */
+  targetCalories?: number
+  /** Calories burned so far in this segment, from a connected machine (optional) */
+  liveCalories?: number
   /** Resolved target power in watts (optional) */
   targetPower?: number
   /** Label for a relative power target not yet resolved, e.g. "80% prolog" (optional) */
@@ -162,6 +167,8 @@ export function IntervalTimer({
   paceUnit = '/km',
   targetZone,
   targetDistance,
+  targetCalories,
+  liveCalories,
   targetPower,
   targetPowerPending,
   onComplete,
@@ -370,6 +377,14 @@ export function IntervalTimer({
           <div className="flex items-center gap-2 text-sm">
             <Route className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{targetDistance.toFixed(2)} km</span>
+          </div>
+        )}
+        {targetCalories && (
+          <div className="flex items-center gap-2 text-sm">
+            <Flame className="h-4 w-4 text-orange-500" />
+            <span className="font-bold">
+              {liveCalories != null ? `${liveCalories} / ${targetCalories}` : targetCalories} cal
+            </span>
           </div>
         )}
         {targetPower != null ? (
