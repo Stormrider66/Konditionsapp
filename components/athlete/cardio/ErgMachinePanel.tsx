@@ -22,6 +22,7 @@ import { Bluetooth, BluetoothConnected, Loader2, Play, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
 import { expectedKindForSlot, type UseErgFleetResult } from '@/hooks/use-erg-fleet'
+import { equipmentIsConcept2 } from '@/lib/cardio/focus-mode-segments'
 
 export function ergEquipmentLabel(slot: string, locale: string): string {
   const sv = locale === 'sv'
@@ -64,19 +65,32 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
   // After a failed/cancelled attempt, offer an unfiltered chooser for that
   // slot — the escape hatch when a machine doesn't show up in the list.
   const [fallbackSlot, setFallbackSlot] = useState<string | null>(null)
+  // The actual failure reason, shown on the slot row (cancelling the chooser
+  // is not worth reporting).
+  const [slotError, setSlotError] = useState<{ slot: string; message: string } | null>(null)
 
   const connect = async (slot: string, acceptAll = false) => {
     setBusySlot(slot)
+    setSlotError(null)
     try {
       await fleet.connectSlot(slot, { acceptAll })
       setFallbackSlot(null)
-    } catch {
-      // Chooser cancelled or connect failed — fleet.error carries the details.
+    } catch (err) {
       setFallbackSlot(slot)
+      const message = err instanceof Error ? err.message : String(err)
+      if (!/cancel/i.test(message)) {
+        setSlotError({ slot, message })
+      }
     } finally {
       setBusySlot(null)
     }
   }
+
+  // PM5 discoverability is the most common connect failure: the monitor must
+  // be on its Connect screen, and one already paired elsewhere won't show up.
+  const anyConcept2Unconnected = slots.some(
+    (slot) => equipmentIsConcept2(slot) && fleet.devices[slot]?.status !== 'connected'
+  )
 
   return (
     <div className="w-full max-w-md mx-auto space-y-4">
@@ -136,6 +150,11 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
                       {tw('· ser ut som fel maskintyp', '· looks like the wrong machine type')}
                     </span>
                   )}
+                  {slotError?.slot === slot && !connected && !connecting && (
+                    <span className="ml-1 text-red-500 dark:text-red-400">
+                      · {slotError.message}
+                    </span>
+                  )}
                 </p>
               </div>
               {connected ? (
@@ -184,6 +203,15 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
             {tw('Visa alla Bluetooth-enheter', 'Show all Bluetooth devices')}
           </Button>
         </div>
+      )}
+
+      {anyConcept2Unconnected && fleet.isSupported && (
+        <p className="text-center text-xs text-slate-400 dark:text-slate-500">
+          {tw(
+            'PM5: stå kvar i monitorns "Anslut"-meny så att den syns — en PM5 som redan är ansluten till en annan app eller telefon dyker inte upp i listan.',
+            'PM5: keep the monitor on its Connect screen so it can be found — a PM5 already connected to another app or phone won’t show up in the list.'
+          )}
+        </p>
       )}
 
       {isSamsungInternet && (
