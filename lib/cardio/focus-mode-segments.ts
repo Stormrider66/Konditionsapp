@@ -79,6 +79,11 @@ export interface FocusModeSegment {
   isBenchmark?: boolean // opener/prolog whose logged result anchors relative targets
   equipment?: string
   notes?: string
+  // Round provenance for segments expanded from a repeat group, so summaries
+  // can rebuild per-round splits from the flat segmentIndex sequence.
+  groupId?: string
+  roundIndex?: number // 0-based round within the group
+  roundCount?: number
   actualDuration?: number
   actualDistance?: number
   actualPace?: number
@@ -275,10 +280,12 @@ export function buildCardioFocusModeSegments({
   const segmentLogMap = new Map(segmentLogs.map((log) => [log.segmentIndex, log]))
   const focusModeSegments: FocusModeSegment[] = []
   let globalIndex = 0
+  let groupCounter = 0
 
   for (const seg of rawSegments(segments)) {
     if (seg.type === 'REPEAT_GROUP' && seg.steps && seg.steps.length > 0) {
       const repeats = seg.repeats || 1
+      const groupId = seg.id || `group-${groupCounter++}`
       for (let rep = 0; rep < repeats; rep++) {
         for (const step of seg.steps) {
           const log = segmentLogMap.get(globalIndex)
@@ -318,6 +325,9 @@ export function buildCardioFocusModeSegments({
                 : undefined),
             notes: noteParts.join(' - '),
             equipment: step.equipment,
+            groupId,
+            roundIndex: rep,
+            roundCount: repeats,
             ...powerFields({
               absolute: step.targetType === 'power' ? step.targetValue : undefined,
               relPercent: step.targetRelPercent,
@@ -338,6 +348,9 @@ export function buildCardioFocusModeSegments({
             typeName: t(locale, 'Rest between rounds', 'Vila mellan rundor'),
             plannedDuration: seg.restBetweenRounds,
             notes: t(locale, `Round ${rep + 1}/${repeats} complete`, `Runda ${rep + 1}/${repeats} klar`),
+            groupId,
+            roundIndex: rep,
+            roundCount: repeats,
             ...logValues(log),
           })
           globalIndex++
@@ -347,6 +360,7 @@ export function buildCardioFocusModeSegments({
     }
 
     if (seg.repeats && seg.repeats > 1) {
+      const groupId = seg.id || `group-${groupCounter++}`
       for (let rep = 0; rep < seg.repeats; rep++) {
         const log = segmentLogMap.get(globalIndex)
         const segmentType = normalizeSegmentType(seg.type, 'INTERVAL' as CardioSegmentType)
@@ -366,6 +380,9 @@ export function buildCardioFocusModeSegments({
           plannedCalories: seg.calories,
           notes: noteParts.join(' - '),
           equipment: seg.equipment,
+          groupId,
+          roundIndex: rep,
+          roundCount: seg.repeats,
           ...powerFields({
             absolute: seg.power,
             relPercent: seg.powerRelPercent,
@@ -384,6 +401,9 @@ export function buildCardioFocusModeSegments({
             type: 'RECOVERY' as CardioSegmentType,
             typeName: segmentTypeName('REST', 'REST', locale),
             plannedDuration: seg.restDuration,
+            groupId,
+            roundIndex: rep,
+            roundCount: seg.repeats,
             ...logValues(restLog),
           })
           globalIndex++
