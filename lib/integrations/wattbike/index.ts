@@ -7,7 +7,11 @@
  * on Chrome/Edge/Android — see ./README.md for the iOS constraint.
  */
 
-export { WattbikeClient } from './client';
+export {
+  WattbikeClient,
+  FITNESS_MACHINE_SERVICE,
+  CYCLING_POWER_SERVICE,
+} from './client';
 
 export type {
   WattbikeStatus,

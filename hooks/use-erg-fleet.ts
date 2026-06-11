@@ -20,13 +20,21 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { WattbikeClient } from '@/lib/integrations/wattbike';
+import {
+  WattbikeClient,
+  FITNESS_MACHINE_SERVICE,
+  CYCLING_POWER_SERVICE,
+} from '@/lib/integrations/wattbike';
 import type {
   MachineKind,
   WattbikeSample,
   WattbikeStatus,
 } from '@/lib/integrations/wattbike';
-import { equipmentIsRowing, equipmentUsesPower } from '@/lib/cardio/focus-mode-segments';
+import {
+  equipmentIsAirbike,
+  equipmentIsRowing,
+  equipmentUsesPower,
+} from '@/lib/cardio/focus-mode-segments';
 
 const SLOT_STORAGE_KEY = 'erg:slotDevices:v1';
 // Pre-fleet single-machine sessions remembered the bike under this key — honor
@@ -68,6 +76,39 @@ export function expectedKindForSlot(slot: string): MachineKind | null {
   if (equipmentIsRowing(slot)) return 'rower';
   if (equipmentUsesPower(slot)) return 'bike';
   return null;
+}
+
+/**
+ * Narrow the browser's device chooser to what the slot can actually be, so a
+ * machine-dense gym doesn't list every erg for every slot. Web Bluetooth can
+ * only filter on advertisements, so this trims the list rather than making it
+ * exact (a RowErg and SkiErg PM5 still advertise identically).
+ * Returns undefined for the client's broad defaults.
+ */
+export function chooserFiltersForSlot(slot: string): BluetoothLEScanFilter[] | undefined {
+  if (equipmentIsRowing(slot)) {
+    // FTMS rowers + PM5s. A cycling-power meter or Wattbike is never a rower.
+    return [{ services: [FITNESS_MACHINE_SERVICE] }, { namePrefix: 'PM5' }];
+  }
+  if (slot === 'WATTBIKE') {
+    // FTMS Atoms + legacy cycling-power Wattbikes. A PM5 is never a Wattbike.
+    return [
+      { services: [FITNESS_MACHINE_SERVICE] },
+      { services: [CYCLING_POWER_SERVICE] },
+      { namePrefix: 'Wattbike' },
+    ];
+  }
+  if (equipmentIsAirbike(slot)) {
+    // Echo V3 advertises FTMS; some airbike consoles broadcast cycling power.
+    // A PM5 is never an airbike. (No name prefixes — console names vary.)
+    return [
+      { services: [FITNESS_MACHINE_SERVICE] },
+      { services: [CYCLING_POWER_SERVICE] },
+    ];
+  }
+  // BIKE / generic slot: keep the broad defaults — a "bike" can be a BikeErg
+  // (PM5), a Wattbike, or any FTMS trainer.
+  return undefined;
 }
 
 function readAssignments(): Record<string, string> {
@@ -161,7 +202,7 @@ export function useErgFleet(slots: string[]): UseErgFleetResult {
         void existing.disconnect().catch(() => {});
         removeSlot(slot, existing);
       }
-      const client = new WattbikeClient();
+      const client = new WattbikeClient({ filters: chooserFiltersForSlot(slot) });
       attach(slot, client);
       try {
         await client.connect();

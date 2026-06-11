@@ -29,13 +29,15 @@ import type {
 
 // ---- BLE service / characteristic UUIDs (16-bit shorthand) -----------------
 
-const FITNESS_MACHINE_SERVICE = 0x1826;
+// Exported so callers can build narrowed requestDevice filters (e.g. a rower
+// slot that should not list cycling-power meters in the chooser).
+export const FITNESS_MACHINE_SERVICE = 0x1826;
 const INDOOR_BIKE_DATA = 0x2ad2; // notify: power / cadence / speed (bikes)
 const ROWER_DATA = 0x2ad1; // notify: power / pace / stroke rate (PM5 row + ski)
 const FTMS_CONTROL_POINT = 0x2ad9; // write + indicate: ERG control
 const FTMS_STATUS = 0x2ada; // notify: machine status (optional)
 
-const CYCLING_POWER_SERVICE = 0x1818;
+export const CYCLING_POWER_SERVICE = 0x1818;
 const CYCLING_POWER_MEASUREMENT = 0x2a63; // notify: power (+ crank for cadence)
 
 const DEVICE_INFORMATION_SERVICE = 0x180a;
