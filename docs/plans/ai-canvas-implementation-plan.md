@@ -353,3 +353,50 @@ This gives us the product feeling quickly. It lets us test whether the canvas ac
 This is worth focusing on after the current floating AI foundation because it turns the assistant from a navigation/helper layer into a **work product layer**. The floating AI helps the coach move through the app. The AI Canvas helps the coach produce something valuable.
 
 The right next step is **Phase 1A**: build the coach AI Canvas page, block renderer, prompt bar, and starter templates without deep analytics yet.
+
+## Phase 7: Agentic Generation Backend (shipped 2026-06-11)
+
+Phases 1–5 shipped as a single-shot `generateObject` flow. Phase 7 replaced
+the main generation path with an agentic tool loop so the canvas behaves like
+an in-app agent rather than a form: the model pulls the data it needs instead
+of the coach pre-selecting everything, and the document streams in
+progressively.
+
+### Architecture
+
+- **`POST /api/ai/canvas/agent`** (`app/api/ai/canvas/agent/route.ts`):
+  `streamText` + `stopWhen: stepCountIs(16)`, streamed to the client as a
+  UI message stream (`toUIMessageStreamResponse`). Model/skill metadata rides
+  on `messageMetadata`. Usage category: `coach_ai_canvas_agent`.
+- **Tool surface** (`lib/ai-canvas/agent-tools.ts`): coach-scoped read tools
+  (`listAthletes`, `listTeams`, `getTestData`, `getSessionData`,
+  `getReadinessData`, `getProgramData`, `getCoachNotes`) plus emit tools
+  (`addCanvasBlocks`, `addAnalyticsBlocks`, `setCanvasTitle`). Emit-tool
+  *outputs* carry validated blocks; the client appends them as the stream
+  arrives. `addAnalyticsBlocks` wraps the deterministic
+  `buildCanvasAnalyticsBlocks` builders so live numbers never pass through
+  the model.
+- **Client** (`components/ai-canvas/use-canvas-agent.ts`): `useChat` wrapper
+  that turns tool-result parts into canvas mutations and a per-tool progress
+  list. The conversation persists across generations, so follow-up prompts
+  extend the same document (the agent receives a compact block summary via
+  `buildCanvasBlocksSummary`).
+- **Shared validation**: `lib/ai-canvas/block-schema.ts` is used by both the
+  agent's `addCanvasBlocks` input schema and the legacy one-shot
+  `/api/ai/canvas/generate` endpoint (still used for per-block improve).
+  Skill retrieval and template guidance are shared via
+  `lib/ai-canvas/skill-context.ts` and `lib/ai-canvas/template-guidance.ts`.
+
+### Positioning note
+
+The agent is deliberately **bounded**: no free-form SQL, no code execution.
+Unbounded statistics happen by composing deterministic platform tools, which
+is the product moat (trusted numbers + live data), not by competing with
+general-purpose assistants on open-ended generation.
+
+### Remaining ideas (not committed)
+
+- Stream partial text into the assistant panel during generation.
+- A "data sources used" footer block derived from the tool calls.
+- PDF/share-link export polish for report templates (Phase 4B leftovers).
+- Tier limits on agent generations before broad release.
