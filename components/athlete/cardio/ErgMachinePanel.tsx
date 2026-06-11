@@ -55,6 +55,10 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
   const locale = useLocale()
   const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [busySlot, setBusySlot] = useState<string | null>(null)
+  // Samsung Internet exposes navigator.bluetooth (so the supported-gate passes)
+  // but its scanner finds nothing in practice — steer those users to Chrome.
+  const isSamsungInternet =
+    typeof navigator !== 'undefined' && navigator.userAgent.includes('SamsungBrowser')
   // After a failed/cancelled attempt, offer an unfiltered chooser for that
   // slot — the escape hatch when a machine doesn't show up in the list.
   const [fallbackSlot, setFallbackSlot] = useState<string | null>(null)
@@ -178,6 +182,15 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
             {tw('Visa alla Bluetooth-enheter', 'Show all Bluetooth devices')}
           </Button>
         </div>
+      )}
+
+      {isSamsungInternet && (
+        <p className="text-center text-xs font-medium text-amber-600 dark:text-amber-400">
+          {tw(
+            'Samsung Internet hittar oftast inga maskiner — öppna passet i Chrome istället.',
+            "Samsung Internet usually finds no machines — open the workout in Chrome instead."
+          )}
+        </p>
       )}
 
       {!fleet.isSupported && (
