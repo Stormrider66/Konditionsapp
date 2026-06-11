@@ -38,7 +38,12 @@ import {
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
 import { SegmentLoggingForm } from './SegmentLoggingForm'
-import { resolveSegmentPower, equipmentUsesPower } from '@/lib/cardio/focus-mode-segments'
+import {
+  resolveSegmentPower,
+  equipmentUsesPower,
+  equipmentIsRowing,
+  equipmentIsAirbike,
+} from '@/lib/cardio/focus-mode-segments'
 import {
   useVoiceCoach,
   buildSegmentStartCue,
@@ -165,18 +170,28 @@ export function CardioFocusModeWorkout({
   const liveCoachConnectedRef = useRef(false)
   const hr = useAthleteHR(liveCoachConnectedRef.current)
 
-  // Live Wattbike power (focus-mode). All UI/effects below are gated on a
-  // power-based workout + an actually-connected bike, so non-bike sessions are
-  // unaffected. tw() handles the few new strings without touching the shared catalogs.
+  // Live erg power (focus-mode): Wattbike/FTMS bikes, airbikes, and Concept2
+  // PM5 ergs (row/ski) all stream through the same client. All UI/effects below
+  // are gated on a power-based workout + an actually-connected machine, so other
+  // sessions are unaffected. tw() handles the few new strings without touching
+  // the shared catalogs.
   const locale = useLocale()
   const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const wb = useWattbike({ reconnectKnownOnMount: true })
   // Stream power to the coach's live team grid when the athlete is in a session.
   const { activeSessionId: liveSessionId } = useLivePowerPush(wb.client, wb.status === 'connected')
   const [ergEnabled, setErgEnabled] = useState(true)
-  const [measuredForForm, setMeasuredForForm] = useState<{ actualAvgPower?: number; actualMaxPower?: number }>({})
+  const [measuredForForm, setMeasuredForForm] = useState<{
+    actualAvgPower?: number
+    actualMaxPower?: number
+    actualDistance?: number
+  }>({})
   const segPowerRef = useRef<number[]>([])
   const segMaxRef = useRef(0)
+  // Rower distance is cumulative for the session; the segment's metres are the
+  // delta between the first and last sample seen while accumulating.
+  const segDistStartRef = useRef<number | null>(null)
+  const segDistLastRef = useRef<number | null>(null)
   const accumulatingRef = useRef(false)
 
   // Live AI Voice Coach (Gemini Live API)
@@ -247,7 +262,7 @@ export function CardioFocusModeWorkout({
     : 0
   const restCountdownForForm = followingRestSeconds > 0 ? followingRestSeconds : undefined
 
-  // Does this workout involve power at all? Gates the whole Wattbike strip.
+  // Does this workout involve power at all? Gates the whole live-erg strip.
   const usesPower = segments.some(
     (s) =>
       equipmentUsesPower(s.equipment) ||
@@ -256,22 +271,55 @@ export function CardioFocusModeWorkout({
       s.isBenchmark === true
   )
 
-  // Average / peak watts measured for the current segment's effort.
-  const segmentMeasured = useCallback((): { actualAvgPower?: number; actualMaxPower?: number } => {
+  // Name the connect button after the workout's equipment so a rowing session
+  // doesn't ask the athlete to "connect Wattbike".
+  const hasRowingEquip = segments.some((s) => equipmentIsRowing(s.equipment))
+  const hasBikeEquip = segments.some(
+    (s) => equipmentUsesPower(s.equipment) && !equipmentIsRowing(s.equipment)
+  )
+  const connectLabel =
+    hasRowingEquip && hasBikeEquip
+      ? tw('Anslut maskin (Bluetooth)', 'Connect machine (Bluetooth)')
+      : hasRowingEquip
+        ? tw('Anslut Concept2 (PM5)', 'Connect Concept2 (PM5)')
+        : segments.some((s) => equipmentIsAirbike(s.equipment))
+          ? tw('Anslut airbike', 'Connect airbike')
+          : tw('Anslut Wattbike', 'Connect Wattbike')
+
+  // Average / peak watts (and rower metres) measured for the current segment's effort.
+  const segmentMeasured = useCallback((): {
+    actualAvgPower?: number
+    actualMaxPower?: number
+    actualDistance?: number
+  } => {
+    const out: { actualAvgPower?: number; actualMaxPower?: number; actualDistance?: number } = {}
     const arr = segPowerRef.current
-    if (arr.length === 0) return {}
-    return {
-      actualAvgPower: Math.round(arr.reduce((a, b) => a + b, 0) / arr.length),
-      actualMaxPower: Math.round(segMaxRef.current),
+    if (arr.length > 0) {
+      out.actualAvgPower = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
+      out.actualMaxPower = Math.round(segMaxRef.current)
     }
+    const start = segDistStartRef.current
+    const last = segDistLastRef.current
+    if (start != null && last != null && last > start) {
+      out.actualDistance = Math.round(last - start) / 1000 // metres → km
+    }
+    return out
   }, [])
 
   // Subscribe once to the BLE stream; collect samples only during a work effort.
   useEffect(() => {
     const off = wb.client.on('data', (s) => {
-      if (!accumulatingRef.current || typeof s.power !== 'number') return
-      segPowerRef.current.push(s.power)
-      if (s.power > segMaxRef.current) segMaxRef.current = s.power
+      if (!accumulatingRef.current) return
+      if (typeof s.power === 'number') {
+        segPowerRef.current.push(s.power)
+        if (s.power > segMaxRef.current) segMaxRef.current = s.power
+      }
+      // Only rower distance is trusted (it IS the rowing metric); bike distance
+      // is virtual/speed-derived, so it stays manual there.
+      if (s.source === 'ftms-rower' && typeof s.distance === 'number') {
+        if (segDistStartRef.current == null) segDistStartRef.current = s.distance
+        segDistLastRef.current = s.distance
+      }
     })
     return off
   }, [wb.client])
@@ -286,15 +334,19 @@ export function CardioFocusModeWorkout({
   useEffect(() => {
     segPowerRef.current = []
     segMaxRef.current = 0
+    segDistStartRef.current = null
+    segDistLastRef.current = null
   }, [currentIndex])
 
-  // ERG: set the bike's resistance to the segment's target watts (opt-out via toggle).
+  // ERG: set the bike's resistance to the segment's target watts (opt-out via
+  // toggle). Bikes with a motor brake only — airbikes and rowing ergs are
+  // air-resistance, there is no target to set.
   useEffect(() => {
-    if (!ergEnabled || wb.status !== 'connected' || !wb.canControl) return
+    if (!ergEnabled || wb.status !== 'connected' || !wb.canControl || wb.machineKind !== 'bike') return
     if (!isWorkType(currentSegment?.type) || typeof currentTargetPower !== 'number') return
     void wb.setTargetPower(currentTargetPower)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, currentTargetPower, ergEnabled, wb.status, wb.canControl])
+  }, [currentIndex, currentTargetPower, ergEnabled, wb.status, wb.canControl, wb.machineKind])
 
   // Advance to a segment and show its timer. Auto-started intervals begin running
   // immediately — the get-ready heads-up is the "ten seconds left" cue on the
@@ -403,11 +455,13 @@ export function CardioFocusModeWorkout({
     if (isSubmitting) return
     setIsSubmitting(true)
 
-    // Fold in bike-measured power: avg already pre-fills the form, max has no field.
+    // Fold in machine-measured values: avg power and rower distance already
+    // pre-fill the form, max power has no field.
     const merged = {
       ...data,
       actualAvgPower: data.actualAvgPower ?? measuredForForm.actualAvgPower,
       actualMaxPower: data.actualMaxPower ?? measuredForForm.actualMaxPower,
+      actualDistance: data.actualDistance ?? measuredForForm.actualDistance,
     }
 
     try {
@@ -590,7 +644,7 @@ export function CardioFocusModeWorkout({
         </div>
       </div>
 
-      {/* Live Wattbike strip — only for power workouts */}
+      {/* Live erg strip (bike / airbike / Concept2) — only for power workouts */}
       {usesPower && (
         <div className="px-4 py-2 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-white/5">
           {wb.status === 'connected' ? (
@@ -614,10 +668,24 @@ export function CardioFocusModeWorkout({
                     {tw('Live till coach', 'Live to coach')}
                   </span>
                 )}
-                {wb.latest?.cadence != null && (
-                  <span className="tabular-nums">{Math.round(wb.latest.cadence)} rpm</span>
+                {wb.machineKind === 'rower' ? (
+                  <>
+                    {wb.latest?.pace != null && (
+                      <span className="tabular-nums font-semibold">
+                        {formatDuration(wb.latest.pace)}
+                        <span className="font-normal text-xs">/500m</span>
+                      </span>
+                    )}
+                    {wb.latest?.strokeRate != null && (
+                      <span className="tabular-nums">{Math.round(wb.latest.strokeRate)} spm</span>
+                    )}
+                  </>
+                ) : (
+                  wb.latest?.cadence != null && (
+                    <span className="tabular-nums">{Math.round(wb.latest.cadence)} rpm</span>
+                  )
                 )}
-                {wb.canControl && (
+                {wb.canControl && wb.machineKind === 'bike' && (
                   <button
                     type="button"
                     onClick={() => setErgEnabled((v) => !v)}
@@ -643,14 +711,14 @@ export function CardioFocusModeWorkout({
               className="w-full"
               title={
                 !wb.isSupported
-                  ? tw('Live-data kräver Chrome på Android eller dator', 'Live bike data needs Chrome on Android or desktop')
+                  ? tw('Live-data kräver Chrome på Android eller dator', 'Live machine data needs Chrome on Android or desktop')
                   : undefined
               }
             >
               <Bluetooth className="mr-2 h-4 w-4" />
               {wb.status === 'connecting' || wb.status === 'reconnecting'
                 ? tw('Ansluter…', 'Connecting…')
-                : tw('Anslut Wattbike', 'Connect Wattbike')}
+                : connectLabel}
             </Button>
           )}
         </div>
@@ -667,6 +735,7 @@ export function CardioFocusModeWorkout({
             segmentNumber={currentIndex + 1}
             totalSegments={segments.length}
             targetPace={currentSegment.plannedPace}
+            paceUnit={equipmentIsRowing(currentSegment.equipment) ? '/500m' : '/km'}
             targetZone={currentSegment.plannedZone}
             targetDistance={currentSegment.plannedDistance}
             targetPower={currentTargetPower}
@@ -713,9 +782,11 @@ export function CardioFocusModeWorkout({
             plannedDuration={currentSegment.plannedDuration}
             plannedDistance={currentSegment.plannedDistance}
             plannedPace={currentSegment.plannedPace}
+            paceUnit={equipmentIsRowing(currentSegment.equipment) ? '/500m' : '/km'}
             plannedZone={currentSegment.plannedZone}
             plannedPower={currentTargetPower}
             defaultAvgPower={measuredForForm.actualAvgPower}
+            defaultDistance={measuredForForm.actualDistance}
             showPower={
               (currentSegment.type === 'INTERVAL' || currentSegment.type === 'STEADY' || currentSegment.type === 'HILL') &&
               (equipmentUsesPower(currentSegment.equipment) ||

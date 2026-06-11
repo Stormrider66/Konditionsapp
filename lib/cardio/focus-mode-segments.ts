@@ -156,6 +156,18 @@ export function equipmentUsesPower(equipment?: string | null): boolean {
   return !!equipment && POWER_EQUIPMENT.has(equipment)
 }
 
+// Concept2 ergs (PM5 monitor): pace is read per 500 m, effort is stroke-based.
+const ROWING_EQUIPMENT = new Set(['ROW', 'SKI_ERG'])
+export function equipmentIsRowing(equipment?: string | null): boolean {
+  return !!equipment && ROWING_EQUIPMENT.has(equipment)
+}
+
+// Fan bikes: report power over FTMS but have no motor brake, so no ERG control.
+const AIRBIKE_EQUIPMENT = new Set(['ASSAULT_BIKE', 'ECHO_BIKE'])
+export function equipmentIsAirbike(equipment?: string | null): boolean {
+  return !!equipment && AIRBIKE_EQUIPMENT.has(equipment)
+}
+
 // Parse a power string ("250", "240-260") into an absolute watt number (first integer).
 export function parsePowerToWatts(power: string | undefined): number | undefined {
   if (!power) return undefined

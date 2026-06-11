@@ -38,8 +38,10 @@ interface IntervalTimerProps {
   segmentNumber: number
   /** Total segments */
   totalSegments: number
-  /** Target pace in sec/km (optional) */
+  /** Target pace in sec/km — or sec/500m for rowing ergs (optional) */
   targetPace?: number
+  /** Unit suffix for the pace display. Default '/km'; '/500m' for row/ski erg. */
+  paceUnit?: string
   /** Target zone 1-5 (optional) */
   targetZone?: number
   /** Target distance in km (optional) */
@@ -157,6 +159,7 @@ export function IntervalTimer({
   segmentNumber,
   totalSegments,
   targetPace,
+  paceUnit = '/km',
   targetZone,
   targetDistance,
   targetPower,
@@ -319,11 +322,11 @@ export function IntervalTimer({
     return `${mins}:${remainingSecs.toString().padStart(2, '0')}`
   }
 
-  // Format pace (sec/km to mm:ss)
+  // Format pace (seconds to mm:ss + unit)
   const formatPace = (paceSeconds: number) => {
     const mins = Math.floor(paceSeconds / 60)
     const secs = paceSeconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}/km`
+    return `${mins}:${secs.toString().padStart(2, '0')}${paceUnit}`
   }
 
   // Get color based on time remaining

@@ -36,9 +36,13 @@ interface SegmentLoggingFormProps {
   plannedPace?: number
   plannedZone?: number
   plannedPower?: number
+  /** Unit suffix for the planned-pace display. Default '/km'; '/500m' for row/ski erg. */
+  paceUnit?: string
   showPower?: boolean
-  /** Bike-measured average watts to pre-fill the avg-power field (Wattbike capture). */
+  /** Machine-measured average watts to pre-fill the avg-power field (live erg capture). */
   defaultAvgPower?: number
+  /** Machine-measured distance in km to pre-fill the distance field (rower capture). */
+  defaultDistance?: number
   isBenchmark?: boolean
   /** When set, the following rest runs as a live countdown that auto-submits. */
   restCountdownSeconds?: number
@@ -82,8 +86,10 @@ export function SegmentLoggingForm({
   plannedPace,
   plannedZone,
   plannedPower,
+  paceUnit = '/km',
   showPower = false,
   defaultAvgPower,
+  defaultDistance,
   isBenchmark = false,
   restCountdownSeconds,
   restHandoffAt = 0,
@@ -98,7 +104,9 @@ export function SegmentLoggingForm({
     const seconds = timerDuration || plannedDuration
     return seconds ? String(Math.round(seconds / 60)) : ''
   })
-  const [actualDistance, setActualDistance] = useState<string>('')
+  const [actualDistance, setActualDistance] = useState<string>(
+    defaultDistance != null ? String(defaultDistance) : ''
+  )
   const [actualAvgHR, setActualAvgHR] = useState<string>('')
   const [actualMaxHR, setActualMaxHR] = useState<string>('')
   const [actualAvgPower, setActualAvgPower] = useState<string>(
@@ -117,7 +125,7 @@ export function SegmentLoggingForm({
   const formatPace = (paceSeconds: number) => {
     const mins = Math.floor(paceSeconds / 60)
     const secs = paceSeconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}/km`
+    return `${mins}:${secs.toString().padStart(2, '0')}${paceUnit}`
   }
 
   const handleSubmit = () => {
