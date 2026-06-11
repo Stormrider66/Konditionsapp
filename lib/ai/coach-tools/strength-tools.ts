@@ -2,12 +2,11 @@
  * Coach chat tools for strength sessions and full training programs.
  */
 
-import { tool, type LanguageModel } from 'ai'
+import { tool } from 'ai'
 import { z } from 'zod'
 import { generateText } from 'ai'
-import { createAnthropic } from '@ai-sdk/anthropic'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { createOpenAI } from '@ai-sdk/openai'
+import { createModelInstance } from '@/lib/ai/create-model'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { prisma } from '@/lib/prisma'
 import { generateStrengthSession, generateWeeklyProgram, type AutoGenerateParams } from '@/lib/training-engine/generators/auto-strength-generator'
 import { calculatePhases, estimateGenerationMinutes, generateMultiPartProgram, type GenerationContext } from '@/lib/ai/program-generator'
@@ -449,17 +448,9 @@ export function createStrengthTools(ctx: CoachToolContext) {
             }
           }
 
-          let aiModel: LanguageModel
-          if (resolved.provider === 'anthropic') {
-            const anthropic = createAnthropic({ apiKey: resolved.apiKey })
-            aiModel = anthropic(resolved.modelId)
-          } else if (resolved.provider === 'google') {
-            const google = createGoogleGenerativeAI({ apiKey: resolved.apiKey })
-            aiModel = google(resolved.modelId)
-          } else {
-            const openai = createOpenAI({ apiKey: resolved.apiKey })
-            aiModel = openai(resolved.modelId)
-          }
+          // createModelInstance applies the usage-logging middleware so this
+          // call lands in AIUsageLog (raw provider factories bypass it).
+          const aiModel = createModelInstance(resolved)
 
           const prompt = `Create a complementary strength session for a hockey/team-sport context.
 
@@ -512,12 +503,15 @@ Exercise library:
 ${JSON.stringify(exerciseLibrary, null, 2)}
 `
 
-          const result = await generateText({
-            model: aiModel,
-            system: 'You are an elite hockey strength and conditioning coach. Return only valid JSON.',
-            prompt,
-            maxOutputTokens: 5000,
-          })
+          const result = await withAiContext(
+            { userId: coachUserId, category: 'coach_strength_session' },
+            () => generateText({
+              model: aiModel,
+              system: 'You are an elite hockey strength and conditioning coach. Return only valid JSON.',
+              prompt,
+              maxOutputTokens: 5000,
+            }),
+          )
 
           const generated = extractJsonObject(result.text) as Record<string, unknown>
           const sectionsValue = generated.sections && typeof generated.sections === 'object'
@@ -690,28 +684,21 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
             }
           }
 
-          // Create model instance
-          let aiModel: any
-          if (resolved.provider === 'anthropic') {
-            const anthropic = createAnthropic({ apiKey: resolved.apiKey })
-            aiModel = anthropic(resolved.modelId)
-          } else if (resolved.provider === 'google') {
-            const google = createGoogleGenerativeAI({ apiKey: resolved.apiKey })
-            aiModel = google(resolved.modelId)
-          } else {
-            const openai = createOpenAI({ apiKey: resolved.apiKey })
-            aiModel = openai(resolved.modelId)
-          }
+          // Create model instance (usage-logging middleware applied)
+          const aiModel = createModelInstance(resolved)
 
           // Call AI
-          const result = await generateText({
-            model: aiModel,
-            system: locale === 'sv'
-              ? 'Du är en expert på styrketräning. Returnera ALLTID ett giltigt JSON-objekt i ett ```json``` kodblock.'
-              : 'You are an expert in strength training. ALWAYS return a valid JSON object in a ```json``` code block. Write every user-facing string in English.',
-            prompt,
-            maxOutputTokens: 4096,
-          })
+          const result = await withAiContext(
+            { userId: coachUserId, category: 'coach_strength_session' },
+            () => generateText({
+              model: aiModel,
+              system: locale === 'sv'
+                ? 'Du är en expert på styrketräning. Returnera ALLTID ett giltigt JSON-objekt i ett ```json``` kodblock.'
+                : 'You are an expert in strength training. ALWAYS return a valid JSON object in a ```json``` code block. Write every user-facing string in English.',
+              prompt,
+              maxOutputTokens: 4096,
+            }),
+          )
 
           // Parse the JSON from the response
           const jsonMatch = result.text.match(/```json\s*([\s\S]*?)\s*```/)

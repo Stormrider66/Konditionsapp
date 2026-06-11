@@ -15,9 +15,9 @@
  */
 
 import type Anthropic from '@anthropic-ai/sdk'
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
-import { createOpenAI } from '@ai-sdk/openai'
 import { generateText, jsonSchema, stepCountIs, tool, type ToolSet } from 'ai'
+import { createModelInstance } from '@/lib/ai/create-model'
+import { withAiContext } from '@/lib/ai/usage-logger'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { MODEL_TIERS, type ModelIntent } from '@/types/ai-models'
@@ -318,9 +318,16 @@ export async function runAgentLoop(
     throw new Error('OPENAI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY not configured')
   }
 
-  const aiModel = selectedModel.provider === 'openai'
-    ? createOpenAI({ apiKey: selectedModel.apiKey })(selectedModel.modelId)
-    : createGoogleGenerativeAI({ apiKey: selectedModel.apiKey })(selectedModel.modelId)
+  // Route through createModelInstance so the usage-logging middleware writes
+  // AIUsageLog rows — operator spend must be visible in the central ledger,
+  // not only in OperatorAgentRun.costUsd.
+  const aiModel = createModelInstance({
+    provider: selectedModel.provider,
+    modelId: selectedModel.modelId,
+    apiKey: selectedModel.apiKey,
+    displayName: selectedModel.modelId,
+    supportsVision: false,
+  })
 
   const toolsUsed: string[] = []
 
@@ -342,13 +349,18 @@ export async function runAgentLoop(
     ])
   )
 
-  const result = await generateWithRetry({
-    model: aiModel,
-    system: definition.systemPrompt,
-    prompt: initialPrompt,
-    tools: aiTools,
-    stopWhen: stepCountIs(maxIterations),
-  })
+  // Platform-funded system spend: no user/client to attribute, so the ledger
+  // rows are intentionally unattributed under the 'operator_agent' category.
+  const result = await withAiContext(
+    { userId: null, clientId: null, category: 'operator_agent' },
+    () => generateWithRetry({
+      model: aiModel,
+      system: definition.systemPrompt,
+      prompt: initialPrompt,
+      tools: aiTools,
+      stopWhen: stepCountIs(maxIterations),
+    }),
+  )
 
   const inputTokens = result.usage?.inputTokens ?? 0
   const outputTokens = result.usage?.outputTokens ?? 0
