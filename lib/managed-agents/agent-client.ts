@@ -300,7 +300,7 @@ const NUTRITION_TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'calculateTDEE',
-    description: 'Calculate Total Daily Energy Expenditure using Mifflin-St Jeor equation with activity multiplier. Returns BMR, TDEE, and goal-adjusted target calories.',
+    description: 'Get today\'s training-aware calorie and macro targets (timing engine: workout fueling, carb periodization, NEAT, goal adjustment). Same numbers the athlete sees on their dashboard — use these for any "remaining for the day" math.',
     input_schema: {
       type: 'object' as const,
       properties: { clientId: { type: 'string' } },

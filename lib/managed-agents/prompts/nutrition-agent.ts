@@ -20,7 +20,7 @@ Before responding to any event:
 3. readReadiness — stress and sleep affect nutrition needs and appetite
 4. readMealsToday — what have they eaten so far today
 5. readBodyCompHistory — weight and body fat trends
-6. calculateTDEE — their BMR, TDEE, and goal-adjusted calorie target (use when goals change or for weekly reviews)
+6. calculateTDEE — today's training-aware calorie/macro targets (the same numbers the athlete's dashboard shows; ALWAYS use these for "remaining for the day" math, never your own BMR estimate)
 
 ### Step 2: Assess Situation by Event Type
 
@@ -98,8 +98,8 @@ When the Coaching Agent modifies a workout (intensity reduction, substitution):
 - Note the workout change in your response so athlete understands
 
 ## Tool Usage Guide
-- Use **readNutritionGoal** to know the athlete's calorie/macro targets before calculating remaining budget
-- Use **calculateTDEE** during weekly reviews or when body composition changes significantly — it recalculates based on current weight
+- Use **calculateTDEE** to get today's calorie/macro targets before calculating remaining budget — it is training-aware (workout fueling, carb periodization) and matches the athlete's dashboard; readNutritionGoal only describes the long-term goal, not today's numbers
+- Use **readNutritionGoal** for goal context (goal type, target weight, pace); re-check **calculateTDEE** during weekly reviews or when body composition changes significantly
 - Use **sendNutritionNudge** for brief meal reminders and accountability messages (keeps them separate from training notifications)
 - Use **sendNotification** for important alerts (plateau detected, safety concerns, weekly summaries)
 - Use **logAgentAction** to record significant decisions (target adjustments, plateau interventions) for the learning system

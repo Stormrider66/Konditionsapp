@@ -10,6 +10,9 @@
 
 import { prisma } from '@/lib/prisma'
 import type { ToolResult } from './types'
+import { dayKeyInTimeZone, utcDateFromDayKey } from '@/lib/nutrition/day-key'
+import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
+import { getDailyTargetsForDays } from '@/lib/nutrition-timing/daily-targets-range'
 
 // ============================================================================
 // READ TOOLS - No side effects, no consent required
@@ -440,13 +443,15 @@ async function readGarminLatest(clientId: string): Promise<ToolResult> {
 }
 
 async function readMealsToday(clientId: string): Promise<ToolResult> {
-  const startOfDay = new Date()
-  startOfDay.setHours(0, 0, 0, 0)
+  // "Today" is the athlete's calendar day; MealLog.date is the UTC-midnight
+  // representation of that day, so match it exactly.
+  const timezone = await getAthleteTimezone(clientId)
+  const todayKey = dayKeyInTimeZone(new Date(), timezone)
 
   const meals = await prisma.mealLog.findMany({
     where: {
       clientId,
-      date: { gte: startOfDay },
+      date: utcDateFromDayKey(todayKey),
     },
     include: {
       items: true,
@@ -946,69 +951,51 @@ async function readNutritionGoal(clientId: string): Promise<ToolResult> {
 }
 
 async function calculateTDEE(clientId: string): Promise<ToolResult> {
-  const client = await prisma.client.findUnique({
-    where: { id: clientId },
-    select: { gender: true, birthDate: true, weight: true, height: true },
-  })
+  // Per-day targets MUST come from the timing engine (training-aware: workout
+  // fueling, carb periodization, NEAT, guardrails) — a static Mifflin-St Jeor
+  // estimate here would contradict the numbers the athlete sees on the
+  // dashboard/stats surfaces, which all use getDailyTargetsForDays.
+  const [client, latestBodyComp, goal] = await Promise.all([
+    prisma.client.findUnique({
+      where: { id: clientId },
+      select: { weight: true },
+    }),
+    prisma.bodyComposition.findFirst({
+      where: { clientId },
+      orderBy: { measurementDate: 'desc' },
+      select: { weightKg: true },
+    }),
+    prisma.nutritionGoal.findUnique({ where: { clientId } }),
+  ])
 
-  const latestBodyComp = await prisma.bodyComposition.findFirst({
-    where: { clientId },
-    orderBy: { measurementDate: 'desc' },
-  })
-
-  const goal = await prisma.nutritionGoal.findUnique({
-    where: { clientId },
-  })
-
-  const weight = latestBodyComp?.weightKg || client?.weight
-  if (!weight) {
-    return { success: false, error: 'No weight data available for TDEE calculation' }
+  const timezone = await getAthleteTimezone(clientId)
+  const todayKey = dayKeyInTimeZone(new Date(), timezone)
+  const targetsForDays = await getDailyTargetsForDays({ clientId, dayKeys: [todayKey] })
+  const today = targetsForDays?.[0]
+  if (!today) {
+    return { success: false, error: 'Could not compute daily targets for this athlete' }
   }
 
-  const height = client?.height || 175
-  const age = client?.birthDate
-    ? Math.floor((Date.now() - new Date(client.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
-    : 30
-
-  // Mifflin-St Jeor equation
-  const isMale = client?.gender === 'MALE'
-  const bmr = isMale
-    ? 10 * weight + 6.25 * height - 5 * age + 5
-    : 10 * weight + 6.25 * height - 5 * age - 161
-
-  // Activity multiplier
-  const multipliers: Record<string, number> = {
-    SEDENTARY: 1.2,
-    LIGHTLY_ACTIVE: 1.375,
-    MODERATELY_ACTIVE: 1.55,
-    VERY_ACTIVE: 1.725,
-    EXTRA_ACTIVE: 1.9,
-    ELITE_ATHLETE: 2.0,
-  }
-
-  const activityLevel = goal?.activityLevel || 'MODERATELY_ACTIVE'
-  const multiplier = multipliers[activityLevel] || 1.55
-  const tdee = Math.round(bmr * multiplier)
-
-  // Adjust for goal
-  let targetCalories = tdee
-  if (goal?.goalType === 'WEIGHT_LOSS') {
-    const weeklyDeficit = (goal.weeklyChangeKg || 0.5) * 7700 // kcal per kg fat
-    targetCalories = Math.max(1200, tdee - Math.round(weeklyDeficit / 7))
-  } else if (goal?.goalType === 'WEIGHT_GAIN') {
-    const weeklySurplus = (goal.weeklyChangeKg || 0.25) * 7700
-    targetCalories = tdee + Math.round(weeklySurplus / 7)
-  }
-
+  const t = today.targets
   return {
     success: true,
     data: {
-      bmr: Math.round(bmr),
-      tdee,
-      activityLevel,
-      targetCalories,
+      date: todayKey,
+      targetCalories: t.caloriesKcal,
+      proteinG: t.proteinG,
+      carbsG: t.carbsG,
+      fatG: t.fatG,
+      hydrationMl: t.hydrationMl,
+      carbLoadCategory: t.carbLoadCategory,
+      breakdown: {
+        baselineKcal: t.baselineKcal,
+        lifestyleAdjustmentKcal: t.lifestyleAdjustmentKcal,
+        workoutAdjustmentKcal: t.workoutAdjustmentKcal,
+      },
+      activityLevel: goal?.activityLevel || 'MODERATELY_ACTIVE',
       goalType: goal?.goalType || 'MAINTAIN',
-      currentWeight: weight,
+      currentWeight: latestBodyComp?.weightKg || client?.weight || null,
+      note: 'Training-aware targets for today — same numbers as the athlete dashboard.',
     },
   }
 }

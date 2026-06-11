@@ -29,6 +29,8 @@ import {
 } from '@/lib/ai/capabilities/action-drafts'
 import { createAthleteReadTools } from '@/lib/ai/athlete-read-tools'
 import { createAthleteWorkoutWriteTools } from '@/lib/ai/athlete-workout-tools'
+import { dayKeyFromInput, dayKeyInTimeZone, utcDateFromDayKey } from '@/lib/nutrition/day-key'
+import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
 
 /** Capabilities that control which tools are available */
 export interface ChatToolCapabilities {
@@ -278,13 +280,21 @@ export function createChatTools(
       }),
       execute: async ({ date, mealType, time, description, calories, proteinGrams, carbsGrams, fatGrams, isPreWorkout, isPostWorkout }) => {
         try {
-          const mealDate = date || new Date().toISOString().split('T')[0]
+          // "Today" must be the athlete's calendar day, not the server-UTC day
+          // (MealLog.date is UTC midnight of the athlete-local day).
+          const timezone = await getAthleteTimezone(clientId)
+          const dayKey = date
+            ? dayKeyFromInput(date, timezone)
+            : dayKeyInTimeZone(new Date(), timezone)
+          if (!dayKey) {
+            return { success: false, error: chatText(locale, 'Invalid date.', 'Ogiltigt datum.') }
+          }
           const isHighProtein = proteinGrams != null && proteinGrams >= 20
 
           const meal = await prisma.mealLog.create({
             data: {
               clientId,
-              date: new Date(mealDate),
+              date: utcDateFromDayKey(dayKey),
               mealType,
               time: time || null,
               description,
@@ -427,16 +437,20 @@ export function createChatTools(
       }),
       execute: async ({ date, limit }) => {
         try {
-          const queryDate = date ? new Date(date) : new Date()
-          const startOfDay = new Date(queryDate)
-          startOfDay.setHours(0, 0, 0, 0)
-          const endOfDay = new Date(queryDate)
-          endOfDay.setHours(23, 59, 59, 999)
+          // MealLog.date is UTC midnight of the athlete's calendar day — match
+          // it exactly instead of bracketing with server-local day bounds.
+          const timezone = await getAthleteTimezone(clientId)
+          const dayKey = date
+            ? dayKeyFromInput(date, timezone)
+            : dayKeyInTimeZone(new Date(), timezone)
+          if (!dayKey) {
+            return { success: false, error: chatText(locale, 'Invalid date.', 'Ogiltigt datum.') }
+          }
 
           const meals = await prisma.mealLog.findMany({
             where: {
               clientId,
-              date: { gte: startOfDay, lte: endOfDay },
+              date: utcDateFromDayKey(dayKey),
             },
             orderBy: { createdAt: 'desc' },
             take: limit || 10,
@@ -454,7 +468,7 @@ export function createChatTools(
 
           return {
             success: true,
-            date: queryDate.toISOString().split('T')[0],
+            date: dayKey,
             meals: meals.map(m => ({
               id: m.id,
               mealType: m.mealType,
