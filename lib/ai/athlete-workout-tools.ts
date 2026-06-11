@@ -586,5 +586,147 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
         }
       },
     }),
+
+    // ── Create a structured cardio/erg session, assigned and startable ──
+    createCardioWorkout: tool({
+      description: chatText(
+        locale,
+        'Create a structured cardio/erg session (intervals, EMOM rounds, machine circuits) and assign it to the athlete so it can be started in focus mode with live machine data. Use when the athlete asks for a cardio, rowing, BikeErg, SkiErg, bike or interval workout to DO (not one they already did). Each station can have a fixed time window (e.g. 60 s on the minute), a calorie goal, or both — with both, the window runs on the clock and the calories are the goal within it.',
+        'Skapa ett strukturerat konditions-/ergometerpass (intervaller, EMOM-rundor, maskincirklar) och tilldela det till atleten så att det kan startas i fokusläge med live-maskindata. Använd när atleten ber om ett konditions-, rodd-, BikeErg-, SkiErg-, cykel- eller intervallpass att GÖRA (inte ett de redan gjort). Varje station kan ha ett fast tidsfönster (t.ex. 60 s varje minut), ett kalorimål, eller båda — med båda går fönstret på klockan och kalorierna är målet inom det.'
+      ),
+      inputSchema: z.object({
+        name: z.string().describe('Short session name, e.g. "Triple erg EMOM".'),
+        description: z.string().optional().describe('One-line description of the session.'),
+        sport: z.enum([
+          'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX',
+          'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH',
+          'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL',
+          'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL',
+        ]).optional().describe('Sport. Default GENERAL_FITNESS.'),
+        date: z.string().optional().describe('Assignment date (YYYY-MM-DD). Default: today.'),
+        warmupMinutes: z.number().int().min(1).max(60).optional().describe('Optional warm-up duration in minutes.'),
+        cooldownMinutes: z.number().int().min(1).max(60).optional().describe('Optional cool-down duration in minutes.'),
+        rounds: z.number().int().min(1).max(30).optional().describe('Rounds of the station circuit. Default 1.'),
+        restBetweenRoundsSeconds: z.number().int().min(5).max(600).optional().describe('Rest between rounds in seconds.'),
+        stations: z.array(z.object({
+          equipment: z.enum([
+            'RUN', 'TREADMILL', 'BIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'WATTBIKE',
+            'BIKE_ERG', 'ROW', 'SKI_ERG', 'SWIM', 'OTHER',
+          ]).optional().describe('Machine/modality. Concept2 machines: BIKE_ERG, ROW, SKI_ERG.'),
+          durationSeconds: z.number().int().min(10).max(3600).optional().describe('Fixed work window in seconds (e.g. 60 for on-the-minute work).'),
+          calories: z.number().int().min(1).max(200).optional().describe('Calorie goal. Without durationSeconds the station ends when the target is reached.'),
+          distanceMeters: z.number().int().min(50).max(50000).optional().describe('Distance in meters, if distance-based.'),
+          targetWatts: z.number().int().min(30).max(1000).optional().describe('Power target in watts.'),
+          zone: z.number().int().min(1).max(5).optional().describe('Intensity zone 1-5.'),
+          notes: z.string().optional(),
+        })).min(1).max(10).describe('The stations of one round, in order.'),
+      }),
+      execute: async ({ name, description, sport, date, warmupMinutes, cooldownMinutes, rounds, restBetweenRoundsSeconds, stations }) => {
+        try {
+          const client = await prisma.client.findUnique({
+            where: { id: clientId },
+            select: { userId: true },
+          })
+          if (!client) {
+            return { success: false, error: chatText(locale, 'Athlete profile not found.', 'Atletprofilen hittades inte.') }
+          }
+
+          const repeats = rounds ?? 1
+          const steps = stations.map((station, index) => ({
+            id: `station-${index + 1}`,
+            type: 'INTERVAL',
+            duration: station.durationSeconds,
+            calories: station.calories,
+            distance: station.distanceMeters,
+            equipment: station.equipment,
+            zone: station.zone,
+            notes: station.notes,
+            ...(station.targetWatts != null
+              ? { targetType: 'power', targetValue: String(station.targetWatts) }
+              : {}),
+          }))
+
+          const segments: Prisma.InputJsonValue[] = []
+          if (warmupMinutes) {
+            segments.push({ id: 'warmup', type: 'WARMUP', duration: warmupMinutes * 60, zone: 1 })
+          }
+          segments.push({
+            id: 'main',
+            type: 'REPEAT_GROUP',
+            repeats,
+            restBetweenRounds: restBetweenRoundsSeconds,
+            steps,
+          } as unknown as Prisma.InputJsonValue)
+          if (cooldownMinutes) {
+            segments.push({ id: 'cooldown', type: 'COOLDOWN', duration: cooldownMinutes * 60, zone: 1 })
+          }
+
+          const stationSeconds = stations.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0)
+          const totalDuration =
+            (warmupMinutes ?? 0) * 60 +
+            (cooldownMinutes ?? 0) * 60 +
+            repeats * stationSeconds +
+            Math.max(0, repeats - 1) * (restBetweenRoundsSeconds ?? 0)
+
+          const assignedDate = parseWorkoutDate(date)
+
+          const { session, assignment } = await prisma.$transaction(async (tx) => {
+            // coachId = the user owning the client record: the athlete's coach,
+            // or the athlete themself for self-managed accounts.
+            const createdSession = await tx.cardioSession.create({
+              data: {
+                name,
+                description: description ?? null,
+                sport: sport ?? 'GENERAL_FITNESS',
+                segments: segments as unknown as Prisma.InputJsonValue,
+                totalDuration: totalDuration > 0 ? totalDuration : null,
+                coachId: client.userId,
+                isPublic: false,
+                tags: ['ai-chat'],
+              },
+            })
+            const createdAssignment = await tx.cardioSessionAssignment.create({
+              data: {
+                sessionId: createdSession.id,
+                athleteId: clientId,
+                assignedDate,
+                assignedBy: client.userId,
+                notes: chatText(locale, 'Created in AI chat.', 'Skapat i AI-chatten.'),
+              },
+            })
+            return { session: createdSession, assignment: createdAssignment }
+          })
+
+          logger.info('Cardio workout created via chat tool', {
+            clientId,
+            sessionId: session.id,
+            assignmentId: assignment.id,
+            rounds: repeats,
+            stations: stations.length,
+          })
+
+          return {
+            success: true,
+            assignmentId: assignment.id,
+            sessionId: session.id,
+            name,
+            rounds: repeats,
+            stationCount: stations.length,
+            totalDurationSeconds: totalDuration > 0 ? totalDuration : null,
+            // Relative to the athlete area — the chat card prefixes the
+            // business basePath before navigating.
+            startPath: `/athlete/cardio?start=${assignment.id}`,
+            message: chatText(
+              locale,
+              'The session is assigned — open it to start focus mode.',
+              'Passet är tilldelat — öppna det för att starta fokusläget.'
+            ),
+          }
+        } catch (error) {
+          logger.error('createCardioWorkout tool failed', { clientId }, error)
+          return { success: false, error: chatText(locale, 'Could not create the cardio session. Please try again.', 'Kunde inte skapa konditionspasset. Försök igen.') }
+        }
+      },
+    }),
   }
 }

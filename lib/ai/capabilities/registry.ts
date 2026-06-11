@@ -387,6 +387,18 @@ export const AI_CAPABILITY_REGISTRY: AiCapabilityDefinition[] = [
     confirmLabel: 'Complete workout',
   },
   {
+    id: 'createCardioWorkout',
+    label: 'Create cardio workout',
+    description: 'Create a structured cardio/erg session and assign it, startable in focus mode.',
+    role: 'ATHLETE',
+    surface: 'athlete_chat',
+    actionType: 'write',
+    riskLevel: 'medium',
+    requiresConfirmation: true,
+    requiresAthleteConsent: true,
+    confirmLabel: 'Create cardio workout',
+  },
+  {
     id: 'logMeal',
     label: 'Log meal',
     description: 'Create a meal log entry.',

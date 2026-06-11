@@ -52,6 +52,7 @@ import {
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { MemoryIndicator } from './MemoryIndicator'
 import { ChatWorkoutCard } from './ChatWorkoutCard'
+import { ChatCardioWorkoutCard } from './ChatCardioWorkoutCard'
 import { ChatProgramProgressCard } from './ChatProgramProgressCard'
 import { ChatProgramPreviewCard } from './ChatProgramPreviewCard'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
@@ -1301,6 +1302,12 @@ export function AthleteFloatingChat({
               )
               const workoutResult = workoutToolPart ? workoutToolPart.output : null
 
+              // Cardio session created via chat — card opens it in focus mode
+              const cardioToolPart = (message.parts as any[])?.find( // eslint-disable-line
+                part => part.type === 'tool-createCardioWorkout' && part.state === 'output-available' && part.output?.success && part.output?.assignmentId
+              )
+              const cardioResult = cardioToolPart ? cardioToolPart.output : null
+
               // Check for program generation tool results
               const programToolPart = (message.parts as any[])?.find( // eslint-disable-line
                 part => part.type === 'tool-generateTrainingProgram' && part.state === 'output-available' && part.output?.success && part.output?.sessionId
@@ -1341,6 +1348,16 @@ export function AthleteFloatingChat({
                       exerciseCount={workoutResult.exerciseCount}
                       sectionCount={workoutResult.sectionCount}
                       previewImages={workoutResult.previewImages}
+                      basePath={basePath}
+                    />
+                  )}
+                  {cardioResult && (
+                    <ChatCardioWorkoutCard
+                      assignmentId={cardioResult.assignmentId}
+                      name={cardioResult.name}
+                      rounds={cardioResult.rounds ?? 1}
+                      stationCount={cardioResult.stationCount ?? 0}
+                      totalDurationSeconds={cardioResult.totalDurationSeconds}
                       basePath={basePath}
                     />
                   )}

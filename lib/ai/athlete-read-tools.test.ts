@@ -23,6 +23,7 @@ const EXPECTED_TOOL_KEYS = [
 const EXPECTED_WRITE_TOOL_KEYS = [
   'logCompletedWorkout',
   'completeAssignedWorkout',
+  'createCardioWorkout',
 ] as const
 
 describe('createAthleteReadTools', () => {

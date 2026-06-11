@@ -140,6 +140,26 @@ export function AthleteCardioClient({
     void fetchAssignments()
   }, [fetchAssignments])
 
+  // Deep link: /athlete/cardio?start=<assignmentId> opens that assignment's
+  // preview (used by the AI chat's "Open workout" card). window.location is
+  // read directly to avoid the useSearchParams Suspense requirement.
+  const startParamHandled = useRef(false)
+  useEffect(() => {
+    if (loading || startParamHandled.current || typeof window === 'undefined') return
+    const startId = new URLSearchParams(window.location.search).get('start')
+    if (!startId) {
+      startParamHandled.current = true
+      return
+    }
+    startParamHandled.current = true
+    const assignment = assignments.find((a) => a.id === startId)
+    if (assignment) {
+      setSelectedAssignment(assignment)
+      setAutoStartFocus(false)
+      setShowStartScreen(true)
+    }
+  }, [loading, assignments])
+
   // On first load, open the Assigned tab when there's something to do (instead of
   // landing on empty history).
   useEffect(() => {
