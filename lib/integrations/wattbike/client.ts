@@ -1,9 +1,12 @@
 /**
- * WattbikeClient — Web Bluetooth client for the Wattbike Atom (and any FTMS trainer).
+ * WattbikeClient — Web Bluetooth client for FTMS ergs: the Wattbike Atom and
+ * any FTMS bike (Echo V3, FTMS airbikes) via Indoor Bike Data, plus Concept2
+ * PM5 ergs (RowErg / SkiErg) via Rower Data.
  *
- * Reads live power / cadence / speed over the standard Fitness Machine Service
+ * Reads live power / cadence / pace over the standard Fitness Machine Service
  * (FTMS), with a fallback to the Cycling Power Service. Optionally drives ERG
- * (target-power) mode via the FTMS Control Point for ramp / FTP protocols.
+ * (target-power) mode via the FTMS Control Point for ramp / FTP protocols —
+ * bikes with a motor brake only; air-resistance machines have no target to set.
  *
  * Platform note: Web Bluetooth runs in Chrome / Edge / Android Chrome only.
  * Safari and ALL iOS browsers lack `navigator.bluetooth`, so capture must
@@ -14,19 +17,21 @@
  * No external runtime dependencies.
  */
 
+import { parseCyclingPower, parseIndoorBikeData, parseRowerData } from './parsers';
+import type { CrankState } from './parsers';
 import type {
   ControlResponse,
+  MachineKind,
   WattbikeClientOptions,
   WattbikeEvents,
-  WattbikeSample,
-  WattbikeSource,
   WattbikeStatus,
 } from './types';
 
 // ---- BLE service / characteristic UUIDs (16-bit shorthand) -----------------
 
 const FITNESS_MACHINE_SERVICE = 0x1826;
-const INDOOR_BIKE_DATA = 0x2ad2; // notify: power / cadence / speed
+const INDOOR_BIKE_DATA = 0x2ad2; // notify: power / cadence / speed (bikes)
+const ROWER_DATA = 0x2ad1; // notify: power / pace / stroke rate (PM5 row + ski)
 const FTMS_CONTROL_POINT = 0x2ad9; // write + indicate: ERG control
 const FTMS_STATUS = 0x2ada; // notify: machine status (optional)
 
@@ -92,11 +97,11 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
   private controlPoint: BluetoothRemoteGATTCharacteristic | null = null;
 
   private status: WattbikeStatus = 'disconnected';
-  private source: WattbikeSource = 'ftms';
+  private machineKind: MachineKind | null = null;
   private hasControl = false;
 
   // Crank state for cadence derivation in the CPS fallback path.
-  private lastCrank: { revs: number; time: number } | null = null;
+  private lastCrank: CrankState | null = null;
 
   private reconnectAttempts = 0;
   private intentionalDisconnect = false;
@@ -112,6 +117,10 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
         // Power meter — no FTMS, often no "Wattbike" name — so match that too.
         { services: [CYCLING_POWER_SERVICE] },
         { namePrefix: 'Wattbike' },
+        // Concept2 PM5 advertises its proprietary service, not FTMS, so the
+        // service filters above miss it — match it by name instead. (FTMS is
+        // still reachable post-connect via optionalServices.)
+        { namePrefix: 'PM5' },
       ],
       autoReconnect: options.autoReconnect ?? true,
       maxReconnectAttempts: options.maxReconnectAttempts ?? 5,
@@ -135,6 +144,15 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
   /** Human-readable device name, once connected. */
   getDeviceName(): string | undefined {
     return this.device?.name ?? undefined;
+  }
+
+  /**
+   * What the connected machine reports as: 'bike' (Indoor Bike Data or Cycling
+   * Power) or 'rower' (FTMS Rower Data — Concept2 RowErg/SkiErg). Null before
+   * a connection is established.
+   */
+  getMachineKind(): MachineKind | null {
+    return this.machineKind;
   }
 
   /**
@@ -223,6 +241,7 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     this.intentionalDisconnect = true;
     this.hasControl = false;
     this.lastCrank = null;
+    this.machineKind = null;
     try {
       this.server?.disconnect();
     } finally {
@@ -321,14 +340,12 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     this.server = await this.device.gatt.connect();
     this.reconnectAttempts = 0;
 
-    // Prefer FTMS (gives power AND cadence as direct values, plus ERG control).
+    // Prefer FTMS (gives power AND cadence/pace as direct values, plus ERG control).
     try {
       await this.setupFtms(this.server);
-      this.source = 'ftms';
     } catch {
       // Fall back to the Cycling Power Service (power always, cadence derived).
       await this.setupCyclingPower(this.server);
-      this.source = 'cps';
     }
 
     this.setStatus('connected');
@@ -337,9 +354,19 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
   private async setupFtms(server: BluetoothRemoteGATTServer): Promise<void> {
     const ftms = await server.getPrimaryService(FITNESS_MACHINE_SERVICE);
 
-    const ibd = await ftms.getCharacteristic(INDOOR_BIKE_DATA);
-    await ibd.startNotifications();
-    ibd.addEventListener('characteristicvaluechanged', this.handleIndoorBikeData);
+    // A machine exposes the data characteristic matching its type: bikes notify
+    // Indoor Bike Data, the PM5 (RowErg/SkiErg) notifies Rower Data.
+    try {
+      const ibd = await ftms.getCharacteristic(INDOOR_BIKE_DATA);
+      await ibd.startNotifications();
+      ibd.addEventListener('characteristicvaluechanged', this.handleIndoorBikeData);
+      this.machineKind = 'bike';
+    } catch {
+      const rower = await ftms.getCharacteristic(ROWER_DATA);
+      await rower.startNotifications();
+      rower.addEventListener('characteristicvaluechanged', this.handleRowerData);
+      this.machineKind = 'rower';
+    }
 
     // Control point is optional — present on Atom, absent on read-only meters.
     try {
@@ -370,6 +397,7 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     await cpm.startNotifications();
     cpm.addEventListener('characteristicvaluechanged', this.handleCyclingPower);
     this.controlPoint = null; // no ERG over plain CPS
+    this.machineKind = 'bike';
   }
 
   // Arrow fns so `this` is bound when used as event listeners.
@@ -377,13 +405,21 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
   private handleIndoorBikeData = (event: Event): void => {
     const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
     if (!dv) return;
-    this.emit('data', this.parseIndoorBikeData(dv));
+    this.emit('data', parseIndoorBikeData(dv));
+  };
+
+  private handleRowerData = (event: Event): void => {
+    const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
+    if (!dv) return;
+    this.emit('data', parseRowerData(dv));
   };
 
   private handleCyclingPower = (event: Event): void => {
     const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
     if (!dv) return;
-    this.emit('data', this.parseCyclingPower(dv));
+    const { sample, crank } = parseCyclingPower(dv, this.lastCrank);
+    this.lastCrank = crank;
+    this.emit('data', sample);
   };
 
   private handleControlResponse = (event: Event): void => {
@@ -475,93 +511,5 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
 
     await this.controlPoint.writeValueWithResponse(view);
     await ack;
-  }
-
-  // -- Binary parsers --------------------------------------------------------
-
-  /** FTMS Indoor Bike Data (0x2AD2). Little-endian; fields keyed off the flags word. */
-  private parseIndoorBikeData(dv: DataView): WattbikeSample {
-    let offset = 0;
-    const flags = dv.getUint16(offset, true);
-    offset += 2;
-
-    const sample: WattbikeSample = { t: performance.now(), source: 'ftms' };
-
-    // Gotcha: Instantaneous Speed is present when bit 0 ("More Data") is 0.
-    if ((flags & 0x0001) === 0) {
-      sample.speed = dv.getUint16(offset, true) * 0.01; // 0.01 km/h
-      offset += 2;
-    }
-    if (flags & 0x0002) offset += 2; // Average Speed
-    if (flags & 0x0004) {
-      sample.cadence = dv.getUint16(offset, true) * 0.5; // 0.5 rpm
-      offset += 2;
-    }
-    if (flags & 0x0008) offset += 2; // Average Cadence
-    if (flags & 0x0010) {
-      // Total Distance — uint24
-      sample.distance =
-        dv.getUint16(offset, true) + (dv.getUint8(offset + 2) << 16);
-      offset += 3;
-    }
-    if (flags & 0x0020) offset += 2; // Resistance Level (sint16)
-    if (flags & 0x0040) {
-      sample.power = dv.getInt16(offset, true); // watts
-      offset += 2;
-    }
-    if (flags & 0x0080) {
-      sample.avgPower = dv.getInt16(offset, true);
-      offset += 2;
-    }
-    if (flags & 0x0100) offset += 5; // Expended Energy: total(u16)+perHour(u16)+perMin(u8)
-    if (flags & 0x0200) {
-      sample.heartRate = dv.getUint8(offset); // bpm
-      offset += 1;
-    }
-    if (flags & 0x0400) offset += 1; // Metabolic Equivalent
-    if (flags & 0x0800) {
-      sample.elapsedTime = dv.getUint16(offset, true); // seconds
-      offset += 2;
-    }
-    // bit 12 (Remaining Time) intentionally not read — last field.
-
-    return sample;
-  }
-
-  /** Cycling Power Measurement (0x2A63) fallback. Cadence derived from crank deltas. */
-  private parseCyclingPower(dv: DataView): WattbikeSample {
-    let offset = 0;
-    const flags = dv.getUint16(offset, true);
-    offset += 2;
-
-    const sample: WattbikeSample = { t: performance.now(), source: 'cps' };
-    sample.power = dv.getInt16(offset, true); // always present
-    offset += 2;
-
-    if (flags & 0x0001) offset += 1; // Pedal Power Balance (u8)
-    if (flags & 0x0004) offset += 2; // Accumulated Torque (u16)
-    if (flags & 0x0010) offset += 6; // Wheel Revolution Data: u32 + u16
-
-    if (flags & 0x0020) {
-      // Crank Revolution Data: cumulative crank revs (u16) + last event time (u16, 1/1024 s)
-      const revs = dv.getUint16(offset, true);
-      const time = dv.getUint16(offset + 2, true);
-      offset += 4;
-
-      if (this.lastCrank) {
-        let dRev = revs - this.lastCrank.revs;
-        if (dRev < 0) dRev += 0x10000; // 16-bit rollover
-        let dt = time - this.lastCrank.time;
-        if (dt < 0) dt += 0x10000;
-        if (dt > 0 && dRev > 0) {
-          sample.cadence = (dRev / (dt / 1024)) * 60; // rpm
-        } else if (dRev === 0) {
-          sample.cadence = 0; // no crank movement between notifications
-        }
-      }
-      this.lastCrank = { revs, time };
-    }
-
-    return sample;
   }
 }

@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { WattbikeClient } from '@/lib/integrations/wattbike';
 import type {
+  MachineKind,
   WattbikeClientOptions,
   WattbikeSample,
   WattbikeStatus,
@@ -25,11 +26,13 @@ export interface UseWattbikeResult {
   /** False on iOS / any browser without Web Bluetooth — hide the connect button. */
   isSupported: boolean;
   status: WattbikeStatus;
-  /** Most recent decoded sample (power/cadence/speed), or null before any data. */
+  /** Most recent decoded sample (power/cadence/pace), or null before any data. */
   latest: WattbikeSample | null;
   /** Last error surfaced by the client (connect failure, lost reconnect, etc.). */
   error: Error | null;
   deviceName: string | undefined;
+  /** 'bike' or 'rower' (Concept2 RowErg/SkiErg) once connected, else null. */
+  machineKind: MachineKind | null;
   /** True once the trainer exposes ERG control (FTMS control point). */
   canControl: boolean;
   /** Open the chooser and connect. Call from a click/tap handler. */
@@ -59,6 +62,7 @@ export function useWattbike(
   const [latest, setLatest] = useState<WattbikeSample | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [deviceName, setDeviceName] = useState<string | undefined>(undefined);
+  const [machineKind, setMachineKind] = useState<MachineKind | null>(null);
   const [canControl, setCanControl] = useState(false);
 
   useEffect(() => {
@@ -66,9 +70,13 @@ export function useWattbike(
       setStatus(s);
       if (s === 'connected') {
         setDeviceName(client.getDeviceName());
+        setMachineKind(client.getMachineKind());
         setCanControl(client.canControl());
       }
-      if (s === 'disconnected') setCanControl(false);
+      if (s === 'disconnected') {
+        setCanControl(false);
+        setMachineKind(null);
+      }
     });
     const offData = client.on('data', (sample) => setLatest(sample));
     const offError = client.on('error', (err) => setError(err));
@@ -126,6 +134,7 @@ export function useWattbike(
     latest,
     error,
     deviceName,
+    machineKind,
     canControl,
     connect,
     reconnectKnown,

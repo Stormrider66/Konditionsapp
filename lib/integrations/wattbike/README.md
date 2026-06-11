@@ -1,10 +1,16 @@
-# Wattbike (Web Bluetooth)
+# Ergs over Web Bluetooth (FTMS)
 
 Live **power / cadence / speed** from a Wattbike Atom — and any FTMS-compatible
-smart trainer — read directly in the browser over Bluetooth. Optional **ERG
-(target-power) control** for ramp / FTP protocols. No API key, no Wattbike Hub
-account, no partner agreement: the bike advertises as a standard BLE fitness
-machine, the same way Zwift and TrainerRoad read it.
+smart trainer or airbike (e.g. Rogue Echo V3) — plus live **power / pace /
+stroke rate** from a Concept2 PM5 (RowErg and SkiErg; both notify FTMS *Rower
+Data*, PM5 firmware >150). Read directly in the browser over Bluetooth, with
+optional **ERG (target-power) control** for ramp / FTP protocols on bikes with
+a motor brake (air-resistance machines have no target to set). No API key, no
+vendor account, no partner agreement: the machines advertise as standard BLE
+fitness machines, the same way Zwift and ErgZone read them.
+
+After connect, `client.getMachineKind()` (or `machineKind` from the hook)
+reports `'bike'` or `'rower'` so the UI can pick watts/rpm vs pace/spm.
 
 ## ⚠️ Platform constraint (read this first)
 
