@@ -101,7 +101,10 @@ export const ATHLETE_TIER_FEATURES = {
   },
 } as const
 
-// Coach tier features for athlete mode access
+// Coach tier features for athlete mode access.
+// max_athletes must stay in sync with getMaxAthletesForTier (lib/payments/coach-stripe.ts),
+// getCoachMaxAthletes (app/api/admin/users/route.ts), prisma/seed-pricing.ts, and the
+// pricing page i18n strings (messages/{en,sv}.json `pricing.*.athletes`).
 export const COACH_TIER_FEATURES = {
   FREE: {
     athlete_mode: true, // Allowed during trial only
@@ -109,11 +112,11 @@ export const COACH_TIER_FEATURES = {
   },
   BASIC: {
     athlete_mode: true,
-    max_athletes: 5,
+    max_athletes: 20,
   },
   PRO: {
     athlete_mode: true,
-    max_athletes: 50,
+    max_athletes: 100,
   },
   ENTERPRISE: {
     athlete_mode: true,

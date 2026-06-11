@@ -45,7 +45,7 @@ async function main() {
         'Priority email support',
       ],
       monthlyPriceCents: 49900, // 499 SEK
-      yearlyPriceCents: 479000, // 4790 SEK (2 months free)
+      yearlyPriceCents: 499000, // 4990 SEK (2 months free; matches COACH_PRICING in lib/payments/coach-stripe.ts)
       currency: 'SEK',
       maxAthletes: 20,
       aiChatLimit: 50,
@@ -67,7 +67,7 @@ async function main() {
         'Phone & chat support',
       ],
       monthlyPriceCents: 149900, // 1499 SEK
-      yearlyPriceCents: 1439000, // 14390 SEK (2 months free)
+      yearlyPriceCents: 1499000, // 14990 SEK (2 months free; matches COACH_PRICING in lib/payments/coach-stripe.ts)
       currency: 'SEK',
       maxAthletes: 100,
       aiChatLimit: 500,

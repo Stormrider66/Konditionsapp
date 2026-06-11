@@ -107,7 +107,7 @@ type TestType = 'RUNNING' | 'CYCLING' | 'SKIING'
 
 **Roles:** `COACH` | `ATHLETE` | `PHYSIO` | `ADMIN`
 
-**Coach Tiers:** FREE (trial, 1 athlete) → BASIC (5) → PRO (50) → ENTERPRISE (unlimited)
+**Coach Tiers:** FREE (trial, 1 athlete) → BASIC (20) → PRO (100) → ENTERPRISE (unlimited)
 **Athlete Tiers:** FREE → STANDARD → PRO → ELITE
 
 Route protection in `middleware.ts` (includes custom domain white-label support, CSRF protection). Subscription enforcement via `lib/subscription/feature-access.ts`.
