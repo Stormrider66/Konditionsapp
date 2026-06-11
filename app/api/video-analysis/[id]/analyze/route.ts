@@ -167,7 +167,7 @@ export async function POST(
       } else {
         response = await withAiContext(
           { userId: user.id, clientId: target.athleteId, category: 'video_analysis_generic' },
-          () => analyzeGeneric(target.id, target, client, modelId, locale),
+          () => analyzeGeneric(target.id, { ...target, groupVideos }, client, modelId, locale),
         )
       }
 

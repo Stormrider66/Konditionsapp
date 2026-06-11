@@ -233,16 +233,6 @@ async function handleConfirmUpload(
 
 const GROUP_CAMERA_ANGLES = ['FRONT', 'SIDE', 'BACK'];
 
-// Multi-angle capture groups are supported where the analyzer has a
-// multi-view prompt: running gait, skiing, HYROX. (Not STRENGTH/SPORT_SPECIFIC yet.)
-const GROUP_ALLOWED_TYPES = [
-  'RUNNING_GAIT',
-  'SKIING_CLASSIC',
-  'SKIING_SKATING',
-  'SKIING_DOUBLE_POLE',
-  'HYROX_STATION',
-];
-
 /**
  * Create one VideoAnalysis per simultaneously-filmed video, linked via a
  * shared captureGroupId. The SIDE view (or the first video) becomes the
@@ -268,9 +258,9 @@ async function handleConfirmUploadGroup(
     );
   }
 
-  if (!GROUP_ALLOWED_TYPES.includes(videoType)) {
+  if (!ALLOWED_ANALYSIS_TYPES.includes(videoType)) {
     return NextResponse.json(
-      { error: t(locale, 'Multi-angle analysis is available for running gait, skiing, and HYROX', 'Flervinkelanalys är tillgänglig för löpteknik, skidåkning och HYROX') },
+      { error: t(locale, 'Invalid video type', 'Ogiltig videotyp') },
       { status: 400 }
     );
   }

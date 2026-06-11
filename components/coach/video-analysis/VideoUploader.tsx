@@ -150,15 +150,6 @@ const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-ms
 const MAX_SIZE = 100 * 1024 * 1024 // 100MB
 const MAX_GROUP_VIDEOS = 3
 
-// Types whose analyzers support multi-view capture groups.
-const MULTI_ANGLE_TYPES = [
-  'RUNNING_GAIT',
-  'SKIING_CLASSIC',
-  'SKIING_SKATING',
-  'SKIING_DOUBLE_POLE',
-  'HYROX_STATION',
-]
-
 interface StagedVideo {
   file: File
   angle: string
@@ -181,7 +172,9 @@ export function VideoUploader({
   const [hyroxStation, setHyroxStation] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
 
-  const allowMultiple = MULTI_ANGLE_TYPES.includes(videoType)
+  // All analysis types support multi-angle capture groups; a type must be
+  // chosen first so the angle chips and group validation can apply.
+  const allowMultiple = Boolean(videoType)
   const maxFiles = allowMultiple ? MAX_GROUP_VIDEOS : 1
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -232,17 +225,6 @@ export function VideoUploader({
     multiple: allowMultiple,
     maxSize: MAX_SIZE,
   })
-
-  const handleSelectVideoType = (value: string) => {
-    setVideoType(value)
-    // Trim extras when switching to a type without multi-angle support.
-    if (!MULTI_ANGLE_TYPES.includes(value)) {
-      setStagedVideos((prev) => {
-        prev.slice(1).forEach((v) => URL.revokeObjectURL(v.previewUrl))
-        return prev.slice(0, 1)
-      })
-    }
-  }
 
   const setStagedAngle = (index: number, angle: string) => {
     setStagedVideos((prev) => prev.map((v, i) => (i === index ? { ...v, angle } : v)))
@@ -422,7 +404,7 @@ export function VideoUploader({
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() => handleSelectVideoType(type.value)}
+                    onClick={() => setVideoType(type.value)}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       videoType === type.value
                         ? 'border-blue-550 bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100 font-medium'
