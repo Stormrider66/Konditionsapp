@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { parseBearerJwt, getSupabaseUserFromBearer } from '@/lib/auth/bearer'
 import { prisma } from '@/lib/prisma'
 import {
   AUTH_CONTEXT_TTL_MS,
@@ -27,7 +28,10 @@ export async function resolveAuthenticatedUserId(
 ): Promise<{ ok: true; userId: string } | { ok: false; response: NextResponse }> {
   const locale = resolveRequestLocale(request)
   const forwardedEmail = getVerifiedLoadTestBypassEmail(request)
-  const authCacheKey = buildAuthCacheKey(request, forwardedEmail)
+  // Mobile bearer requests have no cookies — without this, every bearer user
+  // would collapse into the same `cookie:` cache key.
+  const bearerToken = parseBearerJwt(request.headers.get('authorization'))
+  const authCacheKey = buildAuthCacheKey(request, forwardedEmail, bearerToken)
   const nowMs = Date.now()
 
   let authEmail = forwardedEmail
@@ -41,6 +45,12 @@ export async function resolveAuthenticatedUserId(
         authEmail = await inFlightEmail
       } else {
         const resolveEmailPromise = (async () => {
+          // Bearer fails closed: an invalid token never falls back to cookies.
+          if (bearerToken) {
+            const bearerUser = await getSupabaseUserFromBearer(bearerToken)
+            if (!bearerUser?.email) throw new Error('UNAUTHORIZED')
+            return bearerUser.email
+          }
           const supabase = await createClient()
           const { data: { user } } = await supabase.auth.getUser()
           if (!user?.email) throw new Error('UNAUTHORIZED')
@@ -101,9 +111,12 @@ export async function resolveAuthenticatedUserId(
 
 export function buildAuthCacheKey(
   request: NextRequest,
-  forwardedEmail?: string | null
+  forwardedEmail?: string | null,
+  bearerToken?: string | null
 ): string {
   if (forwardedEmail) return `forwarded:${forwardedEmail}`
+  // Tokens are unique per session, so the token itself is the identity key.
+  if (bearerToken) return `bearer:${bearerToken}`
 
   const cookieHeader = request.headers.get('cookie') || ''
   const supabaseSessionCookie = cookieHeader

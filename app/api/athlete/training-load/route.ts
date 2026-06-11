@@ -13,8 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
-import { canAccessClient } from '@/lib/auth-utils'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import {
@@ -34,18 +33,14 @@ export async function GET(request: NextRequest) {
   let locale: AppLocale = resolveRequestLocale(request)
 
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    // Session cookie or mobile bearer token
+    const user = await getCurrentUser()
 
     if (!user) {
       return NextResponse.json({ error: t(locale, 'Unauthorized', 'Obehörig') }, { status: 401 })
     }
 
-    const dbUser = await prisma.user.findUnique({
-      where: { id: user.id },
-      select: { language: true },
-    })
-    locale = resolveRequestLocale(request, dbUser?.language)
+    locale = resolveRequestLocale(request, user.language)
 
     const { searchParams } = new URL(request.url)
     const clientId = searchParams.get('clientId')

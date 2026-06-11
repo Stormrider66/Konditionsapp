@@ -6,8 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { createClient } from '@/lib/supabase/server'
-import { canAccessClient } from '@/lib/auth-utils'
+import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { analyzeReadinessTrend, type ReadinessScore } from '@/lib/training-engine/monitoring'
 import { logger } from '@/lib/logger'
 
@@ -22,23 +21,10 @@ import { logger } from '@/lib/logger'
  */
 export async function GET(request: NextRequest) {
   try {
-    // Authenticate user
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-    // Get user from database
-    const dbUser = await prisma.user.findUnique({
-      where: { email: user.email },
-    })
-
+    // Authenticate user (session cookie or mobile bearer token)
+    const dbUser = await getCurrentUser()
     if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Get query parameters
