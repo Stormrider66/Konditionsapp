@@ -88,6 +88,13 @@ interface PoseDataSummary {
   hasAiPoseAnalysis: boolean
 }
 
+interface GroupVideo {
+  id: string
+  cameraAngle: string | null
+  isPrimaryView: boolean
+  videoUrl: string
+}
+
 interface VideoAnalysis {
   id: string
   videoUrl: string
@@ -103,6 +110,9 @@ interface VideoAnalysis {
   skiingTechniqueAnalysis?: Record<string, unknown> | null
   hyroxStationAnalysis?: Record<string, unknown> | null
   poseDataSummary?: PoseDataSummary | null
+  cameraAngle?: string | null
+  captureGroupId?: string | null
+  groupVideos?: GroupVideo[] | null
 }
 
 interface VideoAnalysisCardProps {
@@ -139,6 +149,18 @@ const SEVERITY_INFO = {
   LOW: { label: { en: 'Low', sv: 'Låg' }, color: 'bg-yellow-100 text-yellow-800', icon: Info },
   MEDIUM: { label: { en: 'Medium', sv: 'Medel' }, color: 'bg-orange-100 text-orange-800', icon: AlertTriangle },
   HIGH: { label: { en: 'High', sv: 'Hög' }, color: 'bg-red-100 text-red-800', icon: AlertTriangle },
+}
+
+const CAMERA_ANGLE_LABELS: Record<string, { en: string; sv: string }> = {
+  FRONT: { en: 'Front', sv: 'Framifrån' },
+  SIDE: { en: 'Side', sv: 'Från sidan' },
+  BACK: { en: 'Back', sv: 'Bakifrån' },
+}
+
+function cameraAngleLabel(angle: string | null, locale: AppLocale): string {
+  if (!angle) return ''
+  const labels = CAMERA_ANGLE_LABELS[angle]
+  return labels ? (locale === 'sv' ? labels.sv : labels.en) : angle
 }
 
 function getScoreColor(score: number): string {
@@ -418,6 +440,7 @@ export function VideoAnalysisCard({
   const displayedStatusColor = invalidRunningAnalysis
     ? 'bg-amber-100 text-amber-800 border border-amber-200'
     : statusInfo.color
+  const groupVideos = analysis.groupVideos && analysis.groupVideos.length > 1 ? analysis.groupVideos : null
   const poseDataSummary = analysis.poseDataSummary
   const hasSavedPoseData = Boolean(poseDataSummary?.hasPoseData)
   const poseSavedAt = poseDataSummary?.analyzedAt
@@ -846,6 +869,15 @@ export function VideoAnalysisCard({
                 {displayedStatusLabel}
               </Badge>
             </div>
+            {/* Multi-angle badge */}
+            {groupVideos && (
+              <div className="absolute top-2 left-2">
+                <Badge className="bg-purple-100 text-purple-700">
+                  <Video className="h-3 w-3 mr-1" />
+                  {t(locale, `${groupVideos.length} angles`, `${groupVideos.length} vinklar`)}
+                </Badge>
+              </div>
+            )}
             {/* Score badge if completed */}
             {analysis.status === 'COMPLETED' && analysis.formScore !== null && !invalidRunningAnalysis && (
               <div className="absolute bottom-2 left-2">
@@ -1026,7 +1058,7 @@ export function VideoAnalysisCard({
 
       {/* Video Dialog */}
       <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className={groupVideos ? 'max-w-6xl' : 'max-w-4xl'}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Video className="h-5 w-5" />
@@ -1035,15 +1067,36 @@ export function VideoAnalysisCard({
             </DialogTitle>
             <DialogDescription className="sr-only">{t(locale, 'Video playback', 'Videouppspelning')}</DialogDescription>
           </DialogHeader>
-          <div className="aspect-video bg-black rounded-lg overflow-hidden">
-            <video
-              src={analysis.videoUrl}
-              controls
-              autoPlay
-              playsInline
-              className="w-full h-full object-contain"
-            />
-          </div>
+          {groupVideos ? (
+            <div className={`grid gap-3 grid-cols-1 ${groupVideos.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
+              {groupVideos.map((groupVideo) => (
+                <div key={groupVideo.id} className="space-y-1">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    {cameraAngleLabel(groupVideo.cameraAngle, locale) || t(locale, 'View', 'Vinkel')}
+                  </p>
+                  <div className="aspect-video bg-black rounded-lg overflow-hidden">
+                    <video
+                      src={groupVideo.videoUrl}
+                      controls
+                      muted
+                      playsInline
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="aspect-video bg-black rounded-lg overflow-hidden">
+              <video
+                src={analysis.videoUrl}
+                controls
+                autoPlay
+                playsInline
+                className="w-full h-full object-contain"
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

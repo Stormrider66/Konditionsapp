@@ -148,6 +148,13 @@ const CAMERA_ANGLES = [
 
 const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-msvideo']
 const MAX_SIZE = 100 * 1024 * 1024 // 100MB
+const MAX_GROUP_VIDEOS = 3
+
+interface StagedVideo {
+  file: File
+  angle: string
+  previewUrl: string
+}
 
 export function VideoUploader({
   open,
@@ -158,42 +165,52 @@ export function VideoUploader({
 }: VideoUploaderProps) {
   const { toast } = useToast()
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [stagedVideos, setStagedVideos] = useState<StagedVideo[]>([])
   const [videoType, setVideoType] = useState<string>('')
-  const [cameraAngle, setCameraAngle] = useState<string>('')
   const [athleteId, setAthleteId] = useState<string>('')
   const [exerciseId, setExerciseId] = useState<string>('')
   const [hyroxStation, setHyroxStation] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+
+  // Only RUNNING_GAIT supports multi-angle capture groups (so far).
+  const allowMultiple = videoType === 'RUNNING_GAIT'
+  const maxFiles = allowMultiple ? MAX_GROUP_VIDEOS : 1
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    const file = acceptedFiles[0]
-    if (!file) return
-
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      toast({
-        title: text(locale, 'Filtyp stöds inte', 'File type is not supported'),
-        description: text(locale, 'Ladda upp MP4, MOV, WebM eller AVI-filer.', 'Upload MP4, MOV, WebM, or AVI files.'),
-        variant: 'destructive',
-      })
-      return
+    const validFiles: File[] = []
+    for (const file of acceptedFiles) {
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        toast({
+          title: text(locale, 'Filtyp stöds inte', 'File type is not supported'),
+          description: text(locale, 'Ladda upp MP4, MOV, WebM eller AVI-filer.', 'Upload MP4, MOV, WebM, or AVI files.'),
+          variant: 'destructive',
+        })
+        continue
+      }
+      if (file.size > MAX_SIZE) {
+        toast({
+          title: text(locale, 'Filen är för stor', 'File is too large'),
+          description: text(locale, 'Maximal filstorlek är 100MB.', 'Maximum file size is 100 MB.'),
+          variant: 'destructive',
+        })
+        continue
+      }
+      validFiles.push(file)
     }
+    if (validFiles.length === 0) return
 
-    if (file.size > MAX_SIZE) {
-      toast({
-        title: text(locale, 'Filen är för stor', 'File is too large'),
-        description: text(locale, 'Maximal filstorlek är 100MB.', 'Maximum file size is 100 MB.'),
-        variant: 'destructive',
-      })
-      return
-    }
-
-    setSelectedFile(file)
-    // Create preview URL
-    const url = URL.createObjectURL(file)
-    setPreviewUrl(url)
-  }, [locale, toast])
+    setStagedVideos((prev) => {
+      const next = allowMultiple ? [...prev] : []
+      if (!allowMultiple && prev.length > 0) {
+        prev.forEach((v) => URL.revokeObjectURL(v.previewUrl))
+      }
+      for (const file of validFiles) {
+        if (next.length >= maxFiles) break
+        next.push({ file, angle: '', previewUrl: URL.createObjectURL(file) })
+      }
+      return next
+    })
+  }, [allowMultiple, maxFiles, locale, toast])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -203,12 +220,70 @@ export function VideoUploader({
       'video/webm': ['.webm'],
       'video/x-msvideo': ['.avi'],
     },
-    maxFiles: 1,
+    maxFiles,
+    multiple: allowMultiple,
     maxSize: MAX_SIZE,
   })
 
+  const handleSelectVideoType = (value: string) => {
+    setVideoType(value)
+    // Multi-angle groups only exist for running gait — trim extras on switch.
+    if (value !== 'RUNNING_GAIT') {
+      setStagedVideos((prev) => {
+        prev.slice(1).forEach((v) => URL.revokeObjectURL(v.previewUrl))
+        return prev.slice(0, 1)
+      })
+    }
+  }
+
+  const setStagedAngle = (index: number, angle: string) => {
+    setStagedVideos((prev) => prev.map((v, i) => (i === index ? { ...v, angle } : v)))
+  }
+
+  const removeStagedVideo = (index: number) => {
+    setStagedVideos((prev) => {
+      const target = prev[index]
+      if (target) URL.revokeObjectURL(target.previewUrl)
+      return prev.filter((_, i) => i !== index)
+    })
+  }
+
+  // Upload one file to Supabase Storage via presigned URL; returns the storage path.
+  const uploadToStorage = async (video: StagedVideo): Promise<string> => {
+    const urlRes = await fetch('/api/video-analysis/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'get-upload-url',
+        fileName: video.file.name,
+        fileType: video.file.type,
+        fileSize: video.file.size,
+        videoType,
+        cameraAngle: video.angle || undefined,
+        athleteId: athleteId || undefined,
+      }),
+    })
+
+    const urlData = await urlRes.json()
+    if (!urlRes.ok) {
+      throw new Error(urlData.error || text(locale, 'Kunde inte skapa uppladdnings-URL', 'Could not create upload URL'))
+    }
+
+    const uploadRes = await fetch(urlData.signedUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': urlData.contentType },
+      body: video.file,
+    })
+
+    if (!uploadRes.ok) {
+      throw new Error(text(locale, 'Uppladdning till lagring misslyckades', 'Upload to storage failed'))
+    }
+
+    return urlData.path as string
+  }
+
   const handleUpload = async () => {
-    if (!selectedFile || !videoType) {
+    if (stagedVideos.length === 0 || !videoType) {
       toast({
         title: text(locale, 'Fyll i alla fält', 'Complete all fields'),
         description: text(locale, 'Välj en video och videotyp.', 'Select a video and analysis type.'),
@@ -220,61 +295,66 @@ export function VideoUploader({
     setIsUploading(true)
 
     try {
-      // Step 1: Get presigned upload URL
-      const urlRes = await fetch('/api/video-analysis/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'get-upload-url',
-          fileName: selectedFile.name,
-          fileType: selectedFile.type,
-          fileSize: selectedFile.size,
-          videoType,
-          cameraAngle: cameraAngle || undefined,
-          athleteId: athleteId || undefined,
-        }),
-      })
+      if (allowMultiple && stagedVideos.length > 1) {
+        // Multi-angle capture group: upload all videos, then confirm as one group.
+        const uploaded: Array<{ uploadPath: string; cameraAngle: string }> = []
+        for (const video of stagedVideos) {
+          uploaded.push({ uploadPath: await uploadToStorage(video), cameraAngle: video.angle })
+        }
 
-      const urlData = await urlRes.json()
-      if (!urlRes.ok) {
-        throw new Error(urlData.error || text(locale, 'Kunde inte skapa uppladdnings-URL', 'Could not create upload URL'))
+        const confirmRes = await fetch('/api/video-analysis/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'confirm-upload-group',
+            videoType,
+            athleteId: athleteId || undefined,
+            exerciseId: exerciseId || undefined,
+            videos: uploaded,
+          }),
+        })
+
+        const confirmData = await confirmRes.json()
+        if (!confirmRes.ok) {
+          throw new Error(confirmData.error || text(locale, 'Kunde inte bekräfta uppladdningen', 'Could not confirm the upload'))
+        }
+
+        toast({
+          title: text(locale, `${stagedVideos.length} videor uppladdade`, `${stagedVideos.length} videos uploaded`),
+          description: text(
+            locale,
+            'Flervinkelgruppen har laddats upp. Klicka på "Analysera" så analyseras alla vinklar tillsammans.',
+            'The multi-angle group has been uploaded. Click "Analyze" and all angles are analyzed together.'
+          ),
+        })
+      } else {
+        const video = stagedVideos[0]
+        const uploadPath = await uploadToStorage(video)
+
+        const confirmRes = await fetch('/api/video-analysis/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'confirm-upload',
+            uploadPath,
+            videoType,
+            cameraAngle: video.angle || undefined,
+            athleteId: athleteId || undefined,
+            exerciseId: exerciseId || undefined,
+            hyroxStation: hyroxStation || undefined,
+          }),
+        })
+
+        const confirmData = await confirmRes.json()
+        if (!confirmRes.ok) {
+          throw new Error(confirmData.error || text(locale, 'Kunde inte bekräfta uppladdningen', 'Could not confirm the upload'))
+        }
+
+        toast({
+          title: text(locale, 'Video uppladdad', 'Video uploaded'),
+          description: text(locale, 'Videon har laddats upp. Klicka på "Analysera" för att starta AI-analysen.', 'The video has been uploaded. Click "Analyze" to start the AI analysis.'),
+        })
       }
-
-      // Step 2: Upload directly to Supabase Storage via presigned URL
-      const uploadRes = await fetch(urlData.signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': urlData.contentType },
-        body: selectedFile,
-      })
-
-      if (!uploadRes.ok) {
-        throw new Error(text(locale, 'Uppladdning till lagring misslyckades', 'Upload to storage failed'))
-      }
-
-      // Step 3: Confirm upload and create DB record
-      const confirmRes = await fetch('/api/video-analysis/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'confirm-upload',
-          uploadPath: urlData.path,
-          videoType,
-          cameraAngle: cameraAngle || undefined,
-          athleteId: athleteId || undefined,
-          exerciseId: exerciseId || undefined,
-          hyroxStation: hyroxStation || undefined,
-        }),
-      })
-
-      const confirmData = await confirmRes.json()
-      if (!confirmRes.ok) {
-        throw new Error(confirmData.error || text(locale, 'Kunde inte bekräfta uppladdningen', 'Could not confirm the upload'))
-      }
-
-      toast({
-        title: text(locale, 'Video uppladdad', 'Video uploaded'),
-        description: text(locale, 'Videon har laddats upp. Klicka på "Analysera" för att starta AI-analysen.', 'The video has been uploaded. Click "Analyze" to start the AI analysis.'),
-      })
 
       onUploadComplete()
       handleClose()
@@ -290,28 +370,23 @@ export function VideoUploader({
   }
 
   const handleClose = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
-    setSelectedFile(null)
-    setPreviewUrl(null)
+    stagedVideos.forEach((v) => URL.revokeObjectURL(v.previewUrl))
+    setStagedVideos([])
     setVideoType('')
-    setCameraAngle('')
     setAthleteId('')
     setExerciseId('')
     setHyroxStation('')
     onClose()
   }
 
-  const clearFile = () => {
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
-    setSelectedFile(null)
-    setPreviewUrl(null)
-  }
-
   const selectedVideoType = VIDEO_TYPES.find(t => t.value === videoType)
+
+  const missingAngle = videoType === 'RUNNING_GAIT' && stagedVideos.some((v) => !v.angle)
+  const filledAngles = stagedVideos.map((v) => v.angle).filter(Boolean)
+  const duplicateAngles =
+    videoType === 'RUNNING_GAIT' &&
+    stagedVideos.length > 1 &&
+    new Set(filledAngles).size !== filledAngles.length
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -334,7 +409,7 @@ export function VideoUploader({
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() => setVideoType(type.value)}
+                    onClick={() => handleSelectVideoType(type.value)}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       videoType === type.value
                         ? 'border-blue-550 bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100 font-medium'
@@ -350,34 +425,14 @@ export function VideoUploader({
             </div>
           </div>
 
-          {/* Camera Angle Selection - Only for RUNNING_GAIT */}
+          {/* Multi-angle hint - Only for RUNNING_GAIT */}
           {videoType === 'RUNNING_GAIT' && (
-            <div className="space-y-2">
-              <Label>{text(locale, 'Kameravinkel *', 'Camera angle *')}</Label>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                {text(locale, 'Välj vilken vinkel videon är filmad från för mer precis analys', 'Select the filming angle for a more precise analysis')}
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                {CAMERA_ANGLES.map((angle) => {
-                  const Icon = angle.icon
-                  return (
-                    <button
-                      key={angle.value}
-                      type="button"
-                      onClick={() => setCameraAngle(angle.value)}
-                      className={`p-3 rounded-lg border text-left transition-colors ${
-                        cameraAngle === angle.value
-                          ? 'border-orange-550 bg-orange-50 dark:bg-orange-950/30 text-orange-900 dark:text-orange-100 font-medium'
-                          : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
-                      }`}
-                    >
-                      <Icon className={`h-5 w-5 mb-1 ${cameraAngle === angle.value ? 'text-orange-600 dark:text-orange-400' : 'text-slate-500'}`} />
-                      <div className="font-medium text-sm">{text(locale, angle.label, angle.labelEn)}</div>
-                      <div className="text-xs text-slate-550 dark:text-slate-400 line-clamp-2">{text(locale, angle.description, angle.descriptionEn)}</div>
-                    </button>
-                  )
-                })}
-              </div>
+            <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 rounded-lg text-xs text-orange-900 dark:text-orange-100">
+              {text(
+                locale,
+                'Tips: filma samtidigt från flera vinklar (framifrån, från sidan, bakifrån) och ladda upp 2–3 videor. AI:n analyserar alla vinklar tillsammans för en säkrare bedömning. Ange vinkel för varje video nedan.',
+                'Tip: film simultaneously from multiple angles (front, side, back) and upload 2–3 videos. The AI analyzes all angles together for a more reliable assessment. Set the angle for each video below.'
+              )}
             </div>
           )}
 
@@ -453,57 +508,97 @@ export function VideoUploader({
             )}
           </div>
 
+          {/* Staged videos */}
+          {stagedVideos.length > 0 && (
+            <div className="space-y-2">
+              {stagedVideos.map((video, index) => (
+                <div
+                  key={`${video.file.name}-${index}`}
+                  className="border border-slate-200 dark:border-white/10 rounded-lg p-3 flex items-center gap-3 bg-slate-100/50 dark:bg-slate-900/30"
+                >
+                  <video
+                    src={video.previewUrl}
+                    muted
+                    playsInline
+                    className="h-16 w-28 rounded bg-black object-cover flex-shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate text-sm text-slate-800 dark:text-slate-200">{video.file.name}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {(video.file.size / (1024 * 1024)).toFixed(1)} MB
+                    </p>
+                    {videoType === 'RUNNING_GAIT' && (
+                      <div className="flex gap-1 mt-1.5">
+                        {CAMERA_ANGLES.map((angle) => (
+                          <button
+                            key={angle.value}
+                            type="button"
+                            onClick={() => setStagedAngle(index, angle.value)}
+                            className={`px-2 py-0.5 rounded-md border text-xs transition-colors ${
+                              video.angle === angle.value
+                                ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-900 dark:text-orange-100 font-medium'
+                                : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/20'
+                            }`}
+                          >
+                            {text(locale, angle.label, angle.labelEn)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => removeStagedVideo(index)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              {duplicateAngles && (
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  {text(locale, 'Varje video måste ha en egen kameravinkel.', 'Each video needs its own camera angle.')}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Dropzone */}
-          {!selectedFile ? (
+          {stagedVideos.length < maxFiles && (
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              className={`border-2 border-dashed rounded-lg text-center cursor-pointer transition-colors ${
+                stagedVideos.length > 0 ? 'p-4' : 'p-8'
+              } ${
                 isDragActive
                   ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-950/20'
                   : 'border-slate-300 dark:border-white/10 hover:border-slate-400 dark:hover:border-white/20'
               }`}
             >
               <input {...getInputProps()} />
-              <Upload className="h-10 w-10 mx-auto text-slate-500 dark:text-slate-400 mb-4" />
-              {isDragActive ? (
-                <p className="text-blue-600 dark:text-blue-400 font-medium">{text(locale, 'Släpp videon här...', 'Drop the video here...')}</p>
+              {stagedVideos.length > 0 ? (
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {text(
+                    locale,
+                    `Lägg till fler vinklar (${stagedVideos.length}/${maxFiles})`,
+                    `Add more angles (${stagedVideos.length}/${maxFiles})`
+                  )}
+                </p>
               ) : (
                 <>
-                  <p className="font-medium mb-1 text-slate-800 dark:text-slate-200">
-                    {text(locale, 'Dra och släpp en video här, eller klicka för att välja', 'Drag and drop a video here, or click to choose')}
-                  </p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    MP4, MOV, WebM, AVI (max 100MB)
-                  </p>
+                  <Upload className="h-10 w-10 mx-auto text-slate-500 dark:text-slate-400 mb-4" />
+                  {isDragActive ? (
+                    <p className="text-blue-600 dark:text-blue-400 font-medium">{text(locale, 'Släpp videon här...', 'Drop the video here...')}</p>
+                  ) : (
+                    <>
+                      <p className="font-medium mb-1 text-slate-800 dark:text-slate-200">
+                        {allowMultiple
+                          ? text(locale, 'Dra och släpp 1–3 videor här, eller klicka för att välja', 'Drag and drop 1–3 videos here, or click to choose')
+                          : text(locale, 'Dra och släpp en video här, eller klicka för att välja', 'Drag and drop a video here, or click to choose')}
+                      </p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
+                        MP4, MOV, WebM, AVI (max 100MB)
+                      </p>
+                    </>
+                  )}
                 </>
               )}
-            </div>
-          ) : (
-            <div className="border border-slate-250 dark:border-white/10 rounded-lg overflow-hidden">
-              {/* Video preview */}
-              {previewUrl && (
-                <div className="bg-black aspect-video relative">
-                  <video
-                    src={previewUrl}
-                    controls
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              )}
-              <div className="p-3 flex items-center justify-between bg-slate-100/50 dark:bg-slate-900/30">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Video className="h-5 w-5 text-purple-500 flex-shrink-0" />
-                  <div className="min-w-0">
-                    <p className="font-medium truncate text-slate-800 dark:text-slate-200">{selectedFile.name}</p>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
-                    </p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" onClick={clearFile}>
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
             </div>
           )}
 
@@ -525,7 +620,17 @@ export function VideoUploader({
           <Button variant="outline" onClick={handleClose} disabled={isUploading}>
             {text(locale, 'Avbryt', 'Cancel')}
           </Button>
-          <Button onClick={handleUpload} disabled={!selectedFile || !videoType || (videoType === 'RUNNING_GAIT' && !cameraAngle) || (videoType === 'HYROX_STATION' && !hyroxStation) || isUploading}>
+          <Button
+            onClick={handleUpload}
+            disabled={
+              stagedVideos.length === 0 ||
+              !videoType ||
+              missingAngle ||
+              duplicateAngles ||
+              (videoType === 'HYROX_STATION' && !hyroxStation) ||
+              isUploading
+            }
+          >
             {isUploading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -534,7 +639,9 @@ export function VideoUploader({
             ) : (
               <>
                 <Upload className="h-4 w-4 mr-2" />
-                {text(locale, 'Ladda upp', 'Upload')}
+                {stagedVideos.length > 1
+                  ? text(locale, `Ladda upp ${stagedVideos.length} videor`, `Upload ${stagedVideos.length} videos`)
+                  : text(locale, 'Ladda upp', 'Upload')}
               </>
             )}
           </Button>

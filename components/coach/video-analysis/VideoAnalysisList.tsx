@@ -58,6 +58,14 @@ interface VideoAnalysis {
     analyzedAt: string | null
     hasAiPoseAnalysis: boolean
   } | null
+  cameraAngle?: string | null
+  captureGroupId?: string | null
+  groupVideos?: Array<{
+    id: string
+    cameraAngle: string | null
+    isPrimaryView: boolean
+    videoUrl: string
+  }> | null
 }
 
 interface Athlete {
