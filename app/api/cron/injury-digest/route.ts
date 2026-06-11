@@ -361,6 +361,7 @@ async function getCoachDigestData(coachId: string): Promise<DigestData | null> {
       clientId: { in: athleteIds },
       date: today,
       acwr: { gte: 1.3 },
+      source: 'ACWR_SUMMARY',
     },
     include: {
       client: true,

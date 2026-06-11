@@ -65,9 +65,10 @@ export async function analyzePeriodization(
     program,
   ] = await Promise.all([
     prisma.trainingLoad.findMany({
-      where: { clientId },
+      // 6-week window by date — a row-count cap undershoots once the nightly
+      // ACWR_SUMMARY rows are interleaved with the WORKOUT rows.
+      where: { clientId, date: { gte: new Date(Date.now() - 42 * 24 * 60 * 60 * 1000) } },
       orderBy: { date: 'desc' },
-      take: 42, // 6 weeks
     }),
     // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
     prisma.workoutLog.findMany({
@@ -353,7 +354,7 @@ function generateAdjustments(
 }
 
 function detectWarnings(
-  trainingLoads: { dailyLoad: number; acwr: number | null }[],
+  trainingLoads: { dailyLoad: number; acwr: number | null; date: Date }[],
   checkIns: { readinessScore: number | null; fatigue: number }[],
   response: TrainingResponse,
   locale: AppLocale = 'en'
@@ -400,7 +401,9 @@ function detectWarnings(
 
   // Plateau warning
   if (response.performanceTrend === 'stable' && response.volumeTolerance === 'good') {
-    const consistentWeeks = trainingLoads.length / 7
+    // Count distinct days, not rows — WORKOUT and ACWR_SUMMARY rows share days.
+    const distinctDays = new Set(trainingLoads.map((l) => l.date.toDateString())).size
+    const consistentWeeks = distinctDays / 7
     if (consistentWeeks > 4) {
       warnings.push({
         type: 'plateau',

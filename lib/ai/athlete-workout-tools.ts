@@ -124,6 +124,7 @@ async function addDailyLoad(params: {
       clientId: params.clientId,
       date: today,
       workoutType: params.workoutType,
+      source: 'WORKOUT',
     },
   })
 

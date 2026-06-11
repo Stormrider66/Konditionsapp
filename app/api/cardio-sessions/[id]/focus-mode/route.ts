@@ -473,6 +473,7 @@ export async function PUT(
           clientId: assignment.athleteId,
           date: today,
           workoutType: 'CARDIO',
+          source: 'WORKOUT',
         },
       })
 

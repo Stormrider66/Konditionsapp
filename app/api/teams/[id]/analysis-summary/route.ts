@@ -132,6 +132,9 @@ export async function GET(
         where: {
           clientId: { in: memberIds },
           date: { gte: since },
+          // Last-activity must read logged sessions only — the nightly cron
+          // writes an ACWR_SUMMARY row per athlete/day even on rest days.
+          source: 'WORKOUT',
         },
         orderBy: { date: 'desc' },
         select: { clientId: true, date: true },

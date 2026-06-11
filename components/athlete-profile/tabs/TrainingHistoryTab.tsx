@@ -37,13 +37,19 @@ export function TrainingHistoryTab({ data, viewMode: _viewMode, variant = 'defau
   const { programs, trainingLoads, workoutLogs } = data.training
   const athleteProfile = data.identity.athleteProfile
 
+  // trainingLoads mixes per-session WORKOUT rows with the nightly per-day
+  // ACWR_SUMMARY rows: ACWR reads must use the summaries, session lists the
+  // workout rows — mixing them duplicates days and masks ACWR values.
+  const acwrLoads = trainingLoads.filter((load) => load.source === 'ACWR_SUMMARY')
+  const workoutLoads = trainingLoads.filter((load) => load.source === 'WORKOUT')
+
   // Calculate workout completion stats
   const completedWorkouts = workoutLogs.length
   const totalDistance = workoutLogs.reduce((sum, log) => sum + (log.distance || 0), 0)
   const totalDuration = workoutLogs.reduce((sum, log) => sum + (log.duration || 0), 0)
 
   // Prepare ACWR chart data
-  const acwrData = [...trainingLoads]
+  const acwrData = [...acwrLoads]
     .reverse()
     .slice(-28) // Last 28 days
     .map((load) => ({
@@ -54,7 +60,7 @@ export function TrainingHistoryTab({ data, viewMode: _viewMode, variant = 'defau
       dailyLoad: load.dailyLoad,
     }))
 
-  const latestAcwr = trainingLoads[0]?.acwr
+  const latestAcwr = acwrLoads[0]?.acwr
 
   const hasData = programs.length > 0 || trainingLoads.length > 0 || workoutLogs.length > 0
 
@@ -296,7 +302,7 @@ export function TrainingHistoryTab({ data, viewMode: _viewMode, variant = 'defau
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {trainingLoads.slice(0, 10).map((load) => (
+              {workoutLoads.slice(0, 10).map((load) => (
                 <div
                   key={load.id}
                   className={cn(

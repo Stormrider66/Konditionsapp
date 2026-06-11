@@ -211,6 +211,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           clientId,
           date: today,
           workoutType: 'AGILITY',
+          source: 'WORKOUT',
         },
       })
 

@@ -130,7 +130,9 @@ export function AIContextSidebar({ data, clientId }: AIContextSidebarProps) {
     dailyMetrics: data.health.dailyMetrics,
     videoAnalyses: data.technique.videoAnalyses,
     injuryAssessments: data.health.injuryAssessments,
-    trainingLoads: data.training.trainingLoads,
+    // WORKOUT rows only — the nightly ACWR_SUMMARY rows would make load data
+    // look fresh (and ~2× as plentiful) even when the athlete stopped logging.
+    trainingLoads: data.training.trainingLoads.filter((l) => l.source === 'WORKOUT'),
     progressionTracking: data.performance.progressionTracking,
     menstrualCycles: data.menstrual.cycles,
     sportProfile: data.identity.sportProfile,

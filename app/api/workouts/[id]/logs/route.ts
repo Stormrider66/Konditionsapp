@@ -338,6 +338,7 @@ export async function POST(
           clientId,
           date: today,
           workoutType: loadWorkoutType,
+          source: 'WORKOUT',
         },
       })
 
