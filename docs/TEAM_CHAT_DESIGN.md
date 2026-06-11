@@ -1,9 +1,11 @@
 # Team Chat — Design
 
-**Status (2026-06-10):** Slices 1–2 implemented; slice 3 server side implemented.
-**DB apply is pending** (see "Applying to the database" below) — until it runs, the
-chat tab errors at runtime and Realtime stays inactive. Remaining: native app
-(slice 3 client side), slice 4 items.
+**Status (2026-06-11):** Slices 1–2 implemented; slice 3 server side implemented.
+**DB fully applied 2026-06-11** (schema + Realtime trigger/RLS verified live).
+Remaining: native app (slice 3 client side), slice 4 items.
+Note: TEAM_CHANNEL access is always derived from the roster — ThreadParticipant
+rows never authorize team channels (they outlive roster removal); the SQL
+`can_access_thread` mirrors this.
 **Target:** Coaches on web, athletes on a native app (Expo/React Native, planned).
 
 Implementation map:

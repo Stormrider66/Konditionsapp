@@ -6,8 +6,10 @@
 //
 // TEAM_CHANNEL access is DERIVED from the team roster (head coach, business
 // staff, assistant coaches via getAccessibleTeam; rostered athletes via their
-// athleteAccount). ThreadParticipant rows are created lazily on first contact
-// and hold only per-user state (read cursor, mute, notification prefs).
+// athleteAccount) on every check, so roster removals revoke access instantly.
+// ThreadParticipant rows are created lazily on first contact and hold only
+// per-user state (read cursor, mute, notification prefs) — they never
+// authorize TEAM_CHANNEL access.
 
 import { prisma } from '@/lib/prisma'
 import { getAccessibleTeam, getBusinessMembership } from '@/lib/coach/team-access'
@@ -48,8 +50,10 @@ export async function getTeamChannelAccess(
 
 /**
  * Resolve a thread the user is allowed to read, or null.
- * Explicit participant rows win; TEAM_CHANNEL falls back to derived roster
- * membership so roster changes apply without a sync job.
+ * TEAM_CHANNEL access is ALWAYS derived from the current roster — participant
+ * rows are lazily created and never deactivated, so consulting them first
+ * would let removed members keep access forever. For other thread types
+ * (GROUP/DIRECT, future) the explicit participant row is the source of truth.
  */
 export async function getThreadForUser(
   userId: string,
@@ -59,6 +63,11 @@ export async function getThreadForUser(
   const thread = await prisma.thread.findUnique({ where: { id: threadId } })
   if (!thread) return null
 
+  if (thread.type === 'TEAM_CHANNEL' && thread.teamId) {
+    const access = await getTeamChannelAccess(userId, thread.teamId, businessSlug)
+    return access.hasAccess ? { thread, role: access.role } : null
+  }
+
   const participant = await prisma.threadParticipant.findUnique({
     where: { threadId_userId: { threadId, userId } },
     select: { isActive: true, role: true },
@@ -67,14 +76,37 @@ export async function getThreadForUser(
     return { thread, role: participant.role as ChatRole }
   }
 
+  return null
+}
+
+/**
+ * Reduce a mention list to users who can actually access the thread, so
+ * mention fan-out (slice 3 push/notifications) can never target outsiders.
+ */
+export async function filterThreadMemberUserIds(
+  thread: Thread,
+  userIds: string[],
+  businessSlug?: string
+): Promise<string[]> {
+  const unique = [...new Set(userIds)]
+  if (unique.length === 0) return []
+
   if (thread.type === 'TEAM_CHANNEL' && thread.teamId) {
-    const access = await getTeamChannelAccess(userId, thread.teamId, businessSlug)
-    if (access.hasAccess) {
-      return { thread, role: access.role }
-    }
+    const teamId = thread.teamId
+    const checks = await Promise.all(
+      unique.map(async (id) => {
+        const access = await getTeamChannelAccess(id, teamId, businessSlug)
+        return access.hasAccess ? id : null
+      })
+    )
+    return checks.filter((id): id is string => id !== null)
   }
 
-  return null
+  const participants = await prisma.threadParticipant.findMany({
+    where: { threadId: thread.id, userId: { in: unique }, isActive: true },
+    select: { userId: true },
+  })
+  return participants.map((p) => p.userId)
 }
 
 /**

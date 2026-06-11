@@ -2,11 +2,13 @@
 //
 // Server side of the native-app slice. Recipients are explicit thread
 // participants (rows exist once a user has opened the thread) minus the
-// sender, filtered by notifyPush/mutedUntil. No registered tokens → no-op,
-// so this stays inert until the native app starts registering
-// DevicePushTokens via POST /api/push-tokens.
+// sender, filtered by notifyPush/mutedUntil — then re-checked against the
+// roster for TEAM_CHANNEL, since participant rows outlive roster removal.
+// No registered tokens → no-op, so this stays inert until the native app
+// starts registering DevicePushTokens via POST /api/push-tokens.
 
 import { prisma } from '@/lib/prisma'
+import { filterThreadMemberUserIds } from '@/lib/chat/membership'
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send'
 const BATCH_SIZE = 100
@@ -39,9 +41,19 @@ export async function sendThreadPush(options: {
     })
     if (recipients.length === 0) return
 
+    // Participant rows persist after roster removal — drop recipients who no
+    // longer pass the membership check so ex-members never get message pushes.
+    const thread = await prisma.thread.findUnique({ where: { id: threadId } })
+    if (!thread) return
+    const memberIds = await filterThreadMemberUserIds(
+      thread,
+      recipients.map((r) => r.userId)
+    )
+    if (memberIds.length === 0) return
+
     const tokens = await prisma.devicePushToken.findMany({
       where: {
-        userId: { in: recipients.map((r) => r.userId) },
+        userId: { in: memberIds },
         provider: 'expo',
       },
       select: { token: true },

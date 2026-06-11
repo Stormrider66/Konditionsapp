@@ -48,7 +48,10 @@ FOR EACH ROW EXECUTE FUNCTION public.thread_message_broadcast();
 -- ── 2. Membership mirror ────────────────────────────────────────────
 
 -- Mirrors getThreadForUser/getTeamChannelAccess in lib/chat/membership.ts:
---   a) active explicit participant
+--   a) non-TEAM_CHANNEL threads only: active explicit participant
+--      (TEAM_CHANNEL must NOT honor participant rows — they are lazily
+--      created and never deactivated, so a stale row would let removed
+--      roster members keep access forever)
 --   b) TEAM_CHANNEL: team owner
 --   c) TEAM_CHANNEL: assistant coach (TeamCoachAssignment)
 --   d) TEAM_CHANNEL: rostered athlete (Client.teamId + AthleteAccount)
@@ -64,10 +67,13 @@ SET search_path = ''
 AS $$
   SELECT p_user_id IS NOT NULL AND (
     EXISTS (
-      SELECT 1 FROM public."ThreadParticipant" tp
+      SELECT 1
+      FROM public."ThreadParticipant" tp
+      JOIN public."Thread" pt ON pt.id = tp."threadId"
       WHERE tp."threadId" = p_thread_id
         AND tp."userId" = p_user_id
         AND tp."isActive"
+        AND pt.type <> 'TEAM_CHANNEL'::public."ThreadType"
     )
     OR EXISTS (
       SELECT 1

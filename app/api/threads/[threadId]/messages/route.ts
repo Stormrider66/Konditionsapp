@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth-utils'
-import { getThreadForUser, touchParticipant } from '@/lib/chat/membership'
+import { filterThreadMemberUserIds, getThreadForUser, touchParticipant } from '@/lib/chat/membership'
 import { sendThreadPush } from '@/lib/chat/push'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
@@ -126,6 +126,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     }
 
+    // Drop mentions of non-members so future mention notifications can never
+    // fan out to users outside the thread.
+    const mentionedUserIds = await filterThreadMemberUserIds(
+      access.thread,
+      data.mentionedUserIds,
+      businessSlug
+    )
+
     await touchParticipant(threadId, user.id, access.role)
 
     const now = new Date()
@@ -136,7 +144,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           senderId: user.id,
           content: data.content,
           replyToId: data.replyToId,
-          mentionedUserIds: data.mentionedUserIds,
+          mentionedUserIds,
         },
         include: {
           sender: { select: SENDER_SELECT },
