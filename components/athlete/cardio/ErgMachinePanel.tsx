@@ -29,7 +29,9 @@ export function ergEquipmentLabel(slot: string, locale: string): string {
     case 'ROW':
       return sv ? 'Rodd (Concept2)' : 'Row (Concept2)'
     case 'SKI_ERG':
-      return 'SkiErg'
+      return 'SkiErg (Concept2)'
+    case 'BIKE_ERG':
+      return 'BikeErg (Concept2)'
     case 'BIKE':
       return sv ? 'Cykel' : 'Bike'
     case 'WATTBIKE':

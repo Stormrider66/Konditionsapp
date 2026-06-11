@@ -43,6 +43,7 @@ import {
   equipmentUsesPower,
   equipmentIsRowing,
   equipmentIsAirbike,
+  equipmentIsConcept2,
 } from '@/lib/cardio/focus-mode-segments'
 import {
   useVoiceCoach,
@@ -328,7 +329,7 @@ export function CardioFocusModeWorkout({
   const connectLabel =
     slotKeys.length > 1
       ? tw('Anslut maskiner', 'Connect machines')
-      : segments.some((s) => equipmentIsRowing(s.equipment))
+      : segments.some((s) => equipmentIsConcept2(s.equipment))
         ? tw('Anslut Concept2 (PM5)', 'Connect Concept2 (PM5)')
         : segments.some((s) => equipmentIsAirbike(s.equipment))
           ? tw('Anslut airbike', 'Connect airbike')

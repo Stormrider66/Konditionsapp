@@ -154,15 +154,23 @@ export function parsePaceToSeconds(pace: string | undefined): number | undefined
 }
 
 // Equipment that reports power (watts) rather than running pace.
-const POWER_EQUIPMENT = new Set(['BIKE', 'WATTBIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'ROW', 'SKI_ERG'])
+const POWER_EQUIPMENT = new Set(['BIKE', 'WATTBIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'BIKE_ERG', 'ROW', 'SKI_ERG'])
 export function equipmentUsesPower(equipment?: string | null): boolean {
   return !!equipment && POWER_EQUIPMENT.has(equipment)
 }
 
 // Concept2 ergs (PM5 monitor): pace is read per 500 m, effort is stroke-based.
+// The BikeErg is NOT in this set — its PM5 reports Indoor Bike Data (watts/RPM).
 const ROWING_EQUIPMENT = new Set(['ROW', 'SKI_ERG'])
 export function equipmentIsRowing(equipment?: string | null): boolean {
   return !!equipment && ROWING_EQUIPMENT.has(equipment)
+}
+
+// All Concept2 machines (PM5 monitor), regardless of which FTMS data
+// characteristic the PM5 exposes. Used for connect labels and chooser filters.
+const CONCEPT2_EQUIPMENT = new Set(['ROW', 'SKI_ERG', 'BIKE_ERG'])
+export function equipmentIsConcept2(equipment?: string | null): boolean {
+  return !!equipment && CONCEPT2_EQUIPMENT.has(equipment)
 }
 
 // Fan bikes: report power over FTMS but have no motor brake, so no ERG control.

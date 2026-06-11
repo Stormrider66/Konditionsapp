@@ -105,8 +105,9 @@ export const EQUIPMENT_OPTIONS: { value: string; label: string; labelSv?: string
   { value: 'ASSAULT_BIKE', label: 'Assault Bike' },
   { value: 'ECHO_BIKE', label: 'Echo Bike' },
   { value: 'WATTBIKE', label: 'Wattbike' },
+  { value: 'BIKE_ERG', label: 'BikeErg (Concept2)' },
   { value: 'ROW', label: 'Row (Concept2)', labelSv: 'Rodd (Concept2)' },
-  { value: 'SKI_ERG', label: 'SkiErg' },
+  { value: 'SKI_ERG', label: 'SkiErg (Concept2)' },
   { value: 'SWIM', label: 'Swimming', labelSv: 'Simning' },
   { value: 'OTHER', label: 'Other', labelSv: 'Annat' },
 ]
@@ -120,7 +121,7 @@ export function equipmentLabel(
 
 // Equipment that reports power (watts) + cadence (RPM) rather than running pace.
 // For these the editor shows Watt/RPM fields instead of "Tempo (min/km)".
-export const POWER_EQUIPMENT = new Set(['BIKE', 'WATTBIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'ROW', 'SKI_ERG'])
+export const POWER_EQUIPMENT = new Set(['BIKE', 'WATTBIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'BIKE_ERG', 'ROW', 'SKI_ERG'])
 export function equipmentUsesPower(equipment?: string): boolean {
   return !!equipment && POWER_EQUIPMENT.has(equipment)
 }

@@ -94,6 +94,11 @@ export function chooserFiltersForSlot(slot: string): BluetoothLEScanFilter[] | u
     // FTMS rowers + PM5s. A cycling-power meter or Wattbike is never a rower.
     return [{ services: [FITNESS_MACHINE_SERVICE] }, { namePrefix: 'PM5' }];
   }
+  if (slot === 'BIKE_ERG') {
+    // A BikeErg is always a PM5; its FTMS reports Indoor Bike Data (kind
+    // 'bike'), unlike RowErg/SkiErg PM5s which report Rower Data.
+    return [{ services: [FITNESS_MACHINE_SERVICE] }, { namePrefix: 'PM5' }];
+  }
   if (slot === 'WATTBIKE') {
     // FTMS Atoms + legacy cycling-power Wattbikes. A PM5 is never a Wattbike.
     return [
