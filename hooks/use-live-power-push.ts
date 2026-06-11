@@ -20,14 +20,18 @@ const SESSION_POLL_MS = 15_000;
 const PUSH_INTERVAL_MS = 2_000;
 
 export function useLivePowerPush(
-  client: WattbikeClient,
+  client: WattbikeClient | null,
   enabled: boolean,
 ): { activeSessionId: string | null } {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const latestRef = useRef<{ power?: number; cadence?: number; heartRate?: number } | null>(null);
 
-  // Track the most recent sample without re-rendering.
+  // Track the most recent sample without re-rendering. The client may swap
+  // mid-session (multi-erg workouts route per segment) — re-subscribe and drop
+  // the previous machine's stale sample.
   useEffect(() => {
+    latestRef.current = null;
+    if (!client) return;
     const off = client.on('data', (s) => {
       latestRef.current = { power: s.power, cadence: s.cadence, heartRate: s.heartRate };
     });

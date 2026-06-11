@@ -146,6 +146,11 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     return this.device?.name ?? undefined;
   }
 
+  /** Origin-scoped BLE device id, once connected — stable across sessions. */
+  getDeviceId(): string | undefined {
+    return this.device?.id ?? undefined;
+  }
+
   /**
    * What the connected machine reports as: 'bike' (Indoor Bike Data or Cycling
    * Power) or 'rower' (FTMS Rower Data — Concept2 RowErg/SkiErg). Null before
@@ -193,21 +198,31 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
   }
 
   /**
-   * Reconnect to a previously-paired bike WITHOUT the chooser, using the Web
+   * Reconnect to a previously-paired machine WITHOUT the chooser, using the Web
    * Bluetooth getDevices() permission list. No user gesture required — ideal
    * for a fixed gym setup where the same tablet always sits on the same bike.
    * Returns false (no throw) when unsupported, nothing is remembered, or the
-   * bike is out of range, so the caller can fall back to connect().
+   * machine is out of range, so the caller can fall back to connect().
+   *
+   * `opts.exact` refuses to fall back to another known device when the wanted
+   * id isn't found — required when several machines are paired (multi-erg
+   * sessions), where "any known device" could be the wrong machine.
    */
-  async reconnectKnown(preferredId?: string): Promise<boolean> {
+  async reconnectKnown(
+    preferredId?: string,
+    opts: { exact?: boolean } = {},
+  ): Promise<boolean> {
     const known = await WattbikeClient.listKnownDevices();
     if (known.length === 0) return false;
 
     const wantedId = preferredId ?? this.readRememberedId();
-    const device =
-      (wantedId ? known.find((d) => d.id === wantedId) : undefined) ||
-      known.find((d) => (d.name ?? '').toLowerCase().includes('wattbike')) ||
-      known[0];
+    let device = wantedId ? known.find((d) => d.id === wantedId) : undefined;
+    if (!device && opts.exact) return false;
+    if (!device) {
+      device =
+        known.find((d) => (d.name ?? '').toLowerCase().includes('wattbike')) ||
+        known[0];
+    }
     if (!device) return false;
 
     this.intentionalDisconnect = false;

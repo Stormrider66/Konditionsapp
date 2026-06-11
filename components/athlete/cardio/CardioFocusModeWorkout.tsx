@@ -7,7 +7,7 @@
  */
 
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -52,8 +52,11 @@ import {
 } from '@/hooks/use-voice-coach'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
-import { useWattbike } from '@/hooks/use-wattbike'
+import { useErgFleet } from '@/hooks/use-erg-fleet'
 import { useLivePowerPush } from '@/hooks/use-live-power-push'
+import { WattbikeClient } from '@/lib/integrations/wattbike'
+import { ErgMachinePanel, ergEquipmentLabel } from './ErgMachinePanel'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 import { useTranslations, useLocale } from '@/i18n/client'
 
@@ -154,10 +157,27 @@ export function CardioFocusModeWorkout({
   const [sessionNotes, _setSessionNotes] = useState('')
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // A fresh power workout opens on a machine-connection screen instead of the
+  // first timer, so every erg is connected BEFORE the clock starts. Resumed
+  // sessions and non-power workouts go straight to the timer as before.
+  const startsWithSetup =
+    initialSegmentIndex === 0 &&
+    WattbikeClient.isSupported() &&
+    initialSegments.every((s) => !s.completed && !s.skipped) &&
+    initialSegments.some(
+      (s) =>
+        equipmentUsesPower(s.equipment) ||
+        s.plannedPower != null ||
+        s.powerRelPercent != null ||
+        s.isBenchmark === true
+    )
+  const [preStartSetup, setPreStartSetup] = useState(startsWithSetup)
+  // Mid-session machine management (swap / late-connect) in a dialog overlay.
+  const [manageMachinesOpen, setManageMachinesOpen] = useState(false)
   // Whether the current segment's timer should auto-start. True during natural
   // progression (after logging a work interval, and after a rest auto-completes),
-  // false on manual navigation/skip.
-  const [autoRunTimer, setAutoRunTimer] = useState(autoStartFirstTimedSegment)
+  // false on manual navigation/skip. Held back while the setup screen shows.
+  const [autoRunTimer, setAutoRunTimer] = useState(autoStartFirstTimedSegment && !startsWithSetup)
 
   // Voice coaching (basic SpeechSynthesis)
   const voice = useVoiceCoach({ rate: 1.05 })
@@ -171,15 +191,37 @@ export function CardioFocusModeWorkout({
   const hr = useAthleteHR(liveCoachConnectedRef.current)
 
   // Live erg power (focus-mode): Wattbike/FTMS bikes, airbikes, and Concept2
-  // PM5 ergs (row/ski) all stream through the same client. All UI/effects below
-  // are gated on a power-based workout + an actually-connected machine, so other
-  // sessions are unaffected. tw() handles the few new strings without touching
-  // the shared catalogs.
+  // PM5 ergs (row/ski) all stream through the same client type. A mixed-erg
+  // workout connects one machine per equipment slot; the active segment's
+  // equipment picks which machine drives the strip, accumulation and ERG.
+  // tw() handles the few new strings without touching the shared catalogs.
   const locale = useLocale()
   const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
-  const wb = useWattbike({ reconnectKnownOnMount: true })
-  // Stream power to the coach's live team grid when the athlete is in a session.
-  const { activeSessionId: liveSessionId } = useLivePowerPush(wb.client, wb.status === 'connected')
+
+  // Does this workout involve power at all? Gates the whole live-erg strip.
+  const usesPower = segments.some(
+    (s) =>
+      equipmentUsesPower(s.equipment) ||
+      s.plannedPower != null ||
+      s.powerRelPercent != null ||
+      s.isBenchmark === true
+  )
+
+  // One connection slot per distinct power equipment ('' = unspecified machine,
+  // e.g. legacy Wattbike sessions that only set watt targets).
+  const slotKeys = useMemo(() => {
+    if (!usesPower) return []
+    const keys: string[] = []
+    for (const s of segments) {
+      if (s.equipment && equipmentUsesPower(s.equipment) && !keys.includes(s.equipment)) {
+        keys.push(s.equipment)
+      }
+    }
+    if (keys.length === 0) keys.push('')
+    return keys
+  }, [segments, usesPower])
+
+  const fleet = useErgFleet(slotKeys)
   const [ergEnabled, setErgEnabled] = useState(true)
   const [measuredForForm, setMeasuredForForm] = useState<{
     actualAvgPower?: number
@@ -243,6 +285,13 @@ export function CardioFocusModeWorkout({
   const completedCount = segments.filter((s) => s.completed || s.skipped).length
   const progressPercent = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
 
+  // The machine behind the current segment's equipment (or the only one connected).
+  const activeDevice = fleet.deviceFor(currentSegment?.equipment)
+  const activeClient = activeDevice?.client ?? null
+  const activeConnected = activeDevice?.status === 'connected'
+  // Stream power to the coach's live team grid when the athlete is in a session.
+  const { activeSessionId: liveSessionId } = useLivePowerPush(activeClient, activeConnected)
+
   // The opener (benchmark) segment's logged average watts — anchors relative % targets.
   const openerPower = segments.find((s) => s.isBenchmark)?.actualAvgPower
 
@@ -262,25 +311,13 @@ export function CardioFocusModeWorkout({
     : 0
   const restCountdownForForm = followingRestSeconds > 0 ? followingRestSeconds : undefined
 
-  // Does this workout involve power at all? Gates the whole live-erg strip.
-  const usesPower = segments.some(
-    (s) =>
-      equipmentUsesPower(s.equipment) ||
-      s.plannedPower != null ||
-      s.powerRelPercent != null ||
-      s.isBenchmark === true
-  )
-
   // Name the connect button after the workout's equipment so a rowing session
-  // doesn't ask the athlete to "connect Wattbike".
-  const hasRowingEquip = segments.some((s) => equipmentIsRowing(s.equipment))
-  const hasBikeEquip = segments.some(
-    (s) => equipmentUsesPower(s.equipment) && !equipmentIsRowing(s.equipment)
-  )
+  // doesn't ask the athlete to "connect Wattbike". With several slots the
+  // button opens the machine panel instead of connecting directly.
   const connectLabel =
-    hasRowingEquip && hasBikeEquip
-      ? tw('Anslut maskin (Bluetooth)', 'Connect machine (Bluetooth)')
-      : hasRowingEquip
+    slotKeys.length > 1
+      ? tw('Anslut maskiner', 'Connect machines')
+      : segments.some((s) => equipmentIsRowing(s.equipment))
         ? tw('Anslut Concept2 (PM5)', 'Connect Concept2 (PM5)')
         : segments.some((s) => equipmentIsAirbike(s.equipment))
           ? tw('Anslut airbike', 'Connect airbike')
@@ -306,9 +343,15 @@ export function CardioFocusModeWorkout({
     return out
   }, [])
 
-  // Subscribe once to the BLE stream; collect samples only during a work effort.
+  // Subscribe to the active machine's stream; collect samples only during a
+  // work effort. Re-subscribes when the segment routes to another machine.
   useEffect(() => {
-    const off = wb.client.on('data', (s) => {
+    if (!activeClient) return
+    // Distance is cumulative per machine — a device swap mid-segment must
+    // restart the delta from the new machine's counter.
+    segDistStartRef.current = null
+    segDistLastRef.current = null
+    const off = activeClient.on('data', (s) => {
       if (!accumulatingRef.current) return
       if (typeof s.power === 'number') {
         segPowerRef.current.push(s.power)
@@ -322,13 +365,13 @@ export function CardioFocusModeWorkout({
       }
     })
     return off
-  }, [wb.client])
+  }, [activeClient])
 
   // Only accumulate while a work segment's timer is on screen.
   useEffect(() => {
     accumulatingRef.current =
-      wb.status === 'connected' && viewState === 'timer' && isWorkType(currentSegment?.type)
-  }, [wb.status, viewState, currentIndex, currentSegment])
+      activeConnected && viewState === 'timer' && isWorkType(currentSegment?.type)
+  }, [activeConnected, viewState, currentIndex, currentSegment])
 
   // Reset the per-segment accumulator when the segment changes.
   useEffect(() => {
@@ -342,11 +385,11 @@ export function CardioFocusModeWorkout({
   // toggle). Bikes with a motor brake only — airbikes and rowing ergs are
   // air-resistance, there is no target to set.
   useEffect(() => {
-    if (!ergEnabled || wb.status !== 'connected' || !wb.canControl || wb.machineKind !== 'bike') return
+    if (!ergEnabled || !activeConnected || !activeDevice?.canControl || activeDevice.kind !== 'bike') return
     if (!isWorkType(currentSegment?.type) || typeof currentTargetPower !== 'number') return
-    void wb.setTargetPower(currentTargetPower)
+    void activeDevice.client.setTargetPower(currentTargetPower).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, currentTargetPower, ergEnabled, wb.status, wb.canControl, wb.machineKind])
+  }, [currentIndex, currentTargetPower, ergEnabled, activeConnected, activeDevice?.canControl, activeDevice?.kind])
 
   // Advance to a segment and show its timer. Auto-started intervals begin running
   // immediately — the get-ready heads-up is the "ten seconds left" cue on the
@@ -358,9 +401,10 @@ export function CardioFocusModeWorkout({
     setViewState('timer')
   }
 
-  // Announce segment on transition (basic voice — skip when live coach active)
+  // Announce segment on transition (basic voice — skip when live coach active
+  // or while the machine setup screen still hides the timer)
   useEffect(() => {
-    if (liveCoachActive) return
+    if (liveCoachActive || preStartSetup) return
     if (viewState === 'timer' && currentSegment) {
       const cue = buildSegmentStartCue(
         currentSegment,
@@ -370,7 +414,7 @@ export function CardioFocusModeWorkout({
       voice.speak(cue, 'high')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentIndex, viewState, liveCoachActive])
+  }, [currentIndex, viewState, liveCoachActive, preStartSetup])
 
   // Check if all segments are complete
   useEffect(() => {
@@ -645,14 +689,19 @@ export function CardioFocusModeWorkout({
       </div>
 
       {/* Live erg strip (bike / airbike / Concept2) — only for power workouts */}
-      {usesPower && (
+      {usesPower && !preStartSetup && (
         <div className="px-4 py-2 border-b border-slate-200 dark:border-white/5 bg-white dark:bg-white/5">
-          {wb.status === 'connected' ? (
+          {activeConnected && activeDevice ? (
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-baseline gap-1.5">
+                {slotKeys.length > 1 && (
+                  <span className="self-center text-xs font-bold uppercase tracking-wide text-slate-400">
+                    {ergEquipmentLabel(activeDevice.slot, locale)}
+                  </span>
+                )}
                 <Gauge className="h-4 w-4 self-center text-blue-500" />
                 <span className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">
-                  {wb.latest?.power ?? 0}
+                  {activeDevice.latest?.power ?? 0}
                 </span>
                 <span className="text-xs text-slate-500">W</span>
                 {typeof currentTargetPower === 'number' && (
@@ -668,24 +717,24 @@ export function CardioFocusModeWorkout({
                     {tw('Live till coach', 'Live to coach')}
                   </span>
                 )}
-                {wb.machineKind === 'rower' ? (
+                {activeDevice.kind === 'rower' ? (
                   <>
-                    {wb.latest?.pace != null && (
+                    {activeDevice.latest?.pace != null && (
                       <span className="tabular-nums font-semibold">
-                        {formatDuration(wb.latest.pace)}
+                        {formatDuration(activeDevice.latest.pace)}
                         <span className="font-normal text-xs">/500m</span>
                       </span>
                     )}
-                    {wb.latest?.strokeRate != null && (
-                      <span className="tabular-nums">{Math.round(wb.latest.strokeRate)} spm</span>
+                    {activeDevice.latest?.strokeRate != null && (
+                      <span className="tabular-nums">{Math.round(activeDevice.latest.strokeRate)} spm</span>
                     )}
                   </>
                 ) : (
-                  wb.latest?.cadence != null && (
-                    <span className="tabular-nums">{Math.round(wb.latest.cadence)} rpm</span>
+                  activeDevice.latest?.cadence != null && (
+                    <span className="tabular-nums">{Math.round(activeDevice.latest.cadence)} rpm</span>
                   )
                 )}
-                {wb.canControl && wb.machineKind === 'bike' && (
+                {activeDevice.canControl && activeDevice.kind === 'bike' && (
                   <button
                     type="button"
                     onClick={() => setErgEnabled((v) => !v)}
@@ -700,23 +749,42 @@ export function CardioFocusModeWorkout({
                     ERG
                   </button>
                 )}
+                {fleet.isSupported && (
+                  <button
+                    type="button"
+                    onClick={() => setManageMachinesOpen(true)}
+                    title={tw('Hantera maskiner', 'Manage machines')}
+                    className="rounded-md p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                  >
+                    <Bluetooth className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
           ) : (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => void wb.connect()}
-              disabled={!wb.isSupported || wb.status === 'connecting' || wb.status === 'reconnecting'}
+              onClick={() =>
+                slotKeys.length > 1
+                  ? setManageMachinesOpen(true)
+                  : void fleet.connectSlot(slotKeys[0] ?? '').catch(() => {})
+              }
+              disabled={
+                !fleet.isSupported ||
+                (slotKeys.length === 1 &&
+                  ['connecting', 'reconnecting'].includes(fleet.devices[slotKeys[0]]?.status ?? ''))
+              }
               className="w-full"
               title={
-                !wb.isSupported
+                !fleet.isSupported
                   ? tw('Live-data kräver Chrome på Android eller dator', 'Live machine data needs Chrome on Android or desktop')
                   : undefined
               }
             >
               <Bluetooth className="mr-2 h-4 w-4" />
-              {wb.status === 'connecting' || wb.status === 'reconnecting'
+              {slotKeys.length === 1 &&
+              ['connecting', 'reconnecting'].includes(fleet.devices[slotKeys[0]]?.status ?? '')
                 ? tw('Ansluter…', 'Connecting…')
                 : connectLabel}
             </Button>
@@ -727,7 +795,20 @@ export function CardioFocusModeWorkout({
       {/* Main content */}
       <div className="flex-1 min-h-0 overflow-y-auto">
         <div className="min-h-full w-full flex flex-col items-center justify-center p-4">
-        {viewState === 'timer' && currentSegment.plannedDuration ? (
+        {preStartSetup ? (
+          // Machine connection screen — the first timer mounts (and auto-starts)
+          // only once the athlete taps start, so the clock never runs while
+          // they're still pairing ergs.
+          <ErgMachinePanel
+            slots={slotKeys}
+            fleet={fleet}
+            variant="prestart"
+            onDone={() => {
+              setPreStartSetup(false)
+              setAutoRunTimer(true)
+            }}
+          />
+        ) : viewState === 'timer' && currentSegment.plannedDuration ? (
           <IntervalTimer
             key={currentSegment.id}
             duration={currentSegment.plannedDuration}
@@ -842,6 +923,19 @@ export function CardioFocusModeWorkout({
           <ChevronRight className="h-5 w-5" />
         </Button>
       </div>
+
+      {/* Mid-session machine management — overlay so the running timer is untouched */}
+      <Dialog open={manageMachinesOpen} onOpenChange={setManageMachinesOpen}>
+        <DialogContent className="max-w-md">
+          <DialogTitle className="sr-only">{tw('Hantera maskiner', 'Manage machines')}</DialogTitle>
+          <ErgMachinePanel
+            slots={slotKeys}
+            fleet={fleet}
+            variant="manage"
+            onDone={() => setManageMachinesOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Exit confirmation dialog */}
       <AlertDialog open={showExitDialog} onOpenChange={setShowExitDialog}>
