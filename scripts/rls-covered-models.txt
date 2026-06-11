@@ -98,6 +98,7 @@ DeletedUserDataArchive
 DeepResearchProgress
 DeepResearchSession
 DietaryPreferences
+DevicePushToken
 EmailDeliveryEvent
 EnterpriseContract
 EnterpriseContractChange
@@ -230,6 +231,7 @@ SystemMetric
 Team
 TeamCoachAssignment
 TeamDrill
+TeamDrillView
 TeamEvent
 TeamNote
 TeamPlan
@@ -241,6 +243,9 @@ TestStage
 TestTemplate
 Tester
 ThresholdCalculation
+Thread
+ThreadMessage
+ThreadParticipant
 TimingGateResult
 TimingGateSession
 TrainingDay
