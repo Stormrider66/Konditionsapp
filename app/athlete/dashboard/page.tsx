@@ -4,8 +4,8 @@ import { cookies } from 'next/headers'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { SportType } from '@prisma/client'
-import { addDays, startOfDay, endOfDay, subDays, format, startOfWeek } from 'date-fns'
-import { tzSafeDayStart, tzSafeDayEnd } from '@/lib/date-utils'
+import { format } from 'date-fns'
+import { getAthleteDashboardData } from '@/lib/athlete/dashboard-data'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
 import { ActivePrograms } from '@/components/athlete/ActivePrograms'
@@ -34,11 +34,9 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { NutritionFocusDashboard } from '@/components/athlete/NutritionFocusDashboard'
-import { DashboardWorkoutWithContext } from '@/types/prisma-types'
 import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid } from '@/components/athlete/dashboard'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
-import { calculateMuscularFatigue, type WorkoutLogWithSetLogs } from '@/lib/hero-card'
 import { WODHistorySummary } from '@/components/athlete/wod'
 import { MorningBriefingCard } from '@/components/athlete/MorningBriefingCard'
 import { PreWorkoutNudgeCard } from '@/components/athlete/PreWorkoutNudgeCard'
@@ -54,25 +52,8 @@ import { TrainingTrendChart } from '@/components/athlete/TrainingTrendChart'
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart'
 import { getTargetsForAthlete } from '@/lib/training/intensity-targets'
 import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
-import { getDashboardRecentActivitySummary, getDashboardWeeklyLoad } from '@/lib/dashboard/activity-insights'
-import { getWODUsageStats } from '@/lib/ai/wod-context-builder'
 import { getLocale, getTranslations } from '@/i18n/server'
-import {
-  DashboardItem,
-  DashboardAssignment,
-  DashboardAdHocWorkout,
-  DashboardWOD,
-  isItemCompleted,
-  getItemDate,
-  getAssignmentRoute,
-  getWODRoute,
-  mapStrengthAssignment,
-  mapCardioAssignment,
-  mapHybridAssignment,
-  mapAgilityAssignment,
-  mapWODToDashboard,
-  mapAdHocWorkoutToDashboard,
-} from '@/types/dashboard-items'
+import { getAssignmentRoute, getWODRoute } from '@/types/dashboard-items'
 import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
 
 export default async function AthleteDashboardPage() {
@@ -217,429 +198,34 @@ export default async function AthleteDashboardPage() {
     }
   }
 
-  const todayStart = startOfDay(now)
-  const todayEnd = endOfDay(now)
-  // Timezone-safe boundaries for training day dates (may be stored at CET/CEST midnight)
-  const todayStartTz = tzSafeDayStart(now)
-  const todayEndTz = tzSafeDayEnd(now)
-  // Fix: Use startOfDay for upcoming start to include full day
-  const upcomingStart = startOfDay(addDays(now, 1))
-  const upcomingEnd = endOfDay(addDays(now, 7))
-  const upcomingStartTz = tzSafeDayStart(addDays(now, 1))
-  const upcomingEndTz = tzSafeDayEnd(addDays(now, 7))
-
-  // Parallel data fetching for better performance
-  const [
+  // Data assembly shared with GET /api/athlete/dashboard (mobile app) —
+  // lib/athlete/dashboard-data.ts is the single implementation.
+  const {
     activePrograms,
-    latestMetrics,
-    recentLogsWithSetLogs,
-    weeklyLoad,
+    sortedTodayItems,
+    upcomingItems,
+    nextItem,
+    firstActionableItem,
+    readinessScore,
+    hasCheckedInToday,
+    weeklyTSS,
+    weeklyTSSTarget,
+    muscularFatigue,
     activeInjuries,
     wodHistory,
-    confirmedAdHocWorkouts,
+    wodStats,
+    wodUsageStats,
     recentActivitySummary,
-  ] = await Promise.all([
-    // 1. Active Programs
-    prisma.trainingProgram.findMany({
-      where: {
-        clientId: clientId,
-        startDate: { lte: now },
-        endDate: { gte: now },
-        isActive: true,
-      },
-      select: {
-        id: true,
-        name: true,
-        startDate: true,
-        endDate: true,
-        weeks: {
-          select: {
-            id: true,
-            weekNumber: true,
-            phase: true
-          },
-          orderBy: { weekNumber: 'asc' }
-        }
-      },
-    }),
-
-    // 2. Latest DailyMetrics for readiness score
-    prisma.dailyMetrics.findFirst({
-      where: {
-        clientId: clientId,
-        date: { gte: subDays(todayStart, 7) },
-      },
-      orderBy: { date: 'desc' },
-      select: {
-        readinessScore: true,
-        date: true,
-      },
-    }),
-
-    // 5. Recent workout logs with SetLogs for fatigue calculation
-    prisma.workoutLog.findMany({
-      where: {
-        athleteId: user.id,
-        completed: true,
-        completedAt: { gte: subDays(now, 7) },
-      },
-      include: {
-        workout: {
-          select: {
-            type: true,
-            intensity: true,
-          },
-        },
-        setLogs: {
-          include: {
-            exercise: {
-              select: {
-                muscleGroup: true,
-                biomechanicalPillar: true,
-                category: true,
-              },
-            },
-          },
-        },
-      },
-      orderBy: { completedAt: 'desc' },
-    }),
-
-    // 6. Weekly training load + personalized target (4-week average)
-    getDashboardWeeklyLoad(clientId),
-
-    // 7. Active injuries (not fully recovered)
-    prisma.injuryAssessment.findMany({
-      where: {
-        clientId: clientId,
-        status: { not: 'FULLY_RECOVERED' },
-      },
-      select: {
-        painLocation: true,
-        painLevel: true,
-      },
-    }),
-
-    // 8. WOD (AI-generated workout) history
-    prisma.aIGeneratedWOD.findMany({
-      where: {
-        clientId: clientId,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        requestedDuration: true,
-        actualDuration: true,
-        createdAt: true,
-        completedAt: true,
-      },
-    }),
-
-    prisma.adHocWorkout.findMany({
-      where: {
-        athleteId: clientId,
-        status: 'CONFIRMED',
-        workoutDate: { gte: todayStart, lte: todayEnd },
-      },
-      orderBy: { workoutDate: 'desc' },
-      select: {
-        id: true,
-        workoutDate: true,
-        workoutName: true,
-        status: true,
-        inputType: true,
-        createdAt: true,
-        parsedType: true,
-        parsedStructure: true,
-      },
-    }),
-    getDashboardRecentActivitySummary(clientId),
-  ])
-
-  // Fetch today's WODs for dashboard items
-  const todayWODs = await prisma.aIGeneratedWOD.findMany({
-    where: {
-      clientId: clientId,
-      createdAt: { gte: todayStart, lte: todayEnd },
-      status: { notIn: ['ABANDONED'] },
-    },
-    select: {
-      id: true,
-      title: true,
-      subtitle: true,
-      description: true,
-      mode: true,
-      workoutType: true,
-      requestedDuration: true,
-      actualDuration: true,
-      status: true,
-      createdAt: true,
-      completedAt: true,
-      intensityAdjusted: true,
-      sessionRPE: true,
-      primarySport: true,
-    },
-    orderBy: { createdAt: 'desc' },
+  } = await getAthleteDashboardData({
+    userId: user.id,
+    clientId,
+    subscriptionTier: client.athleteSubscription?.tier || 'FREE',
+    locale,
+    now,
   })
 
-  const todayWODItems: DashboardWOD[] = todayWODs.map(w => mapWODToDashboard(w as any))
-  const todayAdHocItems: DashboardAdHocWorkout[] = confirmedAdHocWorkouts.map(workout =>
-    mapAdHocWorkoutToDashboard({
-      ...workout,
-      parsedStructure: workout.parsedStructure as any,
-    })
-  )
-
-  // Fetch workouts with program info
-  const todaysWorkoutsWithProgram = await prisma.workout.findMany({
-    where: {
-      status: { not: 'CANCELLED' },
-      day: {
-        date: { gte: todayStartTz, lte: todayEndTz },
-        week: { program: { clientId: clientId, isActive: true } }
-      }
-    },
-    include: {
-      day: {
-        include: {
-          week: {
-            include: {
-              program: {
-                select: { id: true, name: true }
-              }
-            }
-          }
-        }
-      },
-      segments: { include: { exercise: true } },
-      logs: { where: { athleteId: user.id }, take: 1 },
-      fuelingPrescription: true
-    }
-  }) as any[]
-
-  const upcomingWorkoutsWithProgram = await prisma.workout.findMany({
-    where: {
-      status: { not: 'CANCELLED' },
-      day: {
-        date: { gte: upcomingStartTz, lte: upcomingEndTz },
-        week: { program: { clientId: clientId, isActive: true } }
-      }
-    },
-    include: {
-      day: {
-        include: {
-          week: {
-            include: {
-              program: {
-                select: { id: true, name: true }
-              }
-            }
-          }
-        }
-      },
-      segments: { include: { exercise: true } },
-      logs: { where: { athleteId: user.id }, take: 1 },
-      fuelingPrescription: true
-    },
-    orderBy: { day: { date: 'asc' } }
-  }) as any[]
-
-  // Map to DashboardWorkoutWithContext
-  const todaysWorkouts: DashboardWorkoutWithContext[] = todaysWorkoutsWithProgram.map(w => ({
-    ...w,
-    programId: w.day.week.program.id,
-    programName: w.day.week.program.name,
-    dayDate: w.day.date
-  }))
-
-  const upcomingWorkouts: DashboardWorkoutWithContext[] = upcomingWorkoutsWithProgram.map(w => ({
-    ...w,
-    programId: w.day.week.program.id,
-    programName: w.day.week.program.name,
-    dayDate: w.day.date
-  }))
-
-  // Fetch coach-assigned workouts (strength, cardio, hybrid, agility)
-  const [strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments] = await Promise.all([
-    prisma.strengthSessionAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
-        status: { not: 'SKIPPED' },
-      },
-      include: {
-        session: {
-          select: { id: true, name: true, description: true, phase: true, estimatedDuration: true }
-        },
-        location: { select: { id: true, name: true } },
-      },
-      orderBy: { assignedDate: 'asc' },
-    }),
-    prisma.cardioSessionAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
-        status: { not: 'SKIPPED' },
-      },
-      include: {
-        session: {
-          select: { id: true, name: true, description: true, sport: true, totalDuration: true }
-        },
-        location: { select: { id: true, name: true } },
-      },
-      orderBy: { assignedDate: 'asc' },
-    }),
-    prisma.hybridWorkoutAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
-        status: { not: 'SKIPPED' },
-      },
-      include: {
-        workout: {
-          select: { id: true, name: true, description: true, format: true, totalMinutes: true }
-        },
-        location: { select: { id: true, name: true } },
-      },
-      orderBy: { assignedDate: 'asc' },
-    }),
-    prisma.agilityWorkoutAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
-        status: { notIn: ['SKIPPED'] },
-      },
-      include: {
-        workout: {
-          select: { id: true, name: true, description: true, format: true, totalDuration: true }
-        },
-        location: { select: { id: true, name: true } },
-      },
-      orderBy: { assignedDate: 'asc' },
-    }),
-  ])
-
-  // Map assignments to DashboardAssignment[]
-  const allAssignments: DashboardAssignment[] = [
-    ...strengthAssignments.map(a => mapStrengthAssignment(a as any)),
-    ...cardioAssignments.map(a => mapCardioAssignment(a as any)),
-    ...hybridAssignments.map(a => mapHybridAssignment(a as any)),
-    ...agilityAssignments.map(a => mapAgilityAssignment(a as any)),
-  ]
-
-  // Split assignments into today vs upcoming
-  const todayAssignments = allAssignments.filter(a => {
-    const d = new Date(a.assignedDate)
-    return d >= todayStart && d <= todayEnd
-  })
-  const upcomingAssignments = allAssignments.filter(a => {
-    const d = new Date(a.assignedDate)
-    return d >= upcomingStart && d <= upcomingEnd
-  })
-
-  // Build merged DashboardItem arrays (WODs are always today, never upcoming)
-  const todayItems: DashboardItem[] = [
-    ...todaysWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
-    ...todayAssignments,
-    ...todayWODItems,
-    ...todayAdHocItems,
-  ]
-  const upcomingItems: DashboardItem[] = [
-    ...upcomingWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
-    ...upcomingAssignments,
-  ].sort((a, b) => getItemDate(a).getTime() - getItemDate(b).getTime())
-
-  // Current Phase / Week
   const currentProgram = activePrograms[0]
-  const currentWeekInfo = currentProgram?.weeks.find(w => {
-    // Simple improved week finding (placeholder logic as we don't have exact dates for weeks)
-    // In real app, we would calculate this based on program start date
-    return true
-  })
-  const currentPhase = currentWeekInfo?.phase || "General Preparation"
-
-  // Calculate muscular fatigue from recent logs
-  const muscularFatigue = calculateMuscularFatigue(
-    recentLogsWithSetLogs.map((log) => ({
-      id: log.id,
-      completedAt: log.completedAt,
-      completed: log.completed,
-      perceivedEffort: log.perceivedEffort,
-      workout: log.workout
-        ? {
-          type: log.workout.type,
-          intensity: log.workout.intensity,
-        }
-        : null,
-      setLogs: log.setLogs.map((sl) => ({
-        id: sl.id,
-        exerciseId: sl.exerciseId,
-        weight: sl.weight,
-        repsCompleted: sl.repsCompleted,
-        rpe: sl.rpe,
-        completedAt: sl.completedAt,
-        exercise: sl.exercise
-          ? {
-            muscleGroup: sl.exercise.muscleGroup,
-            biomechanicalPillar: sl.exercise.biomechanicalPillar,
-            category: sl.exercise.category,
-          }
-          : null,
-      })),
-    })) as WorkoutLogWithSetLogs[],
-    7,
-    locale
-  )
-
-  // Get readiness data
-  const readinessScore = latestMetrics?.readinessScore ?? null
-  const hasCheckedInToday = latestMetrics ? latestMetrics.date >= todayStart : false
-  const { weeklyTSS, weeklyTSSTarget } = weeklyLoad
-
-  // Get next item for rest day card
-  const nextItem: DashboardItem | null = upcomingItems.length > 0 ? upcomingItems[0] : null
   const restDayMode = currentProgram ? 'rest-day' : 'open-day'
-  const wodUsageStats = await getWODUsageStats(clientId, client.athleteSubscription?.tier || 'FREE')
-
-  // Calculate WOD stats
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 }) // Monday
-  const wodStats = {
-    thisWeek: wodHistory.filter(w => w.status === 'COMPLETED' && w.completedAt && new Date(w.completedAt) >= weekStart).length,
-    totalCompleted: wodHistory.filter(w => w.status === 'COMPLETED').length,
-    totalMinutes: wodHistory
-      .filter(w => w.status === 'COMPLETED')
-      .reduce((sum, w) => sum + (w.actualDuration || w.requestedDuration || 0), 0),
-  }
-
-  // Hero Card Data - prioritize: incomplete programs > assignments > WODs > completed
-  const kindPriority = (kind: string) => (
-    kind === 'program'
-      ? 0
-      : kind === 'assignment'
-        ? 1
-        : kind === 'wod'
-          ? 2
-          : 3
-  )
-  const sortedTodayItems = [...todayItems].sort((a, b) => {
-    const aCompleted = isItemCompleted(a)
-    const bCompleted = isItemCompleted(b)
-    // Incomplete items come first
-    if (aCompleted && !bCompleted) return 1
-    if (!aCompleted && bCompleted) return -1
-    // Among incomplete: programs > assignments > WODs
-    if (!aCompleted && !bCompleted) {
-      return kindPriority(a.kind) - kindPriority(b.kind)
-    }
-    return 0
-  })
-  // First incomplete item for "Start Session" button
-  const firstActionableItem = sortedTodayItems.find(
-    (item) => item.kind !== 'adhoc' && !isItemCompleted(item)
-  ) || null
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
