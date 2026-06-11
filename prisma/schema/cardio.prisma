@@ -151,6 +151,11 @@ model CardioSessionLog {
   avgPower       Int? // average watts (power-based equipment)
   maxPower       Int? // peak watts
 
+  // Garmin watch recording matched to this session — the HR source for the
+  // summary (avg/max HR above are populated from it when linked).
+  garminActivityId String?         @unique
+  garminActivity   GarminActivity? @relation("CardioLogGarminLink", fields: [garminActivityId], references: [id], onDelete: SetNull)
+
   // Segment logs
   segmentLogs CardioSegmentLog[]
 
@@ -195,6 +200,10 @@ model CardioSegmentLog {
   actualAvgPower Int? // average watts — the benchmark/opener's value anchors relative % targets
   actualMaxPower Int? // peak watts
   actualCalories Int? // kcal burned (machine-measured delta, or manually entered)
+
+  // Per-second watt samples from the connected erg (number[], 1 Hz from
+  // segment start) — powers power-vs-HR charts in the summary.
+  powerSamples Json?
 
   // Status
   completed Boolean @default(false)

@@ -190,6 +190,10 @@ model GarminActivity {
   // HR Stream data for accurate zone tracking
   hrStream        Json? // Second-by-second HR data: number[]
   hrStreamFetched Boolean @default(false)
+  // Seconds-from-activity-start offset per hrStream entry (number[], same
+  // length as hrStream). Without it, gaps in the recording make index ≠
+  // elapsed seconds, so per-segment HR slicing would drift.
+  hrStreamOffsets Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -197,6 +201,7 @@ model GarminActivity {
   client           Client                      @relation(fields: [clientId], references: [id], onDelete: Cascade)
   zoneDistribution ActivityHRZoneDistribution?
   adHocWorkout     AdHocWorkout?               @relation("AdHocGarminLink")
+  cardioSessionLog CardioSessionLog?           @relation("CardioLogGarminLink")
 
   @@index([clientId])
   @@index([startDate])
