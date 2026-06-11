@@ -262,7 +262,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
       form.setValue('restingHR', data.restingHR)
     }
     if (data.sleepHours) {
-      form.setValue('sleepHours', data.sleepHours)
+      // Round to one decimal — older synced values carry raw minute fractions
+      form.setValue('sleepHours', Math.round(data.sleepHours * 10) / 10)
     }
     if (data.sleepQuality) {
       form.setValue('sleepQuality', data.sleepQuality)
@@ -636,6 +637,10 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                     'Optional - import from Garmin Connect or fill in manually.'
                   )}
                 </GlassCardDescription>
+                {/* Brand guidelines: once Garmin values fill the fields, the
+                    section displays Garmin device-sourced data (wellness API
+                    provides no device model — logo lists Garmin as source) */}
+                {garminApplied && <GarminAttribution className="pt-1" />}
               </GlassCardHeader>
               <GlassCardContent className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -706,6 +711,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                 <GlassCardDescription className="text-slate-400">
                   {text(locale, 'Mät direkt när du vaknar för bäst resultat.', 'Measure right after waking for best results.')}
                 </GlassCardDescription>
+                {garminApplied && <GarminAttribution className="pt-1" />}
               </GlassCardHeader>
               <GlassCardContent>
                 <FormField
@@ -745,6 +751,8 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                 <GlassCardDescription className="text-slate-400 font-medium">
                   {text(locale, 'Svara ärligt på samtliga frågor (1-10)', 'Answer every question honestly (1-10)')}
                 </GlassCardDescription>
+                {/* Sleep/stress sliders hold Garmin values after Apply */}
+                {garminApplied && <GarminAttribution className="pt-1" />}
               </GlassCardHeader>
               <GlassCardContent className="space-y-10 py-6">
                 {[
@@ -768,7 +776,7 @@ export function DailyCheckInForm({ clientId, sport = 'RUNNING', onSuccess, varia
                             {slider.label}
                           </FormLabel>
                           <span className="text-2xl font-black leading-none text-slate-900 dark:text-white transition-colors">
-                            {field.value}{slider.isHours ? 'h' : ''}
+                            {slider.isHours ? `${Math.round(field.value * 10) / 10}h` : field.value}
                           </span>
                         </div>
                         <FormControl>

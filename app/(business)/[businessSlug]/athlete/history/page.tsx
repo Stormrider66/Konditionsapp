@@ -316,7 +316,7 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
   const garminItems = garminActivities.map((a) => ({
     id: a.id,
     date: a.startDate,
-    name: a.name || a.type || 'Garmin Connect Activity',
+    name: a.name || a.type || 'Garmin Activity',
     type: a.mappedType || a.type || 'OTHER',
     duration: a.duration ? Math.round(a.duration / 60) : null, // seconds → minutes
     perceivedEffort: null as number | null,
@@ -507,6 +507,22 @@ export default async function BusinessWorkoutHistoryPage({ params, searchParams 
           <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">
             {t('description')}
           </p>
+          {/* Brand guidelines: multi-entry display — global Garmin
+              attribution in the page header (entries also attribute
+              individually). Totals above the fold include Garmin data. */}
+          {garminItems.length > 0 && (
+            <GarminAttribution
+              deviceModel={
+                [...new Set(
+                  garminItems
+                    .map((i) => i.deviceName)
+                    .filter((n): n is string => !!n)
+                )].join(', ') || null
+              }
+              size="md"
+              className="pt-1"
+            />
+          )}
         </div>
         <ExportDataButton logs={logs as any} />
       </div>
@@ -922,7 +938,8 @@ function getSourceDescription(
   t: (key: string) => string
 ): string {
   if (item.isAdHoc) return t('sources.customWorkout')
-  if (item.source === 'garmin') return item.deviceName || 'Garmin Connect'
+  // Brand guidelines: "Garmin Connect" is the app name, never a data source
+  if (item.source === 'garmin') return item.deviceName || 'Garmin'
   if (item.source === 'wod') return t('sources.aiGeneratedWorkout')
   if (item.source === 'ai-chat') return t('sources.aiChatWorkout')
   if (item.source) return t('sources.studioWorkout')

@@ -220,6 +220,7 @@ export function WeeklyTrainingSummaryCard({
   const appLocale = locale === 'sv' ? 'sv' : 'en';
   const [summary, setSummary] = useState<WeeklySummary | null>(null);
   const [previousSummary, setPreviousSummary] = useState<WeeklySummary | null>(null);
+  const [garminDeviceNames, setGarminDeviceNames] = useState<string[]>([]);
   const [zoneData, setZoneData] = useState<ZoneDistribution | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -240,6 +241,9 @@ export function WeeklyTrainingSummaryCard({
           if (data.summaries.length > 1) {
             setPreviousSummary(data.summaries[1]);
           }
+        }
+        if (Array.isArray(data.garminDeviceNames)) {
+          setGarminDeviceNames(data.garminDeviceNames);
         }
       }
       if (zoneRes.ok) {
@@ -427,6 +431,14 @@ export function WeeklyTrainingSummaryCard({
             range: getWeekDateRange(summary.weekStart, summary.weekEnd, locale),
           })}
         </CardDescription>
+        {/* Brand guidelines: summary views attribute "GARMIN [device model]"
+            adjacent to the title */}
+        {summary.garminActivities > 0 && (
+          <GarminAttribution
+            deviceModel={garminDeviceNames.join(', ') || null}
+            className="pt-1"
+          />
+        )}
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -665,7 +677,10 @@ export function WeeklyTrainingSummaryCard({
           )}
         </div>
         {summary.garminActivities > 0 && (
-          <GarminAttribution className="justify-center pt-1" />
+          <GarminAttribution
+            deviceModel={garminDeviceNames.join(', ') || null}
+            className="justify-center pt-1"
+          />
         )}
       </CardContent>
     </Card>

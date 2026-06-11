@@ -22,7 +22,7 @@ const browser = await chromium.launch()
 const page = await browser.newPage({
   viewport: { width: 1440, height: 900 },
   deviceScaleFactor: 2,
-  locale: 'sv-SE',
+  locale: 'en-US',
 })
 
 const settle = async (ms = 6000) => {
@@ -76,6 +76,13 @@ await paginate('02-garmin-import-list', 4)
 
 await page.goto(`${BASE}${prefix}/athlete/check-in`)
 await settle()
+// Apply the Garmin prefill so the captured form shows Garmin-sourced
+// values with their attribution.
+const applyBtn = page.getByRole('button', { name: /^(Apply|Tillämpa)$/i })
+if (await applyBtn.count()) {
+  await applyBtn.first().click()
+  await page.waitForTimeout(2000)
+}
 await paginate('03-daily-check-in', 4)
 
 await page.goto(`${BASE}${prefix}/athlete/calendar`)

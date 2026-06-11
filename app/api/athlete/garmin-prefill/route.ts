@@ -190,10 +190,15 @@ export async function GET(request: NextRequest) {
         // RHR - prefer from garminDaily, fallback to direct field
         restingHR: todayFactors?.garminDaily?.restingHR || todayMetrics?.restingHR || undefined,
 
-        // Sleep - convert from minutes to hours if from Garmin
-        sleepHours: sleepData?.durationMinutes
-          ? Math.round((sleepData.durationMinutes / 60) * 10) / 10
-          : todayMetrics?.sleepHours || yesterdayMetrics?.sleepHours || undefined,
+        // Sleep - convert from minutes to hours if from Garmin.
+        // The DailyMetrics fallback stores raw minute fractions
+        // (e.g. 5.9166…), so round both paths to one decimal.
+        sleepHours: (() => {
+          const hours = sleepData?.durationMinutes
+            ? sleepData.durationMinutes / 60
+            : todayMetrics?.sleepHours || yesterdayMetrics?.sleepHours || undefined
+          return hours != null ? Math.round(hours * 10) / 10 : undefined
+        })(),
 
         // Sleep quality - convert from 0-100 to 1-10 if from Garmin
         sleepQuality: sleepData?.scores?.overall

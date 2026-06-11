@@ -108,10 +108,30 @@ export async function GET(request: NextRequest) {
       // Combine: current week first, then historical
       const summaries = [currentWeekSummary, ...filteredHistorical.slice(0, count - 1)]
 
+      // Garmin brand guidelines: summary views must attribute
+      // "Garmin [device model]" — surface the distinct device models behind
+      // the Garmin activities in the returned range.
+      const oldestWeekStart = new Date(
+        summaries[summaries.length - 1].weekStart
+      )
+      const garminDevices = await prisma.garminActivity.findMany({
+        where: {
+          clientId,
+          startDate: { gte: oldestWeekStart, lte: currentWeekSummary.weekEnd },
+          deviceName: { not: null },
+        },
+        select: { deviceName: true },
+        distinct: ['deviceName'],
+      })
+      const garminDeviceNames = garminDevices
+        .map((d) => d.deviceName)
+        .filter((n): n is string => !!n)
+
       return NextResponse.json({
         period: 'week',
         count: summaries.length,
         summaries,
+        garminDeviceNames,
       })
     }
   } catch (error) {
