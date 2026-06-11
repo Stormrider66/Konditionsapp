@@ -4,6 +4,7 @@ import {
   fetchAsBase64,
   createInlineData,
   createFileData,
+  createText,
   uploadFileFromBuffer,
   type VideoMetadata,
   type ContentPart,
@@ -84,4 +85,57 @@ export async function getVideoContentPart(
   // HTTP URL fallback (legacy).
   const { base64, mimeType } = await fetchAsBase64(videoUrl, { maxBytes: INLINE_DATA_MAX_BYTES })
   return createInlineData(base64, mimeType, videoMetadata)
+}
+
+/** One video of a multi-view capture group, with its prompt label. */
+export interface LabeledVideoInput {
+  videoUrl: string
+  label: string
+}
+
+/**
+ * Resolve content parts for a multi-view capture group: each video is
+ * preceded by its text label so the prompt can reference views by name.
+ *
+ * The 20 MB inline budget applies to the whole request, not per video,
+ * so videos are inlined only if their combined size fits — otherwise
+ * every video goes through the File API.
+ */
+export async function getGroupVideoContentParts(
+  videos: LabeledVideoInput[],
+  client: ReturnType<typeof createGoogleGenAIClient>,
+  videoMetadata?: VideoMetadata,
+): Promise<ContentPart[]> {
+  const downloads: Array<{ label: string; buffer: Buffer; mimeType: string }> = []
+  for (const video of videos) {
+    const path = normalizeStoragePath(VIDEO_BUCKET, video.videoUrl)
+    if (!path) {
+      throw new Error('Invalid video URL in capture group')
+    }
+    const { buffer, mimeType } = await downloadBufferFromStorage(VIDEO_BUCKET, path, {
+      maxBytes: FILE_API_MAX_BYTES,
+    })
+    downloads.push({ label: video.label, buffer, mimeType: mimeType || 'video/mp4' })
+  }
+
+  const totalBytes = downloads.reduce((sum, d) => sum + d.buffer.byteLength, 0)
+  const inlineAll = totalBytes <= INLINE_DATA_MAX_BYTES
+  if (!inlineAll) {
+    logger.info('Capture group too large for inline data, using File API', {
+      totalSize: `${(totalBytes / (1024 * 1024)).toFixed(1)}MB`,
+      videos: downloads.length,
+    })
+  }
+
+  const parts: ContentPart[] = []
+  for (const { label, buffer, mimeType } of downloads) {
+    parts.push(createText(label))
+    if (inlineAll) {
+      parts.push(createInlineData(buffer.toString('base64'), mimeType, videoMetadata))
+    } else {
+      const fileRef = await uploadFileFromBuffer(client, buffer, mimeType, `video-${Date.now()}`)
+      parts.push(createFileData(fileRef.uri, fileRef.mimeType))
+    }
+  }
+  return parts
 }

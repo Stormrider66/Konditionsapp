@@ -6,13 +6,16 @@ import {
   type createGoogleGenAIClient,
   generateContent,
   createText,
+  type ContentPart,
   type VideoMetadata,
 } from '@/lib/ai/google-genai-client'
-import { getVideoContentPart, VIDEO_FPS } from '../shared'
+import { getVideoContentPart, getGroupVideoContentParts, VIDEO_FPS } from '../shared'
 
 export interface RunningGaitAnalyzerInput {
   videoUrl: string
   athlete: { id: string; name: string; gender: string | null } | null
+  /** Multi-view capture group (simultaneous cameras). When 2+ entries, all videos are analyzed jointly. */
+  groupVideos?: Array<{ videoUrl: string; cameraAngle: string | null }>
 }
 
 type GaitIssueSeverity = 'LOW' | 'MEDIUM' | 'HIGH'
@@ -86,7 +89,40 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-function buildRunningGaitPrompt(athleteName: string, gender: string, locale: AppLocale): string {
+function buildMultiViewBlock(viewAngles: string[], locale: AppLocale): string {
+  const angles = viewAngles.join(', ')
+
+  if (locale === 'en') {
+    return `## MULTI-CAMERA SETUP
+You receive ${viewAngles.length} videos of the SAME running bout, filmed SIMULTANEOUSLY from different camera angles: ${angles}. Each video is preceded by a label naming its angle.
+- This is ONE attempt — treat the videos as one joint observation, never as separate performances, and give ONE combined assessment.
+- Cross-reference the views: frontal-plane issues (knee valgus, hip drop, crossover gait, arm swing across the midline) are best judged from FRONT/BACK; sagittal-plane issues (foot strike, overstriding, trunk lean, vertical oscillation) from SIDE.
+- When you report an issue, state which view(s) support the observation.
+- The cameras started at roughly the same moment, so timestamps refer to one shared timeline.
+- Quality gate: the analysis is valid if at least ONE view clearly shows analyzable running; mark it invalid only if NO view does.
+
+`
+  }
+
+  return `## FLERKAMERAUPPSÄTTNING
+Du får ${viewAngles.length} videor av SAMMA löpning, filmade SAMTIDIGT från olika kameravinklar: ${angles}. Varje video föregås av en etikett som anger dess vinkel.
+- Detta är ETT försök — behandla videorna som en gemensam observation, aldrig som separata prestationer, och ge EN samlad bedömning.
+- Korsreferera vinklarna: frontalplansproblem (knävalgus, höftfall, korsande steg, armpendling över mittlinjen) bedöms bäst från FRONT/BACK; sagittalplansproblem (fotisättning, översteg, bållutning, vertikal oscillation) från SIDE.
+- Ange vilken eller vilka vinklar som stödjer varje observation du rapporterar.
+- Kamerorna startade ungefär samtidigt, så tidsstämplar avser en gemensam tidslinje.
+- Kvalitetsgrind: analysen är giltig om minst EN vinkel tydligt visar analyserbar löpning; markera den som ogiltig bara om INGEN vinkel gör det.
+
+`
+}
+
+function buildRunningGaitPrompt(
+  athleteName: string,
+  gender: string,
+  locale: AppLocale,
+  viewAngles?: string[]
+): string {
+  const multiView = viewAngles && viewAngles.length > 1 ? buildMultiViewBlock(viewAngles, locale) : ''
+
   if (locale === 'en') {
     return `You are an experienced running biomechanist and exercise physiologist. Analyze this running video carefully.
 
@@ -97,7 +133,7 @@ You have access to the FULL video with multiple frames over time. Analyze moveme
 - Patterns that repeat on each step
 - Count actual steps to estimate cadence
 
-## ATHLETE INFORMATION
+${multiView}## ATHLETE INFORMATION
 - **Name**: ${athleteName}
 - **Pronouns**: ${gender}
 
@@ -217,7 +253,7 @@ Du har tillgång till HELA videon med flera bildrutor (frames) över tid. Analys
 - Eventuella mönster som upprepas vid varje steg
 - Räkna faktiska steg för att uppskatta kadens
 
-## ATLET INFORMATION
+${multiView}## ATLET INFORMATION
 - **Namn**: ${athleteName}
 - **Pronomen**: ${gender}
 
@@ -508,14 +544,28 @@ export async function analyzeRunningGait(
       ? 'he/him'
       : analysis.athlete?.gender === 'FEMALE' ? 'she/her' : 'they/them'
 
-  const prompt = buildRunningGaitPrompt(athleteName, gender, locale)
+  const groupVideos = analysis.groupVideos && analysis.groupVideos.length > 1 ? analysis.groupVideos : null
+  const viewAngles = groupVideos?.map((v, idx) => v.cameraAngle || `ANGLE_${idx + 1}`)
+  const prompt = buildRunningGaitPrompt(athleteName, gender, locale, viewAngles)
 
   try {
     const videoMetadata: VideoMetadata = { fps: VIDEO_FPS.RUNNING_GAIT }
-    logger.debug(`Video analysis: running gait @ ${videoMetadata.fps} FPS`)
+    logger.debug(`Video analysis: running gait @ ${videoMetadata.fps} FPS`, { views: groupVideos?.length ?? 1 })
 
-    const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata)
-    const result = await generateContent(client, modelId, [createText(prompt), videoPart])
+    let videoParts: ContentPart[]
+    if (groupVideos && viewAngles) {
+      videoParts = await getGroupVideoContentParts(
+        groupVideos.map((v, idx) => ({
+          videoUrl: v.videoUrl,
+          label: t(locale, `Video ${idx + 1} — ${viewAngles[idx]} view:`, `Video ${idx + 1} — vinkel ${viewAngles[idx]}:`),
+        })),
+        client,
+        videoMetadata,
+      )
+    } else {
+      videoParts = [await getVideoContentPart(analysis.videoUrl, client, videoMetadata)]
+    }
+    const result = await generateContent(client, modelId, [createText(prompt), ...videoParts])
 
     let gaitResult: RunningGaitResult
     try {
