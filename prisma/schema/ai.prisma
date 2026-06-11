@@ -413,6 +413,12 @@ model VideoAnalysis {
   cameraAngle  String? // "FRONT", "SIDE", "BACK" - camera angle for view-specific analysis
   duration     Int? // seconds
 
+  // Multi-view capture group: simultaneously filmed videos of the same attempt
+  // share a captureGroupId. Exactly one record per group has isPrimaryView and
+  // carries the combined AI analysis; siblings only hold their video + angle.
+  captureGroupId String?
+  isPrimaryView  Boolean @default(true)
+
   // MediaPipe landmarks data (if processed locally)
   landmarksData Json? // Skeletal tracking data
 
@@ -452,6 +458,7 @@ model VideoAnalysis {
   @@index([athleteId])
   @@index([exerciseId])
   @@index([status])
+  @@index([captureGroupId])
 }
 
 /// Available AI models (admin-configurable)
