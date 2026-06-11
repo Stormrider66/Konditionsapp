@@ -183,6 +183,7 @@ model CardioSegmentLog {
   plannedDistance Float? // km
   plannedPace     Int? // sec/km
   plannedZone     Int? // 1-5
+  plannedCalories Int? // kcal target (airbike/rower intervals)
   plannedPower    Int? // watts (absolute target, or the resolved value of a relative target)
 
   // Actual values logged
@@ -193,6 +194,7 @@ model CardioSegmentLog {
   actualMaxHR    Int?
   actualAvgPower Int? // average watts — the benchmark/opener's value anchors relative % targets
   actualMaxPower Int? // peak watts
+  actualCalories Int? // kcal burned (machine-measured delta, or manually entered)
 
   // Status
   completed Boolean @default(false)

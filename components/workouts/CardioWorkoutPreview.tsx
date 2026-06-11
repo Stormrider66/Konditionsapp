@@ -39,6 +39,7 @@ interface CardioFocusApiSegment {
   notes?: string
   actualDuration?: number
   actualDistance?: number
+  actualCalories?: number
   actualPace?: number
   actualAvgHR?: number
   actualMaxHR?: number
@@ -355,6 +356,7 @@ export function CardioWorkoutPreview({
           notes: s.notes,
           actualDuration: s.actualDuration,
           actualDistance: s.actualDistance,
+          actualCalories: s.actualCalories,
           actualPace: s.actualPace,
           actualAvgHR: s.actualAvgHR,
           actualMaxHR: s.actualMaxHR,

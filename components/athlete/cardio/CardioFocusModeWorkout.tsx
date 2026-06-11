@@ -85,6 +85,7 @@ interface FocusModeSegment {
   actualMaxHR?: number
   actualAvgPower?: number
   actualMaxPower?: number
+  actualCalories?: number
   completed: boolean
   skipped: boolean
   logId?: string
@@ -110,6 +111,7 @@ interface CardioFocusModeWorkoutProps {
       actualMaxHR?: number
       actualAvgPower?: number
       actualMaxPower?: number
+      actualCalories?: number
       completed: boolean
       skipped: boolean
       notes?: string
@@ -228,6 +230,7 @@ export function CardioFocusModeWorkout({
     actualAvgPower?: number
     actualMaxPower?: number
     actualDistance?: number
+    actualCalories?: number
   }>({})
   const segPowerRef = useRef<number[]>([])
   const segMaxRef = useRef(0)
@@ -239,6 +242,7 @@ export function CardioFocusModeWorkout({
   // state tagged with its segment index, so a stale value never renders after
   // advancing (state is only ever written from the BLE data callback).
   const segCalStartRef = useRef<number | null>(null)
+  const segCalLastRef = useRef<number | null>(null)
   const currentIndexRef = useRef(initialSegmentIndex)
   const [calLive, setCalLive] = useState<{ idx: number; kcal: number } | null>(null)
   const accumulatingRef = useRef(false)
@@ -330,13 +334,19 @@ export function CardioFocusModeWorkout({
           ? tw('Anslut airbike', 'Connect airbike')
           : tw('Anslut Wattbike', 'Connect Wattbike')
 
-  // Average / peak watts (and rower metres) measured for the current segment's effort.
+  // Watts, rower metres and kcal measured for the current segment's effort.
   const segmentMeasured = useCallback((): {
     actualAvgPower?: number
     actualMaxPower?: number
     actualDistance?: number
+    actualCalories?: number
   } => {
-    const out: { actualAvgPower?: number; actualMaxPower?: number; actualDistance?: number } = {}
+    const out: {
+      actualAvgPower?: number
+      actualMaxPower?: number
+      actualDistance?: number
+      actualCalories?: number
+    } = {}
     const arr = segPowerRef.current
     if (arr.length > 0) {
       out.actualAvgPower = Math.round(arr.reduce((a, b) => a + b, 0) / arr.length)
@@ -346,6 +356,11 @@ export function CardioFocusModeWorkout({
     const last = segDistLastRef.current
     if (start != null && last != null && last > start) {
       out.actualDistance = Math.round(last - start) / 1000 // metres → km
+    }
+    const calStart = segCalStartRef.current
+    const calLast = segCalLastRef.current
+    if (calStart != null && calLast != null && calLast > calStart) {
+      out.actualCalories = Math.round(calLast - calStart)
     }
     return out
   }, [])
@@ -359,6 +374,7 @@ export function CardioFocusModeWorkout({
     segDistStartRef.current = null
     segDistLastRef.current = null
     segCalStartRef.current = null
+    segCalLastRef.current = null
     const off = activeClient.on('data', (s) => {
       if (!accumulatingRef.current) return
       if (typeof s.power === 'number') {
@@ -373,6 +389,7 @@ export function CardioFocusModeWorkout({
       }
       if (typeof s.calories === 'number') {
         if (segCalStartRef.current == null) segCalStartRef.current = s.calories
+        segCalLastRef.current = s.calories
         const kcal = Math.max(0, Math.round(s.calories - segCalStartRef.current))
         const idx = currentIndexRef.current
         setCalLive((prev) => (prev?.idx === idx && prev.kcal === kcal ? prev : { idx, kcal }))
@@ -394,6 +411,7 @@ export function CardioFocusModeWorkout({
     segDistStartRef.current = null
     segDistLastRef.current = null
     segCalStartRef.current = null
+    segCalLastRef.current = null
     currentIndexRef.current = currentIndex
   }, [currentIndex])
 
@@ -527,6 +545,7 @@ export function CardioFocusModeWorkout({
     actualMaxHR?: number
     actualAvgPower?: number
     actualMaxPower?: number
+    actualCalories?: number
     completed: boolean
     skipped: boolean
     notes?: string
@@ -534,13 +553,14 @@ export function CardioFocusModeWorkout({
     if (isSubmitting) return
     setIsSubmitting(true)
 
-    // Fold in machine-measured values: avg power and rower distance already
-    // pre-fill the form, max power has no field.
+    // Fold in machine-measured values: avg power, rower distance and calories
+    // already pre-fill the form, max power has no field.
     const merged = {
       ...data,
       actualAvgPower: data.actualAvgPower ?? measuredForForm.actualAvgPower,
       actualMaxPower: data.actualMaxPower ?? measuredForForm.actualMaxPower,
       actualDistance: data.actualDistance ?? measuredForForm.actualDistance,
+      actualCalories: data.actualCalories ?? measuredForForm.actualCalories,
     }
 
     try {
@@ -929,6 +949,7 @@ export function CardioFocusModeWorkout({
             plannedPower={currentTargetPower}
             defaultAvgPower={measuredForForm.actualAvgPower}
             defaultDistance={measuredForForm.actualDistance}
+            defaultCalories={measuredForForm.actualCalories}
             showPower={
               (currentSegment.type === 'INTERVAL' || currentSegment.type === 'STEADY' || currentSegment.type === 'HILL') &&
               (equipmentUsesPower(currentSegment.equipment) ||

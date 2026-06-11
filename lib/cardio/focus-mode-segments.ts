@@ -58,6 +58,7 @@ interface SegmentLogData {
   actualMaxHR: number | null
   actualAvgPower?: number | null
   actualMaxPower?: number | null
+  actualCalories?: number | null
   completed: boolean
   skipped: boolean
 }
@@ -85,6 +86,7 @@ export interface FocusModeSegment {
   actualMaxHR?: number
   actualAvgPower?: number
   actualMaxPower?: number
+  actualCalories?: number
   completed: boolean
   skipped: boolean
   logId?: string
@@ -246,6 +248,7 @@ function logValues(log: SegmentLogData | undefined) {
     actualMaxHR: log?.actualMaxHR ?? undefined,
     actualAvgPower: log?.actualAvgPower ?? undefined,
     actualMaxPower: log?.actualMaxPower ?? undefined,
+    actualCalories: log?.actualCalories ?? undefined,
     completed: log?.completed ?? false,
     skipped: log?.skipped ?? false,
     logId: log?.id,

@@ -45,6 +45,8 @@ interface SegmentLoggingFormProps {
   defaultAvgPower?: number
   /** Machine-measured distance in km to pre-fill the distance field (rower capture). */
   defaultDistance?: number
+  /** Machine-measured kcal to pre-fill the calories field (live erg capture). */
+  defaultCalories?: number
   isBenchmark?: boolean
   /** When set, the following rest runs as a live countdown that auto-submits. */
   restCountdownSeconds?: number
@@ -59,6 +61,7 @@ interface SegmentLoggingFormProps {
     actualMaxHR?: number
     actualAvgPower?: number
     actualMaxPower?: number
+    actualCalories?: number
     completed: boolean
     skipped: boolean
     notes?: string
@@ -93,6 +96,7 @@ export function SegmentLoggingForm({
   showPower = false,
   defaultAvgPower,
   defaultDistance,
+  defaultCalories,
   isBenchmark = false,
   restCountdownSeconds,
   restHandoffAt = 0,
@@ -114,6 +118,9 @@ export function SegmentLoggingForm({
   const [actualMaxHR, setActualMaxHR] = useState<string>('')
   const [actualAvgPower, setActualAvgPower] = useState<string>(
     defaultAvgPower != null ? String(Math.round(defaultAvgPower)) : ''
+  )
+  const [actualCalories, setActualCalories] = useState<string>(
+    defaultCalories != null ? String(Math.round(defaultCalories)) : ''
   )
   const [notes, setNotes] = useState<string>('')
 
@@ -142,6 +149,7 @@ export function SegmentLoggingForm({
       actualAvgHR: actualAvgHR ? parseInt(actualAvgHR) : undefined,
       actualMaxHR: actualMaxHR ? parseInt(actualMaxHR) : undefined,
       actualAvgPower: actualAvgPower ? parseInt(actualAvgPower) : undefined,
+      actualCalories: actualCalories ? parseInt(actualCalories) : undefined,
       completed: true,
       skipped: false,
       notes: notes || undefined,
@@ -341,6 +349,24 @@ export function SegmentLoggingForm({
                 placeholder={plannedPower != null ? String(plannedPower) : '-'}
                 value={actualAvgPower}
                 onChange={(e) => setActualAvgPower(e.target.value)}
+                onFocus={(e) => e.currentTarget.select()}
+                className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
+              />
+            </div>
+          )}
+
+          {(plannedCalories != null || defaultCalories != null) && (
+            <div className="space-y-2">
+              <Label htmlFor="calories" className="text-sm font-medium text-foreground flex items-center gap-1">
+                <Flame className="h-3 w-3" /> kcal
+              </Label>
+              <Input
+                id="calories"
+                type="number"
+                inputMode="numeric"
+                placeholder={plannedCalories != null ? String(plannedCalories) : '-'}
+                value={actualCalories}
+                onChange={(e) => setActualCalories(e.target.value)}
                 onFocus={(e) => e.currentTarget.select()}
                 className="h-12 bg-muted/40 text-lg font-semibold text-foreground"
               />

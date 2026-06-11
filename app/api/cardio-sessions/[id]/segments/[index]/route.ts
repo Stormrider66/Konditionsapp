@@ -51,6 +51,7 @@ export async function PUT(
       actualMaxHR,
       actualAvgPower,
       actualMaxPower,
+      actualCalories,
       completed,
       skipped,
       notes,
@@ -130,6 +131,7 @@ export async function PUT(
       plannedDistance: segment.plannedDistance,
       plannedPace: segment.plannedPace,
       plannedZone: segment.plannedZone,
+      plannedCalories: segment.plannedCalories ?? undefined,
       plannedPower: segment.plannedPower ?? undefined,
       // Actual values
       actualDuration: actualDuration ?? undefined,
@@ -139,6 +141,7 @@ export async function PUT(
       actualMaxHR: actualMaxHR ?? undefined,
       actualAvgPower: actualAvgPower ?? undefined,
       actualMaxPower: actualMaxPower ?? undefined,
+      actualCalories: actualCalories ?? undefined,
       // Status
       completed: completed ?? false,
       skipped: skipped ?? false,
