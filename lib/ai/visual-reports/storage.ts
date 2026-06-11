@@ -13,7 +13,7 @@ export async function uploadVisualReport(
   clientId: string,
   imageBuffer: Buffer,
   mimeType: string
-): Promise<{ storagePath: string; publicUrl: string }> {
+): Promise<{ storagePath: string }> {
   const extension = mimeType === 'image/webp' ? 'webp' : mimeType === 'image/jpeg' ? 'jpg' : 'png'
   const storagePath = `${reportType}/${clientId}/${Date.now()}.${extension}`
 
@@ -30,12 +30,25 @@ export async function uploadVisualReport(
     throw new Error(`Visual report upload failed: ${uploadError.message}`)
   }
 
-  const { data: urlData } = admin.storage
-    .from(VISUAL_REPORTS_BUCKET)
-    .getPublicUrl(storagePath)
+  return { storagePath }
+}
 
-  return {
-    storagePath,
-    publicUrl: urlData.publicUrl,
+/**
+ * The bucket is private — images are served through the authenticated
+ * /api/ai/visual-reports/[id]/image route, which redirects to a short-lived
+ * signed URL created here.
+ */
+export async function createVisualReportSignedUrl(
+  storagePath: string,
+  expiresInSeconds = 3600
+): Promise<string> {
+  const admin = createAdminSupabaseClient()
+  const { data, error } = await admin.storage
+    .from(VISUAL_REPORTS_BUCKET)
+    .createSignedUrl(storagePath, expiresInSeconds)
+
+  if (error || !data?.signedUrl) {
+    throw new Error(`Visual report signed URL failed: ${error?.message || 'no url'}`)
   }
+  return data.signedUrl
 }

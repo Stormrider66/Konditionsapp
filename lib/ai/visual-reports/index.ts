@@ -5,6 +5,7 @@
  * Supports: progression, training-summary, test-report, program
  */
 
+import { randomUUID } from 'crypto'
 import { GoogleGenAI } from '@google/genai'
 import { prisma } from '@/lib/prisma'
 import { resolveGoogleApiKey } from '@/lib/ai/program-infographic'
@@ -125,20 +126,23 @@ export async function generateVisualReport(
     return null
   }
 
-  // 6. Upload to Supabase
+  // 6. Upload to Supabase (private bucket — served via signed URLs)
   const imageBuffer = Buffer.from(imagePart.inlineData.data, 'base64')
   const mimeType = imagePart.inlineData.mimeType || 'image/png'
 
-  const { storagePath, publicUrl } = await uploadVisualReport(
+  const { storagePath } = await uploadVisualReport(
     reportType,
     clientId,
     imageBuffer,
     mimeType
   )
 
-  // 7. Create DB record
+  // 7. Create DB record. imageUrl points at the authenticated image route,
+  // which redirects to a short-lived signed URL for the private bucket.
+  const reportId = randomUUID()
   const report = await prisma.visualReport.create({
     data: {
+      id: reportId,
       clientId,
       coachId,
       reportType,
@@ -147,7 +151,7 @@ export async function generateVisualReport(
       programId: programId || null,
       periodStart: periodStart || null,
       periodEnd: periodEnd || null,
-      imageUrl: publicUrl,
+      imageUrl: `/api/ai/visual-reports/${reportId}/image`,
       storagePath,
       mimeType,
       model: selectedModel,
