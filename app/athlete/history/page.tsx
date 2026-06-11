@@ -1,7 +1,7 @@
 // app/athlete/history/page.tsx
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
-import { prisma } from '@/lib/prisma'
-import { subDays, subMonths, format } from 'date-fns'
+import { getAthleteHistoryFeed } from '@/lib/athlete/history-feed'
+import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -36,22 +36,12 @@ import {
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
 import { getLocale, getTranslations } from '@/i18n/server'
-import type { Prisma } from '@prisma/client'
 
 interface HistoryPageProps {
   searchParams: Promise<{
     timeframe?: string
     type?: string
   }>
-}
-
-interface ParsedAdHocHistory {
-  name?: string
-  type?: string
-  sport?: string
-  distance?: number
-  duration?: number
-  perceivedEffort?: number
 }
 
 export default async function WorkoutHistoryPage({ searchParams }: HistoryPageProps) {
@@ -61,258 +51,20 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
   const dateLocale = locale === 'en' ? enUS : sv
   const params = await searchParams
 
-  // Determine timeframe
-  const now = new Date()
-  let startDate: Date
-  const timeframe = params.timeframe || '30days'
-
-  switch (timeframe) {
-    case '7days':
-      startDate = subDays(now, 7)
-      break
-    case '30days':
-      startDate = subDays(now, 30)
-      break
-    case '3months':
-      startDate = subMonths(now, 3)
-      break
-    case '6months':
-      startDate = subMonths(now, 6)
-      break
-    case '1year':
-      startDate = subMonths(now, 12)
-      break
-    default:
-      startDate = subDays(now, 30)
-  }
-
-  // Build where clause
-  const whereClause: Prisma.WorkoutLogWhereInput = {
-    athleteId: user.id,
-    completed: true,
-    completedAt: {
-      gte: startDate,
-      lte: now,
-    },
-  }
-
-  // Fetch workout logs, ad-hoc workouts, and all 4 assignment types in parallel
-  const [logs, adHocWorkouts, strengthAssignments, cardioAssignments, hybridAssignments, agilityAssignments, completedWODs] = await Promise.all([
-    prisma.workoutLog.findMany({
-      where: whereClause,
-      include: {
-        workout: {
-          select: {
-            id: true,
-            name: true,
-            type: true,
-            intensity: true,
-            distance: true,
-            duration: true,
-            day: {
-              select: {
-                week: {
-                  select: {
-                    program: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: {
-        completedAt: 'desc',
-      },
-    }),
-    // Fetch confirmed ad-hoc workouts
-    prisma.adHocWorkout.findMany({
-      where: {
-        athleteId: clientId,
-        status: 'CONFIRMED',
-        workoutDate: {
-          gte: startDate,
-          lte: now,
-        },
-      },
-      orderBy: {
-        workoutDate: 'desc',
-      },
-    }),
-    // Completed strength session assignments
-    prisma.strengthSessionAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        status: 'COMPLETED',
-        completedAt: { gte: startDate, lte: now },
-      },
-      include: {
-        session: { select: { name: true } },
-      },
-      orderBy: { completedAt: 'desc' },
-    }),
-    // Completed cardio session assignments
-    prisma.cardioSessionAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        status: 'COMPLETED',
-        completedAt: { gte: startDate, lte: now },
-      },
-      include: {
-        session: { select: { name: true, sport: true } },
-      },
-      orderBy: { completedAt: 'desc' },
-    }),
-    // Completed hybrid workout assignments
-    prisma.hybridWorkoutAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        status: 'COMPLETED',
-        completedAt: { gte: startDate, lte: now },
-      },
-      include: {
-        workout: { select: { name: true, format: true } },
-      },
-      orderBy: { completedAt: 'desc' },
-    }),
-    // Completed agility workout assignments
-    prisma.agilityWorkoutAssignment.findMany({
-      where: {
-        athleteId: clientId,
-        status: 'COMPLETED',
-        completedAt: { gte: startDate, lte: now },
-      },
-      include: {
-        workout: { select: { name: true } },
-      },
-      orderBy: { completedAt: 'desc' },
-    }),
-    // Completed AI-generated WODs
-    prisma.aIGeneratedWOD.findMany({
-      where: {
-        clientId: clientId,
-        status: 'COMPLETED',
-        completedAt: { gte: startDate, lte: now },
-      },
-      select: {
-        id: true,
-        title: true,
-        primarySport: true,
-        actualDuration: true,
-        requestedDuration: true,
-        sessionRPE: true,
-        completedAt: true,
-        source: true,
-      },
-      orderBy: { completedAt: 'desc' },
-    }),
-  ])
-
-  // Parse ad-hoc workout data
-  const adHocWithParsedData = adHocWorkouts.map((adHoc) => {
-    const parsed = adHoc.parsedStructure as ParsedAdHocHistory | null
-    return {
-      id: adHoc.id,
-      workoutDate: adHoc.workoutDate,
-      name: parsed?.name || adHoc.workoutName || t('fallbackAdHocName'),
-      type: parsed?.type || 'OTHER',
-      sport: parsed?.sport,
-      distance: parsed?.distance,
-      duration: parsed?.duration,
-      perceivedEffort: parsed?.perceivedEffort,
-      isAdHoc: true,
-      inputType: adHoc.inputType,
-    }
+  // Data assembly shared with GET /api/athlete/history (mobile app) —
+  // lib/athlete/history-feed.ts is the single implementation.
+  const { items: historyItems, stats, logs, timeframe } = await getAthleteHistoryFeed({
+    userId: user.id,
+    clientId,
+    timeframe: params.timeframe,
+    typeFilter: params.type ?? null,
+    fallbackAdHocName: t('fallbackAdHocName'),
   })
 
-  // Map assignment items for stats and merging
-  const strengthItems = strengthAssignments.map((a) => ({
-    id: a.id,
-    date: a.completedAt!,
-    name: a.session.name,
-    type: 'STRENGTH' as const,
-    duration: a.duration || null, // already in minutes
-    perceivedEffort: a.rpe || null,
-    distance: null as number | null,
-    source: 'strength-assignment' as const,
-    linkHref: `/athlete/workout/${a.id}`,
-  }))
-
-  const cardioItems = cardioAssignments.map((a) => ({
-    id: a.id,
-    date: a.completedAt!,
-    name: a.session.name,
-    type: 'CARDIO' as const,
-    duration: a.actualDuration ? Math.round(a.actualDuration / 60) : null, // seconds → minutes
-    perceivedEffort: null as number | null,
-    distance: a.actualDistance ? a.actualDistance / 1000 : null, // meters → km
-    source: 'cardio-assignment' as const,
-    linkHref: `/athlete/cardio`,
-  }))
-
-  const hybridItems = hybridAssignments.map((a) => ({
-    id: a.id,
-    date: a.completedAt!,
-    name: a.workout.name,
-    type: 'HYBRID' as const,
-    duration: null as number | null,
-    perceivedEffort: null as number | null,
-    distance: null as number | null,
-    source: 'hybrid-assignment' as const,
-    linkHref: `/athlete/hybrid/${a.id}`,
-  }))
-
-  const agilityItems = agilityAssignments.map((a) => ({
-    id: a.id,
-    date: a.completedAt!,
-    name: a.workout.name,
-    type: 'AGILITY' as const,
-    duration: null as number | null,
-    perceivedEffort: null as number | null,
-    distance: null as number | null,
-    source: 'agility-assignment' as const,
-    linkHref: `/athlete/agility/${a.id}`,
-  }))
-
-  const allAssignmentItems = [...strengthItems, ...cardioItems, ...hybridItems, ...agilityItems]
-
-  // Map completed WODs
-  const wodItems = completedWODs.map((wod) => ({
-    id: wod.id,
-    date: wod.completedAt!,
-    name: wod.title,
-    type: wod.primarySport || 'OTHER',
-    duration: wod.actualDuration || wod.requestedDuration || null,
-    perceivedEffort: wod.sessionRPE || null,
-    distance: null as number | null,
-    source: wod.source === 'chat' ? 'ai-chat' : 'wod',
-    linkHref: `/athlete/wod/${wod.id}`,
-  }))
-
-  // Calculate stats (including ad-hoc workouts, assignments, and WODs)
-  const totalWorkouts = logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length
-  const totalDistance = logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
-    adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
-    allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0)
-  const totalDuration = logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
-    adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
-    allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0) +
-    wodItems.reduce((sum, w) => sum + (w.duration || 0), 0)
-
-  const allEfforts = [
-    ...logs.filter(log => log.perceivedEffort).map(log => log.perceivedEffort!),
-    ...adHocWithParsedData.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
-    ...allAssignmentItems.filter(a => a.perceivedEffort).map(a => a.perceivedEffort!),
-    ...wodItems.filter(w => w.perceivedEffort).map(w => w.perceivedEffort!),
-  ]
-  const avgRPE = allEfforts.length > 0
-    ? (allEfforts.reduce((sum, e) => sum + e, 0) / allEfforts.length).toFixed(1)
-    : '-'
+  const totalWorkouts = stats.totalWorkouts
+  const totalDistance = stats.totalDistanceKm
+  const totalDuration = stats.totalDurationMin
+  const avgRPE = stats.avgRPE != null ? stats.avgRPE.toFixed(1) : '-'
   const chartLogs = logs.filter((log): log is (typeof logs)[number] & { completedAt: Date } => log.completedAt !== null)
   const timeframeSummary =
     timeframe === '7days' ? t('timeframeSummaries.sevenDays') :
@@ -340,78 +92,6 @@ export default async function WorkoutHistoryPage({ searchParams }: HistoryPagePr
     }
     return types[type] || type
   }
-
-  // Create merged and sorted history list
-  interface HistoryItem {
-    id: string
-    date: Date
-    name: string
-    type: string
-    programName?: string
-    distance?: number | null
-    duration?: number | null
-    perceivedEffort?: number | null
-    isAdHoc: boolean
-    inputType?: string
-    workoutId?: string
-    source?: string
-    linkHref?: string
-  }
-
-  const historyItems: HistoryItem[] = [
-    ...logs.map((log) => ({
-      id: log.id,
-      date: log.completedAt!,
-      name: log.workout.name,
-      type: log.workout.type,
-      programName: log.workout.day.week.program.name,
-      distance: log.distance,
-      duration: log.duration,
-      perceivedEffort: log.perceivedEffort,
-      isAdHoc: false,
-      workoutId: log.workout.id,
-    })),
-    ...adHocWithParsedData.map((w) => ({
-      id: w.id,
-      date: w.workoutDate,
-      name: w.name,
-      type: w.type === 'CARDIO' && w.sport ? w.sport : w.type,
-      programName: undefined,
-      distance: w.distance,
-      duration: w.duration,
-      perceivedEffort: w.perceivedEffort,
-      isAdHoc: true,
-      inputType: w.inputType,
-    })),
-    ...allAssignmentItems.map((a) => ({
-      id: a.id,
-      date: a.date,
-      name: a.name,
-      type: a.type,
-      programName: undefined,
-      distance: a.distance,
-      duration: a.duration,
-      perceivedEffort: a.perceivedEffort,
-      isAdHoc: false,
-      source: a.source,
-      linkHref: a.linkHref,
-    })),
-    ...wodItems.map((w) => ({
-      id: w.id,
-      date: w.date,
-      name: w.name,
-      type: w.type,
-      programName: undefined,
-      distance: w.distance,
-      duration: w.duration,
-      perceivedEffort: w.perceivedEffort,
-      isAdHoc: false,
-      source: w.source,
-      linkHref: w.linkHref,
-    })),
-  ]
-    .filter((item) => !params.type || item.type === params.type)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-7xl mx-auto">
