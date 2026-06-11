@@ -150,6 +150,15 @@ const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-ms
 const MAX_SIZE = 100 * 1024 * 1024 // 100MB
 const MAX_GROUP_VIDEOS = 3
 
+// Types whose analyzers support multi-view capture groups.
+const MULTI_ANGLE_TYPES = [
+  'RUNNING_GAIT',
+  'SKIING_CLASSIC',
+  'SKIING_SKATING',
+  'SKIING_DOUBLE_POLE',
+  'HYROX_STATION',
+]
+
 interface StagedVideo {
   file: File
   angle: string
@@ -172,8 +181,7 @@ export function VideoUploader({
   const [hyroxStation, setHyroxStation] = useState<string>('')
   const [isUploading, setIsUploading] = useState(false)
 
-  // Only RUNNING_GAIT supports multi-angle capture groups (so far).
-  const allowMultiple = videoType === 'RUNNING_GAIT'
+  const allowMultiple = MULTI_ANGLE_TYPES.includes(videoType)
   const maxFiles = allowMultiple ? MAX_GROUP_VIDEOS : 1
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
@@ -227,8 +235,8 @@ export function VideoUploader({
 
   const handleSelectVideoType = (value: string) => {
     setVideoType(value)
-    // Multi-angle groups only exist for running gait — trim extras on switch.
-    if (value !== 'RUNNING_GAIT') {
+    // Trim extras when switching to a type without multi-angle support.
+    if (!MULTI_ANGLE_TYPES.includes(value)) {
       setStagedVideos((prev) => {
         prev.slice(1).forEach((v) => URL.revokeObjectURL(v.previewUrl))
         return prev.slice(0, 1)
@@ -310,6 +318,7 @@ export function VideoUploader({
             videoType,
             athleteId: athleteId || undefined,
             exerciseId: exerciseId || undefined,
+            hyroxStation: hyroxStation || undefined,
             videos: uploaded,
           }),
         })
@@ -381,10 +390,14 @@ export function VideoUploader({
 
   const selectedVideoType = VIDEO_TYPES.find(t => t.value === videoType)
 
-  const missingAngle = videoType === 'RUNNING_GAIT' && stagedVideos.some((v) => !v.angle)
+  // Angle is always required for running gait (view-specific analysis), and
+  // for every file in a multi-angle group regardless of type.
+  const missingAngle =
+    (videoType === 'RUNNING_GAIT' || (allowMultiple && stagedVideos.length > 1)) &&
+    stagedVideos.some((v) => !v.angle)
   const filledAngles = stagedVideos.map((v) => v.angle).filter(Boolean)
   const duplicateAngles =
-    videoType === 'RUNNING_GAIT' &&
+    allowMultiple &&
     stagedVideos.length > 1 &&
     new Set(filledAngles).size !== filledAngles.length
 
@@ -425,8 +438,8 @@ export function VideoUploader({
             </div>
           </div>
 
-          {/* Multi-angle hint - Only for RUNNING_GAIT */}
-          {videoType === 'RUNNING_GAIT' && (
+          {/* Multi-angle hint */}
+          {allowMultiple && (
             <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 rounded-lg text-xs text-orange-900 dark:text-orange-100">
               {text(
                 locale,
@@ -527,7 +540,7 @@ export function VideoUploader({
                     <p className="text-xs text-slate-500 dark:text-slate-400">
                       {(video.file.size / (1024 * 1024)).toFixed(1)} MB
                     </p>
-                    {videoType === 'RUNNING_GAIT' && (
+                    {allowMultiple && (
                       <div className="flex gap-1 mt-1.5">
                         {CAMERA_ANGLES.map((angle) => (
                           <button

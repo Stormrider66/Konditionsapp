@@ -15,12 +15,19 @@ import {
   type SkiingTechniqueType as SkiingVideoType,
 } from '@/lib/ai/skiing-prompts'
 import { parseSkiingAnalysisResponse } from '@/lib/validations/skiing-analysis'
-import { getVideoContentPart } from '../shared'
+import { buildMultiViewPromptBlock, getAnalyzerVideoParts, type GroupVideoRef } from '../shared'
 
 export interface SkiingAnalyzerInput {
   videoUrl: string
   videoType: string
   athlete: { id: string; name: string; gender: string | null } | null
+  /** Multi-view capture group (simultaneous cameras). When 2+ entries, all videos are analyzed jointly. */
+  groupVideos?: GroupVideoRef[]
+}
+
+const SKIING_CROSS_REFERENCE_HINT = {
+  en: 'Cross-reference the views: pole-plant symmetry, arm-swing width, edge angles and V-pattern width are best judged from FRONT/BACK; forward lean, hip height, trunk flexion/compression, kick extension and glide are best judged from SIDE.',
+  sv: 'Korsreferera vinklarna: stavisättningssymmetri, armpendlingsbredd, skränkningsvinklar och V-mönstrets bredd bedöms bäst från FRONT/BACK; framåtlutning, höfthöjd, bålflexion/kompression, frånskjut och glid bedöms bäst från SIDE.',
 }
 
 /**
@@ -62,10 +69,13 @@ export async function analyzeSkiingTechnique(
   const fps = getSkiingFPS(videoType)
   const videoMetadata: VideoMetadata = { fps }
 
-  logger.debug('Video analysis: skiing technique starting', { videoType, fps })
+  logger.debug('Video analysis: skiing technique starting', { videoType, fps, views: analysis.groupVideos?.length ?? 1 })
 
-  const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata)
-  const result = await generateContent(client, modelId, [createText(prompt), videoPart])
+  const { parts: videoParts, viewAngles } = await getAnalyzerVideoParts(analysis, client, videoMetadata, locale)
+  const fullPrompt = viewAngles
+    ? buildMultiViewPromptBlock(viewAngles, locale, SKIING_CROSS_REFERENCE_HINT) + prompt
+    : prompt
+  const result = await generateContent(client, modelId, [createText(fullPrompt), ...videoParts])
 
   const parsedAnalysis = parseSkiingAnalysisResponse(videoType, result.text)
 

@@ -157,12 +157,12 @@ export async function POST(
       } else if (isSkiingVideoType(target.videoType)) {
         response = await withAiContext(
           { userId: user.id, clientId: target.athleteId, category: 'video_analysis_skiing' },
-          () => analyzeSkiingTechnique(target.id, target, client, modelId, locale),
+          () => analyzeSkiingTechnique(target.id, { ...target, groupVideos }, client, modelId, locale),
         )
       } else if (isHyroxVideoType(target.videoType)) {
         response = await withAiContext(
           { userId: user.id, clientId: target.athleteId, category: 'video_analysis_hyrox' },
-          () => analyzeHyroxStation(target.id, target, client, modelId, locale),
+          () => analyzeHyroxStation(target.id, { ...target, groupVideos }, client, modelId, locale),
         )
       } else {
         response = await withAiContext(

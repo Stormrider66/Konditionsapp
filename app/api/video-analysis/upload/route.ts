@@ -233,6 +233,16 @@ async function handleConfirmUpload(
 
 const GROUP_CAMERA_ANGLES = ['FRONT', 'SIDE', 'BACK'];
 
+// Multi-angle capture groups are supported where the analyzer has a
+// multi-view prompt: running gait, skiing, HYROX. (Not STRENGTH/SPORT_SPECIFIC yet.)
+const GROUP_ALLOWED_TYPES = [
+  'RUNNING_GAIT',
+  'SKIING_CLASSIC',
+  'SKIING_SKATING',
+  'SKIING_DOUBLE_POLE',
+  'HYROX_STATION',
+];
+
 /**
  * Create one VideoAnalysis per simultaneously-filmed video, linked via a
  * shared captureGroupId. The SIDE view (or the first video) becomes the
@@ -243,10 +253,11 @@ async function handleConfirmUploadGroup(
   userId: string,
   locale: AppLocale
 ) {
-  const { videoType, athleteId, exerciseId, videos } = body as {
+  const { videoType, athleteId, exerciseId, hyroxStation, videos } = body as {
     videoType?: string
     athleteId?: string
     exerciseId?: string
+    hyroxStation?: string
     videos?: Array<{ uploadPath?: string; cameraAngle?: string }>
   }
 
@@ -257,9 +268,9 @@ async function handleConfirmUploadGroup(
     );
   }
 
-  if (videoType !== 'RUNNING_GAIT') {
+  if (!GROUP_ALLOWED_TYPES.includes(videoType)) {
     return NextResponse.json(
-      { error: t(locale, 'Multi-angle analysis is currently only available for running gait', 'Flervinkelanalys är för närvarande bara tillgänglig för löpteknik') },
+      { error: t(locale, 'Multi-angle analysis is available for running gait, skiing, and HYROX', 'Flervinkelanalys är tillgänglig för löpteknik, skidåkning och HYROX') },
       { status: 400 }
     );
   }
@@ -311,6 +322,7 @@ async function handleConfirmUploadGroup(
           exerciseId: exerciseId || null,
           videoUrl: video.uploadPath as string,
           videoType,
+          hyroxStation: hyroxStation || null,
           cameraAngle: video.cameraAngle,
           captureGroupId,
           isPrimaryView: index === primaryIndex,

@@ -15,12 +15,19 @@ import {
   HYROX_STATION_LABELS,
 } from '@/lib/ai/hyrox-prompts'
 import { parseHyroxAnalysisResponse } from '@/lib/validations/hyrox-analysis'
-import { getVideoContentPart } from '../shared'
+import { buildMultiViewPromptBlock, getAnalyzerVideoParts, type GroupVideoRef } from '../shared'
 
 export interface HyroxAnalyzerInput {
   videoUrl: string
   videoType: string | null
   athlete: { id: string; name: string; gender: string | null } | null
+  /** Multi-view capture group (simultaneous cameras). When 2+ entries, all videos are analyzed jointly. */
+  groupVideos?: GroupVideoRef[]
+}
+
+const HYROX_CROSS_REFERENCE_HINT = {
+  en: 'Cross-reference the views: lateral alignment, left/right symmetry and knee tracking are best judged from FRONT/BACK; depth, hip hinge, trunk angle, lockout and stride/stroke length are best judged from SIDE.',
+  sv: 'Korsreferera vinklarna: sidledsuppställning, höger/vänster-symmetri och knäspårning bedöms bäst från FRONT/BACK; djup, höftfällning, bålvinkel, lockout och steg-/draglängd bedöms bäst från SIDE.',
 }
 
 type AppLocale = 'en' | 'sv'
@@ -70,8 +77,11 @@ export async function analyzeHyroxStation(
     fps,
   })
 
-  const videoPart = await getVideoContentPart(analysis.videoUrl, client, videoMetadata)
-  const result = await generateContent(client, modelId, [createText(prompt), videoPart])
+  const { parts: videoParts, viewAngles } = await getAnalyzerVideoParts(analysis, client, videoMetadata, locale)
+  const fullPrompt = viewAngles
+    ? buildMultiViewPromptBlock(viewAngles, locale, HYROX_CROSS_REFERENCE_HINT) + prompt
+    : prompt
+  const result = await generateContent(client, modelId, [createText(fullPrompt), ...videoParts])
 
   const parsedAnalysis = parseHyroxAnalysisResponse(stationType, result.text)
 
