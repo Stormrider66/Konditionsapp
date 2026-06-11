@@ -42,6 +42,7 @@ import {
 } from 'lucide-react';
 import type { CardioSessionData, CardioSegment, SessionAssignment } from '@/types';
 import { SessionExportButton } from '@/components/exports/SessionExportButton';
+import { CardioSessionSummaryView } from '@/components/athlete/cardio/CardioSessionSummaryView';
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes';
 import { useLocale } from '@/i18n/client';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
@@ -101,6 +102,7 @@ const copy = {
     loadingAssignments: 'Loading assignments...',
     noAssignments: 'No assignments yet',
     unknown: 'Unknown',
+    results: 'Results',
   },
   sv: {
     sports: {
@@ -153,6 +155,7 @@ const copy = {
     loadingAssignments: 'Laddar tilldelningar...',
     noAssignments: 'Inga tilldelningar än',
     unknown: 'Okänd',
+    results: 'Resultat',
   },
 } as const;
 
@@ -338,6 +341,8 @@ export function CardioSessionDetailSheet({
   const [assignments, setAssignments] = useState<SessionAssignment[]>([]);
   const [loadingAssignments, setLoadingAssignments] = useState(false);
   const [assignmentsOpen, setAssignmentsOpen] = useState(false);
+  // Completed assignment whose result summary is open
+  const [summaryAssignmentId, setSummaryAssignmentId] = useState<string | null>(null);
   const sessionId = session?.id;
   const pathname = usePathname();
   const businessHeaders = useMemo(() => ({
@@ -727,9 +732,21 @@ export function CardioSessionDetailSheet({
                           {statusLabel}
                         </Badge>
                       </div>
-                      <span className="text-xs" style={{ color: theme.colors.textMuted }}>
-                        {formatDate(assignment.assignedDate, locale)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs" style={{ color: theme.colors.textMuted }}>
+                          {formatDate(assignment.assignedDate, locale)}
+                        </span>
+                        {assignment.status === 'COMPLETED' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={() => setSummaryAssignmentId(assignment.id)}
+                          >
+                            {t.results}
+                          </Button>
+                        )}
+                      </div>
                     </li>
                   );
                 })}
@@ -737,6 +754,16 @@ export function CardioSessionDetailSheet({
             )}
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Athlete result summary — rendered inside the sheet content so the
+            overlay counts as an inside click and the sheet stays open behind. */}
+        {summaryAssignmentId && (
+          <CardioSessionSummaryView
+            assignmentId={summaryAssignmentId}
+            showAthleteName
+            onClose={() => setSummaryAssignmentId(null)}
+          />
+        )}
       </SheetContent>
     </Sheet>
   );
