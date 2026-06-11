@@ -59,6 +59,7 @@ import { useHeartRateBand } from '@/hooks/use-heart-rate-band'
 import { useLivePowerPush } from '@/hooks/use-live-power-push'
 import { WattbikeClient } from '@/lib/integrations/wattbike'
 import { ErgMachinePanel, ergEquipmentLabel } from './ErgMachinePanel'
+import { ZONE_COLORS } from '@/lib/live-hr/types'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 import { useTranslations, useLocale } from '@/i18n/client'
@@ -100,6 +101,12 @@ interface CardioFocusModeWorkoutProps {
   sessionDescription?: string
   sport: string
   segments: FocusModeSegment[]
+  /** Athlete HR zones for the live band display (lactate test or %-of-max). */
+  hrZones?: {
+    source: 'LACTATE_TEST' | 'MAX_HR_PERCENT'
+    maxHr: number
+    zones: Array<{ zone: number; hrMin: number; hrMax: number }>
+  }
   initialSegmentIndex?: number
   autoStartFirstTimedSegment?: boolean
   onClose: () => void
@@ -152,6 +159,7 @@ export function CardioFocusModeWorkout({
   sessionDescription: _sessionDescription,
   sport: _sport,
   segments: initialSegments,
+  hrZones,
   initialSegmentIndex = 0,
   autoStartFirstTimedSegment = false,
   onClose,
@@ -334,6 +342,19 @@ export function CardioFocusModeWorkout({
   const activeConnected = activeDevice?.status === 'connected'
   // Stream power to the coach's live team grid when the athlete is in a session.
   const { activeSessionId: liveSessionId } = useLivePowerPush(activeClient, activeConnected)
+
+  // Current band HR mapped onto the athlete's zones (lactate-test zones when
+  // available, otherwise Garmin %-of-max bands) for the colored strip display.
+  const liveHrZone = (() => {
+    if (hrBand.bpm == null || !hrZones?.zones?.length) return null
+    for (const z of hrZones.zones) {
+      if (hrBand.bpm <= z.hrMax) return z.zone
+    }
+    return hrZones.zones[hrZones.zones.length - 1].zone
+  })()
+  const liveHrColor = liveHrZone != null
+    ? ZONE_COLORS[liveHrZone as keyof typeof ZONE_COLORS] ?? '#EF4444'
+    : '#EF4444'
 
   // The opener (benchmark) segment's logged average watts — anchors relative % targets.
   const openerPower = segments.find((s) => s.isBenchmark)?.actualAvgPower
@@ -915,9 +936,20 @@ export function CardioFocusModeWorkout({
                   </span>
                 )}
                 {hrBand.bpm != null && (
-                  <span className="flex items-center gap-1 tabular-nums font-semibold text-red-500">
+                  <span
+                    className="flex items-center gap-1 tabular-nums font-semibold"
+                    style={{ color: liveHrColor }}
+                  >
                     <Heart className="h-3.5 w-3.5 fill-current" />
                     {hrBand.bpm}
+                    {liveHrZone != null && (
+                      <span
+                        className="rounded px-1 text-[10px] font-black text-white"
+                        style={{ backgroundColor: liveHrColor }}
+                      >
+                        Z{liveHrZone}
+                      </span>
+                    )}
                   </span>
                 )}
                 {liveSegmentCalories != null && (

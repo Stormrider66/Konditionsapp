@@ -76,6 +76,11 @@ interface CardioFocusApiResponse {
       status: string
     } | null
     segments: CardioFocusApiSegment[]
+    hrZones?: {
+      source: 'LACTATE_TEST' | 'MAX_HR_PERCENT'
+      maxHr: number
+      zones: Array<{ zone: number; hrMin: number; hrMax: number }>
+    } | null
     progress: {
       currentSegmentIndex: number
       totalSegments: number
@@ -374,6 +379,7 @@ export function CardioWorkoutPreview({
           skipped: s.skipped,
           logId: s.logId,
         }))}
+        hrZones={apiData.hrZones ?? undefined}
         initialSegmentIndex={Math.min(
           apiData.progress.currentSegmentIndex ?? 0,
           Math.max(apiData.segments.length - 1, 0),

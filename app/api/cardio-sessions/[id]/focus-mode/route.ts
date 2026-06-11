@@ -6,6 +6,7 @@ import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { buildCardioFocusModeSegments } from '@/lib/cardio/focus-mode-segments'
 import { linkGarminToCardioLog } from '@/lib/cardio/garmin-cardio-link'
+import { resolveAthleteHrZones } from '@/lib/cardio/athlete-hr-zones'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -84,6 +85,10 @@ export async function GET(
       locale,
     })
 
+    // Athlete's HR zones for the live band display (lactate-test zones when
+    // available, Garmin %-of-max bands otherwise).
+    const hrZones = await resolveAthleteHrZones(clientId)
+
     // Calculate progress
     const totalSegments = focusModeSegments.length
     const completedSegments = focusModeSegments.filter(s => s.completed || s.skipped).length
@@ -140,6 +145,7 @@ export async function GET(
         } : null,
         segments: focusModeSegments,
         segmentsByType,
+        hrZones,
         progress: {
           currentSegmentIndex,
           totalSegments,
