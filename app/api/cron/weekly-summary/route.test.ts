@@ -9,6 +9,9 @@ const mockPrisma = vi.hoisted(() => ({
   client: {
     findMany: vi.fn(),
   },
+  weeklyTrainingSummary: {
+    findUnique: vi.fn(),
+  },
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -33,6 +36,10 @@ describe('weekly-summary cron route', () => {
     mockSaveMonthlySummary.mockResolvedValue('monthly-summary-id')
     mockGenerateVisualReport.mockResolvedValue('report-id')
     mockPrisma.client.findMany.mockResolvedValue([])
+    mockPrisma.weeklyTrainingSummary.findUnique.mockResolvedValue({
+      workoutCount: 1,
+      totalDuration: 3600,
+    })
   })
 
   it('processes athletes in bounded batches', async () => {

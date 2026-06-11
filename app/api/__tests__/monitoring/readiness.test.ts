@@ -16,13 +16,12 @@ const mockSupabase = vi.hoisted(() => ({
 }))
 
 const mockPrisma = vi.hoisted(() => ({
-  user: { findUnique: vi.fn() },
-  client: { findUnique: vi.fn(), findFirst: vi.fn() },
-  businessMember: { findFirst: vi.fn() },
   dailyMetrics: { findFirst: vi.fn(), findMany: vi.fn() }
 }))
 
 const mockCreateClient = vi.hoisted(() => vi.fn(() => Promise.resolve(mockSupabase)))
+const mockGetCurrentUser = vi.hoisted(() => vi.fn())
+const mockCanAccessClient = vi.hoisted(() => vi.fn())
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: mockCreateClient
@@ -30,6 +29,11 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/prisma', () => ({
   prisma: mockPrisma
+}))
+
+vi.mock('@/lib/auth-utils', () => ({
+  getCurrentUser: mockGetCurrentUser,
+  canAccessClient: mockCanAccessClient
 }))
 
 const mockAnalyzeTrend = vi.hoisted(() => vi.fn(() => mockTrend))
@@ -59,33 +63,19 @@ function mockAuthState(user: any = authUser) {
     data: { user },
     error: null
   })
-  mockPrisma.user.findUnique.mockResolvedValue(dbUser)
-  mockPrisma.businessMember.findFirst.mockResolvedValue(null)
+  mockGetCurrentUser.mockResolvedValue(user ? dbUser : null)
 }
 
 function mockClientAccess(access: { isOwner?: boolean; isAthlete?: boolean } = {}) {
-  if (access.isOwner === false && !access.isAthlete) {
-    mockPrisma.client.findFirst.mockResolvedValue(null)
-    return
-  }
-
-  mockPrisma.client.findFirst.mockResolvedValue({
-    id: 'client-1',
-    userId: dbUser.id,
-    athleteProfile: access.isAthlete
-      ? { athleteUserId: dbUser.id }
-      : { athleteUserId: 'other-athlete' }
-  })
+  mockCanAccessClient.mockResolvedValue(access.isOwner !== false || Boolean(access.isAthlete))
 }
 
 describe('GET /api/readiness', () => {
 beforeEach(() => {
   vi.clearAllMocks()
   mockSupabase.auth.getUser.mockReset()
-  mockPrisma.user.findUnique.mockReset()
-  mockPrisma.client.findUnique.mockReset()
-  mockPrisma.client.findFirst.mockReset()
-  mockPrisma.businessMember.findFirst.mockReset()
+  mockGetCurrentUser.mockReset()
+  mockCanAccessClient.mockReset()
   mockPrisma.dailyMetrics.findFirst.mockReset()
   mockPrisma.dailyMetrics.findMany.mockReset()
   mockAnalyzeTrend.mockReset()
@@ -164,7 +154,6 @@ beforeEach(() => {
   it('returns 403 when coach does not own the client and is not the athlete', async () => {
     mockAuthState()
     mockClientAccess({ isOwner: false, isAthlete: false })
-    mockPrisma.businessMember.findFirst.mockResolvedValue(null)
 
     const request = new Request('http://localhost/api/readiness?clientId=client-1')
     const response = await GET(request as NextRequest)
