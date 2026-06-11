@@ -66,19 +66,42 @@ export async function GET(
       );
     }
 
+    const signVideoUrl = async (videoUrl: string) => {
+      const path = normalizeStoragePath('video-analysis', videoUrl)
+      if (!path) return videoUrl
+      try {
+        return await createSignedUrl('video-analysis', path, 60 * 60)
+      } catch {
+        return videoUrl
+      }
+    }
+
+    // Multi-view capture group: include every view so the UI can show them together.
+    let groupVideos: Array<{ id: string; cameraAngle: string | null; isPrimaryView: boolean; videoUrl: string }> | undefined
+    if (analysis.captureGroupId) {
+      const members = await prisma.videoAnalysis.findMany({
+        where: { captureGroupId: analysis.captureGroupId, coachId: user.id },
+        select: { id: true, cameraAngle: true, isPrimaryView: true, videoUrl: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (members.length > 1) {
+        groupVideos = await Promise.all(
+          members.map(async (m) => ({
+            id: m.id,
+            cameraAngle: m.cameraAngle,
+            isPrimaryView: m.isPrimaryView,
+            videoUrl: await signVideoUrl(m.videoUrl),
+          }))
+        )
+      }
+    }
+
     return NextResponse.json({
       success: true,
       analysis: {
         ...analysis,
-        videoUrl: await (async () => {
-          const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
-          if (!path) return analysis.videoUrl
-          try {
-            return await createSignedUrl('video-analysis', path, 60 * 60)
-          } catch {
-            return analysis.videoUrl
-          }
-        })(),
+        videoUrl: await signVideoUrl(analysis.videoUrl),
+        groupVideos,
       },
     });
   } catch (error) {
@@ -197,16 +220,30 @@ export async function DELETE(
       );
     }
 
-    // Delete video from Supabase Storage
-    if (analysis.videoUrl) {
+    // Multi-view capture groups are deleted as a unit — sibling views are
+    // hidden from the list UI, so leaving them would orphan their videos.
+    const records = analysis.captureGroupId
+      ? await prisma.videoAnalysis.findMany({
+          where: { captureGroupId: analysis.captureGroupId, coachId: user.id },
+          select: { id: true, videoUrl: true },
+        })
+      : [{ id: analysis.id, videoUrl: analysis.videoUrl }]
+
+    // Delete videos from Supabase Storage
+    const storagePaths: string[] = []
+    for (const record of records) {
+      if (!record.videoUrl) continue
+      const path = normalizeStoragePath('video-analysis', record.videoUrl)
+      if (path && path.startsWith(`${user.id}/`)) {
+        storagePaths.push(path)
+      } else if (path) {
+        logger.warn('Skipping storage deletion: unexpected path prefix', { id: record.id, path })
+      }
+    }
+    if (storagePaths.length > 0) {
       try {
         const admin = createAdminSupabaseClient()
-        const path = normalizeStoragePath('video-analysis', analysis.videoUrl)
-        if (path && path.startsWith(`${user.id}/`)) {
-          await admin.storage.from('video-analysis').remove([path])
-        } else if (path) {
-          logger.warn('Skipping storage deletion: unexpected path prefix', { id, path })
-        }
+        await admin.storage.from('video-analysis').remove(storagePaths)
       } catch (storageError) {
         logger.warn('Storage deletion error', { id }, storageError)
         // Continue with database deletion even if storage fails
@@ -214,8 +251,8 @@ export async function DELETE(
     }
 
     // Delete from database
-    await prisma.videoAnalysis.delete({
-      where: { id },
+    await prisma.videoAnalysis.deleteMany({
+      where: { id: { in: records.map((r) => r.id) } },
     });
 
     return NextResponse.json({

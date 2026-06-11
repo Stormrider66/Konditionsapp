@@ -207,6 +207,8 @@ export async function GET(request: NextRequest) {
     const analyses = await prisma.videoAnalysis.findMany({
       where: {
         coachId: user.id,
+        // Multi-view capture groups are listed once, via their primary record.
+        isPrimaryView: true,
         ...(athleteId && { athleteId }),
         ...(exerciseId && { exerciseId }),
         ...(status && { status }),
@@ -222,18 +224,50 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
+    const groupIdList = Array.from(
+      new Set(analyses.map((a) => a.captureGroupId).filter((v): v is string => Boolean(v)))
+    )
+    const groupMembers = groupIdList.length
+      ? await prisma.videoAnalysis.findMany({
+          where: { captureGroupId: { in: groupIdList }, coachId: user.id },
+          select: { id: true, captureGroupId: true, cameraAngle: true, videoUrl: true, isPrimaryView: true },
+          orderBy: { createdAt: 'asc' },
+        })
+      : []
+
+    const signGroupVideos = async (captureGroupId: string | null) => {
+      if (!captureGroupId) return undefined
+      const members = groupMembers.filter((m) => m.captureGroupId === captureGroupId)
+      if (members.length < 2) return undefined
+      return Promise.all(
+        members.map(async (m) => {
+          const memberPath = normalizeStoragePath('video-analysis', m.videoUrl)
+          let videoUrl = m.videoUrl
+          if (memberPath) {
+            try {
+              videoUrl = await createSignedUrl('video-analysis', memberPath, 60 * 60)
+            } catch {
+              // keep the raw path; playback will fail gracefully
+            }
+          }
+          return { id: m.id, cameraAngle: m.cameraAngle, isPrimaryView: m.isPrimaryView, videoUrl }
+        })
+      )
+    }
+
     // Return signed URLs (supports private buckets)
     const signedAnalyses = await Promise.all(
       analyses.map(async (a) => {
         const path = normalizeStoragePath('video-analysis', a.videoUrl)
         const { landmarksData, aiPoseAnalysis, ...analysis } = a
         const poseDataSummary = getPoseDataSummary(landmarksData, aiPoseAnalysis)
-        if (!path) return { ...analysis, poseDataSummary }
+        const groupVideos = await signGroupVideos(a.captureGroupId)
+        if (!path) return { ...analysis, poseDataSummary, groupVideos }
         try {
           const signedUrl = await createSignedUrl('video-analysis', path, 60 * 60)
-          return { ...analysis, videoUrl: signedUrl, poseDataSummary }
+          return { ...analysis, videoUrl: signedUrl, poseDataSummary, groupVideos }
         } catch {
-          return { ...analysis, poseDataSummary }
+          return { ...analysis, poseDataSummary, groupVideos }
         }
       })
     )

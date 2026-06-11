@@ -54,27 +54,57 @@ export async function POST(
     })
     if (rateLimited) return rateLimited
 
-    const analysis = await prisma.videoAnalysis.findFirst({
-      where: { id, coachId: user.id },
-      include: {
-        athlete: { select: { id: true, name: true, gender: true, user: { select: { language: true } } } },
-        exercise: {
-          select: {
-            id: true,
-            name: true,
-            nameSv: true,
-            nameEn: true,
-            description: true,
-            muscleGroup: true,
-            biomechanicalPillar: true,
-            instructions: true,
-          },
+    const analysisInclude = {
+      athlete: { select: { id: true, name: true, gender: true, user: { select: { language: true } } } },
+      exercise: {
+        select: {
+          id: true,
+          name: true,
+          nameSv: true,
+          nameEn: true,
+          description: true,
+          muscleGroup: true,
+          biomechanicalPillar: true,
+          instructions: true,
         },
       },
+    } as const
+
+    let analysis = await prisma.videoAnalysis.findFirst({
+      where: { id, coachId: user.id },
+      include: analysisInclude,
     })
 
     if (!analysis) {
       return NextResponse.json({ error: t(locale, 'Analysis not found', 'Analysen hittades inte') }, { status: 404 })
+    }
+
+    // Multi-view capture group: always analyze via the primary record, with
+    // all of the group's videos handed to the analyzer together.
+    let groupVideos: Array<{ videoUrl: string; cameraAngle: string | null }> | undefined
+    let siblingIds: string[] = []
+    if (analysis.captureGroupId) {
+      const group = await prisma.videoAnalysis.findMany({
+        where: { captureGroupId: analysis.captureGroupId, coachId: user.id },
+        select: { id: true, videoUrl: true, cameraAngle: true, isPrimaryView: true },
+        orderBy: { createdAt: 'asc' },
+      })
+      if (group.length > 1) {
+        const primaryMeta = group.find((g) => g.isPrimaryView) ?? group[0]
+        if (primaryMeta.id !== analysis.id) {
+          const primary = await prisma.videoAnalysis.findFirst({
+            where: { id: primaryMeta.id, coachId: user.id },
+            include: analysisInclude,
+          })
+          if (!primary) {
+            return NextResponse.json({ error: t(locale, 'Analysis not found', 'Analysen hittades inte') }, { status: 404 })
+          }
+          analysis = primary
+        }
+        const primaryId = analysis.id
+        groupVideos = group.map((g) => ({ videoUrl: g.videoUrl, cameraAngle: g.cameraAngle }))
+        siblingIds = group.filter((g) => g.id !== primaryId).map((g) => g.id)
+      }
     }
 
     if (analysis.athleteId) {
@@ -96,8 +126,11 @@ export async function POST(
       )
     }
 
-    await prisma.videoAnalysis.update({
-      where: { id },
+    const target = analysis
+    const groupIds = [target.id, ...siblingIds]
+
+    await prisma.videoAnalysis.updateMany({
+      where: { id: { in: groupIds } },
       data: { status: 'PROCESSING' },
     })
 
@@ -115,33 +148,44 @@ export async function POST(
         logger.debug('Video analysis: using default Gemini model', { modelId })
       }
 
-      if (analysis.videoType === 'RUNNING_GAIT') {
-        return await withAiContext(
-          { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_running_gait' },
-          () => analyzeRunningGait(id, analysis, client, modelId, locale),
+      let response: NextResponse
+      if (target.videoType === 'RUNNING_GAIT') {
+        response = await withAiContext(
+          { userId: user.id, clientId: target.athleteId, category: 'video_analysis_running_gait' },
+          () => analyzeRunningGait(target.id, { ...target, groupVideos }, client, modelId, locale),
+        )
+      } else if (isSkiingVideoType(target.videoType)) {
+        response = await withAiContext(
+          { userId: user.id, clientId: target.athleteId, category: 'video_analysis_skiing' },
+          () => analyzeSkiingTechnique(target.id, target, client, modelId, locale),
+        )
+      } else if (isHyroxVideoType(target.videoType)) {
+        response = await withAiContext(
+          { userId: user.id, clientId: target.athleteId, category: 'video_analysis_hyrox' },
+          () => analyzeHyroxStation(target.id, target, client, modelId, locale),
+        )
+      } else {
+        response = await withAiContext(
+          { userId: user.id, clientId: target.athleteId, category: 'video_analysis_generic' },
+          () => analyzeGeneric(target.id, target, client, modelId, locale),
         )
       }
-      if (isSkiingVideoType(analysis.videoType)) {
-        return await withAiContext(
-          { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_skiing' },
-          () => analyzeSkiingTechnique(id, analysis, client, modelId, locale),
-        )
+
+      // The analyzer maintains the primary record's status; mirror it onto
+      // the other views of the capture group.
+      if (siblingIds.length > 0) {
+        await prisma.videoAnalysis.updateMany({
+          where: { id: { in: siblingIds } },
+          data: { status: response.ok ? 'COMPLETED' : 'FAILED' },
+        })
       }
-      if (isHyroxVideoType(analysis.videoType)) {
-        return await withAiContext(
-          { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_hyrox' },
-          () => analyzeHyroxStation(id, analysis, client, modelId, locale),
-        )
-      }
-      return await withAiContext(
-        { userId: user.id, clientId: analysis.athleteId, category: 'video_analysis_generic' },
-        () => analyzeGeneric(id, analysis, client, modelId, locale),
-      )
+
+      return response
     } catch (aiError) {
       logger.error('AI analysis error', { id }, aiError)
 
-      await prisma.videoAnalysis.update({
-        where: { id },
+      await prisma.videoAnalysis.updateMany({
+        where: { id: { in: groupIds } },
         data: {
           status: 'FAILED',
           processingError: aiError instanceof Error ? aiError.message : 'AI analysis failed',

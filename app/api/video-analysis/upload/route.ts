@@ -8,6 +8,7 @@
  *   3. POST { action: 'confirm-upload', ... } → creates DB record
  */
 
+import { randomUUID } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { canAccessClient, requireCoach } from '@/lib/auth-utils';
 import { prisma } from '@/lib/prisma';
@@ -62,6 +63,10 @@ export async function POST(request: NextRequest) {
 
     if (action === 'confirm-upload') {
       return handleConfirmUpload(body, user.id, locale);
+    }
+
+    if (action === 'confirm-upload-group') {
+      return handleConfirmUploadGroup(body, user.id, locale);
     }
 
     return NextResponse.json({ error: t(locale, 'Invalid action', 'Ogiltig åtgärd') }, { status: 400 });
@@ -223,5 +228,108 @@ async function handleConfirmUpload(
       videoUrl: signedUrl,
     },
     uploadPath,
+  });
+}
+
+const GROUP_CAMERA_ANGLES = ['FRONT', 'SIDE', 'BACK'];
+
+/**
+ * Create one VideoAnalysis per simultaneously-filmed video, linked via a
+ * shared captureGroupId. The SIDE view (or the first video) becomes the
+ * primary record that will carry the combined AI analysis.
+ */
+async function handleConfirmUploadGroup(
+  body: Record<string, unknown>,
+  userId: string,
+  locale: AppLocale
+) {
+  const { videoType, athleteId, exerciseId, videos } = body as {
+    videoType?: string
+    athleteId?: string
+    exerciseId?: string
+    videos?: Array<{ uploadPath?: string; cameraAngle?: string }>
+  }
+
+  if (!videoType || !Array.isArray(videos)) {
+    return NextResponse.json(
+      { error: t(locale, 'Missing required fields: videoType, videos', 'Obligatoriska fält saknas: videoType, videos') },
+      { status: 400 }
+    );
+  }
+
+  if (videoType !== 'RUNNING_GAIT') {
+    return NextResponse.json(
+      { error: t(locale, 'Multi-angle analysis is currently only available for running gait', 'Flervinkelanalys är för närvarande bara tillgänglig för löpteknik') },
+      { status: 400 }
+    );
+  }
+
+  if (videos.length < 2 || videos.length > 3) {
+    return NextResponse.json(
+      { error: t(locale, 'A multi-angle group needs 2-3 videos', 'En flervinkelgrupp behöver 2-3 videor') },
+      { status: 400 }
+    );
+  }
+
+  for (const video of videos) {
+    if (!video.uploadPath || !video.uploadPath.startsWith(`${userId}/`)) {
+      return NextResponse.json({ error: t(locale, 'Invalid upload path', 'Ogiltig uppladdningssökväg') }, { status: 403 });
+    }
+    if (!video.cameraAngle || !GROUP_CAMERA_ANGLES.includes(video.cameraAngle)) {
+      return NextResponse.json(
+        { error: t(locale, 'Each video needs a camera angle: FRONT, SIDE, or BACK', 'Varje video behöver en kameravinkel: FRONT, SIDE eller BACK') },
+        { status: 400 }
+      );
+    }
+  }
+
+  const angles = videos.map((v) => v.cameraAngle);
+  if (new Set(angles).size !== angles.length) {
+    return NextResponse.json(
+      { error: t(locale, 'Each video must be filmed from a distinct camera angle', 'Varje video måste vara filmad från en egen kameravinkel') },
+      { status: 400 }
+    );
+  }
+
+  if (athleteId) {
+    const hasAccess = await canAccessClient(userId, athleteId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: t(locale, 'Athlete not found', 'Atleten hittades inte') }, { status: 404 });
+    }
+  }
+
+  const captureGroupId = randomUUID();
+  const sideIndex = videos.findIndex((v) => v.cameraAngle === 'SIDE');
+  const primaryIndex = sideIndex === -1 ? 0 : sideIndex;
+
+  const created = await prisma.$transaction(
+    videos.map((video, index) =>
+      prisma.videoAnalysis.create({
+        data: {
+          coachId: userId,
+          athleteId: athleteId || null,
+          exerciseId: exerciseId || null,
+          videoUrl: video.uploadPath as string,
+          videoType,
+          cameraAngle: video.cameraAngle,
+          captureGroupId,
+          isPrimaryView: index === primaryIndex,
+          status: 'PENDING',
+        },
+      })
+    )
+  );
+
+  logger.debug('Video group upload confirmed', {
+    captureGroupId,
+    primaryAnalysisId: created[primaryIndex].id,
+    videos: created.length,
+  })
+
+  return NextResponse.json({
+    success: true,
+    captureGroupId,
+    primaryAnalysisId: created[primaryIndex].id,
+    analyses: created,
   });
 }
