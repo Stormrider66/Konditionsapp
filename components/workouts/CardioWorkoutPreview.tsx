@@ -14,6 +14,7 @@ import type {
   WorkoutSection,
 } from './types'
 import { CardioFocusModeWorkout } from '@/components/athlete/cardio/CardioFocusModeWorkout'
+import { CardioSessionSummaryView } from '@/components/athlete/cardio/CardioSessionSummaryView'
 import { HeadlessVoiceCoach } from '@/components/athlete/workout/HeadlessVoiceCoach'
 import { AudioCaptureManager } from '@/lib/ai/live-voice-coaching/audio-capture'
 import {
@@ -207,6 +208,7 @@ export function CardioWorkoutPreview({
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showFocusMode, setShowFocusMode] = useState(false)
+  const [showSummary, setShowSummary] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [voiceCoachActive, setVoiceCoachActive] = useState(false)
   const [isCompleting, setIsCompleting] = useState(false)
@@ -305,8 +307,10 @@ export function CardioWorkoutPreview({
 
       if (!res.ok) throw new Error('Failed to complete session')
       setShowCompleteDialog(false)
+      setShowFocusMode(false)
       onCompleted?.()
-      onClose()
+      // Show the post-workout summary; onClose fires when it's dismissed.
+      setShowSummary(true)
     } finally {
       setIsCompleting(false)
     }
@@ -329,6 +333,10 @@ export function CardioWorkoutPreview({
         </div>
       </div>
     )
+  }
+
+  if (showSummary) {
+    return <CardioSessionSummaryView assignmentId={assignmentId} onClose={onClose} />
   }
 
   if (showFocusMode) {

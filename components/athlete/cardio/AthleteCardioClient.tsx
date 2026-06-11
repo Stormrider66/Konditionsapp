@@ -22,6 +22,7 @@ import {
 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import { CardioSessionCard } from './CardioSessionCard'
+import { CardioSessionSummaryView } from './CardioSessionSummaryView'
 import { CardioWorkoutPreview } from '@/components/workouts/CardioWorkoutPreview'
 import {
   confirmFutureCompletion,
@@ -111,6 +112,8 @@ export function AthleteCardioClient({
     segments: FocusModeSegment[]
     sessionLogId?: string
   } | null>(null)
+  // Assignment whose post-workout summary is open (from the history tab)
+  const [summaryAssignmentId, setSummaryAssignmentId] = useState<string | null>(null)
 
   // Fetch assignments
   const fetchAssignments = useCallback(async () => {
@@ -398,6 +401,16 @@ export function AthleteCardioClient({
     return result
   }
 
+  // Post-workout summary opened from the history tab
+  if (summaryAssignmentId) {
+    return (
+      <CardioSessionSummaryView
+        assignmentId={summaryAssignmentId}
+        onClose={() => setSummaryAssignmentId(null)}
+      />
+    )
+  }
+
   // Unified cardio preview + focus-mode launcher
   if (selectedAssignment && (showStartScreen || showFocusMode)) {
     return (
@@ -520,7 +533,13 @@ export function AthleteCardioClient({
               {completedAssignments.map((assignment) => (
                 <div
                   key={assignment.id}
-                  className="flex items-center justify-between p-5 bg-white border border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-2xl hover:shadow-lg transition-all duration-300 group"
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSummaryAssignmentId(assignment.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') setSummaryAssignmentId(assignment.id)
+                  }}
+                  className="flex items-center justify-between p-5 bg-white border border-slate-200 dark:bg-white/5 dark:border-white/10 rounded-2xl hover:shadow-lg transition-all duration-300 group cursor-pointer"
                 >
                   <div className="flex items-center gap-5">
                     <div className="h-12 w-12 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-110 transition-transform">
@@ -542,9 +561,12 @@ export function AthleteCardioClient({
                       </div>
                     </div>
                   </div>
-                  <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 font-bold uppercase tracking-wide">
-                    {t('history.completedBadge')}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 dark:hover:bg-emerald-500/30 font-bold uppercase tracking-wide">
+                      {t('history.completedBadge')}
+                    </Badge>
+                    <ChevronRight className="h-4 w-4 text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                  </div>
                 </div>
               ))}
             </div>
