@@ -18,10 +18,11 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Bluetooth, BluetoothConnected, Loader2, Play, X } from 'lucide-react'
+import { Bluetooth, BluetoothConnected, Heart, Loader2, Play, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
 import { expectedKindForSlot, type UseErgFleetResult } from '@/hooks/use-erg-fleet'
+import type { UseHeartRateBandResult } from '@/hooks/use-heart-rate-band'
 import { equipmentIsConcept2 } from '@/lib/cardio/focus-mode-segments'
 
 export function ergEquipmentLabel(slot: string, locale: string): string {
@@ -49,12 +50,14 @@ export function ergEquipmentLabel(slot: string, locale: string): string {
 interface ErgMachinePanelProps {
   slots: string[]
   fleet: UseErgFleetResult
+  /** Optional BLE heart-rate band — adds a connect row below the machines. */
+  hrBand?: UseHeartRateBandResult
   variant: 'prestart' | 'manage'
   /** Start the workout (prestart) / close the dialog (manage). */
   onDone: () => void
 }
 
-export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePanelProps) {
+export function ErgMachinePanel({ slots, fleet, hrBand, variant, onDone }: ErgMachinePanelProps) {
   const locale = useLocale()
   const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [busySlot, setBusySlot] = useState<string | null>(null)
@@ -184,6 +187,63 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
             </div>
           )
         })}
+
+        {hrBand && hrBand.isSupported && (
+          <div className="flex items-center gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 px-3 py-2.5">
+            <Heart
+              className={cn(
+                'h-5 w-5 shrink-0',
+                hrBand.status === 'connected' ? 'text-red-500 fill-current' : 'text-slate-400'
+              )}
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                {tw('Pulsband', 'Heart rate band')}
+                <span className="ml-1 text-xs font-normal text-slate-400">
+                  {tw('(valfritt)', '(optional)')}
+                </span>
+              </p>
+              <p
+                className={cn(
+                  'truncate text-xs',
+                  hrBand.status === 'connected'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-slate-400 dark:text-slate-500'
+                )}
+              >
+                {hrBand.status === 'connected'
+                  ? `${hrBand.deviceName || tw('Ansluten', 'Connected')}${hrBand.bpm != null ? ` · ${hrBand.bpm} bpm` : ''}`
+                  : hrBand.status === 'connecting' || hrBand.status === 'reconnecting'
+                    ? tw('Ansluter…', 'Connecting…')
+                    : tw('Ej anslutet — bröstband eller klocka som sänder puls', 'Not connected — chest strap or watch broadcasting HR')}
+              </p>
+            </div>
+            {hrBand.status === 'connected' ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => void hrBand.disconnect()}
+                title={tw('Koppla från', 'Disconnect')}
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={hrBand.status === 'connecting' || hrBand.status === 'reconnecting'}
+                onClick={() => void hrBand.connect().catch(() => {})}
+              >
+                {hrBand.status === 'connecting' || hrBand.status === 'reconnecting' ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  tw('Anslut', 'Connect')
+                )}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {fallbackSlot != null && fleet.devices[fallbackSlot]?.status !== 'connected' && (

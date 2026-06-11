@@ -34,6 +34,7 @@ import {
   HeadphoneOff,
   Bluetooth,
   Gauge,
+  Heart,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -54,6 +55,7 @@ import {
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
+import { useHeartRateBand } from '@/hooks/use-heart-rate-band'
 import { useLivePowerPush } from '@/hooks/use-live-power-push'
 import { WattbikeClient } from '@/lib/integrations/wattbike'
 import { ErgMachinePanel, ergEquipmentLabel } from './ErgMachinePanel'
@@ -232,11 +234,19 @@ export function CardioFocusModeWorkout({
 
   const fleet = useErgFleet(slotKeys)
   const [ergEnabled, setErgEnabled] = useState(true)
+  // BLE heart-rate band (chest strap / broadcasting watch) — live bpm on the
+  // strip and per-segment avg/max HR into the logs.
+  const segHrRef = useRef<number[]>([])
+  const hrBand = useHeartRateBand((bpm) => {
+    if (accumulatingRef.current) segHrRef.current.push(bpm)
+  })
   const [measuredForForm, setMeasuredForForm] = useState<{
     actualAvgPower?: number
     actualMaxPower?: number
     actualDistance?: number
     actualCalories?: number
+    actualAvgHR?: number
+    actualMaxHR?: number
   }>({})
   const segPowerRef = useRef<number[]>([])
   const segMaxRef = useRef(0)
@@ -356,18 +366,22 @@ export function CardioFocusModeWorkout({
           ? tw('Anslut airbike', 'Connect airbike')
           : tw('Anslut Wattbike', 'Connect Wattbike')
 
-  // Watts, rower metres and kcal measured for the current segment's effort.
+  // Watts, rower metres, kcal and band HR measured for the current segment's effort.
   const segmentMeasured = useCallback((): {
     actualAvgPower?: number
     actualMaxPower?: number
     actualDistance?: number
     actualCalories?: number
+    actualAvgHR?: number
+    actualMaxHR?: number
   } => {
     const out: {
       actualAvgPower?: number
       actualMaxPower?: number
       actualDistance?: number
       actualCalories?: number
+      actualAvgHR?: number
+      actualMaxHR?: number
     } = {}
     const arr = segPowerRef.current
     if (arr.length > 0) {
@@ -383,6 +397,11 @@ export function CardioFocusModeWorkout({
     const calLast = segCalLastRef.current
     if (calStart != null && calLast != null && calLast > calStart) {
       out.actualCalories = Math.round(calLast - calStart)
+    }
+    const hrSamples = segHrRef.current
+    if (hrSamples.length > 0) {
+      out.actualAvgHR = Math.round(hrSamples.reduce((a, b) => a + b, 0) / hrSamples.length)
+      out.actualMaxHR = Math.max(...hrSamples)
     }
     return out
   }, [])
@@ -474,6 +493,7 @@ export function CardioFocusModeWorkout({
     currentIndexRef.current = currentIndex
     segWindowRef.current = { startedAt: null, endedAt: null }
     segSamplesRef.current = []
+    segHrRef.current = []
   }, [currentIndex])
 
   // Stamp the segment's wall-clock start the moment its timer begins running.
@@ -575,6 +595,8 @@ export function CardioFocusModeWorkout({
       actualMaxPower?: number
       actualDistance?: number
       actualCalories?: number
+      actualAvgHR?: number
+      actualMaxHR?: number
     }) => {
       void onSegmentComplete(currentIndex, data).catch(() => {})
       setSegments((prev) =>
@@ -666,6 +688,8 @@ export function CardioFocusModeWorkout({
       actualMaxPower: data.actualMaxPower ?? measuredForForm.actualMaxPower,
       actualDistance: data.actualDistance ?? measuredForForm.actualDistance,
       actualCalories: data.actualCalories ?? measuredForForm.actualCalories,
+      actualAvgHR: data.actualAvgHR ?? measuredForForm.actualAvgHR,
+      actualMaxHR: data.actualMaxHR ?? measuredForForm.actualMaxHR,
       ...(win ?? {}),
     }
 
@@ -890,6 +914,12 @@ export function CardioFocusModeWorkout({
                     {tw('Live till coach', 'Live to coach')}
                   </span>
                 )}
+                {hrBand.bpm != null && (
+                  <span className="flex items-center gap-1 tabular-nums font-semibold text-red-500">
+                    <Heart className="h-3.5 w-3.5 fill-current" />
+                    {hrBand.bpm}
+                  </span>
+                )}
                 {liveSegmentCalories != null && (
                   <span className="tabular-nums font-semibold text-orange-500">
                     {liveSegmentCalories}
@@ -981,6 +1011,7 @@ export function CardioFocusModeWorkout({
           <ErgMachinePanel
             slots={slotKeys}
             fleet={fleet}
+            hrBand={hrBand}
             variant="prestart"
             onDone={() => {
               setPreStartSetup(false)
@@ -1138,6 +1169,7 @@ export function CardioFocusModeWorkout({
           <ErgMachinePanel
             slots={slotKeys}
             fleet={fleet}
+            hrBand={hrBand}
             variant="manage"
             onDone={() => setManageMachinesOpen(false)}
           />

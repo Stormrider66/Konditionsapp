@@ -9,7 +9,6 @@ import {
   calculateTRIMP,
   calculateBanisterTRIMP,
   calculateACWR,
-  calculateEWMA_ACWR,
   calculateTrainingLoad
 } from '../lib/training-engine'
 
