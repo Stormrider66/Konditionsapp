@@ -2,6 +2,7 @@ import * as React from 'react'
 import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { createClient } from '@/lib/supabase/server'
+import { parseBearerJwt, getSupabaseUserFromBearer } from '@/lib/auth/bearer'
 import { prisma } from '@/lib/prisma'
 import { User, UserRole } from '@/types'
 import { isAthleteModeActive, getAthleteModeAccess } from '@/lib/athlete-mode'
@@ -143,63 +144,39 @@ function getBusinessSlugFromReferer(referer: string | null): string | undefined 
   }
 }
 
+const USER_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  adminRole: true,
+  language: true,
+  createdAt: true,
+  updatedAt: true,
+} as const
+
 /**
- * Get the currently authenticated user from Supabase session.
- * Wrapped with React.cache() so layouts + pages calling this multiple times
- * within a single request hit Supabase/DB once.
+ * Map a validated Supabase auth user to our DB User row: lookup by supabase
+ * id, fall back to email, auto-create as ATHLETE on first sign-in. Shared by
+ * the cookie-session path and the bearer-token path so both resolve identity
+ * identically.
  */
-export const getCurrentUser = requestCache(async (): Promise<User | null> => {
-  const bypassEmail = await getLocalLoadTestBypassEmail()
-  if (bypassEmail) {
-    const user = await prisma.user.findUnique({
-      where: { email: bypassEmail },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        adminRole: true,
-        language: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    })
-    if (user) return user
-  }
-
-  const supabase = await createClient()
-  const { data: { user: supabaseUser } } = await supabase.auth.getUser()
-  if (!supabaseUser) return null
-
+async function resolveDbUserFromSupabaseUser(supabaseUser: {
+  id: string
+  email?: string | null
+  user_metadata?: Record<string, unknown> | null
+}): Promise<User | null> {
   const email = supabaseUser.email || null
 
   let user =
     (await prisma.user.findUnique({
       where: { id: supabaseUser.id },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        adminRole: true,
-        language: true,
-        createdAt: true,
-        updatedAt: true,
-      },
+      select: USER_SELECT,
     })) ||
     (email
       ? await prisma.user.findUnique({
           where: { email },
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            role: true,
-            adminRole: true,
-            language: true,
-            createdAt: true,
-            updatedAt: true,
-          },
+          select: USER_SELECT,
         })
       : null)
 
@@ -223,19 +200,44 @@ export const getCurrentUser = requestCache(async (): Promise<User | null> => {
       role: 'ATHLETE',
       language: 'en',
     },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      adminRole: true,
-      language: true,
-      createdAt: true,
-      updatedAt: true,
-    },
+    select: USER_SELECT,
   })
 
   return user
+}
+
+/**
+ * Get the currently authenticated user from the Supabase session cookie, or
+ * from an `Authorization: Bearer <supabase jwt>` header (mobile app).
+ * Wrapped with React.cache() so layouts + pages calling this multiple times
+ * within a single request hit Supabase/DB once.
+ */
+export const getCurrentUser = requestCache(async (): Promise<User | null> => {
+  const bypassEmail = await getLocalLoadTestBypassEmail()
+  if (bypassEmail) {
+    const user = await prisma.user.findUnique({
+      where: { email: bypassEmail },
+      select: USER_SELECT,
+    })
+    if (user) return user
+  }
+
+  // Bearer path (mobile / non-browser clients). FAIL CLOSED: a present but
+  // invalid bearer token returns null — never falls back to cookies. The
+  // proxy.ts CSRF exemption for bearer requests relies on this rule.
+  const requestHeaders = await headers()
+  const bearerToken = parseBearerJwt(requestHeaders.get('authorization'))
+  if (bearerToken) {
+    const bearerUser = await getSupabaseUserFromBearer(bearerToken)
+    if (!bearerUser) return null
+    return resolveDbUserFromSupabaseUser(bearerUser)
+  }
+
+  const supabase = await createClient()
+  const { data: { user: supabaseUser } } = await supabase.auth.getUser()
+  if (!supabaseUser) return null
+
+  return resolveDbUserFromSupabaseUser(supabaseUser)
 })
 
 export async function isAuthenticated(): Promise<boolean> {
