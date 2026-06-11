@@ -15,6 +15,7 @@ import {
   FolderOpen,
   Lightbulb,
   ListChecks,
+  Loader2,
   MessageSquareText,
   Printer,
   RotateCcw,
@@ -41,15 +42,16 @@ import { canvasToMarkdown, slugifyCanvasFilename } from '@/lib/ai-canvas/markdow
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
 import { CanvasBlockView } from './CanvasBlockView'
+import { useCanvasAgent } from './use-canvas-agent'
 import {
   buildAthleteMessageDraft,
+  buildCanvasBlocksSummary,
   buildContextSummary,
   buildFollowUpTaskDescription,
   buildFollowUpTaskTitle,
   buildProgramDraftPrompt,
   contextDataOptionsByLocale,
   createId,
-  createTeamPolishBlocks,
   dateRangeLabelsByLocale,
   describeCanvasBlock,
   getAssistantMessage,
@@ -105,7 +107,6 @@ export function AICanvasClient({
       : 'The canvas is ready. Choose a template or write what you want to create.'
   )
   const [lastUpdated, setLastUpdated] = useState(locale === 'sv' ? 'Inte sparad än' : 'Not saved yet')
-  const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isSavingNote, setIsSavingNote] = useState(false)
   const [isCreatingTask, setIsCreatingTask] = useState(false)
@@ -162,6 +163,52 @@ export function AICanvasClient({
     ].slice(0, 5))
   }
 
+  const {
+    generate: generateWithAgent,
+    isGenerating,
+    progress: agentProgress,
+    resetConversation: resetAgentConversation,
+  } = useCanvasAgent({
+    businessSlug,
+    locale,
+    onBlocks: (incoming) => {
+      setBlocks((current) => [
+        ...current,
+        ...incoming.map((block) => ({
+          ...block,
+          id: createId(block.type),
+          source: block.source ?? ('ai' as const),
+        })),
+      ])
+      setLastUpdated(new Date().toLocaleTimeString(dateLocale, timeFormatOptions))
+    },
+    onTitle: (nextTitle) => setTitle(nextTitle),
+    onFinish: ({ text, model, skillsUsed, blockCount }) => {
+      setModelLabel(getCanvasModelLabel(model ?? undefined, skillsUsed, null))
+      setCanvasSkillsUsed(skillsUsed)
+      if (blockCount > 0) {
+        addActionReceipt(
+          'success',
+          locale === 'sv' ? 'Canvas uppdaterad' : 'Canvas updated',
+          text || (locale === 'sv' ? `Jag skapade ${blockCount} canvasblock.` : `I created ${blockCount} canvas blocks.`)
+        )
+      } else {
+        addActionReceipt(
+          'warning',
+          locale === 'sv' ? 'Inga block skapades' : 'No blocks created',
+          text || (locale === 'sv' ? 'Jag kunde inte skapa några block för den här förfrågan.' : 'I could not create any blocks for this request.')
+        )
+      }
+    },
+    onError: (message) => {
+      addActionReceipt(
+        'error',
+        locale === 'sv' ? 'Canvas kunde inte skapas' : 'Canvas could not be created',
+        message || (locale === 'sv' ? 'Jag kunde inte nå AI Canvas just nu.' : 'I could not reach AI Canvas right now.')
+      )
+    },
+  })
+
   const handleUndoLastCanvasChange = () => {
     const [latest, ...rest] = history
     if (!latest) {
@@ -200,72 +247,31 @@ export function AICanvasClient({
     )
   }
 
-  const handleGenerate = async () => {
+  const handleGenerate = () => {
     const requestPrompt = (prompt || selectedTemplate.prompt).trim()
     if (!requestPrompt) {
       setAssistantMessage(getAssistantMessage('', 0, locale))
       return
     }
 
-    setIsGenerating(true)
-    setAssistantMessage(locale === 'sv' ? 'Jag skapar strukturerade canvasblock...' : 'I am creating structured canvas blocks...')
+    setAssistantMessage(
+      locale === 'sv'
+        ? 'Jag arbetar med din canvas — hämtar data och bygger block steg för steg...'
+        : 'I am working on your canvas — fetching data and building blocks step by step...'
+    )
     rememberSnapshot(locale === 'sv' ? 'ny generering' : 'new generation')
 
-    try {
-      const response = await fetch('/api/ai/canvas/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          businessSlug,
-          prompt: requestPrompt,
-          templateId: selectedTemplate.id,
-          contextSummary,
-          contextSelection,
-          selectedSkillIds,
-        }),
-      })
+    // First real generation replaces the welcome/template blocks; later
+    // generations extend the working document (the agent gets a summary).
+    const isUntouchedCanvas = blocks.every((block) => block.source === 'template')
+    if (isUntouchedCanvas) setBlocks([])
 
-      const payload = (await response.json()) as GenerateCanvasResponse
-
-      if (!response.ok || !payload.success || !payload.blocks) {
-        addActionReceipt(
-          'error',
-          locale === 'sv' ? 'Canvas kunde inte skapas' : 'Canvas could not be created',
-          payload.error || (locale === 'sv' ? 'Jag kunde inte skapa canvasblock just nu.' : 'I could not create canvas blocks right now.')
-        )
-        return
-      }
-
-      const generatedBlocks = payload.blocks.map((block) => ({
-        id: createId(block.type),
-        source: 'ai' as const,
-        ...block,
-      }))
-      const nextBlocks = contextSelection.scope === 'team' && selectedTeam
-        ? [...createTeamPolishBlocks(selectedTeam, locale), ...generatedBlocks].slice(0, 12)
-        : generatedBlocks
-
-      setBlocks(nextBlocks)
-      setTitle(payload.title || title)
-      addActionReceipt(
-        'success',
-        locale === 'sv' ? 'Canvas skapad' : 'Canvas created',
-        payload.assistantMessage || getAssistantMessage(requestPrompt, nextBlocks.length, locale)
-      )
-      setModelLabel(getCanvasModelLabel(payload.model, payload.skillsUsed, null))
-      setCanvasSkillsUsed(payload.skillsUsed || [])
-      setLastUpdated(new Date().toLocaleTimeString(dateLocale, timeFormatOptions))
-    } catch {
-      addActionReceipt(
-        'error',
-        locale === 'sv' ? 'Canvas kunde inte skapas' : 'Canvas could not be created',
-        locale === 'sv'
-          ? 'Jag kunde inte nå AI Canvas just nu. Kontrollera anslutningen och försök igen.'
-          : 'I could not reach AI Canvas right now. Check the connection and try again.'
-      )
-    } finally {
-      setIsGenerating(false)
-    }
+    generateWithAgent(requestPrompt, {
+      templateId: selectedTemplate.id,
+      contextSelection,
+      selectedSkillIds,
+      canvasSummary: isUntouchedCanvas ? undefined : buildCanvasBlocksSummary(blocks),
+    })
   }
 
   const handleRegenerateBlock = async (block: CanvasBlock) => {
@@ -347,6 +353,7 @@ export function AICanvasClient({
     setSelectedTemplateId('blank')
     setSelectedSkillIds([])
     setCanvasSkillsUsed([])
+    resetAgentConversation()
     addActionReceipt(
       'success',
       locale === 'sv' ? 'Canvas återställd' : 'Canvas reset',
@@ -447,6 +454,7 @@ export function AICanvasClient({
       setLastUpdated(new Date(payload.canvas.updatedAt).toLocaleTimeString(dateLocale, timeFormatOptions))
       setModelLabel(null)
       setCanvasSkillsUsed([])
+      resetAgentConversation()
       upsertSavedCanvas(payload.canvas)
       addActionReceipt('success', locale === 'sv' ? 'Canvas laddad' : 'Canvas loaded', locale === 'sv' ? 'Jag laddade canvasen.' : 'I loaded the canvas.')
     } catch {
@@ -1353,6 +1361,22 @@ export function AICanvasClient({
               <h2 className="text-sm font-semibold text-slate-900">{locale === 'sv' ? 'AI svar' : 'AI response'}</h2>
             </div>
             <p className="text-sm leading-6 text-slate-700">{assistantMessage}</p>
+            {isGenerating && agentProgress.length > 0 && (
+              <div className="mt-3 space-y-1.5 border-t border-slate-100 pt-3">
+                {agentProgress.map((item) => (
+                  <div key={item.id} className="flex items-center gap-2 text-xs text-slate-600">
+                    {item.error ? (
+                      <span className="h-3.5 w-3.5 text-red-500">✕</span>
+                    ) : item.done ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                    ) : (
+                      <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-violet-600" />
+                    )}
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {canvasSkillsUsed.length > 0 && (
               <div className="mt-3 flex flex-wrap items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-violet-600" />

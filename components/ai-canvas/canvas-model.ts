@@ -604,6 +604,18 @@ export function describeCanvasBlock(block: CanvasBlock, locale: AppLocale): stri
   return parts.join('\n').slice(0, 3000)
 }
 
+/**
+ * Compact inventory of the current canvas for the agent's system prompt,
+ * so follow-up requests extend the document instead of repeating it.
+ */
+export function buildCanvasBlocksSummary(blocks: CanvasBlock[]): string {
+  return blocks
+    .filter((block) => block.source !== 'template')
+    .map((block) => `- [${block.type}] ${block.title || cleanDraftText(block.content || '').slice(0, 60)}`.trimEnd())
+    .join('\n')
+    .slice(0, 2000)
+}
+
 export function getCanvasModelLabel(
   model: GenerateCanvasResponse['model'] | undefined,
   skillsUsed: string[] | undefined,
