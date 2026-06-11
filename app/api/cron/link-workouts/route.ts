@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { findMatchingGarminActivity, findMatchingAdHocWorkout, linkAdHocToGarmin } from '@/lib/training/adhoc-garmin-matcher'
+import { linkGarminToCardioLog } from '@/lib/cardio/garmin-cardio-link'
 import { logger } from '@/lib/logger'
 import { subDays } from 'date-fns'
 
@@ -96,12 +97,34 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    logger.info('Link-workouts cron completed', { linked, checkedAdHocs: unlinkedAdHocs.length, checkedGarmins: unlinkedGarmins.length })
+    // Strategy 3: completed cardio focus-mode sessions whose watch recording
+    // synced after completion (the completion-time link attempt missed).
+    const unlinkedCardioLogs = await prisma.cardioSessionLog.findMany({
+      where: {
+        status: 'COMPLETED',
+        garminActivityId: null,
+        startedAt: { gte: since },
+      },
+      select: { id: true },
+      take: 50,
+    })
+
+    let cardioLinked = 0
+    for (const log of unlinkedCardioLogs) {
+      try {
+        if (await linkGarminToCardioLog(log.id)) cardioLinked++
+      } catch (err) {
+        logger.warn('Failed to link cardio log to Garmin', { logId: log.id, error: String(err) })
+      }
+    }
+
+    logger.info('Link-workouts cron completed', { linked, cardioLinked, checkedAdHocs: unlinkedAdHocs.length, checkedGarmins: unlinkedGarmins.length, checkedCardioLogs: unlinkedCardioLogs.length })
 
     return NextResponse.json({
       success: true,
       linked,
-      checked: { adHocs: unlinkedAdHocs.length, garmins: unlinkedGarmins.length },
+      cardioLinked,
+      checked: { adHocs: unlinkedAdHocs.length, garmins: unlinkedGarmins.length, cardioLogs: unlinkedCardioLogs.length },
     })
   } catch (error) {
     logger.error('Link-workouts cron failed', { error: String(error) })

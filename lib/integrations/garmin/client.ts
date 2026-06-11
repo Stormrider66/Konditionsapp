@@ -797,6 +797,57 @@ export function extractGarminHRSamples(
   return hrSamples;
 }
 
+/**
+ * Normalize sample recordingTimes to seconds-from-activity-start, one offset
+ * per (already HR-filtered) sample. Garmin sends recordingTime as epoch
+ * seconds; older payloads may already be relative. Samples without a
+ * recordingTime fall back to their index (the 1 Hz assumption).
+ */
+export function normalizeGarminSampleOffsets(
+  recordingTimes: Array<number | null>,
+  activityStartSeconds?: number
+): number[] {
+  const firstNumeric = recordingTimes.find((v): v is number => typeof v === 'number');
+  let base = 0;
+  if (firstNumeric != null) {
+    if (activityStartSeconds && firstNumeric >= activityStartSeconds) {
+      base = activityStartSeconds;
+    } else if (firstNumeric >= 1e9) {
+      // Epoch-like but no usable activity start — anchor to the first sample.
+      base = firstNumeric;
+    }
+  }
+  return recordingTimes.map((v, i) =>
+    typeof v === 'number' ? Math.max(0, Math.round(v - base)) : i
+  );
+}
+
+/**
+ * HR values + their seconds-from-start offsets, index-aligned. Prefer this
+ * over extractGarminHRSamples: without offsets, recording gaps make
+ * index ≠ elapsed seconds.
+ */
+export function extractGarminHRStreamWithOffsets(
+  details: GarminActivityDetails | null
+): { hr: number[]; offsets: number[] } | null {
+  if (!details?.samples || details.samples.length === 0) {
+    return null;
+  }
+
+  const valid = details.samples.filter(s => s.heartRate !== undefined && s.heartRate > 0);
+  if (valid.length === 0) {
+    return null;
+  }
+
+  return {
+    hr: valid.map(s => s.heartRate as number),
+    offsets: normalizeGarminSampleOffsets(
+      valid.map(s => (typeof s.recordingTime === 'number' ? s.recordingTime : null)),
+      details.summary?.startTimeInSeconds
+    ),
+  };
+}
+
 // ─── Connection Management ──────────────────────────────────────────────────
 
 /**

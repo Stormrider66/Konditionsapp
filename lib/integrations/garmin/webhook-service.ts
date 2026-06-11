@@ -8,7 +8,9 @@ import {
   GarminDailySummary,
   GarminHRVData,
   GarminSleepData,
+  normalizeGarminSampleOffsets,
 } from '@/lib/integrations/garmin/client'
+import { resliceCardioLogHr } from '@/lib/cardio/garmin-cardio-link'
 
 const DEFAULT_MAX_HR = 185
 const BODY_COMP_LIMITS = {
@@ -928,12 +930,18 @@ async function processActivityDetails(detail: GarminActivityDetailsPayload) {
   }
 
   if (detail.samples && detail.samples.length > 0) {
-    const hrSamples = detail.samples
-      .filter(sample => sample.heartRate !== undefined && sample.heartRate > 0)
-      .map(sample => sample.heartRate as number)
+    const validSamples = detail.samples.filter(
+      sample => sample.heartRate !== undefined && sample.heartRate > 0
+    )
 
-    if (hrSamples.length > 0) {
-      updateData.hrStream = hrSamples
+    if (validSamples.length > 0) {
+      updateData.hrStream = validSamples.map(sample => sample.heartRate as number)
+      updateData.hrStreamOffsets = normalizeGarminSampleOffsets(
+        validSamples.map(sample =>
+          typeof sample.recordingTime === 'number' ? sample.recordingTime : null
+        ),
+        detail.summary?.startTimeInSeconds
+      )
       updateData.hrStreamFetched = true
     }
   }
@@ -966,6 +974,16 @@ async function processActivityDetails(detail: GarminActivityDetailsPayload) {
 
     if (shouldRefreshZoneDistribution) {
       await processGarminActivityZonesForClient(clientId, existing.id)
+    }
+
+    // If a cardio focus-mode log was linked before the HR stream arrived,
+    // slice the freshly-stored stream onto its segments now.
+    if ('hrStream' in updateData) {
+      try {
+        await resliceCardioLogHr(existing.id)
+      } catch (error) {
+        logger.warn('Failed to re-slice cardio log HR after details', { activityId }, error)
+      }
     }
   }
 }

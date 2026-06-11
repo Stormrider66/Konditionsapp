@@ -18,7 +18,7 @@ import {
   getGarminActivities,
   getGarminActivityDetails,
   extractGarminHRZoneSeconds,
-  extractGarminHRSamples,
+  extractGarminHRStreamWithOffsets,
   getGarminSleepData,
   getGarminHRVData,
   GarminDailySummary,
@@ -390,12 +390,13 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
     try {
       const details = await getGarminActivityDetails(clientId, activity.activityId);
       const hrZoneSeconds = extractGarminHRZoneSeconds(details);
-      const hrSamples = extractGarminHRSamples(details);
+      const hrStream = extractGarminHRStreamWithOffsets(details);
 
       const updateData: Record<string, unknown> = {};
 
-      if (hrSamples && hrSamples.length > 0) {
-        updateData.hrStream = hrSamples;
+      if (hrStream && hrStream.hr.length > 0) {
+        updateData.hrStream = hrStream.hr;
+        updateData.hrStreamOffsets = hrStream.offsets;
         updateData.hrStreamFetched = true;
       }
 
@@ -412,7 +413,7 @@ async function syncActivity(clientId: string, activity: GarminActivity): Promise
         logger.info('Fetched HR data for Garmin activity', {
           clientId,
           activityId: activity.activityId,
-          hasHRStream: Boolean(hrSamples?.length),
+          hasHRStream: Boolean(hrStream?.hr.length),
           hasZones: Boolean(hrZoneSeconds),
         });
       }

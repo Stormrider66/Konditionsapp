@@ -5,6 +5,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { buildCardioFocusModeSegments } from '@/lib/cardio/focus-mode-segments'
+import { linkGarminToCardioLog } from '@/lib/cardio/garmin-cardio-link'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -505,6 +506,17 @@ export async function PUT(
             workoutType: 'CARDIO',
           },
         })
+      }
+    }
+
+    // Try to link a simultaneously-recorded Garmin activity (HR source for the
+    // summary). The watch usually hasn't synced yet — the link-workouts cron
+    // retries — so a miss here is expected and never fails the completion.
+    if (status === 'COMPLETED') {
+      try {
+        await linkGarminToCardioLog(updatedLog.id)
+      } catch (error) {
+        logError('Garmin link after cardio completion failed:', error)
       }
     }
 
