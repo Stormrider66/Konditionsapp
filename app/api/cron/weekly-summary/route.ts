@@ -14,6 +14,7 @@ import {
   saveMonthlySummary,
 } from '@/lib/training/summary-calculator'
 import { generateVisualReport } from '@/lib/ai/visual-reports'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 
 export const maxDuration = 300
 
@@ -44,11 +45,10 @@ function getPreviousWeekStart(): Date {
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
 
-  // Verify cron secret for Vercel
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Verify cron secret for Vercel (fails closed when CRON_SECRET is unset —
+  // the template-literal comparison would otherwise accept "Bearer undefined")
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
   const batchLimit = parseBoundedInt(
     request.nextUrl.searchParams.get('limit'),

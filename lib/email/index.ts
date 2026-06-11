@@ -13,7 +13,6 @@ import {
   getSubscriptionConfirmationEmailTemplate,
   getSubscriptionCancelledEmailTemplate,
   getPaymentFailedEmailTemplate,
-  getReferralInviteEmailTemplate,
 } from './templates';
 import type { EmailBranding } from './email-branding-types';
 import { PLATFORM_REPLY_TO, DEFAULT_EMAIL_BRANDING } from './email-branding-types';
@@ -274,30 +273,6 @@ export async function sendPaymentFailedEmail(
     amount,
     retryDate,
     updatePaymentUrl,
-    locale,
-    branding,
-  });
-  return sendEmailInternal(to, subject, html, branding);
-}
-
-/**
- * Send referral invite email
- */
-export async function sendReferralInviteEmail(
-  to: string,
-  referrerName: string,
-  referralCode: string,
-  benefit: string,
-  recipientName?: string,
-  locale: EmailLocale = 'en',
-  branding?: EmailBranding
-): Promise<SendEmailResult> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://trainomics.app';
-  const { subject, html } = getReferralInviteEmailTemplate({
-    recipientName: recipientName || '',
-    referrerName,
-    signupUrl: `${baseUrl}/register?ref=${referralCode}`,
-    benefit,
     locale,
     branding,
   });

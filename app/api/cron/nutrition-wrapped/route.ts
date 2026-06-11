@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { generateNutritionWrapped } from '@/lib/nutrition/wrapped-generator'
 import { logger } from '@/lib/logger'
+import { verifyCronAuth } from '@/lib/api/cron-auth'
 
 export const maxDuration = 300
 
@@ -24,11 +25,10 @@ interface NutritionWrappedClient {
 }
 
 export async function GET(request: NextRequest) {
-  // Verify cron secret
-  const authHeader = request.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
+  // Verify cron secret (fails closed when CRON_SECRET is unset — the
+  // template-literal comparison would otherwise accept "Bearer undefined")
+  const authError = verifyCronAuth(request)
+  if (authError) return authError
 
   const now = new Date()
   const currentMonth = now.getMonth() + 1 // 1-12

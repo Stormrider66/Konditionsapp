@@ -241,6 +241,15 @@ const ATHLETE_REDIRECT_ROUTES = [
   '/athlete/onboarding',
   '/athlete/rehab',
   '/athlete/predictions',
+  '/athlete/ad-hoc',
+  '/athlete/agility',
+  '/athlete/browse-workouts',
+  '/athlete/fueling',
+  '/athlete/nutrition',
+  '/athlete/program',
+  '/athlete/prs',
+  '/athlete/training-library',
+  '/athlete/workout',
 ]
 
 type LegacyCoachRouteMatch = {

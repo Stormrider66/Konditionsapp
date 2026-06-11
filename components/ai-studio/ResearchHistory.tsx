@@ -237,11 +237,27 @@ export function ResearchHistory({
       return
     }
 
-    // Note: Would need to implement DELETE endpoint for permanent deletion
-    toast({
-      title: 'Not implemented',
-      description: 'Session deletion is not yet available.',
-    })
+    try {
+      const response = await fetch(`/api/ai/deep-research/${sessionId}`, {
+        method: 'DELETE',
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete session')
+      }
+      setSessions((prev) => prev.filter((s) => s.id !== sessionId))
+      setTotal((prev) => Math.max(0, prev - 1))
+      toast({
+        title: 'Deleted',
+        description: 'The research session has been deleted.',
+      })
+    } catch (err) {
+      toast({
+        title: 'Error',
+        description: err instanceof Error ? err.message : 'Failed to delete session.',
+        variant: 'destructive',
+      })
+    }
   }
 
   // Load more

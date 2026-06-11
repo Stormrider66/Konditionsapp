@@ -6,13 +6,18 @@ import { syncConnection } from '@/lib/integrations/gym-platforms/sync-engine'
 import { subMinutes } from 'date-fns'
 
 /**
- * POST /api/cron/gym-platform-sync
+ * GET /api/cron/gym-platform-sync
  * Periodic sync of all active gym platform connections.
- * Should run every 15 minutes via Vercel Cron.
+ * Runs every 15 minutes via Vercel Cron (cron invocations are GET; POST is
+ * kept as a manual-trigger alias).
  */
 export const maxDuration = 300
 
 export async function POST(request: NextRequest) {
+  return GET(request)
+}
+
+export async function GET(request: NextRequest) {
   const authError = verifyCronAuth(request)
   if (authError) return authError
 

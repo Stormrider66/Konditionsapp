@@ -2,7 +2,8 @@
  * Deep Research Session API Routes
  *
  * GET /api/ai/deep-research/[sessionId] - Get session details and results
- * DELETE /api/ai/deep-research/[sessionId] - Cancel a running session
+ * DELETE /api/ai/deep-research/[sessionId] - Cancel a running session, or
+ *   permanently delete a failed/cancelled/timed-out one
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -174,7 +175,17 @@ export async function DELETE(
       )
     }
 
-    // Can only cancel running or pending sessions
+    // Terminal failed states are permanently deleted (progress and shared
+    // access cascade); running/pending sessions are cancelled instead.
+    if (['FAILED', 'CANCELLED', 'TIMEOUT'].includes(session.status)) {
+      await prisma.deepResearchSession.delete({ where: { id: sessionId } })
+      return NextResponse.json({
+        success: true,
+        deleted: true,
+        message: 'Research session deleted',
+      })
+    }
+
     if (session.status !== 'RUNNING' && session.status !== 'PENDING') {
       return NextResponse.json(
         { error: `Cannot cancel session with status: ${session.status}` },
