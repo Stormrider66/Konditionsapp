@@ -185,13 +185,46 @@ export function IntervalTimer({
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isMuted, setIsMuted] = useState(false)
   const [hasStarted, setHasStarted] = useState(autoStart)
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // The countdown is anchored to a wall-clock deadline (endAtRef) and the tick
+  // derives the remaining time from Date.now(). This makes it immune to the
+  // two real-world failure modes of a decrementing setInterval:
+  // - parent re-render churn (BLE machine data arrives several times a second;
+  //   if the tick effect restarted on every new callback identity, the 1 s
+  //   interval never fired — observed in the field as "2 s in 10 minutes"),
+  // - Android Chrome throttling timers when the screen dims or the tab hides.
+  const endAtRef = useRef<number | null>(null) // deadline while running
+  const secondsRef = useRef(duration) // remaining, for (re)anchoring on resume
+  const completedRef = useRef(false)
+  useEffect(() => {
+    secondsRef.current = seconds
+  }, [seconds])
+
+  // Latest-callback refs so the tick never restarts on prop identity changes.
+  const latestRef = useRef({ onComplete, voiceSpeak, disableVoiceCues })
+  useEffect(() => {
+    latestRef.current = { onComplete, voiceSpeak, disableVoiceCues }
+  })
+  const isMutedRef = useRef(isMuted)
+  useEffect(() => {
+    isMutedRef.current = isMuted
+  }, [isMuted])
+
+  // Pause keeps the remaining time in state and drops the deadline; resume
+  // re-anchors from the kept remaining time (in the tick effect below).
+  const pauseTimer = useCallback(() => {
+    if (endAtRef.current != null) {
+      setSeconds(Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000)))
+    }
+    endAtRef.current = null
+    setIsRunning(false)
+  }, [])
 
   // External pause/resume control (from live voice coach)
   useEffect(() => {
     if (forcePaused === undefined) return
     if (forcePaused && isRunning) {
-      setIsRunning(false)
+      pauseTimer()
     } else if (!forcePaused && hasStarted && !isRunning) {
       setIsRunning(true)
     }
@@ -207,7 +240,7 @@ export function IntervalTimer({
   // Play beep sound using Web Audio API
   const playBeep = useCallback(
     (frequency: number = 800, audioDuration: number = 200) => {
-      if (isMuted || typeof window === 'undefined') return
+      if (isMutedRef.current || typeof window === 'undefined') return
 
       try {
         const audioContext = new (window.AudioContext ||
@@ -232,7 +265,7 @@ export function IntervalTimer({
         // Audio context not supported
       }
     },
-    [isMuted]
+    []
   )
 
   // Vibrate if supported
@@ -242,55 +275,64 @@ export function IntervalTimer({
     }
   }, [])
 
-  // Timer countdown
+  // Timer countdown. Depends ONLY on isRunning: the interval is created once
+  // per run and keeps ticking no matter how often the parent re-renders. The
+  // 250 ms cadence + clock-derived remaining keeps the display accurate even
+  // when the browser delays ticks.
   useEffect(() => {
-    if (isRunning && seconds > 0) {
-      intervalRef.current = setInterval(() => {
-        setSeconds((prev) => {
-          const newValue = prev - 1
+    if (!isRunning) return
 
-          // Alert at 30 seconds for longer intervals
-          if (newValue === 30 && duration > 60) {
-            playBeep(500, 150)
-            vibrate(100)
-            if (!disableVoiceCues) voiceSpeak?.('Thirty seconds.')
-          }
-
-          // Alert at 10 seconds
-          if (newValue === 10) {
-            playBeep(600, 150)
-            vibrate(100)
-            if (!disableVoiceCues) voiceSpeak?.('Ten seconds.')
-          }
-
-          // Alert at 3, 2, 1
-          if (newValue === 3) {
-            playBeep(700, 100)
-            vibrate(50)
-            if (!disableVoiceCues) voiceSpeak?.('Three. Two. One.', 'high')
-          } else if (newValue <= 2 && newValue > 0) {
-            playBeep(700, 100)
-            vibrate(50)
-          }
-
-          // Complete
-          if (newValue === 0) {
-            playBeep(900, 400)
-            vibrate([100, 50, 100, 50, 100])
-            setTimeout(onComplete, 500)
-          }
-
-          return newValue
-        })
-      }, 1000)
+    // (Re)anchor the deadline when starting or resuming.
+    if (endAtRef.current == null) {
+      endAtRef.current = Date.now() + secondsRef.current * 1000
     }
 
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
+    const crossed = (prev: number, next: number, threshold: number) =>
+      prev > threshold && next <= threshold
+
+    const tick = () => {
+      const endAt = endAtRef.current
+      if (endAt == null || completedRef.current) return
+      const remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000))
+      const prev = secondsRef.current
+      if (remaining === prev) return
+
+      const { voiceSpeak: speak, disableVoiceCues: noCues } = latestRef.current
+      // Fire each cue once even if a throttled tick jumps several seconds.
+      if (crossed(prev, remaining, 30) && remaining > 10 && duration > 60) {
+        playBeep(500, 150)
+        vibrate(100)
+        if (!noCues) speak?.('Thirty seconds.')
+      }
+      if (crossed(prev, remaining, 10) && remaining > 3) {
+        playBeep(600, 150)
+        vibrate(100)
+        if (!noCues) speak?.('Ten seconds.')
+      }
+      if (crossed(prev, remaining, 3) && remaining > 0) {
+        playBeep(700, 100)
+        vibrate(50)
+        if (!noCues) speak?.('Three. Two. One.', 'high')
+      } else if (remaining <= 2 && remaining > 0) {
+        playBeep(700, 100)
+        vibrate(50)
+      }
+
+      setSeconds(remaining)
+
+      if (remaining === 0) {
+        completedRef.current = true
+        playBeep(900, 400)
+        vibrate([100, 50, 100, 50, 100])
+        setTimeout(() => latestRef.current.onComplete(), 500)
       }
     }
-  }, [isRunning, seconds, duration, playBeep, vibrate, onComplete, voiceSpeak, disableVoiceCues])
+
+    const id = setInterval(tick, 250)
+    tick()
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRunning])
 
   // Start timer
   const startTimer = () => {
@@ -302,18 +344,24 @@ export function IntervalTimer({
   const toggleTimer = () => {
     if (!hasStarted) {
       startTimer()
+    } else if (isRunning) {
+      pauseTimer()
     } else {
-      setIsRunning((prev) => !prev)
+      setIsRunning(true)
     }
   }
 
-  // Extend time
+  // Extend time (shifts the deadline while running)
   const extendTime = (additionalSeconds: number) => {
+    if (endAtRef.current != null) endAtRef.current += additionalSeconds * 1000
     setSeconds((prev) => prev + additionalSeconds)
   }
 
   // Reduce time
   const reduceTime = (reduceSeconds: number) => {
+    if (endAtRef.current != null) {
+      endAtRef.current = Math.max(Date.now(), endAtRef.current - reduceSeconds * 1000)
+    }
     setSeconds((prev) => Math.max(0, prev - reduceSeconds))
   }
 
