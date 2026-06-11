@@ -157,8 +157,15 @@ Executes validated actions, respecting autonomy and preferences.
 
 ## Cron Jobs (`/api/cron/agent/`)
 
-| Job | Frequency | Purpose |
-|-----|-----------|---------|
+> **⚠️ DORMANT (as of 2026-06-11):** none of these jobs are scheduled in
+> `vercel.json` and no external trigger exists, so the
+> perceive→decide→execute→learn loop has never run in production. The routes
+> are implemented and auth-hardened; the frequencies below are the *intended*
+> schedule if/when the system is activated. To activate, add the five paths to
+> `vercel.json` `crons` (they accept GET with the standard CRON_SECRET bearer).
+
+| Job | Intended frequency | Purpose |
+|-----|--------------------|---------|
 | `perceive` | 30 min | Create perception snapshots |
 | `decide` | 15 min | Run decision engine |
 | `execute` | 10 min | Execute pending actions |

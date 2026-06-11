@@ -53,7 +53,11 @@ app/
 │   ├── coach/                    → 66 coach pages
 │   └── physio/                   → 8 physio pages
 ├── api/                          → 463 API routes
-├── athlete/, coach/, physio/     → Legacy routes (redirect to business-scoped)
+├── athlete/                      → Legacy athlete routes: still SERVE solo (no-business) athletes;
+│                                   business athletes are redirected via proxy.ts ATHLETE_REDIRECT_ROUTES.
+│                                   ~25 business pages re-export these files; 13 pairs are drifting
+│                                   duplicates pending convergence. No legacy coach/physio trees exist
+│                                   (those redirects live in proxy.ts LEGACY_COACH_ROUTE_ALIASES).
 └── (public routes)               → login, signup, pricing, etc.
 
 components/                       → 574 components
@@ -130,7 +134,9 @@ Route protection in `middleware.ts` (includes custom domain white-label support,
 
 ## Cron Jobs (`app/api/cron/`)
 
-17 scheduled jobs: `calculate-acwr` (nightly), `expire-trials`, `trial-warnings`, `morning-briefings`, `pattern-detection`, `milestone-detection`, `reset-ai-usage`, `reset-budgets`, `weekly-summary`, `injury-digest`, `coach-alerts`, `mental-prep`, `post-workout-checkins`, `preworkout-nudges`, `poll-program-generation`, `poll-research`, `agent/*`
+38 jobs scheduled in `vercel.json`: `calculate-acwr` (nightly), `expire-trials`, `trial-warnings`, `morning-briefings`, `pattern-detection`, `milestone-detection`, `reset-ai-usage`, `reset-budgets`, `weekly-summary`, `injury-digest`, `coach-alerts`, `mental-prep`, `post-workout-checkins`, `preworkout-nudges`, `poll-program-generation`, `poll-research`, `process-daily-metrics`, `strength-progression-sweep`, `expire-ai-action-drafts`, `auto-optimize`, `link-workouts`, `sync-oura`, `gym-platform-sync`, `nutrition-wrapped`, plus 14 `operator/*` jobs.
+
+**Dormant:** `agent/*` (perceive/decide/execute/learn/cleanup) are implemented and auth-hardened but deliberately NOT scheduled — the autonomous-agent loop has never run in production (see `docs/agent-system.md`).
 
 ## Environment Variables
 
