@@ -55,13 +55,18 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
   const locale = useLocale()
   const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [busySlot, setBusySlot] = useState<string | null>(null)
+  // After a failed/cancelled attempt, offer an unfiltered chooser for that
+  // slot — the escape hatch when a machine doesn't show up in the list.
+  const [fallbackSlot, setFallbackSlot] = useState<string | null>(null)
 
-  const connect = async (slot: string) => {
+  const connect = async (slot: string, acceptAll = false) => {
     setBusySlot(slot)
     try {
-      await fleet.connectSlot(slot)
+      await fleet.connectSlot(slot, { acceptAll })
+      setFallbackSlot(null)
     } catch {
-      /* chooser cancelled or connect failed — fleet.error carries the details */
+      // Chooser cancelled or connect failed — fleet.error carries the details.
+      setFallbackSlot(slot)
     } finally {
       setBusySlot(null)
     }
@@ -155,6 +160,25 @@ export function ErgMachinePanel({ slots, fleet, variant, onDone }: ErgMachinePan
           )
         })}
       </div>
+
+      {fallbackSlot != null && fleet.devices[fallbackSlot]?.status !== 'connected' && (
+        <div className="rounded-lg border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 p-3 text-center space-y-2">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            {tw(
+              'Hittade du inte maskinen i listan?',
+              "Didn't find the machine in the list?"
+            )}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busySlot != null}
+            onClick={() => void connect(fallbackSlot, true)}
+          >
+            {tw('Visa alla Bluetooth-enheter', 'Show all Bluetooth devices')}
+          </Button>
+        </div>
+      )}
 
       {!fleet.isSupported && (
         <p className="text-center text-xs text-slate-400">

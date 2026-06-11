@@ -165,8 +165,12 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
   /**
    * Open the browser chooser and connect. MUST be called from a user gesture
    * (click/tap) — Web Bluetooth refuses to prompt otherwise.
+   *
+   * `opts.acceptAll` lists every nearby BLE device instead of applying the
+   * configured filters — the escape hatch when a machine's advertisement
+   * doesn't match what we expect and the filtered chooser comes up empty.
    */
-  async connect(): Promise<void> {
+  async connect(opts: { acceptAll?: boolean } = {}): Promise<void> {
     if (!WattbikeClient.isSupported()) {
       throw new Error(
         'Web Bluetooth is not available. Use Chrome/Edge on Android or desktop — ' +
@@ -176,15 +180,17 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     this.intentionalDisconnect = false;
     this.setStatus('connecting');
 
+    const optionalServices = [
+      FITNESS_MACHINE_SERVICE,
+      CYCLING_POWER_SERVICE,
+      DEVICE_INFORMATION_SERVICE,
+    ];
     try {
-      this.device = await navigator.bluetooth.requestDevice({
-        filters: this.opts.filters,
-        optionalServices: [
-          FITNESS_MACHINE_SERVICE,
-          CYCLING_POWER_SERVICE,
-          DEVICE_INFORMATION_SERVICE,
-        ],
-      });
+      this.device = await navigator.bluetooth.requestDevice(
+        opts.acceptAll
+          ? { acceptAllDevices: true, optionalServices }
+          : { filters: this.opts.filters, optionalServices },
+      );
     } catch (err) {
       this.setStatus('disconnected');
       throw err; // user cancelled the chooser, or no device matched

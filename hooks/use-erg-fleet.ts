@@ -61,8 +61,12 @@ export interface UseErgFleetResult {
   /** One entry per slot that has (or is getting) a machine. Keyed by slot. */
   devices: Record<string, ErgDevice>;
   connectedCount: number;
-  /** Open the chooser and connect a machine as `slot`. Call from a click/tap. */
-  connectSlot: (slot: string) => Promise<void>;
+  /**
+   * Open the chooser and connect a machine as `slot`. Call from a click/tap.
+   * `acceptAll` lists every nearby BLE device (escape hatch for machines whose
+   * advertisement doesn't match the slot's filters).
+   */
+  connectSlot: (slot: string, opts?: { acceptAll?: boolean }) => Promise<void>;
   disconnectSlot: (slot: string) => Promise<void>;
   /** The machine that should drive a segment with this equipment, if any. */
   deviceFor: (equipment?: string | null) => ErgDevice | undefined;
@@ -195,7 +199,7 @@ export function useErgFleet(slots: string[]): UseErgFleetResult {
   }, []);
 
   const connectSlot = useCallback(
-    async (slot: string) => {
+    async (slot: string, opts: { acceptAll?: boolean } = {}) => {
       setError(null);
       const existing = clientsRef.current.get(slot);
       if (existing) {
@@ -205,7 +209,7 @@ export function useErgFleet(slots: string[]): UseErgFleetResult {
       const client = new WattbikeClient({ filters: chooserFiltersForSlot(slot) });
       attach(slot, client);
       try {
-        await client.connect();
+        await client.connect({ acceptAll: opts.acceptAll });
         const id = client.getDeviceId();
         if (id) writeAssignment(slot, id);
       } catch (err) {
