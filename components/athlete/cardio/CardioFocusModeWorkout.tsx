@@ -251,6 +251,7 @@ export function CardioFocusModeWorkout({
   const segCalLastRef = useRef<number | null>(null)
   const currentIndexRef = useRef(initialSegmentIndex)
   const [calLive, setCalLive] = useState<{ idx: number; kcal: number } | null>(null)
+  const [powerAvgLive, setPowerAvgLive] = useState<{ idx: number; avg: number } | null>(null)
   const accumulatingRef = useRef(false)
   // Wall-clock window of the current segment's effort (timer start → complete),
   // and 1 Hz watt samples bucketed by second within it. Captured so logs can be
@@ -444,6 +445,14 @@ export function CardioFocusModeWorkout({
         const idx = currentIndexRef.current
         setCalLive((prev) => (prev?.idx === idx && prev.kcal === kcal ? prev : { idx, kcal }))
       }
+      // Segment-average watts for the live strip (state only changes when the
+      // rounded average moves, so this settles quickly).
+      const powerArr = segPowerRef.current
+      if (powerArr.length > 0) {
+        const avg = Math.round(powerArr.reduce((a, b) => a + b, 0) / powerArr.length)
+        const idx = currentIndexRef.current
+        setPowerAvgLive((prev) => (prev?.idx === idx && prev.avg === avg ? prev : { idx, avg }))
+      }
     })
     return off
   }, [activeClient])
@@ -473,6 +482,25 @@ export function CardioFocusModeWorkout({
       segWindowRef.current.startedAt = Date.now()
     }
   }, [viewState, timerState.isRunning])
+
+  // Duration-less efforts ("16 cal for time") have no IntervalTimer: stamp the
+  // window start on entry and tick an elapsed display, so time-to-target is
+  // both visible and recorded.
+  const [elapsedDisplay, setElapsedDisplay] = useState(0)
+  useEffect(() => {
+    if (preStartSetup || viewState !== 'timer' || currentSegment?.plannedDuration) return
+    if (segWindowRef.current.startedAt == null) {
+      segWindowRef.current.startedAt = Date.now()
+    }
+    const started = segWindowRef.current.startedAt
+    const id = setInterval(() => {
+      setElapsedDisplay(Math.max(0, Math.floor((Date.now() - started) / 1000)))
+    }, 500)
+    return () => {
+      clearInterval(id)
+      setElapsedDisplay(0)
+    }
+  }, [viewState, currentIndex, preStartSetup, currentSegment?.plannedDuration])
 
   // Live kcal burned in the current segment (null until the machine reports energy).
   const liveSegmentCalories = calLive && calLive.idx === currentIndex ? calLive.kcal : null
@@ -846,6 +874,14 @@ export function CardioFocusModeWorkout({
                     / {currentTargetPower} W {tw('mål', 'target')}
                   </span>
                 )}
+                {powerAvgLive?.idx === currentIndex && powerAvgLive.avg > 0 && (
+                  <span className="text-xs text-slate-400">
+                    · {tw('snitt', 'avg')}{' '}
+                    <span className="font-bold tabular-nums text-slate-600 dark:text-slate-300">
+                      {powerAvgLive.avg} W
+                    </span>
+                  </span>
+                )}
               </div>
               <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
                 {liveSessionId && (
@@ -854,9 +890,10 @@ export function CardioFocusModeWorkout({
                     {tw('Live till coach', 'Live to coach')}
                   </span>
                 )}
-                {currentSegment.plannedCalories != null && liveSegmentCalories != null && (
+                {liveSegmentCalories != null && (
                   <span className="tabular-nums font-semibold text-orange-500">
-                    {liveSegmentCalories}/{currentSegment.plannedCalories} cal
+                    {liveSegmentCalories}
+                    {currentSegment.plannedCalories != null ? `/${currentSegment.plannedCalories}` : ''} cal
                   </span>
                 )}
                 {activeDevice.kind === 'rower' ? (
@@ -1005,6 +1042,12 @@ export function CardioFocusModeWorkout({
                 </p>
                 <p className="text-xl font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest">cal</p>
               </div>
+            )}
+            {isWorkType(currentSegment.type) && (
+              // Elapsed stopwatch — this effort is scored by time-to-target.
+              <p className="text-3xl font-bold tabular-nums text-slate-500 dark:text-slate-400">
+                {formatDuration(elapsedDisplay)}
+              </p>
             )}
             {currentSegment.notes && (
               <div className="bg-white/50 dark:bg-white/5 p-6 rounded-2xl border border-slate-200 dark:border-white/10 backdrop-blur-sm">

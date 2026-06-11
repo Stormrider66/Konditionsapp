@@ -152,8 +152,13 @@ export async function PUT(
       plannedZone: segment.plannedZone,
       plannedCalories: segment.plannedCalories ?? undefined,
       plannedPower: segment.plannedPower ?? undefined,
-      // Actual values
-      actualDuration: actualDuration ?? undefined,
+      // Actual values. Duration falls back to the effort window so
+      // time-to-target efforts (no countdown) still get a recorded time.
+      actualDuration:
+        actualDuration ??
+        (startedAtDate && completedAtDate
+          ? Math.max(1, Math.round((completedAtDate.getTime() - startedAtDate.getTime()) / 1000))
+          : undefined),
       actualDistance: actualDistance ?? undefined,
       actualPace: actualPace ?? undefined,
       actualAvgHR: actualAvgHR ?? undefined,
