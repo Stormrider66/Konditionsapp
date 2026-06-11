@@ -55,7 +55,26 @@ export async function PUT(
       completed,
       skipped,
       notes,
+      startedAt,
+      completedAt,
+      powerSamples,
     } = body
+
+    // Client-reported effort window (ISO strings) — aligns the log with watch
+    // HR streams. Invalid values are dropped, not rejected.
+    const parseInstant = (value: unknown): Date | undefined => {
+      if (typeof value !== 'string') return undefined
+      const date = new Date(value)
+      return Number.isNaN(date.getTime()) ? undefined : date
+    }
+    const startedAtDate = parseInstant(startedAt)
+    const completedAtDate = parseInstant(completedAt)
+    // 1 Hz watt series; null = no sample that second. Capped at 2h.
+    const sanitizedPowerSamples = Array.isArray(powerSamples)
+      ? powerSamples
+          .slice(0, 7200)
+          .map((v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : null))
+      : undefined
 
     // Get assignment with session
     const assignment = await prisma.cardioSessionAssignment.findUnique({
@@ -146,7 +165,9 @@ export async function PUT(
       completed: completed ?? false,
       skipped: skipped ?? false,
       notes: notes ?? undefined,
-      completedAt: (completed || skipped) ? new Date() : undefined,
+      startedAt: startedAtDate,
+      completedAt: completedAtDate ?? ((completed || skipped) ? new Date() : undefined),
+      powerSamples: sanitizedPowerSamples,
     }
 
     let segmentLog

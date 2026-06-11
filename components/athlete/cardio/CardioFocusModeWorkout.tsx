@@ -116,6 +116,11 @@ interface CardioFocusModeWorkoutProps {
       completed: boolean
       skipped: boolean
       notes?: string
+      // Wall-clock effort window + 1 Hz watt samples, for aligning the log
+      // with watch HR streams and power charts.
+      startedAt?: string
+      completedAt?: string
+      powerSamples?: (number | null)[]
     }
   ) => Promise<void>
 }
@@ -247,6 +252,21 @@ export function CardioFocusModeWorkout({
   const currentIndexRef = useRef(initialSegmentIndex)
   const [calLive, setCalLive] = useState<{ idx: number; kcal: number } | null>(null)
   const accumulatingRef = useRef(false)
+  // Wall-clock window of the current segment's effort (timer start → complete),
+  // and 1 Hz watt samples bucketed by second within it. Captured so logs can be
+  // aligned with a simultaneously-recorded watch HR stream.
+  const segWindowRef = useRef<{ startedAt: number | null; endedAt: number | null }>({
+    startedAt: null,
+    endedAt: null,
+  })
+  const segSamplesRef = useRef<(number | null)[]>([])
+  // Window + samples captured at timer completion, so a form submitted after a
+  // folded rest countdown still reports the effort's true end time.
+  const pendingWindowRef = useRef<{
+    startedAt?: string
+    completedAt: string
+    powerSamples?: (number | null)[]
+  } | null>(null)
 
   // Live AI Voice Coach (Gemini Live API)
   const liveCoach = useLiveVoiceCoach({
@@ -366,6 +386,24 @@ export function CardioFocusModeWorkout({
     return out
   }, [])
 
+  // Snapshot the effort's wall-clock window + watt series for the log payload.
+  const segmentWindow = useCallback((): {
+    startedAt?: string
+    completedAt: string
+    powerSamples?: (number | null)[]
+  } => {
+    const startedMs = segWindowRef.current.startedAt
+    const endedMs = segWindowRef.current.endedAt ?? Date.now()
+    const samples = segSamplesRef.current
+    return {
+      ...(startedMs != null ? { startedAt: new Date(startedMs).toISOString() } : {}),
+      completedAt: new Date(endedMs).toISOString(),
+      ...(samples.length > 0
+        ? { powerSamples: samples.map((v) => (v == null ? null : Math.round(v))) }
+        : {}),
+    }
+  }, [])
+
   // Subscribe to the active machine's stream; collect samples only during a
   // work effort. Re-subscribes when the segment routes to another machine.
   useEffect(() => {
@@ -381,6 +419,17 @@ export function CardioFocusModeWorkout({
       if (typeof s.power === 'number') {
         segPowerRef.current.push(s.power)
         if (s.power > segMaxRef.current) segMaxRef.current = s.power
+        // 1 Hz series bucketed by second since the timer started (last sample
+        // in a second wins; missed seconds stay null).
+        const startedAt = segWindowRef.current.startedAt
+        if (startedAt != null) {
+          const sec = Math.floor((Date.now() - startedAt) / 1000)
+          if (sec >= 0 && sec < 3600) {
+            const samples = segSamplesRef.current
+            while (samples.length < sec) samples.push(null)
+            samples[sec] = s.power
+          }
+        }
       }
       // Only rower distance is trusted (it IS the rowing metric); bike distance
       // is virtual/speed-derived, so it stays manual there.
@@ -414,7 +463,16 @@ export function CardioFocusModeWorkout({
     segCalStartRef.current = null
     segCalLastRef.current = null
     currentIndexRef.current = currentIndex
+    segWindowRef.current = { startedAt: null, endedAt: null }
+    segSamplesRef.current = []
   }, [currentIndex])
+
+  // Stamp the segment's wall-clock start the moment its timer begins running.
+  useEffect(() => {
+    if (viewState === 'timer' && timerState.isRunning && segWindowRef.current.startedAt == null) {
+      segWindowRef.current.startedAt = Date.now()
+    }
+  }, [viewState, timerState.isRunning])
 
   // Live kcal burned in the current segment (null until the machine reports energy).
   const liveSegmentCalories = calLive && calLive.idx === currentIndex ? calLive.kcal : null
@@ -467,6 +525,7 @@ export function CardioFocusModeWorkout({
 
   // Handle timer complete - auto-advance or show the logging form
   const handleTimerComplete = useCallback(() => {
+    if (segWindowRef.current.endedAt == null) segWindowRef.current.endedAt = Date.now()
     if (currentSegment?.plannedDuration) {
       setTimerElapsed(currentSegment.plannedDuration)
     }
@@ -474,9 +533,21 @@ export function CardioFocusModeWorkout({
     const nextIdx = currentIndex + 1
     const nextSeg = segments[nextIdx]
     const measured = isWorkType(currentSegment?.type) ? segmentMeasured() : {}
+    const win = segmentWindow()
 
     // Auto-log the finished segment and roll straight into the next one (no form).
-    const autoAdvance = (data: { completed: boolean; skipped: boolean; actualDuration?: number }) => {
+    const autoAdvance = (data: {
+      completed: boolean
+      skipped: boolean
+      actualDuration?: number
+      startedAt?: string
+      completedAt?: string
+      powerSamples?: (number | null)[]
+      actualAvgPower?: number
+      actualMaxPower?: number
+      actualDistance?: number
+      actualCalories?: number
+    }) => {
       void onSegmentComplete(currentIndex, data).catch(() => {})
       setSegments((prev) =>
         prev.map((seg, idx) => (idx === currentIndex ? { ...seg, ...data } : seg))
@@ -493,7 +564,7 @@ export function CardioFocusModeWorkout({
 
     // Rest/recovery: never make the athlete fill a form on a rest — auto-log and go.
     if (currentSegment?.type === 'RECOVERY') {
-      autoAdvance({ completed: true, skipped: false })
+      autoAdvance({ completed: true, skipped: false, startedAt: win.startedAt, completedAt: win.completedAt })
       return
     }
 
@@ -501,7 +572,7 @@ export function CardioFocusModeWorkout({
     // straight to the next station with no time to type, so auto-log this effort
     // and auto-start the next one immediately (no logging form, no break).
     if (isWorkType(currentSegment?.type) && isWorkType(nextSeg?.type)) {
-      autoAdvance({ completed: true, skipped: false, actualDuration: currentSegment?.plannedDuration, ...measured })
+      autoAdvance({ completed: true, skipped: false, actualDuration: currentSegment?.plannedDuration, ...measured, ...win })
       return
     }
 
@@ -511,15 +582,18 @@ export function CardioFocusModeWorkout({
     if (!liveCoachActive) {
       voice.speak(buildSegmentCompleteCue(nextSeg), 'high')
     }
+    pendingWindowRef.current = win
     setMeasuredForForm(measured)
     setViewState('logging')
-  }, [currentSegment, currentIndex, segments, voice, liveCoachActive, onSegmentComplete, segmentMeasured])
+  }, [currentSegment, currentIndex, segments, voice, liveCoachActive, onSegmentComplete, segmentMeasured, segmentWindow])
 
   // Handle timer skip - mark as skipped and move on
   const handleTimerSkip = useCallback(() => {
+    if (segWindowRef.current.endedAt == null) segWindowRef.current.endedAt = Date.now()
+    pendingWindowRef.current = segmentWindow()
     setMeasuredForForm(segmentMeasured())
     setViewState('logging')
-  }, [segmentMeasured])
+  }, [segmentMeasured, segmentWindow])
 
   // Calorie-target efforts without a duration ("18 cal row") complete
   // themselves when the machine's counter reaches the target.
@@ -555,13 +629,16 @@ export function CardioFocusModeWorkout({
     setIsSubmitting(true)
 
     // Fold in machine-measured values: avg power, rower distance and calories
-    // already pre-fill the form, max power has no field.
+    // already pre-fill the form, max power has no field. The effort window was
+    // snapshotted at timer completion — "now" would include the rest countdown.
+    const win = pendingWindowRef.current
     const merged = {
       ...data,
       actualAvgPower: data.actualAvgPower ?? measuredForForm.actualAvgPower,
       actualMaxPower: data.actualMaxPower ?? measuredForForm.actualMaxPower,
       actualDistance: data.actualDistance ?? measuredForForm.actualDistance,
       actualCalories: data.actualCalories ?? measuredForForm.actualCalories,
+      ...(win ?? {}),
     }
 
     try {
@@ -585,6 +662,9 @@ export function CardioFocusModeWorkout({
           completed: true,
           skipped: false,
           actualDuration: foldRest.plannedDuration,
+          // The folded rest ran on the log form: from the effort's end to now.
+          startedAt: win?.completedAt,
+          completedAt: new Date().toISOString(),
         }).catch(() => {})
         setSegments((prev) =>
           prev.map((seg, idx) =>
@@ -595,6 +675,7 @@ export function CardioFocusModeWorkout({
         )
       }
 
+      pendingWindowRef.current = null
       const advanceTo = foldRest ? currentIndex + 2 : currentIndex + 1
       if (advanceTo <= segments.length - 1) {
         goToSegment(advanceTo, true)
