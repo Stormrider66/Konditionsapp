@@ -2913,7 +2913,32 @@
         "description": "Manage and create training programs for your athletes",
         "importProgram": "Import program",
         "createNew": "Create new program",
-        "athleteLimitReached": "You have reached the athlete limit for your subscription. Upgrade to create more programs."
+        "athleteLimitReached": "You have reached the athlete limit for your subscription. Upgrade to create more programs.",
+        "bundle": {
+          "button": "Bundle sessions",
+          "title": "Bundle sessions into a program",
+          "description": "Collect studio sessions you have already assigned (strength, cardio, hybrid, agility) within a date range into one program the athlete can follow as a whole.",
+          "athlete": "Athlete",
+          "selectAthlete": "Select athlete",
+          "startDate": "Start date",
+          "endDate": "End date",
+          "name": "Program name",
+          "namePlaceholder": "e.g. Spring block 2026",
+          "previewLoading": "Looking for sessions…",
+          "previewEmpty": "No unbundled sessions in this range.",
+          "previewCount": "{count} sessions will be included",
+          "kind": {
+            "STRENGTH": "Strength",
+            "CARDIO": "Cardio",
+            "HYBRID": "Hybrid",
+            "AGILITY": "Agility"
+          },
+          "create": "Create program",
+          "creating": "Creating…",
+          "created": "Program created",
+          "createdDescription": "{count} sessions were bundled into \"{name}\".",
+          "error": "Could not create the program"
+        }
       },
       "programImport": {
         "backToPrograms": "Back to programs",

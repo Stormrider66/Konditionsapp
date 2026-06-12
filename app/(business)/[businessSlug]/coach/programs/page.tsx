@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { PlusIcon, Upload } from 'lucide-react'
 import { ProgramsList } from '@/components/programs/ProgramsList'
+import { BundleAssignmentsDialog } from '@/components/programs/BundleAssignmentsDialog'
 import { getTranslations } from '@/i18n/server'
 
 type ProgramsListPrograms = Parameters<typeof ProgramsList>[0]['programs']
@@ -71,6 +72,16 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
     },
   })
 
+  // Athlete picker for the bundle-into-program dialog
+  const clients = await prisma.client.findMany({
+    where: {
+      userId: { in: coachIds },
+      businessId: membership.businessId,
+    },
+    select: { id: true, name: true },
+    orderBy: { name: 'asc' },
+  })
+
   const subscription = await prisma.subscription.findUnique({
     where: { userId: user.id },
   })
@@ -93,6 +104,11 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+          <BundleAssignmentsDialog
+            clients={clients}
+            basePath={basePath}
+            disabled={!canCreateMore}
+          />
           <Link href={`${basePath}/coach/programs/import`}>
             <Button
               size="lg"

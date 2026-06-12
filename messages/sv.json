@@ -2913,7 +2913,32 @@
         "description": "Hantera och skapa träningsprogram för dina atleter",
         "importProgram": "Importera program",
         "createNew": "Skapa nytt program",
-        "athleteLimitReached": "Du har nått gränsen för antalet atleter i din prenumeration. Uppgradera för att skapa fler program."
+        "athleteLimitReached": "Du har nått gränsen för antalet atleter i din prenumeration. Uppgradera för att skapa fler program.",
+        "bundle": {
+          "button": "Paketera pass",
+          "title": "Paketera pass till ett program",
+          "description": "Samla studiopass du redan tilldelat (styrka, kondition, hybrid, agility) inom ett datumintervall till ett program som atleten kan följa som en helhet.",
+          "athlete": "Atlet",
+          "selectAthlete": "Välj atlet",
+          "startDate": "Startdatum",
+          "endDate": "Slutdatum",
+          "name": "Programnamn",
+          "namePlaceholder": "t.ex. Vårblock 2026",
+          "previewLoading": "Letar efter pass…",
+          "previewEmpty": "Inga opaketerade pass i intervallet.",
+          "previewCount": "{count} pass kommer att ingå",
+          "kind": {
+            "STRENGTH": "Styrka",
+            "CARDIO": "Kondition",
+            "HYBRID": "Hybrid",
+            "AGILITY": "Agility"
+          },
+          "create": "Skapa program",
+          "creating": "Skapar…",
+          "created": "Program skapat",
+          "createdDescription": "{count} pass paketerades in i \"{name}\".",
+          "error": "Kunde inte skapa programmet"
+        }
       },
       "programImport": {
         "backToPrograms": "Tillbaka till program",
