@@ -15,7 +15,7 @@ export type WattbikeStatus =
   | 'reconnecting';
 
 /** Which BLE profile/characteristic produced a sample. */
-export type WattbikeSource = 'ftms' | 'ftms-rower' | 'cps';
+export type WattbikeSource = 'ftms' | 'ftms-rower' | 'cps' | 'pm5';
 
 /**
  * What kind of machine the connected device reports as. 'rower' covers every
@@ -83,4 +83,11 @@ export interface WattbikeClientOptions {
   maxReconnectAttempts?: number;
   /** Base backoff between reconnect attempts, ms (multiplied by attempt #). Default: 1000. */
   reconnectDelayMs?: number;
+  /**
+   * Machine kind to assume when connecting over the Concept2 PM5 proprietary
+   * protocol (pre-FTMS firmware), where the kind can't be inferred from the
+   * data characteristic. Default: 'rower' (RowErg/SkiErg); pass 'bike' for a
+   * BikeErg slot.
+   */
+  pm5Kind?: MachineKind;
 }

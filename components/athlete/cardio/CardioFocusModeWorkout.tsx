@@ -472,9 +472,9 @@ export function CardioFocusModeWorkout({
           }
         }
       }
-      // Only rower distance is trusted (it IS the rowing metric); bike distance
-      // is virtual/speed-derived, so it stays manual there.
-      if (s.source === 'ftms-rower' && typeof s.distance === 'number') {
+      // Only rower/PM5 distance is trusted (it IS the machine's metric); FTMS
+      // bike distance is virtual/speed-derived, so it stays manual there.
+      if ((s.source === 'ftms-rower' || s.source === 'pm5') && typeof s.distance === 'number') {
         if (segDistStartRef.current == null) segDistStartRef.current = s.distance
         segDistLastRef.current = s.distance
       }

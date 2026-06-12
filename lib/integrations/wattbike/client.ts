@@ -17,7 +17,15 @@
  * No external runtime dependencies.
  */
 
-import { parseCyclingPower, parseIndoorBikeData, parseRowerData } from './parsers';
+import {
+  parseCyclingPower,
+  parseIndoorBikeData,
+  parsePm5AdditionalStatus1,
+  parsePm5AdditionalStatus2,
+  parsePm5AdditionalStrokeData,
+  parsePm5GeneralStatus,
+  parseRowerData,
+} from './parsers';
 import type { CrankState } from './parsers';
 import type {
   ControlResponse,
@@ -41,6 +49,16 @@ export const CYCLING_POWER_SERVICE = 0x1818;
 const CYCLING_POWER_MEASUREMENT = 0x2a63; // notify: power (+ crank for cadence)
 
 const DEVICE_INFORMATION_SERVICE = 0x180a;
+
+// Concept2 PM5 proprietary services. Older PM5 firmware (pre-FTMS, before
+// Concept2's ~2021 update) exposes ONLY these — the FTMS path 404s with
+// "No Services matching UUID 1826" on such monitors.
+export const PM5_DISCOVERY_SERVICE = 'ce060000-43e5-11e4-916c-0800200c9a66'; // advertised
+const PM5_ROWING_SERVICE = 'ce060030-43e5-11e4-916c-0800200c9a66';
+const PM5_GENERAL_STATUS = 'ce060031-43e5-11e4-916c-0800200c9a66'; // elapsed + distance
+const PM5_ADDITIONAL_STATUS_1 = 'ce060032-43e5-11e4-916c-0800200c9a66'; // pace/spm/HR
+const PM5_ADDITIONAL_STATUS_2 = 'ce060033-43e5-11e4-916c-0800200c9a66'; // avg W + kcal
+const PM5_ADDITIONAL_STROKE_DATA = 'ce060036-43e5-11e4-916c-0800200c9a66'; // stroke W
 
 // ---- FTMS Control Point op-codes -------------------------------------------
 
@@ -127,6 +145,7 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
       autoReconnect: options.autoReconnect ?? true,
       maxReconnectAttempts: options.maxReconnectAttempts ?? 5,
       reconnectDelayMs: options.reconnectDelayMs ?? 1000,
+      pm5Kind: options.pm5Kind ?? 'rower',
     };
   }
 
@@ -184,6 +203,8 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
       FITNESS_MACHINE_SERVICE,
       CYCLING_POWER_SERVICE,
       DEVICE_INFORMATION_SERVICE,
+      PM5_DISCOVERY_SERVICE,
+      PM5_ROWING_SERVICE,
     ];
     try {
       this.device = await navigator.bluetooth.requestDevice(
@@ -367,11 +388,46 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     try {
       await this.setupFtms(this.server);
     } catch {
-      // Fall back to the Cycling Power Service (power always, cadence derived).
-      await this.setupCyclingPower(this.server);
+      // Old-firmware PM5s expose only Concept2's proprietary service.
+      try {
+        await this.setupPm5(this.server);
+      } catch {
+        // Fall back to the Cycling Power Service (power always, cadence derived).
+        await this.setupCyclingPower(this.server);
+      }
     }
 
     this.setStatus('connected');
+  }
+
+  /**
+   * Concept2 PM5 proprietary protocol — pre-FTMS firmware. Subscribes to the
+   * status + stroke characteristics that together cover what FTMS Rower Data
+   * gives us: distance, pace, stroke rate, HR (0x0032), avg W + kcal (0x0033),
+   * per-stroke watts (0x0036). No ERG control.
+   */
+  private async setupPm5(server: BluetoothRemoteGATTServer): Promise<void> {
+    const rowing = await server.getPrimaryService(PM5_ROWING_SERVICE);
+
+    const subscribe = async (
+      uuid: string,
+      handler: (event: Event) => void,
+    ): Promise<void> => {
+      const characteristic = await rowing.getCharacteristic(uuid);
+      await characteristic.startNotifications();
+      characteristic.addEventListener('characteristicvaluechanged', handler);
+    };
+
+    // Stroke power is the core signal — fail the setup if it's missing.
+    await subscribe(PM5_ADDITIONAL_STROKE_DATA, this.handlePm5StrokeData);
+    // The rest are best-effort.
+    await subscribe(PM5_GENERAL_STATUS, this.handlePm5GeneralStatus).catch(() => {});
+    await subscribe(PM5_ADDITIONAL_STATUS_1, this.handlePm5Status1).catch(() => {});
+    await subscribe(PM5_ADDITIONAL_STATUS_2, this.handlePm5Status2).catch(() => {});
+
+    this.controlPoint = null; // no ERG over the proprietary protocol
+    // RowErg/SkiErg/BikeErg PM5s are indistinguishable here — trust the slot.
+    this.machineKind = this.opts.pm5Kind;
   }
 
   private async setupFtms(server: BluetoothRemoteGATTServer): Promise<void> {
@@ -443,6 +499,30 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     const { sample, crank } = parseCyclingPower(dv, this.lastCrank);
     this.lastCrank = crank;
     this.emit('data', sample);
+  };
+
+  private handlePm5GeneralStatus = (event: Event): void => {
+    const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
+    if (!dv) return;
+    this.emit('data', parsePm5GeneralStatus(dv));
+  };
+
+  private handlePm5Status1 = (event: Event): void => {
+    const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
+    if (!dv) return;
+    this.emit('data', parsePm5AdditionalStatus1(dv));
+  };
+
+  private handlePm5Status2 = (event: Event): void => {
+    const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
+    if (!dv) return;
+    this.emit('data', parsePm5AdditionalStatus2(dv));
+  };
+
+  private handlePm5StrokeData = (event: Event): void => {
+    const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
+    if (!dv) return;
+    this.emit('data', parsePm5AdditionalStrokeData(dv));
   };
 
   private handleControlResponse = (event: Event): void => {

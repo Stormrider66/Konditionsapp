@@ -174,3 +174,83 @@ describe('parseCyclingPower (0x2A63)', () => {
     expect(after.sample.cadence).toBeCloseTo(90, 0);
   });
 });
+
+describe('PM5 proprietary parsers', async () => {
+  const {
+    parsePm5GeneralStatus,
+    parsePm5AdditionalStatus1,
+    parsePm5AdditionalStatus2,
+    parsePm5AdditionalStrokeData,
+  } = await import('./parsers');
+
+  it('parses general status: elapsed time and distance', () => {
+    const dv = frame([
+      ['u24', 1234], // elapsed 12.34 s (0.01 s units)
+      ['u24', 1565], // distance 156.5 m (0.1 m units)
+      ['u8', 1], ['u8', 1], ['u8', 1], ['u8', 4], ['u8', 2], // workout/interval/state bytes
+      ['u24', 0], ['u24', 0], ['u8', 0], ['u8', 120], // totals + duration type + drag
+    ]);
+    const sample = parsePm5GeneralStatus(dv);
+    expect(sample.source).toBe('pm5');
+    expect(sample.elapsedTime).toBe(12);
+    expect(sample.distance).toBeCloseTo(156.5, 5);
+  });
+
+  it('parses additional status 1: pace, stroke rate, heart rate', () => {
+    const dv = frame([
+      ['u24', 1234], // elapsed
+      ['u16', 4000], // speed 4 m/s (0.001 m/s units)
+      ['u8', 32], // stroke rate spm
+      ['u8', 152], // heart rate
+      ['u16', 11300], // current pace 113 s /500m (0.01 s units)
+      ['u16', 11500], // avg pace
+      ['u16', 0], ['u24', 0], ['u8', 0], // rest distance/time + machine type
+    ]);
+    const sample = parsePm5AdditionalStatus1(dv);
+    expect(sample.speed).toBeCloseTo(14.4, 5);
+    expect(sample.strokeRate).toBe(32);
+    expect(sample.heartRate).toBe(152);
+    expect(sample.pace).toBe(113);
+  });
+
+  it('treats heart rate 255 as invalid', () => {
+    const dv = frame([
+      ['u24', 0],
+      ['u16', 0],
+      ['u8', 28],
+      ['u8', 255], // no strap paired
+      ['u16', 0],
+      ['u16', 0],
+      ['u16', 0], ['u24', 0], ['u8', 0],
+    ]);
+    const sample = parsePm5AdditionalStatus1(dv);
+    expect(sample.heartRate).toBeUndefined();
+    expect(sample.pace).toBeUndefined(); // pace 0 = idle, not a pace
+  });
+
+  it('parses additional status 2: average power and cumulative calories', () => {
+    const dv = frame([
+      ['u24', 1234], // elapsed
+      ['u8', 2], // interval count
+      ['u16', 169], // avg power
+      ['u16', 15], // total calories (kcal)
+      ['u16', 0], ['u16', 0], ['u16', 0], ['u24', 0], ['u24', 0],
+    ]);
+    const sample = parsePm5AdditionalStatus2(dv);
+    expect(sample.avgPower).toBe(169);
+    expect(sample.calories).toBe(15);
+  });
+
+  it('parses additional stroke data: per-stroke power', () => {
+    const dv = frame([
+      ['u24', 1234], // elapsed
+      ['u16', 244], // stroke power W
+      ['u16', 900], // stroke calories (cal/hr)
+      ['u16', 87], // stroke count
+      ['u24', 0], ['u24', 0],
+    ]);
+    const sample = parsePm5AdditionalStrokeData(dv);
+    expect(sample.power).toBe(244);
+    expect(sample.strokeCount).toBe(87);
+  });
+});

@@ -173,3 +173,62 @@ export function parseCyclingPower(
 
   return { sample, crank };
 }
+
+// ---- Concept2 PM5 proprietary protocol --------------------------------------
+//
+// Older PM5 firmware (pre-FTMS, before Concept2's ~2021 update) exposes ONLY
+// the proprietary rowing service (ce060030-…). Fixed-layout packets, no flags
+// word; offsets per the "Concept2 PM Bluetooth Smart Communication Interface
+// Definition". uint24 fields are little-endian lo/mid/hi.
+
+function u24(dv: DataView, offset: number): number {
+  return dv.getUint8(offset) + (dv.getUint8(offset + 1) << 8) + (dv.getUint8(offset + 2) << 16);
+}
+
+/** PM5 General Status (ce060031): elapsed time + distance. */
+export function parsePm5GeneralStatus(dv: DataView): WattbikeSample {
+  const sample: WattbikeSample = { t: performance.now(), source: 'pm5' };
+  if (dv.byteLength >= 6) {
+    sample.elapsedTime = Math.round(u24(dv, 0) * 0.01); // 0.01 s units
+    sample.distance = u24(dv, 3) * 0.1; // 0.1 m units → metres
+  }
+  return sample;
+}
+
+/** PM5 Additional Status 1 (ce060032): speed, stroke rate, HR, pace. */
+export function parsePm5AdditionalStatus1(dv: DataView): WattbikeSample {
+  const sample: WattbikeSample = { t: performance.now(), source: 'pm5' };
+  if (dv.byteLength >= 9) {
+    const speed = dv.getUint16(3, true); // 0.001 m/s
+    if (speed > 0) sample.speed = (speed * 0.001 * 3600) / 1000; // km/h
+    sample.strokeRate = dv.getUint8(5); // spm
+    const hr = dv.getUint8(6);
+    if (hr > 0 && hr < 255) sample.heartRate = hr; // 255 = invalid
+    const pace = dv.getUint16(7, true); // 0.01 s per 500 m
+    if (pace > 0 && pace !== 0xffff) sample.pace = Math.round(pace * 0.01);
+  }
+  return sample;
+}
+
+/** PM5 Additional Status 2 (ce060033): average power + total calories. */
+export function parsePm5AdditionalStatus2(dv: DataView): WattbikeSample {
+  const sample: WattbikeSample = { t: performance.now(), source: 'pm5' };
+  if (dv.byteLength >= 8) {
+    const avgPower = dv.getUint16(4, true);
+    if (avgPower > 0 && avgPower !== 0xffff) sample.avgPower = avgPower;
+    const totalCalories = dv.getUint16(6, true); // kcal, cumulative
+    if (totalCalories !== 0xffff) sample.calories = totalCalories;
+  }
+  return sample;
+}
+
+/** PM5 Additional Stroke Data (ce060036): per-stroke instantaneous power. */
+export function parsePm5AdditionalStrokeData(dv: DataView): WattbikeSample {
+  const sample: WattbikeSample = { t: performance.now(), source: 'pm5' };
+  if (dv.byteLength >= 9) {
+    const power = dv.getUint16(3, true);
+    if (power !== 0xffff) sample.power = power;
+    sample.strokeCount = dv.getUint16(7, true);
+  }
+  return sample;
+}

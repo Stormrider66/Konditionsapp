@@ -211,7 +211,12 @@ export function useErgFleet(slots: string[]): UseErgFleetResult {
         void existing.disconnect().catch(() => {});
         removeSlot(slot, existing);
       }
-      const client = new WattbikeClient({ filters: chooserFiltersForSlot(slot) });
+      const client = new WattbikeClient({
+        filters: chooserFiltersForSlot(slot),
+        // Proprietary-protocol PM5s (old firmware) can't reveal their machine
+        // kind — assume the slot's expected kind so mismatch warnings stay honest.
+        pm5Kind: expectedKindForSlot(slot) ?? 'rower',
+      });
       attach(slot, client);
       try {
         await client.connect({ acceptAll: opts.acceptAll });
@@ -253,7 +258,7 @@ export function useErgFleet(slots: string[]): UseErgFleetResult {
         }
       }
       if (!id) continue;
-      const client = new WattbikeClient();
+      const client = new WattbikeClient({ pm5Kind: expectedKindForSlot(slot) ?? 'rower' });
       attach(slot, client);
       void client
         .reconnectKnown(id, { exact: true })
