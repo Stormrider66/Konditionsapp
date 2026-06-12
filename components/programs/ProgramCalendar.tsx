@@ -13,7 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { ChevronDown, ChevronUp, Pencil, Dumbbell, Activity } from 'lucide-react'
+import { ChevronDown, ChevronUp, Pencil, Dumbbell, Activity, CheckCircle2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import Link from 'next/link'
 import { ProgramWithWeeks, WeekWithDays, DayWithWorkouts, WorkoutWithSegments } from '@/types/prisma-types'
@@ -21,13 +21,16 @@ import { PushToGarminButton } from '@/components/programs/PushToGarminButton'
 import { FuelingPrescriptionBadge } from '@/components/programs/FuelingPrescriptionBadge'
 import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
 import { getExerciseDisplayName } from '@/lib/exercises/display-name'
+import type { BundledAssignment } from '@/lib/programs/bundled-assignments'
 
 interface ProgramCalendarProps {
   program: ProgramWithWeeks
   basePath: string
+  /** Studio assignments linked to this program via programId (bundle feature) */
+  bundledAssignments?: BundledAssignment[]
 }
 
-export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
+export function ProgramCalendar({ program, basePath, bundledAssignments = [] }: ProgramCalendarProps) {
   const appLocale = getAppLocale(useLocale())
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
 
@@ -115,6 +118,7 @@ export function ProgramCalendar({ program, basePath }: ProgramCalendarProps) {
             isCurrent={week.weekNumber === getCurrentWeek(program)}
             clientId={program.clientId}
             locale={appLocale}
+            bundledAssignments={bundledAssignments}
           />
         ))}
       </div>
@@ -130,6 +134,7 @@ interface WeekCardProps {
   isCurrent: boolean
   clientId: string
   locale: AppLocale
+  bundledAssignments?: BundledAssignment[]
 }
 
 function WeekCard({
@@ -140,14 +145,20 @@ function WeekCard({
   isCurrent,
   clientId,
   locale,
+  bundledAssignments = [],
 }: WeekCardProps) {
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
 
-  const totalWorkouts = week.days?.reduce(
+  const weekAssignments = bundledAssignments.filter((a) => {
+    const time = new Date(a.date).getTime()
+    return time >= weekStartDate.getTime() && time < addDays(weekStartDate, 7).getTime()
+  })
+
+  const totalWorkouts = (week.days?.reduce(
     (sum: number, day) => sum + day.workouts.length,
     0
-  ) || 0
+  ) || 0) + weekAssignments.length
 
   // Calculate weekly totals
   const weeklyStats = calculateWeeklyStats(week)
@@ -227,16 +238,73 @@ function WeekCard({
                     locale={locale}
                   />
                 ))
-              ) : (
+              ) : weekAssignments.length === 0 ? (
                 <p className="text-center text-slate-500 dark:text-slate-400 py-8">
                   {t(locale, 'Inga träningspass denna vecka', 'No training sessions this week')}
                 </p>
-              )}
+              ) : null}
+
+              {weekAssignments.map((assignment) => (
+                <BundledAssignmentRow
+                  key={`${assignment.kind}-${assignment.id}`}
+                  assignment={assignment}
+                  locale={locale}
+                />
+              ))}
             </div>
           </GlassCardContent>
         </CollapsibleContent>
       </Collapsible>
     </GlassCard>
+  )
+}
+
+const BUNDLED_KIND_LABELS: Record<BundledAssignment['kind'], { sv: string; en: string }> = {
+  STRENGTH: { sv: 'Styrka', en: 'Strength' },
+  CARDIO: { sv: 'Kondition', en: 'Cardio' },
+  HYBRID: { sv: 'Hybrid', en: 'Hybrid' },
+  AGILITY: { sv: 'Agility', en: 'Agility' },
+}
+
+const BUNDLED_KIND_BADGE: Record<BundledAssignment['kind'], string> = {
+  STRENGTH: 'text-purple-700 bg-purple-100 dark:text-purple-300 dark:bg-purple-500/10',
+  CARDIO: 'text-sky-700 bg-sky-100 dark:text-sky-300 dark:bg-sky-500/10',
+  HYBRID: 'text-orange-700 bg-orange-100 dark:text-orange-300 dark:bg-orange-500/10',
+  AGILITY: 'text-emerald-700 bg-emerald-100 dark:text-emerald-300 dark:bg-emerald-500/10',
+}
+
+// Read-only row for a studio assignment linked via programId — the
+// assignment is managed from its studio / the calendar, not edited here.
+function BundledAssignmentRow({ assignment, locale }: { assignment: BundledAssignment; locale: AppLocale }) {
+  const date = new Date(assignment.date)
+  return (
+    <div className="flex items-center gap-4 p-3 bg-slate-50/50 dark:bg-slate-900/30 rounded-lg border border-slate-100 dark:border-white/5">
+      <div className="w-24 flex-shrink-0">
+        <p className="font-medium text-sm text-slate-900 dark:text-white">
+          {format(date, 'EEEE', { locale: dateFnsLocale(locale) })}
+        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400">
+          {format(date, 'd MMM', { locale: dateFnsLocale(locale) })}
+        </p>
+      </div>
+      <div className="flex-1 flex items-center gap-2 flex-wrap">
+        <span className="text-sm font-medium text-slate-900 dark:text-white">{assignment.name}</span>
+        <Badge variant="secondary" className={BUNDLED_KIND_BADGE[assignment.kind]}>
+          {BUNDLED_KIND_LABELS[assignment.kind][locale]}
+        </Badge>
+        {assignment.completed && (
+          <span className="flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {t(locale, 'Slutfört', 'Completed')}
+          </span>
+        )}
+      </div>
+      {assignment.duration && (
+        <span className="text-xs text-slate-500 dark:text-slate-400 flex-shrink-0">
+          {assignment.duration} min
+        </span>
+      )}
+    </div>
   )
 }
 

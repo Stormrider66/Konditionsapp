@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-react'
 import { ProgramOverview } from '@/components/programs/ProgramOverview'
 import { ProgramCalendar } from '@/components/programs/ProgramCalendar'
 import { ProgramFuelingOverview } from '@/components/programs/ProgramFuelingOverview'
+import { getBundledAssignments } from '@/lib/programs/bundled-assignments'
 
 interface ProgramPageProps {
   params: Promise<{
@@ -126,6 +127,9 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
     notFound()
   }
 
+  // Studio assignments bundled into this program (linked via programId)
+  const bundledAssignments = await getBundledAssignments(program.id, program.clientId)
+
   return (
     <div className="container mx-auto py-8 px-4">
       <Link href={`${basePath}/programs`}>
@@ -142,7 +146,7 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
       </div>
 
       <div className="mt-8">
-        <ProgramCalendar program={program} basePath={basePath} />
+        <ProgramCalendar program={program} basePath={basePath} bundledAssignments={bundledAssignments} />
       </div>
     </div>
   )
