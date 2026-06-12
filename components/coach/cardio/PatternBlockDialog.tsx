@@ -154,6 +154,11 @@ export function PatternBlockDialog({
   const [unit, setUnit] = useState<PatternUnit>('cal')
   const [zone, setZone] = useState<string>('4')
   const [restBetween, setRestBetween] = useState<number>(1)
+  // Station pacing for cal/m stations: 'target' = advance when the goal is
+  // reached; 'window' = each station runs a fixed clock window (EMOM-style)
+  // with the value as the goal within it.
+  const [pacing, setPacing] = useState<'target' | 'window'>('target')
+  const [windowSeconds, setWindowSeconds] = useState<number>(60)
 
   const values = useMemo<number[]>(() => {
     if (mode === 'ladder') return buildLadder(from, to, step)
@@ -215,6 +220,15 @@ export function PatternBlockDialog({
       })
     }
 
+    // EMOM-style pacing: give every goal-based station (cal/m) the fixed
+    // window so focus mode runs it on the clock; 'min' stations already have
+    // their own duration.
+    if (pacing === 'window' && windowSeconds >= 10) {
+      for (const generated of steps) {
+        if (generated.duration == null) generated.duration = windowSeconds / 60
+      }
+    }
+
     onAdd(steps)
     onOpenChange(false)
   }
@@ -228,10 +242,13 @@ export function PatternBlockDialog({
       const slotSummary = combinedSlots
         .map(s => `${s.value}${unitLabel(s.unit)} ${equipmentLabelByValue[s.equipment] || s.equipment}`)
         .join(' + ')
+      const pacingNote = pacing === 'window'
+        ? copy(locale, `, ${windowSeconds}s window per station`, `, ${windowSeconds}s fönster per station`)
+        : ''
       return copy(
         locale,
-        `${rounds} round${rounds === 1 ? '' : 's'} x ${combinedSlots.length} steps = ${totalSteps} intervals (${slotSummary})`,
-        `${rounds} runda${rounds === 1 ? '' : 'r'} x ${combinedSlots.length} steg = ${totalSteps} intervall (${slotSummary})`
+        `${rounds} round${rounds === 1 ? '' : 's'} x ${combinedSlots.length} steps = ${totalSteps} intervals (${slotSummary}${pacingNote})`,
+        `${rounds} runda${rounds === 1 ? '' : 'r'} x ${combinedSlots.length} steg = ${totalSteps} intervall (${slotSummary}${pacingNote})`
       )
     }
     const valuesPreview =
@@ -485,6 +502,40 @@ export function PatternBlockDialog({
                 placeholder="0"
               />
             </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">{copy(locale, 'Station pacing', 'Stationstempo')}</Label>
+              <Select value={pacing} onValueChange={(v) => setPacing(v as 'target' | 'window')}>
+                <SelectTrigger className="h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="target">
+                    {copy(locale, 'Switch at goal (e.g. at 16 cal)', 'Byt vid mål (t.ex. vid 16 cal)')}
+                  </SelectItem>
+                  <SelectItem value="window">
+                    {copy(locale, 'On the minute (fixed window)', 'På minuten (fast fönster)')}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {pacing === 'window' && (
+              <div>
+                <Label className="text-xs text-muted-foreground">{copy(locale, 'Window (seconds)', 'Fönster (sekunder)')}</Label>
+                <Input
+                  type="number"
+                  min={10}
+                  max={600}
+                  step={5}
+                  value={Number.isFinite(windowSeconds) ? windowSeconds : ''}
+                  onChange={(e) => setWindowSeconds(parseInt(e.target.value, 10) || 60)}
+                  className="h-8"
+                  placeholder="60"
+                />
+              </div>
+            )}
           </div>
 
           <div className="rounded-md bg-muted/50 p-3 text-sm">
