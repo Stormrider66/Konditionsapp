@@ -24,15 +24,18 @@ import {
 import { FuelingPrescriptionBadge } from '@/components/programs/FuelingPrescriptionBadge'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { buildFuelingInstructionText } from '@/lib/fueling/instructions'
+import type { BundledAssignment } from '@/lib/programs/bundled-assignments'
 
 interface AthleteProgramCalendarProps {
   program: any
   athleteId: string
   variant?: 'default' | 'glass'
   basePath?: string
+  /** Studio assignments linked to this program via programId (bundle feature) */
+  bundledAssignments?: BundledAssignment[]
 }
 
-export function AthleteProgramCalendar({ program, athleteId: _athleteId, variant = 'glass', basePath = '' }: AthleteProgramCalendarProps) {
+export function AthleteProgramCalendar({ program, athleteId: _athleteId, variant = 'glass', basePath = '', bundledAssignments = [] }: AthleteProgramCalendarProps) {
   const t = useTranslations('components.athleteProgramCalendar')
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set())
   const isGlass = variant === 'glass';
@@ -119,6 +122,7 @@ export function AthleteProgramCalendar({ program, athleteId: _athleteId, variant
             isDark={isDark}
             isGlass={isGlass}
             basePath={basePath}
+            bundledAssignments={bundledAssignments}
           />
         ))}
       </div>
@@ -135,6 +139,7 @@ interface WeekCardProps {
   isDark: boolean
   isGlass?: boolean
   basePath?: string
+  bundledAssignments?: BundledAssignment[]
 }
 
 function WeekCard({
@@ -146,6 +151,7 @@ function WeekCard({
   isDark,
   isGlass = false,
   basePath = '',
+  bundledAssignments = [],
 }: WeekCardProps) {
   const t = useTranslations('components.athleteProgramCalendar')
   const locale = useLocale()
@@ -161,29 +167,40 @@ function WeekCard({
   const weekStartDate = addDays(new Date(programStartDate), (week.weekNumber - 1) * 7)
   const weekEndDate = addDays(weekStartDate, 6)
 
+  // Studio assignments linked to this program that fall inside this week
+  const weekAssignments = useMemo(() => {
+    if (bundledAssignments.length === 0) return []
+    const start = weekStartDate.getTime()
+    const end = addDays(weekStartDate, 7).getTime()
+    return bundledAssignments.filter((a) => {
+      const time = new Date(a.date).getTime()
+      return time >= start && time < end
+    })
+  }, [bundledAssignments, weekStartDate])
+
   // Memoize expensive calculations
   const totalWorkouts = useMemo(() =>
-    week.days?.reduce(
+    (week.days?.reduce(
       (sum: number, day: any) => sum + day.workouts.length,
       0
-    ) || 0,
-    [week.days]
+    ) || 0) + weekAssignments.length,
+    [week.days, weekAssignments]
   )
 
   const completedWorkouts = useMemo(() =>
-    week.days?.reduce(
+    (week.days?.reduce(
       (sum: number, day: any) =>
         sum +
         day.workouts.filter(
           (w: any) => w.logs && w.logs.length > 0 && w.logs[0].completed
         ).length,
       0
-    ) || 0,
-    [week.days]
+    ) || 0) + weekAssignments.filter((a) => a.completed).length,
+    [week.days, weekAssignments]
   )
 
   // Calculate weekly totals (memoized)
-  const weeklyStats = useMemo(() => calculateWeeklyStats(week), [week])
+  const weeklyStats = useMemo(() => calculateWeeklyStats(week, weekAssignments), [week, weekAssignments])
 
   const CardWrapper = isGlass ? GlassCard : Card;
 
@@ -291,11 +308,20 @@ function WeekCard({
                     basePath={basePath}
                   />
                 ))
-              ) : (
+              ) : weekAssignments.length === 0 ? (
                 <p className={cn("text-center py-12", isDark ? "text-slate-600" : "text-muted-foreground")}>
                   {t('emptyWorkoutsForWeek')}
                 </p>
-              )}
+              ) : null}
+
+              {weekAssignments.map((assignment) => (
+                <AssignmentRow
+                  key={`${assignment.kind}-${assignment.id}`}
+                  assignment={assignment}
+                  isGlass={isGlass}
+                  basePath={basePath}
+                />
+              ))}
             </div>
           </div>
         </CollapsibleContent>
@@ -465,6 +491,94 @@ function DayCard({ day, date, isGlass = false, basePath = '' }: DayCardProps) {
   )
 }
 
+interface AssignmentRowProps {
+  assignment: BundledAssignment
+  isGlass?: boolean
+  basePath?: string
+}
+
+const ASSIGNMENT_KIND_BADGE: Record<BundledAssignment['kind'], string> = {
+  STRENGTH: 'text-purple-600 dark:text-purple-400 bg-purple-100/50 dark:bg-purple-500/10 border-0',
+  CARDIO: 'text-sky-600 dark:text-sky-400 bg-sky-100/50 dark:bg-sky-500/10 border-0',
+  HYBRID: 'text-orange-600 dark:text-orange-400 bg-orange-100/50 dark:bg-orange-500/10 border-0',
+  AGILITY: 'text-emerald-600 dark:text-emerald-400 bg-emerald-100/50 dark:bg-emerald-500/10 border-0',
+}
+
+// A studio assignment linked to the program via programId. Rendered in the
+// same timeline language as DayCard, but links to the assignment's own page
+// (focus mode / logging lives there, not in the program hierarchy).
+function AssignmentRow({ assignment, isGlass = false, basePath = '' }: AssignmentRowProps) {
+  const t = useTranslations('components.athleteProgramCalendar')
+  const locale = useLocale()
+  const dateLocale = locale === 'en' ? enUS : sv
+  const date = new Date(assignment.date)
+  const isToday = format(date, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
+  const isCompleted = assignment.completed
+
+  return (
+    <div className="relative flex items-start gap-6 group">
+      <div className={cn(
+        "relative z-10 w-24 flex flex-col items-center justify-center p-2 rounded-xl transition-all",
+        isToday ? "bg-blue-600 shadow-lg shadow-blue-600/20" : "bg-slate-100 dark:bg-white/5"
+      )}>
+        <p className={cn("text-[9px] font-black uppercase tracking-widest", isToday ? "text-blue-100" : "text-slate-500")}>
+          {format(date, 'EEE', { locale: dateLocale })}
+        </p>
+        <p className={cn("text-sm font-black transition-colors", isToday ? "text-white" : "text-slate-500 dark:text-slate-400")}>{format(date, 'd MMM', { locale: dateLocale })}</p>
+      </div>
+
+      <div className={cn(
+        "flex-1 p-5 rounded-2xl border transition-all duration-300",
+        isGlass ? "bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/5 dark:hover:bg-white/10" : "bg-card border",
+        isCompleted && (isGlass ? "bg-emerald-50/50 border-emerald-200 dark:bg-emerald-500/5 dark:border-emerald-500/10 opacity-80" : "bg-emerald-50")
+      )}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h4 className={cn("text-lg font-black tracking-tight uppercase italic transition-colors", isGlass ? "text-slate-900 dark:text-white" : "")}>
+                {assignment.name}
+              </h4>
+              {isCompleted && (
+                <div className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg flex items-center gap-1 transition-colors">
+                  <CheckCircle2 className="h-3 w-3" />
+                  {t('completed')}
+                </div>
+              )}
+              <Badge variant="outline" className={cn(
+                "text-[9px] font-black uppercase tracking-widest px-2 h-5 rounded-lg border-0 transition-colors",
+                ASSIGNMENT_KIND_BADGE[assignment.kind]
+              )}>
+                {t(`kind.${assignment.kind}`)}
+              </Badge>
+            </div>
+
+            {assignment.duration && (
+              <div className="flex items-center gap-1.5 pt-2 text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">
+                <Timer className="h-3.5 w-3.5 text-blue-600 dark:text-blue-500" />
+                <span>{assignment.duration} min</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex md:flex-col items-center md:items-end gap-2">
+            <Link href={`${basePath}${assignment.href}`}>
+              {isCompleted ? (
+                <Button variant="ghost" size="sm" className="rounded-xl h-10 px-5 font-black uppercase tracking-widest text-[10px] bg-slate-100 border-slate-200 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 dark:text-white transition-colors">
+                  {t('actions.viewLog')}
+                </Button>
+              ) : (
+                <Button size="sm" className="rounded-xl h-10 px-6 font-black uppercase tracking-widest text-[10px] bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/10">
+                  {t('actions.startWorkout')}
+                </Button>
+              )}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Helper functions
 function getCurrentWeek(program: any): number {
   const now = new Date()
@@ -498,12 +612,21 @@ function getIntensityBadgeClass(intensity: string, isGlass: boolean = false): st
   return classes[intensity] || ''
 }
 
-function calculateWeeklyStats(week: any): { totalDistance: number; totalDuration: number } {
+function calculateWeeklyStats(
+  week: any,
+  weekAssignments: BundledAssignment[] = []
+): { totalDistance: number; totalDuration: number } {
   let totalDistance = 0
   let totalDuration = 0
 
+  weekAssignments.forEach((assignment) => {
+    if (assignment.duration) {
+      totalDuration += assignment.duration
+    }
+  })
+
   if (!week.days || week.days.length === 0) {
-    return { totalDistance: 0, totalDuration: 0 }
+    return { totalDistance, totalDuration }
   }
 
   week.days.forEach((day: any) => {

@@ -16511,6 +16511,12 @@
     },
     "athleteProgramCalendar": {
       "emptyWeeks": "No weeks available",
+      "kind": {
+        "STRENGTH": "Strength",
+        "CARDIO": "Cardio",
+        "HYBRID": "Hybrid",
+        "AGILITY": "Agility"
+      },
       "titlePrefix": "Training",
       "titleAccent": "calendar",
       "subtitle": "Follow your plan week by week",

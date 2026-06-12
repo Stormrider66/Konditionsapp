@@ -10,6 +10,7 @@ import { ArrowLeft } from 'lucide-react'
 import { AthleteProgramOverview } from '@/components/athlete/AthleteProgramOverview'
 import { AthleteProgramCalendar } from '@/components/athlete/AthleteProgramCalendar'
 import { ProgramFuelingOverview } from '@/components/programs/ProgramFuelingOverview'
+import { getBundledAssignments } from '@/lib/programs/bundled-assignments'
 
 interface BusinessProgramPageProps {
   params: Promise<{
@@ -114,6 +115,9 @@ export default async function BusinessAthleteProgramPage({ params }: BusinessPro
     notFound()
   }
 
+  // Studio assignments bundled into this program (linked via programId)
+  const bundledAssignments = clientId ? await getBundledAssignments(program.id, clientId) : []
+
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-5xl mx-auto">
       <Link href={`${basePath}/athlete/programs`}>
@@ -130,7 +134,7 @@ export default async function BusinessAthleteProgramPage({ params }: BusinessPro
       </div>
 
       <div className="mt-12">
-        <AthleteProgramCalendar program={program as any} athleteId={user.id} basePath={basePath} />
+        <AthleteProgramCalendar program={program as any} athleteId={user.id} basePath={basePath} bundledAssignments={bundledAssignments} />
       </div>
     </div>
   )

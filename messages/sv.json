@@ -16871,6 +16871,12 @@
     },
     "athleteProgramCalendar": {
       "emptyWeeks": "Inga veckor tillgängliga",
+      "kind": {
+        "STRENGTH": "Styrka",
+        "CARDIO": "Kondition",
+        "HYBRID": "Hybrid",
+        "AGILITY": "Agility"
+      },
       "titlePrefix": "Tränings",
       "titleAccent": "kalender",
       "subtitle": "Följ din plan vecka för vecka",

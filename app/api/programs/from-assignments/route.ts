@@ -226,7 +226,10 @@ export async function POST(request: NextRequest) {
           name,
           description,
           goalType,
-          startDate: start,
+          // Monday-aligned so week N renders as startDate + (N-1)*7 in the
+          // program calendar; the assignment link filter still uses the
+          // coach-picked range.
+          startDate: firstMonday,
           endDate: end,
           planningMetadata: { source: 'assignment-bundle' },
           weeks: {

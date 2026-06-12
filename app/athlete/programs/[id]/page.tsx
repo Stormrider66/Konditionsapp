@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { AthleteProgramOverview } from '@/components/athlete/AthleteProgramOverview'
 import { AthleteProgramCalendar } from '@/components/athlete/AthleteProgramCalendar'
+import { getBundledAssignments } from '@/lib/programs/bundled-assignments'
 
 interface AthleteProgramPageProps {
   params: Promise<{
@@ -82,6 +83,9 @@ export default async function AthleteProgramPage({ params }: AthleteProgramPageP
     notFound()
   }
 
+  // Studio assignments bundled into this program (linked via programId)
+  const bundledAssignments = clientId ? await getBundledAssignments(program.id, clientId) : []
+
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-5xl mx-auto">
       <Link href="/athlete/programs">
@@ -94,7 +98,7 @@ export default async function AthleteProgramPage({ params }: AthleteProgramPageP
       <AthleteProgramOverview program={program as any} />
 
       <div className="mt-12">
-        <AthleteProgramCalendar program={program as any} athleteId={user.id} />
+        <AthleteProgramCalendar program={program as any} athleteId={user.id} bundledAssignments={bundledAssignments} />
       </div>
     </div>
   )
