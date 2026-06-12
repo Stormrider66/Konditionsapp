@@ -88,6 +88,10 @@ model CardioSessionAssignment {
   garminWorkoutId String? // ID returned by Garmin after push
   garminPushedAt  DateTime? // Timestamp of last push
 
+  // Program bundling — set when this assignment is part of a TrainingProgram
+  programId String?
+  program   TrainingProgram? @relation("CardioAssignmentProgram", fields: [programId], references: [id], onDelete: SetNull)
+
   // Status tracking
   status      AssignmentStatus @default(PENDING)
   completedAt DateTime?
@@ -123,6 +127,7 @@ model CardioSessionAssignment {
   @@index([startTime])
   @@index([calendarEventId])
   @@index([responsibleCoachId])
+  @@index([programId])
 }
 
 /// Cardio session log - tracks Focus Mode execution

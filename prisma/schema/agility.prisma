@@ -209,6 +209,10 @@ model AgilityWorkoutAssignment {
   // Calendar integration
   calendarEventId String? // Link to created CalendarEvent
 
+  // Program bundling — set when this assignment is part of a TrainingProgram
+  programId String?
+  program   TrainingProgram? @relation("AgilityAssignmentProgram", fields: [programId], references: [id], onDelete: SetNull)
+
   // Status tracking
   status      String    @default("ASSIGNED") // ASSIGNED, IN_PROGRESS, COMPLETED, SKIPPED
   startedAt   DateTime?
@@ -236,6 +240,7 @@ model AgilityWorkoutAssignment {
   @@index([startTime])
   @@index([calendarEventId])
   @@index([responsibleCoachId])
+  @@index([programId])
 }
 
 /// Result from completed agility workout

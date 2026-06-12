@@ -192,6 +192,10 @@ model StrengthSessionAssignment {
   // Calendar integration
   calendarEventId String? // Link to created CalendarEvent
 
+  // Program bundling — set when this assignment is part of a TrainingProgram
+  programId String?
+  program   TrainingProgram? @relation("StrengthAssignmentProgram", fields: [programId], references: [id], onDelete: SetNull)
+
   // Status tracking
   status      AssignmentStatus @default(PENDING)
   completedAt DateTime?
@@ -229,6 +233,7 @@ model StrengthSessionAssignment {
   @@index([startTime])
   @@index([calendarEventId])
   @@index([responsibleCoachId])
+  @@index([programId])
 }
 
 /// Pre-built strength program templates for quick program generation

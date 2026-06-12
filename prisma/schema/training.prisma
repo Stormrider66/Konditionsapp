@@ -127,6 +127,12 @@ model TrainingProgram {
   weeks TrainingWeek[]
   raceFuelingPlans RaceFuelingPlan[]
 
+  // Studio assignments bundled into this program (Option A linking, no copies)
+  strengthAssignments StrengthSessionAssignment[] @relation("StrengthAssignmentProgram")
+  cardioAssignments   CardioSessionAssignment[]   @relation("CardioAssignmentProgram")
+  hybridAssignments   HybridWorkoutAssignment[]   @relation("HybridAssignmentProgram")
+  agilityAssignments  AgilityWorkoutAssignment[]  @relation("AgilityAssignmentProgram")
+
   // Data Moat System relations
   coachDecisions CoachDecision[] @relation("ProgramDecisions")
 

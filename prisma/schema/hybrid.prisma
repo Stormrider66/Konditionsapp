@@ -347,6 +347,10 @@ model HybridWorkoutAssignment {
   completedAt DateTime? // When athlete marked it complete
   resultId    String? // Link to the result if completed
 
+  // Program bundling — set when this assignment is part of a TrainingProgram
+  programId String?
+  program   TrainingProgram? @relation("HybridAssignmentProgram", fields: [programId], references: [id], onDelete: SetNull)
+
   // Customization
   customScaling String? // Suggested scaling for this athlete
   scalingNotes  String? // "Use 30kg for thrusters"
@@ -384,6 +388,7 @@ model HybridWorkoutAssignment {
   @@index([locationId])
   @@index([calendarEventId])
   @@index([responsibleCoachId])
+  @@index([programId])
 }
 
 /// Hybrid workout log - tracks Focus Mode execution
