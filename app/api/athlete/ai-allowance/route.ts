@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { getAiAllowanceStatus, getAiAllowanceUsageSummary } from '@/lib/ai/billing/allowance'
+import { getCoachAiBudgetStatus } from '@/lib/ai/billing/coach-budget'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
@@ -19,7 +20,7 @@ export async function GET(request?: Request) {
     locale = resolveLocale(request, resolved.user.language)
 
     const { clientId } = resolved
-    const [{ account, remainingSek }, subscription, recentTopUps] = await Promise.all([
+    const [{ account, remainingSek }, subscription, recentTopUps, coachBudget] = await Promise.all([
       getAiAllowanceStatus(clientId),
       prisma.athleteSubscription.findUnique({
         where: { clientId },
@@ -43,6 +44,9 @@ export async function GET(request?: Request) {
           createdAt: true,
         },
       }),
+      // Business-owner-set spending limit on this user (coach in athlete
+      // mode); unlimited for regular athletes.
+      getCoachAiBudgetStatus(resolved.user.id),
     ])
 
     return NextResponse.json({
@@ -61,6 +65,13 @@ export async function GET(request?: Request) {
         status: account.status,
         usage: getAiAllowanceUsageSummary(account),
       },
+      coachBudget: coachBudget.limited
+        ? {
+            monthlyLimitSek: coachBudget.monthlyBudgetSek,
+            spentSek: coachBudget.periodSpentSek,
+            remainingSek: coachBudget.remainingSek,
+          }
+        : null,
       recentTopUps: recentTopUps.map((purchase) => ({
         id: purchase.id,
         amountPaidSek: purchase.amountPaidSek,

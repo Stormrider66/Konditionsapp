@@ -16129,6 +16129,10 @@
         "title": "Senaste påfyllningar",
         "credits": "{amount} krediter",
         "remaining": "{amount} kvar"
+      },
+      "coachBudget": {
+        "summary": "Verksamhetens AI-gräns: {spent} av {limit} använt denna månad.",
+        "exhausted": "Verksamhetens AI-gräns på {limit} är förbrukad för denna månad. Kontakta din verksamhetsadmin."
       }
     },
     "aiAllowanceBlockedAction": {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { generateObject } from 'ai'
 import { z } from 'zod'
 import { requireCoach } from '@/lib/auth-utils'
+import { requireCoachAiBudget } from '@/lib/ai/billing/coach-budget'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { createModelInstance, generationTuning } from '@/lib/ai/create-model'
@@ -89,6 +90,9 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach()
     locale = resolveRequestLocale(request, user.language)
+
+    const budgetDenied = await requireCoachAiBudget(user.id)
+    if (budgetDenied) return budgetDenied
 
     const rateLimited = await rateLimitJsonResponse('ai:canvas:generate', user.id, {
       limit: 12,

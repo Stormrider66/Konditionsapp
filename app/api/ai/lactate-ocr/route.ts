@@ -26,6 +26,7 @@ import { logger } from '@/lib/logger'
 import { withGoogleLogging } from '@/lib/ai/google'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { requireCoachAiBudget } from '@/lib/ai/billing/coach-budget'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 export async function POST(request: NextRequest) {
@@ -34,6 +35,9 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireCoach();
     locale = resolveRequestLocale(request, user.language)
+
+    const budgetDenied = await requireCoachAiBudget(user.id)
+    if (budgetDenied) return budgetDenied
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'lactate_ocr')

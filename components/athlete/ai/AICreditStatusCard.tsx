@@ -30,6 +30,11 @@ interface AllowancePayload {
       alertLevel: 'HEALTHY' | 'NOTICE' | 'LOW' | 'EXHAUSTED'
     }
   }
+  coachBudget: {
+    monthlyLimitSek: number | null
+    spentSek: number
+    remainingSek: number | null
+  } | null
   recentTopUps: Array<{
     id: string
     amountPaidSek: number
@@ -261,6 +266,25 @@ export function AICreditStatusCard({
               {allowance.topUpBalanceSek > 0 ? ` ${t('description.extraBalance', { amount: formatSek(allowance.topUpBalanceSek, locale) })}` : ''}
             </p>
           </div>
+
+          {data.coachBudget && data.coachBudget.monthlyLimitSek !== null && (
+            <div className={cn(
+              'flex items-start gap-2 rounded-xl p-3 text-xs',
+              (data.coachBudget.remainingSek ?? 0) <= 0
+                ? 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-200'
+                : 'bg-slate-950/[0.03] text-slate-600 dark:bg-white/[0.04] dark:text-slate-300',
+            )}>
+              <AlertTriangle className={cn('mt-0.5 h-4 w-4 shrink-0', (data.coachBudget.remainingSek ?? 0) > 0 && 'opacity-50')} />
+              <p>
+                {(data.coachBudget.remainingSek ?? 0) <= 0
+                  ? t('coachBudget.exhausted', { limit: formatSek(data.coachBudget.monthlyLimitSek, locale) })
+                  : t('coachBudget.summary', {
+                      spent: formatSek(data.coachBudget.spentSek, locale),
+                      limit: formatSek(data.coachBudget.monthlyLimitSek, locale),
+                    })}
+              </p>
+            </div>
+          )}
 
           {data.recentTopUps.length > 0 && (
             <div className="rounded-xl border border-slate-200/70 bg-white/60 p-3 text-xs dark:border-white/10 dark:bg-white/5">

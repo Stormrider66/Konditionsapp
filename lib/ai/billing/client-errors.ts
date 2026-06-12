@@ -79,3 +79,29 @@ export function createAiAllowanceExhaustedBody(remainingSek?: number): AiAllowan
     actionUrl: AI_ALLOWANCE_ACTION_URL,
   }
 }
+
+// ── Coach AI budget (business-owner-set monthly spending limit) ──────────────
+
+export const COACH_AI_BUDGET_EXHAUSTED_CODE = 'COACH_AI_BUDGET_EXHAUSTED'
+export const COACH_AI_BUDGET_EXHAUSTED_MESSAGE =
+  'Your AI spending limit for this month has been reached.'
+export const COACH_AI_BUDGET_CONTACT_MESSAGE =
+  'Contact your business admin to raise your monthly AI limit.'
+
+export function isCoachAiBudgetErrorBody(body: unknown): body is AiAllowanceErrorBody {
+  return (
+    !!body &&
+    typeof body === 'object' &&
+    (body as { code?: unknown }).code === COACH_AI_BUDGET_EXHAUSTED_CODE
+  )
+}
+
+/** Same shape as the allowance body so generic 402 handling renders it. */
+export function createCoachAiBudgetExhaustedBody(remainingSek?: number): AiAllowanceErrorBody {
+  return {
+    error: COACH_AI_BUDGET_EXHAUSTED_MESSAGE,
+    code: COACH_AI_BUDGET_EXHAUSTED_CODE,
+    remainingSek,
+    upgradeMessage: COACH_AI_BUDGET_CONTACT_MESSAGE,
+  }
+}

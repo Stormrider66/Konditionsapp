@@ -50,6 +50,11 @@ export function usdToSek(usd: number, sekPerUsd = getAiSekPerUsd()): number {
   return roundSek(usd * sekPerUsd)
 }
 
+export function sekToUsd(sek: number, sekPerUsd = getAiSekPerUsd()): number {
+  if (!Number.isFinite(sek) || sek <= 0) return 0
+  return sek / sekPerUsd
+}
+
 export function roundSek(amount: number): number {
   return Math.round(amount * 100) / 100
 }

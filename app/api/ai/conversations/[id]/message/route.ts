@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { requireCoach } from '@/lib/auth-utils'
+import { requireCoachAiBudget } from '@/lib/ai/billing/coach-budget'
 import { prisma } from '@/lib/prisma'
 import { searchSimilarChunks, hasEmbeddingKeys, type EmbeddingKeys } from '@/lib/ai/embeddings'
 import Anthropic from '@anthropic-ai/sdk'
@@ -39,6 +40,9 @@ export async function POST(
   try {
     const user = await requireCoach()
     locale = resolveRequestLocale(request, user.language)
+
+    const budgetDenied = await requireCoachAiBudget(user.id)
+    if (budgetDenied) return budgetDenied
 
     const rateLimited = await rateLimitJsonResponse('ai:conversations:message', user.id, {
       limit: 10,

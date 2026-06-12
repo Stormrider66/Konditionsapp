@@ -12,6 +12,7 @@ import { getResolvedAiKeys } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 import { z } from 'zod'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { requireCoachAiBudget } from '@/lib/ai/billing/coach-budget'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
@@ -30,6 +31,9 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireCoach()
     locale = resolveRequestLocale(req, user.language)
+
+    const budgetDenied = await requireCoachAiBudget(user.id)
+    if (budgetDenied) return budgetDenied
 
     const body = await req.json()
     const parsed = requestSchema.safeParse(body)

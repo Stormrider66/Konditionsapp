@@ -36,6 +36,7 @@ import {
 import { resolveAiModel, getMaxOutputTokens } from '@/lib/ai/chat/model-selector'
 import { buildOnFinishHandler } from '@/lib/ai/chat/on-finish'
 import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { requireCoachAiBudget } from '@/lib/ai/billing/coach-budget'
 import { withAiContext } from '@/lib/ai/usage-logger'
 import type { KnowledgeSkillAccessMode } from '@/lib/ai/skill-access'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
@@ -191,6 +192,9 @@ export async function POST(request: NextRequest) {
       responseLocale = resolveRequestLocale(request, user.language)
       apiKeyUserId = user.id
       staffPermissions = await getStaffPermissions(user.id)
+
+      const budgetDenied = await requireCoachAiBudget(user.id)
+      if (budgetDenied) return budgetDenied
     }
 
     // ── 2. Rate limit ───────────────────────────────────────────────

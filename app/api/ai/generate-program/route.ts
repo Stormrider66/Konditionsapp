@@ -16,6 +16,7 @@ import { requireCoachFeatureAccess } from '@/lib/subscription/require-feature-ac
 import { logger } from '@/lib/logger'
 import { canAccessAthlete } from '@/lib/auth/athlete-access'
 import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
+import { requireCoachAiBudget } from '@/lib/ai/billing/coach-budget'
 import {
   calculatePhases,
   estimateGenerationMinutes,
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
     // Authenticate
     const user = await requireCoach()
     locale = resolveRequestLocale(request, user.language)
+
+    const budgetDenied = await requireCoachAiBudget(user.id)
+    if (budgetDenied) return budgetDenied
 
     // Subscription gate (coach-level)
     const denied = await requireCoachFeatureAccess(user.id, 'program_generation')

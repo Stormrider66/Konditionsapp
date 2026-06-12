@@ -15769,6 +15769,10 @@
         "title": "Latest top-ups",
         "credits": "{amount} credits",
         "remaining": "{amount} left"
+      },
+      "coachBudget": {
+        "summary": "Business AI limit: {spent} of {limit} used this month.",
+        "exhausted": "Your business AI limit of {limit} is used up for this month. Contact your business admin."
       }
     },
     "aiAllowanceBlockedAction": {

@@ -4,6 +4,7 @@ import {
   hasAiAllowanceRemaining,
 } from '@/lib/ai/billing/allowance'
 import { createAiAllowanceExhaustedBody } from '@/lib/ai/billing/client-errors'
+import { requireCoachAiBudgetForClient } from '@/lib/ai/billing/coach-budget'
 
 export const AI_ALLOWANCE_MINIMUM_REMAINING_SEK = {
   light: 0.1,
@@ -34,5 +35,8 @@ export async function requireAiAllowance(
     )
   }
 
-  return null
+  // A business-owner-set spending limit on the user owning this athlete
+  // account follows them here (coach on their personal athlete page).
+  // Regular athletes have no budget row, so this is a no-op for them.
+  return requireCoachAiBudgetForClient(clientId)
 }

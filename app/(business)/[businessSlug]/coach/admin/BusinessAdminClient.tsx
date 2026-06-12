@@ -6,6 +6,7 @@ import { BusinessOverviewTab } from '@/components/coach/admin/BusinessOverviewTa
 import { BusinessMembersTab } from '@/components/coach/admin/BusinessMembersTab'
 import { BusinessApiKeysTab } from '@/components/coach/admin/BusinessApiKeysTab'
 import { BusinessAiKeysTab } from '@/components/coach/admin/BusinessAiKeysTab'
+import { BusinessAiBudgetsTab } from '@/components/coach/admin/BusinessAiBudgetsTab'
 import { BusinessReferralsTab } from '@/components/coach/admin/BusinessReferralsTab'
 import { BusinessSettingsTab } from '@/components/coach/admin/BusinessSettingsTab'
 import { BusinessLocationsTab } from '@/components/coach/admin/BusinessLocationsTab'
@@ -22,6 +23,7 @@ import {
   MapPin,
   Palette,
   Shield,
+  Wallet,
 } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -95,6 +97,10 @@ export function BusinessAdminClient({
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">AI Keys</span>
             </TabsTrigger>
+            <TabsTrigger value="ai-budgets" className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              <span className="hidden sm:inline">AI Budgets</span>
+            </TabsTrigger>
             <TabsTrigger value="api-keys" className="flex items-center gap-2">
               <Key className="h-4 w-4" />
               <span className="hidden sm:inline">Integrations</span>
@@ -131,6 +137,10 @@ export function BusinessAdminClient({
 
           <TabsContent value="ai-keys">
             <BusinessAiKeysTab />
+          </TabsContent>
+
+          <TabsContent value="ai-budgets">
+            <BusinessAiBudgetsTab />
           </TabsContent>
 
           <TabsContent value="api-keys">

@@ -151,8 +151,18 @@ export function logAiUsage(params: LogAiUsageParams): void {
         researchSessionId,
       },
     })
-    .then(() => {
-      if (!clientId || estimatedCost <= 0) return null
+    .then(async () => {
+      if (estimatedCost <= 0) return null
+      // Meter user-level spend against an owner-set coach AI budget. Only
+      // users with an existing AIUsageBudget row are metered (updateMany is
+      // a no-op otherwise), so unlimited users pay one cheap indexed update.
+      if (userId) {
+        await prisma.aIUsageBudget.updateMany({
+          where: { userId },
+          data: { periodSpent: { increment: estimatedCost } },
+        })
+      }
+      if (!clientId) return null
       return recordAiUsageDebit({
         clientId,
         costSek: usdToSek(estimatedCost),
