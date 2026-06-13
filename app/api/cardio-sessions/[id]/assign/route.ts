@@ -17,6 +17,7 @@ import {
 } from '@/lib/workouts/business-scope'
 import {
   createGarminWorkout,
+  deleteGarminWorkout,
   parseNumberTargetBounds,
   parsePaceTargetBounds,
   resolveGarminWorkoutId,
@@ -392,7 +393,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
       }
     }
 
-    const garminResults: Array<{ athleteId: string; success: boolean; error?: string }> = [];
+    const garminResults: Array<{ athleteId: string; success: boolean; error?: string; replaced?: boolean }> = [];
 
     const assignments = await Promise.all(
       athleteIds.map(async (athleteId: string) => {
@@ -425,9 +426,39 @@ export async function POST(request: NextRequest, context: RouteContext) {
         // Push to Garmin if requested and athlete has connection
         let garminWorkoutId: string | undefined;
         let garminPushedAt: Date | undefined;
+        let attemptedGarminPush = false;
+        const shouldPushToGarmin = Boolean(pushToGarmin && garminWorkoutPayload && garminTokensByAthlete.has(athleteId));
 
-        if (pushToGarmin && garminWorkoutPayload && garminTokensByAthlete.has(athleteId)) {
+        const existingAssignment = shouldPushToGarmin
+          ? await prisma.cardioSessionAssignment.findUnique({
+              where: {
+                sessionId_athleteId_assignedDate: {
+                  sessionId: id,
+                  athleteId,
+                  assignedDate: date,
+                },
+              },
+              select: {
+                garminWorkoutId: true,
+              },
+            })
+          : null;
+
+        if (shouldPushToGarmin && garminWorkoutPayload) {
+          attemptedGarminPush = true;
           try {
+            if (existingAssignment?.garminWorkoutId) {
+              try {
+                await deleteGarminWorkout(athleteId, existingAssignment.garminWorkoutId);
+                logger.info('[Garmin Push] Deleted previous cardio assignment workout', {
+                  athleteId,
+                  garminWorkoutId: existingAssignment.garminWorkoutId,
+                });
+              } catch (deleteErr) {
+                logError('Garmin previous workout delete failed (continuing with replacement):', deleteErr);
+              }
+            }
+
             logger.info('[Garmin Push] Sending workout', { athleteId, payload: JSON.stringify(garminWorkoutPayload, null, 2).slice(0, 2000) });
             const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
 
@@ -448,7 +479,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
               garminWorkoutId = workoutIdStr;
               garminPushedAt = new Date();
-              garminResults.push({ athleteId, success: true });
+              garminResults.push({
+                athleteId,
+                success: true,
+                replaced: Boolean(existingAssignment?.garminWorkoutId),
+              });
             } else {
               garminResults.push({
                 athleteId,
@@ -465,6 +500,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
             });
           }
         }
+
+        const garminAssignmentUpdate = garminWorkoutId
+          ? { garminWorkoutId, garminPushedAt }
+          : attemptedGarminPush
+            ? { garminWorkoutId: null, garminPushedAt: null }
+            : {};
+
+        const garminAssignmentCreate = garminWorkoutId ? { garminWorkoutId, garminPushedAt } : {};
 
         return prisma.cardioSessionAssignment.upsert({
           where: {
@@ -483,7 +526,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             locationName,
             scheduledBy: hasScheduling ? user.id : undefined,
             calendarEventId,
-            ...(garminWorkoutId && { garminWorkoutId, garminPushedAt }),
+            ...garminAssignmentUpdate,
           },
           create: {
             sessionId: id,
@@ -498,7 +541,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             locationName,
             scheduledBy: hasScheduling ? user.id : undefined,
             calendarEventId,
-            ...(garminWorkoutId && { garminWorkoutId, garminPushedAt }),
+            ...garminAssignmentCreate,
           },
           include: {
             athlete: {
