@@ -172,6 +172,18 @@ export interface GarminSchedule {
   calendarDate?: string
 }
 
+function normalizeGarminSchedule(schedule: GarminSchedule): GarminSchedule {
+  const calendarDate = schedule.calendarDate ?? schedule.date
+  if (!calendarDate) {
+    throw new Error('Garmin schedule date is required')
+  }
+
+  return {
+    workoutId: schedule.workoutId,
+    calendarDate,
+  }
+}
+
 // ─── API Helpers ────────────────────────────────────────────────────────────
 
 async function trainingApiRequest<T>(
@@ -293,13 +305,14 @@ export async function scheduleGarminWorkout(
   clientId: string,
   schedule: GarminSchedule
 ): Promise<GarminSchedule> {
+  const payload = normalizeGarminSchedule(schedule)
   const result = await trainingApiRequest<GarminSchedule>(
     clientId,
     `${GARMIN_TRAINING_API}/schedule/`,
     'POST',
-    schedule
+    payload
   )
-  logger.info('Scheduled Garmin workout', { clientId, workoutId: schedule.workoutId, date: schedule.calendarDate })
+  logger.info('Scheduled Garmin workout', { clientId, workoutId: payload.workoutId, date: payload.calendarDate })
   return result
 }
 

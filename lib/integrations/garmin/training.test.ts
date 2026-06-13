@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
@@ -17,8 +17,19 @@ vi.mock('@/lib/logger', () => ({
 import {
   parseNumberTargetBounds,
   parsePaceTargetBounds,
+  scheduleGarminWorkout,
   serializeWorkoutToGarmin,
 } from '@/lib/integrations/garmin/training'
+import { getValidGarminAccessToken } from '@/lib/integrations/garmin/client'
+import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
+
+const mockGetValidGarminAccessToken = vi.mocked(getValidGarminAccessToken)
+const mockFetchWithTimeoutAndRetry = vi.mocked(fetchWithTimeoutAndRetry)
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockGetValidGarminAccessToken.mockResolvedValue('access-token')
+})
 
 describe('Garmin Training API serializer', () => {
   it('converts pace ranges to sorted Garmin speed bounds', () => {
@@ -133,5 +144,38 @@ describe('Garmin Training API serializer', () => {
       targetValueOne: 85,
       targetValueTwo: 95,
     })
+  })
+
+  it('normalizes legacy schedule date fields to calendarDate', async () => {
+    mockFetchWithTimeoutAndRetry.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ workoutId: 'workout-1', calendarDate: '2026-06-14' }),
+    } as Response)
+
+    await scheduleGarminWorkout('client-1', {
+      workoutId: 'workout-1',
+      date: '2026-06-14',
+    })
+
+    expect(mockFetchWithTimeoutAndRetry).toHaveBeenCalledWith(
+      expect.stringContaining('/schedule/'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          workoutId: 'workout-1',
+          calendarDate: '2026-06-14',
+        }),
+      }),
+      expect.any(Object)
+    )
+  })
+
+  it('rejects schedule requests without a date before calling Garmin', async () => {
+    await expect(
+      scheduleGarminWorkout('client-1', { workoutId: 'workout-1' })
+    ).rejects.toThrow('Garmin schedule date is required')
+
+    expect(mockFetchWithTimeoutAndRetry).not.toHaveBeenCalled()
   })
 })

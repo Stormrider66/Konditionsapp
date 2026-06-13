@@ -10,19 +10,20 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { buildGarminStrengthWorkout, createGarminWorkout, scheduleGarminWorkout } from '@/lib/integrations/garmin/training'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { z } from 'zod'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
-interface PushRequestBody {
-  athleteId: string
-  scheduleDate?: string // ISO date
-}
+const pushStrengthSessionSchema = z.object({
+  athleteId: z.string().uuid(),
+  scheduleDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+})
 
 interface StrengthExercisePayload {
   exerciseId?: string
@@ -87,11 +88,32 @@ export async function POST(
     const user = await requireCoach()
     locale = resolveRequestLocale(request, user.language)
     const { id: sessionId } = await params
-    const body: PushRequestBody = await request.json()
-    const { athleteId, scheduleDate } = body
+    const body = await request.json()
+    const parsed = pushStrengthSessionSchema.safeParse(body)
 
-    if (!athleteId) {
-      return NextResponse.json({ error: t(locale, 'athleteId is required', 'athleteId krävs') }, { status: 400 })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: t(locale, 'Invalid input', 'Ogiltig indata'), details: parsed.error.flatten() },
+        { status: 400 }
+      )
+    }
+
+    const { athleteId, scheduleDate } = parsed.data
+
+    const hasAccess = await canAccessClient(user.id, athleteId)
+    if (!hasAccess) {
+      return NextResponse.json({ error: t(locale, 'Forbidden', 'Förbjudet') }, { status: 403 })
+    }
+
+    const token = await prisma.integrationToken.findUnique({
+      where: { clientId_type: { clientId: athleteId, type: 'GARMIN' } },
+      select: { syncEnabled: true },
+    })
+    if (!token || !token.syncEnabled) {
+      return NextResponse.json(
+        { error: t(locale, 'Garmin not connected', 'Garmin inte anslutet'), code: 'GARMIN_NOT_CONNECTED' },
+        { status: 404 }
+      )
     }
 
     // Fetch session with exercises
@@ -140,7 +162,7 @@ export async function POST(
 
     // Schedule if date provided
     if (scheduleDate && created.workoutId) {
-      await scheduleGarminWorkout(athleteId, { workoutId: created.workoutId, date: scheduleDate })
+      await scheduleGarminWorkout(athleteId, { workoutId: created.workoutId, calendarDate: scheduleDate })
     }
 
     logger.info('Pushed strength session to Garmin', {
