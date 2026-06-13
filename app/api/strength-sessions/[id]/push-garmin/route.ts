@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
-import { buildGarminStrengthWorkout, createGarminWorkout, scheduleGarminWorkout } from '@/lib/integrations/garmin/training'
+import { buildGarminStrengthWorkout, createGarminWorkout, resolveGarminWorkoutId, scheduleGarminWorkout } from '@/lib/integrations/garmin/training'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
@@ -159,22 +159,26 @@ export async function POST(
 
     // Push to Garmin
     const created = await createGarminWorkout(athleteId, garminWorkout)
+    const garminWorkoutId = resolveGarminWorkoutId(created)
+    if (!garminWorkoutId) {
+      throw new Error('Garmin did not return a workout ID')
+    }
 
     // Schedule if date provided
-    if (scheduleDate && created.workoutId) {
-      await scheduleGarminWorkout(athleteId, { workoutId: created.workoutId, calendarDate: scheduleDate })
+    if (scheduleDate) {
+      await scheduleGarminWorkout(athleteId, { workoutId: garminWorkoutId, calendarDate: scheduleDate })
     }
 
     logger.info('Pushed strength session to Garmin', {
       sessionId,
       athleteId,
-      garminWorkoutId: created.workoutId,
+      garminWorkoutId,
       scheduled: !!scheduleDate,
     })
 
     return NextResponse.json({
       success: true,
-      garminWorkoutId: created.workoutId,
+      garminWorkoutId,
       scheduled: !!scheduleDate,
       message: scheduleDate
         ? t(locale, `Strength session pushed to Garmin and scheduled ${scheduleDate}.`, `Styrkepass pushat till Garmin och schemalagt ${scheduleDate}.`)

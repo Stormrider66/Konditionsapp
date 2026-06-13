@@ -18,6 +18,7 @@ import {
   deleteGarminWorkout,
   serializeWorkoutToGarmin,
   parsePaceTargetBounds,
+  resolveGarminWorkoutId,
 } from '@/lib/integrations/garmin/training'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
@@ -167,11 +168,15 @@ export async function POST(request: NextRequest) {
     })
 
     const created = await createGarminWorkout(clientId, garminWorkout)
+    const garminWorkoutId = resolveGarminWorkoutId(created)
+    if (!garminWorkoutId) {
+      throw new Error('Garmin did not return a workout ID')
+    }
 
     let scheduled = false
-    if (scheduleDate && created.workoutId) {
+    if (scheduleDate) {
       await scheduleGarminWorkout(clientId, {
-        workoutId: created.workoutId,
+        workoutId: garminWorkoutId,
         calendarDate: scheduleDate,
       })
       scheduled = true
@@ -181,14 +186,14 @@ export async function POST(request: NextRequest) {
     await prisma.workout.update({
       where: { id: workoutId },
       data: {
-        garminWorkoutId: created.workoutId,
+        garminWorkoutId,
         garminPushedAt: new Date(),
       },
     })
 
     return NextResponse.json({
       success: true,
-      garminWorkoutId: created.workoutId,
+      garminWorkoutId,
       scheduled,
     })
   } catch (error) {

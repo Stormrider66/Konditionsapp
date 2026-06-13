@@ -61,6 +61,19 @@ export interface GarminWorkout {
   steps: GarminWorkoutStepUnion[]
 }
 
+interface GarminWorkoutIdSource {
+  workoutId?: unknown
+  id?: unknown
+}
+
+export function resolveGarminWorkoutId(workout?: GarminWorkoutIdSource | null): string | undefined {
+  const id = workout?.workoutId ?? workout?.id
+  if (id == null) return undefined
+
+  const value = String(id).trim()
+  return value.length > 0 ? value : undefined
+}
+
 // Garmin sport string values (used at workout level)
 const SPORT_STRINGS: Record<string, string> = {
   RUNNING:            'RUNNING',

@@ -17,6 +17,7 @@ vi.mock('@/lib/logger', () => ({
 import {
   parseNumberTargetBounds,
   parsePaceTargetBounds,
+  resolveGarminWorkoutId,
   scheduleGarminWorkout,
   serializeWorkoutToGarmin,
 } from '@/lib/integrations/garmin/training'
@@ -42,6 +43,12 @@ describe('Garmin Training API serializer', () => {
   it('parses numeric target ranges for power and cadence', () => {
     expect(parseNumberTargetBounds('240-260')).toEqual({ low: 240, high: 260 })
     expect(parseNumberTargetBounds('90 rpm')).toEqual({ low: 90, high: 90 })
+  })
+
+  it('normalizes Garmin workout IDs from supported response shapes', () => {
+    expect(resolveGarminWorkoutId({ workoutId: 'workout-1' })).toBe('workout-1')
+    expect(resolveGarminWorkoutId({ id: 12345 })).toBe('12345')
+    expect(resolveGarminWorkoutId({ workoutId: '   ' })).toBeUndefined()
   })
 
   it('serializes running intervals with targets and repeat groups', () => {

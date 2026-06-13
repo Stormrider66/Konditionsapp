@@ -19,6 +19,7 @@ import {
   createGarminWorkout,
   parseNumberTargetBounds,
   parsePaceTargetBounds,
+  resolveGarminWorkoutId,
   scheduleGarminWorkout,
   serializeWorkoutToGarmin,
 } from '@/lib/integrations/garmin/training'
@@ -430,16 +431,14 @@ export async function POST(request: NextRequest, context: RouteContext) {
             logger.info('[Garmin Push] Sending workout', { athleteId, payload: JSON.stringify(garminWorkoutPayload, null, 2).slice(0, 2000) });
             const created = await createGarminWorkout(athleteId, garminWorkoutPayload);
 
-            const wid = created.workoutId ?? (created as unknown as { id?: string }).id
-            if (wid) {
-              const workoutIdStr = String(wid)
+            const workoutIdStr = resolveGarminWorkoutId(created);
+            if (workoutIdStr) {
               // Schedule on the assigned date
               if (dateStr) {
                 try {
-                  logger.info('[Garmin Schedule]', { workoutId: wid, date: dateStr })
+                  logger.info('[Garmin Schedule]', { workoutId: workoutIdStr, date: dateStr })
                   await scheduleGarminWorkout(athleteId, {
                     workoutId: workoutIdStr,
-                    date: dateStr,
                     calendarDate: dateStr,
                   });
                 } catch (schedErr) {
@@ -450,6 +449,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
               garminWorkoutId = workoutIdStr;
               garminPushedAt = new Date();
               garminResults.push({ athleteId, success: true });
+            } else {
+              garminResults.push({
+                athleteId,
+                success: false,
+                error: 'Garmin did not return a workout ID',
+              });
             }
           } catch (garminErr) {
             logError('Garmin push failed for athlete:', athleteId, garminErr);
