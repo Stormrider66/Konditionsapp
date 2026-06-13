@@ -192,6 +192,10 @@ model StrengthSessionAssignment {
   // Calendar integration
   calendarEventId String? // Link to created CalendarEvent
 
+  // Garmin integration
+  garminWorkoutId String? // ID returned by Garmin after push
+  garminPushedAt  DateTime? // Timestamp of last push
+
   // Program bundling — set when this assignment is part of a TrainingProgram
   programId String?
   program   TrainingProgram? @relation("StrengthAssignmentProgram", fields: [programId], references: [id], onDelete: SetNull)

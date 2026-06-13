@@ -11,7 +11,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
-import { buildGarminStrengthWorkout, createGarminWorkout, resolveGarminWorkoutId, scheduleGarminWorkout } from '@/lib/integrations/garmin/training'
+import {
+  buildGarminStrengthWorkout,
+  createGarminWorkout,
+  deleteGarminWorkout,
+  resolveGarminWorkoutId,
+  scheduleGarminWorkout,
+} from '@/lib/integrations/garmin/training'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { z } from 'zod'
@@ -134,6 +140,22 @@ export async function POST(
       return NextResponse.json({ error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 })
     }
 
+    const matchingAssignment = scheduleDate
+      ? await prisma.strengthSessionAssignment.findUnique({
+          where: {
+            sessionId_athleteId_assignedDate: {
+              sessionId,
+              athleteId,
+              assignedDate: new Date(scheduleDate),
+            },
+          },
+          select: {
+            id: true,
+            garminWorkoutId: true,
+          },
+        })
+      : null
+
     // Parse exercises from JSON
     const mainExercises = (session.exercises as StrengthExercisePayload[]) || []
     const warmupData = session.warmupData as StrengthSectionPayload | null
@@ -157,6 +179,32 @@ export async function POST(
         .filter(isGarminStrengthExercise),
     })
 
+    const hadPreviousGarminWorkout = Boolean(matchingAssignment?.garminWorkoutId)
+
+    if (matchingAssignment?.garminWorkoutId) {
+      try {
+        await deleteGarminWorkout(athleteId, matchingAssignment.garminWorkoutId)
+        await prisma.strengthSessionAssignment.update({
+          where: { id: matchingAssignment.id },
+          data: {
+            garminWorkoutId: null,
+            garminPushedAt: null,
+          },
+        })
+        logger.info('Deleted previous Garmin strength assignment workout', {
+          sessionId,
+          athleteId,
+          garminWorkoutId: matchingAssignment.garminWorkoutId,
+        })
+      } catch (deleteErr) {
+        logger.warn('Failed to delete previous Garmin strength assignment workout; continuing with replacement', {
+          sessionId,
+          athleteId,
+          garminWorkoutId: matchingAssignment.garminWorkoutId,
+        }, deleteErr)
+      }
+    }
+
     // Push to Garmin
     const created = await createGarminWorkout(athleteId, garminWorkout)
     const garminWorkoutId = resolveGarminWorkoutId(created)
@@ -165,27 +213,68 @@ export async function POST(
     }
 
     // Schedule if date provided
+    let scheduled = false
+    let scheduleWarning: string | undefined
     if (scheduleDate) {
-      await scheduleGarminWorkout(athleteId, { workoutId: garminWorkoutId, calendarDate: scheduleDate })
+      try {
+        await scheduleGarminWorkout(athleteId, { workoutId: garminWorkoutId, calendarDate: scheduleDate })
+        scheduled = true
+      } catch (scheduleErr) {
+        scheduleWarning = scheduleErr instanceof Error ? scheduleErr.message : 'Garmin scheduling failed'
+        logger.warn('Garmin strength workout scheduling failed after workout creation', {
+          sessionId,
+          athleteId,
+          garminWorkoutId,
+          scheduleDate,
+        }, scheduleErr)
+      }
+    }
+
+    if (matchingAssignment) {
+      await prisma.strengthSessionAssignment.update({
+        where: { id: matchingAssignment.id },
+        data: {
+          garminWorkoutId,
+          garminPushedAt: new Date(),
+        },
+      })
     }
 
     logger.info('Pushed strength session to Garmin', {
       sessionId,
       athleteId,
       garminWorkoutId,
-      scheduled: !!scheduleDate,
+      scheduled,
+      assignmentId: matchingAssignment?.id,
     })
+
+    const responseMessage = scheduleWarning
+      ? t(
+          locale,
+          'Strength session pushed to Garmin, but automatic calendar scheduling failed.',
+          'Styrkepasset skickades till Garmin, men automatisk kalenderplanering misslyckades.'
+        )
+      : scheduleDate
+        ? t(locale, `Strength session pushed to Garmin and scheduled ${scheduleDate}.`, `Styrkepass pushat till Garmin och schemalagt ${scheduleDate}.`)
+        : t(locale, 'Strength session pushed to Garmin.', 'Styrkepass pushat till Garmin.')
 
     return NextResponse.json({
       success: true,
       garminWorkoutId,
-      scheduled: !!scheduleDate,
-      message: scheduleDate
-        ? t(locale, `Strength session pushed to Garmin and scheduled ${scheduleDate}.`, `Styrkepass pushat till Garmin och schemalagt ${scheduleDate}.`)
-        : t(locale, 'Strength session pushed to Garmin.', 'Styrkepass pushat till Garmin.'),
+      scheduled,
+      replaced: hadPreviousGarminWorkout,
+      ...(scheduleWarning && { scheduleWarning }),
+      message: responseMessage,
     })
   } catch (error) {
     logger.error('Error pushing strength session to Garmin', {}, error)
+    if (error instanceof Error && error.message.includes('rate limit')) {
+      return NextResponse.json(
+        { error: t(locale, 'Garmin rate limit exceeded. Try again later.', 'Garmins hastighetsgräns har nåtts. Försök igen senare.') },
+        { status: 429 }
+      )
+    }
+
     return NextResponse.json(
       { error: t(locale, 'Failed to push to Garmin', 'Kunde inte skicka till Garmin') },
       { status: 500 }
