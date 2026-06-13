@@ -586,7 +586,7 @@ export function CardioSessionAssignmentDialog({
                   {copy(locale, 'Send to Garmin', 'Skicka till Garmin')}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  {copy(locale, "The session appears on the athlete's Garmin watch", 'Passet visas på atletens Garmin-klocka')}
+                  {copy(locale, 'Sends to Garmin Connect; available on the watch after device sync', 'Skickas till Garmin Connect och blir tillgängligt på klockan efter synk')}
                 </p>
               </div>
             </div>

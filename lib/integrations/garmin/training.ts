@@ -111,6 +111,61 @@ const TARGET_TYPES: Record<string, GarminTargetTypeDTO> = {
   pace:     { workoutTargetTypeId: 6, workoutTargetTypeKey: 'speed.zone' },
 }
 
+export interface GarminTargetBounds {
+  low?: number
+  high?: number
+}
+
+export function parseNumberTargetBounds(value?: string | number | null): GarminTargetBounds {
+  if (value == null) return {}
+  if (typeof value === 'number') return { low: value, high: value }
+
+  const matches = value.match(/\d+(?:\.\d+)?/g)
+  if (!matches?.length) return {}
+
+  const first = Number(matches[0])
+  if (!Number.isFinite(first)) return {}
+
+  const second = matches[1] != null ? Number(matches[1]) : first
+  if (!Number.isFinite(second)) return { low: first, high: first }
+
+  return {
+    low: Math.min(first, second),
+    high: Math.max(first, second),
+  }
+}
+
+function paceTokenToMetersPerSecond(token: string): number | undefined {
+  const match = token.match(/(\d{1,2}):(\d{2})/)
+  if (!match) return undefined
+
+  const minutes = Number(match[1])
+  const seconds = Number(match[2])
+  const totalSeconds = minutes * 60 + seconds
+  if (!Number.isFinite(totalSeconds) || totalSeconds <= 0) return undefined
+
+  // Garmin speed targets are meters/second. Trainomics pace strings are min/km.
+  return 1000 / totalSeconds
+}
+
+export function parsePaceTargetBounds(value?: string | null): GarminTargetBounds {
+  if (!value) return {}
+
+  const tokens = value.match(/\d{1,2}:\d{2}/g)
+  if (!tokens?.length) return {}
+
+  const speeds = tokens
+    .map(paceTokenToMetersPerSecond)
+    .filter((speed): speed is number => speed != null && Number.isFinite(speed))
+
+  if (!speeds.length) return {}
+
+  return {
+    low: Math.min(...speeds),
+    high: Math.max(...speeds),
+  }
+}
+
 export interface GarminSchedule {
   workoutId: string
   date?: string       // YYYY-MM-DD
@@ -344,7 +399,7 @@ function buildStep(
     }
   }
 
-  // Step description (equipment name, calorie target — shown on watch)
+  // Step description metadata, when supported by Garmin clients.
   if (opts.description) step.description = opts.description
 
   return step
@@ -380,6 +435,7 @@ export function serializeWorkoutToGarmin(workout: {
     targetType?: 'pace' | 'hr' | 'power' | 'cadence' | 'none'
     targetLow?: number
     targetHigh?: number
+    description?: string
     steps?: Array<{
       type: 'interval' | 'recovery' | 'rest'
       durationSeconds?: number
@@ -424,6 +480,7 @@ export function serializeWorkoutToGarmin(workout: {
           targetType: segment.targetType,
           targetLow: segment.targetLow,
           targetHigh: segment.targetHigh,
+          description: segment.description,
         })
       )
     }

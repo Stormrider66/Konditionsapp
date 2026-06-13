@@ -32,6 +32,7 @@ const pushWorkoutSchema = z.object({
       targetType: z.enum(['pace', 'hr', 'power', 'cadence', 'none']).optional(),
       targetLow: z.number().optional(),
       targetHigh: z.number().optional(),
+      description: z.string().optional(),
       steps: z.array(z.object({
         type: z.enum(['interval', 'recovery', 'rest']),
         durationSeconds: z.number().optional(),
@@ -39,6 +40,7 @@ const pushWorkoutSchema = z.object({
         targetType: z.enum(['pace', 'hr', 'power', 'cadence', 'none']).optional(),
         targetLow: z.number().optional(),
         targetHigh: z.number().optional(),
+        description: z.string().optional(),
       })).optional(),
     })),
   }),

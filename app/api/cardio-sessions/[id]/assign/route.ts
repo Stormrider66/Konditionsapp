@@ -17,6 +17,8 @@ import {
 } from '@/lib/workouts/business-scope'
 import {
   createGarminWorkout,
+  parseNumberTargetBounds,
+  parsePaceTargetBounds,
   scheduleGarminWorkout,
   serializeWorkoutToGarmin,
 } from '@/lib/integrations/garmin/training'
@@ -71,7 +73,12 @@ interface CardioSegment {
   zone?: number
   pace?: string      // "5:00/km"
   heartRate?: string // "140-150 bpm"
+  power?: string     // "250" or "240-260"
+  cadence?: string   // "90" or "85-95"
   notes?: string
+  equipment?: string
+  targetType?: string
+  targetValue?: string
   repeats?: number
   restDuration?: number // seconds
   // Repeat group fields
@@ -88,8 +95,24 @@ interface CardioChildStep {
   pace?: string
   heartRate?: string
   notes?: string     // equipment description
+  equipment?: string
   targetType?: string // 'power' | 'pace' | 'cadence' | 'hr' | 'calories' | 'none'
   targetValue?: string // "250", "62", "2:05"
+}
+
+function buildGarminStepDescription(input: {
+  notes?: string
+  equipment?: string
+  calories?: number
+  targetType?: string
+  targetValue?: string
+}): string | undefined {
+  const parts: string[] = []
+  if (input.equipment) parts.push(input.equipment)
+  if (input.notes) parts.push(input.notes)
+  if (input.calories) parts.push(`${input.calories} cal`)
+  if (input.targetType === 'calories' && input.targetValue) parts.push(`${input.targetValue} cal`)
+  return parts.length > 0 ? parts.join(' — ') : undefined
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -269,12 +292,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         // REPEAT_GROUP: multi-step repeat block
         if (s.type === 'REPEAT_GROUP' && s.steps && s.steps.length > 0) {
           const childSteps = s.steps.map((step) => {
-            // Build description: combine equipment name with calorie target
-            const descParts: string[] = [];
-            if (step.notes) descParts.push(step.notes);
-            if (step.calories) descParts.push(`${step.calories} cal`);
-            if (step.targetType === 'calories' && step.targetValue) descParts.push(`${step.targetValue} cal`);
-            const description = descParts.length > 0 ? descParts.join(' — ') : undefined;
+            const description = buildGarminStepDescription(step);
 
             return {
               type: mapSegmentType(step.type),
@@ -322,7 +340,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             targetType: resolveTargetType(s),
             targetLow: resolveTargetLow(s),
             targetHigh: resolveTargetHigh(s),
-            description: isCalorieBased ? `${s.calories} cal${s.notes ? ` — ${s.notes}` : ''}` : (s.notes || undefined),
+            description: buildGarminStepDescription(s),
           };
 
           const steps: Array<{
@@ -359,6 +377,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           targetType: resolveTargetType(s),
           targetLow: resolveTargetLow(s),
           targetHigh: resolveTargetHigh(s),
+          description: buildGarminStepDescription(s),
         };
       });
 
@@ -532,47 +551,56 @@ function mapSegmentType(
 }
 
 function resolveTargetType(
-  segment: { heartRate?: string; pace?: string; zone?: number }
-): 'hr' | 'pace' | 'none' {
+  segment: { heartRate?: string; pace?: string; power?: string; cadence?: string; targetType?: string; targetValue?: string; zone?: number }
+): 'hr' | 'pace' | 'power' | 'cadence' | 'none' {
+  if (segment.targetType === 'hr' || segment.targetType === 'pace' || segment.targetType === 'power' || segment.targetType === 'cadence') {
+    return segment.targetType
+  }
+  if (segment.power) return 'power'
+  if (segment.cadence) return 'cadence'
   if (segment.heartRate) return 'hr'
   if (segment.pace) return 'pace'
   return 'none'
 }
 
 function resolveTargetLow(
-  segment: { heartRate?: string; pace?: string }
+  segment: { heartRate?: string; pace?: string; power?: string; cadence?: string; targetType?: string; targetValue?: string }
 ): number | undefined {
+  if (segment.targetType && segment.targetType !== 'none' && segment.targetValue) {
+    if (segment.targetType === 'calories') return undefined
+    if (segment.targetType === 'pace') return parsePaceTargetBounds(segment.targetValue).low
+    return parseNumberTargetBounds(segment.targetValue).low
+  }
+  if (segment.power) return parseNumberTargetBounds(segment.power).low
+  if (segment.cadence) return parseNumberTargetBounds(segment.cadence).low
   if (segment.heartRate) {
     const match = segment.heartRate.match(/(\d+)/)
     return match ? parseInt(match[1], 10) : undefined
   }
   if (segment.pace) {
-    return parsePaceToMetersPerSecond(segment.pace)
+    return parsePaceTargetBounds(segment.pace).low
   }
   return undefined
 }
 
 function resolveTargetHigh(
-  segment: { heartRate?: string; pace?: string }
+  segment: { heartRate?: string; pace?: string; power?: string; cadence?: string; targetType?: string; targetValue?: string }
 ): number | undefined {
+  if (segment.targetType && segment.targetType !== 'none' && segment.targetValue) {
+    if (segment.targetType === 'calories') return undefined
+    if (segment.targetType === 'pace') return parsePaceTargetBounds(segment.targetValue).high
+    return parseNumberTargetBounds(segment.targetValue).high
+  }
+  if (segment.power) return parseNumberTargetBounds(segment.power).high
+  if (segment.cadence) return parseNumberTargetBounds(segment.cadence).high
   if (segment.heartRate) {
     const match = segment.heartRate.match(/(\d+)\s*[-–]\s*(\d+)/)
     return match ? parseInt(match[2], 10) : undefined
   }
   if (segment.pace) {
-    return parsePaceToMetersPerSecond(segment.pace)
+    return parsePaceTargetBounds(segment.pace).high
   }
   return undefined
-}
-
-function parsePaceToMetersPerSecond(pace: string): number | undefined {
-  const match = pace.match(/(\d+):(\d+)/)
-  if (!match) return undefined
-  const minutes = parseInt(match[1], 10)
-  const seconds = parseInt(match[2], 10)
-  const totalSeconds = minutes * 60 + seconds
-  if (totalSeconds === 0) return undefined
-  return 1000 / totalSeconds
 }
 
 // ─── Child Step Target Helpers (for REPEAT_GROUP steps) ─────────────────────
@@ -580,9 +608,8 @@ function parsePaceToMetersPerSecond(pace: string): number | undefined {
 function resolveChildTargetType(
   step: CardioChildStep
 ): 'hr' | 'pace' | 'power' | 'cadence' | 'none' | undefined {
-  if (step.targetType && step.targetType !== 'none') {
-    if (step.targetType === 'calories') return undefined
-    return step.targetType as 'hr' | 'pace' | 'power' | 'cadence'
+  if (step.targetType === 'hr' || step.targetType === 'pace' || step.targetType === 'power' || step.targetType === 'cadence') {
+    return step.targetType
   }
   // Fall back to legacy fields
   if (step.heartRate) return 'hr'
@@ -594,11 +621,9 @@ function resolveChildTargetLow(step: CardioChildStep): number | undefined {
   if (step.targetType && step.targetType !== 'none' && step.targetValue) {
     if (step.targetType === 'calories') return undefined
     if (step.targetType === 'pace') {
-      return parsePaceToMetersPerSecond(step.targetValue)
+      return parsePaceTargetBounds(step.targetValue).low
     }
-    // Parse numeric value (handles "250", "240-260")
-    const match = step.targetValue.match(/(\d+(?:\.\d+)?)/)
-    return match ? parseFloat(match[1]) : undefined
+    return parseNumberTargetBounds(step.targetValue).low
   }
   // Fall back to legacy
   return resolveTargetLow(step)
@@ -608,14 +633,9 @@ function resolveChildTargetHigh(step: CardioChildStep): number | undefined {
   if (step.targetType && step.targetType !== 'none' && step.targetValue) {
     if (step.targetType === 'calories') return undefined
     if (step.targetType === 'pace') {
-      return parsePaceToMetersPerSecond(step.targetValue)
+      return parsePaceTargetBounds(step.targetValue).high
     }
-    // Parse range "240-260" or single value
-    const rangeMatch = step.targetValue.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/)
-    if (rangeMatch) return parseFloat(rangeMatch[2])
-    // Single value — same as low
-    const match = step.targetValue.match(/(\d+(?:\.\d+)?)/)
-    return match ? parseFloat(match[1]) : undefined
+    return parseNumberTargetBounds(step.targetValue).high
   }
   return resolveTargetHigh(step)
 }

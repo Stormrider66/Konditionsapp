@@ -17,6 +17,7 @@ import {
   scheduleGarminWorkout,
   deleteGarminWorkout,
   serializeWorkoutToGarmin,
+  parsePaceTargetBounds,
 } from '@/lib/integrations/garmin/training'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
@@ -106,15 +107,49 @@ export async function POST(request: NextRequest) {
     // Convert DB segments to serializer format
     const segments = workout.segments
       .filter((s) => s.type !== 'exercise') // Skip pure strength exercises
-      .map((s) => ({
-        type: mapSegmentType(s.type),
-        durationSeconds: s.duration ? s.duration * 60 : undefined,
-        distanceMeters: s.distance ? s.distance * 1000 : undefined,
-        repeats: s.reps || undefined,
-        targetType: resolveTargetType(s),
-        targetLow: resolveTargetLow(s),
-        targetHigh: resolveTargetHigh(s),
-      }))
+      .map((s) => {
+        const baseStep = {
+          type: mapSegmentType(s.type),
+          durationSeconds: s.duration ? s.duration * 60 : undefined,
+          distanceMeters: s.distance ? s.distance * 1000 : undefined,
+          targetType: resolveTargetType(s),
+          targetLow: resolveTargetLow(s),
+          targetHigh: resolveTargetHigh(s),
+          description: s.notes || s.description || undefined,
+        }
+
+        if (s.reps && s.reps > 1) {
+          const steps: Array<{
+            type: 'interval' | 'recovery' | 'rest'
+            durationSeconds?: number
+            distanceMeters?: number
+            targetType?: 'pace' | 'hr' | 'power' | 'cadence' | 'none'
+            targetLow?: number
+            targetHigh?: number
+            description?: string
+          }> = [
+            {
+              ...baseStep,
+              type: baseStep.type === 'recovery' || baseStep.type === 'rest' ? baseStep.type : 'interval',
+            },
+          ]
+
+          if (s.rest && s.rest > 0) {
+            steps.push({
+              type: 'recovery',
+              durationSeconds: s.rest,
+            })
+          }
+
+          return {
+            type: baseStep.type,
+            repeats: s.reps,
+            steps,
+          }
+        }
+
+        return baseStep
+      })
 
     if (segments.length === 0) {
       return NextResponse.json(
@@ -223,8 +258,7 @@ function resolveTargetLow(
     return match ? parseInt(match[1], 10) : undefined
   }
   if (segment.pace) {
-    // Parse "5:00/km" → m/s (Garmin uses m/s for pace target)
-    return parsePaceToMetersPerSecond(segment.pace)
+    return parsePaceTargetBounds(segment.pace).low
   }
   return undefined
 }
@@ -239,22 +273,7 @@ function resolveTargetHigh(
     return match ? parseInt(match[2], 10) : undefined
   }
   if (segment.pace) {
-    return parsePaceToMetersPerSecond(segment.pace)
+    return parsePaceTargetBounds(segment.pace).high
   }
   return undefined
-}
-
-/**
- * Convert pace string like "5:00/km" to meters per second.
- * Garmin Training API uses m/s for pace targets.
- */
-function parsePaceToMetersPerSecond(pace: string): number | undefined {
-  const match = pace.match(/(\d+):(\d+)/)
-  if (!match) return undefined
-  const minutes = parseInt(match[1], 10)
-  const seconds = parseInt(match[2], 10)
-  const totalSeconds = minutes * 60 + seconds
-  if (totalSeconds === 0) return undefined
-  // pace is min/km → 1000m / totalSeconds = m/s
-  return 1000 / totalSeconds
 }
