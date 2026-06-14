@@ -240,7 +240,7 @@ export function NutritionTimingCard() {
                        text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white
                        rounded-full shadow-sm hover:shadow text-xs font-medium ml-auto"
           >
-            <Link href={`${basePath}/athlete/settings/nutrition`}>{t('nutritionSettings')}</Link>
+            <Link href={`${basePath}/athlete/settings#nutrition-settings`}>{t('nutritionSettings')}</Link>
           </Button>
         </div>
       </GlassCardContent>

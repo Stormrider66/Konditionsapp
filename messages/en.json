@@ -332,6 +332,7 @@
         "aiProfile": "AI profile",
         "appearance": "Appearance",
         "trainingIntensity": "Training intensity",
+        "nutrition": "Food & Nutrition",
         "macroSplit": "Macro split",
         "aiModel": "AI model",
         "gymLocation": "Gym location",
@@ -361,6 +362,13 @@
         "privacy": {
           "title": "Privacy & Sharing",
           "description": "Control which data your coach can see"
+        }
+      },
+      "nutrition": {
+        "tabs": {
+          "goals": "Goals & energy",
+          "macros": "Macros",
+          "preferences": "Preferences"
         }
       },
       "toast": {
@@ -12897,6 +12905,14 @@
         "strength": {
           "label": "Strength",
           "description": "Optimized for strength training"
+        },
+        "keto": {
+          "label": "Keto",
+          "description": "Very low carbohydrate ketogenic profile"
+        },
+        "custom": {
+          "label": "Custom",
+          "description": "Use your custom macro split"
         }
       },
       "goal": {

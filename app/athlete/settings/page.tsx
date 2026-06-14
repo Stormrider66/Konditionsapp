@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
 import { AthleteSettingsClient } from './AthleteSettingsClient'
 import { getTranslations } from '@/i18n/server'
+import { createNutritionSettingsViewModel } from '@/lib/nutrition/settings-view-model'
 
 export async function generateMetadata() {
   const t = await getTranslations('metadata.athlete.settings')
@@ -26,6 +27,8 @@ export default async function AthleteSettingsPage() {
     where: { id: clientId },
     include: {
       sportProfile: true,
+      dietaryPreferences: true,
+      nutritionGoal: true,
     },
   })
 
@@ -39,6 +42,7 @@ export default async function AthleteSettingsPage() {
       clientName={client.name}
       sportProfile={client.sportProfile}
       userEmail={supabaseUser?.email || ''}
+      nutritionSettings={createNutritionSettingsViewModel(client)}
     />
   )
 }

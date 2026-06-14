@@ -5,6 +5,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { AthleteSettingsClient } from '@/app/athlete/settings/AthleteSettingsClient'
 import { getTranslations } from '@/i18n/server'
+import { createNutritionSettingsViewModel } from '@/lib/nutrition/settings-view-model'
 
 export async function generateMetadata() {
   const t = await getTranslations('athletePages.settings')
@@ -35,6 +36,8 @@ export default async function BusinessAthleteSettingsPage({ params }: BusinessSe
     where: { id: clientId },
     include: {
       sportProfile: true,
+      dietaryPreferences: true,
+      nutritionGoal: true,
     },
   })
 
@@ -50,6 +53,7 @@ export default async function BusinessAthleteSettingsPage({ params }: BusinessSe
       basePath={basePath}
       userEmail={user.email || ''}
       business={membership.role !== 'OWNER' ? { id: membership.businessId, name: membership.business.name, role: membership.role } : undefined}
+      nutritionSettings={createNutritionSettingsViewModel(client)}
     />
   )
 }

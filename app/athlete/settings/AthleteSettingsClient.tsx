@@ -15,7 +15,7 @@ import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { IntegrationsSettings } from '@/components/athlete/settings/IntegrationsSettings'
 import { AIModelSettings } from '@/components/athlete/settings/AIModelSettings'
 import { IntensityTargetsEditor } from '@/components/athlete/settings/IntensityTargetsEditor'
-import { MacroSplitEditor } from '@/components/athlete/settings/MacroSplitEditor'
+import { NutritionSettingsPanel } from '@/components/athlete/settings/NutritionSettingsPanel'
 import { LocationSettings } from '@/components/athlete/settings/LocationSettings'
 import { AIContextSettings } from '@/components/athlete/settings/AIContextSettings'
 import { AICreditStatusCard } from '@/components/athlete/ai/AICreditStatusCard'
@@ -27,6 +27,7 @@ import { SportType, IntensityTargets } from '@/types'
 import { getTargetsFromSettings } from '@/lib/training/intensity-targets'
 import { useToast } from '@/hooks/use-toast'
 import { useTranslations } from '@/i18n/client'
+import type { NutritionSettingsViewModel } from '@/lib/nutrition/settings-view-model'
 
 import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 
@@ -37,6 +38,7 @@ interface AthleteSettingsClientProps {
   basePath?: string
   userEmail?: string
   business?: { id: string; name: string; role: string }
+  nutritionSettings: NutritionSettingsViewModel
 }
 
 export function AthleteSettingsClient({
@@ -46,6 +48,7 @@ export function AthleteSettingsClient({
   basePath = '',
   userEmail = '',
   business,
+  nutritionSettings,
 }: AthleteSettingsClientProps) {
   const { toast } = useToast()
   const t = useTranslations('pages.athleteSettings')
@@ -267,13 +270,13 @@ export function AthleteSettingsClient({
           />
         </div>
 
-        {/* Makrofordelning */}
-        <div className="space-y-4">
+        {/* Nutrition Settings */}
+        <div id="nutrition-settings" className="space-y-4 scroll-mt-24">
           <div className="flex items-center gap-2 px-2">
             <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.macroSplit')}</h3>
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.nutrition')}</h3>
           </div>
-          <MacroSplitEditor clientId={clientId} variant="glass" />
+          <NutritionSettingsPanel clientId={clientId} nutritionSettings={nutritionSettings} />
         </div>
 
         {/* AI Model Settings */}

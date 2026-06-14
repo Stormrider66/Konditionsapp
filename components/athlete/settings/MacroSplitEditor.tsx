@@ -32,7 +32,6 @@ import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
 
 interface MacroSplitEditorProps {
-  clientId: string
   variant?: 'default' | 'glass'
 }
 
@@ -133,7 +132,7 @@ function MacroPieChart({ values }: { values: MacroValues }) {
   )
 }
 
-export function MacroSplitEditor({ clientId: _clientId, variant = 'default' }: MacroSplitEditorProps) {
+export function MacroSplitEditor({ variant = 'default' }: MacroSplitEditorProps) {
   const { toast } = useToast()
   const t = useTranslations('components.macroSplitEditor')
 

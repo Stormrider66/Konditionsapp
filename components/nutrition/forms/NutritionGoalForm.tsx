@@ -45,7 +45,7 @@ const goalSchema = z.object({
   targetWeightKg: z.number().min(30).max(200).optional().nullable(),
   weeklyChangeKg: z.number().min(0).max(1).optional().nullable(),
   targetBodyFatPercent: z.number().min(3).max(50).optional().nullable(),
-  macroProfile: z.enum(['BALANCED', 'HIGH_PROTEIN', 'LOW_CARB', 'ENDURANCE', 'STRENGTH']).optional().nullable(),
+  macroProfile: z.enum(['BALANCED', 'HIGH_PROTEIN', 'LOW_CARB', 'ENDURANCE', 'STRENGTH', 'KETO', 'CUSTOM']).optional().nullable(),
   activityLevel: z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'ACTIVE', 'VERY_ACTIVE', 'ATHLETE']).optional(),
   customBmrKcal: z.number().int().min(500).max(5000).optional().nullable(),
   showMacroTargets: z.boolean().optional(),
@@ -91,6 +91,8 @@ const MACRO_PROFILES = [
   { value: 'LOW_CARB', labelKey: 'macroProfiles.lowCarb.label', descriptionKey: 'macroProfiles.lowCarb.description' },
   { value: 'ENDURANCE', labelKey: 'macroProfiles.endurance.label', descriptionKey: 'macroProfiles.endurance.description' },
   { value: 'STRENGTH', labelKey: 'macroProfiles.strength.label', descriptionKey: 'macroProfiles.strength.description' },
+  { value: 'KETO', labelKey: 'macroProfiles.keto.label', descriptionKey: 'macroProfiles.keto.description' },
+  { value: 'CUSTOM', labelKey: 'macroProfiles.custom.label', descriptionKey: 'macroProfiles.custom.description' },
 ]
 
 const TRAINING_AMBITION_LEVELS = [
@@ -105,9 +107,15 @@ interface NutritionGoalFormProps {
   initialData?: GoalFormData | null
   currentWeightKg?: number
   onSuccess?: () => void
+  showMacroProfile?: boolean
 }
 
-export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: NutritionGoalFormProps) {
+export function NutritionGoalForm({
+  initialData,
+  currentWeightKg,
+  onSuccess,
+  showMacroProfile = true,
+}: NutritionGoalFormProps) {
   const t = useTranslations('components.nutritionGoalForm')
   const { toast } = useToast()
   const router = useRouter()
@@ -134,10 +142,15 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
   async function onSubmit(data: GoalFormData) {
     setIsSubmitting(true)
     try {
+      const payload = { ...data }
+      if (!showMacroProfile) {
+        delete payload.macroProfile
+      }
+
       const response = await fetch('/api/nutrition/goals', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       })
 
       if (!response.ok) {
@@ -323,43 +336,45 @@ export function NutritionGoalForm({ initialData, currentWeightKg, onSuccess }: N
         )}
 
         {/* Macro Profile */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t('macroProfile.title')}</CardTitle>
-            <CardDescription>{t('macroProfile.description')}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <FormField
-              control={form.control}
-              name="macroProfile"
-              render={({ field }) => (
-                <FormItem>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value || undefined}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('macroProfile.placeholder')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {MACRO_PROFILES.map((profile) => (
-                        <SelectItem key={profile.value} value={profile.value}>
-                          <div className="flex flex-col">
-                            <span>{t(profile.labelKey)}</span>
-                            <span className="text-xs text-slate-500">{t(profile.descriptionKey)}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </CardContent>
-        </Card>
+        {showMacroProfile && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{t('macroProfile.title')}</CardTitle>
+              <CardDescription>{t('macroProfile.description')}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <FormField
+                control={form.control}
+                name="macroProfile"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || undefined}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t('macroProfile.placeholder')} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {MACRO_PROFILES.map((profile) => (
+                          <SelectItem key={profile.value} value={profile.value}>
+                            <div className="flex flex-col">
+                              <span>{t(profile.labelKey)}</span>
+                              <span className="text-xs text-slate-500">{t(profile.descriptionKey)}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Training ambition */}
         <Card>

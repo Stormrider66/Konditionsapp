@@ -332,6 +332,7 @@
         "aiProfile": "AI-profil",
         "appearance": "Utseende",
         "trainingIntensity": "Träningsintensitet",
+        "nutrition": "Kost & Näring",
         "macroSplit": "Makrofördelning",
         "aiModel": "AI-modell",
         "gymLocation": "Gym-plats",
@@ -361,6 +362,13 @@
         "privacy": {
           "title": "Integritet & Delning",
           "description": "Styr vilken data din coach kan se"
+        }
+      },
+      "nutrition": {
+        "tabs": {
+          "goals": "Mål & energi",
+          "macros": "Makro",
+          "preferences": "Preferenser"
         }
       },
       "toast": {
@@ -13257,6 +13265,14 @@
         "strength": {
           "label": "Styrka",
           "description": "Optimerat för styrketräning"
+        },
+        "keto": {
+          "label": "Keto",
+          "description": "Ketogen profil med mycket låga kolhydrater"
+        },
+        "custom": {
+          "label": "Anpassad",
+          "description": "Använd din egna makrofördelning"
         }
       },
       "goal": {
