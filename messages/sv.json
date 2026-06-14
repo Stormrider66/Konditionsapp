@@ -14049,6 +14049,11 @@
         "title": "Innehåll (justera vikter)",
         "helper": "Ändra gram för att justera makron automatiskt"
       },
+      "aiEstimate": {
+        "title": "Antagen vikt för makron",
+        "total": "{grams} g totalt",
+        "calories": "{calories} kcal"
+      },
       "macros": {
         "calories": "Kalorier",
         "protein": "Protein",

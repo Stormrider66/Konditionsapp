@@ -13689,6 +13689,11 @@
         "title": "Contents (adjust weights)",
         "helper": "Change grams to adjust macros automatically"
       },
+      "aiEstimate": {
+        "title": "Assumed weight for macros",
+        "total": "{grams} g total",
+        "calories": "{calories} kcal"
+      },
       "macros": {
         "calories": "Calories",
         "protein": "Protein",

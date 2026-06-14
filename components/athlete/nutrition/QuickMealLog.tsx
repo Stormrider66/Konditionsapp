@@ -36,6 +36,7 @@ import {
   Sparkles,
   Loader2,
   Repeat,
+  Scale,
 } from 'lucide-react'
 import { MealType } from '@prisma/client'
 import { cn } from '@/lib/utils'
@@ -73,6 +74,19 @@ interface QuickMealLogProps {
 }
 
 type MealLogTab = 'text' | 'ingredients'
+
+type MealFormData = {
+  mealType: MealType
+  time: string
+  description: string
+  calories: string
+  proteinGrams: string
+  carbsGrams: string
+  fatGrams: string
+  isPreWorkout: boolean
+  isPostWorkout: boolean
+  notes: string
+}
 
 export interface MealLogData {
   date: string
@@ -136,8 +150,74 @@ interface QuickMeal {
   items?: QuickMealItem[]
 }
 
+interface AiEstimatedMealItem {
+  name: string
+  category?: string | null
+  estimatedGrams: number
+  portionDescription?: string | null
+  calories: number
+  proteinGrams: number
+  carbsGrams: number
+  fatGrams: number
+  fiberGrams?: number
+  saturatedFatGrams?: number
+  monounsaturatedFatGrams?: number
+  polyunsaturatedFatGrams?: number
+  sugarGrams?: number
+  complexCarbsGrams?: number
+  isCompleteProtein?: boolean
+  proteinSource?: 'ANIMAL' | 'PLANT' | 'MIXED' | 'UNKNOWN'
+}
+
+interface AiTextEstimate {
+  description: string
+  items: AiEstimatedMealItem[]
+  totals: {
+    calories: number
+    proteinGrams: number
+    carbsGrams: number
+    fatGrams: number
+    fiberGrams?: number
+  }
+}
+
+function roundOneDecimal(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
 function formatGrams(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
+function parseFormNumber(value: string): number | null {
+  const parsed = Number.parseFloat(value.replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizeDescription(value: string): string {
+  return value.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+function getAiEstimateTotalGrams(items: AiEstimatedMealItem[]): number {
+  return roundOneDecimal(items.reduce((sum, item) => sum + item.estimatedGrams, 0))
+}
+
+function aiEstimateMatchesCurrentMacros(estimate: AiTextEstimate, formData: MealFormData): boolean {
+  const calories = parseFormNumber(formData.calories)
+  const protein = parseFormNumber(formData.proteinGrams)
+  const carbs = parseFormNumber(formData.carbsGrams)
+  const fat = parseFormNumber(formData.fatGrams)
+
+  return (
+    calories !== null &&
+    protein !== null &&
+    carbs !== null &&
+    fat !== null &&
+    Math.round(calories) === Math.round(estimate.totals.calories) &&
+    Math.abs(roundOneDecimal(protein) - roundOneDecimal(estimate.totals.proteinGrams)) < 0.05 &&
+    Math.abs(roundOneDecimal(carbs) - roundOneDecimal(estimate.totals.carbsGrams)) < 0.05 &&
+    Math.abs(roundOneDecimal(fat) - roundOneDecimal(estimate.totals.fatGrams)) < 0.05
+  )
 }
 
 function toDateInputValue(date: Date): string {
@@ -290,6 +370,7 @@ export function QuickMealLog({
   const [selectedDate, setSelectedDate] = useState(initialDateValue)
   const [ingredientScanRequestKey, setIngredientScanRequestKey] = useState(0)
   const [ingredients, setIngredients] = useState<IngredientRow[]>([])
+  const [aiTextEstimate, setAiTextEstimate] = useState<AiTextEstimate | null>(null)
   const [enhancedFields, setEnhancedFields] = useState<{
     saturatedFatGrams?: number
     monounsaturatedFatGrams?: number
@@ -298,7 +379,7 @@ export function QuickMealLog({
     complexCarbsGrams?: number
     isCompleteProtein?: boolean
   }>({})
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<MealFormData>({
     mealType: defaultMealType || guessDefaultMealType(),
     time: '',
     description: '',
@@ -465,6 +546,7 @@ export function QuickMealLog({
 
   const handleQuickMealSelect = (meal: QuickMeal) => {
     const description = getQuickMealDescription(meal)
+    setAiTextEstimate(null)
     setFormData(prev => ({
       ...prev,
       description,
@@ -478,6 +560,7 @@ export function QuickMealLog({
   }
 
   const openRecipeImageUpload = () => {
+    setAiTextEstimate(null)
     setTab('ingredients')
     setIngredientScanRequestKey((key) => key + 1)
   }
@@ -485,6 +568,7 @@ export function QuickMealLog({
   const handleYesterdayMealSelect = () => {
     if (!yesterdayMeal) return
 
+    setAiTextEstimate(null)
     setFormData(prev => ({
       ...prev,
       description: yesterdayMeal.description,
@@ -567,6 +651,7 @@ export function QuickMealLog({
 
     setIsAnalyzing(true)
     setError(null)
+    setAiTextEstimate(null)
     try {
       const res = await fetch('/api/ai/food-scan/analyze-text', {
         method: 'POST',
@@ -600,6 +685,43 @@ export function QuickMealLog({
             polyunsaturatedFatGrams: result.totals.polyunsaturatedFatGrams,
             sugarGrams: result.totals.sugarGrams,
             complexCarbsGrams: result.totals.complexCarbsGrams,
+          })
+        }
+
+        const estimateItems: AiEstimatedMealItem[] = Array.isArray(result.items)
+          ? (result.items as Partial<AiEstimatedMealItem>[])
+              .map((item: Partial<AiEstimatedMealItem>) => ({
+                name: typeof item.name === 'string' ? item.name.trim() : '',
+                category: item.category,
+                estimatedGrams: typeof item.estimatedGrams === 'number' ? roundOneDecimal(item.estimatedGrams) : 0,
+                portionDescription: typeof item.portionDescription === 'string' ? item.portionDescription : null,
+                calories: typeof item.calories === 'number' ? item.calories : 0,
+                proteinGrams: typeof item.proteinGrams === 'number' ? item.proteinGrams : 0,
+                carbsGrams: typeof item.carbsGrams === 'number' ? item.carbsGrams : 0,
+                fatGrams: typeof item.fatGrams === 'number' ? item.fatGrams : 0,
+                fiberGrams: typeof item.fiberGrams === 'number' ? item.fiberGrams : 0,
+                saturatedFatGrams: item.saturatedFatGrams,
+                monounsaturatedFatGrams: item.monounsaturatedFatGrams,
+                polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
+                sugarGrams: item.sugarGrams,
+                complexCarbsGrams: item.complexCarbsGrams,
+                isCompleteProtein: item.isCompleteProtein,
+                proteinSource: item.proteinSource,
+              }))
+              .filter((item) => item.name.length > 0 && item.estimatedGrams > 0)
+          : []
+
+        if (estimateItems.length > 0) {
+          setAiTextEstimate({
+            description: formData.description.trim(),
+            items: estimateItems,
+            totals: {
+              calories: result.totals.calories,
+              proteinGrams: result.totals.proteinGrams,
+              carbsGrams: result.totals.carbsGrams,
+              fatGrams: result.totals.fatGrams,
+              fiberGrams: result.totals.fiberGrams,
+            },
           })
         }
       }
@@ -659,10 +781,43 @@ export function QuickMealLog({
         }
         data.items = ingredientRowsToApiItems(ingredients)
       } else {
-        if (formData.calories) data.calories = parseInt(formData.calories)
-        if (formData.proteinGrams) data.proteinGrams = parseFloat(formData.proteinGrams)
-        if (formData.carbsGrams) data.carbsGrams = parseFloat(formData.carbsGrams)
-        if (formData.fatGrams) data.fatGrams = parseFloat(formData.fatGrams)
+        const calories = parseFormNumber(formData.calories)
+        const protein = parseFormNumber(formData.proteinGrams)
+        const carbs = parseFormNumber(formData.carbsGrams)
+        const fat = parseFormNumber(formData.fatGrams)
+
+        if (calories !== null) data.calories = Math.round(calories)
+        if (protein !== null) data.proteinGrams = protein
+        if (carbs !== null) data.carbsGrams = carbs
+        if (fat !== null) data.fatGrams = fat
+
+        if (
+          aiTextEstimate &&
+          normalizeDescription(derivedDescription) === normalizeDescription(aiTextEstimate.description) &&
+          aiEstimateMatchesCurrentMacros(aiTextEstimate, formData)
+        ) {
+          data.fiberGrams = aiTextEstimate.totals.fiberGrams != null
+            ? roundOneDecimal(aiTextEstimate.totals.fiberGrams)
+            : undefined
+          data.items = aiTextEstimate.items.map((item) => ({
+            name: item.name,
+            category: item.category ?? undefined,
+            estimatedGrams: item.estimatedGrams,
+            portionDescription: item.portionDescription ?? undefined,
+            calories: item.calories,
+            proteinGrams: item.proteinGrams,
+            carbsGrams: item.carbsGrams,
+            fatGrams: item.fatGrams,
+            fiberGrams: item.fiberGrams ?? 0,
+            saturatedFatGrams: item.saturatedFatGrams,
+            monounsaturatedFatGrams: item.monounsaturatedFatGrams,
+            polyunsaturatedFatGrams: item.polyunsaturatedFatGrams,
+            sugarGrams: item.sugarGrams,
+            complexCarbsGrams: item.complexCarbsGrams,
+            isCompleteProtein: item.isCompleteProtein,
+            proteinSource: item.proteinSource,
+          }))
+        }
       }
 
       // Include enhanced fields if available
@@ -712,6 +867,7 @@ export function QuickMealLog({
       notes: '',
     })
     setShowMacros(false)
+    setAiTextEstimate(null)
     setEnhancedFields({})
     setSelectedQuickMealItems(null)
     setYesterdayMeals({})
@@ -721,6 +877,8 @@ export function QuickMealLog({
     setIngredients([])
     onClose()
   }
+
+  const aiEstimateTotalGrams = aiTextEstimate ? getAiEstimateTotalGrams(aiTextEstimate.items) : null
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -906,7 +1064,10 @@ export function QuickMealLog({
             <Textarea
               id="description"
               value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              onChange={(e) => {
+                setAiTextEstimate(null)
+                setFormData(prev => ({ ...prev, description: e.target.value }))
+              }}
               placeholder={t('fields.descriptionPlaceholder')}
               rows={2}
               className="dark:text-white dark:placeholder:text-slate-500"
@@ -945,6 +1106,43 @@ export function QuickMealLog({
                   ? t('actions.reanalyzeWithAi')
                   : t('actions.estimateWithAi')}
             </Button>
+          )}
+
+          {aiTextEstimate && aiEstimateTotalGrams !== null && (
+            <div className="space-y-2 rounded-lg border border-border/50 bg-muted/30 p-3 dark:border-slate-700 dark:bg-slate-800/50">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Scale className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  <Label className="truncate text-xs text-muted-foreground">
+                    {t('aiEstimate.title')}
+                  </Label>
+                </div>
+                <span className="shrink-0 text-xs font-medium dark:text-slate-200">
+                  {t('aiEstimate.total', { grams: formatGrams(aiEstimateTotalGrams) })}
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {aiTextEstimate.items.map((item, idx) => {
+                  const portion = item.portionDescription?.trim()
+                  return (
+                    <div key={`${item.name}-${idx}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 text-xs">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium dark:text-slate-300">{item.name}</p>
+                        {portion && (
+                          <p className="truncate text-[10px] text-muted-foreground">{portion}</p>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <p className="font-medium dark:text-slate-200">{formatGrams(item.estimatedGrams)} g</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {t('aiEstimate.calories', { calories: Math.round(item.calories) })}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
           )}
 
           {/* Toggle for macros */}
