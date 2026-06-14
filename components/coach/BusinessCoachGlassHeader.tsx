@@ -254,7 +254,7 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         ],
         TEAM: [
             allToolItems.test, allToolItems.strength, allToolItems.cardio,
-            allToolItems.hybrid, allToolItems.agility, allToolItems.drills,
+            allToolItems.hybrid, allToolItems.agility, allToolItems.video, allToolItems.drills,
             allToolItems.liveHR, allToolItems.aiCanvas,
         ],
         GYM: [
@@ -323,7 +323,6 @@ export function BusinessCoachGlassHeader({ user, businessSlug }: BusinessCoachGl
         hiddenToolHrefs.add(allToolItems.testOverview.href)
         hiddenToolHrefs.add(allToolItems.aiStudio.href)
         hiddenToolHrefs.add(allToolItems.ergometer.href)
-        hiddenToolHrefs.add(allToolItems.video.href)
         hiddenToolHrefs.add(allToolItems.monitoring.href)
         hiddenToolHrefs.add(allToolItems.intervals.href)
         hiddenToolHrefs.add(allToolItems.hockeyTests.href)
