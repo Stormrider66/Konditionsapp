@@ -112,6 +112,8 @@ export async function GET(request: NextRequest) {
         assignedDate: assignment.assignedDate,
         status: assignment.status,
         completedAt: assignment.completedAt,
+        garminWorkoutId: assignment.garminWorkoutId,
+        garminPushedAt: assignment.garminPushedAt,
         rpe: assignment.rpe,
         duration: assignment.duration,
         notes: assignment.notes,
@@ -168,6 +170,8 @@ export async function GET(request: NextRequest) {
         today: todaysSessions.map((s) => ({
           id: s.id,
           status: s.status,
+          garminWorkoutId: s.garminWorkoutId,
+          garminPushedAt: s.garminPushedAt,
           session: s.session,
         })),
         stats: {

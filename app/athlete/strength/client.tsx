@@ -47,6 +47,7 @@ import {
   History,
   Play,
   TrendingUp,
+  Watch,
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
@@ -67,6 +68,8 @@ interface Assignment {
   estimatedDuration: number | null
   assignedDate: string
   status: string
+  garminWorkoutId?: string | null
+  garminPushedAt?: string | null
   // Scheduling fields
   startTime?: string | null
   endTime?: string | null
@@ -200,6 +203,12 @@ export function AthleteStrengthClient({
                           <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-400 font-bold uppercase tracking-wide border-0">
                             {t('history.completed')}
                           </Badge>
+                          {assignment.garminPushedAt && (
+                            <Badge variant="outline" className="gap-1.5 font-bold uppercase tracking-wide border-slate-200 dark:border-white/10">
+                              <Watch className="h-3 w-3" />
+                              Garmin
+                            </Badge>
+                          )}
                         </div>
                       </div>
                     </GlassCardContent>
@@ -306,6 +315,12 @@ export function AthleteStrengthClient({
                           <Badge className={`${phaseInfo.color} text-white border-0 font-bold uppercase tracking-wider shadow-sm`}>
                             {PHASE_LABELS[assignment.phase] ? t(phaseInfo.labelKey) : phaseInfo.labelKey}
                           </Badge>
+                          {assignment.garminPushedAt && (
+                            <Badge variant="outline" className="gap-1.5 font-bold uppercase tracking-wide border-slate-200 dark:border-white/10">
+                              <Watch className="h-3 w-3" />
+                              Garmin
+                            </Badge>
+                          )}
                           <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center shadow-sm">
                             <Play className="h-4 w-4 text-white ml-0.5" />
                           </div>

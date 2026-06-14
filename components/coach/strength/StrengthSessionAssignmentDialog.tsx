@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, Calendar, Loader2, Clock, ChevronDown, UserCircle } from 'lucide-react';
+import { Users, Calendar, Loader2, Clock, ChevronDown, UserCircle, Watch } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
@@ -67,6 +67,21 @@ interface StrengthSessionAssignmentDialogProps {
   businessId?: string;
 }
 
+interface AssignmentsResponse {
+  assignments?: Array<{
+    athleteId?: string | null;
+    athlete?: { id?: string | null } | null;
+  }>;
+  skipped?: Array<{ athleteId: string; reasons?: string[] }>;
+  error?: string;
+}
+
+interface GarminPushResponse {
+  success?: boolean;
+  message?: string;
+  scheduleWarning?: string;
+}
+
 type AppLocale = 'en' | 'sv';
 
 function copy(locale: AppLocale, en: string, sv: string) {
@@ -88,6 +103,7 @@ export function StrengthSessionAssignmentDialog({
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
   const [assignedDate, setAssignedDate] = useState('');
   const [notes, setNotes] = useState('');
+  const [pushToGarmin, setPushToGarmin] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadingAthletes, setLoadingAthletes] = useState(false);
 
@@ -182,6 +198,7 @@ export function StrengthSessionAssignmentDialog({
         setSelectedAthletes([]);
         setAssignedDate(new Date().toISOString().split('T')[0]);
         setNotes('');
+        setPushToGarmin(false);
         setSelectedCoach('');
         // Reset scheduling
         setSchedulingOpen(false);
@@ -241,18 +258,69 @@ export function StrengthSessionAssignmentDialog({
         }),
       });
 
+      const data = (await response.json().catch(() => ({}))) as AssignmentsResponse;
+
       if (response.ok) {
-        toast.success(copy(locale, 'Session assigned!', 'Pass tilldelat!'), {
-          description: copy(
-            locale,
-            `Assigned to ${selectedAthletes.length} athlete(s).`,
-            `Tilldelat till ${selectedAthletes.length} atlet(er).`
-          ),
-        });
+        const assignedAthleteIds = (data.assignments ?? [])
+          .map((assignment) => assignment.athlete?.id ?? assignment.athleteId)
+          .filter((athleteId): athleteId is string => Boolean(athleteId));
+        const assignedCount = assignedAthleteIds.length || selectedAthletes.length;
+        const skippedCount = data.skipped?.length ?? 0;
+
+        if (pushToGarmin && assignedAthleteIds.length > 0) {
+          const garminResults = await Promise.allSettled(
+            assignedAthleteIds.map(async (athleteId) => {
+              const garminResponse = await fetch(`/api/strength-sessions/${sessionId}/push-garmin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...businessHeaders },
+                body: JSON.stringify({
+                  athleteId,
+                  scheduleDate: assignedDate,
+                }),
+              });
+              const garminData = (await garminResponse.json().catch(() => ({}))) as GarminPushResponse & { error?: string };
+              if (!garminResponse.ok) {
+                throw new Error(garminData.error || copy(locale, 'Garmin push failed', 'Garmin-skickning misslyckades'));
+              }
+              return garminData;
+            })
+          );
+
+          const successfulPushes = garminResults.filter((result) => result.status === 'fulfilled').length;
+          const failedPushes = garminResults.length - successfulPushes;
+          const scheduleWarnings = garminResults.filter(
+            (result) => result.status === 'fulfilled' && Boolean(result.value.scheduleWarning)
+          ).length;
+
+          if (failedPushes === 0) {
+            toast.success(copy(locale, 'Assigned and sent to Garmin', 'Tilldelat och skickat till Garmin'), {
+              description: copy(
+                locale,
+                `${successfulPushes} athlete(s) updated${scheduleWarnings ? `, ${scheduleWarnings} with calendar warning` : ''}${skippedCount ? `, ${skippedCount} skipped` : ''}.`,
+                `${successfulPushes} atlet(er) uppdaterade${scheduleWarnings ? `, ${scheduleWarnings} med kalendervarning` : ''}${skippedCount ? `, ${skippedCount} hoppades över` : ''}.`
+              ),
+            });
+          } else {
+            toast.warning(copy(locale, 'Assigned with Garmin warnings', 'Tilldelat med Garmin-varningar'), {
+              description: copy(
+                locale,
+                `${assignedCount} assigned. Garmin succeeded for ${successfulPushes} and failed for ${failedPushes}.`,
+                `${assignedCount} tilldelade. Garmin lyckades för ${successfulPushes} och misslyckades för ${failedPushes}.`
+              ),
+            });
+          }
+        } else {
+          toast.success(copy(locale, 'Session assigned!', 'Pass tilldelat!'), {
+            description: copy(
+              locale,
+              `Assigned to ${assignedCount} athlete(s)${skippedCount ? `, ${skippedCount} skipped` : ''}.`,
+              `Tilldelat till ${assignedCount} atlet(er)${skippedCount ? `, ${skippedCount} hoppades över` : ''}.`
+            ),
+          });
+        }
         setOpen(false);
         onAssigned?.();
       } else {
-        const data = await response.json();
         toast.error(copy(locale, 'Assignment failed', 'Tilldelning misslyckades'), {
           description: data.error || copy(locale, 'Could not assign the session.', 'Kunde inte tilldela passet.'),
         });
@@ -380,6 +448,29 @@ export function StrengthSessionAssignmentDialog({
           </CollapsibleContent>
         </Collapsible>
 
+        {/* Garmin Push */}
+        <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/30 p-3">
+          <Checkbox
+            id="pushToGarmin"
+            checked={pushToGarmin}
+            onCheckedChange={(checked) => setPushToGarmin(checked === true)}
+            className="mt-0.5"
+          />
+          <div className="space-y-1">
+            <Label htmlFor="pushToGarmin" className="flex cursor-pointer items-center gap-2 text-sm font-medium">
+              <Watch className="h-4 w-4" />
+              {copy(locale, 'Send to Garmin Connect', 'Skicka till Garmin Connect')}
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {copy(
+                locale,
+                'Connected athletes get the session on the selected date.',
+                'Anslutna atleter får passet på valt datum.'
+              )}
+            </p>
+          </div>
+        </div>
+
         {/* Responsible Coach Selection */}
         {coaches.length > 0 && (
           <div className="space-y-2">
@@ -438,7 +529,9 @@ export function StrengthSessionAssignmentDialog({
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {copy(locale, 'Assigning...', 'Tilldelar...')}
+              {pushToGarmin
+                ? copy(locale, 'Assigning and sending...', 'Tilldelar och skickar...')
+                : copy(locale, 'Assigning...', 'Tilldelar...')}
             </>
           ) : (
             <>

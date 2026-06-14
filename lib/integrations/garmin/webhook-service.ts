@@ -50,6 +50,18 @@ const ACTIVITY_TYPE_MAP: Record<string, { type: string; intensity: string }> = {
   PILATES: { type: 'RECOVERY', intensity: 'EASY' },
 }
 
+function isStrengthGarminActivity(activity: { activityType?: string | null }): boolean {
+  const activityType = activity.activityType?.toUpperCase() ?? ''
+  const mappedType = activity.activityType ? ACTIVITY_TYPE_MAP[activity.activityType]?.type : undefined
+
+  return (
+    mappedType === 'STRENGTH' ||
+    activityType.includes('STRENGTH') ||
+    activityType.includes('WEIGHT') ||
+    activityType.includes('GYM')
+  )
+}
+
 export type GarminWebhookPayload = {
   dailies?: Array<GarminDailySummary & { userId?: string }>
   activities?: Array<GarminActivity & {
@@ -662,6 +674,13 @@ async function processActivity(activity: GarminActivityPayload) {
   } catch (err) {
     logger.warn('Failed to auto-complete cardio assignment from Garmin', { error: err })
   }
+
+  // Auto-complete matching strength session assignment
+  try {
+    await completeStrengthAssignmentFromGarmin(clientId, startDate, activity)
+  } catch (err) {
+    logger.warn('Failed to auto-complete strength assignment from Garmin', { error: err })
+  }
 }
 
 async function processSleepData(sleep: GarminSleepData & { userId?: string }) {
@@ -1141,6 +1160,8 @@ async function completeCardioAssignmentFromGarmin(
   activityStart: Date,
   activity: GarminActivityPayload
 ) {
+  if (isStrengthGarminActivity(activity)) return
+
   // Find pending cardio assignments for this athlete around this date
   const dayStart = new Date(activityStart)
   dayStart.setHours(0, 0, 0, 0)
@@ -1187,5 +1208,60 @@ async function completeCardioAssignmentFromGarmin(
     duration: activity.activityDurationInSeconds,
     distance: activity.distanceInMeters,
     avgHR: activity.averageHeartRateInBeatsPerMinute,
+  })
+}
+
+/**
+ * Auto-complete a StrengthSessionAssignment when a matching Garmin strength
+ * activity arrives from a pushed workout.
+ */
+async function completeStrengthAssignmentFromGarmin(
+  clientId: string,
+  activityStart: Date,
+  activity: GarminActivityPayload
+) {
+  if (!isStrengthGarminActivity(activity)) return
+
+  const dayStart = new Date(activityStart)
+  dayStart.setHours(0, 0, 0, 0)
+  const dayEnd = new Date(dayStart)
+  dayEnd.setDate(dayEnd.getDate() + 1)
+
+  const assignments = await prisma.strengthSessionAssignment.findMany({
+    where: {
+      athleteId: clientId,
+      assignedDate: { gte: dayStart, lt: dayEnd },
+      status: { in: ['PENDING', 'SCHEDULED'] },
+      garminWorkoutId: { not: null },
+    },
+    select: {
+      id: true,
+      garminWorkoutId: true,
+      session: { select: { name: true } },
+    },
+    orderBy: { assignedDate: 'asc' },
+  })
+
+  if (assignments.length === 0) return
+
+  const assignment = assignments[0]
+
+  await prisma.strengthSessionAssignment.update({
+    where: { id: assignment.id },
+    data: {
+      status: 'COMPLETED',
+      completedAt: new Date(),
+      duration: activity.activityDurationInSeconds
+        ? Math.round(activity.activityDurationInSeconds / 60)
+        : null,
+    },
+  })
+
+  logger.info('Auto-completed strength assignment from Garmin activity', {
+    clientId,
+    assignmentId: assignment.id,
+    sessionName: assignment.session.name,
+    duration: activity.activityDurationInSeconds,
+    activityType: activity.activityType,
   })
 }
