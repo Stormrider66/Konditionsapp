@@ -881,7 +881,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             { key: 'zone-distribution-chart', node: <ZoneDistributionChart clientId={clientId} variant="glass" /> },
             { key: 'nutrition-dashboard', node: <NutritionDashboard clientId={clientId} /> },
             { key: 'integrated-recent-activity', node: <IntegratedRecentActivity clientId={clientId} variant="glass" /> },
-            { key: 'interval-results-history', node: <IntervalResultsHistory /> },
+            { key: 'interval-results-history', node: <IntervalResultsHistory maxAgeHours={24} hideWhenEmpty /> },
             { key: 'athlete-drill-list', node: <AthleteDrillList athletePosition={client.position ?? undefined} /> },
           ])
             .filter(item => isVisible(item.key))

@@ -357,7 +357,7 @@ export default async function AthleteDashboardPage() {
 
           <IntegratedRecentActivity clientId={clientId} variant="glass" />
 
-          <IntervalResultsHistory />
+          <IntervalResultsHistory maxAgeHours={24} hideWhenEmpty />
 
           <AthleteDrillList athletePosition={client.position ?? undefined} />
         </div>

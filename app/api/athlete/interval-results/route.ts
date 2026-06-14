@@ -5,12 +5,19 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function parsePositiveNumber(value: string | null): number | null {
+  if (!value) return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
 export async function GET(req: NextRequest) {
@@ -21,20 +28,37 @@ export async function GET(req: NextRequest) {
     locale = resolveRequestLocale(req, user.language)
 
     const { searchParams } = new URL(req.url)
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '20', 10)
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0
+      ? Math.min(parsedLimit, 100)
+      : 20
     const sportType = searchParams.get('sportType') || undefined
+    const maxAgeHours = parsePositiveNumber(searchParams.get('maxAgeHours'))
+      ?? (parsePositiveNumber(searchParams.get('maxAgeDays')) ?? 0) * 24
+    const recentCutoff = maxAgeHours > 0
+      ? new Date(Date.now() - maxAgeHours * 60 * 60 * 1000)
+      : null
 
     if (!clientId) {
       return NextResponse.json({ results: [] })
     }
 
+    const sessionWhere: Prisma.IntervalSessionWhereInput = {
+      status: 'ENDED',
+      ...(sportType ? { sportType } : {}),
+    }
+
+    if (recentCutoff) {
+      sessionWhere.OR = [
+        { endedAt: { gte: recentCutoff } },
+        { endedAt: null, startedAt: { gte: recentCutoff } },
+      ]
+    }
+
     const participations = await prisma.intervalSessionParticipant.findMany({
       where: {
         clientId,
-        session: {
-          status: 'ENDED',
-          ...(sportType ? { sportType } : {}),
-        },
+        session: sessionWhere,
       },
       include: {
         session: {
