@@ -7,6 +7,7 @@ import { Suspense } from 'react'
 import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
+import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -38,6 +39,23 @@ export default async function BusinessLiveHRPage({ params }: PageProps) {
     select: { id: true, name: true },
     orderBy: { name: 'asc' },
   })
+  const coachIds = await getCoachScopedIds(user.id, membership.businessId, membership.role)
+  const teamIds = teams.map((team) => team.id)
+  const athletes = await prisma.client.findMany({
+    where: {
+      businessId: membership.businessId,
+      OR: [
+        { userId: { in: coachIds } },
+        ...(teamIds.length > 0 ? [{ teamId: { in: teamIds } }] : []),
+      ],
+    },
+    select: {
+      id: true,
+      name: true,
+      team: { select: { name: true } },
+    },
+    orderBy: { name: 'asc' },
+  })
 
   return (
     <div className="container mx-auto py-8">
@@ -52,7 +70,7 @@ export default async function BusinessLiveHRPage({ params }: PageProps) {
       </div>
 
       <Suspense fallback={<SessionListSkeleton />}>
-        <LiveHRSessionList teams={teams} />
+        <LiveHRSessionList teams={teams} athletes={athletes} />
       </Suspense>
     </div>
   )

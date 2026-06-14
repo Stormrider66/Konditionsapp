@@ -6,6 +6,7 @@
 
 // Session statuses
 export type LiveHRSessionStatus = 'ACTIVE' | 'PAUSED' | 'ENDED'
+export type LiveHRMachineType = 'WATTBIKE' | 'CONCEPT2_ROW' | 'CONCEPT2_SKIERG' | 'CONCEPT2_BIKEERG'
 
 // Session creation input
 export interface CreateLiveHRSessionInput {
@@ -30,8 +31,9 @@ export interface LiveHRParticipantData {
   // Live cycling power (Wattbike); absent/null when the athlete isn't streaming
   // power. Optional so HR-only construction sites need no change.
   power?: number | null
-  cadence?: number | null
+  cadence?: number | null // rpm for bikes, spm for row/ski ergs
   powerZone?: number | null
+  machineType?: LiveHRMachineType | null
   lastUpdated: string | null
   isStale: boolean // true if no reading in last 10 seconds
   joinedAt: string
@@ -71,8 +73,9 @@ export interface PushHRReadingInput {
 // server-side, so the device only streams the reading.
 export interface PushPowerReadingInput {
   power: number
-  cadence?: number
+  cadence?: number // rpm for bikes, spm for row/ski ergs
   heartRate?: number // if the bike relays a paired strap
+  ergometerType?: LiveHRMachineType
   deviceId?: string
   timestamp?: string
 }
@@ -98,8 +101,11 @@ export interface LiveHRSessionListItem {
   teamName: string | null
   status: LiveHRSessionStatus
   startedAt: string
+  lastSignalAt: string | null
   participantCount: number
   activeParticipants: number
+  hasMachineSignal: boolean
+  isStale: boolean
 }
 
 // Zone thresholds for calculating zone from HR

@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { WattbikeClient } from '@/lib/integrations/wattbike';
+import type { LiveHRMachineType } from '@/lib/live-hr/types';
 
 const SESSION_POLL_MS = 15_000;
 const PUSH_INTERVAL_MS = 2_000;
@@ -22,9 +23,10 @@ const PUSH_INTERVAL_MS = 2_000;
 export function useLivePowerPush(
   client: WattbikeClient | null,
   enabled: boolean,
+  machineType?: LiveHRMachineType,
 ): { activeSessionId: string | null } {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const latestRef = useRef<{ power?: number; cadence?: number; heartRate?: number } | null>(null);
+  const latestRef = useRef<{ power?: number; cadence?: number; strokeRate?: number; heartRate?: number } | null>(null);
 
   // Track the most recent sample without re-rendering. The client may swap
   // mid-session (multi-erg workouts route per segment) — re-subscribe and drop
@@ -33,7 +35,7 @@ export function useLivePowerPush(
     latestRef.current = null;
     if (!client) return;
     const off = client.on('data', (s) => {
-      latestRef.current = { power: s.power, cadence: s.cadence, heartRate: s.heartRate };
+      latestRef.current = { power: s.power, cadence: s.cadence, strokeRate: s.strokeRate, heartRate: s.heartRate };
     });
     return off;
   }, [client]);
@@ -73,13 +75,18 @@ export function useLivePowerPush(
         credentials: 'same-origin',
         body: JSON.stringify({
           power: Math.round(s.power),
-          cadence: typeof s.cadence === 'number' ? Math.round(s.cadence) : undefined,
+          cadence: typeof s.cadence === 'number'
+            ? Math.round(s.cadence)
+            : typeof s.strokeRate === 'number'
+              ? Math.round(s.strokeRate)
+              : undefined,
           heartRate: typeof s.heartRate === 'number' ? Math.round(s.heartRate) : undefined,
+          ergometerType: machineType,
         }),
       }).catch(() => {});
     }, PUSH_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [enabled, activeSessionId]);
+  }, [enabled, activeSessionId, machineType]);
 
   return { activeSessionId };
 }

@@ -6,7 +6,7 @@
  * Client component for listing and creating sessions.
  */
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { CreateSessionDialog } from '@/components/coach/live-hr/CreateSessionDialog'
 import {
   GlassCard,
@@ -17,20 +17,29 @@ import {
 } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Users, Clock, Radio, ChevronRight } from 'lucide-react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { Users, Clock, Radio, ChevronRight, Square, Bike, WifiOff } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { toast } from 'sonner'
 import { LiveHRSessionListItem } from '@/lib/live-hr/types'
+import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 
 interface Team {
   id: string
   name: string
 }
 
+interface Athlete {
+  id: string
+  name: string
+  team?: {
+    name: string | null
+  } | null
+}
+
 interface LiveHRSessionListProps {
   teams: Team[]
+  athletes: Athlete[]
 }
 
 type AppLocale = 'en' | 'sv'
@@ -40,36 +49,51 @@ const COPY = {
     fetchError: 'Could not fetch sessions',
     createSuccess: 'Session created',
     createError: 'Could not create session',
+    endSuccess: 'Session ended',
+    endError: 'Could not end session',
     active: 'Active',
     all: 'All',
     activeSessions: 'Active sessions',
+    staleSessions: 'No live signal',
     allSessions: 'All sessions',
     pausedSessions: 'Paused sessions',
     noSessions: 'No sessions',
     emptyHint: 'Start a new session to begin monitoring athlete heart rates',
     paused: 'PAUSED',
     ended: 'ENDED',
+    noSignal: 'NO SIGNAL',
+    machine: 'Machine',
+    endSession: 'End',
     defaultSessionName: 'Live HR Session',
   },
   sv: {
     fetchError: 'Kunde inte hämta sessioner',
     createSuccess: 'Session skapad',
     createError: 'Kunde inte skapa session',
+    endSuccess: 'Session avslutad',
+    endError: 'Kunde inte avsluta sessionen',
     active: 'Aktiva',
     all: 'Alla',
     activeSessions: 'Aktiva sessioner',
+    staleSessions: 'Ingen live-signal',
     allSessions: 'Alla sessioner',
     pausedSessions: 'Pausade sessioner',
     noSessions: 'Inga sessioner',
     emptyHint: 'Starta en ny session för att börja övervaka atleters puls',
     paused: 'PAUSAD',
     ended: 'AVSLUTAD',
+    noSignal: 'INGEN SIGNAL',
+    machine: 'Maskin',
+    endSession: 'Avsluta',
     defaultSessionName: 'Live HR Session',
   },
 } as const
 
-export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
+export function LiveHRSessionList({ teams, athletes }: LiveHRSessionListProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
+  const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
   const [sessions, setSessions] = useState<LiveHRSessionListItem[]>([])
@@ -77,48 +101,60 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
   const [showEnded, setShowEnded] = useState(false)
 
   // Fetch sessions
-  useEffect(() => {
-    async function fetchSessions() {
-      try {
-        const res = await fetch(`/api/coach/live-hr/sessions?includeEnded=${showEnded}`)
-        const data = await res.json()
-        setSessions(data.sessions || [])
-      } catch {
-        toast.error(copy.fetchError)
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchSessions = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/coach/live-hr/sessions?includeEnded=${showEnded}`)
+      const data = await res.json()
+      setSessions(data.sessions || [])
+    } catch {
+      toast.error(copy.fetchError)
+    } finally {
+      setIsLoading(false)
     }
-
-    void fetchSessions()
   }, [copy.fetchError, showEnded])
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void fetchSessions()
+  }, [fetchSessions])
+
   // Create new session
-  const handleCreate = async (data: { name?: string; teamId?: string }) => {
+  const handleCreate = async (data: { name?: string; teamId?: string; participantIds?: string[] }) => {
     try {
       const res = await fetch('/api/coach/live-hr/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          businessSlug: pathBusinessSlug ?? undefined,
+        }),
       })
 
       if (!res.ok) throw new Error('Failed to create session')
 
       const { session } = await res.json()
 
-      // If team was selected, add all team members
-      if (data.teamId) {
-        await fetch(`/api/coach/live-hr/sessions/${session.id}/participants`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ teamId: data.teamId }),
-        })
-      }
-
       toast.success(copy.createSuccess)
-      router.push(`/coach/live-hr/${session.id}`)
+      router.push(`${basePath}/coach/live-hr/${session.id}`)
     } catch {
       toast.error(copy.createError)
+    }
+  }
+
+  const handleEndSession = async (sessionId: string) => {
+    try {
+      const res = await fetch(`/api/coach/live-hr/sessions/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'ENDED' }),
+      })
+
+      if (!res.ok) throw new Error('Failed to end session')
+
+      toast.success(copy.endSuccess)
+      await fetchSessions()
+    } catch {
+      toast.error(copy.endError)
     }
   }
 
@@ -130,7 +166,8 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
     )
   }
 
-  const activeSessions = sessions.filter((s) => s.status === 'ACTIVE')
+  const activeSessions = sessions.filter((s) => s.status === 'ACTIVE' && !s.isStale)
+  const staleSessions = sessions.filter((s) => s.status === 'ACTIVE' && s.isStale)
   const otherSessions = sessions.filter((s) => s.status !== 'ACTIVE')
 
   return (
@@ -155,7 +192,7 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
             {copy.all}
           </Button>
         </div>
-        <CreateSessionDialog teams={teams} onCreate={handleCreate} />
+        <CreateSessionDialog teams={teams} athletes={athletes} onCreate={handleCreate} />
       </div>
 
       {/* Active sessions */}
@@ -167,7 +204,36 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {activeSessions.map((session) => (
-              <SessionCard key={session.id} session={session} locale={locale} copy={copy} />
+              <SessionCard
+                key={session.id}
+                session={session}
+                locale={locale}
+                copy={copy}
+                basePath={basePath}
+                onEnd={handleEndSession}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Stale active sessions */}
+      {staleSessions.length > 0 && (
+        <div>
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-slate-900 dark:text-white">
+            <WifiOff className="h-5 w-5 text-slate-500" />
+            {copy.staleSessions}
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {staleSessions.map((session) => (
+              <SessionCard
+                key={session.id}
+                session={session}
+                locale={locale}
+                copy={copy}
+                basePath={basePath}
+                onEnd={handleEndSession}
+              />
             ))}
           </div>
         </div>
@@ -181,7 +247,13 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {otherSessions.map((session) => (
-              <SessionCard key={session.id} session={session} locale={locale} copy={copy} />
+              <SessionCard
+                key={session.id}
+                session={session}
+                locale={locale}
+                copy={copy}
+                basePath={basePath}
+              />
             ))}
           </div>
         </div>
@@ -196,7 +268,7 @@ export function LiveHRSessionList({ teams }: LiveHRSessionListProps) {
             <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
               {copy.emptyHint}
             </p>
-            <CreateSessionDialog teams={teams} onCreate={handleCreate} />
+            <CreateSessionDialog teams={teams} athletes={athletes} onCreate={handleCreate} />
           </GlassCardContent>
         </GlassCard>
       )}
@@ -208,51 +280,91 @@ function SessionCard({
   session,
   locale,
   copy,
+  basePath,
+  onEnd,
 }: {
   session: LiveHRSessionListItem
   locale: AppLocale
   copy: (typeof COPY)[AppLocale]
+  basePath: string
+  onEnd?: (sessionId: string) => void
 }) {
+  const router = useRouter()
   const isLive = session.status === 'ACTIVE'
   const timeLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   return (
-    <Link href={`/coach/live-hr/${session.id}`}>
-      <GlassCard glow={isLive ? 'red' : 'blue'} className="hover:shadow-lg transition-all cursor-pointer border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/10">
-        <GlassCardHeader className="pb-2">
-          <div className="flex items-center justify-between gap-3">
-            <GlassCardTitle className="text-lg truncate text-slate-900 dark:text-white">
-              {session.name || copy.defaultSessionName}
-            </GlassCardTitle>
-            {session.status === 'ACTIVE' ? (
-              <Badge variant="destructive" className="animate-pulse bg-red-600 text-white border-none">LIVE</Badge>
-            ) : session.status === 'PAUSED' ? (
-              <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">{copy.paused}</Badge>
-            ) : (
-              <Badge variant="outline" className="border-slate-350 dark:border-white/10 text-slate-600 dark:text-slate-400">{copy.ended}</Badge>
+    <GlassCard
+      glow={isLive && !session.isStale ? 'red' : 'blue'}
+      className="hover:shadow-lg transition-all cursor-pointer border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/10"
+      role="button"
+      tabIndex={0}
+      onClick={() => router.push(`${basePath}/coach/live-hr/${session.id}`)}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          router.push(`${basePath}/coach/live-hr/${session.id}`)
+        }
+      }}
+    >
+      <GlassCardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-3">
+          <GlassCardTitle className="text-lg truncate text-slate-900 dark:text-white">
+            {session.name || copy.defaultSessionName}
+          </GlassCardTitle>
+          {session.status === 'ACTIVE' && session.isStale ? (
+            <Badge variant="outline" className="border-slate-350 dark:border-white/10 text-slate-600 dark:text-slate-400">{copy.noSignal}</Badge>
+          ) : session.status === 'ACTIVE' ? (
+            <Badge variant="destructive" className="animate-pulse bg-red-600 text-white border-none">LIVE</Badge>
+          ) : session.status === 'PAUSED' ? (
+            <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">{copy.paused}</Badge>
+          ) : (
+            <Badge variant="outline" className="border-slate-350 dark:border-white/10 text-slate-600 dark:text-slate-400">{copy.ended}</Badge>
+          )}
+        </div>
+        {session.teamName && (
+          <GlassCardDescription className="text-slate-500 dark:text-slate-400">{session.teamName}</GlassCardDescription>
+        )}
+      </GlassCardHeader>
+      <GlassCardContent>
+        <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex items-center gap-1">
+              <Users className="h-4 w-4 text-blue-500" />
+              <span>
+                {session.activeParticipants}/{session.participantCount}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4 text-emerald-500" />
+              <span>{new Date(session.startedAt).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+            {session.hasMachineSignal && (
+              <div className="flex items-center gap-1">
+                <Bike className="h-4 w-4 text-amber-500" />
+                <span>{copy.machine}</span>
+              </div>
             )}
           </div>
-          {session.teamName && (
-            <GlassCardDescription className="text-slate-500 dark:text-slate-400">{session.teamName}</GlassCardDescription>
-          )}
-        </GlassCardHeader>
-        <GlassCardContent>
-          <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1">
-                <Users className="h-4 w-4 text-blue-500" />
-                <span>
-                  {session.activeParticipants}/{session.participantCount}
-                </span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="h-4 w-4 text-emerald-500" />
-                <span>{new Date(session.startedAt).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-            </div>
-            <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4 shrink-0" />
+        </div>
+        {session.isStale && onEnd && (
+          <div className="mt-4 flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-slate-250 dark:border-white/10 text-slate-700 dark:text-slate-300"
+              onClick={(event) => {
+                event.stopPropagation()
+                onEnd(session.id)
+              }}
+            >
+              <Square className="h-3.5 w-3.5 mr-2" />
+              {copy.endSession}
+            </Button>
           </div>
-        </GlassCardContent>
-      </GlassCard>
-    </Link>
+        )}
+      </GlassCardContent>
+    </GlassCard>
   )
 }

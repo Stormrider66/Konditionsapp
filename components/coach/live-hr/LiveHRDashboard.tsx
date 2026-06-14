@@ -12,6 +12,7 @@ import { SessionControls } from './SessionControls'
 import { SessionSummary } from './SessionSummary'
 import { LiveHRGrid } from './LiveHRGrid'
 import { AddParticipantDialog } from './AddParticipantDialog'
+import { MachineCapturePanel } from './MachineCapturePanel'
 import { LiveHRStreamData, LiveHRSessionStatus } from '@/lib/live-hr/types'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
@@ -231,6 +232,12 @@ export function LiveHRDashboard({
         sessionName={data.sessionName}
         status={data.status}
         onStatusChange={handleStatusChange}
+      />
+
+      <MachineCapturePanel
+        sessionId={sessionId}
+        participants={data.participants}
+        disabled={data.status !== 'ACTIVE'}
       />
 
       {/* Summary */}

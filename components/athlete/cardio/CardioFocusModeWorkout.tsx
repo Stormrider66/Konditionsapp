@@ -59,7 +59,7 @@ import { useHeartRateBand } from '@/hooks/use-heart-rate-band'
 import { useLivePowerPush } from '@/hooks/use-live-power-push'
 import { WattbikeClient } from '@/lib/integrations/wattbike'
 import { ErgMachinePanel, ergEquipmentLabel } from './ErgMachinePanel'
-import { ZONE_COLORS } from '@/lib/live-hr/types'
+import { ZONE_COLORS, type LiveHRMachineType } from '@/lib/live-hr/types'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 import { useTranslations, useLocale } from '@/i18n/client'
@@ -151,6 +151,14 @@ type ViewState = 'timer' | 'logging' | 'complete'
 
 function isWorkType(type?: string): boolean {
   return type === 'INTERVAL' || type === 'STEADY' || type === 'HILL'
+}
+
+function liveMachineTypeForEquipment(equipment?: string | null): LiveHRMachineType | undefined {
+  if (equipment === 'ROW') return 'CONCEPT2_ROW'
+  if (equipment === 'SKI_ERG') return 'CONCEPT2_SKIERG'
+  if (equipment === 'BIKE_ERG') return 'CONCEPT2_BIKEERG'
+  if (equipment === 'WATTBIKE') return 'WATTBIKE'
+  return undefined
 }
 
 export function CardioFocusModeWorkout({
@@ -340,8 +348,9 @@ export function CardioFocusModeWorkout({
   const activeDevice = fleet.deviceFor(currentSegment?.equipment)
   const activeClient = activeDevice?.client ?? null
   const activeConnected = activeDevice?.status === 'connected'
+  const liveMachineType = liveMachineTypeForEquipment(activeDevice?.slot || currentSegment?.equipment)
   // Stream power to the coach's live team grid when the athlete is in a session.
-  const { activeSessionId: liveSessionId } = useLivePowerPush(activeClient, activeConnected)
+  const { activeSessionId: liveSessionId } = useLivePowerPush(activeClient, activeConnected, liveMachineType)
 
   // Current band HR mapped onto the athlete's zones (lactate-test zones when
   // available, otherwise Garmin %-of-max bands) for the colored strip display.

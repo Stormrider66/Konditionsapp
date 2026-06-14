@@ -13,8 +13,28 @@ import {
   LiveHRSessionListItem,
   LiveHRParticipantData,
   LiveHRSessionStatus,
+  LiveHRMachineType,
   STALE_THRESHOLD_MS,
 } from './types'
+
+const STALE_SESSION_MS = 15 * 60 * 1000
+const MACHINE_DEVICE_PREFIX = 'machine:'
+
+function parseMachineType(deviceId: string | null | undefined): LiveHRMachineType | null {
+  if (!deviceId?.startsWith(MACHINE_DEVICE_PREFIX)) return null
+  const value = deviceId.slice(MACHINE_DEVICE_PREFIX.length).split(':')[0]
+
+  if (
+    value === 'WATTBIKE' ||
+    value === 'CONCEPT2_ROW' ||
+    value === 'CONCEPT2_SKIERG' ||
+    value === 'CONCEPT2_BIKEERG'
+  ) {
+    return value
+  }
+
+  return null
+}
 
 /**
  * Create a new live HR monitoring session
@@ -64,7 +84,7 @@ export async function getSession(sessionId: string): Promise<LiveHRSessionFull |
           client: { select: { id: true, name: true } },
           readings: {
             orderBy: { timestamp: 'desc' },
-            take: 1,
+            take: 12,
           },
         },
       },
@@ -76,6 +96,8 @@ export async function getSession(sessionId: string): Promise<LiveHRSessionFull |
   const now = Date.now()
   const participants: LiveHRParticipantData[] = session.participants.map((p) => {
     const latestReading = p.readings[0]
+    const latestHR = p.readings.find((r) => r.heartRate != null)
+    const latestPower = p.readings.find((r) => r.power != null)
     const lastUpdated = latestReading?.timestamp ?? p.lastReading
     const isStale = !lastUpdated || now - new Date(lastUpdated).getTime() > STALE_THRESHOLD_MS
 
@@ -83,8 +105,12 @@ export async function getSession(sessionId: string): Promise<LiveHRSessionFull |
       id: p.id,
       clientId: p.client.id,
       clientName: p.client.name,
-      heartRate: latestReading?.heartRate ?? null,
-      zone: latestReading?.zone ?? null,
+      heartRate: latestHR?.heartRate ?? null,
+      zone: latestHR?.zone ?? null,
+      power: latestPower?.power ?? null,
+      cadence: latestPower?.cadence ?? null,
+      powerZone: latestPower?.powerZone ?? null,
+      machineType: parseMachineType(latestPower?.deviceId),
       lastUpdated: lastUpdated?.toISOString() ?? null,
       isStale,
       joinedAt: p.joinedAt.toISOString(),
@@ -123,7 +149,7 @@ export async function listCoachSessions(
         include: {
           readings: {
             orderBy: { timestamp: 'desc' },
-            take: 1,
+            take: 12,
           },
         },
       },
@@ -135,11 +161,28 @@ export async function listCoachSessions(
   const now = Date.now()
 
   return sessions.map((session) => {
+    let lastSignalAtMs: number | null = null
+    let hasMachineSignal = false
+
     const activeParticipants = session.participants.filter((p) => {
       const latestReading = p.readings[0]
+      const latestPower = p.readings.find((reading) => reading.power != null)
       const lastUpdated = latestReading?.timestamp ?? p.lastReading
-      return lastUpdated && now - new Date(lastUpdated).getTime() <= STALE_THRESHOLD_MS
+      const lastUpdatedMs = lastUpdated?.getTime() ?? null
+      if (lastUpdatedMs && (!lastSignalAtMs || lastUpdatedMs > lastSignalAtMs)) {
+        lastSignalAtMs = lastUpdatedMs
+      }
+      if (latestPower) {
+        hasMachineSignal = true
+      }
+
+      return (
+        lastUpdated &&
+        now - new Date(lastUpdated).getTime() <= STALE_THRESHOLD_MS &&
+        (latestReading?.heartRate != null || latestReading?.power != null)
+      )
     }).length
+    const sessionAgeMs = now - session.startedAt.getTime()
 
     return {
       id: session.id,
@@ -147,8 +190,11 @@ export async function listCoachSessions(
       teamName: session.team?.name ?? null,
       status: session.status as LiveHRSessionStatus,
       startedAt: session.startedAt.toISOString(),
+      lastSignalAt: lastSignalAtMs ? new Date(lastSignalAtMs).toISOString() : null,
       participantCount: session.participants.length,
       activeParticipants,
+      hasMachineSignal,
+      isStale: session.status === 'ACTIVE' && activeParticipants === 0 && sessionAgeMs > STALE_SESSION_MS,
     }
   })
 }

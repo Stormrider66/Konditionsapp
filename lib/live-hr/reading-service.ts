@@ -9,6 +9,7 @@ import { logger } from '@/lib/logger'
 import {
   PushHRReadingInput,
   PushPowerReadingInput,
+  LiveHRMachineType,
   LiveHRStreamData,
   LiveHRParticipantData,
   LiveHRSessionStatus,
@@ -16,6 +17,84 @@ import {
   getPowerZone,
 } from './types'
 import { getAthleteZones } from '@/lib/integrations/zone-distribution-service'
+
+const DEFAULT_MACHINE_TYPE: LiveHRMachineType = 'WATTBIKE'
+const MACHINE_DEVICE_PREFIX = 'machine:'
+
+function normalizeMachineType(type: string | null | undefined): LiveHRMachineType {
+  if (
+    type === 'WATTBIKE' ||
+    type === 'CONCEPT2_ROW' ||
+    type === 'CONCEPT2_SKIERG' ||
+    type === 'CONCEPT2_BIKEERG'
+  ) {
+    return type
+  }
+
+  return DEFAULT_MACHINE_TYPE
+}
+
+function buildMachineDeviceId(input: PushPowerReadingInput): string | undefined {
+  const machineType = normalizeMachineType(input.ergometerType)
+  if (!input.deviceId) return `${MACHINE_DEVICE_PREFIX}${machineType}`
+  if (input.deviceId.startsWith(MACHINE_DEVICE_PREFIX)) return input.deviceId
+  return `${MACHINE_DEVICE_PREFIX}${machineType}:${input.deviceId}`
+}
+
+function parseMachineType(deviceId: string | null | undefined): LiveHRMachineType | null {
+  if (!deviceId?.startsWith(MACHINE_DEVICE_PREFIX)) return null
+  return normalizeMachineType(deviceId.slice(MACHINE_DEVICE_PREFIX.length).split(':')[0])
+}
+
+async function calculatePowerZone(clientId: string, input: PushPowerReadingInput): Promise<number | null> {
+  const ergometerType = normalizeMachineType(input.ergometerType)
+  const threshold = await prisma.ergometerThreshold.findUnique({
+    where: { clientId_ergometerType: { clientId, ergometerType } },
+    select: { ftp: true },
+  })
+
+  return getPowerZone(input.power, threshold?.ftp ?? null)
+}
+
+async function calculateHRZone(clientId: string, heartRate: number | undefined): Promise<number | null> {
+  if (typeof heartRate !== 'number') return null
+
+  const athleteZones = await getAthleteZones(clientId)
+  if (!athleteZones) return null
+
+  return getZoneFromHR(heartRate, athleteZones.zones, athleteZones.maxHR)
+}
+
+async function writePowerReading(
+  participantId: string,
+  clientId: string,
+  input: PushPowerReadingInput
+): Promise<void> {
+  const [powerZone, hrZone] = await Promise.all([
+    calculatePowerZone(clientId, input),
+    calculateHRZone(clientId, input.heartRate),
+  ])
+  const timestamp = input.timestamp ? new Date(input.timestamp) : new Date()
+
+  await prisma.$transaction([
+    prisma.liveHRReading.create({
+      data: {
+        participantId,
+        heartRate: input.heartRate ?? null,
+        zone: hrZone,
+        power: Math.round(input.power),
+        cadence: typeof input.cadence === 'number' ? Math.round(input.cadence) : null,
+        powerZone,
+        deviceId: buildMachineDeviceId(input),
+        timestamp,
+      },
+    }),
+    prisma.liveHRParticipant.update({
+      where: { id: participantId },
+      data: { lastReading: timestamp },
+    }),
+  ])
+}
 
 /**
  * Push an HR reading from an athlete
@@ -95,46 +174,40 @@ export async function pushPowerReading(
 
     if (!participant) return false
 
-    // Power zone from the athlete's Wattbike FTP, if one is on file.
-    const threshold = await prisma.ergometerThreshold.findUnique({
-      where: { clientId_ergometerType: { clientId, ergometerType: 'WATTBIKE' } },
-      select: { ftp: true },
-    })
-    const powerZone = getPowerZone(input.power, threshold?.ftp ?? null)
-
-    // HR zone too, if the bike relays a paired strap.
-    let hrZone: number | null = null
-    if (typeof input.heartRate === 'number') {
-      const athleteZones = await getAthleteZones(clientId)
-      if (athleteZones) {
-        hrZone = getZoneFromHR(input.heartRate, athleteZones.zones, athleteZones.maxHR)
-      }
-    }
-
-    const timestamp = input.timestamp ? new Date(input.timestamp) : new Date()
-
-    await prisma.$transaction([
-      prisma.liveHRReading.create({
-        data: {
-          participantId: participant.id,
-          heartRate: input.heartRate ?? null,
-          zone: hrZone,
-          power: Math.round(input.power),
-          cadence: typeof input.cadence === 'number' ? Math.round(input.cadence) : null,
-          powerZone,
-          deviceId: input.deviceId,
-          timestamp,
-        },
-      }),
-      prisma.liveHRParticipant.update({
-        where: { id: participant.id },
-        data: { lastReading: timestamp },
-      }),
-    ])
+    await writePowerReading(participant.id, clientId, input)
 
     return true
   } catch (error) {
     logger.error('Failed to push power reading', { clientId }, error)
+    return false
+  }
+}
+
+/**
+ * Push a live machine reading from a coach-side capture station. The coach owns
+ * the session; the reading is attributed to the selected participant.
+ */
+export async function pushCoachPowerReading(
+  coachId: string,
+  sessionId: string,
+  clientId: string,
+  input: PushPowerReadingInput
+): Promise<boolean> {
+  try {
+    const participant = await prisma.liveHRParticipant.findFirst({
+      where: {
+        sessionId,
+        clientId,
+        session: { coachId, status: 'ACTIVE' },
+      },
+    })
+
+    if (!participant) return false
+
+    await writePowerReading(participant.id, clientId, input)
+    return true
+  } catch (error) {
+    logger.error('Failed to push coach power reading', { coachId, sessionId, clientId }, error)
     return false
   }
 }
@@ -204,6 +277,7 @@ export async function getSessionStreamData(
       power: latestPower?.power ?? null,
       cadence: latestPower?.cadence ?? null,
       powerZone: latestPower?.powerZone ?? null,
+      machineType: parseMachineType(latestPower?.deviceId),
       lastUpdated: lastUpdated?.toISOString() ?? null,
       isStale,
       joinedAt: p.joinedAt.toISOString(),
@@ -308,11 +382,20 @@ export async function autoEndInactiveSessions(): Promise<number> {
   const inactiveSessions = await prisma.liveHRSession.findMany({
     where: {
       status: 'ACTIVE',
-      participants: {
-        every: {
-          lastReading: { lt: cutoff },
+      startedAt: { lt: cutoff },
+      OR: [
+        { participants: { none: {} } },
+        {
+          participants: {
+            every: {
+              OR: [
+                { lastReading: null },
+                { lastReading: { lt: cutoff } },
+              ],
+            },
+          },
         },
-      },
+      ],
     },
     select: { id: true },
   })

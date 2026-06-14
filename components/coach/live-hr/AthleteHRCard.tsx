@@ -46,12 +46,22 @@ const COPY: Record<AppLocale, {
 export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
-  const { clientName, heartRate, zone, isStale, power, cadence, powerZone } = participant
+  const { clientName, heartRate, zone, isStale, power, cadence, powerZone, machineType } = participant
 
   const zoneNames = locale === 'sv' ? ZONE_NAMES_SV : ZONE_NAMES_EN
   const zoneColor = zone ? ZONE_COLORS[zone as keyof typeof ZONE_COLORS] : '#6B7280'
   const zoneName = zone ? zoneNames[zone as keyof typeof zoneNames] : copy.unknown
   const powerColor = powerZone ? ZONE_COLORS[powerZone as keyof typeof ZONE_COLORS] : '#6B7280'
+  const machineLabel = machineType === 'CONCEPT2_ROW'
+    ? 'Concept2 RowErg'
+    : machineType === 'CONCEPT2_SKIERG'
+      ? 'Concept2 SkiErg'
+      : machineType === 'CONCEPT2_BIKEERG'
+        ? 'Concept2 BikeErg'
+        : machineType === 'WATTBIKE'
+          ? 'Wattbike'
+          : null
+  const cadenceUnit = machineType === 'CONCEPT2_ROW' || machineType === 'CONCEPT2_SKIERG' ? 'spm' : 'rpm'
 
   const hasData = heartRate != null || power != null
   // Accent off HR when present, otherwise off power — so power-only riders light up too.
@@ -117,25 +127,29 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
           ) : null}
         </div>
 
-        {/* Live power (Wattbike) */}
+        {/* Live machine power */}
         {power != null && (
-          <div
-            className={cn(
-              'flex items-center justify-center gap-2',
-              heartRate != null && 'mt-2 border-t border-slate-200 dark:border-white/5 pt-2'
+          <div className={cn(heartRate != null && 'mt-2 border-t border-slate-200 dark:border-white/5 pt-2')}>
+            {machineLabel && (
+              <div className="mb-1 text-center text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                {machineLabel}
+              </div>
             )}
-          >
-            <Bike className="h-5 w-5" style={{ color: powerColor }} />
-            <span
-              className={cn('font-bold tabular-nums', heartRate != null ? 'text-2xl' : 'text-4xl')}
-              style={{ color: powerColor }}
+            <div
+              className="flex items-center justify-center gap-2"
             >
-              {power}
-            </span>
-            <span className="text-slate-500 dark:text-slate-400 text-sm">W</span>
-            {cadence != null && (
-              <span className="text-slate-500 dark:text-slate-400 text-xs">· {cadence} rpm</span>
-            )}
+              <Bike className="h-5 w-5" style={{ color: powerColor }} />
+              <span
+                className={cn('font-bold tabular-nums', heartRate != null ? 'text-2xl' : 'text-4xl')}
+                style={{ color: powerColor }}
+              >
+                {power}
+              </span>
+              <span className="text-slate-500 dark:text-slate-400 text-sm">W</span>
+              {cadence != null && (
+                <span className="text-slate-500 dark:text-slate-400 text-xs">· {cadence} {cadenceUnit}</span>
+              )}
+            </div>
           </div>
         )}
 
