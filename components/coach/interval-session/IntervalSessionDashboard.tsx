@@ -202,6 +202,15 @@ export function IntervalSessionDashboard({
   const isTimingActive = data.status === 'ACTIVE'
   const isLactateEntry = data.status === 'LACTATE_ENTRY'
   const isEnded = data.status === 'ENDED'
+  const currentIntervalSplits = data.participants
+    .map((participant) =>
+      participant.laps.find((lap) => lap.intervalNumber === data.currentInterval)?.splitTimeMs
+    )
+    .filter((split): split is number => typeof split === 'number')
+  const closedIntervalElapsedMs =
+    data.summary.allTapped && currentIntervalSplits.length > 0
+      ? Math.max(...currentIntervalSplits)
+      : null
 
   return (
     <div className="space-y-4">
@@ -282,6 +291,7 @@ export function IntervalSessionDashboard({
         restMode={data.restMode}
         groupRestStartedAt={data.groupRestStartedAt}
         allTapped={data.summary.allTapped}
+        closedIntervalElapsedMs={closedIntervalElapsedMs}
         onStatusChange={handleStatusChange}
         onAutoAdvance={handleAutoAdvance}
       />

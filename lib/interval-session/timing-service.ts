@@ -52,15 +52,29 @@ export async function recordLap(
     intervalNumber = session.currentInterval
   }
 
-  // Calculate split time from previous cumulative
+  // Calculate split time from previous cumulative.
   const previousLap = participant.laps[0] // Already ordered desc
   const previousCumulativeMs = previousLap?.cumulativeMs ?? 0
-  let splitTimeMs = cumulativeMs - previousCumulativeMs
+  const timerStartedAt = session.timerStartedAt?.getTime() ?? null
+  const timerWasResetAfterPreviousLap = !!(
+    previousLap &&
+    timerStartedAt &&
+    timerStartedAt > previousLap.recordedAt.getTime()
+  )
+  let splitTimeMs =
+    restMode !== 'INDIVIDUAL' && timerWasResetAfterPreviousLap
+      ? cumulativeMs
+      : cumulativeMs - previousCumulativeMs
 
   // In INDIVIDUAL/GROUP rest mode, subtract rest duration from split
   // (split = total elapsed since last lap, which includes rest)
   const protocol = session.protocol as { restDurationSeconds?: number; intervalCount?: number } | null
-  if (previousLap && protocol?.restDurationSeconds && restMode !== 'NONE') {
+  if (
+    previousLap &&
+    protocol?.restDurationSeconds &&
+    restMode !== 'NONE' &&
+    !timerWasResetAfterPreviousLap
+  ) {
     const restMs = protocol.restDurationSeconds * 1000
     splitTimeMs = Math.max(0, splitTimeMs - restMs)
   }

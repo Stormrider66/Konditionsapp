@@ -19,6 +19,7 @@ interface IntervalSessionControlsProps {
   restMode: RestMode
   groupRestStartedAt: string | null
   allTapped: boolean
+  closedIntervalElapsedMs: number | null
   onStatusChange: () => void
   onAutoAdvance: () => void
 }
@@ -50,6 +51,7 @@ export function IntervalSessionControls({
   restMode,
   groupRestStartedAt,
   allTapped,
+  closedIntervalElapsedMs,
   onStatusChange,
   onAutoAdvance,
 }: IntervalSessionControlsProps) {
@@ -68,28 +70,34 @@ export function IntervalSessionControls({
 
   // Client-side timer
   useEffect(() => {
-    if (status === 'ACTIVE' && timerStartedAt) {
-      const startTime = new Date(timerStartedAt).getTime()
-
-      const tick = () => {
-        setElapsed(Date.now() - startTime)
-      }
-
-      tick()
-      intervalRef.current = setInterval(tick, 100)
-
-      return () => {
-        if (intervalRef.current) clearInterval(intervalRef.current)
-      }
-    } else if (status === 'SETUP') {
-      setElapsed(0)
+    if (closedIntervalElapsedMs !== null || status !== 'ACTIVE' || !timerStartedAt) {
+      return
     }
-  }, [status, timerStartedAt])
+
+    const startTime = new Date(timerStartedAt).getTime()
+
+    const tick = () => {
+      setElapsed(Date.now() - startTime)
+    }
+
+    tick()
+    intervalRef.current = setInterval(tick, 100)
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current)
+    }
+  }, [status, timerStartedAt, closedIntervalElapsedMs])
+
+  const groupRestCountdownEnabled = !!(
+    status === 'ACTIVE' &&
+    restMode === 'GROUP' &&
+    groupRestStartedAt &&
+    protocol?.restDurationSeconds
+  )
 
   // Group rest countdown
   useEffect(() => {
-    if (restMode !== 'GROUP' || !groupRestStartedAt || !protocol?.restDurationSeconds) {
-      setGroupRestRemaining(null)
+    if (!groupRestCountdownEnabled || !groupRestStartedAt || !protocol?.restDurationSeconds) {
       return
     }
 
@@ -111,7 +119,7 @@ export function IntervalSessionControls({
     return () => {
       if (restIntervalRef.current) clearInterval(restIntervalRef.current)
     }
-  }, [restMode, groupRestStartedAt, protocol?.restDurationSeconds, onAutoAdvance])
+  }, [groupRestCountdownEnabled, groupRestStartedAt, protocol?.restDurationSeconds, onAutoAdvance])
 
   const handleStart = async () => {
     setLoading(true)
@@ -194,10 +202,12 @@ export function IntervalSessionControls({
       ? copy(locale, `Interval ${currentInterval} / ${protocol.intervalCount}`, `Intervall ${currentInterval} / ${protocol.intervalCount}`)
       : copy(locale, `Interval ${currentInterval}`, `Intervall ${currentInterval}`)
 
-  const isGroupResting = restMode === 'GROUP' && groupRestRemaining !== null && groupRestRemaining > 0
+  const effectiveGroupRestRemaining = groupRestCountdownEnabled ? groupRestRemaining : null
+  const isGroupResting = effectiveGroupRestRemaining !== null && effectiveGroupRestRemaining > 0
   const restProgress = isGroupResting && protocol?.restDurationSeconds
-    ? 1 - groupRestRemaining / protocol.restDurationSeconds
+    ? 1 - effectiveGroupRestRemaining / protocol.restDurationSeconds
     : 0
+  const displayElapsed = status === 'SETUP' ? 0 : closedIntervalElapsedMs ?? elapsed
 
   // Set glow color dynamically depending on the current status
   const glowColor = status === 'ACTIVE' ? 'red' : (status === 'LACTATE_ENTRY' ? 'emerald' : 'blue')
@@ -211,7 +221,7 @@ export function IntervalSessionControls({
             <>
               <div className="text-sm text-slate-550 dark:text-slate-400 mb-1 font-medium">{copy(locale, 'Group rest', 'Gruppvila')}</div>
               <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums text-amber-600 dark:text-amber-400">
-                {formatCountdown(groupRestRemaining)}
+                {formatCountdown(effectiveGroupRestRemaining ?? 0)}
               </div>
               {/* Progress bar */}
               <div className="w-full max-w-xs mx-auto mt-2 h-1.5 bg-slate-100 dark:bg-slate-950/40 rounded-full overflow-hidden">
@@ -225,7 +235,7 @@ export function IntervalSessionControls({
           ) : (
             <>
               <div className="text-4xl sm:text-5xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
-                {formatTime(elapsed)}
+                {formatTime(displayElapsed)}
               </div>
               <div className="text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{intervalLabel}</div>
             </>

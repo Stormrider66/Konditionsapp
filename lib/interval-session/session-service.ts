@@ -346,9 +346,14 @@ export async function advanceInterval(
 
   if (!existing || existing.status === 'ENDED') return null
 
+  const restMode = ((existing as Record<string, unknown>).restMode as RestMode | undefined) || 'NONE'
   const advanceData: Record<string, unknown> = {
     currentInterval: existing.currentInterval + 1,
     status: 'ACTIVE',
+  }
+
+  if (restMode !== 'INDIVIDUAL') {
+    advanceData.timerStartedAt = new Date()
   }
 
   // Only reset groupRestStartedAt if the column exists (rest mode is enabled)
