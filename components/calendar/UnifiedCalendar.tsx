@@ -1589,6 +1589,7 @@ function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemPr
     AD_HOC: 'border-l-teal-500',
     WOD: 'border-l-orange-500',
     GARMIN: 'border-l-cyan-500',
+    QUICK_ERG: 'border-l-lime-500',
   }
 
   return (
@@ -1611,6 +1612,7 @@ function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemPr
           {item.type === 'CALENDAR_EVENT' && (item.metadata.eventType as string)?.replace(/_/g, ' ').toLowerCase()}
           {item.type === 'AD_HOC' && 'ad-hoc'}
           {item.type === 'WOD' && 'wod'}
+          {item.type === 'QUICK_ERG' && 'Quick Erg'}
           {item.type === 'GARMIN' &&
             (item.metadata.deviceName
               ? `Garmin ${item.metadata.deviceName as string}`

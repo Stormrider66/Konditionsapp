@@ -17826,6 +17826,7 @@
         "workouts": "Workouts",
         "aiWorkouts": "AI Workouts",
         "adhocWorkouts": "Ad-hoc Workouts",
+        "quickErg": "Quick Erg",
         "races": "Races",
         "events": "Events",
         "fieldTests": "Field Tests",
@@ -17855,6 +17856,9 @@
             "fun": "Fun"
           },
           "title": "AI Workout"
+        },
+        "quickErg": {
+          "title": "Quick Erg"
         },
         "race": {
           "target": "Target",
@@ -17934,6 +17938,20 @@
         "network": "Network error"
       },
       "praiseMessage": "Great job on {title}!",
+      "quickErg": {
+        "title": "Quick Erg",
+        "completed": "Completed",
+        "workoutTypeFallback": "Erg",
+        "time": "Time",
+        "distance": "Distance",
+        "avgPower": "Avg power",
+        "maxPower": "Max power",
+        "heartRate": "Avg heart rate",
+        "maxHeartRate": "Max heart rate",
+        "calories": "Calories",
+        "rpe": "RPE",
+        "notes": "Notes"
+      },
       "workout": {
         "title": "Workout",
         "loading": "Loading workout...",

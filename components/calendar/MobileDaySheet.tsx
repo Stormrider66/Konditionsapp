@@ -144,6 +144,7 @@ export function MobileDaySheet({
 
   const workouts = items.filter((i) => i.type === 'WORKOUT')
   const adHocWorkouts = items.filter((i) => i.type === 'AD_HOC')
+  const quickErgSessions = items.filter((i) => i.type === 'QUICK_ERG')
   const races = items.filter((i) => i.type === 'RACE')
   const events = items.filter((i) => i.type === 'CALENDAR_EVENT')
   const fieldTests = items.filter((i) => i.type === 'FIELD_TEST')
@@ -298,6 +299,21 @@ export function MobileDaySheet({
                       workout={workout}
                       isSelected={selectedItem?.id === workout.id}
                       onClick={() => onItemClick(workout)}
+                      isGlass={isGlass}
+                      locale={appLocale}
+                    />
+                  ))}
+                </Section>
+              )}
+
+              {quickErgSessions.length > 0 && (
+                <Section title="Quick Erg" count={quickErgSessions.length} isGlass={isGlass}>
+                  {quickErgSessions.map((session) => (
+                    <WorkoutCard
+                      key={session.id}
+                      workout={session}
+                      isSelected={selectedItem?.id === session.id}
+                      onClick={() => onItemClick(session)}
                       isGlass={isGlass}
                       locale={appLocale}
                     />

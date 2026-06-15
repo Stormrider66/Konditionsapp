@@ -18186,6 +18186,7 @@
         "workouts": "Pass",
         "aiWorkouts": "AI-pass",
         "adhocWorkouts": "Snabbpass",
+        "quickErg": "Quick Erg",
         "races": "Tävlingar",
         "events": "Händelser",
         "fieldTests": "Fälttest",
@@ -18215,6 +18216,9 @@
             "fun": "Roligt"
           },
           "title": "AI-pass"
+        },
+        "quickErg": {
+          "title": "Quick Erg"
         },
         "race": {
           "target": "Mål",
@@ -18294,6 +18298,20 @@
         "network": "Nätverksfel"
       },
       "praiseMessage": "Bra jobbat med {title}!",
+      "quickErg": {
+        "title": "Quick Erg",
+        "completed": "Genomfört",
+        "workoutTypeFallback": "Erg",
+        "time": "Tid",
+        "distance": "Distans",
+        "avgPower": "Medelwatt",
+        "maxPower": "Maxwatt",
+        "heartRate": "Medelpuls",
+        "maxHeartRate": "Maxpuls",
+        "calories": "Kalorier",
+        "rpe": "RPE",
+        "notes": "Anteckningar"
+      },
       "workout": {
         "title": "Pass",
         "loading": "Laddar pass...",

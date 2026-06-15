@@ -1,6 +1,28 @@
 import type { CalendarItemsMode, UnifiedCalendarItem } from './types'
+import {
+  formatMachineName,
+  inferActivityType,
+  inferQuickErgMachineTypeFromDevice,
+  type QuickErgMachineType,
+} from '@/lib/quick-erg/session-summary'
 
 type Row = Record<string, unknown>
+
+function asQuickErgMachineKind(value?: string | null): 'bike' | 'rower' | null {
+  return value === 'bike' || value === 'rower' ? value : null
+}
+
+function resolveQuickErgMachineType(session: {
+  machineType: QuickErgMachineType
+  machineKind?: string | null
+  deviceName?: string | null
+}): QuickErgMachineType {
+  return inferQuickErgMachineTypeFromDevice({
+    currentMachineType: session.machineType,
+    machineKind: asQuickErgMachineKind(session.machineKind),
+    deviceName: session.deviceName,
+  }) ?? session.machineType
+}
 
 function getScheduledWorkoutSource(event: Row) {
   const e = event as any
@@ -446,6 +468,75 @@ export function serializeGarmin(
       deviceName: garmin.deviceName,
       indoor: garmin.indoor,
       source: 'garmin',
+    },
+  }
+}
+
+export function serializeQuickErg(
+  session: Row & {
+    id: string
+    machineType: string
+    machineKind: string | null
+    deviceName: string | null
+    completedAt: Date
+    durationSec: number
+    distanceMeters: number | null
+    avgHeartRate: number | null
+    maxHeartRate: number | null
+    avgPower: number | null
+    maxPower: number | null
+    calories: number | null
+    rpe: number | null
+    notes?: string | null
+  },
+  itemsMode: CalendarItemsMode
+): UnifiedCalendarItem {
+  const s = session as any
+  const machineType = resolveQuickErgMachineType({
+    machineType: session.machineType as QuickErgMachineType,
+    machineKind: session.machineKind,
+    deviceName: session.deviceName,
+  })
+  const durationMin = Math.round(session.durationSec / 60)
+  const distanceKm = session.distanceMeters
+    ? Math.round((session.distanceMeters / 1000) * 100) / 100
+    : null
+
+  return {
+    id: session.id,
+    type: 'QUICK_ERG',
+    title: formatMachineName(machineType),
+    description: itemsMode === 'light' ? null : (session.notes ?? null),
+    date: session.completedAt,
+    status: 'COMPLETED',
+    metadata: {
+      source: 'quick-erg',
+      isCompleted: true,
+      workoutType: inferActivityType(machineType),
+      machineType,
+      machineKind: session.machineKind,
+      deviceName: session.deviceName,
+      duration: durationMin,
+      durationSec: session.durationSec,
+      distance: distanceKm,
+      distanceMeters: session.distanceMeters,
+      avgHR: session.avgHeartRate,
+      maxHR: session.maxHeartRate,
+      avgPower: session.avgPower,
+      maxPower: session.maxPower,
+      calories: session.calories,
+      rpe: session.rpe,
+      linkHref: `/athlete/quick-erg/${session.id}`,
+      ...(itemsMode === 'light'
+        ? {}
+        : {
+            normalizedPower: s.normalizedPower,
+            avgCadence: s.avgCadence,
+            maxCadence: s.maxCadence,
+            avgStrokeRate: s.avgStrokeRate,
+            maxStrokeRate: s.maxStrokeRate,
+            avgPace500m: s.avgPace500m,
+          }),
     },
   }
 }

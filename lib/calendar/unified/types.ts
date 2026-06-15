@@ -9,6 +9,7 @@ export interface UnifiedCalendarItem {
     | 'WOD'
     | 'AD_HOC'
     | 'GARMIN'
+    | 'QUICK_ERG'
   title: string
   description?: string | null
   date: Date
@@ -32,6 +33,7 @@ export interface BuildUnifiedCalendarPayloadInput {
   includeCheckIns: boolean
   includeWODs: boolean
   includeAdHoc: boolean
+  includeQuickErg: boolean
   includeItems: boolean
   itemsMode: CalendarItemsMode
   includeGroupedByDate: boolean

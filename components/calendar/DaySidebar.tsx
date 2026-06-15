@@ -13,63 +13,30 @@ import { useLocale, useTranslations } from '@/i18n/client'
 import {
   Plus,
   Clock,
-  MapPin,
   Activity,
   Heart,
   Target,
-  Loader2,
-  Edit,
-  Trash2,
-  ExternalLink,
   ChevronRight,
-  Mountain,
   Thermometer,
   Sparkles,
-  MessageSquare,
-  TrendingUp,
   CheckCircle2,
-  Dumbbell,
-  Timer,
-  Zap,
-  Trophy,
-  Beaker,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
-import {
-  UnifiedCalendarItem,
-  EVENT_TYPE_CONFIG,
-  IMPACT_CONFIG,
-  WORKOUT_TYPE_COLORS,
-  INTENSITY_COLORS,
-} from './types'
+import { UnifiedCalendarItem } from './types'
 import { PostEventMonitor } from './PostEventMonitor'
-import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
 import {
   GlassCard,
   GlassCardHeader,
   GlassCardTitle,
   GlassCardContent,
-  GlassCardDescription
 } from '@/components/ui/GlassCard'
 
-import { WODItem, WorkoutItem, RaceItem, CalendarEventItem, FieldTestItem, CheckInItem, AdHocItem } from './day-sidebar/item-cards'
+import { WODItem, WorkoutItem, RaceItem, CalendarEventItem, FieldTestItem, CheckInItem, AdHocItem, QuickErgItem } from './day-sidebar/item-cards'
 import { WorkoutDetailPanel } from './day-sidebar/detail-panels/workout'
 import { AdHocDetailPanel } from './day-sidebar/detail-panels/adhoc'
+import { QuickErgDetailPanel } from './day-sidebar/detail-panels/quick-erg'
 import { RaceDetailPanel } from './day-sidebar/detail-panels/race'
 import { FieldTestDetailPanel } from './day-sidebar/detail-panels/field-test'
 
@@ -136,6 +103,7 @@ export function DaySidebar({
   const checkIns = items.filter((i) => i.type === 'CHECK_IN')
   const wods = items.filter((i) => i.type === 'WOD')
   const adHocWorkouts = items.filter((i) => i.type === 'AD_HOC')
+  const quickErgSessions = items.filter((i) => i.type === 'QUICK_ERG')
 
   if (isGlass) {
     return (
@@ -216,6 +184,26 @@ export function DaySidebar({
                         workout={adHocWorkout}
                         isSelected={selectedItem?.id === adHocWorkout.id}
                         onClick={() => onItemClick(adHocWorkout)}
+                        isGlass={true}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {quickErgSessions.length > 0 && (
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-lime-500" />
+                    {t('sections.quickErg')} ({quickErgSessions.length})
+                  </h4>
+                  <div className="space-y-2.5">
+                    {quickErgSessions.map((session) => (
+                      <QuickErgItem
+                        key={session.id}
+                        session={session}
+                        isSelected={selectedItem?.id === session.id}
+                        onClick={() => onItemClick(session)}
                         isGlass={true}
                       />
                     ))}
@@ -344,6 +332,10 @@ export function DaySidebar({
                 <AdHocDetailPanel workout={selectedItem} isGlass={true} />
               )}
 
+              {selectedItem?.type === 'QUICK_ERG' && (
+                <QuickErgDetailPanel session={selectedItem} isGlass={true} />
+              )}
+
               {selectedItem?.type === 'RACE' && (
                 <RaceDetailPanel race={selectedItem} isGlass={true} />
               )}
@@ -440,6 +432,25 @@ export function DaySidebar({
                       workout={adHocWorkout}
                       isSelected={selectedItem?.id === adHocWorkout.id}
                       onClick={() => onItemClick(adHocWorkout)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {quickErgSessions.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-lime-500" />
+                  {t('sections.quickErg')} ({quickErgSessions.length})
+                </h4>
+                <div className="space-y-2">
+                  {quickErgSessions.map((session) => (
+                    <QuickErgItem
+                      key={session.id}
+                      session={session}
+                      isSelected={selectedItem?.id === session.id}
+                      onClick={() => onItemClick(session)}
                     />
                   ))}
                 </div>
@@ -559,6 +570,10 @@ export function DaySidebar({
 
             {selectedItem?.type === 'AD_HOC' && (
               <AdHocDetailPanel workout={selectedItem} />
+            )}
+
+            {selectedItem?.type === 'QUICK_ERG' && (
+              <QuickErgDetailPanel session={selectedItem} />
             )}
 
             {selectedItem?.type === 'RACE' && (

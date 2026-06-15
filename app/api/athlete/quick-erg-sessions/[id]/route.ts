@@ -5,6 +5,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import {
   resolveQuickErgCoachAlertsSafely,
   syncQuickErgCoachAlertsSafely,
@@ -129,6 +130,7 @@ export async function PATCH(
       rpe: nextRpe,
       hasNotes: Boolean(nextNotes),
     })
+    await invalidateUnifiedCalendarCacheForClient(resolved.clientId)
     await syncQuickErgCoachAlertsSafely({ sessionId: session.id })
 
     return NextResponse.json({
@@ -262,6 +264,7 @@ export async function DELETE(
       restoredAssignmentId: match?.assignmentId ?? null,
       deletedTrainingLoadId: session.trainingLoadId ?? null,
     })
+    await invalidateUnifiedCalendarCacheForClient(resolved.clientId)
     await resolveQuickErgCoachAlertsSafely({
       sessionId: session.id,
       clientId: resolved.clientId,

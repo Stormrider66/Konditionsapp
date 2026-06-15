@@ -171,6 +171,7 @@ export function MonthViewDraggable({
         hasWOD: dayItems.some((i) => i.type === 'WOD'),
         hasAdHoc: dayItems.some((i) => i.type === 'AD_HOC'),
         hasGarmin: dayItems.some((i) => i.type === 'GARMIN'),
+        hasQuickErg: dayItems.some((i) => i.type === 'QUICK_ERG'),
         isBlocked: dayItems.some(
           (i) => i.type === 'CALENDAR_EVENT' && i.metadata.trainingImpact === 'NO_TRAINING'
         ),
@@ -484,6 +485,14 @@ function DroppableDayCell({
     })
   }
 
+  if (day.hasQuickErg) {
+    indicators.push({
+      type: 'QUICK_ERG',
+      color: 'bg-lime-500',
+      label: 'Quick Erg',
+    })
+  }
+
   // Add Garmin activity indicator
   if (day.hasGarmin) {
     indicators.push({
@@ -613,6 +622,8 @@ function DraggableItem({ item, onItemClick, locale }: DraggableItemProps) {
           'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
         item.type === 'AD_HOC' &&
           'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200',
+        item.type === 'QUICK_ERG' &&
+          'bg-lime-100 dark:bg-lime-900/30 text-lime-800 dark:text-lime-200',
         item.type === 'WOD' &&
           'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200',
         isCompleted ? 'border-emerald-400/40' : 'border-transparent',
@@ -655,6 +666,7 @@ function DraggableItem({ item, onItemClick, locale }: DraggableItemProps) {
 function hasRichDetails(item: UnifiedCalendarItem): boolean {
   if (item.type === 'WORKOUT') return isCompletedCalendarItem(item)
   if (item.type === 'AD_HOC') return isCompletedCalendarItem(item)
+  if (item.type === 'QUICK_ERG') return isCompletedCalendarItem(item)
   if (item.type === 'RACE') return Boolean(item.metadata.isCompleted || item.metadata.actualTime)
   if (item.type === 'CALENDAR_EVENT') return isCompletedCalendarItem(item)
   if (item.type === 'FIELD_TEST') return true
@@ -677,7 +689,7 @@ function isCompletedCalendarItem(item: UnifiedCalendarItem): boolean {
 }
 
 function getMonthPreview(item: UnifiedCalendarItem, locale: 'en' | 'sv'): string | null {
-  if (item.type === 'WORKOUT' || item.type === 'AD_HOC') {
+  if (item.type === 'WORKOUT' || item.type === 'AD_HOC' || item.type === 'QUICK_ERG') {
     if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
       return `${item.metadata.distance} km`
     }

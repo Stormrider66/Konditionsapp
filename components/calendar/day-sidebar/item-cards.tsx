@@ -52,6 +52,7 @@ import {
   Eye,
   Loader2,
   ThumbsUp,
+  Zap,
 } from 'lucide-react'
 import {
   UnifiedCalendarItem,
@@ -988,6 +989,72 @@ export function CheckInItem({ checkIn, isSelected, onClick, isGlass = false }: C
             )}
           />
         )}
+      </div>
+    </button>
+  )
+}
+
+export interface QuickErgItemProps {
+  session: UnifiedCalendarItem
+  isSelected: boolean
+  onClick: () => void
+  isGlass?: boolean
+}
+
+export function QuickErgItem({ session, isSelected, onClick, isGlass = false }: QuickErgItemProps) {
+  const meta = session.metadata
+  const distance = formatDistanceValue(meta.distance)
+  const t = useTranslations('components.daySidebar')
+
+  return (
+    <button
+      className={cn(
+        'w-full text-left p-4 rounded-xl border transition-all duration-300',
+        isGlass
+          ? 'bg-lime-500/5 border-lime-500/20 hover:bg-lime-500/10 hover:border-lime-500/30'
+          : 'border-lime-200 bg-lime-50 dark:bg-lime-950/20',
+        isSelected
+          ? (isGlass ? 'ring-1 ring-lime-500/60 bg-lime-500/10' : 'ring-2 ring-primary')
+          : ''
+      )}
+      onClick={onClick}
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-sm truncate">{session.title}</span>
+            <Badge variant="secondary" className="text-xs">
+              {t('calendarItem.quickErg.title')}
+            </Badge>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-muted-foreground">
+            {typeof meta.duration === 'number' && meta.duration > 0 && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {meta.duration} {t('units.minutes')}
+              </span>
+            )}
+            {distance.label && (
+              <span className="flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {distance.label}
+              </span>
+            )}
+            {typeof meta.avgPower === 'number' && meta.avgPower > 0 && (
+              <span className="flex items-center gap-1">
+                <Zap className="h-3 w-3" />
+                {meta.avgPower} W
+              </span>
+            )}
+            {typeof meta.avgHR === 'number' && meta.avgHR > 0 && (
+              <span className="flex items-center gap-1">
+                <Heart className="h-3 w-3" />
+                {meta.avgHR}
+              </span>
+            )}
+          </div>
+        </div>
+        <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
       </div>
     </button>
   )

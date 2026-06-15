@@ -10,6 +10,7 @@ import {
   fetchCheckIns,
   fetchFieldTests,
   fetchGarminActivities,
+  fetchQuickErgSessions,
   fetchRaces,
   fetchStandaloneScheduledAssignments,
   fetchWODs,
@@ -21,6 +22,7 @@ import {
   serializeCheckIn,
   serializeFieldTest,
   serializeGarmin,
+  serializeQuickErg,
   serializeRace,
   serializeStandaloneScheduledAssignment,
   serializeWOD,
@@ -32,7 +34,7 @@ import type { BuildUnifiedCalendarPayloadInput, UnifiedCalendarItem } from './ty
  * Build (and cache) the JSON payload for the unified calendar endpoint.
  *
  * - `!includeItems && !includeGroupedByDate` → fast counts-only path
- * - otherwise the 8 source queries run in parallel, rows are serialized
+ * - otherwise the source queries run in parallel, rows are serialized
  *   into the shared UnifiedCalendarItem shape, optionally grouped by
  *   date, and the resulting JSON is cached in the distributed cache
  *   (TTL + stale-while-revalidate).
@@ -52,6 +54,7 @@ export async function buildUnifiedCalendarPayload(
     includeCheckIns,
     includeWODs,
     includeAdHoc,
+    includeQuickErg,
     includeItems,
     itemsMode,
     includeGroupedByDate,
@@ -75,6 +78,7 @@ export async function buildUnifiedCalendarPayload(
       includeCheckIns,
       includeWODs,
       includeAdHoc,
+      includeQuickErg,
     })
 
     const payload = {
@@ -85,7 +89,7 @@ export async function buildUnifiedCalendarPayload(
       counts: {
         total:
           counts.workouts + counts.races + counts.fieldTests + counts.events +
-          counts.checkIns + counts.wods + counts.adHoc,
+          counts.checkIns + counts.wods + counts.adHoc + counts.quickErg,
         workouts: counts.workouts,
         races: counts.races,
         fieldTests: counts.fieldTests,
@@ -93,6 +97,7 @@ export async function buildUnifiedCalendarPayload(
         checkIns: counts.checkIns,
         wods: counts.wods,
         adHoc: counts.adHoc,
+        quickErg: counts.quickErg,
       },
     }
 
@@ -117,6 +122,7 @@ export async function buildUnifiedCalendarPayload(
     wods,
     adHocWorkouts,
     garminActivities,
+    quickErgSessions,
   ] =
     await Promise.all([
       includeWorkouts ? fetchWorkouts(queryInput) : Promise.resolve([]),
@@ -128,6 +134,7 @@ export async function buildUnifiedCalendarPayload(
       includeWODs ? fetchWODs(queryInput) : Promise.resolve([]),
       includeAdHoc ? fetchAdHoc(queryInput) : Promise.resolve([]),
       clientId ? fetchGarminActivities(queryInput) : Promise.resolve([]),
+      includeQuickErg ? fetchQuickErgSessions(queryInput) : Promise.resolve([]),
     ])
 
   const needsItems = includeItems || includeGroupedByDate
@@ -142,6 +149,7 @@ export async function buildUnifiedCalendarPayload(
     wods: 0,
     adHoc: 0,
     garmin: 0,
+    quickErg: 0,
   }
 
   for (const workout of workouts as any[]) {
@@ -188,6 +196,11 @@ export async function buildUnifiedCalendarPayload(
     counts.total += 1
     counts.garmin += 1
     if (needsItems) items.push(serializeGarmin(garmin))
+  }
+  for (const quickErg of quickErgSessions as any[]) {
+    counts.total += 1
+    counts.quickErg += 1
+    if (needsItems) items.push(serializeQuickErg(quickErg, itemsMode))
   }
 
   if (needsItems) {

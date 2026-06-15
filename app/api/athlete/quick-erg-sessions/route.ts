@@ -6,6 +6,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { syncQuickErgCoachAlertsSafely } from '@/lib/quick-erg/coach-alerts'
 import {
   buildQuickErgDedupeKey,
@@ -158,6 +159,7 @@ export async function POST(request: NextRequest) {
     })
 
     if (existing) {
+      await invalidateUnifiedCalendarCacheForClient(resolved.clientId)
       await syncQuickErgCoachAlertsSafely({ sessionId: existing.id })
 
       return NextResponse.json({
@@ -232,6 +234,7 @@ export async function POST(request: NextRequest) {
       machineType,
       durationSec: analysis.summary.durationSec,
     })
+    await invalidateUnifiedCalendarCacheForClient(resolved.clientId)
     await syncQuickErgCoachAlertsSafely({ sessionId: result.session.id })
 
     return NextResponse.json({

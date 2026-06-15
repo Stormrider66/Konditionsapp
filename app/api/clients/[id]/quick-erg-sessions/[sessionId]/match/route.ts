@@ -6,6 +6,7 @@ import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { syncQuickErgCoachAlertsSafely } from '@/lib/quick-erg/coach-alerts'
 import {
   asQuickErgStoredPlannedCardioMatch,
@@ -235,6 +236,7 @@ export async function POST(
       assignmentId: assignment.id,
       confidence: scored.confidence,
     })
+    await invalidateUnifiedCalendarCacheForClient(clientId)
     await syncQuickErgCoachAlertsSafely({ sessionId: session.id, coachId: user.id })
 
     return NextResponse.json({
@@ -372,6 +374,7 @@ export async function DELETE(
       quickErgSessionId: session.id,
       assignmentId: match.assignmentId,
     })
+    await invalidateUnifiedCalendarCacheForClient(clientId)
     await syncQuickErgCoachAlertsSafely({ sessionId: session.id, coachId: user.id })
 
     return NextResponse.json({

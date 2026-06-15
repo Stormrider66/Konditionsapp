@@ -2,8 +2,9 @@
  * Unified Calendar API
  *
  * GET /api/calendar/unified — one-stop calendar query. Merges workouts,
- * races, field tests, calendar events, daily check-ins, ad-hoc workouts
- * and Garmin activities into a single sorted stream for a given client.
+ * races, field tests, calendar events, daily check-ins, ad-hoc workouts,
+ * Quick Erg sessions and Garmin activities into a single sorted stream
+ * for a given client.
  *
  * Route orchestrates. Heavy lifting (queries, serializers, caches,
  * auth dedupe) lives under lib/calendar/unified/.
@@ -58,6 +59,7 @@ export async function GET(request: NextRequest) {
     const includeCheckIns = searchParams.get('includeCheckIns') !== 'false'
     const includeWODs = searchParams.get('includeWODs') !== 'false'
     const includeAdHoc = searchParams.get('includeAdHoc') !== 'false'
+    const includeQuickErg = searchParams.get('includeQuickErg') !== 'false'
 
     // Response shape (both true by default for backwards compatibility).
     const includeItems = searchParams.get('includeItems') !== 'false'
@@ -133,6 +135,7 @@ export async function GET(request: NextRequest) {
       includeCheckIns ? '1' : '0',
       includeWODs ? '1' : '0',
       includeAdHoc ? '1' : '0',
+      includeQuickErg ? '1' : '0',
       includeItems ? '1' : '0',
       itemsMode,
       includeGroupedByDate ? '1' : '0',
@@ -152,6 +155,7 @@ export async function GET(request: NextRequest) {
       includeCheckIns,
       includeWODs,
       includeAdHoc,
+      includeQuickErg,
       includeItems,
       itemsMode,
       includeGroupedByDate,

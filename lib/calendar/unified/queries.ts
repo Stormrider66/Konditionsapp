@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { asQuickErgStoredPlannedCardioMatch } from '@/lib/quick-erg/planned-match'
 import type { CalendarItemsMode } from './types'
 
 export interface QueryInput {
@@ -287,6 +288,10 @@ async function countStandaloneScheduledAssignments(clientId: string, startDate: 
   return strength + cardio + hybrid + agility
 }
 
+export function isUnmatchedQuickErgCalendarSession(session: { externalMatch: unknown }): boolean {
+  return !asQuickErgStoredPlannedCardioMatch(session.externalMatch)
+}
+
 export const fetchRaces = ({ clientId, startDate, endDate, itemsMode, maxItemsPerSource }: QueryInput) =>
   itemsMode === 'light'
     ? prisma.race.findMany({
@@ -531,6 +536,85 @@ export const fetchGarminActivities = ({ clientId, startDate, endDate, maxItemsPe
     orderBy: { startDate: 'asc' },
   })
 
+export async function fetchQuickErgSessions({
+  clientId,
+  startDate,
+  endDate,
+  itemsMode,
+  maxItemsPerSource,
+}: QueryInput) {
+  const rows = itemsMode === 'light'
+    ? await prisma.quickErgSession.findMany({
+        where: {
+          clientId,
+          completedAt: { gte: startDate, lte: endDate },
+        },
+        select: {
+          id: true,
+          machineType: true,
+          machineKind: true,
+          deviceName: true,
+          completedAt: true,
+          durationSec: true,
+          distanceMeters: true,
+          avgHeartRate: true,
+          maxHeartRate: true,
+          avgPower: true,
+          maxPower: true,
+          calories: true,
+          rpe: true,
+          externalMatch: true,
+        },
+        orderBy: { completedAt: 'asc' },
+      })
+    : await prisma.quickErgSession.findMany({
+        where: {
+          clientId,
+          completedAt: { gte: startDate, lte: endDate },
+        },
+        select: {
+          id: true,
+          machineType: true,
+          machineKind: true,
+          deviceName: true,
+          completedAt: true,
+          durationSec: true,
+          distanceMeters: true,
+          avgHeartRate: true,
+          maxHeartRate: true,
+          avgPower: true,
+          maxPower: true,
+          normalizedPower: true,
+          avgCadence: true,
+          maxCadence: true,
+          avgStrokeRate: true,
+          maxStrokeRate: true,
+          avgPace500m: true,
+          calories: true,
+          rpe: true,
+          notes: true,
+          externalMatch: true,
+        },
+        orderBy: { completedAt: 'asc' },
+      })
+
+  return rows
+    .filter(isUnmatchedQuickErgCalendarSession)
+    .slice(0, maxItemsPerSource)
+}
+
+async function countUnmatchedQuickErgSessions(clientId: string, startDate: Date, endDate: Date) {
+  const rows = await prisma.quickErgSession.findMany({
+    where: {
+      clientId,
+      completedAt: { gte: startDate, lte: endDate },
+    },
+    select: { externalMatch: true },
+  })
+
+  return rows.filter(isUnmatchedQuickErgCalendarSession).length
+}
+
 /**
  * Counts-only fast path for the no-items mode (used by perf tests + UI
  * lightweight loading states). Avoids expensive selects and big JSON
@@ -545,6 +629,7 @@ export async function fetchAllCounts(
     includeCheckIns: boolean
     includeWODs: boolean
     includeAdHoc: boolean
+    includeQuickErg: boolean
   }
 ) {
   const { clientId, startDate, endDate } = q
@@ -556,6 +641,7 @@ export async function fetchAllCounts(
     checkIns,
     wods,
     adHoc,
+    quickErg,
     standaloneScheduledAssignments,
   ] = await Promise.all([
     q.includeWorkouts
@@ -614,6 +700,9 @@ export async function fetchAllCounts(
           },
         })
       : Promise.resolve(0),
+    q.includeQuickErg
+      ? countUnmatchedQuickErgSessions(clientId, startDate, endDate)
+      : Promise.resolve(0),
     q.includeEvents
       ? countStandaloneScheduledAssignments(clientId, startDate, endDate)
       : Promise.resolve(0),
@@ -627,5 +716,6 @@ export async function fetchAllCounts(
     checkIns,
     wods,
     adHoc,
+    quickErg,
   }
 }
