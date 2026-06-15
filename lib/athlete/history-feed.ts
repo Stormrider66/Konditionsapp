@@ -1,5 +1,5 @@
 /**
- * Athlete workout-history feed — the merged 7-source list behind
+ * Athlete workout-history feed — the merged 8-source list behind
  * /athlete/history and GET /api/athlete/history.
  *
  * One implementation shared by the server-component page and the JSON API
@@ -9,7 +9,7 @@
  * - StrengthSessionAssignment, CardioSessionAssignment,
  *   HybridWorkoutAssignment, AgilityWorkoutAssignment,
  *   AdHocWorkout          athleteId = **Client.id**
- * - AIGeneratedWOD        clientId  = Client.id
+ * - AIGeneratedWOD, QuickErgSession clientId = Client.id
  *
  * Stats are always computed over the FULL timeframe; the type filter applies
  * to the item list only (matches the page's long-standing behavior).
@@ -18,6 +18,12 @@
 import { prisma } from '@/lib/prisma'
 import { subDays, subMonths } from 'date-fns'
 import type { Prisma } from '@prisma/client'
+import {
+  formatMachineName,
+  inferActivityType,
+  inferQuickErgMachineTypeFromDevice,
+  type QuickErgMachineType,
+} from '@/lib/quick-erg/session-summary'
 
 export type HistoryTimeframe = '7days' | '30days' | '3months' | '6months' | '1year'
 
@@ -114,6 +120,22 @@ interface ParsedAdHocHistory {
   perceivedEffort?: number
 }
 
+function asMachineKind(value: string | null): 'bike' | 'rower' | null {
+  return value === 'bike' || value === 'rower' ? value : null
+}
+
+function displayQuickErgMachineType(session: {
+  machineType: QuickErgMachineType
+  machineKind?: string | null
+  deviceName?: string | null
+}): QuickErgMachineType {
+  return inferQuickErgMachineTypeFromDevice({
+    currentMachineType: session.machineType,
+    machineKind: asMachineKind(session.machineKind ?? null),
+    deviceName: session.deviceName,
+  }) ?? session.machineType
+}
+
 export async function getAthleteHistoryFeed(params: {
   /** User.id — drives the WorkoutLog query. */
   userId: string
@@ -139,6 +161,7 @@ export async function getAthleteHistoryFeed(params: {
     hybridAssignments,
     agilityAssignments,
     completedWODs,
+    quickErgSessions,
   ] = await Promise.all([
     prisma.workoutLog.findMany({
       where: {
@@ -208,6 +231,23 @@ export async function getAthleteHistoryFeed(params: {
         sessionRPE: true,
         completedAt: true,
         source: true,
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+    prisma.quickErgSession.findMany({
+      where: {
+        clientId,
+        completedAt: { gte: startDate, lte: now },
+      },
+      select: {
+        id: true,
+        machineType: true,
+        machineKind: true,
+        deviceName: true,
+        completedAt: true,
+        durationSec: true,
+        distanceMeters: true,
+        rpe: true,
       },
       orderBy: { completedAt: 'desc' },
     }),
@@ -291,23 +331,46 @@ export async function getAthleteHistoryFeed(params: {
     linkHref: `/athlete/wod/${wod.id}`,
   }))
 
+  const quickErgItems = quickErgSessions.map((session) => {
+    const machineType = displayQuickErgMachineType({
+      machineType: session.machineType as QuickErgMachineType,
+      machineKind: session.machineKind,
+      deviceName: session.deviceName,
+    })
+
+    return {
+      id: session.id,
+      date: session.completedAt,
+      name: formatMachineName(machineType),
+      type: inferActivityType(machineType),
+      duration: Math.round(session.durationSec / 60),
+      perceivedEffort: session.rpe || null,
+      distance: session.distanceMeters ? session.distanceMeters / 1000 : null,
+      source: 'quick-erg' as const,
+      linkHref: `/athlete/quick-erg/${session.id}`,
+    }
+  })
+
   const totalWorkouts =
-    logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length
+    logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + quickErgItems.length
   const totalDistanceKm =
     logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
-    allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0)
+    allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0) +
+    quickErgItems.reduce((sum, s) => sum + (s.distance || 0), 0)
   const totalDurationMin =
     logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0) +
-    wodItems.reduce((sum, w) => sum + (w.duration || 0), 0)
+    wodItems.reduce((sum, w) => sum + (w.duration || 0), 0) +
+    quickErgItems.reduce((sum, s) => sum + (s.duration || 0), 0)
 
   const allEfforts = [
     ...logs.filter((log) => log.perceivedEffort).map((log) => log.perceivedEffort!),
     ...adHocWithParsedData.filter((w) => w.perceivedEffort).map((w) => w.perceivedEffort!),
     ...allAssignmentItems.filter((a) => a.perceivedEffort).map((a) => a.perceivedEffort!),
     ...wodItems.filter((w) => w.perceivedEffort).map((w) => w.perceivedEffort!),
+    ...quickErgItems.filter((s) => s.perceivedEffort).map((s) => s.perceivedEffort!),
   ]
   const avgRPE =
     allEfforts.length > 0
@@ -364,6 +427,19 @@ export async function getAthleteHistoryFeed(params: {
       isAdHoc: false,
       source: w.source,
       linkHref: w.linkHref,
+    })),
+    ...quickErgItems.map((session) => ({
+      id: session.id,
+      date: session.date,
+      name: session.name,
+      type: session.type,
+      programName: undefined,
+      distance: session.distance,
+      duration: session.duration,
+      perceivedEffort: session.perceivedEffort,
+      isAdHoc: false,
+      source: session.source,
+      linkHref: session.linkHref,
     })),
   ]
     .filter((item) => !params.typeFilter || item.type === params.typeFilter)

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   hybridFindMany: vi.fn(),
   agilityFindMany: vi.fn(),
   wodFindMany: vi.fn(),
+  quickErgFindMany: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -19,6 +20,7 @@ vi.mock('@/lib/prisma', () => ({
     hybridWorkoutAssignment: { findMany: mocks.hybridFindMany },
     agilityWorkoutAssignment: { findMany: mocks.agilityFindMany },
     aIGeneratedWOD: { findMany: mocks.wodFindMany },
+    quickErgSession: { findMany: mocks.quickErgFindMany },
   },
 }))
 
@@ -38,6 +40,7 @@ function emptyAll() {
   mocks.hybridFindMany.mockResolvedValue([])
   mocks.agilityFindMany.mockResolvedValue([])
   mocks.wodFindMany.mockResolvedValue([])
+  mocks.quickErgFindMany.mockResolvedValue([])
 }
 
 beforeEach(() => {
@@ -84,9 +87,12 @@ describe('getAthleteHistoryFeed', () => {
     expect(mocks.wodFindMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: expect.objectContaining({ clientId: 'client-1' }) })
     )
+    expect(mocks.quickErgFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ clientId: 'client-1' }) })
+    )
   })
 
-  it('merges all sources sorted by date desc and converts cardio units', async () => {
+  it('merges all sources sorted by date desc and converts cardio plus quick erg units', async () => {
     mocks.workoutLogFindMany.mockResolvedValue([
       {
         id: 'log-1',
@@ -123,6 +129,18 @@ describe('getAthleteHistoryFeed', () => {
         source: 'chat',
       },
     ])
+    mocks.quickErgFindMany.mockResolvedValue([
+      {
+        id: 'qe-1',
+        machineType: 'CONCEPT2_ROW',
+        machineKind: 'rower',
+        deviceName: 'PM5 123',
+        completedAt: new Date('2026-06-10T11:00:00Z'),
+        durationSec: 900,
+        distanceMeters: 2500,
+        rpe: 7,
+      },
+    ])
 
     const feed = await getAthleteHistoryFeed({
       userId: 'user-1',
@@ -131,12 +149,20 @@ describe('getAthleteHistoryFeed', () => {
       now: NOW,
     })
 
-    expect(feed.items.map((i) => i.id)).toEqual(['ca-1', 'log-1', 'wod-1'])
-    const cardio = feed.items[0]
+    expect(feed.items.map((i) => i.id)).toEqual(['qe-1', 'ca-1', 'log-1', 'wod-1'])
+    const quickErg = feed.items[0]
+    expect(quickErg.name).toBe('RowErg')
+    expect(quickErg.type).toBe('ROWING')
+    expect(quickErg.duration).toBe(15)
+    expect(quickErg.distance).toBe(2.5)
+    expect(quickErg.perceivedEffort).toBe(7)
+    expect(quickErg.source).toBe('quick-erg')
+    expect(quickErg.linkHref).toBe('/athlete/quick-erg/qe-1')
+    const cardio = feed.items[1]
     expect(cardio.duration).toBe(30)
     expect(cardio.distance).toBe(5)
-    expect(feed.items[2].source).toBe('ai-chat')
-    expect(feed.items[1].programName).toBe('Marathon block')
+    expect(feed.items[3].source).toBe('ai-chat')
+    expect(feed.items[2].programName).toBe('Marathon block')
   })
 
   it('computes stats over the full timeframe while the type filter narrows items only', async () => {
