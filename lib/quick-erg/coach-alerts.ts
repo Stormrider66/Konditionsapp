@@ -121,6 +121,14 @@ export function quickErgCoachAlertSourceId(sessionId: string, signalType: QuickE
   return `quick_erg:${sessionId}:${signalType.toLowerCase()}`
 }
 
+export function quickErgCoachAlertSourcePrefix(sessionId: string): string {
+  return `quick_erg:${sessionId}:`
+}
+
+export function quickErgCoachReviewSourceId(sessionId: string): string {
+  return `quick_erg:${sessionId}:review`
+}
+
 export function quickErgCoachAlertSessionHref(basePath: string, clientId: string, sessionId: string): string {
   return `${basePath}/coach/clients/${clientId}/quick-erg/${sessionId}`
 }

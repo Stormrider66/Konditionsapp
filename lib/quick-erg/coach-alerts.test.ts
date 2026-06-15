@@ -4,7 +4,9 @@ import {
   isQuickErgCoachAlertType,
   quickErgCoachAlertPayload,
   quickErgCoachAlertSessionHref,
+  quickErgCoachAlertSourcePrefix,
   quickErgCoachAlertSourceId,
+  quickErgCoachReviewSourceId,
   quickErgCoachAlertTypeFromSignal,
 } from './coach-alerts'
 
@@ -25,6 +27,8 @@ describe('quick erg coach alerts', () => {
     expect(quickErgCoachAlertTypeFromSignal('HIGH_LOAD')).toBe('QUICK_ERG_HIGH_LOAD')
     expect(quickErgCoachAlertTypeFromSignal('UNMATCHED_PLAN')).toBe('QUICK_ERG_UNMATCHED_PLAN')
     expect(quickErgCoachAlertSourceId('session-1', 'HIGH_LOAD')).toBe('quick_erg:session-1:high_load')
+    expect(quickErgCoachAlertSourcePrefix('session-1')).toBe('quick_erg:session-1:')
+    expect(quickErgCoachReviewSourceId('session-1')).toBe('quick_erg:session-1:review')
   })
 
   it('guards quick erg alert types', () => {

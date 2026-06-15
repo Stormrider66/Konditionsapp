@@ -26,8 +26,16 @@ import {
   type CoachQuickErgPlanMatchView,
   type CoachQuickErgPlanSuggestionView,
 } from '@/components/coach/quick-erg/CoachQuickErgPlanMatchCard'
+import {
+  CoachQuickErgReviewCard,
+  type CoachQuickErgReviewState,
+} from '@/components/coach/quick-erg/CoachQuickErgReviewCard'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
+import {
+  quickErgCoachAlertSourcePrefix,
+  quickErgCoachReviewSourceId,
+} from '@/lib/quick-erg/coach-alerts'
 import {
   asQuickErgCoachPlannedMatch,
   buildQuickErgCoachSignals,
@@ -288,7 +296,7 @@ export async function CoachQuickErgSessionDetail({
   const plannedMatch = asQuickErgCoachPlannedMatch(session.externalMatch)
   const sessionDay = startOfDay(session.startedAt)
 
-  const [trainingLoad, previousSessions, candidateAssignments, matchedAssignment] = await Promise.all([
+  const [trainingLoad, previousSessions, candidateAssignments, matchedAssignment, coachReview, openAlertCount] = await Promise.all([
     session.trainingLoadId
       ? prisma.trainingLoad.findFirst({
           where: { id: session.trainingLoadId, clientId },
@@ -369,6 +377,27 @@ export async function CoachQuickErgSessionDetail({
           },
         })
       : Promise.resolve(null),
+    prisma.coachAlert.findFirst({
+      where: {
+        coachId: user.id,
+        clientId,
+        sourceId: quickErgCoachReviewSourceId(session.id),
+        status: 'ACTIONED',
+      },
+      select: {
+        actionedAt: true,
+        actionNote: true,
+      },
+      orderBy: { actionedAt: 'desc' },
+    }),
+    prisma.coachAlert.count({
+      where: {
+        coachId: user.id,
+        clientId,
+        status: 'ACTIVE',
+        sourceId: { startsWith: quickErgCoachAlertSourcePrefix(session.id) },
+      },
+    }),
   ])
 
   const prBadges = findQuickErgSessionPrBadges(
@@ -469,6 +498,11 @@ export async function CoachQuickErgSessionDetail({
     confidence: suggestion.confidence,
     reasons: suggestion.reasons,
   }))
+  const reviewState: CoachQuickErgReviewState = {
+    reviewedAt: coachReview?.actionedAt?.toISOString() ?? null,
+    note: coachReview?.actionNote ?? null,
+    openAlertCount,
+  }
 
   return (
     <div className="space-y-6">
@@ -604,6 +638,13 @@ export async function CoachQuickErgSessionDetail({
             locale={locale}
             plannedMatch={planMatch}
             suggestions={planSuggestions}
+          />
+
+          <CoachQuickErgReviewCard
+            clientId={clientId}
+            sessionId={session.id}
+            locale={locale}
+            review={reviewState}
           />
 
           <Card>
