@@ -8,8 +8,6 @@ import {
   ArrowLeft,
   Bike,
   Bluetooth,
-  CalendarCheck,
-  CheckCircle2,
   Clock,
   Gauge,
   Heart,
@@ -23,6 +21,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  CoachQuickErgPlanMatchCard,
+  type CoachQuickErgPlanMatchView,
+  type CoachQuickErgPlanSuggestionView,
+} from '@/components/coach/quick-erg/CoachQuickErgPlanMatchCard'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import {
@@ -88,13 +91,6 @@ function formatDate(value: Date | string, locale: string): string {
   return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
     dateStyle: 'medium',
     timeStyle: 'short',
-  }).format(value instanceof Date ? value : new Date(value))
-}
-
-function formatShortDate(value: Date | string, locale: string): string {
-  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
-    day: 'numeric',
-    month: 'short',
   }).format(value instanceof Date ? value : new Date(value))
 }
 
@@ -439,6 +435,40 @@ export async function CoachQuickErgSessionDetail({
   const bestEfforts = asBestEfforts(session.bestEfforts)
   const intervals = asIntervals(session.detectedIntervals)
   const backHref = `/${businessSlug}/coach/clients/${clientId}?tab=development#quick-erg`
+  const planMatch: CoachQuickErgPlanMatchView | null = matchedAssignment
+    ? {
+        assignmentId: matchedAssignment.id,
+        sessionId: matchedAssignment.sessionId,
+        sessionName: matchedAssignment.session.name,
+        assignedDate: matchedAssignment.assignedDate.toISOString(),
+        status: matchedAssignment.status,
+        sport: matchedAssignment.session.sport,
+        plannedDurationSec: matchedAssignment.session.totalDuration,
+        plannedDistanceMeters: matchedAssignment.session.totalDistance,
+      }
+    : plannedMatch
+      ? {
+          assignmentId: plannedMatch.assignmentId,
+          sessionId: plannedMatch.sessionId,
+          sessionName: plannedMatch.sessionName,
+          assignedDate: plannedMatch.assignedDate,
+        }
+      : null
+  const planSuggestions: CoachQuickErgPlanSuggestionView[] = suggestions.map((suggestion) => ({
+    id: suggestion.id,
+    assignmentId: suggestion.id,
+    sessionId: suggestion.sessionId,
+    sessionName: suggestion.sessionName,
+    assignedDate: suggestion.assignedDate instanceof Date
+      ? suggestion.assignedDate.toISOString()
+      : new Date(suggestion.assignedDate).toISOString(),
+    status: suggestion.status,
+    sport: suggestion.sport,
+    plannedDurationSec: suggestion.plannedDurationSec,
+    plannedDistanceMeters: suggestion.plannedDistanceMeters,
+    confidence: suggestion.confidence,
+    reasons: suggestion.reasons,
+  }))
 
   return (
     <div className="space-y-6">
@@ -568,79 +598,13 @@ export async function CoachQuickErgSessionDetail({
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{text(locale, 'Plan status', 'Planstatus')}</CardTitle>
-              <CardDescription>
-                {text(locale, 'Whether this free session is already connected to planned training.', 'Om det fria passet redan ar kopplat till planerad traning.')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {matchedAssignment ? (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <CheckCircle2 className="h-4 w-4" />
-                    {text(locale, 'Matched to plan', 'Matchat mot plan')}
-                  </div>
-                  <p className="mt-2 text-sm">{matchedAssignment.session.name}</p>
-                  <p className="text-xs opacity-80">
-                    {formatShortDate(matchedAssignment.assignedDate, locale)}
-                    {matchedAssignment.session.totalDuration ? ` / ${formatDuration(matchedAssignment.session.totalDuration)}` : ''}
-                    {matchedAssignment.session.totalDistance ? ` / ${formatDistance(matchedAssignment.session.totalDistance)}` : ''}
-                  </p>
-                </div>
-              ) : plannedMatch ? (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-200">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <CheckCircle2 className="h-4 w-4" />
-                    {text(locale, 'Matched to plan', 'Matchat mot plan')}
-                  </div>
-                  <p className="mt-2 text-sm">{plannedMatch.sessionName}</p>
-                  <p className="text-xs opacity-80">{formatShortDate(plannedMatch.assignedDate, locale)}</p>
-                </div>
-              ) : suggestions.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-200">
-                    <div className="flex items-center gap-2 font-semibold">
-                      <Link2 className="h-4 w-4" />
-                      {text(locale, 'Possible plan match', 'Mojlig planmatchning')}
-                    </div>
-                    <p className="mt-1 text-sm opacity-80">
-                      {text(locale, 'Athlete can confirm the match from their session page.', 'Aktiven kan bekrafta matchningen fran sin passida.')}
-                    </p>
-                  </div>
-                  {suggestions.map((suggestion) => (
-                    <div key={suggestion.id} className="rounded-md border p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold">{suggestion.sessionName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatShortDate(suggestion.assignedDate, locale)}
-                            {suggestion.plannedDurationSec ? ` / ${formatDuration(suggestion.plannedDurationSec)}` : ''}
-                            {suggestion.plannedDistanceMeters ? ` / ${formatDistance(suggestion.plannedDistanceMeters)}` : ''}
-                          </p>
-                        </div>
-                        <Badge variant="secondary">{Math.round(suggestion.confidence * 100)}%</Badge>
-                      </div>
-                      {suggestion.reasons.length > 0 && (
-                        <p className="mt-2 text-xs text-muted-foreground">{suggestion.reasons.join(' / ')}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border bg-muted/30 p-4">
-                  <div className="flex items-center gap-2 font-semibold">
-                    <CalendarCheck className="h-4 w-4" />
-                    {text(locale, 'Free session', 'Fritt pass')}
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {text(locale, 'No nearby planned session was found.', 'Inget naraliggande planerat pass hittades.')}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <CoachQuickErgPlanMatchCard
+            clientId={clientId}
+            sessionId={session.id}
+            locale={locale}
+            plannedMatch={planMatch}
+            suggestions={planSuggestions}
+          />
 
           <Card>
             <CardHeader>
