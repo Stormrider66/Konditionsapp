@@ -28,6 +28,7 @@ import {
   Calendar,
   MessageSquare,
   Activity,
+  Bluetooth,
   RefreshCw,
   Loader2,
   CheckCircle2,
@@ -43,7 +44,7 @@ interface CoachAlert {
   id: string
   coachId: string
   clientId: string
-  alertType: 'READINESS_DROP' | 'MISSED_CHECKINS' | 'MISSED_WORKOUTS' | 'PAIN_MENTION' | 'HIGH_ACWR'
+  alertType: string
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
   title: string
   message: string
@@ -70,6 +71,17 @@ interface AlertsResponse {
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+const QUICK_ERG_ALERT_TYPES = new Set([
+  'QUICK_ERG_NEW_SESSION',
+  'QUICK_ERG_PERSONAL_BEST',
+  'QUICK_ERG_HIGH_LOAD',
+  'QUICK_ERG_UNMATCHED_PLAN',
+])
+
+function isQuickErgAlertType(alertType: string): boolean {
+  return QUICK_ERG_ALERT_TYPES.has(alertType)
+}
 
 interface CoachAIAssistantPanelProps {
   basePath?: string
@@ -136,6 +148,8 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
   const filteredAlerts =
     activeTab === 'all'
       ? alerts
+      : activeTab === 'QUICK_ERG'
+        ? alerts.filter((a) => isQuickErgAlertType(a.alertType))
       : alerts.filter((a) => a.alertType === activeTab)
 
   const criticalCount = data?.summary?.bySeverity?.CRITICAL || 0
@@ -208,7 +222,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
             {/* Filter tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-3">
               <TooltipProvider delayDuration={300}>
-                <TabsList className="w-full grid grid-cols-6 h-8 bg-muted/50 dark:bg-slate-900/50">
+                <TabsList className="w-full grid grid-cols-7 h-8 bg-muted/50 dark:bg-slate-900/50">
                   <TabsTrigger value="all" className="text-xs px-1">
                     {copy(locale, 'All', 'Alla')}
                   </TabsTrigger>
@@ -251,6 +265,14 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                       </TabsTrigger>
                     </TooltipTrigger>
                     <TooltipContent>{copy(locale, 'High load', 'Hög belastning')}</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TabsTrigger value="QUICK_ERG" className="text-xs px-1">
+                        <Bluetooth className="h-3 w-3" />
+                      </TabsTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>{copy(locale, 'Quick Erg', 'Quick Erg')}</TooltipContent>
                   </Tooltip>
                 </TabsList>
               </TooltipProvider>

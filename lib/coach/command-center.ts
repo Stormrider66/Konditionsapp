@@ -70,6 +70,37 @@ const alertPriority: Record<string, CommandCenterPriority> = {
   LOW: 'low',
 }
 
+function isQuickErgAlertType(alertType: string): boolean {
+  return alertType.startsWith('QUICK_ERG_')
+}
+
+function quickErgSessionId(contextData: Prisma.JsonValue | null): string | null {
+  if (!contextData || typeof contextData !== 'object' || Array.isArray(contextData)) return null
+
+  const sessionId = (contextData as Record<string, Prisma.JsonValue>).sessionId
+  return typeof sessionId === 'string' ? sessionId : null
+}
+
+function coachAlertHref(alert: {
+  alertType: string
+  clientId: string
+  contextData: Prisma.JsonValue | null
+}, basePath: string): string {
+  const sessionId = isQuickErgAlertType(alert.alertType)
+    ? quickErgSessionId(alert.contextData)
+    : null
+
+  if (sessionId) {
+    return `${basePath}/coach/clients/${alert.clientId}/quick-erg/${sessionId}`
+  }
+
+  return `${basePath}/coach/clients/${alert.clientId}`
+}
+
+function coachAlertCtaLabel(alertType: string): string {
+  return isQuickErgAlertType(alertType) ? 'Open session' : 'Review athlete'
+}
+
 export async function getCoachCommandCenterData({
   userId,
   businessId,
@@ -306,8 +337,8 @@ export async function getCoachCommandCenterData({
       priority: alertPriority[alert.severity] ?? 'medium',
       category: 'alert',
       clientName: alert.client.name,
-      href: `${basePath}/coach/clients/${alert.clientId}`,
-      ctaLabel: 'Review athlete',
+      href: coachAlertHref(alert, basePath),
+      ctaLabel: coachAlertCtaLabel(alert.alertType),
       meta: alert.alertType.replaceAll('_', ' ').toLowerCase(),
     })
   }

@@ -13,8 +13,11 @@ import {
   TrendingDown,
   Calendar,
   Activity,
+  Bluetooth,
   MessageSquare,
   AlertTriangle,
+  Trophy,
+  Link2,
   X,
   Check,
   Eye,
@@ -23,6 +26,7 @@ import {
   ChevronUp,
   Loader2,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import Link from 'next/link'
@@ -35,7 +39,7 @@ interface CoachAlert {
   id: string
   coachId: string
   clientId: string
-  alertType: 'READINESS_DROP' | 'MISSED_CHECKINS' | 'MISSED_WORKOUTS' | 'PAIN_MENTION' | 'HIGH_ACWR'
+  alertType: string
   severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
   title: string
   message: string
@@ -61,9 +65,10 @@ interface AthleteAttentionCardProps {
 
 type AppLocale = 'en' | 'sv'
 
-const labels: Record<AppLocale, {
+type AttentionLabels = {
   training: string
   pain: string
+  quickErg: string
   critical: string
   high: string
   medium: string
@@ -74,13 +79,23 @@ const labels: Record<AppLocale, {
   missedWorkouts: string
   risk: string
   viewProfile: string
+  viewSession: string
   contact: string
   dismiss: string
   handled: string
-}> = {
+  machine: string
+  metric: string
+  rpe: string
+  load: string
+  duration: string
+  distance: string
+}
+
+const labels: Record<AppLocale, AttentionLabels> = {
   en: {
     training: 'Training',
     pain: 'Pain',
+    quickErg: 'Quick Erg',
     critical: 'Critical',
     high: 'High',
     medium: 'Medium',
@@ -91,13 +106,21 @@ const labels: Record<AppLocale, {
     missedWorkouts: 'Missed workouts',
     risk: 'Risk',
     viewProfile: 'View profile',
+    viewSession: 'View session',
     contact: 'Contact',
     dismiss: 'Dismiss',
     handled: 'Handled',
+    machine: 'Machine',
+    metric: 'Metric',
+    rpe: 'RPE',
+    load: 'Load',
+    duration: 'Duration',
+    distance: 'Distance',
   },
   sv: {
     training: 'Träning',
     pain: 'Smärta',
+    quickErg: 'Quick Erg',
     critical: 'Kritisk',
     high: 'Hög',
     medium: 'Medel',
@@ -108,13 +131,28 @@ const labels: Record<AppLocale, {
     missedWorkouts: 'Missade pass',
     risk: 'Risk',
     viewProfile: 'Visa profil',
+    viewSession: 'Visa pass',
     contact: 'Kontakta',
     dismiss: 'Avfärda',
     handled: 'Hanterad',
+    machine: 'Maskin',
+    metric: 'Mätvärde',
+    rpe: 'RPE',
+    load: 'Belastning',
+    duration: 'Tid',
+    distance: 'Distans',
   },
 }
 
-const alertTypeConfig = {
+type AlertTypeConfig = {
+  icon: LucideIcon
+  label?: string
+  labelKey?: keyof AttentionLabels
+  color: string
+  bg: string
+}
+
+const alertTypeConfig: Record<string, AlertTypeConfig> = {
   READINESS_DROP: {
     icon: TrendingDown,
     label: 'Readiness',
@@ -145,6 +183,30 @@ const alertTypeConfig = {
     color: 'text-amber-600 dark:text-amber-400',
     bg: 'bg-amber-100 dark:bg-amber-900/30',
   },
+  QUICK_ERG_NEW_SESSION: {
+    icon: Bluetooth,
+    labelKey: 'quickErg',
+    color: 'text-cyan-600 dark:text-cyan-300',
+    bg: 'bg-cyan-100 dark:bg-cyan-900/30',
+  },
+  QUICK_ERG_PERSONAL_BEST: {
+    icon: Trophy,
+    labelKey: 'quickErg',
+    color: 'text-emerald-600 dark:text-emerald-300',
+    bg: 'bg-emerald-100 dark:bg-emerald-900/30',
+  },
+  QUICK_ERG_HIGH_LOAD: {
+    icon: AlertTriangle,
+    labelKey: 'quickErg',
+    color: 'text-amber-600 dark:text-amber-300',
+    bg: 'bg-amber-100 dark:bg-amber-900/30',
+  },
+  QUICK_ERG_UNMATCHED_PLAN: {
+    icon: Link2,
+    labelKey: 'quickErg',
+    color: 'text-sky-600 dark:text-sky-300',
+    bg: 'bg-sky-100 dark:bg-sky-900/30',
+  },
 }
 
 const severityConfig = {
@@ -170,11 +232,31 @@ const severityConfig = {
   },
 }
 
+function isQuickErgAlertType(alertType: string): boolean {
+  return alertType.startsWith('QUICK_ERG_')
+}
+
+function numberValue(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null
+}
+
+function formatDuration(sec: number): string {
+  const minutes = Math.round(sec / 60)
+  if (minutes < 60) return `${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return rest > 0 ? `${hours}h ${rest}m` : `${hours}h`
+}
+
+function formatDistance(meters: number): string {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`
+  return `${Math.round(meters)} m`
+}
+
 export function AthleteAttentionCard({
   alert,
   onDismiss,
   onAction,
-  onResolve,
 }: AthleteAttentionCardProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = labels[locale]
@@ -186,9 +268,15 @@ export function AthleteAttentionCard({
   const slugMatch = pathname.match(/^\/([^/]+)\/coach/)
   const basePath = slugMatch ? `/${slugMatch[1]}` : ''
 
-  const typeConfig = alertTypeConfig[alert.alertType]
+  const typeConfig = alertTypeConfig[alert.alertType] ?? {
+    icon: Activity,
+    label: 'Alert',
+    color: 'text-slate-600 dark:text-slate-300',
+    bg: 'bg-slate-100 dark:bg-slate-800/70',
+  }
   const severity = severityConfig[alert.severity]
   const Icon = typeConfig.icon
+  const isQuickErgAlert = isQuickErgAlertType(alert.alertType)
 
   const handleAction = async () => {
     setIsActioning(true)
@@ -203,6 +291,13 @@ export function AthleteAttentionCard({
 
   // Extract context details for display
   const context = alert.contextData || {}
+  const quickErgSessionId = isQuickErgAlert && typeof context.sessionId === 'string'
+    ? context.sessionId
+    : null
+  const primaryHref = quickErgSessionId
+    ? `${basePath}/coach/clients/${alert.clientId}/quick-erg/${quickErgSessionId}`
+    : `${basePath}/coach/clients/${alert.clientId}`
+  const primaryLabel = quickErgSessionId ? copy.viewSession : copy.viewProfile
   const contextDetails: { label: string; value: string }[] = []
 
   if (alert.alertType === 'READINESS_DROP' && context.avgReadiness) {
@@ -221,6 +316,32 @@ export function AthleteAttentionCard({
   if (alert.alertType === 'HIGH_ACWR' && context.acwr) {
     contextDetails.push({ label: 'ACWR', value: `${(context.acwr as number).toFixed(2)}` })
     contextDetails.push({ label: copy.risk, value: `${context.injuryRisk}` })
+  }
+
+  if (isQuickErgAlert) {
+    const durationSec = numberValue(context.durationSec)
+    const distanceMeters = numberValue(context.distanceMeters)
+    const rpe = numberValue(context.rpe)
+    const trainingLoad = numberValue(context.trainingLoad)
+
+    if (typeof context.machineName === 'string') {
+      contextDetails.push({ label: copy.machine, value: context.machineName })
+    }
+    if (typeof context.metric === 'string' && context.metric.length > 0) {
+      contextDetails.push({ label: copy.metric, value: context.metric })
+    }
+    if (durationSec !== null) {
+      contextDetails.push({ label: copy.duration, value: formatDuration(durationSec) })
+    }
+    if (distanceMeters !== null && distanceMeters > 0) {
+      contextDetails.push({ label: copy.distance, value: formatDistance(distanceMeters) })
+    }
+    if (rpe !== null) {
+      contextDetails.push({ label: copy.rpe, value: `${rpe}/10` })
+    }
+    if (trainingLoad !== null) {
+      contextDetails.push({ label: copy.load, value: Math.round(trainingLoad).toString() })
+    }
   }
 
   const alertGlow = alert.severity === 'CRITICAL' ? 'red' : alert.severity === 'HIGH' ? 'amber' : alert.severity === 'MEDIUM' ? 'amber' : 'blue'
@@ -269,7 +390,7 @@ export function AthleteAttentionCard({
         {/* Time and type */}
         <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
           <Badge variant="outline" className="text-xs font-normal">
-            {'labelKey' in typeConfig ? copy[typeConfig.labelKey as keyof typeof copy] : typeConfig.label}
+            {typeConfig.labelKey ? copy[typeConfig.labelKey] : typeConfig.label}
           </Badge>
           <span>{timeAgo}</span>
           {alert.client.sportProfile?.primarySport && (
@@ -311,9 +432,9 @@ export function AthleteAttentionCard({
               className="h-7 text-xs"
               asChild
             >
-              <Link href={`${basePath}/coach/clients/${alert.clientId}`}>
+              <Link href={primaryHref}>
                 <Eye className="h-3 w-3 mr-1" />
-                {copy.viewProfile}
+                {primaryLabel}
               </Link>
             </Button>
             <Button

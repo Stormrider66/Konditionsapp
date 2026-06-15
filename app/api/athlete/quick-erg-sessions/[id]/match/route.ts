@@ -6,6 +6,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { syncQuickErgCoachAlertsSafely } from '@/lib/quick-erg/coach-alerts'
 import {
   asQuickErgStoredPlannedCardioMatch,
   buildQuickErgPlannedCardioMatch,
@@ -231,6 +232,7 @@ export async function POST(
       assignmentId: assignment.id,
       confidence: scored.confidence,
     })
+    await syncQuickErgCoachAlertsSafely({ sessionId: session.id })
 
     return NextResponse.json({
       success: true,
@@ -361,6 +363,7 @@ export async function DELETE(
       quickErgSessionId: session.id,
       assignmentId: match.assignmentId,
     })
+    await syncQuickErgCoachAlertsSafely({ sessionId: session.id })
 
     return NextResponse.json({
       success: true,

@@ -6,6 +6,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { syncQuickErgCoachAlertsSafely } from '@/lib/quick-erg/coach-alerts'
 import {
   buildQuickErgDedupeKey,
   buildQuickErgSessionAnalysis,
@@ -157,6 +158,8 @@ export async function POST(request: NextRequest) {
     })
 
     if (existing) {
+      await syncQuickErgCoachAlertsSafely({ sessionId: existing.id })
+
       return NextResponse.json({
         success: true,
         duplicate: true,
@@ -229,6 +232,7 @@ export async function POST(request: NextRequest) {
       machineType,
       durationSec: analysis.summary.durationSec,
     })
+    await syncQuickErgCoachAlertsSafely({ sessionId: result.session.id })
 
     return NextResponse.json({
       success: true,

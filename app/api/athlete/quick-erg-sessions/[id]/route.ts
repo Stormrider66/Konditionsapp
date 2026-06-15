@@ -6,6 +6,10 @@ import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
+  resolveQuickErgCoachAlertsSafely,
+  syncQuickErgCoachAlertsSafely,
+} from '@/lib/quick-erg/coach-alerts'
+import {
   asQuickErgStoredPlannedCardioMatch,
   restoreQuickErgAssignmentStatus,
 } from '@/lib/quick-erg/planned-match'
@@ -125,6 +129,7 @@ export async function PATCH(
       rpe: nextRpe,
       hasNotes: Boolean(nextNotes),
     })
+    await syncQuickErgCoachAlertsSafely({ sessionId: session.id })
 
     return NextResponse.json({
       success: true,
@@ -256,6 +261,10 @@ export async function DELETE(
       sessionId: session.id,
       restoredAssignmentId: match?.assignmentId ?? null,
       deletedTrainingLoadId: session.trainingLoadId ?? null,
+    })
+    await resolveQuickErgCoachAlertsSafely({
+      sessionId: session.id,
+      clientId: resolved.clientId,
     })
 
     return NextResponse.json({
