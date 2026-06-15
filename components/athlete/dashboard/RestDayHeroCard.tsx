@@ -768,6 +768,7 @@ function formatRecentActivitySource(
     garmin: 'recentActivity.sources.garmin',
     concept2: 'recentActivity.sources.concept2',
     quickerg: 'recentActivity.sources.quickerg',
+    phonerun: 'recentActivity.sources.phonerun',
     ai: 'recentActivity.sources.ai',
     adhoc: 'recentActivity.sources.adhoc',
   }

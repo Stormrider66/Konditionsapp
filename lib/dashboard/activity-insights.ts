@@ -58,7 +58,7 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
 
   const athleteUserId = client?.athleteAccount?.userId ?? null
 
-  const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, aiWods, adHocWorkouts] = await Promise.all([
+  const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, phoneRunSessions, aiWods, adHocWorkouts] = await Promise.all([
     athleteUserId
       ? prisma.workoutLog.findMany({
           where: {
@@ -97,6 +97,14 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
       take: 5,
     }),
     prisma.quickErgSession.findMany({
+      where: {
+        clientId,
+        startedAt: { gte: since },
+      },
+      orderBy: { startedAt: 'desc' },
+      take: 5,
+    }),
+    prisma.phoneRunSession.findMany({
       where: {
         clientId,
         startedAt: { gte: since },
@@ -232,6 +240,34 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
         notes: session.notes || undefined,
       },
       normalized: normalizeQuickErgActivity(session),
+    })
+  }
+
+  for (const session of phoneRunSessions) {
+    candidates.push({
+      summary: {
+        id: session.id,
+        source: 'phonerun',
+        name: 'Phone run',
+        type: 'RUNNING',
+        date: session.startedAt,
+        durationMinutes: Math.round(session.durationSec / 60),
+        distanceKm: Math.round((session.distanceMeters / 1000) * 10) / 10,
+        avgHR: session.avgHeartRate || undefined,
+        notes: session.notes || undefined,
+        deviceModel: session.deviceName || undefined,
+      },
+      normalized: {
+        id: `phonerun-${session.id}`,
+        source: 'phonerun',
+        date: session.startedAt,
+        startTime: session.startedAt,
+        duration: session.durationSec,
+        type: 'RUNNING',
+        distance: session.distanceMeters,
+        avgHR: session.avgHeartRate || undefined,
+        originalId: session.id,
+      },
     })
   }
 

@@ -7,6 +7,7 @@
  * - Garmin synced activities (DailyMetrics.factorScores)
  * - Concept2 synced results (Concept2Result)
  * - Quick Erg sessions (QuickErgSession)
+ * - Phone GPS run sessions (PhoneRunSession)
  * - AI-generated WODs (AIGeneratedWOD)
  *
  * Uses smart deduplication to prevent showing the same activity
@@ -36,7 +37,7 @@ import {
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'ai' | 'adhoc' | 'adhoc+garmin'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'ai' | 'adhoc' | 'adhoc+garmin'
   name: string
   type: string
   sport?: string
@@ -142,7 +143,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days)
 
     // Fetch all data sources in parallel
-    const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, aiWods, adHocWorkouts] = await Promise.all([
+    const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, phoneRunSessions, aiWods, adHocWorkouts] = await Promise.all([
       // Manual workout logs - filter by athleteId (the user ID of the athlete)
       athleteId
         ? prisma.workoutLog.findMany({
@@ -190,6 +191,16 @@ export async function GET(request: NextRequest) {
 
       // Direct Bluetooth erg sessions
       prisma.quickErgSession.findMany({
+        where: {
+          clientId,
+          startedAt: { gte: startDate },
+        },
+        orderBy: { startedAt: 'desc' },
+        take: limit,
+      }),
+
+      // Direct phone GPS run sessions
+      prisma.phoneRunSession.findMany({
         where: {
           clientId,
           startedAt: { gte: startDate },
@@ -432,6 +443,31 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Process direct phone GPS run sessions
+    for (const session of phoneRunSessions) {
+      const pace = session.avgPaceSecPerKm && session.avgPaceSecPerKm > 0
+        ? `${Math.floor(session.avgPaceSecPerKm / 60)}:${String(Math.round(session.avgPaceSecPerKm % 60)).padStart(2, '0')}`
+        : undefined
+
+      activities.push({
+        id: session.id,
+        source: 'phonerun',
+        name: t(locale, 'Phone run', 'Telefonlopning'),
+        type: 'RUNNING',
+        date: session.startedAt,
+        duration: Math.round(session.durationSec / 60),
+        distance: session.distanceMeters / 1000,
+        avgHR: session.avgHeartRate || undefined,
+        maxHR: session.maxHeartRate || undefined,
+        pace,
+        speed: session.avgSpeedMps ? session.avgSpeedMps * 3.6 : undefined,
+        elevationGain: session.elevationGainMeters || undefined,
+        completed: true,
+        notes: session.notes || undefined,
+        deviceModel: session.deviceName || undefined,
+      })
+    }
+
     // Process AI-generated WODs
     for (const wod of aiWods) {
       activities.push({
@@ -565,6 +601,7 @@ export async function GET(request: NextRequest) {
         garmin: garminActivities.length,
         concept2: concept2Results.length,
         quickerg: quickErgSessions.length,
+        phonerun: phoneRunSessions.length,
         ai: aiWods.length,
         adhoc: adHocWorkouts.length,
       },

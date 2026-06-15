@@ -767,6 +767,10 @@
           "label": "Spela in erg",
           "description": "Anslut roddmaskin, cykel, SkiErg eller airbike"
         },
+        "run": {
+          "label": "Spela in lopning",
+          "description": "Anvand telefonens GPS med valfri Bluetooth-puls"
+        },
         "text": {
           "label": "Skriv",
           "description": "Skriv en beskrivning av passet"
@@ -14077,6 +14081,10 @@
           "label": "Spela in erg",
           "description": "Anslut via Bluetooth och spara ett fritt pass"
         },
+        "run": {
+          "label": "Spela in lopning",
+          "description": "Anvand telefonens GPS med valfri Bluetooth-puls"
+        },
         "photo": {
           "label": "Foto",
           "description": "Ta en bild av whiteboard eller papper"
@@ -14843,6 +14851,7 @@
           "garmin": "Garmin Connect",
           "concept2": "Concept2",
           "quickerg": "Bluetooth-erg",
+          "phonerun": "Telefonlopning",
           "ai": "AI-pass",
           "adhoc": "Manuell logg"
         }

@@ -20,13 +20,14 @@ import {
   ChevronRight,
   ArrowLeft,
   Bluetooth,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { useTranslations } from '@/i18n/client'
 
 interface InputMethod {
-  id: 'erg' | 'photo' | 'voice' | 'text' | 'strava' | 'garmin' | 'manual'
+  id: 'erg' | 'run' | 'photo' | 'voice' | 'text' | 'strava' | 'garmin' | 'manual'
   labelKey: string
   descriptionKey: string
   icon: React.ReactNode
@@ -42,6 +43,14 @@ const INPUT_METHODS: InputMethod[] = [
     icon: <Bluetooth className="h-6 w-6" />,
     color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20 hover:bg-indigo-500/20',
     path: '/athlete/log-workout/erg',
+  },
+  {
+    id: 'run',
+    labelKey: 'methods.run.label',
+    descriptionKey: 'methods.run.description',
+    icon: <MapPin className="h-6 w-6" />,
+    color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500/20',
+    path: '/athlete/log-workout/run',
   },
   {
     id: 'text',

@@ -975,6 +975,61 @@ model QuickErgSession {
 }
 
 // ============================================
+// PHONE RUN SESSION CAPTURE
+// ============================================
+
+/// Source platform for athlete-first outdoor run capture.
+enum PhoneRunSource {
+  ANDROID_CHROME_PWA
+}
+
+/// Outdoor run captured directly from the athlete's phone GPS and optional BLE HR belt.
+model PhoneRunSession {
+  id       String @id @default(uuid())
+  clientId String
+
+  source     PhoneRunSource @default(ANDROID_CHROME_PWA)
+  deviceName String?
+
+  startedAt   DateTime
+  completedAt DateTime
+  durationSec Int
+  movingDurationSec Int?
+
+  distanceMeters       Float
+  avgPaceSecPerKm      Int?
+  avgSpeedMps          Float?
+  maxSpeedMps          Float?
+  elevationGainMeters  Float?
+
+  avgHeartRate Int?
+  maxHeartRate Int?
+
+  // Compact route and analytics payloads. `samples` stores cleaned GPS/HR
+  // points, while `splits` stores kilometer splits for fast summaries.
+  routePolyline String? @db.Text
+  samples       Json
+  summary       Json?
+  splits        Json?
+
+  rpe   Int?
+  notes String? @db.Text
+
+  trainingLoadId String?
+  dedupeKey      String? @unique
+  externalMatch  Json?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([clientId, startedAt])
+  @@index([trainingLoadId])
+}
+
+// ============================================
 // TRAINING SUMMARIES (Weekly & Monthly Aggregation)
 // ============================================
 

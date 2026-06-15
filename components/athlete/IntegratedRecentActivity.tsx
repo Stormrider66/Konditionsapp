@@ -8,6 +8,7 @@
  * - Strava synced activities
  * - Garmin synced activities
  * - Concept2 synced results
+ * - Phone GPS run sessions
  *
  * Shows source badges and unified metrics.
  */
@@ -28,7 +29,7 @@ import { enUS, sv } from 'date-fns/locale'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'ai' | 'adhoc' | 'adhoc+garmin'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'ai' | 'adhoc' | 'adhoc+garmin'
   name: string
   type: string
   sport?: string
@@ -75,6 +76,7 @@ const SOURCE_CONFIG = {
   garmin: { label: 'Garmin', color: 'bg-blue-100 text-blue-700', icon: '⌚' },
   concept2: { label: 'Concept2', color: 'bg-cyan-100 text-cyan-700', icon: '🚣' },
   quickerg: { label: { en: 'Bluetooth erg', sv: 'Bluetooth-erg' }, color: 'bg-indigo-100 text-indigo-700', icon: 'BT' },
+  phonerun: { label: { en: 'Phone run', sv: 'Telefonlopning' }, color: 'bg-emerald-100 text-emerald-700', icon: 'GPS' },
   ai: { label: { en: 'AI session', sv: 'AI-Pass' }, color: 'bg-purple-100 text-purple-700', icon: '✨' },
   adhoc: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
   'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
@@ -96,7 +98,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
   const basePath = useBasePath()
   const t = (svText: string, enText: string) => (locale === 'sv' ? svText : enText)
   const [activities, setActivities] = useState<UnifiedActivity[]>([])
-  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0, quickerg: 0, ai: 0, adhoc: 0 })
+  const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0, quickerg: 0, phonerun: 0, ai: 0, adhoc: 0 })
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -113,7 +115,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
 
         const data = await response.json()
         setActivities(data.activities || [])
-        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0, quickerg: 0, ai: 0, adhoc: 0 })
+        setCounts(data.counts || { manual: 0, strava: 0, garmin: 0, concept2: 0, quickerg: 0, phonerun: 0, ai: 0, adhoc: 0 })
       } catch (err) {
         console.error('Error fetching activities:', err)
         setError(locale === 'sv' ? 'Kunde inte ladda aktiviteter' : 'Could not load activities')
@@ -159,7 +161,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
     )
   }
 
-  const totalSynced = counts.strava + counts.garmin + counts.quickerg
+  const totalSynced = counts.strava + counts.garmin + counts.quickerg + counts.phonerun
 
   if (variant === 'glass') {
     return (
@@ -185,6 +187,11 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
                 {counts.quickerg > 0 && (
                   <Badge variant="outline" className="text-xs bg-indigo-100 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border-indigo-200 dark:border-indigo-500/20">
                     {counts.quickerg} BT
+                  </Badge>
+                )}
+                {counts.phonerun > 0 && (
+                  <Badge variant="outline" className="text-xs bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20">
+                    {counts.phonerun} GPS
                   </Badge>
                 )}
                 {counts.ai > 0 && (
@@ -243,6 +250,11 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
               {counts.quickerg > 0 && (
                 <Badge variant="outline" className="text-xs bg-indigo-50">
                   {counts.quickerg} BT
+                </Badge>
+              )}
+              {counts.phonerun > 0 && (
+                <Badge variant="outline" className="text-xs bg-emerald-50">
+                  {counts.phonerun} GPS
                 </Badge>
               )}
               {counts.ai > 0 && (
@@ -322,6 +334,7 @@ function ActivityCard({
                 <Badge className={`text-xs px-1.5 py-0 ${
                   activity.source === 'strava' ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-700 dark:text-orange-400' :
                   activity.source === 'quickerg' ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-400' :
+                  activity.source === 'phonerun' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
                   activity.source === 'ai' ? 'bg-purple-100 dark:bg-purple-500/20 text-purple-700 dark:text-purple-400' :
                   activity.source === 'adhoc' ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400' :
                   'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'

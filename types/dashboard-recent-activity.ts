@@ -4,6 +4,7 @@ export type DashboardRecentActivitySource =
   | 'garmin'
   | 'concept2'
   | 'quickerg'
+  | 'phonerun'
   | 'ai'
   | 'adhoc'
 

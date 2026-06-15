@@ -2,7 +2,7 @@
  * Activity Deduplication Utility
  *
  * Handles deduplication of activities from multiple sources:
- * - Strava, Garmin, Concept2, Manual logs, AI WODs
+ * - Strava, Garmin, Concept2, Phone Run, Manual logs, AI WODs
  *
  * Uses matching algorithm:
  * - Primary: Same date + start time within ±15 minutes
@@ -23,7 +23,7 @@ import {
   type QuickErgMachineType,
 } from '@/lib/quick-erg/session-summary'
 
-export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'manual' | 'ai' | 'adhoc'
+export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'manual' | 'ai' | 'adhoc'
 
 export interface NormalizedActivity {
   id: string
@@ -67,6 +67,7 @@ const SOURCE_PRIORITY: Record<ActivitySource, number> = {
   concept2: 5, // Most accurate - direct from equipment
   quickerg: 5, // Direct from equipment, captured before vendor syncs arrive
   strava: 4, // Good quality, widely used
+  phonerun: 3.5, // First-party phone recording with GPS and optional BLE HR
   garmin: 3, // Good quality, but often syncs same activity as Strava
   ai: 2, // AI-generated, less metadata
   manual: 1, // User input, least reliable

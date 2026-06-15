@@ -162,6 +162,7 @@ export async function getAthleteHistoryFeed(params: {
     agilityAssignments,
     completedWODs,
     quickErgSessions,
+    phoneRunSessions,
   ] = await Promise.all([
     prisma.workoutLog.findMany({
       where: {
@@ -244,6 +245,20 @@ export async function getAthleteHistoryFeed(params: {
         machineType: true,
         machineKind: true,
         deviceName: true,
+        completedAt: true,
+        durationSec: true,
+        distanceMeters: true,
+        rpe: true,
+      },
+      orderBy: { completedAt: 'desc' },
+    }),
+    prisma.phoneRunSession.findMany({
+      where: {
+        clientId,
+        completedAt: { gte: startDate, lte: now },
+      },
+      select: {
+        id: true,
         completedAt: true,
         durationSec: true,
         distanceMeters: true,
@@ -351,19 +366,33 @@ export async function getAthleteHistoryFeed(params: {
     }
   })
 
+  const phoneRunItems = phoneRunSessions.map((session) => ({
+    id: session.id,
+    date: session.completedAt,
+    name: 'Phone run',
+    type: 'RUNNING' as const,
+    duration: Math.round(session.durationSec / 60),
+    perceivedEffort: session.rpe || null,
+    distance: session.distanceMeters / 1000,
+    source: 'phone-run' as const,
+    linkHref: `/athlete/dashboard`,
+  }))
+
   const totalWorkouts =
-    logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + quickErgItems.length
+    logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + quickErgItems.length + phoneRunItems.length
   const totalDistanceKm =
     logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0) +
-    quickErgItems.reduce((sum, s) => sum + (s.distance || 0), 0)
+    quickErgItems.reduce((sum, s) => sum + (s.distance || 0), 0) +
+    phoneRunItems.reduce((sum, s) => sum + (s.distance || 0), 0)
   const totalDurationMin =
     logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0) +
     wodItems.reduce((sum, w) => sum + (w.duration || 0), 0) +
-    quickErgItems.reduce((sum, s) => sum + (s.duration || 0), 0)
+    quickErgItems.reduce((sum, s) => sum + (s.duration || 0), 0) +
+    phoneRunItems.reduce((sum, s) => sum + (s.duration || 0), 0)
 
   const allEfforts = [
     ...logs.filter((log) => log.perceivedEffort).map((log) => log.perceivedEffort!),
@@ -371,6 +400,7 @@ export async function getAthleteHistoryFeed(params: {
     ...allAssignmentItems.filter((a) => a.perceivedEffort).map((a) => a.perceivedEffort!),
     ...wodItems.filter((w) => w.perceivedEffort).map((w) => w.perceivedEffort!),
     ...quickErgItems.filter((s) => s.perceivedEffort).map((s) => s.perceivedEffort!),
+    ...phoneRunItems.filter((s) => s.perceivedEffort).map((s) => s.perceivedEffort!),
   ]
   const avgRPE =
     allEfforts.length > 0
@@ -429,6 +459,19 @@ export async function getAthleteHistoryFeed(params: {
       linkHref: w.linkHref,
     })),
     ...quickErgItems.map((session) => ({
+      id: session.id,
+      date: session.date,
+      name: session.name,
+      type: session.type,
+      programName: undefined,
+      distance: session.distance,
+      duration: session.duration,
+      perceivedEffort: session.perceivedEffort,
+      isAdHoc: false,
+      source: session.source,
+      linkHref: session.linkHref,
+    })),
+    ...phoneRunItems.map((session) => ({
       id: session.id,
       date: session.date,
       name: session.name,

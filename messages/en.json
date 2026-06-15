@@ -767,6 +767,10 @@
           "label": "Record erg",
           "description": "Connect a rowing machine, bike, SkiErg, or airbike"
         },
+        "run": {
+          "label": "Record run",
+          "description": "Use phone GPS with optional Bluetooth heart rate"
+        },
         "text": {
           "label": "Write",
           "description": "Write a description of the workout"
@@ -13717,6 +13721,10 @@
           "label": "Record erg",
           "description": "Connect by Bluetooth and save a free session"
         },
+        "run": {
+          "label": "Record run",
+          "description": "Use phone GPS with optional Bluetooth heart rate"
+        },
         "photo": {
           "label": "Photo",
           "description": "Take a photo of a whiteboard or paper"
@@ -14483,6 +14491,7 @@
           "garmin": "Garmin Connect",
           "concept2": "Concept2",
           "quickerg": "Bluetooth erg",
+          "phonerun": "Phone run",
           "ai": "AI workout",
           "adhoc": "Manual log"
         }

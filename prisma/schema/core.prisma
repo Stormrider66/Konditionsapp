@@ -592,6 +592,7 @@ model Client {
   garminActivities    GarminActivity[]
   concept2Results     Concept2Result[]
   quickErgSessions    QuickErgSession[]
+  phoneRunSessions    PhoneRunSession[]
 
   // VBT (Velocity-Based Training) relations
   vbtSessions          VBTSession[]
