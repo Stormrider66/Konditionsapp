@@ -18,6 +18,7 @@ import { VBTProgressionWidget } from '@/components/athlete/VBTProgressionWidget'
 import { Concept2SummaryWidget } from '@/components/athlete/Concept2SummaryWidget'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
 import { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
+import { CoachQuickErgOverviewCard } from '@/components/coach/quick-erg/CoachQuickErgWidgets'
 import { GarminFreshnessBadge } from './GarminFreshnessBadge'
 import type { ClientWithTests, ProgramSummary, CoachSnapshotTone, CoachSnapshotAction } from './types'
 
@@ -205,6 +206,8 @@ export function OverviewTab({
             clientId={id}
             testsHref={`${basePath}/clients/${id}?tab=development`}
           />
+
+          <CoachQuickErgOverviewCard clientId={id} basePath={basePath} />
 
           <VisualReportCard
             clientId={id}

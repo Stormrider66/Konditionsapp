@@ -3,6 +3,12 @@ import { requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { subDays, startOfWeek } from 'date-fns'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
+import { resolveQuickErgDisplayMachineType } from '@/lib/quick-erg/coach-summary'
+import {
+  formatMachineName,
+  inferActivityType,
+  type QuickErgMachineType,
+} from '@/lib/quick-erg/session-summary'
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,6 +41,7 @@ export async function GET(request: NextRequest) {
       weeklySummaries,
       stravaActivities,
       garminActivities,
+      quickErgSessions,
       alerts,
       injuries,
     ] = await Promise.all([
@@ -137,7 +144,28 @@ export async function GET(request: NextRequest) {
         take: 10,
       }),
 
-      // 6. Active coach alerts for this client
+      // 6. Quick Erg sessions - last 10
+      prisma.quickErgSession.findMany({
+        where: { clientId, startedAt: { gte: tenDaysAgo } },
+        select: {
+          id: true,
+          machineType: true,
+          machineKind: true,
+          deviceName: true,
+          startedAt: true,
+          distanceMeters: true,
+          durationSec: true,
+          avgHeartRate: true,
+          maxHeartRate: true,
+          avgCadence: true,
+          avgStrokeRate: true,
+          avgPower: true,
+        },
+        orderBy: { startedAt: 'desc' },
+        take: 10,
+      }),
+
+      // 7. Active coach alerts for this client
       prisma.coachAlert.findMany({
         where: {
           coachId: user.id,
@@ -156,7 +184,7 @@ export async function GET(request: NextRequest) {
         take: 10,
       }),
 
-      // 7. Active injuries
+      // 8. Active injuries
       prisma.injuryAssessment.findMany({
         where: {
           clientId,
@@ -210,6 +238,29 @@ export async function GET(request: NextRequest) {
         avgWatts: a.averageWatts,
         elevationGain: a.elevationGain,
       })),
+      ...quickErgSessions.map(a => {
+        const machineType = resolveQuickErgDisplayMachineType({
+          machineType: a.machineType as QuickErgMachineType,
+          machineKind: a.machineKind,
+          deviceName: a.deviceName,
+        })
+
+        return {
+          id: a.id,
+          source: 'quick_erg' as const,
+          name: formatMachineName(machineType),
+          type: inferActivityType(machineType),
+          startDate: a.startedAt.toISOString(),
+          distance: a.distanceMeters,
+          duration: a.durationSec,
+          avgHR: a.avgHeartRate,
+          maxHR: a.maxHeartRate,
+          avgSpeed: null as number | null,
+          avgCadence: a.avgCadence ?? a.avgStrokeRate,
+          avgWatts: a.avgPower,
+          elevationGain: null as number | null,
+        }
+      }),
     ]
       .sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime())
       .slice(0, 10)

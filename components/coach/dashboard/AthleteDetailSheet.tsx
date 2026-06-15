@@ -72,7 +72,7 @@ interface WeeklySummary {
 
 interface RecentActivity {
   id: string
-  source: 'strava' | 'garmin'
+  source: 'strava' | 'garmin' | 'quick_erg'
   name: string
   type: string
   startDate: string
@@ -190,6 +190,18 @@ const severityColors: Record<string, string> = {
   HIGH: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   MEDIUM: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   LOW: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+}
+
+const activitySourceClasses: Record<RecentActivity['source'], string> = {
+  strava: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300',
+  garmin: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300',
+  quick_erg: 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300',
+}
+
+function activitySourceLabel(source: RecentActivity['source']): string {
+  if (source === 'quick_erg') return 'ERG'
+  if (source === 'strava') return 'STR'
+  return 'GAR'
 }
 
 // --- Sparkline Component ---
@@ -749,7 +761,9 @@ function ActivityRow({ activity: a, sportCategory, locale }: { activity: RecentA
   return (
     <div className="flex items-center gap-3 py-2 border-b border-slate-100 dark:border-white/5 last:border-0">
       <div className="flex-shrink-0">
-        <span className="text-[10px]">{a.source === 'strava' ? '🟧' : '🔵'}</span>
+        <span className={cn('inline-flex h-5 min-w-8 items-center justify-center rounded border px-1.5 text-[10px] font-semibold', activitySourceClasses[a.source])}>
+          {activitySourceLabel(a.source)}
+        </span>
       </div>
       <div className="min-w-0 flex-1">
         <p className="text-xs font-medium truncate">{a.name}</p>

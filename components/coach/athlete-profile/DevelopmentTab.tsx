@@ -24,6 +24,7 @@ import { YearlyTrainingOverview } from '@/components/athlete/YearlyTrainingOverv
 import { StrengthPRTable } from '@/components/coach/strength/StrengthPRTable'
 import { PendingPRFeedSingle } from '@/components/coach/strength/PendingPRFeed'
 import { ProgressionDashboard } from '@/components/coach/progression/ProgressionDashboard'
+import { CoachQuickErgDevelopmentPanel } from '@/components/coach/quick-erg/CoachQuickErgWidgets'
 import { AssessmentTimeline } from './AssessmentTimeline'
 import { WellnessTrends } from './WellnessTrends'
 import { TrainingStats } from './TrainingStats'
@@ -287,6 +288,8 @@ export function DevelopmentTab({
       {hockeyTeamId && <HockeyTeamRank clientId={id} teamId={hockeyTeamId} />}
 
       <TrainingStats clientId={id} />
+
+      <CoachQuickErgDevelopmentPanel clientId={id} basePath={basePath} />
 
       <AssessmentTimeline
         clientId={id}
