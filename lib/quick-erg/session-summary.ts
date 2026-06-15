@@ -79,7 +79,7 @@ export interface QuickErgSessionAnalysis {
 }
 
 const POWER_WINDOWS = [6, 30, 60, 180, 300, 600, 1200]
-const DISTANCE_TARGETS = [500, 1000, 2000]
+const DISTANCE_TARGETS = [500, 1000, 2000, 5000]
 
 function isNum(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value)

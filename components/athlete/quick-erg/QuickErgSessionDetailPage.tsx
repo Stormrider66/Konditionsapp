@@ -12,6 +12,8 @@ import type {
   QuickErgSessionSummary,
   QuickErgSource,
 } from '@/lib/quick-erg/session-summary'
+import { inferQuickErgMachineTypeFromDevice } from '@/lib/quick-erg/session-summary'
+import { findQuickErgSessionPrBadges } from '@/lib/quick-erg/progress'
 import { getLocale } from '@/i18n/server'
 
 interface QuickErgSessionDetailPageProps {
@@ -35,6 +37,22 @@ function asBestEfforts(value: Prisma.JsonValue | null): QuickErgBestEffort[] {
 
 function asIntervals(value: Prisma.JsonValue | null): QuickErgDetectedInterval[] {
   return Array.isArray(value) ? value as unknown as QuickErgDetectedInterval[] : []
+}
+
+function asMachineKind(value: string | null): 'bike' | 'rower' | null {
+  return value === 'bike' || value === 'rower' ? value : null
+}
+
+function resolveDisplayMachineType(session: {
+  machineType: QuickErgMachineType
+  machineKind?: string | null
+  deviceName?: string | null
+}): QuickErgMachineType {
+  return inferQuickErgMachineTypeFromDevice({
+    currentMachineType: session.machineType,
+    machineKind: asMachineKind(session.machineKind ?? null),
+    deviceName: session.deviceName,
+  }) ?? session.machineType
 }
 
 export async function QuickErgSessionDetailPage({
@@ -98,9 +116,66 @@ export async function QuickErgSessionDetailPage({
       })
     : null
 
+  const displayMachineType = resolveDisplayMachineType({
+    machineType: session.machineType as QuickErgMachineType,
+    machineKind: session.machineKind,
+    deviceName: session.deviceName,
+  })
+
+  const previousSessions = await prisma.quickErgSession.findMany({
+    where: {
+      clientId,
+      startedAt: { lt: session.startedAt },
+    },
+    orderBy: { startedAt: 'desc' },
+    take: 200,
+    select: {
+      id: true,
+      machineType: true,
+      machineKind: true,
+      deviceName: true,
+      startedAt: true,
+      durationSec: true,
+      distanceMeters: true,
+      avgPower: true,
+      maxPower: true,
+      normalizedPower: true,
+      bestEfforts: true,
+    },
+  })
+
+  const prBadges = findQuickErgSessionPrBadges(
+    {
+      id: session.id,
+      machineType: displayMachineType,
+      startedAt: session.startedAt,
+      durationSec: session.durationSec,
+      distanceMeters: session.distanceMeters,
+      avgPower: session.avgPower,
+      maxPower: session.maxPower,
+      normalizedPower: session.normalizedPower,
+      bestEfforts: asBestEfforts(session.bestEfforts),
+    },
+    previousSessions.map((previous) => ({
+      id: previous.id,
+      machineType: resolveDisplayMachineType({
+        machineType: previous.machineType as QuickErgMachineType,
+        machineKind: previous.machineKind,
+        deviceName: previous.deviceName,
+      }),
+      startedAt: previous.startedAt,
+      durationSec: previous.durationSec,
+      distanceMeters: previous.distanceMeters,
+      avgPower: previous.avgPower,
+      maxPower: previous.maxPower,
+      normalizedPower: previous.normalizedPower,
+      bestEfforts: asBestEfforts(previous.bestEfforts),
+    }))
+  )
+
   const detail: QuickErgSessionDetailData = {
     id: session.id,
-    machineType: session.machineType as QuickErgMachineType,
+    machineType: displayMachineType,
     machineKind: session.machineKind,
     source: session.source as QuickErgSource,
     deviceName: session.deviceName,
@@ -125,6 +200,7 @@ export async function QuickErgSessionDetailPage({
     summary: asSummary(session.summary),
     bestEfforts: asBestEfforts(session.bestEfforts),
     detectedIntervals: asIntervals(session.detectedIntervals),
+    prBadges,
     trainingLoad,
   }
 

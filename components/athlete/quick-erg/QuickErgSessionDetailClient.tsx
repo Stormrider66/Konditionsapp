@@ -16,6 +16,7 @@ import {
   Ship,
   Timer,
   TrendingUp,
+  Trophy,
   Zap,
 } from 'lucide-react'
 import {
@@ -43,6 +44,7 @@ import type {
   QuickErgSource,
 } from '@/lib/quick-erg/session-summary'
 import { formatMachineName } from '@/lib/quick-erg/session-summary'
+import type { QuickErgPersonalBest } from '@/lib/quick-erg/progress'
 
 interface QuickErgTrainingLoadDetail {
   dailyLoad: number
@@ -82,6 +84,7 @@ export interface QuickErgSessionDetailData {
   summary?: QuickErgSessionSummary | null
   bestEfforts: QuickErgBestEffort[]
   detectedIntervals: QuickErgDetectedInterval[]
+  prBadges: QuickErgPersonalBest[]
   trainingLoad?: QuickErgTrainingLoadDetail | null
 }
 
@@ -129,6 +132,46 @@ function formatDistance(meters?: number | null): string {
   if (!meters) return '--'
   if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`
   return `${Math.round(meters)} m`
+}
+
+function formatRecordValue(record: QuickErgPersonalBest): string {
+  if (record.unit === 'W') return `${Math.round(record.value)} W`
+  if (record.unit === 'm') return formatDistance(record.value)
+  if (record.unit === 'sec') return formatDuration(record.value)
+  return String(record.value)
+}
+
+function localizedRecordLabel(record: QuickErgPersonalBest, locale: string): string {
+  if (record.key === 'first_session') {
+    return text(locale, `First ${record.machineName} session`, `Forsta ${record.machineName}-passet`)
+  }
+  if (record.key.startsWith('power_')) {
+    const seconds = record.key.replace('power_', '').replace('s', '')
+    const duration = Number(seconds)
+    if (duration < 60) return text(locale, `${duration} sec power`, `${duration} sek effekt`)
+    return text(locale, `${duration / 60} min power`, `${duration / 60} min effekt`)
+  }
+  if (record.key.startsWith('pace_')) {
+    const meters = record.key.replace('pace_', '').replace('m', '')
+    const distance = Number(meters)
+    const label = distance >= 1000 ? `${distance / 1000}k` : `${distance}m`
+    return text(locale, `${label} pace`, `${label} tempo`)
+  }
+
+  switch (record.key) {
+    case 'avg_power':
+      return text(locale, 'Avg power', 'Snitteffekt')
+    case 'normalized_power':
+      return text(locale, 'Normalized power', 'Normalized power')
+    case 'max_power':
+      return text(locale, 'Max power', 'Maxeffekt')
+    case 'longest_duration':
+      return text(locale, 'Longest session', 'Langsta pass')
+    case 'longest_distance':
+      return text(locale, 'Longest distance', 'Langsta distans')
+    default:
+      return record.label
+  }
 }
 
 function formatDate(value: string, locale: string): string {
@@ -218,12 +261,20 @@ export function QuickErgSessionDetailClient({
           </Link>
         </Button>
 
-        <Button variant="outline" asChild>
-          <Link href={`${basePath}/athlete/log-workout/erg`}>
-            <RotateCcw className="mr-2 h-4 w-4" />
-            {text(locale, 'Record another', 'Spela in igen')}
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href={`${basePath}/athlete/quick-erg`}>
+              <Trophy className="mr-2 h-4 w-4" />
+              {text(locale, 'History', 'Historik')}
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href={`${basePath}/athlete/log-workout/erg`}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              {text(locale, 'Record another', 'Spela in igen')}
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -260,6 +311,32 @@ export function QuickErgSessionDetailClient({
           </div>
         </div>
       </div>
+
+      {session.prBadges.length > 0 && (
+        <Card className="mb-8 border-amber-200 bg-amber-50/60 dark:border-amber-500/20 dark:bg-amber-500/10">
+          <CardContent className="p-4">
+            <div className="mb-3 flex items-center gap-2 font-semibold text-amber-900 dark:text-amber-200">
+              <Trophy className="h-5 w-5" />
+              {text(locale, 'Personal bests in this session', 'Personbasta i detta pass')}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {session.prBadges.map((record) => (
+                <div key={`${record.key}-${record.value}`} className="rounded-md border border-amber-200 bg-background/80 p-3 dark:border-amber-500/20">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {localizedRecordLabel(record, locale)}
+                  </div>
+                  <div className="mt-1 text-xl font-bold tabular-nums">{formatRecordValue(record)}</div>
+                  {record.previousValue && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {text(locale, 'Previous', 'Tidigare')} {formatRecordValue({ ...record, value: record.previousValue })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-6">
         <MetricCard icon={<Clock className="h-4 w-4" />} label={text(locale, 'Time', 'Tid')} value={formatDuration(session.durationSec)} />

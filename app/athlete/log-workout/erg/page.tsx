@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Trophy } from 'lucide-react'
 
 import { QuickErgCapture } from '@/components/athlete/quick-erg'
 import { Button } from '@/components/ui/button'
@@ -18,18 +18,27 @@ export default function QuickErgSessionPage() {
 
   return (
     <div className="container max-w-2xl py-8 space-y-6">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`${basePath}/athlete/log-workout`}>
-            <ArrowLeft className="h-5 w-5" />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild>
+            <Link href={`${basePath}/athlete/log-workout`}>
+              <ArrowLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">{text(locale, 'Record erg', 'Spela in erg')}</h1>
+            <p className="text-muted-foreground">
+              {text(locale, 'Free recording for rowing, skiing, cycling, and airbikes.', 'Fri inspelning for rodd, ski, cykel och airbike.')}
+            </p>
+          </div>
+        </div>
+
+        <Button variant="outline" asChild>
+          <Link href={`${basePath}/athlete/quick-erg`}>
+            <Trophy className="mr-2 h-4 w-4" />
+            {text(locale, 'History', 'Historik')}
           </Link>
         </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{text(locale, 'Record erg', 'Spela in erg')}</h1>
-          <p className="text-muted-foreground">
-            {text(locale, 'Free recording for rowing, skiing, cycling, and airbikes.', 'Fri inspelning for rodd, ski, cykel och airbike.')}
-          </p>
-        </div>
       </div>
 
       <QuickErgCapture />
