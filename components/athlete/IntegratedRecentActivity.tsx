@@ -12,7 +12,9 @@
  * Shows source badges and unified metrics.
  */
 
+import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { useLocale } from 'next-intl'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
@@ -20,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Zap, Dumbbell } from 'lucide-react'
 import { GarminAttribution } from '@/components/ui/GarminAttribution'
+import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { formatDistanceToNow } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 
@@ -77,7 +80,7 @@ const SOURCE_CONFIG = {
   'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
 }
 
-const TYPE_ICONS: Record<string, React.ReactNode> = {
+const TYPE_ICONS: Record<string, ReactNode> = {
   RUNNING: <PersonStanding className="h-4 w-4" />,
   CYCLING: <Bike className="h-4 w-4" />,
   SWIMMING: <Waves className="h-4 w-4" />,
@@ -90,6 +93,7 @@ const TYPE_ICONS: Record<string, React.ReactNode> = {
 
 export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'default' }: IntegratedRecentActivityProps) {
   const locale = useLocale()
+  const basePath = useBasePath()
   const t = (svText: string, enText: string) => (locale === 'sv' ? svText : enText)
   const [activities, setActivities] = useState<UnifiedActivity[]>([])
   const [counts, setCounts] = useState({ manual: 0, strava: 0, garmin: 0, concept2: 0, quickerg: 0, ai: 0, adhoc: 0 })
@@ -207,7 +211,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
           ) : (
             <div className="space-y-3">
               {activities.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} variant="glass" locale={locale} />
+                <ActivityCard key={activity.id} activity={activity} variant="glass" locale={locale} basePath={basePath} />
               ))}
             </div>
           )}
@@ -262,7 +266,7 @@ export function IntegratedRecentActivity({ clientId, limit = 10, variant = 'defa
         ) : (
           <div className="space-y-3">
             {activities.map((activity) => (
-              <ActivityCard key={activity.id} activity={activity} locale={locale} />
+              <ActivityCard key={activity.id} activity={activity} locale={locale} basePath={basePath} />
             ))}
           </div>
         )}
@@ -275,10 +279,12 @@ function ActivityCard({
   activity,
   variant = 'default',
   locale,
+  basePath,
 }: {
   activity: UnifiedActivity
   variant?: 'default' | 'glass'
   locale: string
+  basePath: string
 }) {
   const sourceConfig = SOURCE_CONFIG[activity.source] || SOURCE_CONFIG.manual
   const labelLocale = locale === 'sv' ? 'sv' : 'en'
@@ -287,10 +293,17 @@ function ActivityCard({
     : sourceConfig.label[labelLocale]
   const dateFnsLocale = locale === 'sv' ? sv : enUS
   const typeIcon = TYPE_ICONS[activity.type] || <Activity className="h-4 w-4" />
+  const detailHref = activity.source === 'quickerg'
+    ? `${basePath}/athlete/quick-erg/${activity.id}`
+    : undefined
 
   if (variant === 'glass') {
     return (
-      <div className="border border-slate-200 dark:border-white/10 rounded-lg p-3 space-y-2 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors bg-slate-50 dark:bg-black/20">
+      <ActivityCardShell
+        href={detailHref}
+        label={activity.name}
+        className="block border border-slate-200 dark:border-white/10 rounded-lg p-3 space-y-2 hover:bg-slate-100 dark:hover:bg-white/5 transition-colors bg-slate-50 dark:bg-black/20"
+      >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -392,12 +405,16 @@ function ActivityCard({
         </div>
 
         <ActivityDetails activity={activity} variant="glass" locale={locale} />
-      </div>
+      </ActivityCardShell>
     )
   }
 
   return (
-    <div className="border rounded-lg p-3 space-y-2 hover:bg-gray-50/50 transition-colors">
+    <ActivityCardShell
+      href={detailHref}
+      label={activity.name}
+      className="block border rounded-lg p-3 space-y-2 hover:bg-gray-50/50 transition-colors"
+    >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -497,8 +514,30 @@ function ActivityCard({
       {activity.notes && (
         <p className="text-xs text-muted-foreground line-clamp-2">{activity.notes}</p>
       )}
-    </div>
+    </ActivityCardShell>
   )
+}
+
+function ActivityCardShell({
+  href,
+  label,
+  className,
+  children,
+}: {
+  href?: string
+  label: string
+  className: string
+  children: ReactNode
+}) {
+  if (href) {
+    return (
+      <Link href={href} aria-label={`View ${label}`} className={className}>
+        {children}
+      </Link>
+    )
+  }
+
+  return <div className={className}>{children}</div>
 }
 
 /** Compact display of strength exercises or hybrid movements */

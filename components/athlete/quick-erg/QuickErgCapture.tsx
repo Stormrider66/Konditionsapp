@@ -262,8 +262,9 @@ export function QuickErgCapture() {
       }
 
       toast.success(text(locale, 'Erg session saved', 'Ergpasset har sparats'))
+      const sessionId = payload?.data?.id
       handleReset()
-      router.push(`${basePath}/athlete/dashboard`)
+      router.push(sessionId ? `${basePath}/athlete/quick-erg/${sessionId}` : `${basePath}/athlete/dashboard`)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : text(locale, 'Could not save session', 'Kunde inte spara passet'))
       setPhase('review')
