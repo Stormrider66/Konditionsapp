@@ -46,7 +46,7 @@ interface HistoryPageProps {
 
 export default async function WorkoutHistoryPage({ searchParams }: HistoryPageProps) {
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
-  const t = await getTranslations('pages.athlete.history')
+  const t = await getTranslations('athletePages.history')
   const locale = await getLocale()
   const dateLocale = locale === 'en' ? enUS : sv
   const params = await searchParams

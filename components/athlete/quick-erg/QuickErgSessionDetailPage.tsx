@@ -80,6 +80,7 @@ function asPlannedCardioMatch(value: Prisma.JsonValue | null): QuickErgPlannedCa
     sessionId: record.sessionId,
     sessionName: record.sessionName,
     assignedDate: record.assignedDate,
+    previousStatus: typeof record.previousStatus === 'string' ? record.previousStatus : undefined,
     matchedAt: record.matchedAt,
     source: record.source === 'quick_erg_manual' ? 'quick_erg_manual' : 'quick_erg_manual',
   }

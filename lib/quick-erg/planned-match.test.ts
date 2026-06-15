@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildQuickErgPlannedCardioMatch,
   buildQuickErgPlannedCardioSuggestions,
   scoreQuickErgPlannedCardioCandidate,
   type QuickErgMatchableSession,
@@ -69,5 +70,15 @@ describe('quick erg planned cardio matching', () => {
     ])
 
     expect(suggestions[0].id).toBe('assignment-1')
+  })
+
+  it('stores the previous assignment status when creating a match', () => {
+    const match = buildQuickErgPlannedCardioMatch(candidate)
+
+    expect(match).toMatchObject({
+      assignmentId: 'assignment-1',
+      previousStatus: 'PENDING',
+      source: 'quick_erg_manual',
+    })
   })
 })

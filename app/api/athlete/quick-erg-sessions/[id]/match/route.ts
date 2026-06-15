@@ -19,6 +19,13 @@ const matchSchema = z.object({
   assignmentId: z.string().min(1),
 })
 
+interface StoredPlannedCardioMatch {
+  type: 'cardio_assignment'
+  assignmentId: string
+  sessionId?: string
+  previousStatus?: string
+}
+
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -43,6 +50,35 @@ function dayDate(date: Date): Date {
   const next = new Date(date)
   next.setHours(0, 0, 0, 0)
   return next
+}
+
+function asStoredPlannedCardioMatch(value: unknown): StoredPlannedCardioMatch | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+
+  const record = value as Record<string, unknown>
+  if (record.type !== 'cardio_assignment' || typeof record.assignmentId !== 'string') {
+    return null
+  }
+
+  return {
+    type: 'cardio_assignment',
+    assignmentId: record.assignmentId,
+    sessionId: typeof record.sessionId === 'string' ? record.sessionId : undefined,
+    previousStatus: typeof record.previousStatus === 'string' ? record.previousStatus : undefined,
+  }
+}
+
+function restoreAssignmentStatus(params: {
+  previousStatus?: string
+  startTime?: string | null
+  endTime?: string | null
+  calendarEventId?: string | null
+}): 'PENDING' | 'SCHEDULED' {
+  if (params.previousStatus === 'PENDING' || params.previousStatus === 'SCHEDULED') {
+    return params.previousStatus
+  }
+
+  return params.startTime || params.endTime || params.calendarEventId ? 'SCHEDULED' : 'PENDING'
 }
 
 export async function POST(
@@ -241,6 +277,134 @@ export async function POST(
     logger.error('Failed to match quick erg session', {}, error)
     return NextResponse.json(
       { success: false, error: t(locale, 'Failed to match planned session', 'Kunde inte matcha planerat pass') },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  let locale = resolveRequestLocale(request)
+
+  try {
+    const { id } = await params
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehorig') }, { status: 401 })
+    }
+
+    locale = resolveRequestLocale(request, resolved.user.language)
+
+    const session = await prisma.quickErgSession.findFirst({
+      where: { id, clientId: resolved.clientId },
+      select: {
+        id: true,
+        completedAt: true,
+        durationSec: true,
+        trainingLoadId: true,
+        externalMatch: true,
+      },
+    })
+
+    if (!session) {
+      return NextResponse.json({ success: false, error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 })
+    }
+
+    const match = asStoredPlannedCardioMatch(session.externalMatch)
+    if (!match) {
+      return NextResponse.json({ success: false, error: t(locale, 'Session is not matched', 'Passet ar inte matchat') }, { status: 409 })
+    }
+
+    const assignment = await prisma.cardioSessionAssignment.findFirst({
+      where: {
+        id: match.assignmentId,
+        athleteId: resolved.clientId,
+      },
+      select: {
+        id: true,
+        sessionId: true,
+        startTime: true,
+        endTime: true,
+        calendarEventId: true,
+      },
+    })
+
+    await prisma.$transaction(async (tx) => {
+      if (assignment) {
+        const nextStatus = restoreAssignmentStatus({
+          previousStatus: match.previousStatus,
+          startTime: assignment.startTime,
+          endTime: assignment.endTime,
+          calendarEventId: assignment.calendarEventId,
+        })
+
+        await tx.cardioSessionAssignment.update({
+          where: { id: assignment.id },
+          data: {
+            status: nextStatus,
+            completedAt: null,
+            actualDuration: null,
+            actualDistance: null,
+            avgHeartRate: null,
+          },
+        })
+
+        await tx.cardioSessionLog.updateMany({
+          where: {
+            assignmentId: assignment.id,
+            athleteId: resolved.clientId,
+            status: 'COMPLETED',
+            focusModeUsed: false,
+            completedAt: session.completedAt,
+            actualDuration: session.durationSec,
+          },
+          data: {
+            status: nextStatus,
+            completedAt: null,
+            actualDuration: null,
+            actualDistance: null,
+            avgHeartRate: null,
+            maxHeartRate: null,
+          },
+        })
+      }
+
+      await tx.quickErgSession.update({
+        where: { id: session.id },
+        data: {
+          externalMatch: Prisma.DbNull,
+        },
+      })
+
+      if (session.trainingLoadId) {
+        await tx.trainingLoad.update({
+          where: { id: session.trainingLoadId },
+          data: {
+            workoutId: null,
+          },
+        })
+      }
+    })
+
+    logger.info('Quick erg planned cardio match removed', {
+      clientId: resolved.clientId,
+      quickErgSessionId: session.id,
+      assignmentId: match.assignmentId,
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        assignmentId: match.assignmentId,
+        removed: true,
+      },
+    })
+  } catch (error) {
+    logger.error('Failed to remove quick erg planned match', {}, error)
+    return NextResponse.json(
+      { success: false, error: t(locale, 'Failed to remove planned match', 'Kunde inte ta bort matchningen') },
       { status: 500 }
     )
   }

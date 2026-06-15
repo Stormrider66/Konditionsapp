@@ -285,6 +285,7 @@ export function QuickErgSessionDetailClient({
   const rhythmMax = isRower ? session.maxStrokeRate : session.maxCadence
   const hasChartData = chartData.length > 1
   const [matchingAssignmentId, setMatchingAssignmentId] = useState<string | null>(null)
+  const [unmatchingPlannedSession, setUnmatchingPlannedSession] = useState(false)
   const [isReviewEditing, setIsReviewEditing] = useState(false)
   const [savedReviewRpe, setSavedReviewRpe] = useState<number | null>(session.rpe ?? null)
   const [savedReviewNotes, setSavedReviewNotes] = useState(session.notes ?? '')
@@ -314,6 +315,28 @@ export function QuickErgSessionDetailClient({
       toast.error(error instanceof Error ? error.message : text(locale, 'Could not match planned session', 'Kunde inte matcha planerat pass'))
     } finally {
       setMatchingAssignmentId(null)
+    }
+  }
+
+  async function handleRemovePlannedMatch() {
+    setUnmatchingPlannedSession(true)
+
+    try {
+      const response = await fetch(`/api/athlete/quick-erg-sessions/${session.id}/match`, {
+        method: 'DELETE',
+      })
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || text(locale, 'Could not remove planned match', 'Kunde inte ta bort matchningen'))
+      }
+
+      toast.success(text(locale, 'Planned match removed', 'Planerad matchning borttagen'))
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : text(locale, 'Could not remove planned match', 'Kunde inte ta bort matchningen'))
+    } finally {
+      setUnmatchingPlannedSession(false)
     }
   }
 
@@ -460,7 +483,9 @@ export function QuickErgSessionDetailClient({
             session={session}
             locale={locale}
             matchingAssignmentId={matchingAssignmentId}
+            unmatchingPlannedSession={unmatchingPlannedSession}
             onMatch={(assignmentId) => void handleMatchAssignment(assignmentId)}
+            onRemoveMatch={() => void handleRemovePlannedMatch()}
           />
 
           <Card>
@@ -624,12 +649,16 @@ function PlannedMatchCard({
   session,
   locale,
   matchingAssignmentId,
+  unmatchingPlannedSession,
   onMatch,
+  onRemoveMatch,
 }: {
   session: QuickErgSessionDetailData
   locale: string
   matchingAssignmentId: string | null
+  unmatchingPlannedSession: boolean
   onMatch: (assignmentId: string) => void
+  onRemoveMatch: () => void
 }) {
   const plannedMatch = session.plannedMatch
   const suggestions = session.plannedMatchSuggestions
@@ -656,6 +685,16 @@ function PlannedMatchCard({
               {plannedMatch.plannedDurationSec && <span>{formatDuration(plannedMatch.plannedDurationSec)}</span>}
               {plannedMatch.plannedDistanceMeters && <span>{formatDistance(plannedMatch.plannedDistanceMeters)}</span>}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-3 w-full border-emerald-200 bg-background/70 dark:border-emerald-500/20"
+              onClick={onRemoveMatch}
+              disabled={unmatchingPlannedSession}
+            >
+              {unmatchingPlannedSession ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RotateCcw className="mr-2 h-4 w-4" />}
+              {text(locale, 'Change planned match', 'Byt planerad matchning')}
+            </Button>
           </div>
         ) : suggestions.length > 0 ? (
           <div className="space-y-2">

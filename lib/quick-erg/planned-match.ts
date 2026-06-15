@@ -30,6 +30,7 @@ export interface QuickErgPlannedCardioMatch {
   sessionId: string
   sessionName: string
   assignedDate: string
+  previousStatus?: string
   matchedAt: string
   source: 'quick_erg_manual'
 }
@@ -192,6 +193,7 @@ export function buildQuickErgPlannedCardioMatch(candidate: QuickErgPlannedCardio
     sessionId: candidate.sessionId,
     sessionName: candidate.sessionName,
     assignedDate: dateOnly(candidate.assignedDate),
+    previousStatus: candidate.status,
     matchedAt: new Date().toISOString(),
     source: 'quick_erg_manual',
   }
