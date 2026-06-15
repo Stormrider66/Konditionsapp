@@ -119,8 +119,8 @@ describe('quick erg helpers', () => {
   })
 
   it('estimates training load from duration and athlete RPE', () => {
-    expect(estimateQuickErgTrainingLoad({ durationSec: 1800, movingSec: 1800, sampleCount: 1800 }, 8)).toBe(24)
-    expect(estimateQuickErgTrainingLoad({ durationSec: 60, movingSec: 60, sampleCount: 60 })).toBe(1)
+    expect(estimateQuickErgTrainingLoad({ durationSec: 1800 }, 8)).toBe(24)
+    expect(estimateQuickErgTrainingLoad({ durationSec: 60 })).toBe(1)
   })
 
   it('builds stable duplicate keys using a distance bucket', () => {

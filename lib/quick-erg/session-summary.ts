@@ -452,7 +452,7 @@ export function formatMachineName(machineType: QuickErgMachineType): string {
   }
 }
 
-export function estimateQuickErgTrainingLoad(summary: QuickErgSessionSummary, rpe?: number): number {
+export function estimateQuickErgTrainingLoad(summary: Pick<QuickErgSessionSummary, 'durationSec'>, rpe?: number): number {
   const durationMinutes = summary.durationSec / 60
   const rpeValue = rpe ?? 6
   return Math.max(1, Math.round(durationMinutes * (rpeValue / 10)))

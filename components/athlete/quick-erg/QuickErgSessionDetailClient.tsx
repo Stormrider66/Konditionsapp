@@ -16,11 +16,14 @@ import {
   Loader2,
   MapPin,
   MessageSquare,
+  Pencil,
   RotateCcw,
+  Save,
   Ship,
   Timer,
   TrendingUp,
   Trophy,
+  X,
   Zap,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -39,7 +42,10 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Textarea } from '@/components/ui/textarea'
 import type {
   QuickErgBestEffort,
   QuickErgDetectedInterval,
@@ -279,6 +285,13 @@ export function QuickErgSessionDetailClient({
   const rhythmMax = isRower ? session.maxStrokeRate : session.maxCadence
   const hasChartData = chartData.length > 1
   const [matchingAssignmentId, setMatchingAssignmentId] = useState<string | null>(null)
+  const [isReviewEditing, setIsReviewEditing] = useState(false)
+  const [savedReviewRpe, setSavedReviewRpe] = useState<number | null>(session.rpe ?? null)
+  const [savedReviewNotes, setSavedReviewNotes] = useState(session.notes ?? '')
+  const [reviewRpe, setReviewRpe] = useState<number | null>(savedReviewRpe)
+  const [reviewNotes, setReviewNotes] = useState(savedReviewNotes)
+  const [reviewTrainingLoad, setReviewTrainingLoad] = useState(session.trainingLoad)
+  const [savingReview, setSavingReview] = useState(false)
 
   async function handleMatchAssignment(assignmentId: string) {
     setMatchingAssignmentId(assignmentId)
@@ -301,6 +314,47 @@ export function QuickErgSessionDetailClient({
       toast.error(error instanceof Error ? error.message : text(locale, 'Could not match planned session', 'Kunde inte matcha planerat pass'))
     } finally {
       setMatchingAssignmentId(null)
+    }
+  }
+
+  async function handleSaveReview() {
+    setSavingReview(true)
+
+    try {
+      const response = await fetch(`/api/athlete/quick-erg-sessions/${session.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rpe: reviewRpe,
+          notes: reviewNotes.trim() || null,
+        }),
+      })
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || text(locale, 'Could not update review', 'Kunde inte uppdatera utvarderingen'))
+      }
+
+      const savedNotes = reviewNotes.trim()
+      setSavedReviewRpe(reviewRpe)
+      setSavedReviewNotes(savedNotes)
+      setReviewNotes(savedNotes)
+
+      if (payload?.data?.trainingLoad && reviewTrainingLoad) {
+        setReviewTrainingLoad({
+          ...reviewTrainingLoad,
+          dailyLoad: payload.data.trainingLoad.dailyLoad,
+          intensity: payload.data.trainingLoad.intensity,
+        })
+      }
+
+      toast.success(text(locale, 'Review saved', 'Utvardering sparad'))
+      setIsReviewEditing(false)
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : text(locale, 'Could not update review', 'Kunde inte uppdatera utvarderingen'))
+    } finally {
+      setSavingReview(false)
     }
   }
 
@@ -503,42 +557,28 @@ export function QuickErgSessionDetailClient({
         </div>
 
         <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>{text(locale, 'Review', 'Utvardering')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <MiniStat label="RPE" value={session.rpe ? `${session.rpe}/10` : '--'} />
-                <MiniStat label="kcal" value={session.calories ? String(session.calories) : '--'} />
-                <MiniStat label="/500m" value={formatPace(session.avgPace500m)} />
-                <MiniStat label="Samples" value={String(session.samples.length)} />
-              </div>
-
-              {session.trainingLoad && (
-                <div className="rounded-md border p-3">
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {text(locale, 'Training load', 'Traningbelastning')}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge>{Math.round(session.trainingLoad.dailyLoad)} TSS</Badge>
-                    <Badge variant="outline">{session.trainingLoad.intensity}</Badge>
-                    {session.trainingLoad.workoutType && <Badge variant="outline">{session.trainingLoad.workoutType}</Badge>}
-                  </div>
-                </div>
-              )}
-
-              {session.notes && (
-                <div className="rounded-md border p-3">
-                  <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    {text(locale, 'Notes', 'Anteckningar')}
-                  </div>
-                  <p className="text-sm leading-relaxed">{session.notes}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ReviewCard
+            session={{
+              ...session,
+              rpe: savedReviewRpe,
+              notes: savedReviewNotes || null,
+              trainingLoad: reviewTrainingLoad,
+            }}
+            locale={locale}
+            isEditing={isReviewEditing}
+            reviewRpe={reviewRpe}
+            reviewNotes={reviewNotes}
+            savingReview={savingReview}
+            onEdit={() => setIsReviewEditing(true)}
+            onCancel={() => {
+              setReviewRpe(savedReviewRpe)
+              setReviewNotes(savedReviewNotes)
+              setIsReviewEditing(false)
+            }}
+            onSave={() => void handleSaveReview()}
+            onRpeChange={setReviewRpe}
+            onNotesChange={setReviewNotes}
+          />
 
           <Card>
             <CardHeader>
@@ -661,6 +701,137 @@ function PlannedMatchCard({
             {text(locale, 'No nearby planned cardio session found.', 'Inget naraliggande planerat konditionspass hittades.')}
           </p>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function ReviewCard({
+  session,
+  locale,
+  isEditing,
+  reviewRpe,
+  reviewNotes,
+  savingReview,
+  onEdit,
+  onCancel,
+  onSave,
+  onRpeChange,
+  onNotesChange,
+}: {
+  session: QuickErgSessionDetailData
+  locale: string
+  isEditing: boolean
+  reviewRpe: number | null
+  reviewNotes: string
+  savingReview: boolean
+  onEdit: () => void
+  onCancel: () => void
+  onSave: () => void
+  onRpeChange: (value: number | null) => void
+  onNotesChange: (value: string) => void
+}) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
+        <CardTitle>{text(locale, 'Review', 'Utvardering')}</CardTitle>
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" onClick={onCancel} disabled={savingReview}>
+              <X className="mr-2 h-4 w-4" />
+              {text(locale, 'Cancel', 'Avbryt')}
+            </Button>
+            <Button size="sm" onClick={onSave} disabled={savingReview}>
+              {savingReview ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              {text(locale, 'Save', 'Spara')}
+            </Button>
+          </div>
+        ) : (
+          <Button variant="outline" size="sm" onClick={onEdit}>
+            <Pencil className="mr-2 h-4 w-4" />
+            {text(locale, 'Edit', 'Andra')}
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-2 gap-3">
+          <MiniStat label="RPE" value={session.rpe ? `${session.rpe}/10` : '--'} />
+          <MiniStat label="kcal" value={session.calories ? String(session.calories) : '--'} />
+          <MiniStat label="/500m" value={formatPace(session.avgPace500m)} />
+          <MiniStat label="Samples" value={String(session.samples.length)} />
+        </div>
+
+        {isEditing && (
+          <div className="rounded-md border p-3">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <Label htmlFor="quick-erg-review-rpe">RPE</Label>
+              <div className="flex items-center gap-2">
+                <Badge variant={reviewRpe ? 'secondary' : 'outline'}>
+                  {reviewRpe ? `${reviewRpe}/10` : text(locale, 'Not set', 'Ej satt')}
+                </Badge>
+                {reviewRpe ? (
+                  <Button variant="ghost" size="sm" onClick={() => onRpeChange(null)} disabled={savingReview}>
+                    <X className="mr-2 h-4 w-4" />
+                    {text(locale, 'Clear', 'Rensa')}
+                  </Button>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={() => onRpeChange(6)} disabled={savingReview}>
+                    {text(locale, 'Add RPE', 'Lagg till RPE')}
+                  </Button>
+                )}
+              </div>
+            </div>
+            <Slider
+              id="quick-erg-review-rpe"
+              min={1}
+              max={10}
+              step={1}
+              value={[reviewRpe ?? 6]}
+              disabled={!reviewRpe || savingReview}
+              onValueChange={(value) => onRpeChange(value[0] ?? 6)}
+            />
+            <div className="mt-2 flex justify-between text-xs text-muted-foreground">
+              <span>{text(locale, 'Easy', 'Latt')}</span>
+              <span>{text(locale, 'Hard', 'Hart')}</span>
+            </div>
+          </div>
+        )}
+
+        {session.trainingLoad && (
+          <div className="rounded-md border p-3">
+            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {text(locale, 'Training load', 'Traningbelastning')}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge>{Math.round(session.trainingLoad.dailyLoad)} TSS</Badge>
+              <Badge variant="outline">{session.trainingLoad.intensity}</Badge>
+              {session.trainingLoad.workoutType && <Badge variant="outline">{session.trainingLoad.workoutType}</Badge>}
+            </div>
+          </div>
+        )}
+
+        {isEditing ? (
+          <div className="space-y-2">
+            <Label htmlFor="quick-erg-review-notes">{text(locale, 'Notes', 'Anteckningar')}</Label>
+            <Textarea
+              id="quick-erg-review-notes"
+              value={reviewNotes}
+              maxLength={4000}
+              rows={5}
+              disabled={savingReview}
+              onChange={(event) => onNotesChange(event.target.value)}
+              placeholder={text(locale, 'How did it feel?', 'Hur kandes passet?')}
+            />
+          </div>
+        ) : session.notes ? (
+          <div className="rounded-md border p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              <MessageSquare className="h-3.5 w-3.5" />
+              {text(locale, 'Notes', 'Anteckningar')}
+            </div>
+            <p className="text-sm leading-relaxed">{session.notes}</p>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   )
