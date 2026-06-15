@@ -5206,7 +5206,18 @@
     "quickActionsGrid": {
       "logWorkout": "Log workout",
       "recordErg": "Record erg",
+      "recordErgDescription": "Use Bluetooth erg mode",
+      "recordRun": "Record run",
+      "recordRunDescription": "Use phone GPS with heart rate belt",
       "logFood": "Log food",
+      "startSessionTitle": "Start session",
+      "startSessionDescription": "Choose how you want to start training.",
+      "assignedSessionDescription": "Open the next planned workout",
+      "findSessionDescription": "Browse ready workouts and templates",
+      "browseTemplates": "Workout templates",
+      "browseTemplatesDescription": "Find ready sessions by sport and focus",
+      "trainingLibrary": "Training library",
+      "trainingLibraryDescription": "History, strength and cardio",
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
     },

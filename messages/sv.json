@@ -5206,7 +5206,18 @@
     "quickActionsGrid": {
       "logWorkout": "Logga pass",
       "recordErg": "Spela in erg",
+      "recordErgDescription": "Använd Bluetooth-läge för erg",
+      "recordRun": "Spela in löpning",
+      "recordRunDescription": "Använd mobilens GPS med pulsband",
       "logFood": "Logga mat",
+      "startSessionTitle": "Starta pass",
+      "startSessionDescription": "Välj hur du vill starta träningen.",
+      "assignedSessionDescription": "Öppna nästa planerade pass",
+      "findSessionDescription": "Bläddra bland färdiga pass och mallar",
+      "browseTemplates": "Passmallar",
+      "browseTemplatesDescription": "Hitta färdiga pass per sport och fokus",
+      "trainingLibrary": "Träningsbibliotek",
+      "trainingLibraryDescription": "Historik, styrka och kondition",
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
     },
