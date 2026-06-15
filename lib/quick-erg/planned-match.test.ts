@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  asQuickErgStoredPlannedCardioMatch,
   buildQuickErgPlannedCardioMatch,
   buildQuickErgPlannedCardioSuggestions,
+  restoreQuickErgAssignmentStatus,
   scoreQuickErgPlannedCardioCandidate,
   type QuickErgMatchableSession,
   type QuickErgPlannedCardioCandidate,
@@ -80,5 +82,28 @@ describe('quick erg planned cardio matching', () => {
       previousStatus: 'PENDING',
       source: 'quick_erg_manual',
     })
+  })
+
+  it('reads stored planned match payloads defensively', () => {
+    expect(asQuickErgStoredPlannedCardioMatch({
+      type: 'cardio_assignment',
+      assignmentId: 'assignment-1',
+      sessionId: 'cardio-1',
+      previousStatus: 'SCHEDULED',
+    })).toEqual({
+      type: 'cardio_assignment',
+      assignmentId: 'assignment-1',
+      sessionId: 'cardio-1',
+      previousStatus: 'SCHEDULED',
+    })
+
+    expect(asQuickErgStoredPlannedCardioMatch({ type: 'other', assignmentId: 'assignment-1' })).toBeNull()
+  })
+
+  it('restores the assignment status from the stored previous state or schedule fields', () => {
+    expect(restoreQuickErgAssignmentStatus({ previousStatus: 'PENDING' })).toBe('PENDING')
+    expect(restoreQuickErgAssignmentStatus({ previousStatus: 'SCHEDULED' })).toBe('SCHEDULED')
+    expect(restoreQuickErgAssignmentStatus({ startTime: '08:00' })).toBe('SCHEDULED')
+    expect(restoreQuickErgAssignmentStatus({})).toBe('PENDING')
   })
 })

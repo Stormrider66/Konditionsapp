@@ -35,6 +35,13 @@ export interface QuickErgPlannedCardioMatch {
   source: 'quick_erg_manual'
 }
 
+export interface QuickErgStoredPlannedCardioMatch {
+  type: 'cardio_assignment'
+  assignmentId: string
+  sessionId?: string
+  previousStatus?: string
+}
+
 export interface QuickErgPlanMatchLocale {
   sameDay: string
   nearbyDay: string
@@ -197,4 +204,33 @@ export function buildQuickErgPlannedCardioMatch(candidate: QuickErgPlannedCardio
     matchedAt: new Date().toISOString(),
     source: 'quick_erg_manual',
   }
+}
+
+export function asQuickErgStoredPlannedCardioMatch(value: unknown): QuickErgStoredPlannedCardioMatch | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+
+  const record = value as Record<string, unknown>
+  if (record.type !== 'cardio_assignment' || typeof record.assignmentId !== 'string') {
+    return null
+  }
+
+  return {
+    type: 'cardio_assignment',
+    assignmentId: record.assignmentId,
+    sessionId: typeof record.sessionId === 'string' ? record.sessionId : undefined,
+    previousStatus: typeof record.previousStatus === 'string' ? record.previousStatus : undefined,
+  }
+}
+
+export function restoreQuickErgAssignmentStatus(params: {
+  previousStatus?: string
+  startTime?: string | null
+  endTime?: string | null
+  calendarEventId?: string | null
+}): 'PENDING' | 'SCHEDULED' {
+  if (params.previousStatus === 'PENDING' || params.previousStatus === 'SCHEDULED') {
+    return params.previousStatus
+  }
+
+  return params.startTime || params.endTime || params.calendarEventId ? 'SCHEDULED' : 'PENDING'
 }

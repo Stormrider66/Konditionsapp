@@ -7,7 +7,9 @@ import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
+  asQuickErgStoredPlannedCardioMatch,
   buildQuickErgPlannedCardioMatch,
+  restoreQuickErgAssignmentStatus,
   scoreQuickErgPlannedCardioCandidate,
 } from '@/lib/quick-erg/planned-match'
 import {
@@ -18,13 +20,6 @@ import {
 const matchSchema = z.object({
   assignmentId: z.string().min(1),
 })
-
-interface StoredPlannedCardioMatch {
-  type: 'cardio_assignment'
-  assignmentId: string
-  sessionId?: string
-  previousStatus?: string
-}
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -50,35 +45,6 @@ function dayDate(date: Date): Date {
   const next = new Date(date)
   next.setHours(0, 0, 0, 0)
   return next
-}
-
-function asStoredPlannedCardioMatch(value: unknown): StoredPlannedCardioMatch | null {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
-
-  const record = value as Record<string, unknown>
-  if (record.type !== 'cardio_assignment' || typeof record.assignmentId !== 'string') {
-    return null
-  }
-
-  return {
-    type: 'cardio_assignment',
-    assignmentId: record.assignmentId,
-    sessionId: typeof record.sessionId === 'string' ? record.sessionId : undefined,
-    previousStatus: typeof record.previousStatus === 'string' ? record.previousStatus : undefined,
-  }
-}
-
-function restoreAssignmentStatus(params: {
-  previousStatus?: string
-  startTime?: string | null
-  endTime?: string | null
-  calendarEventId?: string | null
-}): 'PENDING' | 'SCHEDULED' {
-  if (params.previousStatus === 'PENDING' || params.previousStatus === 'SCHEDULED') {
-    return params.previousStatus
-  }
-
-  return params.startTime || params.endTime || params.calendarEventId ? 'SCHEDULED' : 'PENDING'
 }
 
 export async function POST(
@@ -312,7 +278,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 })
     }
 
-    const match = asStoredPlannedCardioMatch(session.externalMatch)
+    const match = asQuickErgStoredPlannedCardioMatch(session.externalMatch)
     if (!match) {
       return NextResponse.json({ success: false, error: t(locale, 'Session is not matched', 'Passet ar inte matchat') }, { status: 409 })
     }
@@ -333,7 +299,7 @@ export async function DELETE(
 
     await prisma.$transaction(async (tx) => {
       if (assignment) {
-        const nextStatus = restoreAssignmentStatus({
+        const nextStatus = restoreQuickErgAssignmentStatus({
           previousStatus: match.previousStatus,
           startTime: assignment.startTime,
           endTime: assignment.endTime,
@@ -367,6 +333,8 @@ export async function DELETE(
             actualDistance: null,
             avgHeartRate: null,
             maxHeartRate: null,
+            sessionRPE: null,
+            notes: null,
           },
         })
       }

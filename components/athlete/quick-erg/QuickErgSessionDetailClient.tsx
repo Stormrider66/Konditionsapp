@@ -23,6 +23,7 @@ import {
   Timer,
   TrendingUp,
   Trophy,
+  Trash2,
   X,
   Zap,
 } from 'lucide-react'
@@ -39,6 +40,17 @@ import {
   YAxis,
 } from 'recharts'
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -293,6 +305,7 @@ export function QuickErgSessionDetailClient({
   const [reviewNotes, setReviewNotes] = useState(savedReviewNotes)
   const [reviewTrainingLoad, setReviewTrainingLoad] = useState(session.trainingLoad)
   const [savingReview, setSavingReview] = useState(false)
+  const [deletingSession, setDeletingSession] = useState(false)
 
   async function handleMatchAssignment(assignmentId: string) {
     setMatchingAssignmentId(assignmentId)
@@ -381,6 +394,28 @@ export function QuickErgSessionDetailClient({
     }
   }
 
+  async function handleDeleteSession() {
+    setDeletingSession(true)
+
+    try {
+      const response = await fetch(`/api/athlete/quick-erg-sessions/${session.id}`, {
+        method: 'DELETE',
+      })
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || text(locale, 'Could not delete session', 'Kunde inte ta bort passet'))
+      }
+
+      toast.success(text(locale, 'Erg session deleted', 'Ergpasset togs bort'))
+      router.push(`${basePath}/athlete/quick-erg`)
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : text(locale, 'Could not delete session', 'Kunde inte ta bort passet'))
+      setDeletingSession(false)
+    }
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -404,6 +439,45 @@ export function QuickErgSessionDetailClient({
               {text(locale, 'Record another', 'Spela in igen')}
             </Link>
           </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="outline"
+                className="text-destructive hover:text-destructive"
+                disabled={deletingSession}
+              >
+                {deletingSession ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                {text(locale, 'Delete', 'Ta bort')}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {text(locale, 'Delete erg session?', 'Ta bort ergpasset?')}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {text(
+                    locale,
+                    'This removes the session from history and training load. If it completed a planned session, that plan will be opened again.',
+                    'Det tar bort passet fran historiken och belastningen. Om passet matchade en planering oppnas planeringen igen.'
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deletingSession}>
+                  {text(locale, 'Cancel', 'Avbryt')}
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={deletingSession}
+                  onClick={() => void handleDeleteSession()}
+                >
+                  {deletingSession ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                  {text(locale, 'Delete session', 'Ta bort pass')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

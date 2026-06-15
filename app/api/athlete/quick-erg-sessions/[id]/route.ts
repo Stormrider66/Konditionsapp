@@ -6,6 +6,10 @@ import { logger } from '@/lib/logger'
 import { prisma } from '@/lib/prisma'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
+  asQuickErgStoredPlannedCardioMatch,
+  restoreQuickErgAssignmentStatus,
+} from '@/lib/quick-erg/planned-match'
+import {
   estimateQuickErgTrainingLoad,
   mapRpeToIntensity,
 } from '@/lib/quick-erg/session-summary'
@@ -140,6 +144,131 @@ export async function PATCH(
     logger.error('Failed to update quick erg session review', {}, error)
     return NextResponse.json(
       { success: false, error: t(locale, 'Failed to update review', 'Kunde inte uppdatera utvarderingen') },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  let locale = resolveRequestLocale(request)
+
+  try {
+    const { id } = await params
+    const resolved = await resolveAthleteClientId()
+    if (!resolved) {
+      return NextResponse.json({ success: false, error: t(locale, 'Unauthorized', 'Obehorig') }, { status: 401 })
+    }
+
+    locale = resolveRequestLocale(request, resolved.user.language)
+
+    const session = await prisma.quickErgSession.findFirst({
+      where: { id, clientId: resolved.clientId },
+      select: {
+        id: true,
+        completedAt: true,
+        durationSec: true,
+        trainingLoadId: true,
+        externalMatch: true,
+      },
+    })
+
+    if (!session) {
+      return NextResponse.json({ success: false, error: t(locale, 'Session not found', 'Passet hittades inte') }, { status: 404 })
+    }
+
+    const match = asQuickErgStoredPlannedCardioMatch(session.externalMatch)
+    const assignment = match
+      ? await prisma.cardioSessionAssignment.findFirst({
+          where: {
+            id: match.assignmentId,
+            athleteId: resolved.clientId,
+          },
+          select: {
+            id: true,
+            startTime: true,
+            endTime: true,
+            calendarEventId: true,
+          },
+        })
+      : null
+
+    await prisma.$transaction(async (tx) => {
+      if (match && assignment) {
+        const nextStatus = restoreQuickErgAssignmentStatus({
+          previousStatus: match.previousStatus,
+          startTime: assignment.startTime,
+          endTime: assignment.endTime,
+          calendarEventId: assignment.calendarEventId,
+        })
+
+        await tx.cardioSessionAssignment.update({
+          where: { id: assignment.id },
+          data: {
+            status: nextStatus,
+            completedAt: null,
+            actualDuration: null,
+            actualDistance: null,
+            avgHeartRate: null,
+          },
+        })
+
+        await tx.cardioSessionLog.updateMany({
+          where: {
+            assignmentId: assignment.id,
+            athleteId: resolved.clientId,
+            status: 'COMPLETED',
+            focusModeUsed: false,
+            completedAt: session.completedAt,
+            actualDuration: session.durationSec,
+          },
+          data: {
+            status: nextStatus,
+            completedAt: null,
+            actualDuration: null,
+            actualDistance: null,
+            avgHeartRate: null,
+            maxHeartRate: null,
+            sessionRPE: null,
+            notes: null,
+          },
+        })
+      }
+
+      await tx.quickErgSession.delete({
+        where: { id: session.id },
+      })
+
+      if (session.trainingLoadId) {
+        await tx.trainingLoad.deleteMany({
+          where: {
+            id: session.trainingLoadId,
+            clientId: resolved.clientId,
+          },
+        })
+      }
+    })
+
+    logger.info('Quick erg session deleted', {
+      clientId: resolved.clientId,
+      sessionId: session.id,
+      restoredAssignmentId: match?.assignmentId ?? null,
+      deletedTrainingLoadId: session.trainingLoadId ?? null,
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: session.id,
+        deleted: true,
+      },
+    })
+  } catch (error) {
+    logger.error('Failed to delete quick erg session', {}, error)
+    return NextResponse.json(
+      { success: false, error: t(locale, 'Failed to delete erg session', 'Kunde inte ta bort ergpasset') },
       { status: 500 }
     )
   }
