@@ -18,6 +18,10 @@
  */
 
 import { logger } from '@/lib/logger'
+import {
+  inferQuickErgMachineTypeFromDevice,
+  type QuickErgMachineType,
+} from '@/lib/quick-erg/session-summary'
 
 export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'manual' | 'ai' | 'adhoc'
 
@@ -313,6 +317,24 @@ function quickErgMachineToActivityType(machineType?: string | null): string {
   }
 }
 
+function asQuickErgMachineKind(value?: string | null): 'bike' | 'rower' | null {
+  return value === 'bike' || value === 'rower' ? value : null
+}
+
+function displayQuickErgMachineType(session: {
+  machineType?: string | null
+  machineKind?: string | null
+  deviceName?: string | null
+}): string | null | undefined {
+  if (!session.machineType) return session.machineType
+
+  return inferQuickErgMachineTypeFromDevice({
+    currentMachineType: session.machineType as QuickErgMachineType,
+    machineKind: asQuickErgMachineKind(session.machineKind),
+    deviceName: session.deviceName,
+  }) ?? session.machineType
+}
+
 /**
  * Normalize a Strava activity to the unified format
  */
@@ -417,16 +439,20 @@ export function normalizeQuickErgActivity(session: {
   durationSec?: number | null
   distanceMeters?: number | null
   machineType?: string | null
+  machineKind?: string | null
+  deviceName?: string | null
   avgHeartRate?: number | null
   trainingLoad?: { dailyLoad?: number | null } | null
 }): NormalizedActivity {
+  const machineType = displayQuickErgMachineType(session)
+
   return {
     id: `quickerg-${session.id}`,
     source: 'quickerg',
     date: session.startedAt,
     startTime: session.startedAt,
     duration: session.durationSec || 0,
-    type: quickErgMachineToActivityType(session.machineType),
+    type: quickErgMachineToActivityType(machineType),
     distance: session.distanceMeters || undefined,
     tss: session.trainingLoad?.dailyLoad || undefined,
     avgHR: session.avgHeartRate || undefined,

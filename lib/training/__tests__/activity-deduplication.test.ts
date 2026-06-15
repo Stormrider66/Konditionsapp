@@ -30,6 +30,20 @@ describe('quick erg activity normalization', () => {
     })
   })
 
+  it('normalizes PM5 bike-kind sessions as cycling BikeErg captures', () => {
+    const normalized = normalizeQuickErgActivity({
+      id: 'quick-bikeerg-1',
+      startedAt: new Date('2026-06-15T12:00:00.000Z'),
+      durationSec: 227,
+      distanceMeters: 1672,
+      machineType: 'CONCEPT2_ROW',
+      machineKind: 'bike',
+      deviceName: 'PM5 431544933',
+    })
+
+    expect(normalized.type).toBe('CYCLING')
+  })
+
   it('matches later Concept2 imports instead of showing duplicate sessions', () => {
     const quickErg = normalizeQuickErgActivity({
       id: 'quick-1',

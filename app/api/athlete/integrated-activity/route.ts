@@ -22,7 +22,12 @@ import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
-import { formatMachineName, inferActivityType, type QuickErgMachineType } from '@/lib/quick-erg/session-summary'
+import {
+  formatMachineName,
+  inferActivityType,
+  inferQuickErgMachineTypeFromDevice,
+  type QuickErgMachineType,
+} from '@/lib/quick-erg/session-summary'
 import {
   deduplicateActivities,
   type NormalizedActivity,
@@ -70,6 +75,22 @@ interface UnifiedActivity {
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function asQuickErgMachineKind(value?: string | null): 'bike' | 'rower' | null {
+  return value === 'bike' || value === 'rower' ? value : null
+}
+
+function displayQuickErgMachineType(session: {
+  machineType: QuickErgMachineType
+  machineKind?: string | null
+  deviceName?: string | null
+}): QuickErgMachineType {
+  return inferQuickErgMachineTypeFromDevice({
+    currentMachineType: session.machineType,
+    machineKind: asQuickErgMachineKind(session.machineKind),
+    deviceName: session.deviceName,
+  }) ?? session.machineType
 }
 
 export async function GET(request: NextRequest) {
@@ -374,7 +395,11 @@ export async function GET(request: NextRequest) {
 
     // Process direct Bluetooth erg sessions
     for (const session of quickErgSessions) {
-      const machineType = session.machineType as QuickErgMachineType
+      const machineType = displayQuickErgMachineType({
+        machineType: session.machineType as QuickErgMachineType,
+        machineKind: session.machineKind,
+        deviceName: session.deviceName,
+      })
       const isRower = machineType === 'CONCEPT2_ROW' || machineType === 'CONCEPT2_SKIERG'
       let pace: string | undefined
 
@@ -387,7 +412,7 @@ export async function GET(request: NextRequest) {
       activities.push({
         id: session.id,
         source: 'quickerg',
-        name: session.deviceName || formatMachineName(machineType),
+        name: formatMachineName(machineType),
         type: inferActivityType(machineType),
         date: session.startedAt,
         duration: Math.round(session.durationSec / 60),

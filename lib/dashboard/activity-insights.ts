@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import {
+  formatMachineName,
+  inferActivityType,
+  inferQuickErgMachineTypeFromDevice,
+  type QuickErgMachineType,
+} from '@/lib/quick-erg/session-summary'
+import {
   deduplicateActivities,
   normalizeAIWod,
   normalizeConcept2Activity,
@@ -19,6 +25,22 @@ import type { DashboardRecentActivitySummary } from '@/types/dashboard-recent-ac
 type ActivityCandidate = {
   summary: DashboardRecentActivitySummary
   normalized: NormalizedActivity
+}
+
+function asQuickErgMachineKind(value?: string | null): 'bike' | 'rower' | null {
+  return value === 'bike' || value === 'rower' ? value : null
+}
+
+function displayQuickErgMachineType(session: {
+  machineType: QuickErgMachineType
+  machineKind?: string | null
+  deviceName?: string | null
+}): QuickErgMachineType {
+  return inferQuickErgMachineTypeFromDevice({
+    currentMachineType: session.machineType,
+    machineKind: asQuickErgMachineKind(session.machineKind),
+    deviceName: session.deviceName,
+  }) ?? session.machineType
 }
 
 export async function getDashboardRecentActivitySummary(clientId: string): Promise<DashboardRecentActivitySummary | null> {
@@ -190,18 +212,18 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
   }
 
   for (const session of quickErgSessions) {
+    const machineType = displayQuickErgMachineType({
+      machineType: session.machineType as QuickErgMachineType,
+      machineKind: session.machineKind,
+      deviceName: session.deviceName,
+    })
+
     candidates.push({
       summary: {
         id: session.id,
         source: 'quickerg',
-        name: session.deviceName || session.machineType.replace(/_/g, ' '),
-        type: session.machineType === 'CONCEPT2_ROW'
-          ? 'ROWING'
-          : session.machineType === 'CONCEPT2_SKIERG'
-            ? 'SKIING'
-            : ['CONCEPT2_BIKEERG', 'WATTBIKE', 'ASSAULT_BIKE', 'FTMS_BIKE', 'FTMS_AIRBIKE'].includes(session.machineType)
-              ? 'CYCLING'
-              : 'OTHER',
+        name: formatMachineName(machineType),
+        type: inferActivityType(machineType),
         date: session.startedAt,
         durationMinutes: Math.round(session.durationSec / 60),
         distanceKm: session.distanceMeters ? Math.round((session.distanceMeters / 1000) * 10) / 10 : undefined,
