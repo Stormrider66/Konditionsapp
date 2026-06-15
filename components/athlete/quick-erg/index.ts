@@ -1,0 +1,1 @@
+export { QuickErgCapture } from './QuickErgCapture'

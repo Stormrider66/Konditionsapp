@@ -763,6 +763,10 @@
       "description": "Choose how you want to register your workout",
       "info": "The workout will be analyzed with AI and added to your training history",
       "methods": {
+        "erg": {
+          "label": "Record erg",
+          "description": "Connect a rowing machine, bike, SkiErg, or airbike"
+        },
         "text": {
           "label": "Write",
           "description": "Write a description of the workout"
@@ -5197,6 +5201,7 @@
     },
     "quickActionsGrid": {
       "logWorkout": "Log workout",
+      "recordErg": "Record erg",
       "logFood": "Log food",
       "videoAnalysis": "Video Analysis",
       "describeMeal": "Describe your meal"
@@ -13708,6 +13713,10 @@
       "title": "Log a workout",
       "description": "Choose how you want to register your workout",
       "methods": {
+        "erg": {
+          "label": "Record erg",
+          "description": "Connect by Bluetooth and save a free session"
+        },
         "photo": {
           "label": "Photo",
           "description": "Take a photo of a whiteboard or paper"
@@ -14473,6 +14482,7 @@
           "strava": "Strava",
           "garmin": "Garmin Connect",
           "concept2": "Concept2",
+          "quickerg": "Bluetooth erg",
           "ai": "AI workout",
           "adhoc": "Manual log"
         }

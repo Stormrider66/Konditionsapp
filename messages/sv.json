@@ -763,6 +763,10 @@
       "description": "Välj hur du vill registrera ditt träningspass",
       "info": "Passet kommer att analyseras med AI och läggas till i din träningshistorik",
       "methods": {
+        "erg": {
+          "label": "Spela in erg",
+          "description": "Anslut roddmaskin, cykel, SkiErg eller airbike"
+        },
         "text": {
           "label": "Skriv",
           "description": "Skriv en beskrivning av passet"
@@ -5197,6 +5201,7 @@
     },
     "quickActionsGrid": {
       "logWorkout": "Logga pass",
+      "recordErg": "Spela in erg",
       "logFood": "Logga mat",
       "videoAnalysis": "Video Analys",
       "describeMeal": "Beskriv din måltid"
@@ -14068,6 +14073,10 @@
       "title": "Logga ett pass",
       "description": "Välj hur du vill registrera ditt träningspass",
       "methods": {
+        "erg": {
+          "label": "Spela in erg",
+          "description": "Anslut via Bluetooth och spara ett fritt pass"
+        },
         "photo": {
           "label": "Foto",
           "description": "Ta en bild av whiteboard eller papper"
@@ -14833,6 +14842,7 @@
           "strava": "Strava",
           "garmin": "Garmin Connect",
           "concept2": "Concept2",
+          "quickerg": "Bluetooth-erg",
           "ai": "AI-pass",
           "adhoc": "Manuell logg"
         }

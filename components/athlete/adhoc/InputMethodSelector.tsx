@@ -26,6 +26,7 @@ import {
   ClipboardList,
   ChevronRight,
   Loader2,
+  Bluetooth,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
@@ -37,7 +38,7 @@ interface InputMethodSelectorProps {
 }
 
 interface InputMethod {
-  id: 'photo' | 'voice' | 'text' | 'strava' | 'garmin' | 'manual'
+  id: 'erg' | 'photo' | 'voice' | 'text' | 'strava' | 'garmin' | 'manual'
   labelKey: string
   descriptionKey: string
   icon: React.ReactNode
@@ -46,6 +47,14 @@ interface InputMethod {
 }
 
 const INPUT_METHODS: InputMethod[] = [
+  {
+    id: 'erg',
+    labelKey: 'erg.label',
+    descriptionKey: 'erg.description',
+    icon: <Bluetooth className="h-6 w-6" />,
+    color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
+    available: true,
+  },
   {
     id: 'photo',
     labelKey: 'photo.label',
@@ -109,6 +118,9 @@ export function InputMethodSelector({ open, onOpenChange }: InputMethodSelectorP
 
     // Navigate to the appropriate input page
     switch (method.id) {
+      case 'erg':
+        router.push(`${basePath}/athlete/log-workout/erg`)
+        break
       case 'photo':
         router.push(`${basePath}/athlete/log-workout/photo`)
         break

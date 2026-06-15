@@ -591,6 +591,7 @@ model Client {
   stravaActivities    StravaActivity[]
   garminActivities    GarminActivity[]
   concept2Results     Concept2Result[]
+  quickErgSessions    QuickErgSession[]
 
   // VBT (Velocity-Based Training) relations
   vbtSessions          VBTSession[]

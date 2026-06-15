@@ -7,6 +7,7 @@ import {
   normalizeAIWod,
   normalizeConcept2Activity,
   normalizeGarminActivity,
+  normalizeQuickErgActivity,
   normalizeStravaActivity,
   normalizeWorkoutLog,
   aggregateTSSByDay,
@@ -35,7 +36,7 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
 
   const athleteUserId = client?.athleteAccount?.userId ?? null
 
-  const [manualLogs, stravaActivities, garminActivities, concept2Results, aiWods, adHocWorkouts] = await Promise.all([
+  const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, aiWods, adHocWorkouts] = await Promise.all([
     athleteUserId
       ? prisma.workoutLog.findMany({
           where: {
@@ -71,6 +72,14 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
         date: { gte: since },
       },
       orderBy: { date: 'desc' },
+      take: 5,
+    }),
+    prisma.quickErgSession.findMany({
+      where: {
+        clientId,
+        startedAt: { gte: since },
+      },
+      orderBy: { startedAt: 'desc' },
       take: 5,
     }),
     prisma.aIGeneratedWOD.findMany({
@@ -177,6 +186,30 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
         notes: result.comments || undefined,
       },
       normalized: normalizeConcept2Activity(result),
+    })
+  }
+
+  for (const session of quickErgSessions) {
+    candidates.push({
+      summary: {
+        id: session.id,
+        source: 'quickerg',
+        name: session.deviceName || session.machineType.replace(/_/g, ' '),
+        type: session.machineType === 'CONCEPT2_ROW'
+          ? 'ROWING'
+          : session.machineType === 'CONCEPT2_SKIERG'
+            ? 'SKIING'
+            : ['CONCEPT2_BIKEERG', 'WATTBIKE', 'ASSAULT_BIKE', 'FTMS_BIKE', 'FTMS_AIRBIKE'].includes(session.machineType)
+              ? 'CYCLING'
+              : 'OTHER',
+        date: session.startedAt,
+        durationMinutes: Math.round(session.durationSec / 60),
+        distanceKm: session.distanceMeters ? Math.round((session.distanceMeters / 1000) * 10) / 10 : undefined,
+        avgHR: session.avgHeartRate || undefined,
+        calories: session.calories || undefined,
+        notes: session.notes || undefined,
+      },
+      normalized: normalizeQuickErgActivity(session),
     })
   }
 

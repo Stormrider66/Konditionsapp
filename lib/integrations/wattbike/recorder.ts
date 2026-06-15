@@ -13,6 +13,10 @@
  */
 
 import type { WattbikeSample } from './types';
+import {
+  buildQuickErgAnalysisFromBluetooth,
+  type QuickErgSessionAnalysis,
+} from '@/lib/quick-erg/session-summary';
 
 // Prisma enums are string unions at the type level, so type-only imports keep
 // the generated client out of the browser bundle.
@@ -77,6 +81,11 @@ export interface WattbikeLiveMetrics {
   maxPower: number;
   cadence?: number;
   heartRate?: number;
+  distanceMeters?: number;
+  calories?: number;
+  pace?: number;
+  strokeRate?: number;
+  speed?: number;
 }
 
 /** Base fields shared by every ergometer-test request body. */
@@ -192,6 +201,11 @@ export class WattbikeRecorder {
     const recent = power.slice(Math.max(0, last - 3));
     const lastCadence = [...cadence].reverse().find(isNum);
     const lastHr = [...hr].reverse().find(isNum);
+    const lastDistance = [...this.samples].reverse().find((s) => isNum(s.distance))?.distance;
+    const lastCalories = [...this.samples].reverse().find((s) => isNum(s.calories))?.calories;
+    const lastPace = [...this.samples].reverse().find((s) => isNum(s.pace))?.pace;
+    const lastStrokeRate = [...this.samples].reverse().find((s) => isNum(s.strokeRate))?.strokeRate;
+    const lastSpeed = [...this.samples].reverse().find((s) => isNum(s.speed))?.speed;
     return {
       elapsedSec: Math.round(this.elapsedSec),
       sampleCount: this.samples.length,
@@ -200,7 +214,17 @@ export class WattbikeRecorder {
       maxPower: Math.round(this.rawPeakPower()),
       cadence: lastCadence,
       heartRate: lastHr,
+      distanceMeters: lastDistance === undefined ? undefined : Math.round(lastDistance),
+      calories: lastCalories === undefined ? undefined : Math.round(lastCalories),
+      pace: lastPace === undefined ? undefined : Math.round(lastPace),
+      strokeRate: lastStrokeRate === undefined ? undefined : Math.round(lastStrokeRate),
+      speed: lastSpeed === undefined ? undefined : Math.round(lastSpeed * 10) / 10,
     };
+  }
+
+  /** Open-ended free-session export for Quick Erg Session persistence. */
+  quickErgSessionAnalysis(): QuickErgSessionAnalysis {
+    return buildQuickErgAnalysisFromBluetooth(this.samples);
   }
 
   // -- protocol rawData builders --------------------------------------------

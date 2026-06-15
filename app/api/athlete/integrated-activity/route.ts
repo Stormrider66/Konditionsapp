@@ -6,6 +6,7 @@
  * - Strava synced activities (StravaActivity)
  * - Garmin synced activities (DailyMetrics.factorScores)
  * - Concept2 synced results (Concept2Result)
+ * - Quick Erg sessions (QuickErgSession)
  * - AI-generated WODs (AIGeneratedWOD)
  *
  * Uses smart deduplication to prevent showing the same activity
@@ -21,6 +22,7 @@ import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { formatMachineName, inferActivityType, type QuickErgMachineType } from '@/lib/quick-erg/session-summary'
 import {
   deduplicateActivities,
   type NormalizedActivity,
@@ -29,7 +31,7 @@ import {
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'ai' | 'adhoc' | 'adhoc+garmin'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'ai' | 'adhoc' | 'adhoc+garmin'
   name: string
   type: string
   sport?: string
@@ -119,7 +121,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days)
 
     // Fetch all data sources in parallel
-    const [manualLogs, stravaActivities, garminActivities, concept2Results, aiWods, adHocWorkouts] = await Promise.all([
+    const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, aiWods, adHocWorkouts] = await Promise.all([
       // Manual workout logs - filter by athleteId (the user ID of the athlete)
       athleteId
         ? prisma.workoutLog.findMany({
@@ -162,6 +164,16 @@ export async function GET(request: NextRequest) {
           date: { gte: startDate },
         },
         orderBy: { date: 'desc' },
+        take: limit,
+      }),
+
+      // Direct Bluetooth erg sessions
+      prisma.quickErgSession.findMany({
+        where: {
+          clientId,
+          startedAt: { gte: startDate },
+        },
+        orderBy: { startedAt: 'desc' },
         take: limit,
       }),
 
@@ -360,6 +372,41 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Process direct Bluetooth erg sessions
+    for (const session of quickErgSessions) {
+      const machineType = session.machineType as QuickErgMachineType
+      const isRower = machineType === 'CONCEPT2_ROW' || machineType === 'CONCEPT2_SKIERG'
+      let pace: string | undefined
+
+      if (isRower && session.avgPace500m && session.avgPace500m > 0) {
+        const paceMin = Math.floor(session.avgPace500m / 60)
+        const paceSec = Math.round(session.avgPace500m % 60)
+        pace = `${paceMin}:${paceSec.toString().padStart(2, '0')}/500m`
+      }
+
+      activities.push({
+        id: session.id,
+        source: 'quickerg',
+        name: session.deviceName || formatMachineName(machineType),
+        type: inferActivityType(machineType),
+        date: session.startedAt,
+        duration: Math.round(session.durationSec / 60),
+        distance: session.distanceMeters ? session.distanceMeters / 1000 : undefined,
+        avgHR: session.avgHeartRate || undefined,
+        maxHR: session.maxHeartRate || undefined,
+        calories: session.calories || undefined,
+        pace,
+        avgPower: session.avgPower || undefined,
+        maxPower: session.maxPower || undefined,
+        normalizedPower: session.normalizedPower || undefined,
+        cadence: session.avgCadence || session.avgStrokeRate || undefined,
+        completed: true,
+        notes: session.notes || undefined,
+        deviceModel: session.deviceName || undefined,
+        equipmentType: machineType,
+      })
+    }
+
     // Process AI-generated WODs
     for (const wod of aiWods) {
       activities.push({
@@ -492,6 +539,7 @@ export async function GET(request: NextRequest) {
         strava: stravaActivities.length,
         garmin: garminActivities.length,
         concept2: concept2Results.length,
+        quickerg: quickErgSessions.length,
         ai: aiWods.length,
         adhoc: adHocWorkouts.length,
       },

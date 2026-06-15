@@ -52,6 +52,27 @@ describe('WattbikeRecorder binning + live metrics', () => {
     // tt20 averages all 3 seconds: [100, 100(carried), 200] = 133
     expect(rec.tt20MinRawData().avgPower).toBe(133);
   });
+
+  it('builds quick erg session analysis from the captured Bluetooth stream', () => {
+    const rec = new WattbikeRecorder();
+    rec.start();
+    rec.add({ t: 1000, power: 180, distance: 0, strokeRate: 26, source: 'ftms-rower' });
+    rec.add({ t: 2000, power: 220, distance: 8, strokeRate: 28, source: 'ftms-rower' });
+    rec.add({ t: 3000, power: 240, distance: 18, heartRate: 154, strokeRate: 30, source: 'ftms-rower' });
+    rec.stop();
+
+    const analysis = rec.quickErgSessionAnalysis();
+
+    expect(analysis.samples).toHaveLength(3);
+    expect(analysis.summary).toMatchObject({
+      durationSec: 3,
+      distanceMeters: 18,
+      avgPower: 213,
+      maxPower: 240,
+      maxHeartRate: 154,
+      avgStrokeRate: 28,
+    });
+  });
 });
 
 describe('TT_20MIN raw data', () => {

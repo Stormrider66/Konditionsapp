@@ -12,7 +12,7 @@
  * on iOS. `connect()` must be called from a user gesture (e.g. an onClick).
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 
 import { WattbikeClient } from '@/lib/integrations/wattbike';
 import type {
@@ -31,6 +31,7 @@ export interface UseWattbikeResult {
   /** Last error surfaced by the client (connect failure, lost reconnect, etc.). */
   error: Error | null;
   deviceName: string | undefined;
+  deviceId: string | undefined;
   /** 'bike' or 'rower' (Concept2 RowErg/SkiErg) once connected, else null. */
   machineKind: MachineKind | null;
   /** True once the trainer exposes ERG control (FTMS control point). */
@@ -51,6 +52,21 @@ export interface UseWattbikeOptions extends WattbikeClientOptions {
   reconnectKnownOnMount?: boolean;
 }
 
+function subscribeToBluetoothSupport(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') return () => {};
+
+  const timeoutId = window.setTimeout(onStoreChange, 0);
+  return () => window.clearTimeout(timeoutId);
+}
+
+function getBluetoothSupportSnapshot(): boolean {
+  return WattbikeClient.isSupported();
+}
+
+function getServerBluetoothSupportSnapshot(): boolean {
+  return false;
+}
+
 export function useWattbike(
   options: UseWattbikeOptions = {},
 ): UseWattbikeResult {
@@ -58,10 +74,16 @@ export function useWattbike(
   // changing filters mid-session would mean reconnecting anyway.
   const [client] = useState(() => new WattbikeClient(options));
 
+  const isSupported = useSyncExternalStore(
+    subscribeToBluetoothSupport,
+    getBluetoothSupportSnapshot,
+    getServerBluetoothSupportSnapshot,
+  );
   const [status, setStatus] = useState<WattbikeStatus>('disconnected');
   const [latest, setLatest] = useState<WattbikeSample | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [deviceName, setDeviceName] = useState<string | undefined>(undefined);
+  const [deviceId, setDeviceId] = useState<string | undefined>(undefined);
   const [machineKind, setMachineKind] = useState<MachineKind | null>(null);
   const [canControl, setCanControl] = useState(false);
 
@@ -70,12 +92,14 @@ export function useWattbike(
       setStatus(s);
       if (s === 'connected') {
         setDeviceName(client.getDeviceName());
+        setDeviceId(client.getDeviceId());
         setMachineKind(client.getMachineKind());
         setCanControl(client.canControl());
       }
       if (s === 'disconnected') {
         setCanControl(false);
         setMachineKind(null);
+        setDeviceId(undefined);
       }
     });
     const offData = client.on('data', (sample) => setLatest(sample));
@@ -129,11 +153,12 @@ export function useWattbike(
   );
 
   return {
-    isSupported: WattbikeClient.isSupported(),
+    isSupported,
     status,
     latest,
     error,
     deviceName,
+    deviceId,
     machineKind,
     canControl,
     connect,

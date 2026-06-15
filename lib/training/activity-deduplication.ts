@@ -19,7 +19,7 @@
 
 import { logger } from '@/lib/logger'
 
-export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'manual' | 'ai' | 'adhoc'
+export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'manual' | 'ai' | 'adhoc'
 
 export interface NormalizedActivity {
   id: string
@@ -61,6 +61,7 @@ export interface DeduplicationOptions {
 // Source priority - higher = preferred
 const SOURCE_PRIORITY: Record<ActivitySource, number> = {
   concept2: 5, // Most accurate - direct from equipment
+  quickerg: 5, // Direct from equipment, captured before vendor syncs arrive
   strava: 4, // Good quality, widely used
   garmin: 3, // Good quality, but often syncs same activity as Strava
   ai: 2, // AI-generated, less metadata
@@ -295,6 +296,23 @@ function normalizeType(type: string): string {
   return type.toUpperCase().replace(/[\s-]/g, '_')
 }
 
+function quickErgMachineToActivityType(machineType?: string | null): string {
+  switch (machineType) {
+    case 'CONCEPT2_ROW':
+      return 'ROWING'
+    case 'CONCEPT2_SKIERG':
+      return 'SKIING'
+    case 'CONCEPT2_BIKEERG':
+    case 'WATTBIKE':
+    case 'ASSAULT_BIKE':
+    case 'FTMS_BIKE':
+    case 'FTMS_AIRBIKE':
+      return 'CYCLING'
+    default:
+      return 'OTHER'
+  }
+}
+
 /**
  * Normalize a Strava activity to the unified format
  */
@@ -387,6 +405,32 @@ export function normalizeConcept2Activity(result: {
     trimp: result.trimp || undefined,
     avgHR: result.avgHeartRate || undefined,
     originalId: result.concept2Id || result.id,
+  }
+}
+
+/**
+ * Normalize a directly-captured Quick Erg session to the unified format.
+ */
+export function normalizeQuickErgActivity(session: {
+  id: string
+  startedAt: Date
+  durationSec?: number | null
+  distanceMeters?: number | null
+  machineType?: string | null
+  avgHeartRate?: number | null
+  trainingLoad?: { dailyLoad?: number | null } | null
+}): NormalizedActivity {
+  return {
+    id: `quickerg-${session.id}`,
+    source: 'quickerg',
+    date: session.startedAt,
+    startTime: session.startedAt,
+    duration: session.durationSec || 0,
+    type: quickErgMachineToActivityType(session.machineType),
+    distance: session.distanceMeters || undefined,
+    tss: session.trainingLoad?.dailyLoad || undefined,
+    avgHR: session.avgHeartRate || undefined,
+    originalId: session.id,
   }
 }
 

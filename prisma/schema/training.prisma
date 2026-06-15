@@ -895,6 +895,86 @@ model TrainingLoad {
 }
 
 // ============================================
+// QUICK ERG SESSION CAPTURE
+// ============================================
+
+/// Machine family selected for an athlete-first free Bluetooth erg session.
+enum QuickErgMachineType {
+  CONCEPT2_ROW
+  CONCEPT2_SKIERG
+  CONCEPT2_BIKEERG
+  WATTBIKE
+  ASSAULT_BIKE
+  FTMS_BIKE
+  FTMS_AIRBIKE
+  UNKNOWN
+}
+
+/// Browser Bluetooth source/protocol for a quick erg session.
+enum QuickErgSource {
+  BLUETOOTH_FTMS
+  BLUETOOTH_PM5
+  BLUETOOTH_CPS
+  MANUAL_IMPORT
+}
+
+/// Open-ended erg sessions recorded directly from Bluetooth, not field tests.
+model QuickErgSession {
+  id       String @id @default(uuid())
+  clientId String
+
+  machineType QuickErgMachineType
+  machineKind String? // bike | rower, as reported by the BLE client when known
+  source      QuickErgSource      @default(BLUETOOTH_FTMS)
+  deviceName  String?
+  deviceId    String?
+
+  startedAt   DateTime
+  completedAt DateTime
+  durationSec Int
+
+  // Core summary metrics
+  distanceMeters Float?
+  calories       Int?
+  avgPower       Int?
+  maxPower       Int?
+  normalizedPower Int?
+  avgHeartRate   Int?
+  maxHeartRate   Int?
+  avgCadence     Float?
+  maxCadence     Float?
+  avgStrokeRate  Float?
+  maxStrokeRate  Float?
+  avgPace500m    Int? // seconds per 500 m for row/ski
+
+  // Athlete review
+  rpe   Int?
+  notes String? @db.Text
+
+  // Compact analytics payloads. `samples` is 1 Hz data suitable for charts;
+  // `bestEfforts` and `detectedIntervals` are future-ready summaries.
+  samples           Json
+  summary           Json?
+  bestEfforts       Json?
+  detectedIntervals Json?
+
+  // Training-load and duplicate matching hooks.
+  trainingLoadId String?
+  dedupeKey      String? @unique
+  externalMatch  Json?
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId])
+  @@index([clientId, startedAt])
+  @@index([machineType])
+  @@index([trainingLoadId])
+}
+
+// ============================================
 // TRAINING SUMMARIES (Weekly & Monthly Aggregation)
 // ============================================
 

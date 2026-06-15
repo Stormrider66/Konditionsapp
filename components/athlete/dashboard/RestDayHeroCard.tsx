@@ -767,6 +767,7 @@ function formatRecentActivitySource(
     strava: 'recentActivity.sources.strava',
     garmin: 'recentActivity.sources.garmin',
     concept2: 'recentActivity.sources.concept2',
+    quickerg: 'recentActivity.sources.quickerg',
     ai: 'recentActivity.sources.ai',
     adhoc: 'recentActivity.sources.adhoc',
   }

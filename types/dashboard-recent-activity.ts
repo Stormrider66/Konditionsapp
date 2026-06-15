@@ -3,6 +3,7 @@ export type DashboardRecentActivitySource =
   | 'strava'
   | 'garmin'
   | 'concept2'
+  | 'quickerg'
   | 'ai'
   | 'adhoc'
 

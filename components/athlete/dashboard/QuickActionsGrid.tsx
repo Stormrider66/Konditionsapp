@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Plus, ShieldAlert, Utensils, Zap, Video } from 'lucide-react'
+import { Bluetooth, Plus, ShieldAlert, Utensils, Zap, Video } from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { InputMethodSelector } from '@/components/athlete/adhoc/InputMethodSelector'
 import { MealInputMethodSelector, type MealInputMethod } from '@/components/athlete/nutrition/MealInputMethodSelector'
@@ -62,6 +62,14 @@ export function QuickActionsGrid({ sessionHref, sessionLabel, showInjuryReport =
           </div>
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('logWorkout')}</span>
         </button>
+
+        {/* Record erg */}
+        <Link href={`${basePath}/athlete/log-workout/erg`} className={TILE_BASE}>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-indigo-500/10">
+            <Bluetooth className="h-5 w-5 text-indigo-500" />
+          </div>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('recordErg')}</span>
+        </Link>
 
         {/* Log food */}
         <button onClick={() => setMealSelectorOpen(true)} className={TILE_BASE}>
