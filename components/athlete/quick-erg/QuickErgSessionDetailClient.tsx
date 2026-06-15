@@ -1,15 +1,19 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import {
   Activity,
   ArrowLeft,
   Bike,
   Calendar,
+  CheckCircle2,
   Clock,
   Gauge,
   Heart,
+  Link2,
+  Loader2,
   MapPin,
   MessageSquare,
   RotateCcw,
@@ -19,6 +23,7 @@ import {
   Trophy,
   Zap,
 } from 'lucide-react'
+import { toast } from 'sonner'
 import {
   Area,
   AreaChart,
@@ -45,6 +50,7 @@ import type {
 } from '@/lib/quick-erg/session-summary'
 import { formatMachineName } from '@/lib/quick-erg/session-summary'
 import type { QuickErgPersonalBest } from '@/lib/quick-erg/progress'
+import type { QuickErgPlannedMatchSuggestion } from '@/lib/quick-erg/planned-match'
 
 interface QuickErgTrainingLoadDetail {
   dailyLoad: number
@@ -55,6 +61,18 @@ interface QuickErgTrainingLoadDetail {
   maxHR?: number | null
   intensity: string
   workoutType?: string | null
+}
+
+interface QuickErgMatchedPlannedSession {
+  assignmentId: string
+  sessionId: string
+  sessionName: string
+  assignedDate: string
+  status: string
+  sport?: string | null
+  plannedDurationSec?: number | null
+  plannedDistanceMeters?: number | null
+  matchedAt?: string | null
 }
 
 export interface QuickErgSessionDetailData {
@@ -85,6 +103,8 @@ export interface QuickErgSessionDetailData {
   bestEfforts: QuickErgBestEffort[]
   detectedIntervals: QuickErgDetectedInterval[]
   prBadges: QuickErgPersonalBest[]
+  plannedMatch?: QuickErgMatchedPlannedSession | null
+  plannedMatchSuggestions: Array<Omit<QuickErgPlannedMatchSuggestion, 'assignedDate'> & { assignedDate: string }>
   trainingLoad?: QuickErgTrainingLoadDetail | null
 }
 
@@ -184,6 +204,13 @@ function formatDate(value: string, locale: string): string {
   }).format(new Date(value))
 }
 
+function formatShortDate(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale === 'sv' ? 'sv-SE' : 'en-US', {
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date(value))
+}
+
 function sourceLabel(source: QuickErgSource): string {
   switch (source) {
     case 'BLUETOOTH_PM5':
@@ -244,12 +271,38 @@ export function QuickErgSessionDetailClient({
   basePath = '',
   locale,
 }: QuickErgSessionDetailClientProps) {
+  const router = useRouter()
   const chartData = buildChartData(session.samples)
   const isRower = session.machineType === 'CONCEPT2_ROW' || session.machineType === 'CONCEPT2_SKIERG'
   const rhythmLabel = isRower ? 'spm' : 'rpm'
   const rhythmValue = isRower ? session.avgStrokeRate : session.avgCadence
   const rhythmMax = isRower ? session.maxStrokeRate : session.maxCadence
   const hasChartData = chartData.length > 1
+  const [matchingAssignmentId, setMatchingAssignmentId] = useState<string | null>(null)
+
+  async function handleMatchAssignment(assignmentId: string) {
+    setMatchingAssignmentId(assignmentId)
+
+    try {
+      const response = await fetch(`/api/athlete/quick-erg-sessions/${session.id}/match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignmentId }),
+      })
+      const payload = await response.json().catch(() => null)
+
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || text(locale, 'Could not match planned session', 'Kunde inte matcha planerat pass'))
+      }
+
+      toast.success(text(locale, 'Planned session completed', 'Planerat pass markerat klart'))
+      router.refresh()
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : text(locale, 'Could not match planned session', 'Kunde inte matcha planerat pass'))
+    } finally {
+      setMatchingAssignmentId(null)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
@@ -349,6 +402,13 @@ export function QuickErgSessionDetailClient({
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
         <div className="space-y-6">
+          <PlannedMatchCard
+            session={session}
+            locale={locale}
+            matchingAssignmentId={matchingAssignmentId}
+            onMatch={(assignmentId) => void handleMatchAssignment(assignmentId)}
+          />
+
           <Card>
             <CardHeader>
               <CardTitle>{text(locale, 'Session charts', 'Passgrafer')}</CardTitle>
@@ -517,6 +577,92 @@ export function QuickErgSessionDetailClient({
         </div>
       </div>
     </div>
+  )
+}
+
+function PlannedMatchCard({
+  session,
+  locale,
+  matchingAssignmentId,
+  onMatch,
+}: {
+  session: QuickErgSessionDetailData
+  locale: string
+  matchingAssignmentId: string | null
+  onMatch: (assignmentId: string) => void
+}) {
+  const plannedMatch = session.plannedMatch
+  const suggestions = session.plannedMatchSuggestions
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Link2 className="h-5 w-5" />
+          {text(locale, 'Training plan match', 'Matcha traningsplan')}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {plannedMatch ? (
+          <div className="rounded-md border border-emerald-200 bg-emerald-50/70 p-3 dark:border-emerald-500/20 dark:bg-emerald-500/10">
+            <div className="mb-2 flex items-center gap-2 font-medium text-emerald-800 dark:text-emerald-200">
+              <CheckCircle2 className="h-4 w-4" />
+              {text(locale, 'Matched and completed', 'Matchat och klart')}
+            </div>
+            <div className="font-semibold">{plannedMatch.sessionName}</div>
+            <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+              <span>{formatShortDate(plannedMatch.assignedDate, locale)}</span>
+              {plannedMatch.sport && <span>{plannedMatch.sport}</span>}
+              {plannedMatch.plannedDurationSec && <span>{formatDuration(plannedMatch.plannedDurationSec)}</span>}
+              {plannedMatch.plannedDistanceMeters && <span>{formatDistance(plannedMatch.plannedDistanceMeters)}</span>}
+            </div>
+          </div>
+        ) : suggestions.length > 0 ? (
+          <div className="space-y-2">
+            {suggestions.map((suggestion) => (
+              <div key={suggestion.id} className="rounded-md border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold">{suggestion.sessionName}</div>
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                      <span>{formatShortDate(suggestion.assignedDate, locale)}</span>
+                      {suggestion.sport && <span>{suggestion.sport}</span>}
+                      {suggestion.plannedDurationSec && <span>{formatDuration(suggestion.plannedDurationSec)}</span>}
+                      {suggestion.plannedDistanceMeters && <span>{formatDistance(suggestion.plannedDistanceMeters)}</span>}
+                    </div>
+                  </div>
+                  <Badge variant="secondary">{Math.round(suggestion.confidence * 100)}%</Badge>
+                </div>
+
+                {suggestion.reasons.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {suggestion.reasons.slice(0, 3).map((reason) => (
+                      <Badge key={reason} variant="outline" className="text-[11px]">
+                        {reason}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <Button
+                  size="sm"
+                  className="mt-3 w-full"
+                  onClick={() => onMatch(suggestion.id)}
+                  disabled={matchingAssignmentId !== null}
+                >
+                  {matchingAssignmentId === suggestion.id ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <CheckCircle2 className="mr-2 h-4 w-4" />}
+                  {text(locale, 'Mark as this planned session', 'Markera som detta planerade pass')}
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {text(locale, 'No nearby planned cardio session found.', 'Inget naraliggande planerat konditionspass hittades.')}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 

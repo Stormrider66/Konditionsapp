@@ -14,6 +14,10 @@ import type {
 } from '@/lib/quick-erg/session-summary'
 import { inferQuickErgMachineTypeFromDevice } from '@/lib/quick-erg/session-summary'
 import { findQuickErgSessionPrBadges } from '@/lib/quick-erg/progress'
+import {
+  buildQuickErgPlannedCardioSuggestions,
+  type QuickErgPlannedCardioMatch,
+} from '@/lib/quick-erg/planned-match'
 import { getLocale } from '@/i18n/server'
 
 interface QuickErgSessionDetailPageProps {
@@ -55,6 +59,58 @@ function resolveDisplayMachineType(session: {
   }) ?? session.machineType
 }
 
+function asPlannedCardioMatch(value: Prisma.JsonValue | null): QuickErgPlannedCardioMatch | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+
+  const record = value as Record<string, unknown>
+  if (
+    record.type !== 'cardio_assignment' ||
+    typeof record.assignmentId !== 'string' ||
+    typeof record.sessionId !== 'string' ||
+    typeof record.sessionName !== 'string' ||
+    typeof record.assignedDate !== 'string' ||
+    typeof record.matchedAt !== 'string'
+  ) {
+    return null
+  }
+
+  return {
+    type: 'cardio_assignment',
+    assignmentId: record.assignmentId,
+    sessionId: record.sessionId,
+    sessionName: record.sessionName,
+    assignedDate: record.assignedDate,
+    matchedAt: record.matchedAt,
+    source: record.source === 'quick_erg_manual' ? 'quick_erg_manual' : 'quick_erg_manual',
+  }
+}
+
+function startOfDay(date: Date): Date {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
+  return next
+}
+
+function addDays(date: Date, days: number): Date {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function suggestionLabels(locale: string) {
+  return locale === 'sv'
+    ? {
+        sameDay: 'Samma dag',
+        nearbyDay: 'Nara dag',
+        matchingSport: 'Matchande sport',
+        machineNameMatch: 'Maskinmatch',
+        similarDuration: 'Liknande tid',
+        similarDistance: 'Liknande distans',
+        pendingPlan: 'Oppet pass',
+      }
+    : undefined
+}
+
 export async function QuickErgSessionDetailPage({
   id,
   basePath = '',
@@ -93,6 +149,7 @@ export async function QuickErgSessionDetailPage({
       bestEfforts: true,
       detectedIntervals: true,
       trainingLoadId: true,
+      externalMatch: true,
     },
   })
 
@@ -173,6 +230,82 @@ export async function QuickErgSessionDetailPage({
     }))
   )
 
+  const plannedMatch = asPlannedCardioMatch(session.externalMatch)
+  const sessionDay = startOfDay(session.startedAt)
+  const candidateStart = addDays(sessionDay, -1)
+  const candidateEnd = addDays(sessionDay, 2)
+
+  const candidateAssignments = plannedMatch
+    ? []
+    : await prisma.cardioSessionAssignment.findMany({
+        where: {
+          athleteId: clientId,
+          assignedDate: { gte: candidateStart, lt: candidateEnd },
+          status: { in: ['PENDING', 'SCHEDULED'] },
+        },
+        orderBy: { assignedDate: 'asc' },
+        take: 12,
+        select: {
+          id: true,
+          sessionId: true,
+          assignedDate: true,
+          status: true,
+          session: {
+            select: {
+              id: true,
+              name: true,
+              sport: true,
+              totalDuration: true,
+              totalDistance: true,
+            },
+          },
+        },
+      })
+
+  const matchedAssignment = plannedMatch
+    ? await prisma.cardioSessionAssignment.findFirst({
+        where: {
+          id: plannedMatch.assignmentId,
+          athleteId: clientId,
+        },
+        select: {
+          id: true,
+          sessionId: true,
+          assignedDate: true,
+          status: true,
+          session: {
+            select: {
+              name: true,
+              sport: true,
+              totalDuration: true,
+              totalDistance: true,
+            },
+          },
+        },
+      })
+    : null
+
+  const plannedMatchSuggestions = buildQuickErgPlannedCardioSuggestions(
+    {
+      id: session.id,
+      machineType: displayMachineType,
+      startedAt: session.startedAt,
+      durationSec: session.durationSec,
+      distanceMeters: session.distanceMeters,
+    },
+    candidateAssignments.map((assignment) => ({
+      id: assignment.id,
+      sessionId: assignment.sessionId,
+      sessionName: assignment.session.name,
+      assignedDate: assignment.assignedDate,
+      status: assignment.status,
+      sport: assignment.session.sport,
+      plannedDurationSec: assignment.session.totalDuration,
+      plannedDistanceMeters: assignment.session.totalDistance,
+    })),
+    suggestionLabels(locale)
+  ).slice(0, 3)
+
   const detail: QuickErgSessionDetailData = {
     id: session.id,
     machineType: displayMachineType,
@@ -201,6 +334,25 @@ export async function QuickErgSessionDetailPage({
     bestEfforts: asBestEfforts(session.bestEfforts),
     detectedIntervals: asIntervals(session.detectedIntervals),
     prBadges,
+    plannedMatch: matchedAssignment
+      ? {
+          assignmentId: matchedAssignment.id,
+          sessionId: matchedAssignment.sessionId,
+          sessionName: matchedAssignment.session.name,
+          assignedDate: matchedAssignment.assignedDate.toISOString(),
+          status: matchedAssignment.status,
+          sport: matchedAssignment.session.sport,
+          plannedDurationSec: matchedAssignment.session.totalDuration,
+          plannedDistanceMeters: matchedAssignment.session.totalDistance,
+          matchedAt: plannedMatch?.matchedAt ?? null,
+        }
+      : null,
+    plannedMatchSuggestions: plannedMatchSuggestions.map((suggestion) => ({
+      ...suggestion,
+      assignedDate: suggestion.assignedDate instanceof Date
+        ? suggestion.assignedDate.toISOString()
+        : suggestion.assignedDate,
+    })),
     trainingLoad,
   }
 
