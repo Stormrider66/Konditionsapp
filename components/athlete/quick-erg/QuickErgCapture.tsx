@@ -43,6 +43,7 @@ import {
 import { useWattbike } from '@/hooks/use-wattbike'
 import {
   formatMachineName,
+  inferQuickErgMachineTypeFromDevice,
   type QuickErgMachineType,
   type QuickErgSessionAnalysis,
   type QuickErgSource,
@@ -111,12 +112,6 @@ function sampleHasMovement(sample: WattbikeSample, previous?: WattbikeSample | n
   return false
 }
 
-function machineMatchesKind(machine: QuickErgMachineType, kind: 'bike' | 'rower' | null): boolean {
-  if (!kind) return true
-  const option = MACHINE_OPTIONS.find((item) => item.value === machine)
-  return option?.kind === kind
-}
-
 export function QuickErgCapture() {
   const router = useRouter()
   const basePath = useBasePath()
@@ -151,14 +146,11 @@ export function QuickErgCapture() {
     }
   }, [wb.status])
 
-  useEffect(() => {
-    if (wb.machineKind === 'bike' && phaseRef.current !== 'recording' && !machineMatchesKind(machineType, 'bike')) {
-      setMachineType('WATTBIKE')
-    }
-    if (wb.machineKind === 'rower' && phaseRef.current !== 'recording' && !machineMatchesKind(machineType, 'rower')) {
-      setMachineType('CONCEPT2_ROW')
-    }
-  }, [wb.machineKind, machineType])
+  const activeMachineType = inferQuickErgMachineTypeFromDevice({
+    currentMachineType: machineType,
+    machineKind: wb.machineKind,
+    deviceName: wb.deviceName,
+  }) ?? machineType
 
   const addSample = useCallback((sample: WattbikeSample) => {
     if (sample.source === 'pm5') sourceRef.current.pm5 = true
@@ -250,7 +242,7 @@ export function QuickErgCapture() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          machineType,
+          machineType: activeMachineType,
           machineKind: wb.machineKind,
           source: sourceFromSamples(sourceRef.current),
           deviceName: wb.deviceName,
@@ -276,11 +268,11 @@ export function QuickErgCapture() {
       toast.error(error instanceof Error ? error.message : text(locale, 'Could not save session', 'Kunde inte spara passet'))
       setPhase('review')
     }
-  }, [analysis, basePath, handleReset, locale, machineType, notes, router, rpe, wb.deviceId, wb.deviceName, wb.machineKind])
+  }, [activeMachineType, analysis, basePath, handleReset, locale, notes, router, rpe, wb.deviceId, wb.deviceName, wb.machineKind])
 
   const connected = wb.status === 'connected'
   const isConnecting = wb.status === 'connecting' || wb.status === 'reconnecting'
-  const isRower = MACHINE_OPTIONS.find((item) => item.value === machineType)?.kind === 'rower'
+  const isRower = MACHINE_OPTIONS.find((item) => item.value === activeMachineType)?.kind === 'rower'
   const reviewSummary = analysis?.summary
   const elapsed = phase === 'review' || phase === 'saving'
     ? reviewSummary?.durationSec ?? live?.elapsedSec ?? 0
@@ -346,7 +338,7 @@ export function QuickErgCapture() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>{text(locale, 'Machine', 'Maskin')}</Label>
-              <Select value={machineType} onValueChange={(value) => setMachineType(value as QuickErgMachineType)}>
+              <Select value={activeMachineType} onValueChange={(value) => setMachineType(value as QuickErgMachineType)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -410,7 +402,7 @@ export function QuickErgCapture() {
           <div className="space-y-5">
             <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
               <CheckCircle2 className="h-4 w-4" />
-              {formatMachineName(machineType)}
+              {formatMachineName(activeMachineType)}
             </div>
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">

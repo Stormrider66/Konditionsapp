@@ -1,4 +1,4 @@
-import type { WattbikeSample } from '@/lib/integrations/wattbike/types'
+import type { MachineKind, WattbikeSample } from '@/lib/integrations/wattbike/types'
 
 export type QuickErgMachineType =
   | 'CONCEPT2_ROW'
@@ -381,6 +381,54 @@ export function inferActivityType(machineType: QuickErgMachineType): string {
     default:
       return 'OTHER'
   }
+}
+
+export function inferQuickErgMachineTypeFromDevice(params: {
+  currentMachineType?: QuickErgMachineType
+  machineKind?: MachineKind | null
+  deviceName?: string | null
+}): QuickErgMachineType | null {
+  const current = params.currentMachineType
+  const deviceName = (params.deviceName ?? '').toLowerCase()
+
+  if (params.machineKind === 'bike') {
+    if (
+      deviceName.includes('pm5') ||
+      deviceName.includes('bikeerg') ||
+      deviceName.includes('concept2')
+    ) {
+      return 'CONCEPT2_BIKEERG'
+    }
+
+    if (deviceName.includes('wattbike')) return 'WATTBIKE'
+    if (deviceName.includes('air') || deviceName.includes('assault') || deviceName.includes('echo')) {
+      return 'FTMS_AIRBIKE'
+    }
+
+    if (
+      current === 'CONCEPT2_BIKEERG' ||
+      current === 'WATTBIKE' ||
+      current === 'ASSAULT_BIKE' ||
+      current === 'FTMS_BIKE' ||
+      current === 'FTMS_AIRBIKE'
+    ) {
+      return current
+    }
+
+    return 'FTMS_BIKE'
+  }
+
+  if (params.machineKind === 'rower') {
+    if (deviceName.includes('skierg')) return 'CONCEPT2_SKIERG'
+
+    if (current === 'CONCEPT2_ROW' || current === 'CONCEPT2_SKIERG') {
+      return current
+    }
+
+    return 'CONCEPT2_ROW'
+  }
+
+  return null
 }
 
 export function formatMachineName(machineType: QuickErgMachineType): string {

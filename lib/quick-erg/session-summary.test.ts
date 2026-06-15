@@ -6,6 +6,7 @@ import {
   compactBluetoothSamples,
   estimateQuickErgTrainingLoad,
   inferActivityType,
+  inferQuickErgMachineTypeFromDevice,
   type QuickErgSample,
 } from './session-summary'
 import type { WattbikeSample } from '@/lib/integrations/wattbike/types'
@@ -99,6 +100,22 @@ describe('quick erg helpers', () => {
     expect(inferActivityType('CONCEPT2_SKIERG')).toBe('SKIING')
     expect(inferActivityType('WATTBIKE')).toBe('CYCLING')
     expect(inferActivityType('FTMS_AIRBIKE')).toBe('CYCLING')
+  })
+
+  it('infers PM5 bike devices as Concept2 BikeErg rather than generic Wattbike', () => {
+    expect(inferQuickErgMachineTypeFromDevice({
+      currentMachineType: 'CONCEPT2_ROW',
+      machineKind: 'bike',
+      deviceName: 'PM5 431544933',
+    })).toBe('CONCEPT2_BIKEERG')
+  })
+
+  it('keeps explicit rower selection when PM5 rower data cannot distinguish RowErg from SkiErg', () => {
+    expect(inferQuickErgMachineTypeFromDevice({
+      currentMachineType: 'CONCEPT2_SKIERG',
+      machineKind: 'rower',
+      deviceName: 'PM5 430221709',
+    })).toBe('CONCEPT2_SKIERG')
   })
 
   it('estimates training load from duration and athlete RPE', () => {
