@@ -65,6 +65,10 @@ interface StrengthSessionAssignmentDialogProps {
   onOpenChange?: (open: boolean) => void;
   onAssigned?: () => void;
   businessId?: string;
+  /** Pre-fill the date field (YYYY-MM-DD). Falls back to today when omitted. */
+  defaultDate?: string;
+  /** Client ids to pre-select when the dialog opens (e.g. the athlete this session was built for). */
+  defaultAthleteIds?: string[];
 }
 
 interface AssignmentsResponse {
@@ -96,6 +100,8 @@ export function StrengthSessionAssignmentDialog({
   onOpenChange: controlledOnOpenChange,
   onAssigned,
   businessId,
+  defaultDate,
+  defaultAthleteIds,
 }: StrengthSessionAssignmentDialogProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en';
   const [internalOpen, setInternalOpen] = useState(false);
@@ -194,9 +200,12 @@ export function StrengthSessionAssignmentDialog({
       void Promise.resolve().then(() => {
         void fetchAthletes();
         void fetchCoaches();
-        // Reset form (only when dialog opens)
-        setSelectedAthletes([]);
-        setAssignedDate(new Date().toISOString().split('T')[0]);
+        // Reset form (only when dialog opens). Seed date/athletes from the
+        // caller's context (e.g. the athlete this session was built for, or the
+        // calendar day the coach is deploying onto) so the common case needs no
+        // re-entry; both fall back to today / no selection when omitted.
+        setSelectedAthletes(defaultAthleteIds ?? []);
+        setAssignedDate(defaultDate || new Date().toISOString().split('T')[0]);
         setNotes('');
         setPushToGarmin(false);
         setSelectedCoach('');
@@ -216,7 +225,7 @@ export function StrengthSessionAssignmentDialog({
 
     prevOpenRef.current = open;
     prevBusinessIdRef.current = businessId;
-  }, [open, businessId, fetchAthletes, fetchCoaches]);
+  }, [open, businessId, fetchAthletes, fetchCoaches, defaultDate, defaultAthleteIds]);
 
   function toggleAthlete(athleteId: string) {
     setSelectedAthletes((prev) =>

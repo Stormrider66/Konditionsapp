@@ -221,6 +221,8 @@ export function StrengthSessionLibrary({
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [assignSessionId, setAssignSessionId] = useState<string | undefined>();
   const [assignSessionName, setAssignSessionName] = useState<string | undefined>();
+  const [assignDefaultDate, setAssignDefaultDate] = useState<string | undefined>();
+  const [assignDefaultAthleteIds, setAssignDefaultAthleteIds] = useState<string[]>([]);
 
   // Team assignment dialog state
   const [isTeamAssignOpen, setIsTeamAssignOpen] = useState(false);
@@ -412,6 +414,14 @@ export function StrengthSessionLibrary({
     if (sheetSession) {
       setAssignSessionId(sheetSession.id);
       setAssignSessionName(sheetSession.name);
+      // Seed the bulk dialog with the obvious target: the athlete this session
+      // was built for (from its tag) and, when deploying from the calendar, the
+      // selected day. Without this the dialog opens on "today / nobody", which
+      // means the coach has to re-pick the date and athlete every time.
+      const taggedAthleteId = getWorkoutAthleteIdFromTags(sheetSession.tags);
+      const presetAthleteId = calendarAssignTarget?.clientId ?? taggedAthleteId;
+      setAssignDefaultAthleteIds(presetAthleteId ? [presetAthleteId] : []);
+      setAssignDefaultDate(calendarAssignTarget?.date);
       setIsAssignOpen(true);
     }
   }
@@ -800,6 +810,8 @@ export function StrengthSessionLibrary({
       <StrengthSessionAssignmentDialog
         sessionId={assignSessionId}
         sessionName={assignSessionName}
+        defaultDate={assignDefaultDate}
+        defaultAthleteIds={assignDefaultAthleteIds}
         open={isAssignOpen}
         onOpenChange={setIsAssignOpen}
         onAssigned={() => {
