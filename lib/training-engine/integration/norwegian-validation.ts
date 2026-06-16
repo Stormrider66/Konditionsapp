@@ -13,6 +13,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review';
 
 export interface NorwegianRequirement {
   met: boolean;
@@ -53,6 +54,9 @@ export async function validateNorwegianMethodEligibility(
       client: {
         include: {
           tests: {
+            where: {
+              ...usableTestQualityReviewWhere
+            },
             orderBy: { testDate: 'desc' },
             take: 1
           },

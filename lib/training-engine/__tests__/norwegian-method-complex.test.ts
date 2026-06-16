@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { validateNorwegianMethodEligibility } from '@/lib/training-engine/integration/norwegian-validation'
 
 const DAY_MS = 24 * 60 * 60 * 1000
@@ -46,10 +46,13 @@ function createAthleteFixture(overrides: Partial<any> = {}) {
   }
 
 function createPrismaMock(athleteData: any) {
+  const findUnique = vi.fn(async () => athleteData)
+
   return {
     athleteProfile: {
-      findUnique: async () => athleteData
-    }
+      findUnique
+    },
+    findUnique
   }
 }
 
@@ -106,5 +109,26 @@ describe('Norwegian Method Complex Scenarios', () => {
     expect(volumeReq?.message).toContain('59.0 km/week')
     expect(volumeReq?.message).toContain('60 km/week')
   })
-})
 
+  it('only counts tests that are safe for Norwegian-method decisions', async () => {
+    const prisma = createPrismaMock(createAthleteFixture())
+
+    await validateNorwegianMethodEligibility('athlete-4', prisma as any)
+
+    expect(prisma.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: expect.objectContaining({
+          client: expect.objectContaining({
+            include: expect.objectContaining({
+              tests: expect.objectContaining({
+                where: {
+                  qualityReviewStatus: { not: 'REVIEW_REQUIRED' },
+                },
+              }),
+            }),
+          }),
+        }),
+      })
+    )
+  })
+})
