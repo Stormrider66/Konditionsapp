@@ -10,6 +10,7 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { createPostWorkoutPainCoachAlert } from '@/lib/coach/post-workout-pain-alert'
 
 const feedbackSchema = z.object({
   notificationId: z.string().uuid(),
@@ -58,7 +59,17 @@ export async function POST(request: Request) {
         clientId: clientId,
         notificationType: 'POST_WORKOUT_CHECK',
       },
-      select: { id: true, contextData: true },
+      select: {
+        id: true,
+        contextData: true,
+        client: {
+          select: {
+            id: true,
+            name: true,
+            userId: true,
+          },
+        },
+      },
     })
 
     if (!notification) {
@@ -90,11 +101,21 @@ export async function POST(request: Request) {
 
     // If pain/discomfort was reported, consider creating a flag for the coach
     if (feedback.painOrDiscomfort && feedback.painOrDiscomfort.trim().length > 0) {
+      const alertResult = await createPostWorkoutPainCoachAlert({
+        athleteUserId: resolved.user.id,
+        client: notification.client,
+        notificationId: feedback.notificationId,
+        notificationContextData: notification.contextData,
+        feedback,
+      })
+
       logger.info('Athlete reported discomfort after workout', {
         clientId: clientId,
-        discomfort: feedback.painOrDiscomfort,
+        alertCreated: alertResult.created,
+        alertId: alertResult.alertId,
+        severity: alertResult.severity,
+        skippedReason: alertResult.skippedReason,
       })
-      // Could trigger additional coach notification here
     }
 
     return NextResponse.json({

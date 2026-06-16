@@ -11,6 +11,7 @@ export type CommandCenterPriority = 'critical' | 'high' | 'medium' | 'low'
 
 export interface CommandCenterQueueItem {
   id: string
+  alertId?: string
   title: string
   description: string
   priority: CommandCenterPriority
@@ -94,11 +95,21 @@ function coachAlertHref(alert: {
     return `${basePath}/coach/clients/${alert.clientId}/quick-erg/${sessionId}`
   }
 
+  if (alert.alertType === 'PAIN_MENTION') {
+    return `${basePath}/coach/athletes/${alert.clientId}/logs`
+  }
+
   return `${basePath}/coach/clients/${alert.clientId}`
 }
 
 function coachAlertCtaLabel(alertType: string): string {
+  if (alertType === 'PAIN_MENTION') return 'Review pain'
   return isQuickErgAlertType(alertType) ? 'Open session' : 'Review athlete'
+}
+
+function coachAlertCategory(alertType: string): CommandCenterQueueItem['category'] {
+  if (alertType === 'PAIN_MENTION') return 'injury'
+  return 'alert'
 }
 
 export async function getCoachCommandCenterData({
@@ -332,10 +343,11 @@ export async function getCoachCommandCenterData({
   for (const alert of activeAlerts.slice(0, 6)) {
     queueItems.push({
       id: `alert-${alert.id}`,
+      alertId: alert.id,
       title: alert.title,
       description: alert.message,
       priority: alertPriority[alert.severity] ?? 'medium',
-      category: 'alert',
+      category: coachAlertCategory(alert.alertType),
       clientName: alert.client.name,
       href: coachAlertHref(alert, basePath),
       ctaLabel: coachAlertCtaLabel(alert.alertType),

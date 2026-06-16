@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   Sparkles,
   Stethoscope,
+  X,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -81,7 +82,43 @@ export function CoachCommandCenter({
   defaultExpanded = false,
 }: CoachCommandCenterProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
-  const hasQueue = data.queueItems.length > 0
+  const [hiddenQueueIds, setHiddenQueueIds] = useState<Set<string>>(new Set())
+  const [pendingAlertIds, setPendingAlertIds] = useState<Set<string>>(new Set())
+  const [alertError, setAlertError] = useState<string | null>(null)
+  const queueItems = data.queueItems.filter(item => !hiddenQueueIds.has(item.id))
+  const hasQueue = queueItems.length > 0
+
+  const updateAlertStatus = async (
+    item: CommandCenterQueueItem,
+    action: 'dismiss' | 'resolve'
+  ) => {
+    if (!item.alertId || pendingAlertIds.has(item.alertId)) return
+
+    setAlertError(null)
+    setPendingAlertIds(current => new Set(current).add(item.alertId!))
+
+    try {
+      const response = await fetch(`/api/coach/alerts/${item.alertId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update alert')
+      }
+
+      setHiddenQueueIds(current => new Set(current).add(item.id))
+    } catch {
+      setAlertError('Alert could not be updated. Try again from the athlete profile.')
+    } finally {
+      setPendingAlertIds(current => {
+        const next = new Set(current)
+        next.delete(item.alertId!)
+        return next
+      })
+    }
+  }
 
   return (
     <GlassCard gradient glow="blue" className="mt-8 group">
@@ -133,14 +170,24 @@ export function CoachCommandCenter({
                 Today&apos;s action queue
               </h2>
               <Badge variant="secondary" className="text-xs">
-                {data.queueItems.length}
+                {queueItems.length}
               </Badge>
             </div>
 
             {hasQueue ? (
               <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white/70 dark:divide-white/10 dark:border-white/10 dark:bg-slate-950/40">
-                {data.queueItems.map(item => (
-                  <QueueRow key={item.id} item={item} />
+                {alertError && (
+                  <div className="border-b border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
+                    {alertError}
+                  </div>
+                )}
+                {queueItems.map(item => (
+                  <QueueRow
+                    key={item.id}
+                    item={item}
+                    onAlertAction={updateAlertStatus}
+                    alertPending={item.alertId ? pendingAlertIds.has(item.alertId) : false}
+                  />
                 ))}
               </div>
             ) : (
@@ -253,7 +300,15 @@ function MetricPill({
   )
 }
 
-function QueueRow({ item }: { item: CommandCenterQueueItem }) {
+function QueueRow({
+  item,
+  onAlertAction,
+  alertPending,
+}: {
+  item: CommandCenterQueueItem
+  onAlertAction: (item: CommandCenterQueueItem, action: 'dismiss' | 'resolve') => void
+  alertPending: boolean
+}) {
   const Icon = categoryIcon[item.category]
   const priority = priorityConfig[item.priority]
 
@@ -283,12 +338,42 @@ function QueueRow({ item }: { item: CommandCenterQueueItem }) {
         </div>
       </div>
 
-      <Link href={item.href} className="shrink-0">
-        <Button variant="outline" size="sm" className="h-8 w-full justify-between gap-2 text-xs sm:w-auto">
-          {item.ctaLabel}
-          <ArrowRight className="h-3 w-3" />
-        </Button>
-      </Link>
+      <div className="flex shrink-0 items-center gap-2">
+        {item.alertId && (
+          <div className="flex items-center gap-1">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-emerald-700 hover:text-emerald-800 dark:text-emerald-300"
+              onClick={() => onAlertAction(item, 'resolve')}
+              disabled={alertPending}
+              title="Resolve alert"
+              aria-label="Resolve alert"
+            >
+              <CheckCircle2 className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-slate-500 hover:text-slate-700 dark:text-slate-300"
+              onClick={() => onAlertAction(item, 'dismiss')}
+              disabled={alertPending}
+              title="Dismiss alert"
+              aria-label="Dismiss alert"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        <Link href={item.href}>
+          <Button variant="outline" size="sm" className="h-8 w-full justify-between gap-2 text-xs sm:w-auto">
+            {item.ctaLabel}
+            <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
+      </div>
     </div>
   )
 }
