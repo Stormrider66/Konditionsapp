@@ -184,6 +184,7 @@ OperatorAgentRun
 Organization
 PartnerReferral
 PerformancePattern
+PhoneRunSession
 PhysioAssignment
 PlatformConfig
 PredictionValidation
@@ -192,6 +193,7 @@ PricingTier
 ProgramGenerationProgress
 ProgramGenerationSession
 ProgressionTracking
+QuickErgSession
 Race
 RaceCalendar
 RaceFuelingPlan
