@@ -15325,7 +15325,8 @@
       "queueCount": "{count} ärenden",
       "metrics": {
         "urgent": "Akut",
-        "review": "Granska"
+        "review": "Granska",
+        "tests": "Tester"
       },
       "priority": {
         "critical": "Akut",

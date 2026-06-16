@@ -40,8 +40,15 @@ interface CoachOperatorContext {
     queueCount?: number
     activeAlerts?: number
     recommendationCount?: number
+    testReviewCount?: number
+    highPriorityTestReviewCount?: number
   }
   focusAreas?: string[]
+  testReview?: {
+    count?: number
+    highPriorityCount?: number
+    summary?: string
+  }
 }
 
 export function getCoachOperatorContext(pageContext?: PageContext): CoachOperatorContext | null {

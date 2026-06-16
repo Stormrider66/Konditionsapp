@@ -14965,7 +14965,8 @@
       "queueCount": "{count} cases",
       "metrics": {
         "urgent": "Urgent",
-        "review": "Review"
+        "review": "Review",
+        "tests": "Tests"
       },
       "priority": {
         "critical": "Urgent",

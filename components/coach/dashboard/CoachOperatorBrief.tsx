@@ -62,6 +62,7 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
   const t = useTranslations('components.coachOperatorBrief')
   const tone = toneStyles[data.tone]
   const hasQueue = data.topItems.length > 0
+  const hasTestReviews = data.summary.testReviewCount > 0
   const priorityLabel: Record<CoachOperatorBriefItem['priority'], string> = {
     critical: t('priority.critical'),
     high: t('priority.high'),
@@ -93,9 +94,12 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:min-w-[260px]">
+          <div className={cn('grid gap-2', hasTestReviews ? 'grid-cols-4 sm:min-w-[340px]' : 'grid-cols-3 sm:min-w-[260px]')}>
             <OperatorMetric label={t('metrics.urgent')} value={data.summary.urgentCount} tone={data.tone === 'risk' ? 'risk' : 'neutral'} />
             <OperatorMetric label={t('metrics.review')} value={data.summary.reviewCount} tone={data.summary.reviewCount > 0 ? 'watch' : 'neutral'} />
+            {hasTestReviews && (
+              <OperatorMetric label={t('metrics.tests')} value={data.summary.testReviewCount} tone="watch" />
+            )}
             <OperatorMetric label="Alerts" value={data.summary.activeAlerts} tone={data.summary.activeAlerts > 0 ? 'watch' : 'neutral'} />
           </div>
         </div>
