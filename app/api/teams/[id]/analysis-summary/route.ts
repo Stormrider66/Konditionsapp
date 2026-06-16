@@ -41,6 +41,7 @@ import {
   type AcwrZone,
   type MemberSummary,
 } from '@/lib/hockey/team-analysis-engine'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 export async function GET(
   request: NextRequest,
@@ -195,6 +196,7 @@ export async function GET(
           clientId: { in: memberIds },
           testDate: { gte: hockeySince },
           status: 'COMPLETED',
+          ...usableTestQualityReviewWhere,
         },
         orderBy: { testDate: 'desc' },
         select: {

@@ -20,6 +20,7 @@ import {
   type AppLocale,
   type SeasonAnalysis,
 } from '@/lib/hockey/team-analysis-engine'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 const HOCKEY_TEST_SELECT = {
   id: true,
@@ -115,7 +116,12 @@ export async function loadTeamHockeySeasons({
       select: HOCKEY_TEST_SELECT,
     }),
     prisma.test.findMany({
-      where: { clientId: { in: memberIds }, testDate: { gte: hockeySince }, status: 'COMPLETED' },
+      where: {
+        clientId: { in: memberIds },
+        testDate: { gte: hockeySince },
+        status: 'COMPLETED',
+        ...usableTestQualityReviewWhere,
+      },
       orderBy: { testDate: 'desc' },
       select: LAB_TEST_SELECT,
     }),

@@ -20,6 +20,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, handleApiError } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 interface FieldTestPoint {
   id: string
@@ -91,7 +92,10 @@ export async function GET(
 
     // Get lab tests for comparison (filter in JS since Json filtering is complex)
     const allLabTests = await prisma.test.findMany({
-      where: { clientId },
+      where: {
+        clientId,
+        ...usableTestQualityReviewWhere,
+      },
       orderBy: { testDate: 'asc' },
       select: {
         id: true,

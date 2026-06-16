@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 export interface HockeyAerobicFields {
   clientId: string
@@ -190,6 +191,7 @@ export async function getLinkedHockeyAerobicProfiles(clientIds: string[]): Promi
         },
       },
       tests: {
+        where: usableTestQualityReviewWhere,
         orderBy: { testDate: 'desc' },
         take: 8,
         select: {

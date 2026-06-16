@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 export type CanvasContextDataKey = 'tests' | 'sessions' | 'programs' | 'readiness' | 'notes'
 type AppLocale = 'en' | 'sv'
@@ -387,6 +388,7 @@ async function buildTestLines(clientIds: string[], now: Date, locale: AppLocale)
     where: {
       clientId: { in: clientIds },
       status: 'COMPLETED',
+      ...usableTestQualityReviewWhere,
     },
     select: {
       clientId: true,
@@ -402,7 +404,7 @@ async function buildTestLines(clientIds: string[], now: Date, locale: AppLocale)
     take: Math.min(clientIds.length * 2, 20),
   })
 
-  if (tests.length === 0) return [t(locale, 'Tests: no completed test data was found.', 'Tester: ingen slutförd testdata hittades.')]
+  if (tests.length === 0) return [t(locale, 'Tests: no usable completed test data was found.', 'Tester: ingen användbar slutförd testdata hittades.')]
 
   const latestByClient = new Map<string, typeof tests[number]>()
   tests.forEach((test) => {
@@ -416,8 +418,8 @@ async function buildTestLines(clientIds: string[], now: Date, locale: AppLocale)
   return [
     t(
       locale,
-      `Tests: ${latestByClient.size}/${clientIds.length} athletes have completed test data. ${staleCount} latest tests are older than 120 days.`,
-      `Tester: ${latestByClient.size}/${clientIds.length} atleter har slutförd testdata. ${staleCount} senaste tester är äldre än 120 dagar.`
+      `Tests: ${latestByClient.size}/${clientIds.length} athletes have usable completed test data. ${staleCount} latest usable tests are older than 120 days.`,
+      `Tester: ${latestByClient.size}/${clientIds.length} atleter har användbar slutförd testdata. ${staleCount} senaste användbara tester är äldre än 120 dagar.`
     ),
     ...Array.from(latestByClient.values()).slice(0, 6).map((test) =>
       `- ${test.client.name}: ${test.testType} ${fmtDate(test.testDate, locale)}, VO2max ${numberText(test.vo2max, '', locale)}, maxHR ${numberText(test.maxHR, '', locale)}, LT1 ${numberText(test.manualLT1Intensity, '', locale)}, LT2 ${numberText(test.manualLT2Intensity, '', locale)}`
@@ -644,6 +646,7 @@ async function getTestAnalytics(
     where: {
       clientId: { in: clientIds },
       status: 'COMPLETED',
+      ...usableTestQualityReviewWhere,
     },
     select: {
       clientId: true,
@@ -698,7 +701,7 @@ async function getTestAnalytics(
     metric: {
       label: t(locale, 'Test coverage', 'Testtäckning'),
       value: `${coveragePercent}%`,
-      detail: t(locale, `${latestByClient.size}/${clientIds.length} have tests`, `${latestByClient.size}/${clientIds.length} har test`),
+      detail: t(locale, `${latestByClient.size}/${clientIds.length} have usable tests`, `${latestByClient.size}/${clientIds.length} har användbara test`),
       tone: coveragePercent >= 80 ? 'positive' : coveragePercent >= 50 ? 'warning' : 'danger',
     },
     risks,
@@ -707,14 +710,14 @@ async function getTestAnalytics(
         label: t(locale, 'Test status', 'Teststatus'),
         value: t(locale, `${staleNames.length + missingNames.length} need review`, `${staleNames.length + missingNames.length} behöver kontroll`),
         direction: staleNames.length + missingNames.length > 0 ? 'down' : 'flat',
-        detail: t(locale, 'Based on completed tests', 'Baserat på completed tests'),
+        detail: t(locale, 'Based on usable completed tests', 'Baserat på användbara slutförda test'),
       },
     ],
     charts: testAgePoints.length > 1
       ? [{
           type: 'chart',
           title: t(locale, 'Test age per athlete', 'Testålder per atlet'),
-          content: t(locale, 'Number of days since the latest completed test for athletes with test data.', 'Antal dagar sedan senaste slutförda test för atleter med testdata.'),
+          content: t(locale, 'Number of days since the latest usable completed test for athletes with test data.', 'Antal dagar sedan senaste användbara slutförda test för atleter med testdata.'),
           chartType: 'bar',
           unit: t(locale, 'days', 'dagar'),
           points: testAgePoints,

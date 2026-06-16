@@ -10,6 +10,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 import {
   type CoachToolContext,
   toolText,
@@ -320,25 +321,39 @@ export function createMonitoringTools(ctx: CoachToolContext) {
           if (!resolved.ok) return resolved.result
           const client = resolved.client
 
-          const tests = await prisma.test.findMany({
-            where: { clientId: client.id, status: { not: 'DRAFT' } },
-            orderBy: { testDate: 'desc' },
-            take: limit,
-            select: {
-              id: true,
-              testDate: true,
-              testType: true,
-              vo2max: true,
-              maxHR: true,
-              maxLactate: true,
-              aerobicThreshold: true,
-              anaerobicThreshold: true,
-            },
-          })
+          const [tests, reviewRequiredCount] = await Promise.all([
+            prisma.test.findMany({
+              where: {
+                clientId: client.id,
+                status: { not: 'DRAFT' },
+                ...usableTestQualityReviewWhere,
+              },
+              orderBy: { testDate: 'desc' },
+              take: limit,
+              select: {
+                id: true,
+                testDate: true,
+                testType: true,
+                vo2max: true,
+                maxHR: true,
+                maxLactate: true,
+                aerobicThreshold: true,
+                anaerobicThreshold: true,
+              },
+            }),
+            prisma.test.count({
+              where: {
+                clientId: client.id,
+                status: { not: 'DRAFT' },
+                qualityReviewStatus: 'REVIEW_REQUIRED',
+              },
+            }),
+          ])
 
           return {
             success: true,
             athlete: { id: client.id, name: client.name },
+            reviewRequiredCount,
             tests: tests.map((t) => ({
               id: t.id,
               date: isoDate(t.testDate),
@@ -351,7 +366,7 @@ export function createMonitoringTools(ctx: CoachToolContext) {
             })),
             message:
               tests.length === 0
-                ? toolText(locale, `${client.name} has no completed tests.`, `${client.name} har inga genomförda tester.`)
+                ? toolText(locale, `${client.name} has no usable completed tests.`, `${client.name} har inga användbara genomförda tester.`)
                 : undefined,
           }
         } catch (error) {

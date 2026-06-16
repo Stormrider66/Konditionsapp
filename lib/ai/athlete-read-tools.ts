@@ -14,6 +14,7 @@ import { tool } from 'ai'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 type ChatLocale = 'en' | 'sv'
 
@@ -241,37 +242,52 @@ export function createAthleteReadTools(clientId: string, locale: ChatLocale = 'e
       }),
       execute: async ({ limit }) => {
         try {
-          const tests = await prisma.test.findMany({
-            where: { clientId, status: { not: 'DRAFT' } },
-            orderBy: { testDate: 'desc' },
-            take: limit,
-            select: {
-              id: true,
-              testDate: true,
-              testType: true,
-              vo2max: true,
-              maxHR: true,
-              maxLactate: true,
-              restingHeartRate: true,
-              aerobicThreshold: true,
-              anaerobicThreshold: true,
-              manualLT1Lactate: true,
-              manualLT1Intensity: true,
-              manualLT2Lactate: true,
-              manualLT2Intensity: true,
-            },
-          })
+          const [tests, reviewRequiredCount] = await Promise.all([
+            prisma.test.findMany({
+              where: {
+                clientId,
+                status: { not: 'DRAFT' },
+                ...usableTestQualityReviewWhere,
+              },
+              orderBy: { testDate: 'desc' },
+              take: limit,
+              select: {
+                id: true,
+                testDate: true,
+                testType: true,
+                vo2max: true,
+                maxHR: true,
+                maxLactate: true,
+                restingHeartRate: true,
+                aerobicThreshold: true,
+                anaerobicThreshold: true,
+                manualLT1Lactate: true,
+                manualLT1Intensity: true,
+                manualLT2Lactate: true,
+                manualLT2Intensity: true,
+              },
+            }),
+            prisma.test.count({
+              where: {
+                clientId,
+                status: { not: 'DRAFT' },
+                qualityReviewStatus: 'REVIEW_REQUIRED',
+              },
+            }),
+          ])
 
           if (tests.length === 0) {
             return {
               success: true,
               tests: [],
-              message: chatText(locale, 'No completed tests found.', 'Inga genomförda tester hittades.'),
+              reviewRequiredCount,
+              message: chatText(locale, 'No usable completed tests found.', 'Inga användbara genomförda tester hittades.'),
             }
           }
 
           return {
             success: true,
+            reviewRequiredCount,
             tests: tests.map((t) => ({
               id: t.id,
               date: isoDate(t.testDate),

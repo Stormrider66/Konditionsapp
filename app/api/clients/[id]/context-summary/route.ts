@@ -10,6 +10,7 @@ import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { logError } from '@/lib/logger-console'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -89,7 +90,10 @@ export async function GET(
 
     // Get latest test date
     const latestTest = await prisma.test.findFirst({
-      where: { clientId },
+      where: {
+        clientId,
+        ...usableTestQualityReviewWhere,
+      },
       orderBy: { testDate: 'desc' },
       select: { testDate: true, vo2max: true }
     })

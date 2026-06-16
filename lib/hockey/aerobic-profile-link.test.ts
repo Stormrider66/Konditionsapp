@@ -1,8 +1,25 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+const mockPrisma = vi.hoisted(() => ({
+  client: {
+    findMany: vi.fn(),
+  },
+}))
+
+vi.mock('@/lib/prisma', () => ({
+  prisma: mockPrisma,
+}))
+
 import {
   buildHockeyAerobicFieldsFromLabTest,
+  getLinkedHockeyAerobicProfiles,
   hasHockeyAerobicData,
 } from './aerobic-profile-link'
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  mockPrisma.client.findMany.mockResolvedValue([])
+})
 
 describe('buildHockeyAerobicFieldsFromLabTest', () => {
   it('maps saved lab VO2 and lactate test data to hockey aerobic metrics', () => {
@@ -50,5 +67,21 @@ describe('buildHockeyAerobicFieldsFromLabTest', () => {
     expect(fields.vo2Max).toBe(57.9)
     expect(fields.maxLactate).toBe(12.4)
     expect(fields.maxHeartRate).toBe(188)
+  })
+
+  it('ignores lab tests still waiting for quality review when linking profiles', async () => {
+    await getLinkedHockeyAerobicProfiles(['client-1'])
+
+    expect(mockPrisma.client.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          tests: expect.objectContaining({
+            where: {
+              qualityReviewStatus: { not: 'REVIEW_REQUIRED' },
+            },
+          }),
+        }),
+      })
+    )
   })
 })

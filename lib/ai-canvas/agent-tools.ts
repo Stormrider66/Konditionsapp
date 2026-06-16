@@ -26,6 +26,7 @@ import { getAccessibleTeamWhere } from '@/lib/coach/team-access'
 import { canvasBlockSchema } from '@/lib/ai-canvas/block-schema'
 import { buildCanvasAnalyticsBlocks } from '@/lib/ai-canvas/context-builder'
 import { logger } from '@/lib/logger'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 export interface CanvasAgentToolsParams {
   userId: string
@@ -168,7 +169,7 @@ export function createCanvasAgentTools(params: CanvasAgentToolsParams) {
     }),
 
     getTestData: tool({
-      description: 'Fetch completed physiological test results (VO2max, max HR, LT1/LT2, test age in days) for athletes. Returns up to 3 most recent tests per athlete so you can describe development over time.',
+      description: 'Fetch usable completed physiological test results (VO2max, max HR, LT1/LT2, test age in days) for athletes. Tests waiting for coach quality review are omitted. Returns up to 3 most recent tests per athlete so you can describe development over time.',
       inputSchema: z.object(scopeInput),
       execute: async ({ athleteIds, teamId }) => {
         try {
@@ -176,7 +177,11 @@ export function createCanvasAgentTools(params: CanvasAgentToolsParams) {
           if (clients.length === 0) return noAthletesResult
           const now = new Date()
           const tests = await prisma.test.findMany({
-            where: { clientId: { in: clients.map((client) => client.id) }, status: 'COMPLETED' },
+            where: {
+              clientId: { in: clients.map((client) => client.id) },
+              status: 'COMPLETED',
+              ...usableTestQualityReviewWhere,
+            },
             select: {
               clientId: true,
               testDate: true,

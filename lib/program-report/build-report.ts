@@ -4,6 +4,7 @@
 // program export endpoints (/api/programs/[id]/report and /export*).
 
 import { prisma } from '@/lib/prisma'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 interface ZoneRange {
   hrRange: string
@@ -145,7 +146,11 @@ export async function buildProgramReport(programId: string): Promise<
     program.test
       ? Promise.resolve(null)
       : prisma.test.findFirst({
-          where: { clientId: program.clientId, trainingZones: { not: undefined } },
+          where: {
+            clientId: program.clientId,
+            trainingZones: { not: undefined },
+            ...usableTestQualityReviewWhere,
+          },
           orderBy: { testDate: 'desc' },
           select: { trainingZones: true },
         }),

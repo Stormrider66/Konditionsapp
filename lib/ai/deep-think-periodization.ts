@@ -12,6 +12,7 @@ import { prisma } from '@/lib/prisma';
 import { GEMINI_MODELS, getGeminiThinkingOptions } from '@/lib/ai/gemini-config';
 import { createModelInstance } from '@/lib/ai/create-model';
 import { decryptSecret } from '@/lib/crypto/secretbox';
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review';
 import type {
   PeriodizationAnalysis,
   PeriodizationAdjustment,
@@ -102,7 +103,11 @@ export async function analyzeWithDeepThink(
       where: { id: clientId },
       include: {
         sportProfile: true,
-        tests: { orderBy: { testDate: 'desc' }, take: 3 },
+        tests: {
+          where: usableTestQualityReviewWhere,
+          orderBy: { testDate: 'desc' },
+          take: 3,
+        },
       },
     }),
     // WorkoutLog.athleteId is a User.id — resolve via athleteAccount.
