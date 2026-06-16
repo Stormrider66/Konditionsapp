@@ -9,6 +9,7 @@ import { SportType } from '@prisma/client'
 import { METHODOLOGIES } from './program-prompts'
 import type { FitnessEstimate } from '@/lib/training/fitness-estimation'
 import { buildTeamSportPromptSection } from '@/lib/program-generator/team-sports/prompt-section'
+import { testQualityReviewBlocksProgram } from '@/lib/testing/test-quality-review'
 
 // Types for wizard form data
 export interface WizardFormData {
@@ -105,6 +106,7 @@ export interface TestData {
   maxHR: number | null
   vo2max: number | null
   maxLactate?: number | null
+  qualityReviewStatus?: string | null
   aerobicThreshold: { hr?: number; heartRate?: number; value?: number; unit?: string; lactate?: number } | null
   anaerobicThreshold: { hr?: number; heartRate?: number; value?: number; unit?: string; lactate?: number } | null
   trainingZones?: Array<{
@@ -306,42 +308,45 @@ export function buildProgramPrompt(context: ProgramContext): string {
 
   // Recent Test Data
   if (recentTests && recentTests.length > 0) {
-    const latestTest = recentTests[0]
-    prompt += `\n## ${t('SENASTE TESTRESULTAT', 'LATEST TEST RESULTS')}\n`
-    prompt += `- **${t('Testdatum', 'Test date')}**: ${formatDate(latestTest.testDate)}\n`
-    prompt += `- **${t('Testtyp', 'Test type')}**: ${latestTest.testType}\n`
+    const latestTest = recentTests.find((test) => !testQualityReviewBlocksProgram(test))
 
-    if (latestTest.vo2max) prompt += `- **VO2max**: ${latestTest.vo2max.toFixed(1)} ml/kg/min\n`
-    if (latestTest.maxHR) prompt += `- **${t('Max puls', 'Max HR')}**: ${latestTest.maxHR} bpm\n`
-    if (latestTest.maxLactate) prompt += `- **${t('Max laktat', 'Max lactate')}**: ${latestTest.maxLactate.toFixed(1)} mmol/L\n`
+    if (latestTest) {
+      prompt += `\n## ${t('SENASTE TESTRESULTAT', 'LATEST TEST RESULTS')}\n`
+      prompt += `- **${t('Testdatum', 'Test date')}**: ${formatDate(latestTest.testDate)}\n`
+      prompt += `- **${t('Testtyp', 'Test type')}**: ${latestTest.testType}\n`
 
-    // Thresholds
-    const lt1 = latestTest.aerobicThreshold
-    const lt2 = latestTest.anaerobicThreshold
+      if (latestTest.vo2max) prompt += `- **VO2max**: ${latestTest.vo2max.toFixed(1)} ml/kg/min\n`
+      if (latestTest.maxHR) prompt += `- **${t('Max puls', 'Max HR')}**: ${latestTest.maxHR} bpm\n`
+      if (latestTest.maxLactate) prompt += `- **${t('Max laktat', 'Max lactate')}**: ${latestTest.maxLactate.toFixed(1)} mmol/L\n`
 
-    if (lt1 || lt2) {
-      prompt += `\n### ${t('Tröskelvärden', 'Threshold values')}\n`
-      if (lt1) {
-        const lt1Hr = lt1.heartRate || lt1.hr
-        prompt += `- **LT1 (${t('Aerob tröskel', 'Aerobic threshold')})**: ${lt1Hr ? `${lt1Hr} bpm` : '-'}`
-        if (lt1.lactate) prompt += ` @ ${lt1.lactate} mmol/L`
-        prompt += '\n'
+      // Thresholds
+      const lt1 = latestTest.aerobicThreshold
+      const lt2 = latestTest.anaerobicThreshold
+
+      if (lt1 || lt2) {
+        prompt += `\n### ${t('Tröskelvärden', 'Threshold values')}\n`
+        if (lt1) {
+          const lt1Hr = lt1.heartRate || lt1.hr
+          prompt += `- **LT1 (${t('Aerob tröskel', 'Aerobic threshold')})**: ${lt1Hr ? `${lt1Hr} bpm` : '-'}`
+          if (lt1.lactate) prompt += ` @ ${lt1.lactate} mmol/L`
+          prompt += '\n'
+        }
+        if (lt2) {
+          const lt2Hr = lt2.heartRate || lt2.hr
+          prompt += `- **LT2 (${t('Anaerob tröskel', 'Anaerobic threshold')})**: ${lt2Hr ? `${lt2Hr} bpm` : '-'}`
+          if (lt2.lactate) prompt += ` @ ${lt2.lactate} mmol/L`
+          prompt += '\n'
+        }
       }
-      if (lt2) {
-        const lt2Hr = lt2.heartRate || lt2.hr
-        prompt += `- **LT2 (${t('Anaerob tröskel', 'Anaerobic threshold')})**: ${lt2Hr ? `${lt2Hr} bpm` : '-'}`
-        if (lt2.lactate) prompt += ` @ ${lt2.lactate} mmol/L`
-        prompt += '\n'
-      }
-    }
 
-    // Training Zones
-    if (latestTest.trainingZones && latestTest.trainingZones.length > 0) {
-      prompt += `\n### ${t('Träningszoner', 'Training zones')}\n`
-      prompt += locale === 'sv' ? '| Zon | HR-intervall | % maxHR | Beskrivning |\n' : '| Zone | HR range | % max HR | Description |\n'
-      prompt += '|-----|--------------|---------|-------------|\n'
-      for (const zone of latestTest.trainingZones) {
-        prompt += `| Z${zone.zone} | ${zone.hrMin}-${zone.hrMax} bpm | ${zone.percentMin}-${zone.percentMax}% | ${zone.effect || ''} |\n`
+      // Training Zones
+      if (latestTest.trainingZones && latestTest.trainingZones.length > 0) {
+        prompt += `\n### ${t('Träningszoner', 'Training zones')}\n`
+        prompt += locale === 'sv' ? '| Zon | HR-intervall | % maxHR | Beskrivning |\n' : '| Zone | HR range | % max HR | Description |\n'
+        prompt += '|-----|--------------|---------|-------------|\n'
+        for (const zone of latestTest.trainingZones) {
+          prompt += `| Z${zone.zone} | ${zone.hrMin}-${zone.hrMax} bpm | ${zone.percentMin}-${zone.percentMax}% | ${zone.effect || ''} |\n`
+        }
       }
     }
   }

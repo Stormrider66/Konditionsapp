@@ -18,6 +18,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { strengthSessionAccessWhere } from '@/lib/strength/session-business-scope'
 import { getStrengthBusinessTag } from '@/lib/strength/session-business-tags'
 import { getProgramSportSettings, normalizeProgramSport } from '@/lib/ai/program-generator/sport-normalization'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 import type { Prisma, StrengthPhase } from '@prisma/client'
 import {
   type CoachToolContext,
@@ -839,7 +840,10 @@ ${JSON.stringify(exerciseLibrary, null, 2)}
           // Fetch test data and injuries
           const [latestTest, injuries] = await Promise.all([
             prisma.test.findFirst({
-              where: { clientId },
+              where: {
+                clientId,
+                ...usableTestQualityReviewWhere,
+              },
               orderBy: { testDate: 'desc' },
               select: { vo2max: true, maxHR: true, anaerobicThreshold: true },
             }),

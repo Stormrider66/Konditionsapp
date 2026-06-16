@@ -7,6 +7,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { buildVideoAnalysisContext } from '@/lib/ai/sport-context/video-analysis'
+import { testQualityReviewBlocksProgram, usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 import type { VideoAnalysis } from '@/lib/ai/sport-context/types'
 import { SportType, AgentActionStatus } from '@prisma/client'
 
@@ -86,6 +87,7 @@ interface TestData {
   testType: string
   maxHR: number | null
   vo2max: number | null
+  qualityReviewStatus?: string | null
   aerobicThreshold: ThresholdJson | null
   anaerobicThreshold: ThresholdJson | null
   trainingZones: unknown
@@ -182,7 +184,10 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
 
     // Recent tests (expanded to 10)
     prisma.test.findMany({
-      where: { clientId },
+      where: {
+        clientId,
+        ...usableTestQualityReviewWhere,
+      },
       orderBy: { testDate: 'desc' },
       take: 10,
       select: {
@@ -191,6 +196,7 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         testType: true,
         maxHR: true,
         vo2max: true,
+        qualityReviewStatus: true,
         aerobicThreshold: true,
         anaerobicThreshold: true,
         trainingZones: true,
@@ -920,37 +926,37 @@ function buildReadinessContext(checkIns: DailyCheckInData[], locale: AppLocale =
 }
 
 function buildTestContext(tests: TestData[], locale: AppLocale = 'en'): string {
+  const latest = tests.find((test) => !testQualityReviewBlocksProgram(test))
+  if (!latest) return ''
+
   let context = `## ${t(locale, 'TEST RESULTS', 'TESTRESULTAT')}\n`
 
-  const latest = tests[0]
-  if (latest) {
-    context += `\n### ${t(locale, 'Latest test', 'Senaste test')} (${formatDate(latest.testDate, locale)})\n`
-    context += `- **${t(locale, 'Test type', 'Testtyp')}**: ${latest.testType}\n`
+  context += `\n### ${t(locale, 'Latest test', 'Senaste test')} (${formatDate(latest.testDate, locale)})\n`
+  context += `- **${t(locale, 'Test type', 'Testtyp')}**: ${latest.testType}\n`
 
-    if (latest.vo2max) {
-      context += `- **VO2max**: ${latest.vo2max.toFixed(1)} ml/kg/min\n`
-    }
-    if (latest.maxHR) {
-      context += `- **${t(locale, 'Max HR', 'Max-puls')}**: ${latest.maxHR} bpm\n`
-    }
-    // Access threshold data from JSON objects
-    const aerobicThreshold = latest.aerobicThreshold as ThresholdJson | null
-    const anaerobicThreshold = latest.anaerobicThreshold as ThresholdJson | null
+  if (latest.vo2max) {
+    context += `- **VO2max**: ${latest.vo2max.toFixed(1)} ml/kg/min\n`
+  }
+  if (latest.maxHR) {
+    context += `- **${t(locale, 'Max HR', 'Max-puls')}**: ${latest.maxHR} bpm\n`
+  }
+  // Access threshold data from JSON objects
+  const aerobicThreshold = latest.aerobicThreshold as ThresholdJson | null
+  const anaerobicThreshold = latest.anaerobicThreshold as ThresholdJson | null
 
-    if (aerobicThreshold?.hr) {
-      context += `- **${t(locale, 'Aerobic threshold (LT1)', 'Aerob tröskel (LT1)')}**: ${aerobicThreshold.hr} bpm`
-      if (aerobicThreshold.value) {
-        context += ` @ ${aerobicThreshold.value.toFixed(1)} ${aerobicThreshold.unit || 'km/h'}`
-      }
-      context += '\n'
+  if (aerobicThreshold?.hr) {
+    context += `- **${t(locale, 'Aerobic threshold (LT1)', 'Aerob tröskel (LT1)')}**: ${aerobicThreshold.hr} bpm`
+    if (aerobicThreshold.value) {
+      context += ` @ ${aerobicThreshold.value.toFixed(1)} ${aerobicThreshold.unit || 'km/h'}`
     }
-    if (anaerobicThreshold?.hr) {
-      context += `- **${t(locale, 'Anaerobic threshold (LT2)', 'Anaerob tröskel (LT2)')}**: ${anaerobicThreshold.hr} bpm`
-      if (anaerobicThreshold.value) {
-        context += ` @ ${anaerobicThreshold.value.toFixed(1)} ${anaerobicThreshold.unit || 'km/h'}`
-      }
-      context += '\n'
+    context += '\n'
+  }
+  if (anaerobicThreshold?.hr) {
+    context += `- **${t(locale, 'Anaerobic threshold (LT2)', 'Anaerob tröskel (LT2)')}**: ${anaerobicThreshold.hr} bpm`
+    if (anaerobicThreshold.value) {
+      context += ` @ ${anaerobicThreshold.value.toFixed(1)} ${anaerobicThreshold.unit || 'km/h'}`
     }
+    context += '\n'
   }
 
   return context + '\n'

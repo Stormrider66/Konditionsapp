@@ -23,6 +23,7 @@ import { lookupOrGenerateExercise } from '@/lib/ai/exercise-generator'
 import { AI_ALLOWANCE_MINIMUM_REMAINING_SEK, requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { getProgramSportSettings, normalizeProgramSport } from '@/lib/ai/program-generator/sport-normalization'
 import { getConfirmedAiCapabilityIds } from '@/lib/ai/capabilities/registry'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 import {
   type AiActionDraftContext,
   wrapToolsWithAiActionDrafts,
@@ -913,7 +914,10 @@ export function createChatTools(
           // Fetch athlete test data for zones/thresholds
           const [latestTest, injuries] = await Promise.all([
             prisma.test.findFirst({
-              where: { clientId },
+              where: {
+                clientId,
+                ...usableTestQualityReviewWhere,
+              },
               orderBy: { testDate: 'desc' },
               select: {
                 vo2max: true,

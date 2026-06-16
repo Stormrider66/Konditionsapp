@@ -82,4 +82,86 @@ describe('buildProgramPrompt team sport context', () => {
     expect(prompt).toContain('aggressive_baseliner')
     expect(prompt).toContain('point intervals')
   })
+
+  it('uses the latest decision-safe test in generated prompts', () => {
+    const context: ProgramContext = {
+      wizardData: {
+        sport: 'RUNNING',
+        goal: 'base',
+        dataSource: 'TEST',
+        clientId: 'client-1',
+        clientName: 'Alex Runner',
+        durationWeeks: 8,
+        sessionsPerWeek: 4,
+        includeStrength: false,
+      },
+      recentTests: [
+        {
+          id: 'test-pending',
+          testDate: new Date('2026-06-10T00:00:00.000Z'),
+          testType: 'RUNNING',
+          maxHR: 199,
+          vo2max: 99,
+          maxLactate: null,
+          qualityReviewStatus: 'REVIEW_REQUIRED',
+          aerobicThreshold: null,
+          anaerobicThreshold: null,
+          trainingZones: null,
+        },
+        {
+          id: 'test-clear',
+          testDate: new Date('2026-05-15T00:00:00.000Z'),
+          testType: 'RUNNING',
+          maxHR: 184,
+          vo2max: 55,
+          maxLactate: null,
+          qualityReviewStatus: 'CLEAR',
+          aerobicThreshold: null,
+          anaerobicThreshold: null,
+          trainingZones: null,
+        },
+      ],
+    }
+
+    const prompt = buildProgramPrompt(context)
+
+    expect(prompt).toContain('LATEST TEST RESULTS')
+    expect(prompt).toContain('VO2max**: 55.0')
+    expect(prompt).not.toContain('VO2max**: 99.0')
+    expect(prompt).not.toContain('199 bpm')
+  })
+
+  it('omits test context when all tests still require review', () => {
+    const context: ProgramContext = {
+      wizardData: {
+        sport: 'RUNNING',
+        goal: 'base',
+        dataSource: 'TEST',
+        clientId: 'client-1',
+        clientName: 'Alex Runner',
+        durationWeeks: 8,
+        sessionsPerWeek: 4,
+        includeStrength: false,
+      },
+      recentTests: [
+        {
+          id: 'test-pending',
+          testDate: new Date('2026-06-10T00:00:00.000Z'),
+          testType: 'RUNNING',
+          maxHR: 199,
+          vo2max: 99,
+          maxLactate: null,
+          qualityReviewStatus: 'REVIEW_REQUIRED',
+          aerobicThreshold: null,
+          anaerobicThreshold: null,
+          trainingZones: null,
+        },
+      ],
+    }
+
+    const prompt = buildProgramPrompt(context)
+
+    expect(prompt).not.toContain('LATEST TEST RESULTS')
+    expect(prompt).not.toContain('VO2max**: 99.0')
+  })
 })

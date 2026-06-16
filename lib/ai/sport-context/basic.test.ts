@@ -65,6 +65,36 @@ describe('sport context basic localization', () => {
     expect(swedish).toContain('**Max puls**')
     expect(swedish).toContain('**Aerob tröskel**')
   })
+
+  it('skips tests that still require quality review', () => {
+    const pendingTest = {
+      ...test,
+      vo2max: 99,
+      qualityReviewStatus: 'REVIEW_REQUIRED',
+    } as unknown as TestData
+    const clearTest = {
+      ...test,
+      testDate: new Date('2026-01-01'),
+      vo2max: 52,
+      qualityReviewStatus: 'CLEAR',
+    } as unknown as TestData
+
+    const context = buildTestContext([pendingTest, clearTest], 'en')
+
+    expect(context).toContain('VO2max**: 52')
+    expect(context).not.toContain('VO2max**: 99')
+  })
+
+  it('omits test context when every test still requires review', () => {
+    const context = buildTestContext([
+      {
+        ...test,
+        qualityReviewStatus: 'REVIEW_REQUIRED',
+      } as unknown as TestData,
+    ], 'en')
+
+    expect(context).toBe('')
+  })
 })
 
 describe('sport context formatter defaults', () => {

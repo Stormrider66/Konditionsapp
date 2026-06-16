@@ -1,4 +1,4 @@
-import type { SportType, AthleteSubscriptionTier } from '@prisma/client'
+import type { SportType } from '@prisma/client'
 
 // Type definitions for athlete data
 interface AthleteData {
@@ -322,6 +322,7 @@ interface TestData {
   testType: string;
   maxHR: number | null;
   vo2max: number | null;
+  qualityReviewStatus?: string | null;
   aerobicThreshold: { hr?: number; value?: number; unit?: string } | null;
   anaerobicThreshold: { hr?: number; value?: number; unit?: string } | null;
   testStages: TestStage[];

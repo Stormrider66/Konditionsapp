@@ -1,4 +1,5 @@
 import type { AthleteData, TestData } from './types'
+import { testQualityReviewBlocksProgram } from '@/lib/testing/test-quality-review'
 
 type SportContextLocale = 'en' | 'sv'
 
@@ -81,7 +82,8 @@ export function buildBasicProfileContext(athlete: AthleteData, locale: SportCont
 export function buildTestContext(tests: TestData[], locale: SportContextLocale = 'en'): string {
   if (tests.length === 0) return '';
 
-  const latestTest = tests[0]; // Assuming sorted by date desc
+  const latestTest = tests.find((test) => !testQualityReviewBlocksProgram(test));
+  if (!latestTest) return '';
 
   const isSv = locale === 'sv'
   let context = `\n## ${isSv ? 'Senaste testresultat' : 'Latest test result'}\n`;
