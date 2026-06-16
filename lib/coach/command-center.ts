@@ -136,6 +136,7 @@ export async function getCoachCommandCenterData({
     activeAlerts,
     activePrograms,
     recentTests,
+    reviewRequiredTests,
   ] = await Promise.all([
     prisma.client.findMany({
       where: clientWhere,
@@ -307,6 +308,23 @@ export async function getCoachCommandCenterData({
       orderBy: { testDate: 'desc' },
       take: 500,
     }),
+    prisma.test.findMany({
+      where: {
+        client: clientWhere,
+        status: 'COMPLETED',
+        qualityReviewStatus: 'REVIEW_REQUIRED',
+      },
+      select: {
+        id: true,
+        clientId: true,
+        testDate: true,
+        testType: true,
+        qualityWarnings: true,
+        client: { select: { name: true } },
+      },
+      orderBy: { testDate: 'desc' },
+      take: 25,
+    }),
   ])
 
   const latestMetricsByClient = firstByClient(latestMetrics)
@@ -352,6 +370,23 @@ export async function getCoachCommandCenterData({
       href: coachAlertHref(alert, basePath),
       ctaLabel: coachAlertCtaLabel(alert.alertType),
       meta: alert.alertType.replaceAll('_', ' ').toLowerCase(),
+    })
+  }
+
+  for (const test of reviewRequiredTests.slice(0, 6)) {
+    const warningCount = countJsonSignal(test.qualityWarnings)
+    queueItems.push({
+      id: `test-review-${test.id}`,
+      title: 'Test data needs review',
+      description: `${test.client.name}'s ${test.testType.toLowerCase()} test needs coach approval before it can be used for program decisions.`,
+      priority: hasCriticalQualityWarning(test.qualityWarnings) || warningCount > 1 ? 'high' : 'medium',
+      category: 'testing',
+      clientName: test.client.name,
+      href: `${basePath}/coach/tests/${test.id}#quality-review`,
+      ctaLabel: 'Review test',
+      meta: warningCount > 0
+        ? `${warningCount} quality ${warningCount === 1 ? 'warning' : 'warnings'}`
+        : 'Quality review required',
     })
   }
 
@@ -561,6 +596,16 @@ function countJsonSignal(value: Prisma.JsonValue | null): number {
   if (Array.isArray(value)) return value.length
   if (typeof value === 'object') return Object.keys(value).length
   return 0
+}
+
+function hasCriticalQualityWarning(value: Prisma.JsonValue | null): boolean {
+  if (!Array.isArray(value)) return false
+
+  return value.some((item) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return false
+    const severity = (item as Record<string, Prisma.JsonValue>).severity
+    return typeof severity === 'string' && ['critical', 'error'].includes(severity.toLowerCase())
+  })
 }
 
 function buildRecommendations({

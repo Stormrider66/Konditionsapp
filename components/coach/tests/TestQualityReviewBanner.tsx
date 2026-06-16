@@ -71,7 +71,10 @@ export function TestQualityReviewBanner({
 
   if (status === 'APPROVED') {
     return (
-      <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 print:hidden dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-100">
+      <div
+        id="quality-review"
+        className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800 print:hidden dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-100"
+      >
         <div className="flex items-center gap-2 text-sm font-semibold">
           <CheckCircle2 className="h-4 w-4" />
           {t('approved')}
@@ -86,7 +89,10 @@ export function TestQualityReviewBanner({
   }
 
   return (
-    <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 print:hidden dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100">
+    <div
+      id="quality-review"
+      className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900 print:hidden dark:border-amber-900/70 dark:bg-amber-950/30 dark:text-amber-100"
+    >
       <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <AlertTriangle className="h-4 w-4" />
