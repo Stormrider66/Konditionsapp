@@ -58,7 +58,7 @@ export function QuickActionsGrid({ sessionHref, sessionLabel, showInjuryReport =
   }> = [
     {
       href: sessionHref,
-      title: sessionLabel,
+      title: isBrowseSession ? t('findSession') : sessionLabel,
       description: isBrowseSession ? t('findSessionDescription') : t('assignedSessionDescription'),
       icon: Play,
       color: 'bg-orange-500/10 text-orange-500 border-orange-500/20',

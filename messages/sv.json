@@ -5210,6 +5210,7 @@
       "recordRun": "Spela in löpning",
       "recordRunDescription": "Använd mobilens GPS med pulsband",
       "logFood": "Logga mat",
+      "findSession": "Hitta pass",
       "startSessionTitle": "Starta pass",
       "startSessionDescription": "Välj hur du vill starta träningen.",
       "assignedSessionDescription": "Öppna nästa planerade pass",

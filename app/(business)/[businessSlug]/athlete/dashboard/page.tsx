@@ -784,7 +784,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
                   ? getWODRoute(firstActionableItem, basePath)
                 : `${basePath}/athlete/browse-workouts`
           }
-          sessionLabel={firstActionableItem ? t('quickActions.startSession') : t('quickActions.findSession')}
+          sessionLabel={t('quickActions.startSession')}
           showInjuryReport={showInjuryReport}
         />
         <AICreditStatusCard basePath={basePath} compact />

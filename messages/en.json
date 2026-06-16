@@ -5210,6 +5210,7 @@
       "recordRun": "Record run",
       "recordRunDescription": "Use phone GPS with heart rate belt",
       "logFood": "Log food",
+      "findSession": "Find session",
       "startSessionTitle": "Start session",
       "startSessionDescription": "Choose how you want to start training.",
       "assignedSessionDescription": "Open the next planned workout",
