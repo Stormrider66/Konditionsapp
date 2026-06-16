@@ -25,6 +25,7 @@ import { requireAuth } from '@/lib/api/utils'
 import { canAccessClient } from '@/lib/auth-utils'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -163,7 +164,10 @@ export async function GET(
 
     // Get athlete's current VO2max from latest test
     const latestTest = await prisma.test.findFirst({
-      where: { clientId },
+      where: {
+        clientId,
+        ...usableTestQualityReviewWhere,
+      },
       orderBy: { testDate: 'desc' },
       select: { vo2max: true },
     })

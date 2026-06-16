@@ -18,7 +18,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { validateNorwegianMethodEligibility } from './norwegian-validation';
-import { processInjuryDetection } from './injury-management';
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review';
 
 export interface SystemState {
   athleteId: string;
@@ -331,7 +331,8 @@ async function checkLactateState(athleteId: string, prisma: PrismaClient) {
       clientId: athleteId,
       testType: {
         in: ['RUNNING', 'CYCLING']
-      }
+      },
+      ...usableTestQualityReviewWhere
     },
     orderBy: {
       testDate: 'desc'
