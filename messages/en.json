@@ -2866,7 +2866,8 @@
         },
         "sections": {
           "metadata": "Test information",
-          "stages": "Test stages"
+          "stages": "Test stages",
+          "manualThresholds": "Manual threshold overrides"
         },
         "labels": {
           "testDate": "Test date",
@@ -2874,6 +2875,12 @@
           "restingLactate": "Resting lactate (mmol/L)",
           "restingHeartRate": "Resting heart rate (bpm)",
           "notes": "Notes",
+          "manualLT1Lactate": "Manual LT1 lactate (mmol/L)",
+          "manualLT1Intensity": "Manual LT1 intensity",
+          "manualLT2Lactate": "Manual LT2 lactate (mmol/L)",
+          "manualLT2Intensity": "Manual LT2 intensity",
+          "thresholdReasonCategory": "Reason category",
+          "thresholdDecisionReason": "Reason notes",
           "intensity": {
             "running": "Speed (km/h)",
             "cycling": "Power (W)",
@@ -2896,7 +2903,17 @@
           }
         },
         "placeholders": {
-          "notes": "Optional notes..."
+          "notes": "Optional notes...",
+          "thresholdDecisionReason": "Why is this threshold override better for this athlete?"
+        },
+        "thresholdReasons": {
+          "coachIntuition": "Coach judgement",
+          "athleteFeedback": "Athlete feedback",
+          "fatigueObserved": "Fatigue observed",
+          "injuryConcern": "Injury concern",
+          "progressionAdjustment": "Progression adjustment",
+          "athletePreference": "Athlete preference",
+          "other": "Other"
         },
         "toasts": {
           "errorTitle": "Error",
@@ -2904,7 +2921,8 @@
           "updateFailed": "Could not update test",
           "updatedTitle": "Saved!",
           "updatedDescription": "The test has been updated.",
-          "saveFailed": "Could not save"
+          "saveFailed": "Could not save",
+          "thresholdReasonRequired": "Add a reason before saving manual LT1/LT2 changes."
         }
       },
       "exerciseLibrary": {

@@ -8,9 +8,23 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import Link from 'next/link'
 import { useTranslations } from '@/i18n/client'
+import {
+  detectManualThresholdChange,
+  manualThresholdSnapshot,
+  type ManualThresholdSnapshot,
+  type ThresholdDecisionReasonCategory,
+} from '@/lib/coach/manual-threshold-decision'
 
 interface StageData {
   duration: number
@@ -29,6 +43,12 @@ interface EditTestFormData {
   notes?: string
   restingLactate?: number | null
   restingHeartRate?: number | null
+  manualLT1Lactate?: number | null
+  manualLT1Intensity?: number | null
+  manualLT2Lactate?: number | null
+  manualLT2Intensity?: number | null
+  thresholdDecisionReasonCategory: ThresholdDecisionReasonCategory
+  thresholdDecisionReason?: string
   stages: StageData[]
 }
 
@@ -45,9 +65,34 @@ export default function EditTestPage() {
   const [saving, setSaving] = useState(false)
   const [testType, setTestType] = useState<string>('RUNNING')
   const [clientName, setClientName] = useState('')
+  const [originalManualThresholds, setOriginalManualThresholds] = useState<ManualThresholdSnapshot | null>(null)
 
-  const { register, control, handleSubmit, reset, formState: { errors } } = useForm<EditTestFormData>()
+  const { register, control, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm<EditTestFormData>({
+    defaultValues: {
+      thresholdDecisionReasonCategory: 'COACH_INTUITION',
+    },
+  })
   const { fields, append, remove } = useFieldArray({ control, name: 'stages' })
+  const watchedManualThresholds = {
+    manualLT1Lactate: watch('manualLT1Lactate'),
+    manualLT1Intensity: watch('manualLT1Intensity'),
+    manualLT2Lactate: watch('manualLT2Lactate'),
+    manualLT2Intensity: watch('manualLT2Intensity'),
+  }
+  const thresholdReasonCategory = watch('thresholdDecisionReasonCategory') ?? 'COACH_INTUITION'
+  const manualThresholdChange = originalManualThresholds
+    ? detectManualThresholdChange(originalManualThresholds, manualThresholdSnapshot(watchedManualThresholds))
+    : null
+
+  const thresholdReasonOptions: Array<{ value: ThresholdDecisionReasonCategory; label: string }> = [
+    { value: 'COACH_INTUITION', label: t('thresholdReasons.coachIntuition') },
+    { value: 'ATHLETE_FEEDBACK', label: t('thresholdReasons.athleteFeedback') },
+    { value: 'FATIGUE_OBSERVED', label: t('thresholdReasons.fatigueObserved') },
+    { value: 'INJURY_CONCERN', label: t('thresholdReasons.injuryConcern') },
+    { value: 'PROGRESSION_ADJUSTMENT', label: t('thresholdReasons.progressionAdjustment') },
+    { value: 'ATHLETE_PREFERENCE', label: t('thresholdReasons.athletePreference') },
+    { value: 'OTHER', label: t('thresholdReasons.other') },
+  ]
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -63,12 +108,25 @@ export default function EditTestPage() {
         const test = result.data
         setTestType(test.testType)
         setClientName(test.client?.name || '')
+        const manualThresholds = manualThresholdSnapshot({
+          manualLT1Lactate: test.manualLT1Lactate,
+          manualLT1Intensity: test.manualLT1Intensity,
+          manualLT2Lactate: test.manualLT2Lactate,
+          manualLT2Intensity: test.manualLT2Intensity,
+        })
+        setOriginalManualThresholds(manualThresholds)
 
         reset({
           testDate: new Date(test.testDate).toISOString().split('T')[0],
           notes: test.notes || '',
           restingLactate: test.restingLactate,
           restingHeartRate: test.restingHeartRate,
+          manualLT1Lactate: manualThresholds.manualLT1Lactate,
+          manualLT1Intensity: manualThresholds.manualLT1Intensity,
+          manualLT2Lactate: manualThresholds.manualLT2Lactate,
+          manualLT2Intensity: manualThresholds.manualLT2Intensity,
+          thresholdDecisionReasonCategory: 'COACH_INTUITION',
+          thresholdDecisionReason: '',
           stages: test.testStages.map((s: any) => ({
             duration: s.duration,
             heartRate: s.heartRate,
@@ -94,6 +152,21 @@ export default function EditTestPage() {
   const onSubmit = async (data: EditTestFormData) => {
     setSaving(true)
     try {
+      const nextManualThresholds = manualThresholdSnapshot(data)
+      const thresholdChange = originalManualThresholds
+        ? detectManualThresholdChange(originalManualThresholds, nextManualThresholds)
+        : null
+      const thresholdReason = data.thresholdDecisionReason?.trim()
+
+      if (thresholdChange && !thresholdReason) {
+        toast({
+          title: t('toasts.errorTitle'),
+          description: t('toasts.thresholdReasonRequired'),
+          variant: 'destructive',
+        })
+        return
+      }
+
       const response = await fetch(`/api/tests/${testId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -102,6 +175,12 @@ export default function EditTestPage() {
           notes: data.notes,
           restingLactate: data.restingLactate ? Number(data.restingLactate) : null,
           restingHeartRate: data.restingHeartRate ? Number(data.restingHeartRate) : null,
+          manualLT1Lactate: nextManualThresholds.manualLT1Lactate,
+          manualLT1Intensity: nextManualThresholds.manualLT1Intensity,
+          manualLT2Lactate: nextManualThresholds.manualLT2Lactate,
+          manualLT2Intensity: nextManualThresholds.manualLT2Intensity,
+          thresholdDecisionReasonCategory: data.thresholdDecisionReasonCategory,
+          thresholdDecisionReason: thresholdReason,
           stages: data.stages.map((s) => ({
             duration: Number(s.duration),
             heartRate: Number(s.heartRate),
@@ -309,6 +388,68 @@ export default function EditTestPage() {
               <Plus className="w-4 h-4 mr-2" />
               {t('actions.addStage')}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Manual thresholds */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('sections.manualThresholds')}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label>{t('labels.manualLT1Lactate')}</Label>
+                <Input type="number" step="0.1" placeholder="-" {...register('manualLT1Lactate', { valueAsNumber: true })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('labels.manualLT1Intensity')}</Label>
+                <Input type="number" step="0.1" placeholder="-" {...register('manualLT1Intensity', { valueAsNumber: true })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('labels.manualLT2Lactate')}</Label>
+                <Input type="number" step="0.1" placeholder="-" {...register('manualLT2Lactate', { valueAsNumber: true })} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('labels.manualLT2Intensity')}</Label>
+                <Input type="number" step="0.1" placeholder="-" {...register('manualLT2Intensity', { valueAsNumber: true })} />
+              </div>
+            </div>
+
+            {manualThresholdChange && (
+              <div className="grid grid-cols-1 gap-4 border-t pt-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>{t('labels.thresholdReasonCategory')}</Label>
+                  <Select
+                    value={thresholdReasonCategory}
+                    onValueChange={(value) =>
+                      setValue('thresholdDecisionReasonCategory', value as ThresholdDecisionReasonCategory, {
+                        shouldDirty: true,
+                      })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {thresholdReasonOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>{t('labels.thresholdDecisionReason')}</Label>
+                  <Textarea
+                    rows={3}
+                    placeholder={t('placeholders.thresholdDecisionReason')}
+                    {...register('thresholdDecisionReason')}
+                  />
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 

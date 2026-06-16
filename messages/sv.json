@@ -2866,7 +2866,8 @@
         },
         "sections": {
           "metadata": "Testinformation",
-          "stages": "Teststeg"
+          "stages": "Teststeg",
+          "manualThresholds": "Manuella tröskeljusteringar"
         },
         "labels": {
           "testDate": "Testdatum",
@@ -2874,6 +2875,12 @@
           "restingLactate": "Vilolaktat (mmol/L)",
           "restingHeartRate": "Vilopuls (slag/min)",
           "notes": "Anteckningar",
+          "manualLT1Lactate": "Manuell LT1-laktat (mmol/L)",
+          "manualLT1Intensity": "Manuell LT1-intensitet",
+          "manualLT2Lactate": "Manuell LT2-laktat (mmol/L)",
+          "manualLT2Intensity": "Manuell LT2-intensitet",
+          "thresholdReasonCategory": "Orsakskategori",
+          "thresholdDecisionReason": "Motivering",
           "intensity": {
             "running": "Hastighet (km/h)",
             "cycling": "Effekt (W)",
@@ -2896,7 +2903,17 @@
           }
         },
         "placeholders": {
-          "notes": "Valfria anteckningar..."
+          "notes": "Valfria anteckningar...",
+          "thresholdDecisionReason": "Varför passar den manuella tröskeln bättre för atleten?"
+        },
+        "thresholdReasons": {
+          "coachIntuition": "Coachbedömning",
+          "athleteFeedback": "Atletfeedback",
+          "fatigueObserved": "Observerad trötthet",
+          "injuryConcern": "Skaderisk",
+          "progressionAdjustment": "Progressionsjustering",
+          "athletePreference": "Atletpreferens",
+          "other": "Annat"
         },
         "toasts": {
           "errorTitle": "Fel",
@@ -2904,7 +2921,8 @@
           "updateFailed": "Kunde inte uppdatera test",
           "updatedTitle": "Sparat!",
           "updatedDescription": "Testet har uppdaterats.",
-          "saveFailed": "Kunde inte spara"
+          "saveFailed": "Kunde inte spara",
+          "thresholdReasonRequired": "Lägg till en motivering innan du sparar manuella LT1/LT2-ändringar."
         }
       },
       "exerciseLibrary": {

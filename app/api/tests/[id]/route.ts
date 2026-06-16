@@ -12,6 +12,13 @@ import { triggerTrialAfterTest } from '@/lib/subscription/trial-trigger'
 import { testStageApiSchema, detectLactateDecreases } from '@/lib/validations/schemas'
 import type { Test, Client } from '@/types'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import {
+  buildManualThresholdCoachDecisionData,
+  detectManualThresholdChange,
+  hasManualThresholdInput,
+  mergeManualThresholdSources,
+  THRESHOLD_DECISION_REASON_CATEGORIES,
+} from '@/lib/coach/manual-threshold-decision'
 
 type RouteParams = {
   params: Promise<{
@@ -22,6 +29,13 @@ type RouteParams = {
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
+
+const thresholdDecisionReasonSchema = z.object({
+  thresholdDecisionReasonCategory: z
+    .enum(THRESHOLD_DECISION_REASON_CATEGORIES)
+    .default('COACH_INTUITION'),
+  thresholdDecisionReason: z.string().trim().min(3),
+})
 
 // GET /api/tests/[id] - Hämta specifikt test med stages
 export async function GET(
@@ -239,7 +253,17 @@ export async function PATCH(
     // Check ownership before updating
     const existingTest = await prisma.test.findUnique({
       where: { id },
-      select: { clientId: true },
+      select: {
+        clientId: true,
+        testType: true,
+        testDate: true,
+        aerobicThreshold: true,
+        anaerobicThreshold: true,
+        manualLT1Lactate: true,
+        manualLT1Intensity: true,
+        manualLT2Lactate: true,
+        manualLT2Intensity: true,
+      },
     })
 
     const canModify = existingTest
@@ -253,6 +277,35 @@ export async function PATCH(
           error: t(locale, 'Test not found or unauthorized', 'Testet hittades inte eller saknar behörighet'),
         },
         { status: 404 }
+      )
+    }
+
+    const manualThresholdChange = hasManualThresholdInput(body)
+      ? detectManualThresholdChange(
+          existingTest,
+          mergeManualThresholdSources(existingTest, body)
+        )
+      : null
+
+    const thresholdDecisionInput = manualThresholdChange
+      ? thresholdDecisionReasonSchema.safeParse({
+          thresholdDecisionReasonCategory: body.thresholdDecisionReasonCategory,
+          thresholdDecisionReason: body.thresholdDecisionReason,
+        })
+      : null
+
+    if (thresholdDecisionInput && !thresholdDecisionInput.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: t(
+            locale,
+            'A reason is required when manual LT1/LT2 thresholds are changed',
+            'En motivering krävs när manuella LT1/LT2-trösklar ändras'
+          ),
+          details: thresholdDecisionInput.error.errors,
+        },
+        { status: 400 }
       )
     }
 
@@ -342,15 +395,40 @@ export async function PATCH(
       ])
     }
 
-    // Update test
-    let test = await prisma.test.update({
+    const testUpdateArgs = {
       where: { id },
       data: updateData,
       include: {
-        testStages: { orderBy: { sequence: 'asc' } },
+        testStages: { orderBy: { sequence: 'asc' as const } },
         client: true,
       },
-    })
+    } satisfies Prisma.TestUpdateArgs
+
+    let test
+    if (manualThresholdChange && thresholdDecisionInput?.success) {
+      const [updatedTest] = await prisma.$transaction([
+        prisma.test.update(testUpdateArgs),
+        prisma.coachDecision.create({
+          data: buildManualThresholdCoachDecisionData({
+            coachId: user.id,
+            athleteId: existingTest.clientId,
+            testId: id,
+            testType: existingTest.testType,
+            testDate: existingTest.testDate,
+            change: manualThresholdChange,
+            reasonCategory: thresholdDecisionInput.data.thresholdDecisionReasonCategory,
+            reasonNotes: thresholdDecisionInput.data.thresholdDecisionReason,
+            calculatedThresholds: {
+              aerobicThreshold: existingTest.aerobicThreshold,
+              anaerobicThreshold: existingTest.anaerobicThreshold,
+            },
+          }),
+        }),
+      ])
+      test = updatedTest
+    } else {
+      test = await prisma.test.update(testUpdateArgs)
+    }
 
     // Recalculate thresholds/zones if stages were updated
     if (body.stages && Array.isArray(body.stages) && test.client && test.testStages.length >= 3) {
