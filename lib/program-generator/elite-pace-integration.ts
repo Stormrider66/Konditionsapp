@@ -9,6 +9,7 @@ import {
   type LactateTestData,
   selectOptimalPaces
 } from '@/lib/training-engine/calculations/pace-selector'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 import { type ZonePaces } from './zone-calculator'
 
 /**
@@ -139,6 +140,7 @@ export async function fetchElitePacesServer(clientId: string): Promise<EliteZone
       where: {
         clientId,
         testType: 'RUNNING',
+        ...usableTestQualityReviewWhere,
       },
       orderBy: { testDate: 'desc' },
       include: {

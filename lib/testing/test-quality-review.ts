@@ -17,6 +17,14 @@ export function requiresTestQualityReview(warnings: TestQualityWarning[]): boole
   )
 }
 
+export function testQualityReviewBlocksProgram(test: { qualityReviewStatus?: string | null }): boolean {
+  return test.qualityReviewStatus === 'REVIEW_REQUIRED'
+}
+
+export const usableTestQualityReviewWhere = {
+  qualityReviewStatus: { not: 'REVIEW_REQUIRED' },
+} satisfies Pick<Prisma.TestWhereInput, 'qualityReviewStatus'>
+
 export function buildTestQualityReviewUpdate(
   warnings: TestQualityWarning[]
 ): Pick<

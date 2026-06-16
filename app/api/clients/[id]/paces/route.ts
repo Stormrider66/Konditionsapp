@@ -14,6 +14,7 @@ import {
 import type { StoredLactateThreshold } from '@/lib/training-engine/calculations/lactate-profile-analyzer'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -126,6 +127,7 @@ export async function GET(
       where: {
         clientId,
         testType: 'RUNNING',
+        ...usableTestQualityReviewWhere,
       },
       orderBy: { testDate: 'desc' },
       include: {
@@ -322,6 +324,7 @@ export async function POST(
       where: {
         clientId,
         testType: 'RUNNING',
+        ...usableTestQualityReviewWhere,
       },
       orderBy: { testDate: 'desc' },
       include: {

@@ -17,13 +17,10 @@ import {
 } from '@/lib/program-generator/templates/general-fitness'
 import { metricValuesForTest, type HockeyTestForSummary } from '@/lib/hockey/team-test-metrics'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { testQualityReviewBlocksProgram } from '@/lib/testing/test-quality-review'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
-}
-
-function testQualityReviewBlocksProgram(test: { qualityReviewStatus?: string | null }): boolean {
-  return test.qualityReviewStatus === 'REVIEW_REQUIRED'
 }
 
 function testQualityReviewError(locale: AppLocale) {

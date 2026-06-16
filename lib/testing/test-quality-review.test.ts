@@ -3,6 +3,8 @@ import {
   buildTestQualityReviewCreateData,
   buildTestQualityReviewUpdate,
   requiresTestQualityReview,
+  testQualityReviewBlocksProgram,
+  usableTestQualityReviewWhere,
 } from './test-quality-review'
 
 describe('test quality review helpers', () => {
@@ -33,6 +35,18 @@ describe('test quality review helpers', () => {
       qualityReviewedBy: null,
       qualityReviewedAt: null,
       qualityReviewNote: null,
+    })
+  })
+
+  it('blocks pending review tests from program decisions', () => {
+    expect(testQualityReviewBlocksProgram({ qualityReviewStatus: 'REVIEW_REQUIRED' })).toBe(true)
+    expect(testQualityReviewBlocksProgram({ qualityReviewStatus: 'CLEAR' })).toBe(false)
+    expect(testQualityReviewBlocksProgram({ qualityReviewStatus: 'APPROVED' })).toBe(false)
+  })
+
+  it('exposes a shared Prisma filter for decision-safe tests', () => {
+    expect(usableTestQualityReviewWhere).toEqual({
+      qualityReviewStatus: { not: 'REVIEW_REQUIRED' },
     })
   })
 })
