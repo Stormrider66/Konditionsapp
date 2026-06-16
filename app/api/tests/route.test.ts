@@ -107,6 +107,7 @@ describe('/api/tests business scope', () => {
     mockTestCount.mockResolvedValue(0)
     mockLocationFindFirst.mockResolvedValue(null)
     mockTesterFindUnique.mockResolvedValue(null)
+    mockGenerateVisualReport.mockResolvedValue(undefined)
   })
 
   it('rejects creating a test for a client outside the active business', async () => {
@@ -165,5 +166,42 @@ describe('/api/tests business scope', () => {
         client: { businessId: 'business-skelleftea' },
       },
     })
+  })
+
+  it('marks newly created tests as review required when lactate drops', async () => {
+    mockClientFindUnique.mockResolvedValue({
+      id: scopedClientId,
+      businessId: 'business-skelleftea',
+    })
+    mockTestCreate.mockResolvedValue({
+      id: 'test-1',
+      clientId: scopedClientId,
+      testStages: [],
+    })
+
+    const response = await POST(testRequest({
+      clientId: scopedClientId,
+      testDate: '2026-05-23',
+      testType: 'RUNNING',
+      stages: [
+        { duration: 4, heartRate: 120, lactate: 1.2, speed: 10 },
+        { duration: 4, heartRate: 145, lactate: 2.4, speed: 12 },
+        { duration: 4, heartRate: 168, lactate: 1.8, speed: 14 },
+      ],
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(201)
+    expect(body.warnings).toHaveLength(1)
+    expect(mockTestCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          qualityReviewStatus: 'REVIEW_REQUIRED',
+          qualityWarnings: expect.arrayContaining([
+            expect.objectContaining({ type: 'LACTATE_DROP' }),
+          ]),
+        }),
+      })
+    )
   })
 })

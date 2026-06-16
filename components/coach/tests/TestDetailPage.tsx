@@ -11,6 +11,7 @@ import { ReportTemplate } from '@/components/reports/ReportTemplate';
 import { PDFExportButton } from '@/components/reports/PDFExportButton';
 import { SendTestResultButton } from '@/components/coach/tests/SendTestResultButton';
 import { AnalyzeTestButton } from '@/components/ai/performance-analysis';
+import { TestQualityReviewBanner } from '@/components/coach/tests/TestQualityReviewBanner';
 import { prisma } from '@/lib/prisma';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -158,6 +159,12 @@ export default async function TestDetailPage({ params }: TestPageProps) {
         </div>
 
         <main className="container mx-auto px-4 pb-8">
+          <TestQualityReviewBanner
+            testId={labTest.id}
+            status={(labTest as any).qualityReviewStatus}
+            warnings={(labTest as any).qualityWarnings}
+            reviewedAt={(labTest as any).qualityReviewedAt}
+          />
           <ReportTemplate
             client={client as any}
             test={labTest as any}

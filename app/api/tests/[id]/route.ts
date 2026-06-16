@@ -19,6 +19,7 @@ import {
   mergeManualThresholdSources,
   THRESHOLD_DECISION_REASON_CATEGORIES,
 } from '@/lib/coach/manual-threshold-decision'
+import { buildTestQualityReviewUpdate } from '@/lib/testing/test-quality-review'
 
 type RouteParams = {
   params: Promise<{
@@ -263,6 +264,10 @@ export async function PATCH(
         manualLT1Intensity: true,
         manualLT2Lactate: true,
         manualLT2Intensity: true,
+        testStages: {
+          select: { lactate: true },
+          orderBy: { sequence: 'asc' },
+        },
       },
     })
 
@@ -393,6 +398,22 @@ export async function PATCH(
           })),
         }),
       ])
+    } else if (manualThresholdChange && existingTest.testStages.length > 0) {
+      const lactateDrops = detectLactateDecreases(existingTest.testStages)
+      warnings.push(
+        ...lactateDrops.map((drop) => ({
+          type: 'LACTATE_DROP',
+          severity: 'warning',
+          message: locale === 'sv'
+            ? `Laktat sjönk med ${drop.drop} mmol/L från steg ${drop.fromStage} till steg ${drop.toStage}. Testet sparades ändå, men kontrollera värdet innan du använder rapporten skarpt.`
+            : `Lactate dropped by ${drop.drop} mmol/L from stage ${drop.fromStage} to stage ${drop.toStage}. The test was still saved, but check the value before using the report.`,
+          details: drop,
+        }))
+      )
+    }
+
+    if ((body.stages && Array.isArray(body.stages)) || manualThresholdChange) {
+      Object.assign(updateData, buildTestQualityReviewUpdate(warnings))
     }
 
     const testUpdateArgs = {

@@ -2925,6 +2925,18 @@
           "thresholdReasonRequired": "Lägg till en motivering innan du sparar manuella LT1/LT2-ändringar."
         }
       },
+      "testQualityReview": {
+        "needsReview": "Testdata behöver granskas",
+        "badge": "Granskning krävs",
+        "warningFallback": "Granska testet innan det används för beslut.",
+        "notePlaceholder": "Granskningsanteckning",
+        "approve": "Godkänn",
+        "approved": "Testdata godkänd",
+        "approvedTitle": "Granskning godkänd",
+        "approvedDescription": "Testet kan nu användas för beslut.",
+        "approveFailed": "Kunde inte godkänna granskningen",
+        "errorTitle": "Fel"
+      },
       "exerciseLibrary": {
         "loading": "Laddar övningsbibliotek..."
       },

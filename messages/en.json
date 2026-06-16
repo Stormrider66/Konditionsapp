@@ -2925,6 +2925,18 @@
           "thresholdReasonRequired": "Add a reason before saving manual LT1/LT2 changes."
         }
       },
+      "testQualityReview": {
+        "needsReview": "Test data needs review",
+        "badge": "Review required",
+        "warningFallback": "Review this test before using it for decisions.",
+        "notePlaceholder": "Review note",
+        "approve": "Approve",
+        "approved": "Test data approved",
+        "approvedTitle": "Review approved",
+        "approvedDescription": "This test can now be used for decisions.",
+        "approveFailed": "Could not approve review",
+        "errorTitle": "Error"
+      },
       "exerciseLibrary": {
         "loading": "Loading exercise library..."
       },

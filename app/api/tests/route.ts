@@ -10,6 +10,7 @@ import { logger } from '@/lib/logger'
 import { generateVisualReport } from '@/lib/ai/visual-reports'
 import { canAccessCoachPlatform } from '@/lib/user-capabilities'
 import { getBusinessMembership } from '@/lib/coach/team-access'
+import { buildTestQualityReviewCreateData } from '@/lib/testing/test-quality-review'
 
 type AppLocale = 'en' | 'sv'
 
@@ -251,6 +252,7 @@ export async function POST(request: NextRequest) {
         restingLactate: data.restingLactate || null,
         postTestMeasurements: data.postTestMeasurements || Prisma.JsonNull,
         recommendedNextTestDate: data.recommendedNextTestDate ? new Date(data.recommendedNextTestDate) : null,
+        ...buildTestQualityReviewCreateData(warnings),
         testStages: {
           create: data.stages.map((stage, index) => ({
             sequence: index,

@@ -22,6 +22,18 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function testQualityReviewBlocksProgram(test: { qualityReviewStatus?: string | null }): boolean {
+  return test.qualityReviewStatus === 'REVIEW_REQUIRED'
+}
+
+function testQualityReviewError(locale: AppLocale) {
+  return t(
+    locale,
+    'This test has data-quality warnings and must be approved before it can be used for program generation.',
+    'Det här testet har datakvalitetsvarningar och måste godkännas innan det används för programgenerering.'
+  )
+}
+
 const hockeyTestSelect = {
   id: true,
   clientId: true,
@@ -293,6 +305,13 @@ export async function POST(request: NextRequest) {
               { status: 403 }
             )
           }
+
+          if (test && testQualityReviewBlocksProgram(test)) {
+            return NextResponse.json(
+              { success: false, error: testQualityReviewError(locale), code: 'TEST_REVIEW_REQUIRED' },
+              { status: 400 }
+            )
+          }
         }
 
         const hockeyTest = body.sport === 'TEAM_ICE_HOCKEY' && (body.dataSource === 'TEST' || body.hockeyTestId || body.hockeyTestIdsByClient)
@@ -525,6 +544,17 @@ export async function POST(request: NextRequest) {
             error: t(locale, 'Unauthorized access', 'Obehörig åtkomst'),
           },
           { status: 403 }
+        )
+      }
+
+      if (testQualityReviewBlocksProgram(test)) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: testQualityReviewError(locale),
+            code: 'TEST_REVIEW_REQUIRED',
+          },
+          { status: 400 }
         )
       }
 

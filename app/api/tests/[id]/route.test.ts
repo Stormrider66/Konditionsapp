@@ -81,6 +81,11 @@ describe('test PATCH route manual threshold decisions', () => {
       manualLT1Intensity: null,
       manualLT2Lactate: null,
       manualLT2Intensity: null,
+      testStages: [
+        { lactate: 1.2 },
+        { lactate: 2.1 },
+        { lactate: 3.5 },
+      ],
     })
     mockPrisma.test.update.mockResolvedValue({
       id: 'test-1',
@@ -133,6 +138,10 @@ describe('test PATCH route manual threshold decisions', () => {
           manualLT1Intensity: 12.4,
           manualLT2Lactate: 3.8,
           manualLT2Intensity: 15.1,
+          qualityReviewStatus: 'CLEAR',
+          qualityReviewedBy: null,
+          qualityReviewedAt: null,
+          qualityReviewNote: null,
         }),
       })
     )

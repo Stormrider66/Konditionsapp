@@ -164,6 +164,13 @@ model Test {
   manualLT2Lactate   Float? // Manual LT2 lactate value (mmol/L)
   manualLT2Intensity Float? // Manual LT2 intensity (speed/power/pace)
 
+  // Quality review gate for questionable test data
+  qualityReviewStatus String    @default("CLEAR") // CLEAR, REVIEW_REQUIRED, APPROVED
+  qualityWarnings     Json?
+  qualityReviewedBy   String?
+  qualityReviewedAt   DateTime?
+  qualityReviewNote   String?   @db.Text
+
   // TrÃ¤ningszoner
   trainingZones Json? // Array av zoner
 
@@ -194,6 +201,7 @@ model Test {
   @@index([testerId])
   @@index([locationId])
   @@index([publicToken])
+  @@index([qualityReviewStatus, clientId])
 
   // Visual Report System relations
   visualReports VisualReport[] @relation("TestVisualReports")
