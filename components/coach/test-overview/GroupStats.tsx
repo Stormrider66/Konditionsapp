@@ -15,6 +15,7 @@ interface TeamGroupStats {
   vo2max: { avg: number | null; min: number | null; max: number | null }
   maxHR: { avg: number | null; min: number | null; max: number | null }
   maxLactate: { avg: number | null; min: number | null; max: number | null }
+  reviewRequiredCount?: number
 }
 
 interface GroupStatsProps {
@@ -61,6 +62,13 @@ export function GroupStats({ stats }: GroupStatsProps) {
               <span className="text-xs text-muted-foreground font-normal">
                 {team.athleteCount} {locale === 'sv' ? 'atleter' : 'athletes'}
               </span>
+              {team.reviewRequiredCount && team.reviewRequiredCount > 0 ? (
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                  {locale === 'sv'
+                    ? `${team.reviewRequiredCount} behöver granskas`
+                    : `${team.reviewRequiredCount} need review`}
+                </span>
+              ) : null}
             </GlassCardTitle>
           </GlassCardHeader>
           <GlassCardContent>

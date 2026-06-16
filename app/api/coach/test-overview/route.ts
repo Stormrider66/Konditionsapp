@@ -19,6 +19,10 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function jsonArrayCount(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0
+}
+
 export async function GET(req: NextRequest) {
   let locale: AppLocale = 'en'
 
@@ -101,6 +105,9 @@ export async function GET(req: NextRequest) {
       latestMaxHR: number | null
       latestMaxLactate: number | null
       latestTestDate: string | null
+      latestQualityReviewStatus: string | null
+      latestQualityWarningCount: number
+      reviewRequiredCount: number
     }>()
 
     for (const test of tests) {
@@ -115,30 +122,47 @@ export async function GET(req: NextRequest) {
           latestMaxHR: test.maxHR,
           latestMaxLactate: test.maxLactate,
           latestTestDate: test.testDate.toISOString(),
+          latestQualityReviewStatus: test.qualityReviewStatus,
+          latestQualityWarningCount: jsonArrayCount(test.qualityWarnings),
+          reviewRequiredCount: test.qualityReviewStatus === 'REVIEW_REQUIRED' ? 1 : 0,
         })
       } else {
         existing.testCount++
+        if (test.qualityReviewStatus === 'REVIEW_REQUIRED') existing.reviewRequiredCount++
         if (!existing.latestTestDate || test.testDate.toISOString() > existing.latestTestDate) {
           existing.latestVo2max = test.vo2max ?? existing.latestVo2max
           existing.latestMaxHR = test.maxHR ?? existing.latestMaxHR
           existing.latestMaxLactate = test.maxLactate ?? existing.latestMaxLactate
           existing.latestTestDate = test.testDate.toISOString()
+          existing.latestQualityReviewStatus = test.qualityReviewStatus
+          existing.latestQualityWarningCount = jsonArrayCount(test.qualityWarnings)
         }
       }
     }
 
     // Group stats by team
-    const teamStats = new Map<string, { vo2maxValues: number[]; maxHRValues: number[]; maxLactateValues: number[] }>()
+    const teamStats = new Map<string, {
+      vo2maxValues: number[]
+      maxHRValues: number[]
+      maxLactateValues: number[]
+      reviewRequiredCount: number
+    }>()
     const noTeamLabel = t(locale, 'No team', 'Inget lag')
     for (const test of tests) {
       const teamName = test.client.team?.name || noTeamLabel
       if (!teamStats.has(teamName)) {
-        teamStats.set(teamName, { vo2maxValues: [], maxHRValues: [], maxLactateValues: [] })
+        teamStats.set(teamName, {
+          vo2maxValues: [],
+          maxHRValues: [],
+          maxLactateValues: [],
+          reviewRequiredCount: 0,
+        })
       }
       const stats = teamStats.get(teamName)!
       if (test.vo2max) stats.vo2maxValues.push(test.vo2max)
       if (test.maxHR) stats.maxHRValues.push(test.maxHR)
       if (test.maxLactate) stats.maxLactateValues.push(test.maxLactate)
+      if (test.qualityReviewStatus === 'REVIEW_REQUIRED') stats.reviewRequiredCount++
     }
 
     const groupStats = Array.from(teamStats.entries()).map(([teamName, stats]) => {
@@ -151,6 +175,7 @@ export async function GET(req: NextRequest) {
         vo2max: { avg: avg(stats.vo2maxValues), min: min(stats.vo2maxValues), max: max(stats.vo2maxValues) },
         maxHR: { avg: avg(stats.maxHRValues), min: min(stats.maxHRValues), max: max(stats.maxHRValues) },
         maxLactate: { avg: avg(stats.maxLactateValues), min: min(stats.maxLactateValues), max: max(stats.maxLactateValues) },
+        reviewRequiredCount: stats.reviewRequiredCount,
       }
     })
 
@@ -167,6 +192,8 @@ export async function GET(req: NextRequest) {
         maxLactate: t.maxLactate,
         restingLactate: t.restingLactate,
         stageCount: t.testStages.length,
+        qualityReviewStatus: t.qualityReviewStatus,
+        qualityWarningCount: jsonArrayCount(t.qualityWarnings),
       })),
       fieldTests: fieldTests.map((ft) => ({
         id: ft.id,

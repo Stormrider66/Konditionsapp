@@ -28,6 +28,8 @@ interface RecentTestEntry {
   label: string
   /** One-line summary value (e.g. "VO2max 58.2 ml/kg/min"), nullable. */
   summary: string | null
+  qualityReviewStatus?: 'CLEAR' | 'REVIEW_REQUIRED' | 'APPROVED' | null
+  qualityWarningCount?: number
 }
 
 const LIMIT = 5
@@ -42,6 +44,10 @@ function bestOf(values: Array<number | null | undefined>, lowerIsBetter = false)
   const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
   if (valid.length === 0) return null
   return lowerIsBetter ? Math.min(...valid) : Math.max(...valid)
+}
+
+function jsonArrayCount(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0
 }
 
 function formatHockeySummary(test: {
@@ -112,6 +118,8 @@ export async function GET(
           testType: true,
           vo2max: true,
           maxHR: true,
+          qualityReviewStatus: true,
+          qualityWarnings: true,
         },
       }),
       prisma.hockeyPhysicalTest.findMany({
@@ -164,6 +172,8 @@ export async function GET(
         kind: 'TEST',
         label: t.testType,
         summary,
+        qualityReviewStatus: t.qualityReviewStatus as RecentTestEntry['qualityReviewStatus'],
+        qualityWarningCount: jsonArrayCount(t.qualityWarnings),
       })
     }
 

@@ -24,6 +24,8 @@ interface AthleteSummary {
   latestVo2max: number | null
   latestMaxHR: number | null
   latestMaxLactate: number | null
+  latestQualityReviewStatus?: string | null
+  reviewRequiredCount?: number
 }
 
 interface AthleteComparisonProps {
@@ -130,6 +132,7 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
               <tr className="border-b">
                 <th className="text-left py-2 pr-4 font-medium">{locale === 'sv' ? 'Atlet' : 'Athlete'}</th>
                 <th className="text-left py-2 pr-4 font-medium">{locale === 'sv' ? 'Lag' : 'Team'}</th>
+                <th className="text-left py-2 pr-4 font-medium">{locale === 'sv' ? 'Status' : 'Status'}</th>
                 <th className="text-right py-2 pr-4 font-medium">VO2max</th>
                 <th className="text-right py-2 pr-4 font-medium">Max HR</th>
                 <th className="text-right py-2 font-medium">
@@ -142,6 +145,19 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <tr key={a.id} className="border-b last:border-0">
                   <td className="py-2 pr-4 font-medium">{a.name}</td>
                   <td className="py-2 pr-4 text-muted-foreground">{a.teamName || '-'}</td>
+                  <td className="py-2 pr-4">
+                    {a.latestQualityReviewStatus === 'REVIEW_REQUIRED' || (a.reviewRequiredCount && a.reviewRequiredCount > 0) ? (
+                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                        {locale === 'sv' ? 'Behöver granskas' : 'Needs review'}
+                      </span>
+                    ) : a.latestQualityReviewStatus === 'APPROVED' ? (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+                        {locale === 'sv' ? 'Godkänd' : 'Approved'}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </td>
                   <td className="py-2 pr-4 text-right font-mono">{a.latestVo2max?.toFixed(1) || '-'}</td>
                   <td className="py-2 pr-4 text-right font-mono">{a.latestMaxHR || '-'}</td>
                   <td className="py-2 text-right font-mono">{a.latestMaxLactate?.toFixed(1) || '-'}</td>

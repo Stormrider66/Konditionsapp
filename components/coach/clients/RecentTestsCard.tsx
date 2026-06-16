@@ -26,6 +26,8 @@ interface RecentTestEntry {
   kind: 'TEST' | 'HOCKEY_PHYSICAL' | 'CUSTOM'
   label: string
   summary: string | null
+  qualityReviewStatus?: 'CLEAR' | 'REVIEW_REQUIRED' | 'APPROVED' | null
+  qualityWarningCount?: number
 }
 
 interface RecentTestsCardProps {
@@ -107,19 +109,29 @@ export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
       </CardHeader>
       <CardContent>
         <div className="divide-y">
-          {items.map((t) => (
-            <div key={`${t.kind}-${t.id}`} className="flex items-center gap-3 py-2">
+          {items.map((item) => (
+            <div key={`${item.kind}-${item.id}`} className="flex items-center gap-3 py-2">
               <Badge variant="outline" className="text-[10px] py-0 shrink-0">
-                {kindLabels[t.kind]}
+                {kindLabels[item.kind]}
               </Badge>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{t.label}</div>
-                {t.summary && (
-                  <div className="text-xs text-muted-foreground truncate">{t.summary}</div>
+                <div className="text-sm font-medium truncate">{item.label}</div>
+                {item.summary && (
+                  <div className="text-xs text-muted-foreground truncate">{item.summary}</div>
                 )}
               </div>
+              {item.qualityReviewStatus === 'REVIEW_REQUIRED' && (
+                <Badge className="shrink-0 bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-200">
+                  {t('reviewRequired')}
+                </Badge>
+              )}
+              {item.qualityReviewStatus === 'APPROVED' && (
+                <Badge className="shrink-0 bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-200">
+                  {t('reviewApproved')}
+                </Badge>
+              )}
               <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                {formatDate(t.date, dateLocale)}
+                {formatDate(item.date, dateLocale)}
               </span>
             </div>
           ))}

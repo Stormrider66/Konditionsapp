@@ -14677,6 +14677,8 @@
       "title": "Sport tests",
       "description": "Recent physical, hockey, and custom tests. Full view in the Tests tab.",
       "viewAll": "View all",
+      "reviewRequired": "Needs review",
+      "reviewApproved": "Approved",
       "kinds": {
         "test": "Physical test",
         "custom": "Custom"

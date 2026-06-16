@@ -26,6 +26,7 @@ interface TestRecord {
   vo2max: number | null
   maxHR: number | null
   maxLactate: number | null
+  qualityReviewStatus?: string | null
 }
 
 interface YearOverYearChartProps {
@@ -55,6 +56,7 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
   const filteredTests = tests.filter((t) =>
     selectedAthleteIds.length === 0 || selectedAthleteIds.includes(t.clientId)
   )
+  const reviewRequiredCount = filteredTests.filter((t) => t.qualityReviewStatus === 'REVIEW_REQUIRED').length
 
   // Get unique athlete names
   const athleteNames = new Map<string, string>()
@@ -102,6 +104,13 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
         <GlassCardTitle className="text-sm flex items-center gap-2">
           <Calendar className="h-4 w-4" />
           {config.label} {locale === 'sv' ? 'över tid' : 'over time'} ({config.unit})
+          {reviewRequiredCount > 0 && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+              {locale === 'sv'
+                ? `${reviewRequiredCount} behöver granskas`
+                : `${reviewRequiredCount} need review`}
+            </span>
+          )}
         </GlassCardTitle>
       </GlassCardHeader>
       <GlassCardContent>

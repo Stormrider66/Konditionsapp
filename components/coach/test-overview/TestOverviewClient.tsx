@@ -39,6 +39,8 @@ interface TestRecord {
   vo2max: number | null
   maxHR: number | null
   maxLactate: number | null
+  qualityReviewStatus?: string | null
+  qualityWarningCount?: number
 }
 
 interface AthleteSummary {
@@ -50,6 +52,9 @@ interface AthleteSummary {
   latestMaxHR: number | null
   latestMaxLactate: number | null
   latestTestDate: string | null
+  latestQualityReviewStatus?: string | null
+  latestQualityWarningCount?: number
+  reviewRequiredCount?: number
 }
 
 interface TeamGroupStats {
@@ -58,6 +63,35 @@ interface TeamGroupStats {
   vo2max: { avg: number | null; min: number | null; max: number | null }
   maxHR: { avg: number | null; min: number | null; max: number | null }
   maxLactate: { avg: number | null; min: number | null; max: number | null }
+  reviewRequiredCount?: number
+}
+
+function ReviewStatusBadge({ status, count, locale }: {
+  status?: string | null
+  count?: number
+  locale: string
+}) {
+  if (status === 'REVIEW_REQUIRED' || (count && count > 0)) {
+    const label = count && count > 1
+      ? locale === 'sv' ? `${count} behöver granskas` : `${count} need review`
+      : locale === 'sv' ? 'Behöver granskas' : 'Needs review'
+
+    return (
+      <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-200">
+        {label}
+      </Badge>
+    )
+  }
+
+  if (status === 'APPROVED') {
+    return (
+      <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-200">
+        {locale === 'sv' ? 'Godkänd' : 'Approved'}
+      </Badge>
+    )
+  }
+
+  return null
 }
 
 export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: TestOverviewClientProps) {
@@ -194,6 +228,11 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
                           {a.latestTestDate && ` · ${locale === 'sv' ? 'Senaste' : 'Latest'}: ${new Date(a.latestTestDate).toLocaleDateString(dateLocale)}`}
                         </p>
                       </div>
+                      <ReviewStatusBadge
+                        status={a.latestQualityReviewStatus}
+                        count={a.reviewRequiredCount}
+                        locale={locale}
+                      />
                     </div>
                     <div className="flex gap-4 text-xs font-mono">
                       {a.latestVo2max && (

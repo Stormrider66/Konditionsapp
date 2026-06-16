@@ -15037,6 +15037,8 @@
       "title": "Sport-tester",
       "description": "Senaste fys-, hockey- och anpassade tester. Fullständig vy i Tester-fliken.",
       "viewAll": "Visa alla",
+      "reviewRequired": "Behöver granskas",
+      "reviewApproved": "Godkänd",
       "kinds": {
         "test": "Fystest",
         "custom": "Anpassat"
