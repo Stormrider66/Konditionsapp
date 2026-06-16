@@ -13,7 +13,6 @@ import {
   ShieldAlert,
   Utensils,
   Zap,
-  Video,
   type LucideIcon,
 } from 'lucide-react'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
@@ -49,20 +48,26 @@ export function QuickActionsGrid({ sessionHref, sessionLabel, showInjuryReport =
   const isBrowseSession = sessionHref === browseWorkoutsHref
   const isNutritionShortcut = sessionHref === `${basePath}/athlete/nutrition`
 
-  const startSessionOptions: Array<{
+  const plannedSessionOptions: Array<{
     href: string
     title: string
     description: string
     icon: LucideIcon
     color: string
-  }> = [
-    {
-      href: sessionHref,
-      title: isBrowseSession ? t('findSession') : sessionLabel,
-      description: isBrowseSession ? t('findSessionDescription') : t('assignedSessionDescription'),
-      icon: Play,
-      color: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-    },
+  }> = isBrowseSession
+    ? []
+    : [
+        {
+          href: sessionHref,
+          title: sessionLabel,
+          description: t('assignedSessionDescription'),
+          icon: Play,
+          color: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
+        },
+      ]
+
+  const startSessionOptions = [
+    ...plannedSessionOptions,
     {
       href: `${basePath}/athlete/log-workout/run`,
       title: t('recordRun'),
@@ -77,17 +82,6 @@ export function QuickActionsGrid({ sessionHref, sessionLabel, showInjuryReport =
       icon: Bluetooth,
       color: 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
     },
-    ...(!isBrowseSession
-      ? [
-          {
-            href: browseWorkoutsHref,
-            title: t('browseTemplates'),
-            description: t('browseTemplatesDescription'),
-            icon: Dumbbell,
-            color: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-          },
-        ]
-      : []),
     {
       href: `${basePath}/athlete/training-library`,
       title: t('trainingLibrary'),
@@ -154,12 +148,12 @@ export function QuickActionsGrid({ sessionHref, sessionLabel, showInjuryReport =
           </button>
         )}
 
-        {/* Video analysis */}
-        <Link href={`${basePath}/athlete/video-analysis`} className={TILE_BASE}>
-          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-purple-500/10">
-            <Video className="h-5 w-5 text-purple-500" />
+        {/* Find session */}
+        <Link href={browseWorkoutsHref} className={TILE_BASE}>
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-blue-500/10">
+            <Dumbbell className="h-5 w-5 text-blue-500" />
           </div>
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('videoAnalysis')}</span>
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('findSession')}</span>
         </Link>
 
         {showInjuryReport && (
