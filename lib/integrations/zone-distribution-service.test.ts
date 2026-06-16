@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   prisma: {
+    client: {
+      findUnique: vi.fn(),
+    },
     garminActivity: {
       findUnique: vi.fn(),
     },
@@ -19,7 +22,7 @@ vi.mock('@/lib/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }))
 
-import { processGarminActivityZones } from '@/lib/integrations/zone-distribution-service'
+import { getAthleteZones, processGarminActivityZones } from '@/lib/integrations/zone-distribution-service'
 import type { TrainingZone } from '@/types'
 
 const zones: TrainingZone[] = [
@@ -64,6 +67,35 @@ describe('processGarminActivityZones', () => {
           zone3Seconds: 100,
           totalTrackedSeconds: 300,
         }),
+      })
+    )
+  })
+})
+
+describe('getAthleteZones', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('only uses completed tests that are safe for decisions', async () => {
+    mocks.prisma.client.findUnique.mockResolvedValue({
+      birthDate: null,
+      gender: 'MALE',
+      tests: [],
+    } as never)
+
+    await getAthleteZones('client-1')
+
+    expect(mocks.prisma.client.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        include: {
+          tests: expect.objectContaining({
+            where: {
+              status: 'COMPLETED',
+              qualityReviewStatus: { not: 'REVIEW_REQUIRED' },
+            },
+          }),
+        },
       })
     )
   })

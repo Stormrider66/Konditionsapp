@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 export async function getClientZones(clientId: string) {
   // 1. Try to get zones from AthleteProfile
@@ -16,6 +17,7 @@ export async function getClientZones(clientId: string) {
   const tests = await prisma.test.findMany({
     where: { 
       clientId,
+      ...usableTestQualityReviewWhere,
       trainingZones: { not: undefined } // Just to filter empty
     },
     orderBy: { testDate: 'desc' },
@@ -31,5 +33,4 @@ export async function getClientZones(clientId: string) {
 
   return null
 }
-
 

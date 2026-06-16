@@ -23,6 +23,7 @@ import {
 import { calculateIndividualizedZones, IndividualizedThresholdInput } from '@/lib/calculations/zones'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { estimateAdHocZoneDistribution } from '@/lib/adhoc-workout/zone-estimation'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 /**
  * Process zone distribution for a Strava activity
@@ -268,7 +269,10 @@ export async function getAthleteZones(clientId: string): Promise<{
       where: { id: clientId },
       include: {
         tests: {
-          where: { status: 'COMPLETED' },
+          where: {
+            status: 'COMPLETED',
+            ...usableTestQualityReviewWhere,
+          },
           orderBy: { testDate: 'desc' },
           take: 1,
           select: {

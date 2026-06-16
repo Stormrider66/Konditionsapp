@@ -23,6 +23,18 @@ describe('resolveAthleteHrZones', () => {
 
     const result = await resolveAthleteHrZones('client-1')
 
+    expect(findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: expect.objectContaining({
+          tests: expect.objectContaining({
+            where: {
+              status: 'COMPLETED',
+              qualityReviewStatus: { not: 'REVIEW_REQUIRED' },
+            },
+          }),
+        }),
+      })
+    )
     expect(result).toEqual({
       source: 'MAX_HR_PERCENT',
       maxHr: 190,

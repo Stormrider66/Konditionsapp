@@ -13,6 +13,7 @@
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { calculateIndividualizedZones } from '@/lib/calculations/zones'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 export interface LiveHrZone {
   zone: number // 1-5
@@ -43,7 +44,10 @@ export async function resolveAthleteHrZones(clientId: string): Promise<LiveHrZon
         birthDate: true,
         gender: true,
         tests: {
-          where: { status: 'COMPLETED' },
+          where: {
+            status: 'COMPLETED',
+            ...usableTestQualityReviewWhere,
+          },
           orderBy: { testDate: 'desc' },
           take: 1,
           select: {

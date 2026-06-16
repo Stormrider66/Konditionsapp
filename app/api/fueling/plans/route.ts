@@ -12,6 +12,7 @@ import { sortFuelingPlansForDisplay } from '@/lib/fueling/plan-ordering'
 import { fuelingPlanInputSchema } from '@/lib/fueling/plan-input'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
 
 export async function GET(request: NextRequest) {
   let locale: AppLocale = resolveRequestLocale(request)
@@ -136,13 +137,26 @@ export async function POST(request: NextRequest) {
 
     const linkedTest = body.testId
       ? await prisma.test.findFirst({
-          where: { id: body.testId, clientId },
+          where: {
+            id: body.testId,
+            clientId,
+            ...usableTestQualityReviewWhere,
+          },
           include: { testStages: true },
         })
       : null
 
     if (body.testId && !linkedTest) {
-      return NextResponse.json({ error: t(locale, 'Test not found', 'Testet hittades inte') }, { status: 404 })
+      return NextResponse.json(
+        {
+          error: t(
+            locale,
+            'Test not found or still requires coach review',
+            'Testet hittades inte eller behöver fortfarande coachgranskas'
+          ),
+        },
+        { status: 404 }
+      )
     }
 
     const estimate = estimateRaceFueling(
