@@ -31,10 +31,12 @@ import {
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
 import { cn } from '@/lib/utils'
-import type {
-  CoachCommandCenterData,
-  CommandCenterPriority,
-  CommandCenterQueueItem,
+import {
+  filterCommandCenterQueueItems,
+  type CoachCommandCenterData,
+  type CommandCenterPriority,
+  type CommandCenterQueueFilter,
+  type CommandCenterQueueItem,
 } from '@/lib/coach/command-center'
 
 interface CoachCommandCenterProps {
@@ -78,16 +80,26 @@ const evidenceTone = {
   neutral: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900/70 dark:text-slate-200',
 }
 
+const queueFilterOptions: Array<{ value: CommandCenterQueueFilter; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'high', label: 'High priority' },
+  { value: 'review', label: 'Needs review' },
+  { value: 'injury', label: 'Pain / injury' },
+  { value: 'testing', label: 'Testing' },
+]
+
 export function CoachCommandCenter({
   data,
   defaultExpanded = false,
 }: CoachCommandCenterProps) {
   const [expanded, setExpanded] = useState(defaultExpanded)
+  const [queueFilter, setQueueFilter] = useState<CommandCenterQueueFilter>('all')
   const [hiddenQueueIds, setHiddenQueueIds] = useState<Set<string>>(new Set())
   const [pendingAlertIds, setPendingAlertIds] = useState<Set<string>>(new Set())
   const [alertError, setAlertError] = useState<string | null>(null)
   const queueItems = data.queueItems.filter(item => !hiddenQueueIds.has(item.id))
-  const hasQueue = queueItems.length > 0
+  const filteredQueueItems = filterCommandCenterQueueItems(queueItems, queueFilter)
+  const hasQueue = filteredQueueItems.length > 0
 
   const updateAlertStatus = async (
     item: CommandCenterQueueItem,
@@ -171,9 +183,40 @@ export function CoachCommandCenter({
                 Today&apos;s action queue
               </h2>
               <Badge variant="secondary" className="text-xs">
-                {queueItems.length}
+                {filteredQueueItems.length}
               </Badge>
             </div>
+
+            {queueItems.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {queueFilterOptions.map(option => {
+                  const count = filterCommandCenterQueueItems(queueItems, option.value).length
+                  const active = queueFilter === option.value
+
+                  return (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant={active ? 'default' : 'outline'}
+                      size="sm"
+                      className="h-8 gap-2 px-3 text-xs"
+                      onClick={() => setQueueFilter(option.value)}
+                      aria-pressed={active}
+                    >
+                      {option.label}
+                      <span className={cn(
+                        'rounded-full px-1.5 py-0.5 text-[10px]',
+                        active
+                          ? 'bg-white/20 text-current'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-900 dark:text-slate-300',
+                      )}>
+                        {count}
+                      </span>
+                    </Button>
+                  )
+                })}
+              </div>
+            )}
 
             {hasQueue ? (
               <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white/70 dark:divide-white/10 dark:border-white/10 dark:bg-slate-950/40">
@@ -182,7 +225,7 @@ export function CoachCommandCenter({
                     {alertError}
                   </div>
                 )}
-                {queueItems.map(item => (
+                {filteredQueueItems.map(item => (
                   <QueueRow
                     key={item.id}
                     item={item}
@@ -194,7 +237,11 @@ export function CoachCommandCenter({
             ) : (
               <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-5 text-center text-emerald-800 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-100">
                 <CheckCircle2 className="mx-auto mb-2 h-8 w-8" />
-                <p className="text-sm font-medium">No urgent coach actions right now.</p>
+                <p className="text-sm font-medium">
+                  {queueItems.length > 0
+                    ? 'No actions match this filter.'
+                    : 'No urgent coach actions right now.'}
+                </p>
               </div>
             )}
           </section>

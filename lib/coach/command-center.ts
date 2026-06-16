@@ -8,6 +8,7 @@ import {
 import { prisma } from '@/lib/prisma'
 
 export type CommandCenterPriority = 'critical' | 'high' | 'medium' | 'low'
+export type CommandCenterQueueFilter = 'all' | 'high' | 'review' | 'injury' | 'testing'
 
 export interface CommandCenterQueueItem {
   id: string
@@ -48,6 +49,25 @@ export interface CoachCommandCenterData {
   }
   queueItems: CommandCenterQueueItem[]
   recommendations: CommandCenterRecommendation[]
+}
+
+export function filterCommandCenterQueueItems(
+  items: CommandCenterQueueItem[],
+  filter: CommandCenterQueueFilter,
+): CommandCenterQueueItem[] {
+  switch (filter) {
+    case 'high':
+      return items.filter(item => item.priority === 'critical' || item.priority === 'high')
+    case 'review':
+      return items.filter(item => item.priority === 'medium' || item.category === 'feedback')
+    case 'injury':
+      return items.filter(item => item.category === 'injury')
+    case 'testing':
+      return items.filter(item => item.category === 'testing')
+    case 'all':
+    default:
+      return items
+  }
 }
 
 interface GetCoachCommandCenterDataParams {

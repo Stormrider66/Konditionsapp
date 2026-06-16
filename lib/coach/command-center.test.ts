@@ -16,7 +16,11 @@ vi.mock('@/lib/prisma', () => ({
   prisma: mockPrisma,
 }))
 
-import { getCoachCommandCenterData } from './command-center'
+import {
+  filterCommandCenterQueueItems,
+  getCoachCommandCenterData,
+  type CommandCenterQueueItem,
+} from './command-center'
 
 const baseParams = {
   userId: 'coach-1',
@@ -181,5 +185,50 @@ describe('getCoachCommandCenterData', () => {
         meta: 'snooze ended',
       })
     )
+  })
+})
+
+describe('filterCommandCenterQueueItems', () => {
+  const items: CommandCenterQueueItem[] = [
+    {
+      id: 'pain-1',
+      title: 'Pain alert',
+      description: 'Pain after workout',
+      priority: 'high',
+      category: 'injury',
+      href: '/athlete',
+      ctaLabel: 'Review pain',
+    },
+    {
+      id: 'test-1',
+      title: 'Test review',
+      description: 'Review test quality',
+      priority: 'medium',
+      category: 'testing',
+      href: '/test',
+      ctaLabel: 'Review test',
+    },
+    {
+      id: 'feedback-1',
+      title: 'Workout feedback',
+      description: 'Session needs feedback',
+      priority: 'low',
+      category: 'feedback',
+      href: '/logs',
+      ctaLabel: 'Give feedback',
+    },
+  ]
+
+  it('filters queue items by coach inbox mode', () => {
+    expect(filterCommandCenterQueueItems(items, 'all').map(item => item.id))
+      .toEqual(['pain-1', 'test-1', 'feedback-1'])
+    expect(filterCommandCenterQueueItems(items, 'high').map(item => item.id))
+      .toEqual(['pain-1'])
+    expect(filterCommandCenterQueueItems(items, 'review').map(item => item.id))
+      .toEqual(['test-1', 'feedback-1'])
+    expect(filterCommandCenterQueueItems(items, 'injury').map(item => item.id))
+      .toEqual(['pain-1'])
+    expect(filterCommandCenterQueueItems(items, 'testing').map(item => item.id))
+      .toEqual(['test-1'])
   })
 })
