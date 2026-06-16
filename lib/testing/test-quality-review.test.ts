@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildTestQualityReviewApprovalUpdate,
   buildTestQualityReviewCreateData,
   buildTestQualityReviewUpdate,
   requiresTestQualityReview,
@@ -48,5 +49,33 @@ describe('test quality review helpers', () => {
     expect(usableTestQualityReviewWhere).toEqual({
       qualityReviewStatus: { not: 'REVIEW_REQUIRED' },
     })
+  })
+
+  it('smokes the flagged-to-approved lifecycle for program decisions', () => {
+    const flagged = buildTestQualityReviewCreateData([
+      {
+        type: 'LACTATE_DROP',
+        severity: 'warning',
+        message: 'Lactate dropped between stages.',
+      },
+    ])
+
+    expect(testQualityReviewBlocksProgram(flagged)).toBe(true)
+
+    const approved = {
+      ...flagged,
+      ...buildTestQualityReviewApprovalUpdate(
+        'coach-1',
+        'Checked source sheet.',
+        new Date('2026-06-16T10:00:00.000Z')
+      ),
+    }
+
+    expect(approved).toMatchObject({
+      qualityReviewStatus: 'APPROVED',
+      qualityReviewedBy: 'coach-1',
+      qualityReviewNote: 'Checked source sheet.',
+    })
+    expect(testQualityReviewBlocksProgram(approved)).toBe(false)
   })
 })

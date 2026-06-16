@@ -2928,10 +2928,12 @@
       "testQualityReview": {
         "needsReview": "Testdata behöver granskas",
         "badge": "Granskning krävs",
+        "decisionImpact": "Testet är fortfarande synligt i rapporter, men program och AI-beslut ignorerar det tills en coach godkänner det.",
         "warningFallback": "Granska testet innan det används för beslut.",
         "notePlaceholder": "Granskningsanteckning",
         "approve": "Godkänn",
         "approved": "Testdata godkänd",
+        "approvedImpact": "Program och AI-beslut kan nu använda testet.",
         "approvedTitle": "Granskning godkänd",
         "approvedDescription": "Testet kan nu användas för beslut.",
         "approveFailed": "Kunde inte godkänna granskningen",

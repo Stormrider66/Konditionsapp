@@ -2,6 +2,13 @@ import { Prisma } from '@prisma/client'
 
 export type TestQualityReviewStatus = 'CLEAR' | 'REVIEW_REQUIRED' | 'APPROVED'
 
+export interface TestQualityReviewApprovalUpdate {
+  qualityReviewStatus: 'APPROVED'
+  qualityReviewedBy: string
+  qualityReviewedAt: Date
+  qualityReviewNote: string | null
+}
+
 export interface TestQualityWarning {
   type: string
   severity: string
@@ -39,6 +46,19 @@ export function buildTestQualityReviewUpdate(
     qualityReviewedBy: null,
     qualityReviewedAt: null,
     qualityReviewNote: null,
+  }
+}
+
+export function buildTestQualityReviewApprovalUpdate(
+  reviewerId: string,
+  note?: string | null,
+  reviewedAt: Date = new Date()
+): TestQualityReviewApprovalUpdate {
+  return {
+    qualityReviewStatus: 'APPROVED',
+    qualityReviewedBy: reviewerId,
+    qualityReviewedAt: reviewedAt,
+    qualityReviewNote: note?.trim() || null,
   }
 }
 

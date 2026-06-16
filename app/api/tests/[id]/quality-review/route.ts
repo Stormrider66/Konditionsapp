@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { canAccessClient, requireCoach } from '@/lib/auth-utils'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { buildTestQualityReviewApprovalUpdate } from '@/lib/testing/test-quality-review'
 
 const reviewSchema = z.object({
   action: z.literal('approve'),
@@ -54,12 +55,7 @@ export async function PATCH(
 
     const updated = await prisma.test.update({
       where: { id },
-      data: {
-        qualityReviewStatus: 'APPROVED',
-        qualityReviewedBy: user.id,
-        qualityReviewedAt: new Date(),
-        qualityReviewNote: validation.data.note || null,
-      },
+      data: buildTestQualityReviewApprovalUpdate(user.id, validation.data.note),
       select: {
         id: true,
         qualityReviewStatus: true,

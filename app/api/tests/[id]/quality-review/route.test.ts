@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
+import { testQualityReviewBlocksProgram } from '@/lib/testing/test-quality-review'
 
 const mockRequireCoach = vi.hoisted(() => vi.fn())
 const mockCanAccessClient = vi.hoisted(() => vi.fn())
@@ -57,6 +58,7 @@ describe('test quality review route', () => {
 
     expect(response.status).toBe(200)
     expect(body.success).toBe(true)
+    expect(testQualityReviewBlocksProgram(body.data)).toBe(false)
     expect(mockPrisma.test.update).toHaveBeenCalledWith({
       where: { id: 'test-1' },
       data: {

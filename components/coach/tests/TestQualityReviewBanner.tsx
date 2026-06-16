@@ -84,6 +84,7 @@ export function TestQualityReviewBanner({
             </Badge>
           )}
         </div>
+        <p className="mt-2 text-sm">{t('approvedImpact')}</p>
       </div>
     )
   }
@@ -102,6 +103,7 @@ export function TestQualityReviewBanner({
           {t('badge')}
         </Badge>
       </div>
+      <p className="mb-3 text-sm">{t('decisionImpact')}</p>
 
       {parsedWarnings.length > 0 && (
         <ul className="mb-3 space-y-1 text-sm">
