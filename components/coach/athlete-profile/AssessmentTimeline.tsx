@@ -35,7 +35,7 @@ interface AssessmentTimelineProps {
   onEnduranceTestDeleted?: () => void
 }
 
-type Filter = AssessmentKind | 'ALL'
+type Filter = AssessmentKind | 'ALL' | 'REVIEW_REQUIRED'
 
 const FILTER_ORDER: AssessmentKind[] = ['ENDURANCE', 'HOCKEY_PHYSICAL', 'SPORT_TEST', 'ERGOMETER', 'CUSTOM']
 
@@ -80,7 +80,11 @@ export function AssessmentTimeline({ clientId, basePath, onExportCsv, onEnduranc
       setLoading(true)
       setError(false)
       const params = new URLSearchParams()
-      if (activeFilter !== 'ALL') params.set('kind', activeFilter)
+      if (activeFilter === 'REVIEW_REQUIRED') {
+        params.set('reviewStatus', 'REVIEW_REQUIRED')
+      } else if (activeFilter !== 'ALL') {
+        params.set('kind', activeFilter)
+      }
       if (activeLimit !== DEFAULT_LIMIT) params.set('limit', String(activeLimit))
       const query = params.size ? `?${params}` : ''
       const response = await fetch(`/api/clients/${clientId}/assessments${query}`)
@@ -134,7 +138,12 @@ export function AssessmentTimeline({ clientId, basePath, onExportCsv, onEnduranc
   }
 
   const availableKinds = FILTER_ORDER.filter((kind) => (counts?.[ASSESSMENT_COUNT_KEY[kind]] ?? 0) > 0)
-  const visibleTotal = filter === 'ALL' ? counts?.total ?? 0 : counts?.[ASSESSMENT_COUNT_KEY[filter]] ?? 0
+  const reviewRequiredCount = counts?.reviewRequired ?? 0
+  const visibleTotal = filter === 'ALL'
+    ? counts?.total ?? 0
+    : filter === 'REVIEW_REQUIRED'
+      ? reviewRequiredCount
+      : counts?.[ASSESSMENT_COUNT_KEY[filter]] ?? 0
   const canShowMore = !loading && !error && limit < MAX_LIMIT && entries.length < visibleTotal
 
   return (
@@ -167,6 +176,14 @@ export function AssessmentTimeline({ clientId, basePath, onExportCsv, onEnduranc
             active={filter === 'ALL'}
             onClick={() => setFilter('ALL')}
           />
+          {reviewRequiredCount > 0 && (
+            <FilterChip
+              label={t('assessmentTimeline.filters.reviewRequired')}
+              count={reviewRequiredCount}
+              active={filter === 'REVIEW_REQUIRED'}
+              onClick={() => setFilter('REVIEW_REQUIRED')}
+            />
+          )}
           {availableKinds.map((kind) => (
             <FilterChip
               key={kind}
@@ -191,66 +208,82 @@ export function AssessmentTimeline({ clientId, basePath, onExportCsv, onEnduranc
           <div className="py-10 text-center text-sm text-muted-foreground">{t('assessmentTimeline.empty')}</div>
         ) : (
           <ul className="divide-y divide-gray-100 dark:divide-white/5">
-            {entries.map((entry) => (
-              <li key={`${entry.kind}-${entry.id}`} className="flex items-center gap-3 py-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={cn('rounded-full border px-2 py-0.5 text-[11px] font-medium', KIND_BADGE[entry.kind])}>
-                      {kindLabel(entry.kind)}
-                    </span>
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{entry.label}</span>
-                    {entry.status && entry.status !== 'COMPLETED' && (
-                      <span
-                        className={cn(
-                          'rounded-full px-2 py-0.5 text-[11px] font-medium',
-                          entry.status === 'DRAFT'
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
-                            : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300',
-                        )}
-                      >
-                        {entry.status === 'DRAFT' ? t('testStatus.draft') : t('testStatus.archived')}
+            {entries.map((entry) => {
+              const testHref = entry.kind === 'ENDURANCE'
+                ? `${basePath}/tests/${entry.id}${entry.qualityReviewStatus === 'REVIEW_REQUIRED' ? '#quality-review' : ''}`
+                : null
+
+              return (
+                <li key={`${entry.kind}-${entry.id}`} className="flex items-center gap-3 py-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={cn('rounded-full border px-2 py-0.5 text-[11px] font-medium', KIND_BADGE[entry.kind])}>
+                        {kindLabel(entry.kind)}
                       </span>
-                    )}
-                    <span
-                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
-                      title={entry.isTeamTest ? t('assessmentTimeline.team') : t('assessmentTimeline.individual')}
-                    >
-                      {entry.isTeamTest ? <Users className="h-3 w-3" /> : <User className="h-3 w-3" />}
-                      {entry.isTeamTest ? t('assessmentTimeline.team') : t('assessmentTimeline.individual')}
-                    </span>
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white truncate">{entry.label}</span>
+                      {entry.status && entry.status !== 'COMPLETED' && (
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[11px] font-medium',
+                            entry.status === 'DRAFT'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                              : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300',
+                          )}
+                        >
+                          {entry.status === 'DRAFT' ? t('testStatus.draft') : t('testStatus.archived')}
+                        </span>
+                      )}
+                      {entry.qualityReviewStatus === 'REVIEW_REQUIRED' && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                          {t('assessmentTimeline.reviewRequired')}
+                        </span>
+                      )}
+                      {entry.qualityReviewStatus === 'APPROVED' && (
+                        <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+                          {t('assessmentTimeline.reviewApproved')}
+                        </span>
+                      )}
+                      <span
+                        className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+                        title={entry.isTeamTest ? t('assessmentTimeline.team') : t('assessmentTimeline.individual')}
+                      >
+                        {entry.isTeamTest ? <Users className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                        {entry.isTeamTest ? t('assessmentTimeline.team') : t('assessmentTimeline.individual')}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                      <span>{format(new Date(entry.date), 'PPP', { locale: dateFnsLocale })}</span>
+                      {entry.summary && <span className="truncate">· {entry.summary}</span>}
+                    </div>
                   </div>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-                    <span>{format(new Date(entry.date), 'PPP', { locale: dateFnsLocale })}</span>
-                    {entry.summary && <span className="truncate">· {entry.summary}</span>}
-                  </div>
-                </div>
-                {entry.kind === 'ENDURANCE' && (
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Link
-                      href={`${basePath}/tests/${entry.id}`}
-                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
-                    >
-                      {t('assessmentTimeline.view')}
-                    </Link>
-                    <Link
-                      href={`${basePath}/tests/${entry.id}/edit`}
-                      className="text-blue-600 hover:text-blue-800"
-                      title={t('actions.editTest')}
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => setEntryToDelete(entry)}
-                      className="text-red-600 hover:text-red-800 transition"
-                      title={t('actions.deleteTest')}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </li>
-            ))}
+                  {testHref && (
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Link
+                        href={testHref}
+                        className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                      >
+                        {t('assessmentTimeline.view')}
+                      </Link>
+                      <Link
+                        href={`${basePath}/tests/${entry.id}/edit`}
+                        className="text-blue-600 hover:text-blue-800"
+                        title={t('actions.editTest')}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => setEntryToDelete(entry)}
+                        className="text-red-600 hover:text-red-800 transition"
+                        title={t('actions.deleteTest')}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                </li>
+              )
+            })}
           </ul>
         )}
         {canShowMore && (

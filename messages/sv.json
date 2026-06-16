@@ -3436,8 +3436,11 @@
           "team": "Lag",
           "individual": "Individuell",
           "view": "Visa",
+          "reviewRequired": "Behöver granskas",
+          "reviewApproved": "Godkänd",
           "filters": {
             "all": "Alla",
+            "reviewRequired": "Behöver granskas",
             "endurance": "Kondition",
             "hockey": "Hockey",
             "sport": "Fälttester",

@@ -3436,8 +3436,11 @@
           "team": "Team",
           "individual": "Individual",
           "view": "View",
+          "reviewRequired": "Needs review",
+          "reviewApproved": "Approved",
           "filters": {
             "all": "All",
+            "reviewRequired": "Needs review",
             "endurance": "Endurance",
             "hockey": "Hockey",
             "sport": "Field tests",

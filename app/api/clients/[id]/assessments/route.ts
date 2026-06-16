@@ -46,6 +46,10 @@ function numberFromJson(value: unknown, key: string): number | null {
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : null
 }
 
+function jsonArrayCount(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0
+}
+
 function bestOf(values: Array<number | null | undefined>, lowerIsBetter = false): number | null {
   const valid = values.filter((value): value is number => value != null && Number.isFinite(value))
   if (valid.length === 0) return null
@@ -105,21 +109,47 @@ export async function GET(
     const { searchParams } = new URL(request.url)
     const kindParam = searchParams.get('kind') as AssessmentKind | null
     const kindFilter = kindParam && ALL_KINDS.includes(kindParam) ? kindParam : null
+    const reviewRequiredOnly = searchParams.get('reviewStatus') === 'REVIEW_REQUIRED'
     const limit = Math.min(
       MAX_LIMIT,
       Math.max(1, Number.parseInt(searchParams.get('limit') ?? '', 10) || DEFAULT_LIMIT),
     )
 
-    const wants = (kind: AssessmentKind) => !kindFilter || kindFilter === kind
+    const wants = (kind: AssessmentKind) => !reviewRequiredOnly && (!kindFilter || kindFilter === kind)
+    const wantsEndurance = reviewRequiredOnly || wants('ENDURANCE')
 
-    const [tests, hockey, sport, ergo, custom, enduranceCount, hockeyCount, sportCount, ergoCount, customCount] =
+    const [
+      tests,
+      hockey,
+      sport,
+      ergo,
+      custom,
+      enduranceCount,
+      hockeyCount,
+      sportCount,
+      ergoCount,
+      customCount,
+      reviewRequiredCount,
+    ] =
       await Promise.all([
-        wants('ENDURANCE')
+        wantsEndurance
           ? prisma.test.findMany({
-              where: { clientId },
+              where: {
+                clientId,
+                ...(reviewRequiredOnly ? { qualityReviewStatus: 'REVIEW_REQUIRED' } : {}),
+              },
               orderBy: { testDate: 'desc' },
               take: limit,
-              select: { id: true, testDate: true, testType: true, vo2max: true, maxHR: true, status: true },
+              select: {
+                id: true,
+                testDate: true,
+                testType: true,
+                vo2max: true,
+                maxHR: true,
+                status: true,
+                qualityReviewStatus: true,
+                qualityWarnings: true,
+              },
             })
           : [],
         wants('HOCKEY_PHYSICAL')
@@ -188,6 +218,7 @@ export async function GET(
         prisma.sportTest.count({ where: { clientId } }),
         prisma.ergometerFieldTest.count({ where: { clientId } }),
         prisma.customTestResult.count({ where: { clientId } }),
+        prisma.test.count({ where: { clientId, qualityReviewStatus: 'REVIEW_REQUIRED' } }),
       ])
 
     const entries: AssessmentEntry[] = []
@@ -204,6 +235,8 @@ export async function GET(
         summary,
         isTeamTest: false,
         status: t.status as 'COMPLETED' | 'DRAFT' | 'ARCHIVED',
+        qualityReviewStatus: t.qualityReviewStatus as 'CLEAR' | 'REVIEW_REQUIRED' | 'APPROVED',
+        qualityWarningCount: jsonArrayCount(t.qualityWarnings),
       })
     }
 
@@ -275,6 +308,7 @@ export async function GET(
         sport: sportCount,
         ergometer: ergoCount,
         custom: customCount,
+        reviewRequired: reviewRequiredCount,
         total: enduranceCount + hockeyCount + sportCount + ergoCount + customCount,
       },
     })

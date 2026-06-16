@@ -25,6 +25,9 @@ export interface AssessmentEntry {
   isTeamTest: boolean
   /** Lifecycle status — only ENDURANCE rows have one (null for other kinds). */
   status: 'COMPLETED' | 'DRAFT' | 'ARCHIVED' | null
+  /** Quality review status — only ENDURANCE rows use the Phase 1 review gate. */
+  qualityReviewStatus?: 'CLEAR' | 'REVIEW_REQUIRED' | 'APPROVED' | null
+  qualityWarningCount?: number
 }
 
 export interface AssessmentCounts {
@@ -33,6 +36,7 @@ export interface AssessmentCounts {
   sport: number
   ergometer: number
   custom: number
+  reviewRequired: number
   total: number
 }
 
