@@ -215,6 +215,7 @@ export function ConfigurationForm({
   const watchClientIds = useMemo(() => rawWatchClientIds ?? [], [rawWatchClientIds])
   const watchAssignmentScope = useWatch({ control: form.control, name: 'assignmentScope' }) ?? 'INDIVIDUAL'
   const watchTeamId = useWatch({ control: form.control, name: 'teamId' })
+  const watchTestId = useWatch({ control: form.control, name: 'testId' })
   const watchHockeyTestId = useWatch({ control: form.control, name: 'hockeyTestId' })
   const watchHockeyTestIdsByClient = useWatch({ control: form.control, name: 'hockeyTestIdsByClient' }) ?? {}
   const selectedClient = clients.find((c) => c.id === watchClientId)
@@ -253,6 +254,10 @@ export function ConfigurationForm({
     if (!selectedClient?.hockeyTests?.length) return undefined
     return selectedClient.hockeyTests.find((test) => test.id === watchHockeyTestId) ?? selectedClient.hockeyTests[0]
   }, [selectedClient, watchHockeyTestId])
+  const selectedLabTest = useMemo(() => {
+    if (!selectedClient?.tests?.length || !watchTestId) return undefined
+    return selectedClient.tests.find((test) => test.id === watchTestId)
+  }, [selectedClient, watchTestId])
 
   const selectedTargetClientIds = useMemo(() => {
     if (watchAssignmentScope === 'TEAM') {
@@ -585,13 +590,32 @@ export function ConfigurationForm({
                     </FormControl>
                     <SelectContent>
                       {selectedClient.tests.map((test) => (
-                        <SelectItem key={test.id} value={test.id}>
+                        <SelectItem
+                          key={test.id}
+                          value={test.id}
+                          disabled={test.qualityReviewStatus === 'REVIEW_REQUIRED'}
+                        >
                           {format(new Date(test.testDate), 'PPP', { locale: getDateLocale(locale) })} -{' '}
                           {test.testType}
+                          {test.qualityReviewStatus === 'REVIEW_REQUIRED'
+                            ? ` · ${t(locale, 'Granskning krävs', 'Review required')}`
+                            : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {selectedLabTest?.qualityReviewStatus === 'REVIEW_REQUIRED' && (
+                    <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        {t(
+                          locale,
+                          'Det valda testet behöver granskas innan det kan användas för program.',
+                          'The selected test needs review before it can be used for programs.'
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

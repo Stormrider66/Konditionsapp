@@ -25,6 +25,9 @@ interface Test {
   testDate: Date
   testType: string
   vo2max: number | null
+  qualityReviewStatus?: string | null
+  qualityWarnings?: unknown
+  qualityWarningCount?: number
 }
 
 interface HockeyTestMetric {
@@ -101,6 +104,14 @@ type AppLocale = 'en' | 'sv'
 const getAppLocale = (locale: string): AppLocale => (locale === 'sv' ? 'sv' : 'en')
 
 const t = (locale: AppLocale, sv: string, en: string) => (locale === 'sv' ? sv : en)
+
+function testNeedsReview(test: { qualityReviewStatus?: string | null }) {
+  return test.qualityReviewStatus === 'REVIEW_REQUIRED'
+}
+
+function qualityWarningCount(warnings: unknown): number {
+  return Array.isArray(warnings) ? warnings.length : 0
+}
 
 const getSportPromptLabel = (sport: SportType, locale: AppLocale) => {
   switch (sport) {
@@ -245,9 +256,13 @@ export function ProgramWizard({ clients, teams = [], basePath, initialClientId =
 
     const relevantTestType = testTypeMap[selectedSport]
     const clientsWithTests = clients.filter(
-      (c) => c.tests.some((t) => t.testType === relevantTestType)
+      (c) => c.tests.some((t) => t.testType === relevantTestType && !testNeedsReview(t))
     )
-    const testCount = clientsWithTests.reduce((sum, c) => sum + c.tests.length, 0)
+    const relevantTests = clients.flatMap((client) =>
+      client.tests.filter((test) => test.testType === relevantTestType)
+    )
+    const testCount = relevantTests.filter((test) => !testNeedsReview(test)).length
+    const blockedTestCount = relevantTests.length - testCount
 
     // Check if any client has sport profile data
     const clientWithProfile = clients.find((c) => {
@@ -282,7 +297,10 @@ export function ProgramWizard({ clients, teams = [], basePath, initialClientId =
         type: 'TEST' as const,
         available: testCount > 0,
         testCount,
-        testId: clientsWithTests[0]?.tests[0]?.id,
+        blockedTestCount,
+        testId: clientsWithTests[0]?.tests.find((test) =>
+          test.testType === relevantTestType && !testNeedsReview(test)
+        )?.id,
       },
       {
         type: 'PROFILE' as const,
@@ -440,6 +458,8 @@ export function ProgramWizard({ clients, teams = [], basePath, initialClientId =
       id: t.id,
       testDate: t.testDate,
       testType: t.testType,
+      qualityReviewStatus: t.qualityReviewStatus,
+      qualityWarningCount: t.qualityWarningCount ?? qualityWarningCount(t.qualityWarnings),
     })),
     hockeyTests: c.hockeyTests ?? [],
     sportProfile: c.sportProfile

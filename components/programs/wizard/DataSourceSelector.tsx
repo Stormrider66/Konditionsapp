@@ -12,6 +12,7 @@ export interface DataSourceInfo {
   type: DataSourceType
   available: boolean
   testCount?: number
+  blockedTestCount?: number
   testId?: string
   profileValue?: string
   profileLabel?: string
@@ -123,6 +124,11 @@ export function DataSourceSelector({
               </>
             )}
           </div>
+          {testSource.blockedTestCount ? (
+            <span className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+              {testSource.blockedTestCount} {t(locale, 'kräver granskning', 'need review')}
+            </span>
+          ) : null}
         </button>
 
         {/* Sport Profile Option */}

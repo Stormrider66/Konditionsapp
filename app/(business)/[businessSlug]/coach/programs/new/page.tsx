@@ -138,6 +138,8 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
           testDate: true,
           testType: true,
           vo2max: true,
+          qualityReviewStatus: true,
+          qualityWarnings: true,
         },
       },
       hockeyPhysicalTests: {

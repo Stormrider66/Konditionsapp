@@ -131,7 +131,13 @@ export interface Client {
   name: string
   teamId?: string | null
   position?: string | null
-  tests: { id: string; testDate: Date; testType: string }[]
+  tests: {
+    id: string
+    testDate: Date
+    testType: string
+    qualityReviewStatus?: string | null
+    qualityWarningCount?: number
+  }[]
   hockeyTests?: HockeyTestOption[]
   sportProfile?: {
     hockeySettings?: Record<string, unknown> | null
