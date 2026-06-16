@@ -5,18 +5,39 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { requireCoach } from '@/lib/auth-utils'
 import { z } from 'zod'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const updateSchema = z.object({
-  action: z.enum(['dismiss', 'resolve', 'action']),
-  note: z.string().optional(),
+  action: z.enum(['dismiss', 'resolve', 'action', 'snooze']),
+  note: z.string().trim().max(1000).optional(),
+  outcome: z.string().trim().max(80).optional(),
+  followUpAt: z.string().datetime().optional(),
+  snoozedUntil: z.string().datetime().optional(),
+  snoozeHours: z.number().min(1).max(336).optional(),
 })
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function resolveSnoozedUntil(input: {
+  snoozedUntil?: string
+  snoozeHours?: number
+  now: Date
+}): Date {
+  if (input.snoozedUntil) {
+    const until = new Date(input.snoozedUntil)
+    if (!Number.isNaN(until.getTime()) && until > input.now) {
+      return until
+    }
+  }
+
+  const hours = input.snoozeHours ?? 24
+  return new Date(input.now.getTime() + hours * 60 * 60 * 1000)
 }
 
 export async function PATCH(
@@ -53,25 +74,48 @@ export async function PATCH(
       )
     }
 
-    const { action, note } = validation.data
+    const { action, note, outcome, followUpAt, snoozedUntil, snoozeHours } = validation.data
+    const now = new Date()
 
     // Update alert based on action
-    const updateData: Record<string, unknown> = {}
+    const updateData: Prisma.CoachAlertUpdateInput = {}
+    if (note !== undefined) {
+      updateData.actionNote = note || null
+    }
 
     switch (action) {
       case 'dismiss':
         updateData.status = 'DISMISSED'
-        updateData.dismissedAt = new Date()
+        updateData.dismissedAt = now
+        updateData.dismissedBy = user.id
+        updateData.snoozedAt = null
+        updateData.snoozedUntil = null
+        updateData.snoozedBy = null
         break
       case 'resolve':
         updateData.status = 'RESOLVED'
-        updateData.resolvedAt = new Date()
-        if (note) updateData.actionNote = note
+        updateData.resolvedAt = now
+        updateData.resolvedBy = user.id
+        updateData.resolutionOutcome = outcome || null
+        updateData.followUpAt = followUpAt ? new Date(followUpAt) : null
+        updateData.snoozedAt = null
+        updateData.snoozedUntil = null
+        updateData.snoozedBy = null
         break
       case 'action':
         updateData.status = 'ACTIONED'
-        updateData.actionedAt = new Date()
-        if (note) updateData.actionNote = note
+        updateData.actionedAt = now
+        updateData.actionedBy = user.id
+        updateData.followUpAt = followUpAt ? new Date(followUpAt) : null
+        updateData.snoozedAt = null
+        updateData.snoozedUntil = null
+        updateData.snoozedBy = null
+        break
+      case 'snooze':
+        updateData.status = 'SNOOZED'
+        updateData.snoozedAt = now
+        updateData.snoozedUntil = resolveSnoozedUntil({ snoozedUntil, snoozeHours, now })
+        updateData.snoozedBy = user.id
         break
     }
 

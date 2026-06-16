@@ -12,6 +12,7 @@ export type CommandCenterPriority = 'critical' | 'high' | 'medium' | 'low'
 export interface CommandCenterQueueItem {
   id: string
   alertId?: string
+  alertStatus?: string
   title: string
   description: string
   priority: CommandCenterPriority
@@ -69,6 +70,24 @@ const alertPriority: Record<string, CommandCenterPriority> = {
   HIGH: 'high',
   MEDIUM: 'medium',
   LOW: 'low',
+}
+
+function openCoachAlertWhere(now: Date): Prisma.CoachAlertWhereInput {
+  return {
+    OR: [
+      { status: 'ACTIVE' },
+      { status: 'SNOOZED', snoozedUntil: { lte: now } },
+    ],
+  }
+}
+
+function unexpiredCoachAlertWhere(now: Date): Prisma.CoachAlertWhereInput {
+  return {
+    OR: [
+      { expiresAt: null },
+      { expiresAt: { gt: now } },
+    ],
+  }
 }
 
 function isQuickErgAlertType(alertType: string): boolean {
@@ -257,17 +276,21 @@ export async function getCoachCommandCenterData({
       where: {
         coachId: userId,
         client: clientWhere,
-        status: 'ACTIVE',
-        OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        AND: [
+          openCoachAlertWhere(now),
+          unexpiredCoachAlertWhere(now),
+        ],
       },
       select: {
         id: true,
         alertType: true,
         severity: true,
+        status: true,
         title: true,
         message: true,
         contextData: true,
         createdAt: true,
+        snoozedUntil: true,
         clientId: true,
         client: { select: { name: true } },
       },
@@ -362,6 +385,7 @@ export async function getCoachCommandCenterData({
     queueItems.push({
       id: `alert-${alert.id}`,
       alertId: alert.id,
+      alertStatus: alert.status,
       title: alert.title,
       description: alert.message,
       priority: alertPriority[alert.severity] ?? 'medium',
@@ -369,7 +393,9 @@ export async function getCoachCommandCenterData({
       clientName: alert.client.name,
       href: coachAlertHref(alert, basePath),
       ctaLabel: coachAlertCtaLabel(alert.alertType),
-      meta: alert.alertType.replaceAll('_', ' ').toLowerCase(),
+      meta: alert.status === 'SNOOZED'
+        ? 'snooze ended'
+        : alert.alertType.replaceAll('_', ' ').toLowerCase(),
     })
   }
 

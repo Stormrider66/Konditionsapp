@@ -1655,10 +1655,18 @@ model CoachAlert {
   sourceId    String? // Link to source record (ConversationMemory.id, etc.)
 
   // Status tracking
-  status      String    @default("ACTIVE") // ACTIVE, DISMISSED, RESOLVED, ACTIONED
+  status      String    @default("ACTIVE") // ACTIVE, SNOOZED, DISMISSED, RESOLVED, ACTIONED
   dismissedAt DateTime?
+  dismissedBy String?
   resolvedAt  DateTime?
+  resolvedBy  String?
   actionedAt  DateTime?
+  actionedBy  String?
+  snoozedAt   DateTime?
+  snoozedUntil DateTime?
+  snoozedBy   String?
+  resolutionOutcome String?
+  followUpAt  DateTime?
   actionNote  String?   @db.Text
 
   // Timestamps
@@ -1669,6 +1677,7 @@ model CoachAlert {
   client Client @relation("ClientCoachAlerts", fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([coachId, status])
+  @@index([coachId, status, snoozedUntil])
   @@index([coachId, createdAt])
   @@index([clientId])
   @@index([alertType])

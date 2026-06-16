@@ -134,4 +134,52 @@ describe('getCoachCommandCenterData', () => {
     )
     expect(data.summary.urgentCount).toBe(1)
   })
+
+  it('includes due snoozed alerts in the queue query', async () => {
+    mockPrisma.coachAlert.findMany.mockResolvedValue([
+      {
+        id: 'alert-1',
+        alertType: 'PAIN_MENTION',
+        severity: 'HIGH',
+        status: 'SNOOZED',
+        title: 'Post-workout pain',
+        message: 'Avery reported calf pain after intervals.',
+        contextData: null,
+        createdAt: new Date('2026-06-15T12:00:00.000Z'),
+        snoozedUntil: new Date('2026-06-16T08:00:00.000Z'),
+        clientId: 'client-1',
+        client: { name: 'Avery Runner' },
+      },
+    ])
+    mockPrisma.test.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    const data = await getCoachCommandCenterData(baseParams)
+
+    expect(mockPrisma.coachAlert.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: expect.arrayContaining([
+            {
+              OR: [
+                { status: 'ACTIVE' },
+                { status: 'SNOOZED', snoozedUntil: { lte: baseParams.now } },
+              ],
+            },
+          ]),
+        }),
+      })
+    )
+    expect(data.queueItems).toContainEqual(
+      expect.objectContaining({
+        id: 'alert-alert-1',
+        alertId: 'alert-1',
+        alertStatus: 'SNOOZED',
+        category: 'injury',
+        priority: 'high',
+        meta: 'snooze ended',
+      })
+    )
+  })
 })

@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
+  Clock3,
   ClipboardCheck,
   Dumbbell,
   FileText,
@@ -90,7 +91,7 @@ export function CoachCommandCenter({
 
   const updateAlertStatus = async (
     item: CommandCenterQueueItem,
-    action: 'dismiss' | 'resolve'
+    action: 'dismiss' | 'resolve' | 'snooze'
   ) => {
     if (!item.alertId || pendingAlertIds.has(item.alertId)) return
 
@@ -101,7 +102,7 @@ export function CoachCommandCenter({
       const response = await fetch(`/api/coach/alerts/${item.alertId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(action === 'snooze' ? { action, snoozeHours: 24 } : { action }),
       })
 
       if (!response.ok) {
@@ -306,7 +307,7 @@ function QueueRow({
   alertPending,
 }: {
   item: CommandCenterQueueItem
-  onAlertAction: (item: CommandCenterQueueItem, action: 'dismiss' | 'resolve') => void
+  onAlertAction: (item: CommandCenterQueueItem, action: 'dismiss' | 'resolve' | 'snooze') => void
   alertPending: boolean
 }) {
   const Icon = categoryIcon[item.category]
@@ -352,6 +353,18 @@ function QueueRow({
               aria-label="Resolve alert"
             >
               <CheckCircle2 className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-amber-700 hover:text-amber-800 dark:text-amber-300"
+              onClick={() => onAlertAction(item, 'snooze')}
+              disabled={alertPending}
+              title="Snooze alert for 24 hours"
+              aria-label="Snooze alert for 24 hours"
+            >
+              <Clock3 className="h-4 w-4" />
             </Button>
             <Button
               type="button"

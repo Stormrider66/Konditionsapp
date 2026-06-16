@@ -5,6 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getRequestedBusinessScope, requireCoach } from '@/lib/auth-utils'
 import { getBusinessMembership } from '@/lib/coach/team-access'
@@ -12,6 +13,33 @@ import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function openAlertStatusWhere(now: Date): Prisma.CoachAlertWhereInput {
+  return {
+    OR: [
+      { status: 'ACTIVE' },
+      { status: 'SNOOZED', snoozedUntil: { lte: now } },
+    ],
+  }
+}
+
+function statusWhere(status: string, now: Date): Prisma.CoachAlertWhereInput {
+  if (status === 'all') return {}
+  if (status === 'open' || status === 'ACTIVE') return openAlertStatusWhere(now)
+  if (status === 'SNOOZED' || status === 'snoozed') {
+    return { status: 'SNOOZED', snoozedUntil: { gt: now } }
+  }
+  return { status }
+}
+
+function unexpiredAlertWhere(now: Date): Prisma.CoachAlertWhereInput {
+  return {
+    OR: [
+      { expiresAt: null },
+      { expiresAt: { gt: now } },
+    ],
+  }
 }
 
 export async function GET(request: NextRequest) {
@@ -24,13 +52,14 @@ export async function GET(request: NextRequest) {
     const membership = await getBusinessMembership(user.id, scope.businessSlug)
 
     const { searchParams } = new URL(request.url)
-    const status = searchParams.get('status') || 'ACTIVE'
+    const status = searchParams.get('status') || 'open'
     const alertType = searchParams.get('type')
     const severity = searchParams.get('severity')
     const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const now = new Date()
 
     // Build where clause
-    const where: Record<string, unknown> = {
+    const where: Prisma.CoachAlertWhereInput = {
       coachId: user.id,
     }
     const clientWhere = membership?.businessId
@@ -38,10 +67,10 @@ export async function GET(request: NextRequest) {
       : { userId: user.id }
 
     where.client = clientWhere
-
-    if (status !== 'all') {
-      where.status = status
-    }
+    where.AND = [
+      statusWhere(status, now),
+      unexpiredAlertWhere(now),
+    ]
 
     if (alertType) {
       where.alertType = alertType
@@ -50,12 +79,6 @@ export async function GET(request: NextRequest) {
     if (severity) {
       where.severity = severity
     }
-
-    // Filter out expired alerts
-    where.OR = [
-      { expiresAt: null },
-      { expiresAt: { gt: new Date() } },
-    ]
 
     // Fetch alerts with client info
     const alerts = await prisma.coachAlert.findMany({
@@ -97,10 +120,9 @@ export async function GET(request: NextRequest) {
       where: {
         coachId: user.id,
         client: clientWhere,
-        status: 'ACTIVE',
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gt: new Date() } },
+        AND: [
+          openAlertStatusWhere(now),
+          unexpiredAlertWhere(now),
         ],
       },
       _count: true,
