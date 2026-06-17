@@ -15,6 +15,8 @@ vi.mock('@/lib/prisma', () => ({
   prisma: {
     client: { findMany: vi.fn() },
     trainingLoad: { findMany: vi.fn(), groupBy: vi.fn(), createMany: vi.fn() },
+    stravaActivity: { findMany: vi.fn() },
+    garminActivity: { findMany: vi.fn() },
     $queryRaw: vi.fn(),
   },
 }))
@@ -52,6 +54,8 @@ describe('POST /api/cron/calculate-acwr', () => {
     vi.mocked(prisma.trainingLoad.findMany).mockResolvedValue([])
     // No workout load yesterday
     vi.mocked(prisma.trainingLoad.groupBy).mockResolvedValue([] as never)
+    vi.mocked(prisma.stravaActivity.findMany).mockResolvedValue([] as never)
+    vi.mocked(prisma.garminActivity.findMany).mockResolvedValue([] as never)
     // No prior ACWR carrier entries
     vi.mocked(prisma.$queryRaw).mockResolvedValue([])
     vi.mocked(prisma.trainingLoad.createMany).mockImplementation(
@@ -107,6 +111,7 @@ describe('POST /api/cron/calculate-acwr', () => {
       'client-1',
       'client-2',
     ])
+    expect((createManyArgs().data[0].date as Date).getUTCHours()).toBe(0)
   })
 
   it('skips athletes that already have a summary today — re-runs are idempotent', async () => {
@@ -172,6 +177,80 @@ describe('POST /api/cron/calculate-acwr', () => {
     expect(row.dailyLoad).toBe(300)
     expect(row.acuteLoad).toBeCloseTo(156, 0)
     expect(row.chronicLoad).toBeCloseTo(75, 0)
+  })
+
+  it('adds synced activity TSS to yesterday workout load', async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([
+      { id: 'client-1', name: 'Alice' },
+    ] as never)
+    vi.mocked(prisma.trainingLoad.groupBy).mockResolvedValue([
+      { clientId: 'client-1', _sum: { dailyLoad: 20 } },
+    ] as never)
+    vi.mocked(prisma.garminActivity.findMany).mockResolvedValue([
+      {
+        id: 'garmin-1',
+        clientId: 'client-1',
+        startDate: new Date('2026-06-16T08:00:00.000Z'),
+        duration: 1800,
+        distance: 5000,
+        mappedType: 'RUNNING',
+        type: 'RUNNING',
+        tss: 40,
+        trimp: null,
+        averageHeartrate: 150,
+      },
+    ] as never)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      { clientId: 'client-1', acuteLoad: 30, chronicLoad: 40 },
+    ])
+
+    await postCron(buildRequest(`Bearer ${SECRET}`))
+
+    const row = createManyArgs().data[0]
+    expect(row.dailyLoad).toBe(60)
+    expect(row.acuteLoad).toBeCloseTo(42, 0)
+    expect(row.chronicLoad).toBeCloseTo(42, 0)
+    expect(prisma.garminActivity.findMany).toHaveBeenCalled()
+  })
+
+  it('deduplicates same-session synced activities before storing ACWR load', async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([
+      { id: 'client-1', name: 'Alice' },
+    ] as never)
+    vi.mocked(prisma.garminActivity.findMany).mockResolvedValue([
+      {
+        id: 'garmin-1',
+        clientId: 'client-1',
+        startDate: new Date('2026-06-16T08:00:00.000Z'),
+        duration: 1800,
+        distance: 5000,
+        mappedType: 'RUNNING',
+        type: 'RUNNING',
+        tss: 40,
+        trimp: null,
+        averageHeartrate: 150,
+      },
+    ] as never)
+    vi.mocked(prisma.stravaActivity.findMany).mockResolvedValue([
+      {
+        id: 'strava-1',
+        clientId: 'client-1',
+        stravaId: 'external-strava-1',
+        startDate: new Date('2026-06-16T08:02:00.000Z'),
+        movingTime: 1810,
+        distance: 5010,
+        mappedType: 'RUNNING',
+        type: 'Run',
+        tss: 55,
+        trimp: null,
+        averageHeartrate: 151,
+      },
+    ] as never)
+
+    await postCron(buildRequest(`Bearer ${SECRET}`))
+
+    const row = createManyArgs().data[0]
+    expect(row.dailyLoad).toBe(55)
   })
 
   it('seeds EWMA from the daily load when no prior training load exists', async () => {

@@ -31,6 +31,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import {
+  deduplicateActivities,
+  normalizeGarminActivity,
+  normalizeStravaActivity,
+  type NormalizedActivity,
+} from '@/lib/training/activity-deduplication'
 
 export const maxDuration = 300
 
@@ -70,6 +76,119 @@ function calculateEWMA(
   return alpha * newValue + (1 - alpha) * previousEWMA
 }
 
+function startOfUtcDay(date: Date = new Date()): Date {
+  return new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate()
+  ))
+}
+
+async function getSyncedActivityLoadByClient(
+  clientIds: string[],
+  startDate: Date,
+  endDate: Date
+): Promise<Map<string, number>> {
+  if (clientIds.length === 0) {
+    return new Map()
+  }
+
+  const [stravaActivities, garminActivities] = await Promise.all([
+    prisma.stravaActivity.findMany({
+      where: {
+        clientId: { in: clientIds },
+        startDate: { gte: startDate, lt: endDate },
+        tss: { not: null },
+      },
+      select: {
+        id: true,
+        clientId: true,
+        stravaId: true,
+        startDate: true,
+        movingTime: true,
+        distance: true,
+        mappedType: true,
+        type: true,
+        tss: true,
+        trimp: true,
+        averageHeartrate: true,
+      },
+    }),
+    prisma.garminActivity.findMany({
+      where: {
+        clientId: { in: clientIds },
+        startDate: { gte: startDate, lt: endDate },
+        tss: { not: null },
+      },
+      select: {
+        id: true,
+        clientId: true,
+        startDate: true,
+        duration: true,
+        distance: true,
+        mappedType: true,
+        type: true,
+        tss: true,
+        trimp: true,
+        averageHeartrate: true,
+      },
+    }),
+  ])
+
+  const activitiesByClient = new Map<string, NormalizedActivity[]>()
+  const addActivity = (clientId: string, activity: NormalizedActivity) => {
+    const activities = activitiesByClient.get(clientId) ?? []
+    activities.push(activity)
+    activitiesByClient.set(clientId, activities)
+  }
+
+  for (const activity of stravaActivities) {
+    addActivity(
+      activity.clientId,
+      normalizeStravaActivity({
+        id: activity.id,
+        stravaId: activity.stravaId,
+        startDate: activity.startDate,
+        movingTime: activity.movingTime,
+        distance: activity.distance,
+        mappedType: activity.mappedType,
+        type: activity.type,
+        tss: activity.tss,
+        trimp: activity.trimp,
+        averageHeartrate: activity.averageHeartrate,
+      })
+    )
+  }
+
+  for (const activity of garminActivities) {
+    addActivity(
+      activity.clientId,
+      normalizeGarminActivity(
+        {
+          activityId: activity.id,
+          type: activity.type,
+          mappedType: activity.mappedType ?? undefined,
+          duration: activity.duration ?? undefined,
+          distance: activity.distance ?? undefined,
+          tss: activity.tss ?? undefined,
+          avgHR: activity.averageHeartrate ?? undefined,
+          startTimeSeconds: Math.floor(activity.startDate.getTime() / 1000),
+        },
+        activity.startDate
+      )
+    )
+  }
+
+  const loadByClient = new Map<string, number>()
+  for (const [clientId, activities] of activitiesByClient.entries()) {
+    const { deduplicated } = deduplicateActivities(activities)
+    const load = deduplicated.reduce((sum, activity) => sum + (activity.tss ?? 0), 0)
+    loadByClient.set(clientId, load)
+  }
+
+  return loadByClient
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Verify cron secret to prevent unauthorized access (REQUIRED)
@@ -90,8 +209,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('Starting nightly ACWR calculation')
 
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const today = startOfUtcDay()
 
     // Get all active athletes (have training loads or programs)
     const activeAthletes = await prisma.client.findMany({
@@ -99,6 +217,8 @@ export async function POST(request: NextRequest) {
         OR: [
           { trainingLoads: { some: {} } },
           { trainingPrograms: { some: {} } },
+          { garminActivities: { some: {} } },
+          { stravaActivities: { some: {} } },
         ],
       },
       select: { id: true, name: true },
@@ -142,7 +262,7 @@ export async function POST(request: NextRequest) {
     const ids = athletes.map((a) => a.id)
 
     const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1)
 
     // Sum all workout-sourced load entries for yesterday in one grouped
     // query. Rows written by this cron are ACWR_SUMMARY and duplicate the
@@ -162,6 +282,7 @@ export async function POST(request: NextRequest) {
     const loadByClient = new Map(
       loadSums.map((r) => [r.clientId, r._sum.dailyLoad || 0])
     )
+    const syncedLoadByClient = await getSyncedActivityLoadByClient(ids, yesterday, today)
 
     // Most recent ACWR carrier entry per athlete (a plain workout row would
     // reset the moving averages). DISTINCT ON walks the
@@ -177,7 +298,9 @@ export async function POST(request: NextRequest) {
     const previousByClient = new Map(previousEntries.map((r) => [r.clientId, r]))
 
     const rows = athletes.map((athlete) => {
-      const dailyTSS = loadByClient.get(athlete.id) || 0
+      const dailyTSS =
+        (loadByClient.get(athlete.id) || 0) +
+        (syncedLoadByClient.get(athlete.id) || 0)
       const previousEntry = previousByClient.get(athlete.id)
 
       const acuteLoad = calculateEWMA(
