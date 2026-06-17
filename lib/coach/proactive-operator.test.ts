@@ -9,6 +9,8 @@ const stableData: CoachCommandCenterData = {
     reviewCount: 0,
     stableCount: 4,
     activeAlerts: 0,
+    pendingTestReviews: 0,
+    unresolvedPainAlerts: 0,
   },
   queueItems: [],
   recommendations: [],
@@ -21,6 +23,8 @@ const queueData: CoachCommandCenterData = {
     reviewCount: 1,
     stableCount: 3,
     activeAlerts: 0,
+    pendingTestReviews: 0,
+    unresolvedPainAlerts: 0,
   },
   queueItems: [
     {
@@ -44,6 +48,8 @@ const testReviewData: CoachCommandCenterData = {
     reviewCount: 1,
     stableCount: 3,
     activeAlerts: 0,
+    pendingTestReviews: 1,
+    unresolvedPainAlerts: 0,
   },
   queueItems: [
     {

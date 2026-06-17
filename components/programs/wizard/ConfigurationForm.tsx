@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState, useEffect, useMemo } from 'react'
 import { SportType } from '@prisma/client'
 import { useLocale } from 'next-intl'
@@ -258,6 +259,14 @@ export function ConfigurationForm({
     if (!selectedClient?.tests?.length || !watchTestId) return undefined
     return selectedClient.tests.find((test) => test.id === watchTestId)
   }, [selectedClient, watchTestId])
+  const blockedLabTests = useMemo(
+    () => selectedClient?.tests.filter((test) => test.qualityReviewStatus === 'REVIEW_REQUIRED') ?? [],
+    [selectedClient],
+  )
+  const latestDecisionSafeLabTest = useMemo(
+    () => selectedClient?.tests.find((test) => test.qualityReviewStatus !== 'REVIEW_REQUIRED'),
+    [selectedClient],
+  )
 
   const selectedTargetClientIds = useMemo(() => {
     if (watchAssignmentScope === 'TEAM') {
@@ -605,6 +614,27 @@ export function ConfigurationForm({
                       ))}
                     </SelectContent>
                   </Select>
+                  {blockedLabTests.length > 0 && (
+                    <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription>
+                        {latestDecisionSafeLabTest
+                          ? t(
+                              locale,
+                              `Senaste testet väntar på granskning och används inte för program. Välj ett godkänt test från ${format(new Date(latestDecisionSafeLabTest.testDate), 'PPP', { locale: getDateLocale(locale) })} istället.`,
+                              `The latest test is pending review and is not used for programs. Choose the cleared ${format(new Date(latestDecisionSafeLabTest.testDate), 'PPP', { locale: getDateLocale(locale) })} test instead.`
+                            )
+                          : t(
+                              locale,
+                              'Alla tillgängliga tester väntar på granskning och kan inte användas för program ännu.',
+                              'All available tests are pending review and cannot be used for programs yet.'
+                            )}{' '}
+                        <Link href={`${basePath}/tests/review`} className="font-medium underline underline-offset-2">
+                          {t(locale, 'Öppna granskningskö', 'Open review queue')}
+                        </Link>
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   {selectedLabTest?.qualityReviewStatus === 'REVIEW_REQUIRED' && (
                     <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100">
                       <AlertTriangle className="h-4 w-4" />

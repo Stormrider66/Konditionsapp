@@ -322,6 +322,7 @@ export function buildProgramPrompt(context: ProgramContext): string {
   // Recent Test Data
   if (recentTests && recentTests.length > 0) {
     const latestTest = recentTests.find((test) => !testQualityReviewBlocksProgram(test))
+    const reviewBlockedTests = recentTests.filter(testQualityReviewBlocksProgram)
 
     if (latestTest) {
       prompt += `\n## ${t('SENASTE TESTRESULTAT', 'LATEST TEST RESULTS')}\n`
@@ -360,6 +361,13 @@ export function buildProgramPrompt(context: ProgramContext): string {
         for (const zone of latestTest.trainingZones) {
           prompt += `| Z${zone.zone} | ${zone.hrMin}-${zone.hrMax} bpm | ${zone.percentMin}-${zone.percentMax}% | ${zone.effect || ''} |\n`
         }
+      }
+    }
+
+    if (reviewBlockedTests.length > 0) {
+      prompt += `\n### ${t('Testdata exkluderad från programbeslut', 'Test data excluded from program decisions')}\n`
+      for (const test of reviewBlockedTests.slice(0, 3)) {
+        prompt += `- ${formatDate(test.testDate)} ${test.testType}: ${t('väntar på coachgranskning', 'pending coach review')}\n`
       }
     }
   }

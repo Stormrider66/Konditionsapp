@@ -127,6 +127,8 @@ describe('buildProgramPrompt team sport context', () => {
 
     expect(prompt).toContain('LATEST TEST RESULTS')
     expect(prompt).toContain('VO2max**: 55.0')
+    expect(prompt).toContain('Test data excluded from program decisions')
+    expect(prompt).toContain('pending coach review')
     expect(prompt).not.toContain('VO2max**: 99.0')
     expect(prompt).not.toContain('199 bpm')
   })
@@ -162,6 +164,7 @@ describe('buildProgramPrompt team sport context', () => {
     const prompt = buildProgramPrompt(context)
 
     expect(prompt).not.toContain('LATEST TEST RESULTS')
+    expect(prompt).toContain('Test data excluded from program decisions')
     expect(prompt).not.toContain('VO2max**: 99.0')
   })
 

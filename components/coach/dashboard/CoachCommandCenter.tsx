@@ -184,10 +184,11 @@ export function CoachCommandCenter({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               <MetricPill label="Urgent" value={data.summary.urgentCount} tone="risk" compact />
               <MetricPill label="Review" value={data.summary.reviewCount} tone="watch" compact />
-              <MetricPill label="Stable" value={data.summary.stableCount} tone="good" compact />
+              <MetricPill label="Tests" value={data.summary.pendingTestReviews} tone="watch" compact />
+              <MetricPill label="Pain" value={data.summary.unresolvedPainAlerts} tone="risk" compact />
               <MetricPill label="Alerts" value={data.summary.activeAlerts} tone="neutral" compact />
             </div>
             <Button

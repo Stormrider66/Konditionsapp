@@ -47,6 +47,8 @@ export interface CoachCommandCenterData {
     reviewCount: number
     stableCount: number
     activeAlerts: number
+    pendingTestReviews: number
+    unresolvedPainAlerts: number
   }
   queueItems: CommandCenterQueueItem[]
   recommendations: CommandCenterRecommendation[]
@@ -585,6 +587,8 @@ export async function getCoachCommandCenterData({
       reviewCount: reviewClientIds.size,
       stableCount: Math.max(0, clients.length - reviewClientIds.size),
       activeAlerts: activeAlerts.length,
+      pendingTestReviews: reviewRequiredTests.length,
+      unresolvedPainAlerts: activeAlerts.filter(alert => alert.alertType === 'PAIN_MENTION').length,
     },
     queueItems: sortedQueue,
     recommendations,
