@@ -508,6 +508,7 @@ export function ConfigurationForm({
     // Build the context
     const context: ProgramContext = {
       wizardData: wizardFormData,
+      painFollowUps: selectedClient?.painFollowUps,
       hockeySettings: selectedClient?.sportProfile?.hockeySettings ?? undefined,
       footballSettings: selectedClient?.sportProfile?.footballSettings ?? undefined,
       basketballSettings: courtSportSettings.basketballSettings ?? selectedClient?.sportProfile?.basketballSettings ?? undefined,

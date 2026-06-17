@@ -14,6 +14,7 @@ export interface CommandCenterQueueItem {
   id: string
   alertId?: string
   alertStatus?: string
+  alertType?: string
   title: string
   description: string
   priority: CommandCenterPriority
@@ -406,6 +407,7 @@ export async function getCoachCommandCenterData({
       id: `alert-${alert.id}`,
       alertId: alert.id,
       alertStatus: alert.status,
+      alertType: alert.alertType,
       title: alert.title,
       description: alert.message,
       priority: alertPriority[alert.severity] ?? 'medium',

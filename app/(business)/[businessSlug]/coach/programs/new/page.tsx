@@ -149,6 +149,28 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
         take: 5,
         select: hockeyTestSelect,
       },
+      coachAlerts: {
+        where: {
+          alertType: 'PAIN_MENTION',
+          status: { in: ['RESOLVED', 'ACTIONED', 'SNOOZED'] },
+        },
+        orderBy: [
+          { resolvedAt: 'desc' },
+          { actionedAt: 'desc' },
+          { createdAt: 'desc' },
+        ],
+        take: 5,
+        select: {
+          status: true,
+          message: true,
+          resolutionOutcome: true,
+          actionNote: true,
+          followUpAt: true,
+          resolvedAt: true,
+          actionedAt: true,
+          createdAt: true,
+        },
+      },
       // Fetch sport profile for PROFILE data source
       sportProfile: {
         select: {
@@ -205,6 +227,7 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
     position: client.position,
     tests: client.tests,
     hockeyTests: client.hockeyPhysicalTests.map((test) => toHockeyTestOption(test, locale)),
+    painFollowUps: client.coachAlerts,
     sportProfile: client.sportProfile,
   }))
 

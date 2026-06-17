@@ -10,6 +10,7 @@ import { METHODOLOGIES } from './program-prompts'
 import type { FitnessEstimate } from '@/lib/training/fitness-estimation'
 import { buildTeamSportPromptSection } from '@/lib/program-generator/team-sports/prompt-section'
 import { testQualityReviewBlocksProgram } from '@/lib/testing/test-quality-review'
+import { painAlertOutcomeLabel } from '@/lib/coach/pain-alert-outcomes'
 
 // Types for wizard form data
 export interface WizardFormData {
@@ -166,6 +167,17 @@ export interface InjuryData {
   assessmentDate: Date
 }
 
+export interface PainFollowUpData {
+  status: string
+  message: string
+  resolutionOutcome?: string | null
+  actionNote?: string | null
+  followUpAt?: Date | string | null
+  resolvedAt?: Date | string | null
+  actionedAt?: Date | string | null
+  createdAt: Date | string
+}
+
 // Full context for AI
 export interface ProgramContext {
   wizardData: WizardFormData
@@ -174,6 +186,7 @@ export interface ProgramContext {
   recentTests?: TestData[]
   raceResults?: RaceResultData[]
   injuries?: InjuryData[]
+  painFollowUps?: PainFollowUpData[]
   documentIds?: string[]
   fitnessEstimate?: FitnessEstimate  // Fitness level for zone width adjustment
   hockeySettings?: Record<string, unknown> | null
@@ -190,11 +203,11 @@ export interface ProgramContext {
  * Build a comprehensive AI prompt from program context
  */
 export function buildProgramPrompt(context: ProgramContext): string {
-  const { wizardData, athlete, recentTests, raceResults, injuries } = context
+  const { wizardData, athlete, recentTests, raceResults, injuries, painFollowUps } = context
   const locale = context.locale === 'sv' || wizardData.locale === 'sv' ? 'sv' : 'en'
   const outputLanguage = locale === 'sv' ? 'Swedish' : 'English'
   const t = (sv: string, en: string) => (locale === 'sv' ? sv : en)
-  const formatDate = (date: Date) => new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
+  const formatDate = (date: Date | string) => new Date(date).toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-US')
 
   let prompt = locale === 'sv' ? '# PROGRAMFÖRFRÅGAN FÖR AI STUDIO\n\n' : '# PROGRAM REQUEST FOR AI STUDIO\n\n'
   prompt += `IMPORTANT: Generate the finished training program and all athlete-facing copy in ${outputLanguage}.\n\n`
@@ -453,6 +466,21 @@ export function buildProgramPrompt(context: ProgramContext): string {
       for (const injury of activeInjuries) {
         prompt += `- **${injury.injuryType}** (${injury.affectedArea || t('okänt område', 'unknown area')}): `
         prompt += `${t('Smärtnivå', 'Pain level')} ${injury.painLevel}/10, Status: ${injury.status}\n`
+      }
+    }
+  }
+
+  if (painFollowUps && painFollowUps.length > 0) {
+    prompt += `\n## ${t('SENASTE SMÄRTUPPFÖLJNINGAR', 'RECENT PAIN FOLLOW-UPS')}\n`
+    for (const followUp of painFollowUps.slice(0, 5)) {
+      const actionDate = followUp.resolvedAt ?? followUp.actionedAt ?? followUp.createdAt
+      prompt += `- **${formatDate(actionDate)}**: ${painAlertOutcomeLabel(followUp.resolutionOutcome)} (${followUp.status})\n`
+      prompt += `  - ${followUp.message}\n`
+      if (followUp.actionNote) {
+        prompt += `  - ${t('Coachanteckning', 'Coach note')}: ${followUp.actionNote}\n`
+      }
+      if (followUp.followUpAt) {
+        prompt += `  - ${t('Uppföljning', 'Follow-up')}: ${formatDate(followUp.followUpAt)}\n`
       }
     }
   }

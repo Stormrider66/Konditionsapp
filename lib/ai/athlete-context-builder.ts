@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma'
 import { buildVideoAnalysisContext } from '@/lib/ai/sport-context/video-analysis'
 import { testQualityReviewBlocksProgram, usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
+import { painAlertOutcomeLabel } from '@/lib/coach/pain-alert-outcomes'
 import type { VideoAnalysis } from '@/lib/ai/sport-context/types'
 import { SportType, AgentActionStatus } from '@prisma/client'
 
@@ -108,6 +109,18 @@ interface InjuryData {
   painLevel: number
   phase: string | null
   createdAt: Date
+}
+
+interface PainFollowUpData {
+  createdAt: Date
+  status: string
+  message: string
+  resolutionOutcome: string | null
+  actionNote: string | null
+  followUpAt: Date | null
+  resolvedAt: Date | null
+  actionedAt: Date | null
+  snoozedUntil: Date | null
 }
 
 interface TrainingLoadData {
@@ -315,6 +328,32 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
         painLevel: true,
         phase: true,
         createdAt: true,
+      },
+    }),
+
+    // Recent pain follow-ups from coach alert resolution
+    prisma.coachAlert.findMany({
+      where: {
+        clientId,
+        alertType: 'PAIN_MENTION',
+        status: { in: ['RESOLVED', 'ACTIONED', 'SNOOZED'] },
+      },
+      orderBy: [
+        { resolvedAt: 'desc' },
+        { actionedAt: 'desc' },
+        { createdAt: 'desc' },
+      ],
+      take: 5,
+      select: {
+        createdAt: true,
+        status: true,
+        message: true,
+        resolutionOutcome: true,
+        actionNote: true,
+        followUpAt: true,
+        resolvedAt: true,
+        actionedAt: true,
+        snoozedUntil: true,
       },
     }),
 
@@ -575,19 +614,20 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   const activeProgram = v(results[5], null)
   const races = v(results[6], [] as never[])
   const injuries = v(results[7], [] as never[])
-  const stravaActivities = v(results[8], [] as never[])
-  const dailyMetrics = v(results[9], [] as never[])
-  const trainingLoad = v(results[10], null)
-  const strengthSessions = v(results[11], [] as never[])
-  const agentActions = v(results[12], [] as never[])
-  const athleteAccount = v(results[13], null)
-  const totalPlannedWorkouts = v(results[14], 0)
-  const completedWorkouts = v(results[15], 0)
-  const longestStravaRun = v(results[16], null)
-  const recentMeals = v(results[17], [] as never[])
-  const nutritionGoal = v(results[18], null)
-  const dietaryPreferences = v(results[19], null)
-  const videoAnalyses = v(results[20], [] as never[])
+  const painFollowUps = v(results[8], [] as never[])
+  const stravaActivities = v(results[9], [] as never[])
+  const dailyMetrics = v(results[10], [] as never[])
+  const trainingLoad = v(results[11], null)
+  const strengthSessions = v(results[12], [] as never[])
+  const agentActions = v(results[13], [] as never[])
+  const athleteAccount = v(results[14], null)
+  const totalPlannedWorkouts = v(results[15], 0)
+  const completedWorkouts = v(results[16], 0)
+  const longestStravaRun = v(results[17], null)
+  const recentMeals = v(results[18], [] as never[])
+  const nutritionGoal = v(results[19], null)
+  const dietaryPreferences = v(results[20], null)
+  const videoAnalyses = v(results[21], [] as never[])
 
   if (!client) {
     return 'No athlete data found.'
@@ -683,6 +723,10 @@ export async function buildAthleteOwnContext(clientId: string): Promise<string> 
   // Injuries section
   if (injuries.length > 0) {
     context += buildInjuryContext(injuries as InjuryData[], locale)
+  }
+
+  if (painFollowUps.length > 0) {
+    context += buildPainFollowUpContext(painFollowUps as PainFollowUpData[], locale)
   }
 
   // Video/pose findings are important context for linking technique, mobility,
@@ -1085,6 +1129,30 @@ function buildInjuryContext(injuries: InjuryData[], locale: AppLocale = 'en'): s
   }
 
   context += `\n⚠️ *${t(locale, 'Adapt training recommendations based on these injuries.', 'Anpassa träningsrekommendationer baserat på dessa skador.')}*\n`
+
+  return context + '\n'
+}
+
+function buildPainFollowUpContext(followUps: PainFollowUpData[], locale: AppLocale = 'en'): string {
+  let context = `## ${t(locale, 'RECENT PAIN FOLLOW-UPS', 'SENASTE SMÄRTUPPFÖLJNINGAR')}\n`
+
+  for (const followUp of followUps) {
+    const actionDate = followUp.resolvedAt ?? followUp.actionedAt ?? followUp.createdAt
+    context += `- **${formatDate(actionDate, locale)}**: ${painAlertOutcomeLabel(followUp.resolutionOutcome)}`
+    context += ` (${followUp.status})\n`
+    context += `  - ${followUp.message}\n`
+    if (followUp.actionNote) {
+      context += `  - ${t(locale, 'Coach note', 'Coachanteckning')}: ${followUp.actionNote}\n`
+    }
+    if (followUp.followUpAt) {
+      context += `  - ${t(locale, 'Follow-up date', 'Uppföljningsdatum')}: ${formatDate(followUp.followUpAt, locale)}\n`
+    }
+    if (followUp.snoozedUntil && followUp.status === 'SNOOZED') {
+      context += `  - ${t(locale, 'Snoozed until', 'Pausad till')}: ${formatDate(followUp.snoozedUntil, locale)}\n`
+    }
+  }
+
+  context += `\n${t(locale, 'Use these coach decisions when adjusting load, intensity, and recovery.', 'Använd dessa coachbeslut vid justering av belastning, intensitet och återhämtning.')}\n`
 
   return context + '\n'
 }

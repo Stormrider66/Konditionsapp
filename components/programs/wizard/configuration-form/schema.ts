@@ -139,6 +139,16 @@ export interface Client {
     qualityWarningCount?: number
   }[]
   hockeyTests?: HockeyTestOption[]
+  painFollowUps?: Array<{
+    status: string
+    message: string
+    resolutionOutcome?: string | null
+    actionNote?: string | null
+    followUpAt?: Date | string | null
+    resolvedAt?: Date | string | null
+    actionedAt?: Date | string | null
+    createdAt: Date | string
+  }>
   sportProfile?: {
     hockeySettings?: Record<string, unknown> | null
     footballSettings?: Record<string, unknown> | null

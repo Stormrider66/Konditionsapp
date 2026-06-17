@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
 import {
   AlertTriangle,
   ArrowRight,
@@ -24,13 +24,36 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
+import {
   GlassCard,
   GlassCardContent,
   GlassCardDescription,
   GlassCardHeader,
   GlassCardTitle,
 } from '@/components/ui/GlassCard'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { cn } from '@/lib/utils'
+import {
+  painAlertOutcomeLabel,
+  painAlertResolutionOutcomes,
+  type PainAlertResolutionOutcome,
+} from '@/lib/coach/pain-alert-outcomes'
 import {
   filterCommandCenterQueueItems,
   type CoachCommandCenterData,
@@ -42,6 +65,12 @@ import {
 interface CoachCommandCenterProps {
   data: CoachCommandCenterData
   defaultExpanded?: boolean
+}
+
+interface AlertActionPayload {
+  note?: string
+  outcome?: string
+  followUpAt?: string
 }
 
 const priorityConfig: Record<CommandCenterPriority, { label: string; className: string }> = {
@@ -103,7 +132,8 @@ export function CoachCommandCenter({
 
   const updateAlertStatus = async (
     item: CommandCenterQueueItem,
-    action: 'dismiss' | 'resolve' | 'snooze'
+    action: 'dismiss' | 'resolve' | 'snooze',
+    payload: AlertActionPayload = {},
   ) => {
     if (!item.alertId || pendingAlertIds.has(item.alertId)) return
 
@@ -114,7 +144,9 @@ export function CoachCommandCenter({
       const response = await fetch(`/api/coach/alerts/${item.alertId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(action === 'snooze' ? { action, snoozeHours: 24 } : { action }),
+        body: JSON.stringify(action === 'snooze'
+          ? { action, snoozeHours: 24, ...payload }
+          : { action, ...payload }),
       })
 
       if (!response.ok) {
@@ -354,7 +386,11 @@ function QueueRow({
   alertPending,
 }: {
   item: CommandCenterQueueItem
-  onAlertAction: (item: CommandCenterQueueItem, action: 'dismiss' | 'resolve' | 'snooze') => void
+  onAlertAction: (
+    item: CommandCenterQueueItem,
+    action: 'dismiss' | 'resolve' | 'snooze',
+    payload?: AlertActionPayload,
+  ) => void
   alertPending: boolean
 }) {
   const Icon = categoryIcon[item.category]
@@ -389,18 +425,26 @@ function QueueRow({
       <div className="flex shrink-0 items-center gap-2">
         {item.alertId && (
           <div className="flex items-center gap-1">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 text-emerald-700 hover:text-emerald-800 dark:text-emerald-300"
-              onClick={() => onAlertAction(item, 'resolve')}
-              disabled={alertPending}
-              title="Resolve alert"
-              aria-label="Resolve alert"
-            >
-              <CheckCircle2 className="h-4 w-4" />
-            </Button>
+            {item.alertType === 'PAIN_MENTION' ? (
+              <PainResolveDialog
+                item={item}
+                onResolve={onAlertAction}
+                alertPending={alertPending}
+              />
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-emerald-700 hover:text-emerald-800 dark:text-emerald-300"
+                onClick={() => onAlertAction(item, 'resolve')}
+                disabled={alertPending}
+                title="Resolve alert"
+                aria-label="Resolve alert"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -435,5 +479,117 @@ function QueueRow({
         </Link>
       </div>
     </div>
+  )
+}
+
+function PainResolveDialog({
+  item,
+  onResolve,
+  alertPending,
+}: {
+  item: CommandCenterQueueItem
+  onResolve: (
+    item: CommandCenterQueueItem,
+    action: 'resolve',
+    payload?: AlertActionPayload,
+  ) => void
+  alertPending: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [outcome, setOutcome] = useState<PainAlertResolutionOutcome>('MONITOR_NEXT_SESSION')
+  const [note, setNote] = useState('')
+  const [followUpDate, setFollowUpDate] = useState('')
+
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const followUpAt = followUpDate
+      ? new Date(`${followUpDate}T09:00:00`).toISOString()
+      : undefined
+
+    onResolve(item, 'resolve', {
+      outcome,
+      note: note.trim() || undefined,
+      followUpAt,
+    })
+    setOpen(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-emerald-700 hover:text-emerald-800 dark:text-emerald-300"
+          disabled={alertPending}
+          title="Resolve pain alert"
+          aria-label="Resolve pain alert"
+        >
+          <CheckCircle2 className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Resolve pain alert</DialogTitle>
+          <DialogDescription>
+            {item.clientName ? `${item.clientName} · ` : ''}{painAlertOutcomeLabel(outcome)}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={submit} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor={`pain-outcome-${item.id}`}>
+              Outcome
+            </label>
+            <Select
+              value={outcome}
+              onValueChange={(value) => setOutcome(value as PainAlertResolutionOutcome)}
+            >
+              <SelectTrigger id={`pain-outcome-${item.id}`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {painAlertResolutionOutcomes.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor={`pain-follow-up-${item.id}`}>
+              Follow-up date
+            </label>
+            <Input
+              id={`pain-follow-up-${item.id}`}
+              type="date"
+              value={followUpDate}
+              onChange={(event) => setFollowUpDate(event.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium" htmlFor={`pain-note-${item.id}`}>
+              Note
+            </label>
+            <Textarea
+              id={`pain-note-${item.id}`}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              className="min-h-[88px]"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button type="submit" disabled={alertPending} className="gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              Resolve
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

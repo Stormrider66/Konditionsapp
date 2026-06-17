@@ -4,7 +4,7 @@ import { requireCoach, canAccessClient } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Calendar, Clock, TrendingUp, CheckCircle2, XCircle, MessageSquare } from 'lucide-react'
+import { ArrowLeft, Calendar, Clock, TrendingUp, CheckCircle2, XCircle, MessageSquare, HeartPulse } from 'lucide-react'
 import {
   Card,
   CardContent,
@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge'
 import { WorkoutFeedbackModal } from '@/components/coach/WorkoutFeedbackModal'
 import { getLocale, getTranslations } from '@/i18n/server'
 import type { Prisma } from '@prisma/client'
+import { painAlertOutcomeLabel } from '@/lib/coach/pain-alert-outcomes'
 
 interface AthleteLogsPageProps {
   params: Promise<{
@@ -132,6 +133,34 @@ export default async function AthleteLogsPage({
   const filteredLogs = searchParamsResolved.type
     ? logs.filter(log => log.workout.type === searchParamsResolved.type)
     : logs
+
+  const painFollowUps = await prisma.coachAlert.findMany({
+    where: {
+      clientId: id,
+      alertType: 'PAIN_MENTION',
+      status: { in: ['RESOLVED', 'ACTIONED', 'SNOOZED'] },
+    },
+    select: {
+      id: true,
+      title: true,
+      message: true,
+      status: true,
+      contextData: true,
+      resolutionOutcome: true,
+      actionNote: true,
+      followUpAt: true,
+      resolvedAt: true,
+      actionedAt: true,
+      snoozedUntil: true,
+      createdAt: true,
+    },
+    orderBy: [
+      { resolvedAt: 'desc' },
+      { actionedAt: 'desc' },
+      { createdAt: 'desc' },
+    ],
+    take: 8,
+  })
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-7xl">
@@ -253,6 +282,61 @@ export default async function AthleteLogsPage({
           </div>
         </CardContent>
       </Card>
+
+      {painFollowUps.length > 0 && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <HeartPulse className="h-5 w-5 text-rose-600" />
+              Pain follow-ups
+            </CardTitle>
+            <CardDescription>
+              Recent coach actions from athlete pain feedback.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="divide-y rounded-lg border">
+              {painFollowUps.map(alert => {
+                const actionDate = alert.resolvedAt ?? alert.actionedAt ?? alert.createdAt
+                const workoutName = painAlertWorkoutName(alert.contextData)
+
+                return (
+                  <div key={alert.id} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] md:items-start">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold">
+                          {painAlertOutcomeLabel(alert.resolutionOutcome)}
+                        </p>
+                        <Badge variant="outline">{alert.status.toLowerCase()}</Badge>
+                        {workoutName && (
+                          <Badge variant="secondary">{workoutName}</Badge>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {alert.message}
+                      </p>
+                      {alert.actionNote && (
+                        <p className="mt-2 text-sm">
+                          {alert.actionNote}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-left text-xs text-muted-foreground md:text-right">
+                      <p>{actionDate.toLocaleDateString(dateLocale)}</p>
+                      {alert.followUpAt && (
+                        <p>Follow up {alert.followUpAt.toLocaleDateString(dateLocale)}</p>
+                      )}
+                      {alert.snoozedUntil && alert.status === 'SNOOZED' && (
+                        <p>Snoozed until {alert.snoozedUntil.toLocaleDateString(dateLocale)}</p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Logs Table */}
       <Card>
@@ -407,4 +491,10 @@ function getRPEBadgeClass(rpe: number): string {
   if (rpe <= 5) return 'border-yellow-400 text-yellow-700 bg-yellow-50'
   if (rpe <= 7) return 'border-orange-400 text-orange-700 bg-orange-50'
   return 'border-red-400 text-red-700 bg-red-50'
+}
+
+function painAlertWorkoutName(contextData: Prisma.JsonValue | null): string | null {
+  if (!contextData || typeof contextData !== 'object' || Array.isArray(contextData)) return null
+  const workoutName = (contextData as Record<string, Prisma.JsonValue>).workoutName
+  return typeof workoutName === 'string' && workoutName.trim().length > 0 ? workoutName : null
 }

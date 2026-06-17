@@ -785,6 +785,7 @@ export function AIStudioClient({
             recentTests: programContext.recentTests,
             raceResults: programContext.raceResults,
             injuries: programContext.injuries,
+            painFollowUps: programContext.painFollowUps,
             hockeySettings: programContext.hockeySettings ?? programContext.wizardData.hockeySettings,
             footballSettings: programContext.footballSettings ?? programContext.wizardData.footballSettings,
           },

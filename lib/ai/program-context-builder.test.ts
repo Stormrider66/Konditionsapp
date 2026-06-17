@@ -164,4 +164,36 @@ describe('buildProgramPrompt team sport context', () => {
     expect(prompt).not.toContain('LATEST TEST RESULTS')
     expect(prompt).not.toContain('VO2max**: 99.0')
   })
+
+  it('includes recent pain follow-up outcomes in generated prompts', () => {
+    const context: ProgramContext = {
+      wizardData: {
+        sport: 'RUNNING',
+        goal: 'base',
+        dataSource: 'PROFILE',
+        clientId: 'client-1',
+        clientName: 'Alex Runner',
+        durationWeeks: 8,
+        sessionsPerWeek: 4,
+        includeStrength: false,
+      },
+      painFollowUps: [
+        {
+          status: 'RESOLVED',
+          message: 'Alex reported calf pain after intervals.',
+          resolutionOutcome: 'TRAINING_ADJUSTED',
+          actionNote: 'Reduced intensity for the next two sessions.',
+          followUpAt: new Date('2026-06-20T09:00:00.000Z'),
+          resolvedAt: new Date('2026-06-16T10:00:00.000Z'),
+          createdAt: new Date('2026-06-15T10:00:00.000Z'),
+        },
+      ],
+    }
+
+    const prompt = buildProgramPrompt(context)
+
+    expect(prompt).toContain('RECENT PAIN FOLLOW-UPS')
+    expect(prompt).toContain('Adjusted training')
+    expect(prompt).toContain('Reduced intensity for the next two sessions.')
+  })
 })
