@@ -40,7 +40,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, Calendar, Loader2, Clock, ChevronDown, UserCircle, Watch } from 'lucide-react';
+import { Users, Calendar, Loader2, Clock, ChevronDown, UserCircle, Watch, Search, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppointmentSchedulingFields } from '@/components/coach/scheduling/AppointmentSchedulingFields';
 import { getBusinessScopeHeaders } from '@/lib/business-scope-client';
@@ -107,6 +107,7 @@ export function StrengthSessionAssignmentDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const [athletes, setAthletes] = useState<Athlete[]>([]);
   const [selectedAthletes, setSelectedAthletes] = useState<string[]>([]);
+  const [athleteSearch, setAthleteSearch] = useState('');
   const [assignedDate, setAssignedDate] = useState('');
   const [notes, setNotes] = useState('');
   const [pushToGarmin, setPushToGarmin] = useState(false);
@@ -206,6 +207,7 @@ export function StrengthSessionAssignmentDialog({
         // re-entry; both fall back to today / no selection when omitted.
         setSelectedAthletes(defaultAthleteIds ?? []);
         setAssignedDate(defaultDate || new Date().toISOString().split('T')[0]);
+        setAthleteSearch('');
         setNotes('');
         setPushToGarmin(false);
         setSelectedCoach('');
@@ -227,6 +229,40 @@ export function StrengthSessionAssignmentDialog({
     prevBusinessIdRef.current = businessId;
   }, [open, businessId, fetchAthletes, fetchCoaches, defaultDate, defaultAthleteIds]);
 
+  const normalizedAthleteSearch = athleteSearch.trim().toLowerCase();
+  const hasAthleteSearch = normalizedAthleteSearch.length > 0;
+
+  const filteredAthletes = useMemo(() => {
+    if (!normalizedAthleteSearch) return athletes;
+    return athletes.filter((athlete) =>
+      athlete.name.toLowerCase().includes(normalizedAthleteSearch) ||
+      (athlete.email?.toLowerCase().includes(normalizedAthleteSearch) ?? false)
+    );
+  }, [athletes, normalizedAthleteSearch]);
+
+  const selectedAthleteIds = useMemo(() => new Set(selectedAthletes), [selectedAthletes]);
+
+  // "Select all" acts on the currently visible (filtered) athletes so it stays
+  // intuitive while a search is active; selections outside the filter are kept.
+  const allFilteredSelected =
+    filteredAthletes.length > 0 &&
+    filteredAthletes.every((athlete) => selectedAthleteIds.has(athlete.id));
+  const visibleSelectedCount = filteredAthletes.filter((athlete) => selectedAthleteIds.has(athlete.id)).length;
+  const hiddenSelectedCount = hasAthleteSearch
+    ? Math.max(selectedAthletes.length - visibleSelectedCount, 0)
+    : 0;
+  const bulkAthleteActionLabel = allFilteredSelected
+    ? copy(
+      locale,
+      hasAthleteSearch ? 'Clear visible' : 'Clear all',
+      hasAthleteSearch ? 'Avmarkera synliga' : 'Avmarkera alla'
+    )
+    : copy(
+      locale,
+      hasAthleteSearch ? 'Select visible' : 'Select all',
+      hasAthleteSearch ? 'Markera synliga' : 'Markera alla'
+    );
+
   function toggleAthlete(athleteId: string) {
     setSelectedAthletes((prev) =>
       prev.includes(athleteId)
@@ -236,10 +272,11 @@ export function StrengthSessionAssignmentDialog({
   }
 
   function selectAll() {
-    if (selectedAthletes.length === athletes.length) {
-      setSelectedAthletes([]);
+    const filteredIds = filteredAthletes.map((a) => a.id);
+    if (allFilteredSelected) {
+      setSelectedAthletes((prev) => prev.filter((id) => !filteredIds.includes(id)));
     } else {
-      setSelectedAthletes(athletes.map((a) => a.id));
+      setSelectedAthletes((prev) => Array.from(new Set([...prev, ...filteredIds])));
     }
   }
 
@@ -377,12 +414,41 @@ export function StrengthSessionAssignmentDialog({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label>{copy(locale, 'Athletes', 'Atleter')}</Label>
-            <Button variant="ghost" size="sm" onClick={selectAll}>
-              {selectedAthletes.length === athletes.length
-                ? copy(locale, 'Clear all', 'Avmarkera alla')
-                : copy(locale, 'Select all', 'Markera alla')}
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={selectAll}
+              disabled={loadingAthletes || filteredAthletes.length === 0}
+            >
+              {bulkAthleteActionLabel}
             </Button>
           </div>
+
+          {!loadingAthletes && athletes.length > 5 && (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={athleteSearch}
+                onChange={(e) => setAthleteSearch(e.target.value)}
+                placeholder={copy(locale, 'Search name or email...', 'Sök namn eller e-post...')}
+                className="pl-8 pr-8"
+                aria-label={copy(locale, 'Search athlete by name or email', 'Sök atlet via namn eller e-post')}
+              />
+              {athleteSearch && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+                  onClick={() => setAthleteSearch('')}
+                  aria-label={copy(locale, 'Clear athlete search', 'Rensa atletsökning')}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
 
           {loadingAthletes ? (
             <div className="flex items-center justify-center py-8">
@@ -392,17 +458,21 @@ export function StrengthSessionAssignmentDialog({
             <p className="text-sm text-muted-foreground text-center py-4">
               {copy(locale, 'No athletes found. Add athletes first.', 'Inga atleter hittades. Lägg till atleter först.')}
             </p>
+          ) : filteredAthletes.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              {copy(locale, 'No athletes match your search.', 'Inga atleter matchar din sökning.')}
+            </p>
           ) : (
             <ScrollArea className="h-[200px] border rounded-md p-2">
               <div className="space-y-2">
-                {athletes.map((athlete) => (
+                {filteredAthletes.map((athlete) => (
                   <div
                     key={athlete.id}
                     className="flex items-center space-x-3 p-2 hover:bg-muted/50 rounded cursor-pointer"
                     onClick={() => toggleAthlete(athlete.id)}
                   >
                     <Checkbox
-                      checked={selectedAthletes.includes(athlete.id)}
+                      checked={selectedAthleteIds.has(athlete.id)}
                       onCheckedChange={() => toggleAthlete(athlete.id)}
                       onClick={(e) => e.stopPropagation()}
                     />
@@ -420,6 +490,9 @@ export function StrengthSessionAssignmentDialog({
           {selectedAthletes.length > 0 && (
             <p className="text-xs text-muted-foreground">
               {selectedAthletes.length} {copy(locale, 'athlete(s) selected', 'atlet(er) valda')}
+              {hiddenSelectedCount > 0 && (
+                <> {copy(locale, `(${hiddenSelectedCount} outside search)`, `(${hiddenSelectedCount} utanför sökningen)`)}</>
+              )}
             </p>
           )}
         </div>
