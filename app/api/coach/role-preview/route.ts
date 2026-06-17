@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { requireAdminRole } from '@/lib/auth-utils'
+import { hasAdminRole, requireAdminRole } from '@/lib/auth-utils'
 import {
   isPreviewableStaffRole,
   STAFF_ROLE_PREVIEW_COOKIE,
@@ -14,7 +14,10 @@ const COOKIE_OPTIONS = {
 }
 
 export async function GET() {
-  await requireAdminRole(['SUPER_ADMIN'])
+  if (!(await hasAdminRole(['SUPER_ADMIN']))) {
+    return NextResponse.json({ role: null })
+  }
+
   const cookieStore = await cookies()
   const role = cookieStore.get(STAFF_ROLE_PREVIEW_COOKIE)?.value ?? null
 
@@ -23,8 +26,19 @@ export async function GET() {
   })
 }
 
+async function requirePreviewAdmin() {
+  try {
+    await requireAdminRole(['SUPER_ADMIN'])
+    return null
+  } catch {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+}
+
 export async function POST(request: NextRequest) {
-  await requireAdminRole(['SUPER_ADMIN'])
+  const forbidden = await requirePreviewAdmin()
+  if (forbidden) return forbidden
+
   const body = await request.json().catch(() => null)
   const role = body?.role
 
@@ -41,7 +55,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE() {
-  await requireAdminRole(['SUPER_ADMIN'])
+  const forbidden = await requirePreviewAdmin()
+  if (forbidden) return forbidden
+
   const response = NextResponse.json({ role: null })
   response.cookies.set(STAFF_ROLE_PREVIEW_COOKIE, '', {
     ...COOKIE_OPTIONS,

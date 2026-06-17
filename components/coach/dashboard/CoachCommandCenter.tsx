@@ -60,7 +60,7 @@ import {
   type CommandCenterPriority,
   type CommandCenterQueueFilter,
   type CommandCenterQueueItem,
-} from '@/lib/coach/command-center'
+} from '@/lib/coach/command-center-shared'
 
 interface CoachCommandCenterProps {
   data: CoachCommandCenterData

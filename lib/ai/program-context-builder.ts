@@ -9,7 +9,7 @@ import { SportType } from '@prisma/client'
 import { METHODOLOGIES } from './program-prompts'
 import type { FitnessEstimate } from '@/lib/training/fitness-estimation'
 import { buildTeamSportPromptSection } from '@/lib/program-generator/team-sports/prompt-section'
-import { testQualityReviewBlocksProgram } from '@/lib/testing/test-quality-review'
+import { testQualityReviewBlocksProgram } from '@/lib/testing/test-quality-review-core'
 import { painAlertOutcomeLabel } from '@/lib/coach/pain-alert-outcomes'
 
 // Types for wizard form data

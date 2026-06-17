@@ -1,31 +1,23 @@
 import { Prisma } from '@prisma/client'
+import {
+  requiresTestQualityReview,
+  type TestQualityWarning,
+} from '@/lib/testing/test-quality-review-core'
 
-export type TestQualityReviewStatus = 'CLEAR' | 'REVIEW_REQUIRED' | 'APPROVED'
+export type {
+  TestQualityReviewStatus,
+  TestQualityWarning,
+} from '@/lib/testing/test-quality-review-core'
+export {
+  requiresTestQualityReview,
+  testQualityReviewBlocksProgram,
+} from '@/lib/testing/test-quality-review-core'
 
 export interface TestQualityReviewApprovalUpdate {
   qualityReviewStatus: 'APPROVED'
   qualityReviewedBy: string
   qualityReviewedAt: Date
   qualityReviewNote: string | null
-}
-
-export interface TestQualityWarning {
-  type: string
-  severity: string
-  message: string
-  details?: unknown
-}
-
-export function requiresTestQualityReview(warnings: TestQualityWarning[]): boolean {
-  return warnings.some((warning) =>
-    warning.type === 'LACTATE_DROP' ||
-    warning.severity === 'error' ||
-    warning.severity === 'critical'
-  )
-}
-
-export function testQualityReviewBlocksProgram(test: { qualityReviewStatus?: string | null }): boolean {
-  return test.qualityReviewStatus === 'REVIEW_REQUIRED'
 }
 
 export const usableTestQualityReviewWhere = {

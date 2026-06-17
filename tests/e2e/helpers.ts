@@ -72,7 +72,14 @@ export async function login(page: Page, email: string, password: string) {
 export async function loginToPath(page: Page, email: string, password: string, path: string) {
   await login(page, email, password)
   await waitForSupabaseAuthCookie(page)
-  await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  try {
+    await page.goto(path, { waitUntil: 'domcontentloaded', timeout: 120_000 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    if (!message.includes('net::ERR_ABORTED')) {
+      throw error
+    }
+  }
   await expectUrlContains(page, path)
 }
 

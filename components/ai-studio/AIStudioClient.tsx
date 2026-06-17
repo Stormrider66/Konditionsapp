@@ -54,11 +54,13 @@ import {
   BookOpen,
 } from 'lucide-react'
 import {
+  buildProgramPrompt,
+} from '@/lib/ai/program-context-builder'
+import {
   getProgramContext,
   clearProgramContext,
-  buildProgramPrompt,
   type ProgramContext,
-} from '@/lib/ai/program-context-builder'
+} from '@/lib/ai/program-context-storage'
 import { ContextPanel } from './ContextPanel'
 import { ModelSelector } from './ModelSelector'
 import { ChatHistoryPanel } from './ChatHistoryPanel'
