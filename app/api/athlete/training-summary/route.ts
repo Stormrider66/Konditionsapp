@@ -26,11 +26,10 @@ function t(locale: AppLocale, en: string, sv: string): string {
 
 // Helper to get Monday of the current week
 function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
-  d.setDate(diff)
-  d.setHours(0, 0, 0, 0)
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const day = d.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day // Monday
+  d.setUTCDate(d.getUTCDate() + diff)
   return d
 }
 

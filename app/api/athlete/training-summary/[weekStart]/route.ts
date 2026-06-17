@@ -140,8 +140,8 @@ export async function POST(request: NextRequest, context: RouteParams) {
     const summaryId = await saveWeeklySummary(clientId, weekStart)
 
     // Also update the month's summary
-    const month = weekStart.getMonth() + 1
-    const year = weekStart.getFullYear()
+    const month = weekStart.getUTCMonth() + 1
+    const year = weekStart.getUTCFullYear()
     await saveMonthlySummary(clientId, month, year)
 
     // Fetch and return the updated summary

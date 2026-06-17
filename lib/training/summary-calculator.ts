@@ -11,6 +11,7 @@ import { deduplicateActivities } from './activity-deduplication'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { estimateAdHocZoneDistribution } from '@/lib/adhoc-workout/zone-estimation'
+import { processClientActivityZonesForRange } from '@/lib/integrations/zone-distribution-service'
 
 // Types for internal calculations
 interface DailyTrainingData {
@@ -41,23 +42,21 @@ interface ZoneDistributionData {
   totalTrackedSeconds: number
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
 // Helper to get Monday of a week
 function getWeekStart(date: Date): Date {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Monday
-  d.setDate(diff)
-  d.setHours(0, 0, 0, 0)
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const day = d.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setUTCDate(d.getUTCDate() + diff)
   return d
 }
 
 // Helper to get Sunday of a week
 function getWeekEnd(date: Date): Date {
   const monday = getWeekStart(date)
-  const sunday = new Date(monday)
-  sunday.setDate(sunday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-  return sunday
+  return new Date(monday.getTime() + 7 * DAY_MS - 1)
 }
 
 // Get ISO week number
@@ -121,6 +120,8 @@ async function fetchWeeklyTrainingData(
   strengthData: { sets: number; volume: number }
   zoneDistribution: ZoneDistributionData
 }> {
+  await processClientActivityZonesForRange(clientId, weekStart, weekEnd, 100)
+
   // Parallel fetch from all sources
   const [
     trainingLoads,
@@ -471,7 +472,7 @@ export async function calculateWeeklySummary(
 ): Promise<Prisma.WeeklyTrainingSummaryCreateInput> {
   const weekEnd = getWeekEnd(weekStart)
   const weekNumber = getISOWeekNumber(weekStart)
-  const year = weekStart.getFullYear()
+  const year = weekStart.getUTCFullYear()
 
   // Fetch all data
   const {
@@ -655,8 +656,8 @@ export async function calculateMonthlySummary(
   month: number,
   year: number
 ): Promise<Prisma.MonthlyTrainingSummaryCreateInput> {
-  const monthStart = new Date(year, month - 1, 1)
-  const monthEnd = new Date(year, month, 0) // Last day of month
+  const monthStart = new Date(Date.UTC(year, month - 1, 1))
+  const monthEnd = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999)) // Last day of month
 
   // Get all weekly summaries for this month
   const weeklySummaries = await prisma.weeklyTrainingSummary.findMany({
@@ -891,12 +892,12 @@ export async function recalculateAllSummaries(
   }
 
   // Calculate monthly summaries
-  let currentMonth = startDate.getMonth() + 1
-  let currentYear = startDate.getFullYear()
+  let currentMonth = startDate.getUTCMonth() + 1
+  let currentYear = startDate.getUTCFullYear()
 
   while (
-    currentYear < now.getFullYear() ||
-    (currentYear === now.getFullYear() && currentMonth <= now.getMonth() + 1)
+    currentYear < now.getUTCFullYear() ||
+    (currentYear === now.getUTCFullYear() && currentMonth <= now.getUTCMonth() + 1)
   ) {
     await saveMonthlySummary(clientId, currentMonth, currentYear)
     monthsCalculated++
@@ -946,8 +947,8 @@ export async function calculateYearlySummary(
   clientId: string,
   year: number
 ): Promise<Prisma.YearlySummaryCreateInput> {
-  const yearStart = new Date(year, 0, 1)
-  const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999)
+  const yearStart = new Date(Date.UTC(year, 0, 1))
+  const yearEnd = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999))
 
   // Fetch all monthly summaries for the year
   const monthlySummaries = await prisma.monthlyTrainingSummary.findMany({
@@ -1087,7 +1088,7 @@ export async function calculateYearlySummary(
   // Group weekly zones by month
   const monthlyZones: Record<number, { zone1: number; zone2: number; zone3: number; zone4: number; zone5: number }> = {}
   for (const week of weeklySummaries) {
-    const weekMonth = week.weekStart.getMonth() + 1
+    const weekMonth = week.weekStart.getUTCMonth() + 1
     if (!monthlyZones[weekMonth]) {
       monthlyZones[weekMonth] = { zone1: 0, zone2: 0, zone3: 0, zone4: 0, zone5: 0 }
     }

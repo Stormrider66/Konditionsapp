@@ -35,10 +35,10 @@ interface WeeklySummaryAthlete {
 // Helper to get Monday of the previous week
 function getPreviousWeekStart(): Date {
   const now = new Date()
-  const day = now.getDay()
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1) - 7 // Previous Monday
-  const monday = new Date(now.setDate(diff))
-  monday.setHours(0, 0, 0, 0)
+  const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const day = monday.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  monday.setUTCDate(monday.getUTCDate() + diff - 7)
   return monday
 }
 
@@ -223,8 +223,8 @@ export async function POST(request: NextRequest) {
     const summaryId = await saveWeeklySummary(clientId, weekStartDate)
 
     // Also update the month
-    const month = weekStartDate.getMonth() + 1
-    const year = weekStartDate.getFullYear()
+    const month = weekStartDate.getUTCMonth() + 1
+    const year = weekStartDate.getUTCFullYear()
     await saveMonthlySummary(clientId, month, year)
 
     return NextResponse.json({

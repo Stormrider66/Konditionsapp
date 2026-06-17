@@ -407,7 +407,35 @@ export async function processClientActivityZones(
   clientId: string,
   limit: number = 100
 ): Promise<{ processed: number; errors: number }> {
+  return processClientActivityZonesInternal(clientId, { limit })
+}
+
+/**
+ * Process activities in a date range that don't have zone distribution yet.
+ *
+ * This is used by dashboard/summary reads as a small self-healing step for
+ * derived HR-zone rows that may have been missed by webhook processing.
+ */
+export async function processClientActivityZonesForRange(
+  clientId: string,
+  startDate: Date,
+  endDate: Date,
+  limit: number = 100
+): Promise<{ processed: number; errors: number }> {
+  return processClientActivityZonesInternal(clientId, { startDate, endDate, limit })
+}
+
+async function processClientActivityZonesInternal(
+  clientId: string,
+  options: {
+    startDate?: Date
+    endDate?: Date
+    limit?: number
+  } = {}
+): Promise<{ processed: number; errors: number }> {
+  const limit = Math.max(0, options.limit ?? 100)
   const result = { processed: 0, errors: 0 }
+  if (limit === 0) return result
 
   // Get athlete's zones
   const athleteZones = await getAthleteZones(clientId)
@@ -417,11 +445,16 @@ export async function processClientActivityZones(
   }
 
   const { zones, maxHR } = athleteZones
+  const dateWhere =
+    options.startDate && options.endDate
+      ? { gte: options.startDate, lte: options.endDate }
+      : undefined
 
   // Process Strava activities without zone distribution
   const stravaActivities = await prisma.stravaActivity.findMany({
     where: {
       clientId,
+      ...(dateWhere ? { startDate: dateWhere } : {}),
       zoneDistribution: null,
       OR: [
         { hrStreamFetched: true },
@@ -442,10 +475,17 @@ export async function processClientActivityZones(
     }
   }
 
+  const remainingLimit = Math.max(0, limit - result.processed)
+  if (remainingLimit === 0) {
+    logger.info('Processed client activity zones', { clientId, ...result })
+    return result
+  }
+
   // Process Garmin activities without zone distribution
   const garminActivities = await prisma.garminActivity.findMany({
     where: {
       clientId,
+      ...(dateWhere ? { startDate: dateWhere } : {}),
       zoneDistribution: null,
       OR: [
         { hrStreamFetched: true },
@@ -453,7 +493,7 @@ export async function processClientActivityZones(
       ],
     },
     select: { id: true },
-    take: limit - result.processed,
+    take: remainingLimit,
     orderBy: { startDate: 'desc' },
   })
 
@@ -543,6 +583,8 @@ export async function getAggregatedZoneDistribution(
   totalMinutes: number
   activityCount: number
 }> {
+  await processClientActivityZonesForRange(clientId, startDate, endDate, 100)
+
   const [stravaDistributions, garminDistributions, adHocWorkouts, sportProfile] = await Promise.all([
     prisma.activityHRZoneDistribution.findMany({
       where: {

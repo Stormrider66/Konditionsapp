@@ -23,6 +23,16 @@ function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000
+
+function getUtcWeekStart(date: Date, weeksAgo = 0): Date {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()))
+  const day = d.getUTCDay()
+  const diff = day === 0 ? -6 : 1 - day
+  d.setUTCDate(d.getUTCDate() + diff - weeksAgo * 7)
+  return d
+}
+
 export async function GET(request: Request) {
   let locale: AppLocale = resolveRequestLocale(request)
 
@@ -92,25 +102,19 @@ export async function GET(request: Request) {
 
       switch (period) {
         case 'week':
-          // Get Monday of i weeks ago. (getDay() is 0 on Sundays, so the
-          // naive "- getDay() + 1" would put the week start at tomorrow.)
-          startDate = new Date(now)
-          startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7) - i * 7)
-          startDate.setHours(0, 0, 0, 0)
-          endDate = new Date(startDate)
-          endDate.setDate(endDate.getDate() + 6)
-          endDate.setHours(23, 59, 59, 999)
+          startDate = getUtcWeekStart(now, i)
+          endDate = new Date(startDate.getTime() + 7 * DAY_MS - 1)
           break
 
         case 'month':
-          startDate = new Date(now.getFullYear(), now.getMonth() - i, 1)
-          endDate = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999)
+          startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1))
+          endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i + 1, 0, 23, 59, 59, 999))
           break
 
         case 'year':
-          const targetYear = now.getFullYear() - i
-          startDate = new Date(targetYear, 0, 1)
-          endDate = new Date(targetYear, 11, 31, 23, 59, 59, 999)
+          const targetYear = now.getUTCFullYear() - i
+          startDate = new Date(Date.UTC(targetYear, 0, 1))
+          endDate = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999))
           break
 
         case 'custom':
