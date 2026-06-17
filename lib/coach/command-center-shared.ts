@@ -1,5 +1,5 @@
 export type CommandCenterPriority = 'critical' | 'high' | 'medium' | 'low'
-export type CommandCenterQueueFilter = 'all' | 'high' | 'review' | 'injury' | 'testing'
+export type CommandCenterQueueFilter = 'all' | 'high' | 'overdue' | 'review' | 'injury' | 'testing'
 
 export interface CommandCenterQueueItem {
   id: string
@@ -14,6 +14,8 @@ export interface CommandCenterQueueItem {
   href: string
   ctaLabel: string
   meta?: string
+  opsLabel?: string
+  opsTone?: 'overdue' | 'watch' | 'neutral'
 }
 
 export interface CommandCenterRecommendation {
@@ -40,6 +42,7 @@ export interface CoachCommandCenterData {
     activeAlerts: number
     pendingTestReviews: number
     unresolvedPainAlerts: number
+    overdueCount: number
   }
   queueItems: CommandCenterQueueItem[]
   recommendations: CommandCenterRecommendation[]
@@ -52,6 +55,8 @@ export function filterCommandCenterQueueItems(
   switch (filter) {
     case 'high':
       return items.filter(item => item.priority === 'critical' || item.priority === 'high')
+    case 'overdue':
+      return items.filter(item => item.opsTone === 'overdue')
     case 'review':
       return items.filter(item => item.priority === 'medium' || item.category === 'feedback')
     case 'injury':

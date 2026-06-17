@@ -67,6 +67,7 @@ describe('getCoachCommandCenterData', () => {
           clientId: 'client-1',
           testDate: new Date('2026-06-15T00:00:00.000Z'),
           testType: 'RUNNING',
+          updatedAt: new Date('2026-06-15T00:00:00.000Z'),
           qualityWarnings: [
             {
               type: 'LACTATE_DROP',
@@ -117,6 +118,7 @@ describe('getCoachCommandCenterData', () => {
           clientId: 'client-1',
           testDate: new Date('2026-06-15T00:00:00.000Z'),
           testType: 'CYCLING',
+          updatedAt: new Date('2026-06-15T00:00:00.000Z'),
           qualityWarnings: [
             {
               type: 'DATA_ERROR',
@@ -140,21 +142,23 @@ describe('getCoachCommandCenterData', () => {
   })
 
   it('includes due snoozed alerts in the queue query', async () => {
-    mockPrisma.coachAlert.findMany.mockResolvedValue([
-      {
-        id: 'alert-1',
-        alertType: 'PAIN_MENTION',
-        severity: 'HIGH',
-        status: 'SNOOZED',
-        title: 'Post-workout pain',
-        message: 'Avery reported calf pain after intervals.',
-        contextData: null,
-        createdAt: new Date('2026-06-15T12:00:00.000Z'),
-        snoozedUntil: new Date('2026-06-16T08:00:00.000Z'),
-        clientId: 'client-1',
-        client: { name: 'Avery Runner' },
-      },
-    ])
+    mockPrisma.coachAlert.findMany
+      .mockResolvedValueOnce([
+        {
+          id: 'alert-1',
+          alertType: 'PAIN_MENTION',
+          severity: 'HIGH',
+          status: 'SNOOZED',
+          title: 'Post-workout pain',
+          message: 'Avery reported calf pain after intervals.',
+          contextData: null,
+          createdAt: new Date('2026-06-15T12:00:00.000Z'),
+          snoozedUntil: new Date('2026-06-16T08:00:00.000Z'),
+          clientId: 'client-1',
+          client: { name: 'Avery Runner' },
+        },
+      ])
+      .mockResolvedValueOnce([])
     mockPrisma.test.findMany
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
@@ -183,8 +187,99 @@ describe('getCoachCommandCenterData', () => {
         category: 'injury',
         priority: 'high',
         meta: 'snooze ended',
+        opsLabel: 'Snooze due',
+        opsTone: 'watch',
       })
     )
+  })
+
+  it('brings due pain follow-ups back into the coach queue', async () => {
+    mockPrisma.coachAlert.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'resolved-alert-1',
+          alertType: 'PAIN_MENTION',
+          severity: 'MEDIUM',
+          status: 'RESOLVED',
+          title: 'Post-workout pain',
+          message: 'Avery reported calf pain after intervals.',
+          contextData: null,
+          createdAt: new Date('2026-06-10T12:00:00.000Z'),
+          followUpAt: new Date('2026-06-14T09:00:00.000Z'),
+          resolutionOutcome: 'TRAINING_ADJUSTED',
+          clientId: 'client-1',
+          client: { name: 'Avery Runner' },
+        },
+      ])
+    mockPrisma.test.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+
+    const data = await getCoachCommandCenterData(baseParams)
+
+    expect(mockPrisma.coachAlert.findMany).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: expect.objectContaining({
+          alertType: 'PAIN_MENTION',
+          status: { in: ['RESOLVED', 'ACTIONED'] },
+          followUpAt: {
+            gte: new Date('2026-06-02T12:00:00.000Z'),
+            lte: baseParams.now,
+          },
+        }),
+      }),
+    )
+    expect(data.queueItems).toContainEqual(
+      expect.objectContaining({
+        id: 'pain-follow-up-resolved-alert-1',
+        alertId: 'resolved-alert-1',
+        title: 'Pain follow-up due',
+        priority: 'high',
+        category: 'injury',
+        ctaLabel: 'Follow up',
+        meta: 'Adjusted training',
+        opsLabel: '2 days overdue',
+        opsTone: 'overdue',
+      }),
+    )
+    expect(data.summary.overdueCount).toBe(1)
+  })
+
+  it('escalates test reviews that have been waiting several days', async () => {
+    mockPrisma.test.findMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'stale-review-test',
+          clientId: 'client-1',
+          testDate: new Date('2026-06-10T00:00:00.000Z'),
+          testType: 'RUNNING',
+          updatedAt: new Date('2026-06-09T00:00:00.000Z'),
+          qualityWarnings: [
+            {
+              type: 'LACTATE_DROP',
+              severity: 'warning',
+              message: 'Lactate dropped from one stage to the next.',
+            },
+          ],
+          client: { name: 'Avery Runner' },
+        },
+      ])
+
+    const data = await getCoachCommandCenterData(baseParams)
+
+    expect(data.queueItems).toContainEqual(
+      expect.objectContaining({
+        id: 'test-review-stale-review-test',
+        priority: 'critical',
+        opsLabel: '7 days waiting',
+        opsTone: 'overdue',
+      }),
+    )
+    expect(data.summary.urgentCount).toBe(1)
+    expect(data.summary.overdueCount).toBe(1)
   })
 })
 
@@ -217,17 +312,29 @@ describe('filterCommandCenterQueueItems', () => {
       href: '/logs',
       ctaLabel: 'Give feedback',
     },
+    {
+      id: 'overdue-1',
+      title: 'Overdue follow-up',
+      description: 'Follow-up due',
+      priority: 'low',
+      category: 'injury',
+      href: '/athlete',
+      ctaLabel: 'Follow up',
+      opsTone: 'overdue',
+    },
   ]
 
   it('filters queue items by coach inbox mode', () => {
     expect(filterCommandCenterQueueItems(items, 'all').map(item => item.id))
-      .toEqual(['pain-1', 'test-1', 'feedback-1'])
+      .toEqual(['pain-1', 'test-1', 'feedback-1', 'overdue-1'])
     expect(filterCommandCenterQueueItems(items, 'high').map(item => item.id))
       .toEqual(['pain-1'])
+    expect(filterCommandCenterQueueItems(items, 'overdue').map(item => item.id))
+      .toEqual(['overdue-1'])
     expect(filterCommandCenterQueueItems(items, 'review').map(item => item.id))
       .toEqual(['test-1', 'feedback-1'])
     expect(filterCommandCenterQueueItems(items, 'injury').map(item => item.id))
-      .toEqual(['pain-1'])
+      .toEqual(['pain-1', 'overdue-1'])
     expect(filterCommandCenterQueueItems(items, 'testing').map(item => item.id))
       .toEqual(['test-1'])
   })

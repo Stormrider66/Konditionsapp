@@ -11,6 +11,7 @@ const stableData: CoachCommandCenterData = {
     activeAlerts: 0,
     pendingTestReviews: 0,
     unresolvedPainAlerts: 0,
+    overdueCount: 0,
   },
   queueItems: [],
   recommendations: [],
@@ -25,6 +26,7 @@ const queueData: CoachCommandCenterData = {
     activeAlerts: 0,
     pendingTestReviews: 0,
     unresolvedPainAlerts: 0,
+    overdueCount: 0,
   },
   queueItems: [
     {
@@ -50,6 +52,7 @@ const testReviewData: CoachCommandCenterData = {
     activeAlerts: 0,
     pendingTestReviews: 1,
     unresolvedPainAlerts: 0,
+    overdueCount: 0,
   },
   queueItems: [
     {

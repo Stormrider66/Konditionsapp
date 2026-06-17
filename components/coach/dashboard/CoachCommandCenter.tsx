@@ -112,10 +112,17 @@ const evidenceTone = {
 const queueFilterOptions: Array<{ value: CommandCenterQueueFilter; label: string }> = [
   { value: 'all', label: 'All' },
   { value: 'high', label: 'High priority' },
+  { value: 'overdue', label: 'Overdue' },
   { value: 'review', label: 'Needs review' },
   { value: 'injury', label: 'Pain / injury' },
   { value: 'testing', label: 'Testing' },
 ]
+
+const opsToneConfig: Record<NonNullable<CommandCenterQueueItem['opsTone']>, string> = {
+  overdue: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200',
+  watch: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200',
+  neutral: 'border-slate-200 bg-slate-50 text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300',
+}
 
 export function CoachCommandCenter({
   data,
@@ -184,8 +191,9 @@ export function CoachCommandCenter({
           </div>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
               <MetricPill label="Urgent" value={data.summary.urgentCount} tone="risk" compact />
+              <MetricPill label="Overdue" value={data.summary.overdueCount} tone="risk" compact />
               <MetricPill label="Review" value={data.summary.reviewCount} tone="watch" compact />
               <MetricPill label="Tests" value={data.summary.pendingTestReviews} tone="watch" compact />
               <MetricPill label="Pain" value={data.summary.unresolvedPainAlerts} tone="risk" compact />
@@ -411,6 +419,18 @@ function QueueRow({
             <Badge className={cn('border-0 text-[10px]', priority.className)}>
               {priority.label}
             </Badge>
+            {item.opsLabel && (
+              <Badge
+                variant="outline"
+                className={cn(
+                  'gap-1 text-[10px]',
+                  opsToneConfig[item.opsTone ?? 'neutral'],
+                )}
+              >
+                <Clock3 className="h-3 w-3" />
+                {item.opsLabel}
+              </Badge>
+            )}
           </div>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">
             {item.description}

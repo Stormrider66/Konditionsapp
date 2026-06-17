@@ -6,72 +6,22 @@ import {
   subDays,
 } from 'date-fns'
 import { prisma } from '@/lib/prisma'
+import { painAlertOutcomeLabel } from '@/lib/coach/pain-alert-outcomes'
 
-export type CommandCenterPriority = 'critical' | 'high' | 'medium' | 'low'
-export type CommandCenterQueueFilter = 'all' | 'high' | 'review' | 'injury' | 'testing'
-
-export interface CommandCenterQueueItem {
-  id: string
-  alertId?: string
-  alertStatus?: string
-  alertType?: string
-  title: string
-  description: string
-  priority: CommandCenterPriority
-  category: 'readiness' | 'load' | 'injury' | 'feedback' | 'program' | 'testing' | 'alert'
-  clientName?: string
-  href: string
-  ctaLabel: string
-  meta?: string
-}
-
-export interface CommandCenterRecommendation {
-  id: string
-  title: string
-  recommendation: string
-  why: string[]
-  evidence: Array<{
-    label: string
-    value: string
-    tone: 'good' | 'watch' | 'risk' | 'neutral'
-  }>
-  confidence: 'High' | 'Medium' | 'Low'
-  href: string
-  ctaLabel: string
-}
-
-export interface CoachCommandCenterData {
-  summary: {
-    totalClients: number
-    urgentCount: number
-    reviewCount: number
-    stableCount: number
-    activeAlerts: number
-    pendingTestReviews: number
-    unresolvedPainAlerts: number
-  }
-  queueItems: CommandCenterQueueItem[]
-  recommendations: CommandCenterRecommendation[]
-}
-
-export function filterCommandCenterQueueItems(
-  items: CommandCenterQueueItem[],
-  filter: CommandCenterQueueFilter,
-): CommandCenterQueueItem[] {
-  switch (filter) {
-    case 'high':
-      return items.filter(item => item.priority === 'critical' || item.priority === 'high')
-    case 'review':
-      return items.filter(item => item.priority === 'medium' || item.category === 'feedback')
-    case 'injury':
-      return items.filter(item => item.category === 'injury')
-    case 'testing':
-      return items.filter(item => item.category === 'testing')
-    case 'all':
-    default:
-      return items
-  }
-}
+export {
+  filterCommandCenterQueueItems,
+  type CoachCommandCenterData,
+  type CommandCenterPriority,
+  type CommandCenterQueueFilter,
+  type CommandCenterQueueItem,
+  type CommandCenterRecommendation,
+} from '@/lib/coach/command-center-shared'
+import type {
+  CoachCommandCenterData,
+  CommandCenterPriority,
+  CommandCenterQueueItem,
+  CommandCenterRecommendation,
+} from '@/lib/coach/command-center-shared'
 
 interface GetCoachCommandCenterDataParams {
   userId: string
@@ -81,6 +31,13 @@ interface GetCoachCommandCenterDataParams {
   now?: Date
 }
 
+const alertPriority: Record<string, CommandCenterPriority> = {
+  CRITICAL: 'critical',
+  HIGH: 'high',
+  MEDIUM: 'medium',
+  LOW: 'low',
+}
+
 const priorityRank: Record<CommandCenterPriority, number> = {
   critical: 4,
   high: 3,
@@ -88,11 +45,82 @@ const priorityRank: Record<CommandCenterPriority, number> = {
   low: 1,
 }
 
-const alertPriority: Record<string, CommandCenterPriority> = {
-  CRITICAL: 'critical',
-  HIGH: 'high',
-  MEDIUM: 'medium',
-  LOW: 'low',
+function maxPriority(
+  current: CommandCenterPriority,
+  candidate: CommandCenterPriority,
+): CommandCenterPriority {
+  return priorityRank[candidate] > priorityRank[current] ? candidate : current
+}
+
+function ageLabel(ageDays: number, noun: string): string {
+  if (ageDays <= 0) return `${noun} today`
+  if (ageDays === 1) return `1 day ${noun}`
+  return `${ageDays} days ${noun}`
+}
+
+function dueLabel(daysOverdue: number): string {
+  if (daysOverdue <= 0) return 'Due today'
+  if (daysOverdue === 1) return '1 day overdue'
+  return `${daysOverdue} days overdue`
+}
+
+function alertOps(now: Date, createdAt: Date, status: string, alertType: string): {
+  priorityBump?: CommandCenterPriority
+  opsLabel?: string
+  opsTone?: CommandCenterQueueItem['opsTone']
+} {
+  if (status === 'SNOOZED') {
+    return {
+      opsLabel: 'Snooze due',
+      opsTone: 'watch',
+    }
+  }
+
+  const ageDays = differenceInCalendarDays(now, createdAt)
+
+  if (ageDays >= 7) {
+    return {
+      priorityBump: 'critical',
+      opsLabel: ageLabel(ageDays, 'open'),
+      opsTone: 'overdue',
+    }
+  }
+
+  if (ageDays >= 3 || (alertType === 'PAIN_MENTION' && ageDays >= 2)) {
+    return {
+      priorityBump: 'high',
+      opsLabel: ageLabel(ageDays, 'open'),
+      opsTone: 'overdue',
+    }
+  }
+
+  return {}
+}
+
+function testReviewOps(now: Date, updatedAt: Date): {
+  priorityBump?: CommandCenterPriority
+  opsLabel?: string
+  opsTone?: CommandCenterQueueItem['opsTone']
+} {
+  const ageDays = differenceInCalendarDays(now, updatedAt)
+
+  if (ageDays >= 7) {
+    return {
+      priorityBump: 'critical',
+      opsLabel: ageLabel(ageDays, 'waiting'),
+      opsTone: 'overdue',
+    }
+  }
+
+  if (ageDays >= 3) {
+    return {
+      priorityBump: 'high',
+      opsLabel: ageLabel(ageDays, 'waiting'),
+      opsTone: 'overdue',
+    }
+  }
+
+  return {}
 }
 
 function openCoachAlertWhere(now: Date): Prisma.CoachAlertWhereInput {
@@ -176,6 +204,7 @@ export async function getCoachCommandCenterData({
     feedbackLogs,
     weeklySummaries,
     activeAlerts,
+    duePainFollowUps,
     activePrograms,
     recentTests,
     reviewRequiredTests,
@@ -313,12 +342,42 @@ export async function getCoachCommandCenterData({
         message: true,
         contextData: true,
         createdAt: true,
+        followUpAt: true,
         snoozedUntil: true,
         clientId: true,
         client: { select: { name: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: 30,
+    }),
+    prisma.coachAlert.findMany({
+      where: {
+        coachId: userId,
+        alertType: 'PAIN_MENTION',
+        status: { in: ['RESOLVED', 'ACTIONED'] },
+        followUpAt: {
+          gte: subDays(now, 14),
+          lte: now,
+        },
+        client: clientWhere,
+        AND: [unexpiredCoachAlertWhere(now)],
+      },
+      select: {
+        id: true,
+        alertType: true,
+        severity: true,
+        status: true,
+        title: true,
+        message: true,
+        contextData: true,
+        createdAt: true,
+        followUpAt: true,
+        resolutionOutcome: true,
+        clientId: true,
+        client: { select: { name: true } },
+      },
+      orderBy: { followUpAt: 'asc' },
+      take: 20,
     }),
     prisma.trainingProgram.findMany({
       where: {
@@ -365,6 +424,7 @@ export async function getCoachCommandCenterData({
         clientId: true,
         testDate: true,
         testType: true,
+        updatedAt: true,
         qualityWarnings: true,
         client: { select: { name: true } },
       },
@@ -405,6 +465,9 @@ export async function getCoachCommandCenterData({
   const queueItems: CommandCenterQueueItem[] = []
 
   for (const alert of activeAlerts.slice(0, 6)) {
+    const ops = alertOps(now, alert.createdAt, alert.status, alert.alertType)
+    const basePriority = alertPriority[alert.severity] ?? 'medium'
+
     queueItems.push({
       id: `alert-${alert.id}`,
       alertId: alert.id,
@@ -412,7 +475,7 @@ export async function getCoachCommandCenterData({
       alertType: alert.alertType,
       title: alert.title,
       description: alert.message,
-      priority: alertPriority[alert.severity] ?? 'medium',
+      priority: ops.priorityBump ? maxPriority(basePriority, ops.priorityBump) : basePriority,
       category: coachAlertCategory(alert.alertType),
       clientName: alert.client.name,
       href: coachAlertHref(alert, basePath),
@@ -420,16 +483,46 @@ export async function getCoachCommandCenterData({
       meta: alert.status === 'SNOOZED'
         ? 'snooze ended'
         : alert.alertType.replaceAll('_', ' ').toLowerCase(),
+      opsLabel: ops.opsLabel,
+      opsTone: ops.opsTone,
+    })
+  }
+
+  for (const alert of duePainFollowUps.slice(0, 6)) {
+    const daysOverdue = alert.followUpAt
+      ? differenceInCalendarDays(now, alert.followUpAt)
+      : 0
+
+    queueItems.push({
+      id: `pain-follow-up-${alert.id}`,
+      alertId: alert.id,
+      alertStatus: alert.status,
+      alertType: alert.alertType,
+      title: 'Pain follow-up due',
+      description: `${alert.client.name} has a pain follow-up due from a resolved post-workout alert.`,
+      priority: daysOverdue >= 2 ? 'high' : 'medium',
+      category: 'injury',
+      clientName: alert.client.name,
+      href: coachAlertHref(alert, basePath),
+      ctaLabel: 'Follow up',
+      meta: painAlertOutcomeLabel(alert.resolutionOutcome),
+      opsLabel: dueLabel(daysOverdue),
+      opsTone: daysOverdue > 0 ? 'overdue' : 'watch',
     })
   }
 
   for (const test of reviewRequiredTests.slice(0, 6)) {
     const warningCount = countJsonSignal(test.qualityWarnings)
+    const ops = testReviewOps(now, test.updatedAt)
+    const basePriority: CommandCenterPriority = hasCriticalQualityWarning(test.qualityWarnings) || warningCount > 1
+      ? 'high'
+      : 'medium'
+
     queueItems.push({
       id: `test-review-${test.id}`,
       title: 'Test data needs review',
       description: `${test.client.name}'s ${test.testType.toLowerCase()} test needs coach approval before it can be used for program decisions.`,
-      priority: hasCriticalQualityWarning(test.qualityWarnings) || warningCount > 1 ? 'high' : 'medium',
+      priority: ops.priorityBump ? maxPriority(basePriority, ops.priorityBump) : basePriority,
       category: 'testing',
       clientName: test.client.name,
       href: `${basePath}/coach/tests/${test.id}#quality-review`,
@@ -437,6 +530,8 @@ export async function getCoachCommandCenterData({
       meta: warningCount > 0
         ? `${warningCount} quality ${warningCount === 1 ? 'warning' : 'warnings'}`
         : 'Quality review required',
+      opsLabel: ops.opsLabel,
+      opsTone: ops.opsTone,
     })
   }
 
@@ -578,6 +673,7 @@ export async function getCoachCommandCenterData({
   })
 
   const urgentCount = sortedQueue.filter(item => item.priority === 'critical' || item.priority === 'high').length
+  const overdueCount = sortedQueue.filter(item => item.opsTone === 'overdue').length
   const reviewClientIds = new Set(sortedQueue.map(item => item.clientName).filter(Boolean))
 
   return {
@@ -589,6 +685,7 @@ export async function getCoachCommandCenterData({
       activeAlerts: activeAlerts.length,
       pendingTestReviews: reviewRequiredTests.length,
       unresolvedPainAlerts: activeAlerts.filter(alert => alert.alertType === 'PAIN_MENTION').length,
+      overdueCount,
     },
     queueItems: sortedQueue,
     recommendations,
