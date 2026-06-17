@@ -169,16 +169,22 @@ function coachAlertHref(alert: {
     return `${basePath}/coach/athletes/${alert.clientId}/logs`
   }
 
+  if (alert.alertType === 'COACH_OPS_OVERDUE') {
+    return `${basePath}/coach/clients/${alert.clientId}`
+  }
+
   return `${basePath}/coach/clients/${alert.clientId}`
 }
 
 function coachAlertCtaLabel(alertType: string): string {
   if (alertType === 'PAIN_MENTION') return 'Review pain'
+  if (alertType === 'COACH_OPS_OVERDUE') return 'Review overdue'
   return isQuickErgAlertType(alertType) ? 'Open session' : 'Review athlete'
 }
 
 function coachAlertCategory(alertType: string): CommandCenterQueueItem['category'] {
   if (alertType === 'PAIN_MENTION') return 'injury'
+  if (alertType === 'COACH_OPS_OVERDUE') return 'alert'
   return 'alert'
 }
 

@@ -9,6 +9,7 @@
  * - MISSED_WORKOUTS: Past due assignments not completed
  * - PAIN_MENTION: Recent injury mentions in AI conversations
  * - HIGH_ACWR: Training load ratio > 1.5
+ * - COACH_OPS_OVERDUE: Existing pain/test-review work is overdue
  *
  * Processed in bounded, paged batches to avoid sweeping the full
  * athlete population serially in a single request.
@@ -27,7 +28,13 @@ const DEFAULT_PAGE_SIZE = 200
 const DEFAULT_CONCURRENCY = 6
 const DEFAULT_EXECUTION_BUDGET_MS = 4 * 60 * 1000
 
-type AlertType = 'READINESS_DROP' | 'MISSED_CHECKINS' | 'MISSED_WORKOUTS' | 'PAIN_MENTION' | 'HIGH_ACWR'
+type AlertType =
+  | 'READINESS_DROP'
+  | 'MISSED_CHECKINS'
+  | 'MISSED_WORKOUTS'
+  | 'PAIN_MENTION'
+  | 'HIGH_ACWR'
+  | 'COACH_OPS_OVERDUE'
 type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 type AppLocale = 'en' | 'sv'
 
@@ -108,6 +115,7 @@ export async function POST(request: NextRequest) {
       MISSED_WORKOUTS: 0,
       PAIN_MENTION: 0,
       HIGH_ACWR: 0,
+      COACH_OPS_OVERDUE: 0,
     } satisfies Record<AlertType, number>,
     exhausted: false,
     timedOut: false,
@@ -249,6 +257,9 @@ async function processAlertCandidate(
     const acwrAlert = await checkHighACWR(athlete.userId, athlete.id, athlete.name, locale)
     if (acwrAlert) alerts.push(acwrAlert)
 
+    const overdueOpsAlert = await checkCoachOpsOverdue(athlete.userId, athlete.id, athlete.name, locale)
+    if (overdueOpsAlert) alerts.push(overdueOpsAlert)
+
     let alertsCreated = 0
     const byType: Record<AlertType, number> = {
       READINESS_DROP: 0,
@@ -256,6 +267,7 @@ async function processAlertCandidate(
       MISSED_WORKOUTS: 0,
       PAIN_MENTION: 0,
       HIGH_ACWR: 0,
+      COACH_OPS_OVERDUE: 0,
     }
 
     for (const alert of alerts) {
@@ -595,21 +607,142 @@ async function checkHighACWR(
 }
 
 /**
+ * Create a lightweight coach notification when existing queue work is aging.
+ *
+ * The command center already shows the source items; this alert is the nudge
+ * that makes overdue operations hard to miss between dashboard visits.
+ */
+async function checkCoachOpsOverdue(
+  coachId: string,
+  clientId: string,
+  clientName: string,
+  locale: AppLocale
+): Promise<AlertData | null> {
+  const now = new Date()
+  const twoDaysAgo = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000)
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000)
+  const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000)
+
+  const [oldPainAlerts, duePainFollowUps, staleTestReviews] = await Promise.all([
+    prisma.coachAlert.findMany({
+      where: {
+        coachId,
+        clientId,
+        alertType: 'PAIN_MENTION',
+        status: 'ACTIVE',
+        createdAt: { lte: twoDaysAgo },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
+      },
+      select: { id: true, createdAt: true },
+      take: 5,
+      orderBy: { createdAt: 'asc' },
+    }),
+    prisma.coachAlert.findMany({
+      where: {
+        coachId,
+        clientId,
+        alertType: 'PAIN_MENTION',
+        status: { in: ['RESOLVED', 'ACTIONED'] },
+        followUpAt: {
+          gte: fourteenDaysAgo,
+          lte: now,
+        },
+        OR: [
+          { expiresAt: null },
+          { expiresAt: { gt: now } },
+        ],
+      },
+      select: { id: true, followUpAt: true },
+      take: 5,
+      orderBy: { followUpAt: 'asc' },
+    }),
+    prisma.test.findMany({
+      where: {
+        clientId,
+        status: 'COMPLETED',
+        qualityReviewStatus: 'REVIEW_REQUIRED',
+        updatedAt: { lte: threeDaysAgo },
+      },
+      select: {
+        id: true,
+        testType: true,
+        updatedAt: true,
+      },
+      take: 5,
+      orderBy: { updatedAt: 'asc' },
+    }),
+  ])
+
+  const totalOverdue = oldPainAlerts.length + duePainFollowUps.length + staleTestReviews.length
+  if (totalOverdue === 0) return null
+
+  const parts = [
+    oldPainAlerts.length > 0
+      ? t(locale, `${oldPainAlerts.length} unresolved pain alert`, `${oldPainAlerts.length} olöst smärtvarning`)
+      : null,
+    duePainFollowUps.length > 0
+      ? t(locale, `${duePainFollowUps.length} pain follow-up due`, `${duePainFollowUps.length} smärtuppföljning förfallen`)
+      : null,
+    staleTestReviews.length > 0
+      ? t(locale, `${staleTestReviews.length} test review waiting`, `${staleTestReviews.length} testgranskning väntar`)
+      : null,
+  ].filter(Boolean)
+
+  const severity: Severity = totalOverdue >= 2 || oldPainAlerts.length > 0 ? 'HIGH' : 'MEDIUM'
+
+  return {
+    coachId,
+    clientId,
+    alertType: 'COACH_OPS_OVERDUE',
+    severity,
+    title: t(locale, `${clientName}: Overdue coach follow-up`, `${clientName}: Förfallen coachuppföljning`),
+    message: t(
+      locale,
+      `${clientName} has overdue coach work: ${parts.join(', ')}. Review the command center before making new program decisions.`,
+      `${clientName} har förfallet coacharbete: ${parts.join(', ')}. Gå igenom kommandocentret innan nya programbeslut.`
+    ),
+    contextData: {
+      oldPainAlertIds: oldPainAlerts.map(alert => alert.id),
+      duePainFollowUpIds: duePainFollowUps.map(alert => alert.id),
+      staleTestReviewIds: staleTestReviews.map(test => test.id),
+      generatedAt: now.toISOString(),
+    },
+    sourceId: `coach_ops_overdue:${clientId}`,
+    expiresAt: new Date(now.getTime() + 30 * 60 * 60 * 1000),
+  }
+}
+
+/**
  * Create alert if one doesn't already exist for the same type/client today
  */
 async function createAlertIfNotExists(alert: AlertData): Promise<boolean> {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const now = new Date()
 
   const existing = await prisma.coachAlert.findFirst({
-    where: {
-      coachId: alert.coachId,
-      clientId: alert.clientId,
-      alertType: alert.alertType,
-      status: 'ACTIVE',
-      createdAt: { gte: today },
-      ...(alert.sourceId ? { sourceId: alert.sourceId } : {}),
-    },
+    where: alert.sourceId
+      ? {
+          coachId: alert.coachId,
+          clientId: alert.clientId,
+          alertType: alert.alertType,
+          sourceId: alert.sourceId,
+          status: { in: ['ACTIVE', 'SNOOZED', 'ACTIONED'] },
+          OR: [
+            { expiresAt: null },
+            { expiresAt: { gt: now } },
+          ],
+        }
+      : {
+          coachId: alert.coachId,
+          clientId: alert.clientId,
+          alertType: alert.alertType,
+          status: 'ACTIVE',
+          createdAt: { gte: today },
+        },
   })
 
   if (existing) return false
