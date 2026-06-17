@@ -34,6 +34,7 @@ import {
   confirmFutureCompletion,
   readFutureCompletionWarning,
 } from '@/lib/workouts/future-completion-client'
+import { useScreenWakeLock } from '@/hooks/use-screen-wake-lock'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { getExerciseDisplayName } from '@/lib/exercises/display-name'
 
@@ -251,6 +252,7 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
   const [showComplete, setShowComplete] = useState(false)
   const [sessionRpe, setSessionRpe] = useState(7)
   const [isCompleting, setIsCompleting] = useState(false)
+  const { isActive: screenAwake } = useScreenWakeLock()
 
   // PR suggestion. Set after a logged set's estimated 1RM beats the
   // athlete's stored max for the active stage's exercise. Banner asks
@@ -619,6 +621,12 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
           <span className="text-sm font-medium truncate">{workoutName}</span>
         </div>
         <div className="flex items-center gap-3">
+          {screenAwake && (
+            <Badge variant="outline" className="gap-1 text-xs">
+              <ShieldCheck className="h-3 w-3" />
+              <span className="hidden sm:inline">{locale === 'sv' ? 'Skarm aktiv' : 'Screen awake'}</span>
+            </Badge>
+          )}
           <span className="text-xs text-muted-foreground">
             {progress.percentComplete}%
           </span>

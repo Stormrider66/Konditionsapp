@@ -35,6 +35,7 @@ import {
   Bluetooth,
   Gauge,
   Heart,
+  ShieldCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -57,6 +58,7 @@ import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
 import { useHeartRateBand } from '@/hooks/use-heart-rate-band'
 import { useLivePowerPush } from '@/hooks/use-live-power-push'
+import { useScreenWakeLock } from '@/hooks/use-screen-wake-lock'
 import { WattbikeClient } from '@/lib/integrations/wattbike'
 import { ErgMachinePanel, ergEquipmentLabel } from './ErgMachinePanel'
 import { ZONE_COLORS, type LiveHRMachineType } from '@/lib/live-hr/types'
@@ -184,6 +186,7 @@ export function CardioFocusModeWorkout({
   const [sessionNotes, _setSessionNotes] = useState('')
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const { isActive: screenAwake } = useScreenWakeLock()
   // A fresh power workout opens on a machine-connection screen instead of the
   // first timer, so every erg is connected BEFORE the clock starts. Resumed
   // sessions and non-power workouts go straight to the timer as before.
@@ -843,6 +846,12 @@ export function CardioFocusModeWorkout({
           </p>
         </div>
         <div className="flex items-center gap-1">
+          {screenAwake && (
+            <Badge variant="outline" className="gap-1 text-xs">
+              <ShieldCheck className="h-3 w-3" />
+              <span className="hidden sm:inline">{tw('Skarm aktiv', 'Screen awake')}</span>
+            </Badge>
+          )}
           {/* Live AI Voice Coach */}
           {liveCoach.supported && (
             <LiveVoiceCoachButton

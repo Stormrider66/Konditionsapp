@@ -23,6 +23,7 @@ import { toast } from 'sonner'
 
 import { useHeartRateBand } from '@/hooks/use-heart-rate-band'
 import { useRunGps } from '@/hooks/use-run-gps'
+import { useScreenWakeLock } from '@/hooks/use-screen-wake-lock'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -99,11 +100,12 @@ export function OutdoorRunCapture() {
   const [rpe, setRpe] = useState('')
   const [notes, setNotes] = useState('')
   const hasDraft = useSyncExternalStore(subscribeDraftSnapshot, getDraftSnapshot, () => false)
-  const [wakeLockActive, setWakeLockActive] = useState(false)
+  const { isActive: wakeLockActive, release: releaseWakeLock } = useScreenWakeLock({
+    enabled: phase === 'recording',
+  })
 
   const samplesRef = useRef<PhoneRunRawSample[]>([])
   const bpmRef = useRef<number | null>(null)
-  const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null)
 
   const hr = useHeartRateBand((bpm) => {
     bpmRef.current = bpm
@@ -140,30 +142,6 @@ export function OutdoorRunCapture() {
     return () => window.clearInterval(id)
   }, [phase, startedAt])
 
-  const releaseWakeLock = useCallback(async () => {
-    const lock = wakeLockRef.current
-    wakeLockRef.current = null
-    setWakeLockActive(false)
-    if (lock) {
-      await lock.release().catch(() => {})
-    }
-  }, [])
-
-  const requestWakeLock = useCallback(async () => {
-    const wakeLock = typeof navigator !== 'undefined'
-      ? (navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock
-      : undefined
-
-    if (!wakeLock) return
-
-    try {
-      wakeLockRef.current = await wakeLock.request('screen')
-      setWakeLockActive(true)
-    } catch {
-      setWakeLockActive(false)
-    }
-  }, [])
-
   useEffect(() => {
     return () => {
       stopGps()
@@ -171,7 +149,7 @@ export function OutdoorRunCapture() {
     }
   }, [releaseWakeLock, stopGps])
 
-  const beginRun = useCallback(async () => {
+  const beginRun = useCallback(() => {
     const now = new Date()
     samplesRef.current = []
     setSamples([])
@@ -182,8 +160,7 @@ export function OutdoorRunCapture() {
     setNotes('')
     setPhase('recording')
     startGps(now, () => bpmRef.current)
-    await requestWakeLock()
-  }, [requestWakeLock, startGps])
+  }, [startGps])
 
   const stopRun = useCallback(async () => {
     stopGps()

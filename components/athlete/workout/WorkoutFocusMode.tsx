@@ -32,6 +32,7 @@ import {
   Loader2,
   Info,
   Play,
+  ShieldCheck,
 } from 'lucide-react'
 import { SetLoggingForm, SetLogData } from './SetLoggingForm'
 import { RestTimer } from './RestTimer'
@@ -40,6 +41,7 @@ import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
 import { Player } from '@remotion/player'
 import { ExerciseAnimation } from '@/remotion/exercises/ExerciseAnimation'
 import { useToast } from '@/hooks/use-toast'
+import { useScreenWakeLock } from '@/hooks/use-screen-wake-lock'
 import { emitWorkoutLogged } from '@/lib/events/workout-events'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { getExerciseDisplayName } from '@/lib/exercises/display-name'
@@ -158,6 +160,7 @@ export function WorkoutFocusMode({
   const [sessionRPE, setSessionRPE] = useState<number>(7)
   const [restTime, setRestTime] = useState(90)
   const [workoutLogId, setWorkoutLogId] = useState<string | undefined>(existingLogId)
+  const { isActive: screenAwake } = useScreenWakeLock()
 
   // Current exercise
   const currentExercise = useMemo(
@@ -354,13 +357,21 @@ export function WorkoutFocusMode({
             {t(sectionConfig.labelKey)}
           </Badge>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowCompleteDialog(true)}
-        >
-          {t('actions.finish')}
-        </Button>
+        <div className="flex items-center gap-1">
+          {screenAwake && (
+            <Badge variant="outline" className="gap-1 text-xs">
+              <ShieldCheck className="h-3 w-3" />
+              <span className="hidden sm:inline">{locale === 'sv' ? 'Skarm aktiv' : 'Screen awake'}</span>
+            </Badge>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCompleteDialog(true)}
+          >
+            {t('actions.finish')}
+          </Button>
+        </div>
       </header>
 
       {/* Progress bar */}

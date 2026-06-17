@@ -40,6 +40,7 @@ import { SetLoggingForm, SetLogData } from './SetLoggingForm'
 import { RestTimer } from './RestTimer'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
+import { useScreenWakeLock } from '@/hooks/use-screen-wake-lock'
 import { LiveVoiceCoachButton } from '@/components/athlete/cardio/LiveVoiceCoachButton'
 import { ExerciseImage } from '@/components/themed/ExerciseImage'
 import { ExerciseHeader } from '@/components/themed/ExerciseHeader'
@@ -187,6 +188,7 @@ export function FocusModeWorkout({
   const [isCompleting, setIsCompleting] = useState(false)
   const [sessionRPE, setSessionRPE] = useState<number>(7)
   const [restTime, setRestTime] = useState(90)
+  const { isActive: screenAwake } = useScreenWakeLock()
 
   // Live AI Voice Coach
   const liveCoachConnectedRef = useRef(false)
@@ -455,6 +457,12 @@ export function FocusModeWorkout({
           </Badge>
         </div>
         <div className="flex items-center gap-1">
+          {screenAwake && (
+            <Badge variant="outline" className="gap-1 text-xs">
+              <ShieldCheck className="h-3 w-3" />
+              <span className="hidden sm:inline">{locale === 'sv' ? 'Skarm aktiv' : 'Screen awake'}</span>
+            </Badge>
+          )}
           {liveCoach.supported && (
             <LiveVoiceCoachButton
               status={liveCoach.status}
