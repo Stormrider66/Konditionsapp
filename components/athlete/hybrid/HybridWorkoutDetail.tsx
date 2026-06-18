@@ -49,7 +49,7 @@ import {
   StopCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { WorkoutTimer } from './WorkoutTimer';
+import { WorkoutTimer, type TimerSegment } from './WorkoutTimer';
 import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider';
 import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions';
 import {
@@ -58,6 +58,7 @@ import {
 } from '@/lib/workouts/future-completion-client';
 import { useLocale, useTranslations } from '@/i18n/client';
 import { getExerciseDisplayName } from '@/lib/exercises/display-name';
+import type { HybridMetconBlock, HybridMetconBlockMovement, HybridMetconData } from '@/types';
 
 interface HybridMovement {
   id: string;
@@ -95,6 +96,7 @@ interface HybridWorkout {
   isBenchmark: boolean;
   benchmarkSource?: string | null;
   tags: string[];
+  metconData?: HybridMetconData | null;
   movements: HybridMovement[];
   results: HybridWorkoutResult[];
 }
@@ -172,6 +174,104 @@ function getTimerMode(format: string): 'FOR_TIME' | 'AMRAP' | 'EMOM' | 'TABATA' 
   }
 }
 
+function parseDurationFromNotes(notes?: string | null): number | null {
+  if (!notes) return null;
+
+  const minuteMatch = notes.match(/(\d+(?:[,.]\d+)?)\s*(?:min|minutes?|minuter)\b/i);
+  if (minuteMatch) {
+    return Math.round(parseFloat(minuteMatch[1].replace(',', '.')) * 60);
+  }
+
+  const secondMatch = notes.match(/(\d+(?:[,.]\d+)?)\s*(?:s|sec|secs|seconds?|sek|sekunder)\b/i);
+  if (secondMatch) {
+    return Math.round(parseFloat(secondMatch[1].replace(',', '.')));
+  }
+
+  return null;
+}
+
+function getBlockDurationSeconds(block: HybridMetconBlock): number {
+  const rounds = block.rounds ?? 1;
+  const noteDuration = block.format !== 'EMOM' && rounds <= 1 ? parseDurationFromNotes(block.notes) : null;
+
+  if (noteDuration && noteDuration > 0) return noteDuration;
+  if (block.intervalSeconds && block.intervalSeconds > 0) return block.intervalSeconds;
+  if (block.workSeconds && block.restSeconds) return block.workSeconds + block.restSeconds;
+  if (block.workSeconds && block.workSeconds > 0) return block.workSeconds;
+
+  const movementDuration = Math.max(...block.movements.map((movement) => movement.duration ?? 0), 0);
+  return movementDuration > 0 ? movementDuration : 60;
+}
+
+function formatMetconMovement(movement: HybridMetconBlockMovement): string {
+  const prescription: string[] = [];
+
+  if (movement.reps) prescription.push(`${movement.reps} reps`);
+  if (movement.calories) prescription.push(`${movement.calories} cal`);
+  if (movement.distance) prescription.push(`${movement.distance}m`);
+  if (movement.duration) {
+    const mins = Math.floor(movement.duration / 60);
+    const secs = movement.duration % 60;
+    prescription.push(mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`);
+  }
+
+  const weight =
+    movement.weightMale && movement.weightFemale
+      ? `${movement.weightMale}/${movement.weightFemale}kg`
+      : movement.weightMale
+        ? `${movement.weightMale}kg`
+        : movement.weightFemale
+          ? `${movement.weightFemale}kg`
+          : null;
+
+  return [movement.exerciseName, prescription.join(' '), weight ? `@ ${weight}` : null]
+    .filter(Boolean)
+    .join(' ');
+}
+
+function buildTimerSegments(
+  metconData: HybridMetconData | null | undefined,
+  t: ReturnType<typeof useTranslations>
+): TimerSegment[] {
+  if (!metconData?.blocks?.length) return [];
+
+  return metconData.blocks.flatMap((block, blockIndex) => {
+    const blockTitle = block.title || t('timerPlan.block', { number: blockIndex + 1 });
+    const rounds = Math.max(1, block.rounds ?? 1);
+    const durationSeconds = getBlockDurationSeconds(block);
+    const movements = [...block.movements]
+      .sort((a, b) => a.order - b.order)
+      .map(formatMetconMovement);
+    const blockSegments: TimerSegment[] = Array.from({ length: rounds }, (_, roundIndex) => ({
+      id: `${block.id}-round-${roundIndex + 1}`,
+      type: 'work',
+      title: rounds > 1
+        ? t('timerPlan.roundTitle', {
+            block: blockTitle,
+            round: roundIndex + 1,
+            total: rounds,
+          })
+        : blockTitle,
+      durationSeconds,
+      blockTitle,
+      movements,
+      notes: block.notes ?? undefined,
+    }));
+
+    if (block.restAfterSeconds && block.restAfterSeconds > 0) {
+      blockSegments.push({
+        id: `${block.id}-rest-after`,
+        type: 'rest',
+        title: t('timerPlan.restAfter', { block: blockTitle }),
+        durationSeconds: block.restAfterSeconds,
+        blockTitle,
+      });
+    }
+
+    return blockSegments;
+  });
+}
+
 export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath = '' }: HybridWorkoutDetailProps) {
   const t = useTranslations('components.hybridWorkoutDetail');
   const locale = useLocale();
@@ -180,6 +280,11 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
   const [isTimerOpen, setIsTimerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('workout');
   const [timerResult, setTimerResult] = useState<number | null>(null);
+  const timerSegments = buildTimerSegments(workout.metconData, t);
+  const timerPlanTotalMinutes = timerSegments.length
+    ? Math.ceil(timerSegments.reduce((sum, segment) => sum + segment.durationSeconds, 0) / 60)
+    : null;
+  const displayTotalMinutes = timerPlanTotalMinutes ?? workout.totalMinutes;
 
   // Handle timer completion - capture time and open logging form
   const handleTimerComplete = (finalTimeMs: number) => {
@@ -219,7 +324,7 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                 <span className="hidden sm:inline">{t('actions.timer')}</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-lg">
               <DialogHeader>
                 <DialogTitle>{t('timerDialog.title', { name: workout.name })}</DialogTitle>
                 <DialogDescription>
@@ -237,9 +342,10 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                 restSeconds={workout.restTime || 10}
                 rounds={
                   workout.format === 'EMOM'
-                    ? workout.totalMinutes || 10
+                    ? workout.totalRounds || workout.totalMinutes || 10
                     : workout.totalRounds || 8
                 }
+                segments={timerSegments}
                 onComplete={handleTimerComplete}
               />
             </DialogContent>
@@ -331,10 +437,10 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
                 )}
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  {workout.totalMinutes && (
+                  {displayTotalMinutes && (
                     <div>
                       <span className="text-muted-foreground">{t('details.time')}</span>{' '}
-                      <span className="font-medium">{workout.totalMinutes} min</span>
+                      <span className="font-medium">{displayTotalMinutes} min</span>
                     </div>
                   )}
                   {workout.timeCap && (

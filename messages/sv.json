@@ -16585,13 +16585,15 @@
         "emom": "EMOM",
         "tabata": "Tabata",
         "intervals": "Intervaller",
-        "stopwatch": "Stoppur"
+        "stopwatch": "Stoppur",
+        "plan": "Passplan"
       },
       "period": {
         "work": "ARBETE",
         "rest": "VILA"
       },
       "round": "Runda",
+      "step": "Steg",
       "actions": {
         "pause": "Paus",
         "start": "Start",
@@ -16601,7 +16603,10 @@
         "mute": "Stäng av ljud",
         "unmute": "Aktivera ljud"
       },
-      "elapsedTime": "Förfluten tid: {time}"
+      "elapsedTime": "Förfluten tid: {time}",
+      "plan": {
+        "title": "Plan"
+      }
     },
     "athleteHybridClient": {
       "formats": {
@@ -16678,6 +16683,11 @@
       "timerDialog": {
         "title": "Workout Timer - {name}",
         "description": "Starta timern när du börjar passet."
+      },
+      "timerPlan": {
+        "block": "Block {number}",
+        "roundTitle": "{block} · Varv {round}/{total}",
+        "restAfter": "Vila efter {block}"
       },
       "logDialog": {
         "title": "Logga Resultat - {name}",

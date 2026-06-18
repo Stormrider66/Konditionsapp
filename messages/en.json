@@ -16225,13 +16225,15 @@
         "emom": "EMOM",
         "tabata": "Tabata",
         "intervals": "Intervals",
-        "stopwatch": "Stopwatch"
+        "stopwatch": "Stopwatch",
+        "plan": "Workout plan"
       },
       "period": {
         "work": "WORK",
         "rest": "REST"
       },
       "round": "Round",
+      "step": "Step",
       "actions": {
         "pause": "Pause",
         "start": "Start",
@@ -16241,7 +16243,10 @@
         "mute": "Mute sound",
         "unmute": "Turn on sound"
       },
-      "elapsedTime": "Elapsed time: {time}"
+      "elapsedTime": "Elapsed time: {time}",
+      "plan": {
+        "title": "Plan"
+      }
     },
     "athleteHybridClient": {
       "formats": {
@@ -16318,6 +16323,11 @@
       "timerDialog": {
         "title": "Workout timer - {name}",
         "description": "Start the timer when you begin the workout."
+      },
+      "timerPlan": {
+        "block": "Block {number}",
+        "roundTitle": "{block} · Round {round}/{total}",
+        "restAfter": "Rest after {block}"
       },
       "logDialog": {
         "title": "Log result - {name}",

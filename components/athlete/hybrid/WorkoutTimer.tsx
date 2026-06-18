@@ -12,7 +12,7 @@
  * - Custom intervals (work/rest periods)
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -31,12 +31,23 @@ import { useTranslations } from '@/i18n/client';
 
 type TimerMode = 'FOR_TIME' | 'AMRAP' | 'EMOM' | 'TABATA' | 'INTERVALS' | 'STOPWATCH';
 
+export interface TimerSegment {
+  id: string;
+  type: 'work' | 'rest';
+  title: string;
+  durationSeconds: number;
+  blockTitle?: string;
+  movements?: string[];
+  notes?: string;
+}
+
 interface WorkoutTimerProps {
   mode: TimerMode;
   totalSeconds?: number;  // Total time for AMRAP/EMOM/Time Cap
   workSeconds?: number;   // Work interval for Tabata/Intervals
   restSeconds?: number;   // Rest interval for Tabata/Intervals
   rounds?: number;        // Number of rounds for EMOM/Tabata/Intervals
+  segments?: TimerSegment[];
   onComplete?: (finalTime: number) => void;
   onRoundComplete?: (round: number) => void;
 }
@@ -47,6 +58,7 @@ export function WorkoutTimer({
   workSeconds = 20,
   restSeconds = 10,
   rounds = 8,
+  segments = [],
   onComplete,
   onRoundComplete,
 }: WorkoutTimerProps) {
@@ -54,17 +66,53 @@ export function WorkoutTimer({
   const [isRunning, setIsRunning] = useState(false);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [currentRound, setCurrentRound] = useState(1);
+  const [currentSegmentIndex, setCurrentSegmentIndex] = useState(0);
   const [isWorkPeriod, setIsWorkPeriod] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
   const pausedTimeRef = useRef<number>(0);
+  const currentSegmentIndexRef = useRef(0);
 
   // Audio refs for beeps
   const audioContextRef = useRef<AudioContext | null>(null);
 
+  const segmentTimeline = useMemo(() => {
+    return segments
+      .filter((segment) => segment.durationSeconds > 0)
+      .reduce<Array<TimerSegment & { startSeconds: number; endSeconds: number }>>((timeline, segment) => {
+        const startSeconds = timeline.at(-1)?.endSeconds ?? 0;
+        const endSeconds = startSeconds + segment.durationSeconds;
+
+        return [
+          ...timeline,
+          {
+            ...segment,
+            startSeconds,
+            endSeconds,
+          },
+        ];
+      }, []);
+  }, [segments]);
+
+  const hasSegmentPlan = segmentTimeline.length > 0;
+  const segmentTotalSeconds = segmentTimeline.at(-1)?.endSeconds ?? 0;
+  const visibleSegmentIndex = Math.min(currentSegmentIndex, Math.max(segmentTimeline.length - 1, 0));
+  const currentSegment = segmentTimeline[visibleSegmentIndex];
+
+  const getSegmentIndexAtElapsed = useCallback((elapsed: number) => {
+    if (!segmentTimeline.length) return 0;
+    const elapsedSeconds = elapsed / 1000;
+    const index = segmentTimeline.findIndex((segment) => elapsedSeconds < segment.endSeconds);
+    return index === -1 ? segmentTimeline.length - 1 : index;
+  }, [segmentTimeline]);
+
   // Calculate display values based on mode
   const getDisplayTime = useCallback(() => {
+    if (hasSegmentPlan && currentSegment) {
+      return Math.max(0, currentSegment.endSeconds * 1000 - elapsedMs);
+    }
+
     const totalMs = totalSeconds * 1000;
 
     switch (mode) {
@@ -105,7 +153,7 @@ export function WorkoutTimer({
       default:
         return elapsedMs;
     }
-  }, [mode, totalSeconds, elapsedMs, workSeconds, restSeconds]);
+  }, [hasSegmentPlan, currentSegment, mode, totalSeconds, elapsedMs, workSeconds, restSeconds]);
 
   // Format time for display
   const formatTime = (ms: number, showMs = false): string => {
@@ -122,6 +170,11 @@ export function WorkoutTimer({
     const base = `${minutes}:${seconds.toString().padStart(2, '0')}`;
     return showMs ? `${base}.${milliseconds.toString().padStart(2, '0')}` : base;
   };
+
+  const formatDuration = (seconds: number): string => formatTime(seconds * 1000);
+
+  const formatWindow = (startSeconds: number, endSeconds: number): string =>
+    `${formatDuration(startSeconds)}-${formatDuration(endSeconds)}`;
 
   // Play beep sound
   const playBeep = useCallback((frequency: number = 800, duration: number = 150) => {
@@ -159,6 +212,29 @@ export function WorkoutTimer({
       intervalRef.current = setInterval(() => {
         const now = Date.now();
         const newElapsedMs = now - startTimeRef.current;
+
+        if (hasSegmentPlan) {
+          const totalMs = segmentTotalSeconds * 1000;
+          const cappedElapsedMs = Math.min(newElapsedMs, totalMs);
+          const newSegmentIndex = getSegmentIndexAtElapsed(cappedElapsedMs);
+
+          setElapsedMs(cappedElapsedMs);
+
+          if (newSegmentIndex !== currentSegmentIndexRef.current) {
+            currentSegmentIndexRef.current = newSegmentIndex;
+            setCurrentSegmentIndex(newSegmentIndex);
+            playBeep(segmentTimeline[newSegmentIndex]?.type === 'rest' ? 600 : 1000, 200);
+          }
+
+          if (newElapsedMs >= totalMs) {
+            setIsRunning(false);
+            playBeep(1200, 500);
+            onComplete?.(totalMs);
+          }
+
+          return;
+        }
+
         setElapsedMs(newElapsedMs);
 
         // Check for period changes and round completions
@@ -227,15 +303,31 @@ export function WorkoutTimer({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- elapsedMs, currentRound, isWorkPeriod are updated inside the interval and must NOT be deps (causes startTimeRef reset loop)
-  }, [isRunning, mode, totalSeconds, workSeconds, restSeconds, rounds, playBeep, onComplete, onRoundComplete]);
+  }, [
+    isRunning,
+    mode,
+    totalSeconds,
+    workSeconds,
+    restSeconds,
+    rounds,
+    hasSegmentPlan,
+    segmentTotalSeconds,
+    segmentTimeline,
+    getSegmentIndexAtElapsed,
+    playBeep,
+    onComplete,
+    onRoundComplete,
+  ]);
 
   // Reset timer
   const reset = () => {
     setIsRunning(false);
     setElapsedMs(0);
     setCurrentRound(1);
+    setCurrentSegmentIndex(0);
     setIsWorkPeriod(true);
     pausedTimeRef.current = 0;
+    currentSegmentIndexRef.current = 0;
   };
 
   // Manual round increment (for AMRAP)
@@ -259,10 +351,15 @@ export function WorkoutTimer({
   };
 
   const displayTime = getDisplayTime();
-  const progress = totalSeconds > 0 ? (elapsedMs / (totalSeconds * 1000)) * 100 : 0;
+  const progressTotalMs = hasSegmentPlan ? segmentTotalSeconds * 1000 : totalSeconds * 1000;
+  const progress = progressTotalMs > 0 ? (elapsedMs / progressTotalMs) * 100 : 0;
 
   // Get mode label
   const getModeLabel = () => {
+    if (hasSegmentPlan) {
+      return t('modes.plan');
+    }
+
     switch (mode) {
       case 'FOR_TIME':
         return totalSeconds > 0 ? t('modes.forTimeWithCap') : t('modes.forTime');
@@ -282,6 +379,10 @@ export function WorkoutTimer({
 
   // Get period label for interval modes
   const getPeriodLabel = () => {
+    if (hasSegmentPlan && currentSegment) {
+      return currentSegment.type === 'rest' ? t('period.rest') : t('period.work');
+    }
+
     if (mode === 'TABATA' || mode === 'INTERVALS') {
       return isWorkPeriod ? t('period.work') : t('period.rest');
     }
@@ -289,6 +390,7 @@ export function WorkoutTimer({
   };
 
   const periodLabel = getPeriodLabel();
+  const isRestPeriod = hasSegmentPlan ? currentSegment?.type === 'rest' : Boolean(periodLabel && !isWorkPeriod);
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -318,8 +420,8 @@ export function WorkoutTimer({
         {periodLabel && (
           <div className="text-center">
             <Badge
-              variant={isWorkPeriod ? 'default' : 'secondary'}
-              className={`text-lg px-4 py-1 ${isWorkPeriod ? 'bg-green-600' : 'bg-orange-500'}`}
+              variant={isRestPeriod ? 'secondary' : 'default'}
+              className={`text-lg px-4 py-1 ${isRestPeriod ? 'bg-orange-500' : 'bg-green-600'}`}
             >
               {periodLabel}
             </Badge>
@@ -330,7 +432,7 @@ export function WorkoutTimer({
         <div className="text-center">
           <div
             className={`font-mono text-6xl font-bold tabular-nums ${
-              periodLabel && !isWorkPeriod ? 'text-orange-500' : ''
+              isRestPeriod ? 'text-orange-500' : ''
             }`}
           >
             {formatTime(displayTime, mode === 'STOPWATCH' || mode === 'FOR_TIME')}
@@ -338,12 +440,52 @@ export function WorkoutTimer({
         </div>
 
         {/* Progress bar for timed modes */}
-        {totalSeconds > 0 && (mode === 'AMRAP' || mode === 'FOR_TIME') && (
+        {progressTotalMs > 0 && (hasSegmentPlan || mode === 'AMRAP' || mode === 'FOR_TIME') && (
           <Progress value={Math.min(100, progress)} className="h-2" />
         )}
 
+        {hasSegmentPlan && currentSegment && (
+          <div className="rounded-lg border bg-muted/40 p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                {currentSegment.blockTitle && (
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                    {currentSegment.blockTitle}
+                  </div>
+                )}
+                <div className="font-semibold">{currentSegment.title}</div>
+              </div>
+              <Badge variant="outline" className="font-mono">
+                {formatDuration(currentSegment.durationSeconds)}
+              </Badge>
+            </div>
+
+            {currentSegment.movements && currentSegment.movements.length > 0 && (
+              <ul className="mt-3 space-y-1 text-sm">
+                {currentSegment.movements.map((movement, index) => (
+                  <li key={`${currentSegment.id}-movement-${index}`}>{movement}</li>
+                ))}
+              </ul>
+            )}
+
+            {currentSegment.notes && (
+              <div className="mt-2 text-sm text-muted-foreground">{currentSegment.notes}</div>
+            )}
+          </div>
+        )}
+
         {/* Round counter */}
-        {(mode === 'AMRAP' || mode === 'EMOM' || mode === 'TABATA' || mode === 'INTERVALS') && (
+        {hasSegmentPlan ? (
+          <div className="flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-sm text-muted-foreground">{t('step')}</div>
+              <div className="text-3xl font-bold">
+                {visibleSegmentIndex + 1}
+                <span className="text-muted-foreground">/{segmentTimeline.length}</span>
+              </div>
+            </div>
+          </div>
+        ) : (mode === 'AMRAP' || mode === 'EMOM' || mode === 'TABATA' || mode === 'INTERVALS') && (
           <div className="flex items-center justify-center gap-4">
             {mode === 'AMRAP' && (
               <Button variant="outline" size="icon" onClick={decrementRound}>
@@ -402,6 +544,37 @@ export function WorkoutTimer({
         {(mode === 'AMRAP' || (mode === 'FOR_TIME' && totalSeconds > 0)) && (
           <div className="text-center text-sm text-muted-foreground">
             {t('elapsedTime', { time: formatTime(elapsedMs) })}
+          </div>
+        )}
+
+        {hasSegmentPlan && (
+          <div className="rounded-lg border">
+            <div className="border-b px-3 py-2 text-sm font-medium">{t('plan.title')}</div>
+            <div className="max-h-64 divide-y overflow-y-auto">
+              {segmentTimeline.map((segment, index) => (
+                <div
+                  key={segment.id}
+                  className={`grid grid-cols-[5.5rem_1fr] gap-3 px-3 py-2 text-sm ${
+                    index === visibleSegmentIndex ? 'bg-primary/10' : ''
+                  }`}
+                >
+                  <div className="font-mono text-xs text-muted-foreground">
+                    {formatWindow(segment.startSeconds, segment.endSeconds)}
+                  </div>
+                  <div>
+                    <div className="font-medium">{segment.title}</div>
+                    {segment.movements && segment.movements.length > 0 && (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {segment.movements.join(' • ')}
+                      </div>
+                    )}
+                    {segment.notes && (
+                      <div className="mt-1 text-xs text-muted-foreground">{segment.notes}</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>
