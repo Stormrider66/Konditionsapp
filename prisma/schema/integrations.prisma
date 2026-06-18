@@ -6,6 +6,7 @@ enum IntegrationType {
   GARMIN // Garmin Health API integration
   CONCEPT2 // Concept2 Logbook integration
   OURA // Oura Ring v2 OAuth integration
+  WHOOP // WHOOP OAuth recovery, sleep, cycles, and workout summaries
 }
 
 // ==================== INTEGRATIONS (Strava, Garmin) ====================
@@ -202,6 +203,57 @@ model GarminActivity {
   zoneDistribution ActivityHRZoneDistribution?
   adHocWorkout     AdHocWorkout?               @relation("AdHocGarminLink")
   cardioSessionLog CardioSessionLog?           @relation("CardioLogGarminLink")
+
+  @@index([clientId])
+  @@index([startDate])
+  @@index([type])
+  @@index([mappedType])
+}
+
+/// WHOOP synced workout summaries. WHOOP does not expose full HR streams through
+/// the public API, so this stores scored workout-level data and zone durations.
+model WhoopActivity {
+  id             String @id @default(uuid())
+  clientId       String
+  whoopWorkoutId String @unique // WHOOP v2 workout UUID
+  whoopV1Id      Int?
+  externalUserId String?
+
+  // Basic activity info
+  name        String?
+  type        String // WHOOP sport_name or sport_id fallback
+  sportId     Int?
+  startDate   DateTime
+  endDate     DateTime?
+  timezoneOffset String?
+
+  // Metrics
+  distance      Float? // meters
+  duration      Int? // seconds
+  elevationGain Float? // meters
+
+  // Heart rate
+  averageHeartrate Float?
+  maxHeartrate     Float?
+
+  // WHOOP-specific scores
+  strain          Float?
+  kilojoules      Float?
+  percentRecorded Float?
+  scoreState      String?
+
+  // Mapped to our internal types
+  mappedType      String?
+  mappedIntensity String?
+
+  // Detailed WHOOP summary data
+  hrZoneMilli Json? // { zoneZeroMilli, zoneOneMilli, ... }
+  raw         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@index([clientId])
   @@index([startDate])

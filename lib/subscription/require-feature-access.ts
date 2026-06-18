@@ -29,6 +29,7 @@ const FEATURE_LABELS: Record<string, Record<AppLocale, string>> = {
   smart_test_import: { en: 'Smart test import', sv: 'Smart Testimport' },
   strava: { en: 'Strava sync', sv: 'Strava-sync' },
   garmin: { en: 'Garmin sync', sv: 'Garmin-sync' },
+  whoop: { en: 'WHOOP sync', sv: 'WHOOP-sync' },
   live_voice_coaching: { en: 'AI voice coach (Live)', sv: 'AI-röstcoach (Live)' },
 }
 

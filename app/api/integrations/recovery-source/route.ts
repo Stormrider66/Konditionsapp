@@ -15,7 +15,7 @@ import { resolveRecoverySource } from '@/lib/integrations/recovery-source'
 import { logError } from '@/lib/logger-console'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
-const SOURCES = ['AUTO', 'GARMIN', 'OURA'] as const
+const SOURCES = ['AUTO', 'GARMIN', 'OURA', 'WHOOP'] as const
 
 const patchSchema = z.object({
   clientId: z.string().uuid(),
@@ -24,7 +24,7 @@ const patchSchema = z.object({
 
 async function loadConnected(clientId: string) {
   const tokens = await prisma.integrationToken.findMany({
-    where: { clientId, type: { in: ['GARMIN', 'OURA'] } },
+    where: { clientId, type: { in: ['GARMIN', 'OURA', 'WHOOP'] } },
     select: { type: true },
   })
   return new Set(tokens.map(t => t.type))
@@ -65,6 +65,7 @@ export async function GET(request: NextRequest) {
       connected: {
         GARMIN: connected.has('GARMIN'),
         OURA: connected.has('OURA'),
+        WHOOP: connected.has('WHOOP'),
       },
     })
   } catch (error) {

@@ -2,15 +2,15 @@ import 'server-only'
 
 import { prisma } from '@/lib/prisma'
 
-export type RecoverySource = 'GARMIN' | 'OURA'
+export type RecoverySource = 'GARMIN' | 'OURA' | 'WHOOP'
 
 /**
  * Resolves which connected wearable should be the source of truth for
  * recovery metrics (HRV, RHR, sleep, RHR-derived stress) on this client.
  *
  * Reads `Client.preferredRecoverySource`:
- *   - "AUTO" (default) → OURA if connected, else GARMIN if connected, else null
- *   - "OURA" / "GARMIN" → returns the explicit choice if connected, otherwise
+ *   - "AUTO" (default) → OURA if connected, else WHOOP, else GARMIN, else null
+ *   - "OURA" / "WHOOP" / "GARMIN" → returns the explicit choice if connected, otherwise
  *     falls back to AUTO ordering so a stale preference can't blackhole syncs
  */
 export async function resolveRecoverySource(clientId: string): Promise<RecoverySource | null> {
@@ -20,7 +20,7 @@ export async function resolveRecoverySource(clientId: string): Promise<RecoveryS
       select: { preferredRecoverySource: true },
     }),
     prisma.integrationToken.findMany({
-      where: { clientId, type: { in: ['GARMIN', 'OURA'] } },
+      where: { clientId, type: { in: ['GARMIN', 'OURA', 'WHOOP'] } },
       select: { type: true },
     }),
   ])
@@ -30,6 +30,7 @@ export async function resolveRecoverySource(clientId: string): Promise<RecoveryS
 
   if (preferred !== 'AUTO' && connected.has(preferred)) return preferred
   if (connected.has('OURA')) return 'OURA'
+  if (connected.has('WHOOP')) return 'WHOOP'
   if (connected.has('GARMIN')) return 'GARMIN'
   return null
 }

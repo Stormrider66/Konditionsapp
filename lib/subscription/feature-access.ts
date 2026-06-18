@@ -14,6 +14,7 @@ export type AthleteFeature =
   | 'video_analysis'
   | 'strava'
   | 'garmin'
+  | 'whoop'
   | 'advanced_intelligence'
   | 'program_generation'
   | 'coach_requests'
@@ -48,6 +49,7 @@ export const ATHLETE_TIER_FEATURES = {
     video_analysis: { enabled: false },
     strava: { enabled: false },
     garmin: { enabled: false },
+    whoop: { enabled: false },
     advanced_intelligence: { enabled: false },
     program_generation: { enabled: false },
     coach_requests: { enabled: false },
@@ -62,6 +64,7 @@ export const ATHLETE_TIER_FEATURES = {
     video_analysis: { enabled: false },
     strava: { enabled: true },
     garmin: { enabled: true },
+    whoop: { enabled: true },
     advanced_intelligence: { enabled: false },
     program_generation: { enabled: true },
     coach_requests: { enabled: true },
@@ -76,6 +79,7 @@ export const ATHLETE_TIER_FEATURES = {
     video_analysis: { enabled: true },
     strava: { enabled: true },
     garmin: { enabled: true },
+    whoop: { enabled: true },
     advanced_intelligence: { enabled: true },
     program_generation: { enabled: true },
     coach_requests: { enabled: true },
@@ -90,6 +94,7 @@ export const ATHLETE_TIER_FEATURES = {
     video_analysis: { enabled: true },
     strava: { enabled: true },
     garmin: { enabled: true },
+    whoop: { enabled: true },
     advanced_intelligence: { enabled: true },
     program_generation: { enabled: true },
     coach_requests: { enabled: true },
@@ -313,6 +318,18 @@ export async function checkAthleteFeatureAccess(
       return { allowed: true }
     }
 
+    case 'whoop': {
+      if (!subscription.garminEnabled) {
+        return {
+          allowed: false,
+          reason: subscriptionText(locale, 'WHOOP sync requires a Standard or Pro subscription.', 'WHOOP-synk kräver en Standard- eller Pro-prenumeration.'),
+          code: 'FEATURE_DISABLED',
+          upgradeUrl: '/athlete/subscription',
+        }
+      }
+      return { allowed: true }
+    }
+
     default: {
       // Tier-based check for features without dedicated DB columns
       const tier = subscription.tier as keyof typeof ATHLETE_TIER_FEATURES
@@ -419,6 +436,7 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
     video_analysis: { enabled: boolean }
     strava: { enabled: boolean }
     garmin: { enabled: boolean }
+    whoop: { enabled: boolean }
     advanced_intelligence: { enabled: boolean }
     program_generation: { enabled: boolean }
     coach_requests: { enabled: boolean }
@@ -453,6 +471,7 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
         video_analysis: { enabled: false },
         strava: { enabled: false },
         garmin: { enabled: false },
+        whoop: { enabled: false },
         advanced_intelligence: { enabled: false },
         program_generation: { enabled: false },
         coach_requests: { enabled: false },
@@ -489,6 +508,7 @@ export async function getAthleteFeatureSummary(clientId: string): Promise<{
       video_analysis: { enabled: subscription.videoAnalysisEnabled },
       strava: { enabled: subscription.stravaEnabled },
       garmin: { enabled: subscription.garminEnabled },
+      whoop: { enabled: subscription.garminEnabled },
       advanced_intelligence: { enabled: tierConfig.advanced_intelligence.enabled },
       program_generation: { enabled: tierConfig.program_generation.enabled },
       coach_requests: { enabled: tierConfig.coach_requests.enabled },

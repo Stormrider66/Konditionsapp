@@ -17116,6 +17116,9 @@
         },
         "oura": {
           "description": "Sync HRV, resting heart rate, sleep, and readiness"
+        },
+        "whoop": {
+          "description": "Sync recovery, strain, sleep, and workouts"
         }
       },
       "resultTypes": {
@@ -17129,16 +17132,18 @@
         "disconnectedDescription": "Your {service} connection has been removed",
         "concept2DisconnectedDescription": "Your Concept2 connection has been removed. Historical results are kept.",
         "ouraDisconnectedDescription": "Your Oura connection has been removed. Historical data is kept.",
+        "whoopDisconnectedDescription": "Your WHOOP connection has been removed. Historical data is kept.",
         "syncComplete": "Sync complete",
         "activitiesSynced": "{count} activities synced",
         "workoutsSynced": "{count} workouts synced",
         "daysUpdated": "{count} days updated",
+        "whoopSyncComplete": "{count} recovery days and {workouts} workouts updated",
         "syncError": "Could not sync",
         "syncWithServiceError": "Could not sync with {service}",
         "syncRequestSent": "Sync request sent",
         "garminPushDescription": "Garmin data will arrive by push shortly.",
         "recoverySourceUpdated": "Recovery source updated",
-        "recoverySourceAuto": "We choose automatically (Oura before Garmin)",
+        "recoverySourceAuto": "We choose automatically (Oura before WHOOP before Garmin)",
         "recoverySourceManual": "Using {service} for HRV, resting heart rate, and sleep",
         "updateError": "Could not update",
         "recoverySourceUpdateError": "Could not update recovery source"

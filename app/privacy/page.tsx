@@ -78,6 +78,7 @@ export default function PrivacyPolicyPage() {
                   <ul className="list-disc pl-6 space-y-1">
                     <li><strong>Garmin</strong> &mdash; Activities, daily summaries, sleep, HRV, and heart rate data via the Garmin Health API</li>
                     <li><strong>Strava</strong> &mdash; Activities, heart rate streams, and athlete profile</li>
+                    <li><strong>WHOOP</strong> &mdash; Recovery, sleep, cycle strain, workout summaries, HRV, and resting heart rate</li>
                     <li><strong>Concept2</strong> &mdash; Ergometer workout results</li>
                   </ul>
                   <p>
@@ -98,7 +99,7 @@ export default function PrivacyPolicyPage() {
                   <ul className="list-disc pl-6 space-y-1">
                     <li><strong>Service delivery</strong> &mdash; Providing training programs, physiological test analysis, training zone calculation, and daily workout recommendations</li>
                     <li><strong>AI-powered features</strong> &mdash; Generating personalized training programs, analyzing performance trends, and providing coaching insights using AI models (data is sent to AI providers in anonymized form where possible)</li>
-                    <li><strong>Integration sync</strong> &mdash; Importing and processing data from connected services (Garmin, Strava, Concept2) to provide a unified training view</li>
+                    <li><strong>Integration sync</strong> &mdash; Importing and processing data from connected services (Garmin, Strava, WHOOP, Concept2) to provide a unified training view</li>
                     <li><strong>Communication</strong> &mdash; Sending essential service notifications, trial expiry warnings, and weekly training summaries</li>
                     <li><strong>Service improvement</strong> &mdash; Analyzing aggregated, anonymized usage patterns to improve the platform</li>
                   </ul>

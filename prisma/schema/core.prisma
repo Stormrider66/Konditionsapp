@@ -587,9 +587,10 @@ model Client {
   // Athlete Subscription & Integrations
   athleteSubscription AthleteSubscription?
   integrationTokens   IntegrationToken[]
-  preferredRecoverySource String @default("AUTO") // AUTO, GARMIN, or OURA
+  preferredRecoverySource String @default("AUTO") // AUTO, GARMIN, OURA, or WHOOP
   stravaActivities    StravaActivity[]
   garminActivities    GarminActivity[]
+  whoopActivities     WhoopActivity[]
   concept2Results     Concept2Result[]
   quickErgSessions    QuickErgSession[]
   phoneRunSessions    PhoneRunSession[]

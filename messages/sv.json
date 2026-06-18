@@ -17476,6 +17476,9 @@
         },
         "oura": {
           "description": "Synkronisera HRV, vilopuls, sömn och beredskap"
+        },
+        "whoop": {
+          "description": "Synkronisera återhämtning, strain, sömn och träningspass"
         }
       },
       "resultTypes": {
@@ -17489,16 +17492,18 @@
         "disconnectedDescription": "Din {service}-anslutning har tagits bort",
         "concept2DisconnectedDescription": "Din Concept2-anslutning har tagits bort. Historiska resultat bevaras.",
         "ouraDisconnectedDescription": "Din Oura-anslutning har tagits bort. Historisk data bevaras.",
+        "whoopDisconnectedDescription": "Din WHOOP-anslutning har tagits bort. Historisk data bevaras.",
         "syncComplete": "Synkronisering klar",
         "activitiesSynced": "{count} aktiviteter synkroniserade",
         "workoutsSynced": "{count} träningspass synkroniserade",
         "daysUpdated": "{count} dagar uppdaterade",
+        "whoopSyncComplete": "{count} återhämtningsdagar och {workouts} träningspass uppdaterade",
         "syncError": "Kunde inte synkronisera",
         "syncWithServiceError": "Kunde inte synkronisera med {service}",
         "syncRequestSent": "Synkbegäran skickad",
         "garminPushDescription": "Garmin-data kommer att anlända via push inom kort.",
         "recoverySourceUpdated": "Återhämtningskälla uppdaterad",
-        "recoverySourceAuto": "Vi väljer automatiskt (Oura före Garmin)",
+        "recoverySourceAuto": "Vi väljer automatiskt (Oura före WHOOP före Garmin)",
         "recoverySourceManual": "Använder {service} för HRV, vilopuls och sömn",
         "updateError": "Kunde inte uppdatera",
         "recoverySourceUpdateError": "Kunde inte uppdatera återhämtningskälla"

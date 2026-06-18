@@ -10,17 +10,17 @@ import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Link2, Unlink, Activity, RefreshCw, Waves, Moon } from 'lucide-react'
+import { Loader2, Link2, Unlink, Activity, RefreshCw, Waves, Moon, HeartPulse } from 'lucide-react'
 import Image from 'next/image'
 import { IntegrationsHelpModal } from './IntegrationsHelpModal'
 import { useLocale, useTranslations } from '@/i18n/client'
 
-type RecoverySourcePref = 'AUTO' | 'GARMIN' | 'OURA'
+type RecoverySourcePref = 'AUTO' | 'GARMIN' | 'OURA' | 'WHOOP'
 
 interface RecoverySourceState {
   preferred: RecoverySourcePref
-  resolved: 'GARMIN' | 'OURA' | null
-  connected: { GARMIN: boolean; OURA: boolean }
+  resolved: 'GARMIN' | 'OURA' | 'WHOOP' | null
+  connected: { GARMIN: boolean; OURA: boolean; WHOOP: boolean }
 }
 
 interface IntegrationStatus {
@@ -52,9 +52,10 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
   const [garminStatus, setGarminStatus] = useState<IntegrationStatus | null>(null)
   const [concept2Status, setConcept2Status] = useState<IntegrationStatus | null>(null)
   const [ouraStatus, setOuraStatus] = useState<IntegrationStatus | null>(null)
+  const [whoopStatus, setWhoopStatus] = useState<IntegrationStatus | null>(null)
   const [recoverySource, setRecoverySource] = useState<RecoverySourceState | null>(null)
-  const [loading, setLoading] = useState({ strava: false, garmin: false, concept2: false, oura: false })
-  const [syncing, setSyncing] = useState({ strava: false, garmin: false, concept2: false, oura: false })
+  const [loading, setLoading] = useState({ strava: false, garmin: false, concept2: false, oura: false, whoop: false })
+  const [syncing, setSyncing] = useState({ strava: false, garmin: false, concept2: false, oura: false, whoop: false })
   const [savingPref, setSavingPref] = useState(false)
 
   const CardWrapper = isGlass ? GlassCard : Card;
@@ -103,6 +104,20 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
     }
   }, [clientId])
 
+  const fetchWhoopStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/integrations/whoop?clientId=${clientId}`)
+      const data = await response.json()
+      if (data.configured === false) {
+        setWhoopStatus({ connected: false })
+      } else {
+        setWhoopStatus(data)
+      }
+    } catch (error) {
+      console.error('Failed to fetch WHOOP status:', error)
+    }
+  }, [clientId])
+
   const fetchRecoverySource = useCallback(async () => {
     try {
       const response = await fetch(`/api/integrations/recovery-source?clientId=${clientId}`)
@@ -119,8 +134,9 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
     void fetchGarminStatus()
     void fetchConcept2Status()
     void fetchOuraStatus()
+    void fetchWhoopStatus()
     void fetchRecoverySource()
-  }, [fetchStravaStatus, fetchGarminStatus, fetchConcept2Status, fetchOuraStatus, fetchRecoverySource])
+  }, [fetchStravaStatus, fetchGarminStatus, fetchConcept2Status, fetchOuraStatus, fetchWhoopStatus, fetchRecoverySource])
 
   const connectStrava = async () => {
     setLoading(prev => ({ ...prev, strava: true }))
@@ -509,6 +525,104 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
     }
   }
 
+  const connectWhoop = async () => {
+    setLoading(prev => ({ ...prev, whoop: true }))
+    try {
+      const response = await fetch('/api/integrations/whoop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, businessSlug }),
+      })
+      const data = await response.json()
+
+      if (data.authUrl) {
+        window.location.href = data.authUrl
+      } else {
+        toast({
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.connectError', { service: 'WHOOP' }),
+          variant: 'destructive',
+        })
+      }
+    } catch (_error) {
+      toast({
+        title: t('toast.errorTitle'),
+        description: t('toast.connectError', { service: 'WHOOP' }),
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(prev => ({ ...prev, whoop: false }))
+    }
+  }
+
+  const disconnectWhoop = async () => {
+    setLoading(prev => ({ ...prev, whoop: true }))
+    try {
+      const response = await fetch(`/api/integrations/whoop?clientId=${clientId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setWhoopStatus({ connected: false })
+        void fetchRecoverySource()
+        toast({
+          title: t('toast.disconnectedTitle', { service: 'WHOOP' }),
+          description: t('toast.whoopDisconnectedDescription'),
+        })
+      } else {
+        const data = await response.json()
+        toast({
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.disconnectError', { service: 'WHOOP' }),
+          variant: 'destructive',
+        })
+      }
+    } catch (_error) {
+      toast({
+        title: t('toast.errorTitle'),
+        description: t('toast.disconnectError', { service: 'WHOOP' }),
+        variant: 'destructive',
+      })
+    } finally {
+      setLoading(prev => ({ ...prev, whoop: false }))
+    }
+  }
+
+  const syncWhoop = async () => {
+    setSyncing(prev => ({ ...prev, whoop: true }))
+    try {
+      const response = await fetch('/api/integrations/whoop/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId, daysBack: 7 }),
+      })
+      const data = await response.json()
+
+      if (response.ok) {
+        toast({
+          title: t('toast.syncComplete'),
+          description: t('toast.whoopSyncComplete', { count: data.synced || 0, workouts: data.workoutsSynced || 0 }),
+        })
+        void fetchWhoopStatus()
+        void fetchRecoverySource()
+      } else {
+        toast({
+          title: t('toast.errorTitle'),
+          description: data.error || t('toast.syncError'),
+          variant: 'destructive',
+        })
+      }
+    } catch (_error) {
+      toast({
+        title: t('toast.errorTitle'),
+        description: t('toast.syncWithServiceError', { service: 'WHOOP' }),
+        variant: 'destructive',
+      })
+    } finally {
+      setSyncing(prev => ({ ...prev, whoop: false }))
+    }
+  }
+
   const setRecoveryPreference = async (source: RecoverySourcePref) => {
     setSavingPref(true)
     try {
@@ -528,7 +642,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
           description:
             source === 'AUTO'
               ? t('toast.recoverySourceAuto')
-              : t('toast.recoverySourceManual', { service: source === 'OURA' ? 'Oura' : 'Garmin' }),
+              : t('toast.recoverySourceManual', { service: recoveryServiceName(source) }),
         })
       } else {
         toast({
@@ -547,6 +661,17 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
       setSavingPref(false)
     }
   }
+
+  const recoveryServiceName = (source: Exclude<RecoverySourcePref, 'AUTO'>) => {
+    if (source === 'OURA') return 'Oura'
+    if (source === 'WHOOP') return 'WHOOP'
+    return 'Garmin'
+  }
+
+  const connectedRecoveryOptions = recoverySource
+    ? (['GARMIN', 'OURA', 'WHOOP'] as const).filter(source => recoverySource.connected[source])
+    : []
+  const recoveryPreferenceOptions: RecoverySourcePref[] = ['AUTO', ...connectedRecoveryOptions]
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return t('never')
@@ -574,8 +699,8 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Recovery source picker — appears only when Garmin AND Oura are both connected */}
-        {recoverySource?.connected.GARMIN && recoverySource?.connected.OURA && (
+        {/* Recovery source picker — appears when at least two recovery wearables are connected */}
+        {connectedRecoveryOptions.length > 1 && recoverySource && (
           <div className={cn(
             "rounded-xl p-4 transition-all duration-300",
             isGlass ? "bg-white/[0.02] border border-white/5" : "border bg-slate-50"
@@ -596,14 +721,14 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   {recoverySource.resolved && (
                     <>{' '}
                       <span className={cn("font-semibold", isGlass ? "text-emerald-400" : "text-emerald-600")}>
-                        {t('recovery.active', { service: recoverySource.resolved === 'OURA' ? 'Oura' : 'Garmin' })}
+                        {t('recovery.active', { service: recoveryServiceName(recoverySource.resolved) })}
                       </span>
                     </>
                   )}
                 </p>
               </div>
               <div className="flex gap-2">
-                {(['AUTO', 'GARMIN', 'OURA'] as const).map(opt => (
+                {recoveryPreferenceOptions.map(opt => (
                   <Button
                     key={opt}
                     size="sm"
@@ -615,7 +740,7 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                       isGlass && recoverySource.preferred !== opt && "border-white/10 text-white hover:bg-white/10",
                     )}
                   >
-                    {opt === 'AUTO' ? 'Auto' : opt === 'OURA' ? 'Oura' : 'Garmin'}
+                    {opt === 'AUTO' ? 'Auto' : recoveryServiceName(opt)}
                   </Button>
                 ))}
               </div>
@@ -1045,6 +1170,118 @@ export function IntegrationsSettings({ clientId, businessSlug, variant = 'defaul
                   <Link2 className="h-3.5 w-3.5 mr-2" />
                 )}
                 {t('actions.connect', { service: 'Oura Ring' })}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* WHOOP */}
+        <div className={cn(
+          "rounded-xl p-4 transition-all duration-300",
+          isGlass ? "bg-white/[0.02] border border-white/5 hover:bg-white/5" : "border"
+        )}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center",
+                isGlass ? "bg-rose-500/10 border border-rose-500/20" : "bg-rose-100"
+              )}>
+                <HeartPulse className={cn("h-5 w-5", isGlass ? "text-rose-400" : "text-rose-600")} />
+              </div>
+              <div>
+                <h3 className={cn("font-black uppercase italic tracking-tight", isGlass ? "text-white" : "text-slate-900")}>WHOOP</h3>
+                <p className={cn("text-xs", isGlass ? "text-slate-500" : "text-muted-foreground")}>
+                  {t('services.whoop.description')}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {whoopStatus?.connected ? (
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  {t('status.connected')}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-slate-700" />
+                  {t('status.disconnected')}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {whoopStatus?.connected && (
+            <div className={cn(
+              "mt-3 pt-3 border-t",
+              isGlass ? "border-white/5" : ""
+            )}>
+              <div className="flex items-center justify-between">
+                <div className={cn(
+                  "text-[10px] font-black uppercase tracking-widest",
+                  isGlass ? "text-slate-500" : "text-muted-foreground"
+                )}>
+                  <p>{t('lastSync', { date: formatDate(whoopStatus.lastSyncAt) })}</p>
+                </div>
+                {whoopStatus.activityCount !== undefined && whoopStatus.activityCount > 0 && (
+                  <div className={cn(
+                    "text-[10px] font-black uppercase tracking-widest",
+                    isGlass ? "text-rose-400" : "text-rose-600"
+                  )}>
+                    {t('workoutCount', { count: whoopStatus.activityCount })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="mt-4 flex gap-2">
+            {whoopStatus?.connected ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={syncWhoop}
+                  disabled={syncing.whoop}
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest", isGlass ? "border-white/10 text-white hover:bg-white/10" : "")}
+                >
+                  {syncing.whoop ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                  )}
+                  {t('actions.syncNow')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={disconnectWhoop}
+                  disabled={loading.whoop}
+                  className={cn("h-8 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-600 hover:bg-red-500/10")}
+                >
+                  {loading.whoop ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                  ) : (
+                    <Unlink className="h-3.5 w-3.5 mr-2" />
+                  )}
+                  {t('actions.disconnect')}
+                </Button>
+              </>
+            ) : (
+              <Button
+                size="sm"
+                onClick={connectWhoop}
+                disabled={loading.whoop}
+                className={cn(
+                  "h-9 text-[11px] font-black uppercase tracking-widest",
+                  isGlass ? "bg-rose-600 hover:bg-rose-700 text-white border-0" : "bg-rose-600 hover:bg-rose-700"
+                )}
+              >
+                {loading.whoop ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin mr-2" />
+                ) : (
+                  <Link2 className="h-3.5 w-3.5 mr-2" />
+                )}
+                {t('actions.connect', { service: 'WHOOP' })}
               </Button>
             )}
           </div>

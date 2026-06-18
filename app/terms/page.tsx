@@ -81,7 +81,7 @@ export default function TermsOfServicePage() {
                     <li>Periodized training program generation</li>
                     <li>Daily workout (WOD) recommendations and readiness scoring</li>
                     <li>Injury and rehabilitation tracking, including ACWR monitoring</li>
-                    <li>Integrations with third-party services (e.g.&nbsp;Garmin, Strava, Oura, Concept2)</li>
+                    <li>Integrations with third-party services (e.g.&nbsp;Garmin, Strava, Oura, WHOOP, Concept2)</li>
                     <li>AI-assisted coaching, video analysis, and conversational features</li>
                   </ul>
                   <p>
@@ -231,7 +231,7 @@ export default function TermsOfServicePage() {
                 {/* 10. Third-Party Integrations */}
                 <Section title="10. Third-Party Integrations">
                   <p>
-                    The Service connects to third-party services such as Garmin, Strava, Oura, Concept2,
+                    The Service connects to third-party services such as Garmin, Strava, Oura, WHOOP, Concept2,
                     Stripe, and AI providers (e.g.&nbsp;Anthropic, Google, OpenAI). When you connect a
                     third-party account, your use of that service is also governed by the third party&apos;s
                     own terms and privacy policy.
