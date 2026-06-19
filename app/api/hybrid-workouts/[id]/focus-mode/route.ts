@@ -4,6 +4,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { linkGarminToHybridLog } from '@/lib/hybrid/garmin-hybrid-link'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -417,7 +418,7 @@ export async function PUT(
     }
 
     // Update workout log
-    const updatedLog = await prisma.hybridWorkoutLog.update({
+    let updatedLog = await prisma.hybridWorkoutLog.update({
       where: { id: workoutLog.id },
       data: logUpdateData,
     })
@@ -444,7 +445,7 @@ export async function PUT(
     // Create TrainingLoad entry when workout is completed
     // This ensures hybrid workouts contribute to weekly load ("Veckobelastning")
     if (status === 'COMPLETED' && totalTime) {
-      const today = new Date()
+      const today = new Date(updatedLog.completedAt ?? new Date())
       today.setHours(0, 0, 0, 0)
 
       // Calculate hybrid TSS based on duration (seconds) and RPE
@@ -461,28 +462,8 @@ export async function PUT(
       else if (rpeValue <= 7) intensity = 'HARD'
       else intensity = 'VERY_HARD'
 
-      // Check if there's already a hybrid TrainingLoad entry for today
-      const existingLoad = await prisma.trainingLoad.findFirst({
-        where: {
-          clientId: assignment.athleteId,
-          date: today,
-          workoutType: 'HYBRID',
-          source: 'WORKOUT',
-        },
-      })
-
-      if (existingLoad) {
-        // Update existing entry (add load from this workout)
-        await prisma.trainingLoad.update({
-          where: { id: existingLoad.id },
-          data: {
-            dailyLoad: existingLoad.dailyLoad + hybridTSS,
-            duration: existingLoad.duration + durationMinutes,
-          },
-        })
-      } else {
-        // Create new entry for today's hybrid training
-        await prisma.trainingLoad.create({
+      if (!updatedLog.trainingLoadId) {
+        const trainingLoad = await prisma.trainingLoad.create({
           data: {
             clientId: assignment.athleteId,
             date: today,
@@ -491,8 +472,24 @@ export async function PUT(
             duration: durationMinutes,
             intensity,
             workoutType: 'HYBRID',
+            workoutId: assignment.workoutId,
           },
         })
+
+        updatedLog = await prisma.hybridWorkoutLog.update({
+          where: { id: updatedLog.id },
+          data: { trainingLoadId: trainingLoad.id },
+        })
+      }
+    }
+
+    // Try to merge a simultaneously-recorded Garmin activity. It is normal for
+    // the watch sync to arrive later; the link-workouts cron retries misses.
+    if (status === 'COMPLETED') {
+      try {
+        await linkGarminToHybridLog(updatedLog.id)
+      } catch (error) {
+        logError('Garmin link after hybrid completion failed:', error)
       }
     }
 

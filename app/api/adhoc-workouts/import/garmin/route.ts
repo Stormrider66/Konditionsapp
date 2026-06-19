@@ -42,6 +42,9 @@ export async function GET(request: NextRequest) {
     const garminActivities = await prisma.garminActivity.findMany({
       where: {
         clientId: clientId,
+        adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
       orderBy: { startDate: 'desc' },
       take: limit,

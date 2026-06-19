@@ -14526,6 +14526,7 @@
           "cycling": "Cycling",
           "swimming": "Swimming",
           "strength": "Strength",
+          "hybrid": "Hybrid",
           "crossTraining": "Cross-training",
           "skiing": "Ski training",
           "rowing": "Rowing",
@@ -14540,7 +14541,8 @@
           "quickerg": "Bluetooth erg",
           "phonerun": "Phone run",
           "ai": "AI workout",
-          "adhoc": "Manual log"
+          "adhoc": "Manual log",
+          "hybrid": "Hybrid workout"
         }
       },
       "assignmentTypes": {

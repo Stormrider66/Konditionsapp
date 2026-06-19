@@ -45,6 +45,10 @@ vi.mock('@/lib/training/adhoc-garmin-matcher', () => ({
   linkAdHocToGarmin: vi.fn(),
 }))
 
+vi.mock('@/lib/hybrid/garmin-hybrid-link', () => ({
+  linkGarminToHybridLogByActivity: vi.fn().mockResolvedValue(false),
+}))
+
 vi.mock('@/lib/managed-agents', () => ({
   isAgentProcessingEnabled: vi.fn(() => false),
   dispatchEvent: vi.fn(),

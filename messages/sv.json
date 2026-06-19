@@ -14886,6 +14886,7 @@
           "cycling": "Cykel",
           "swimming": "Simning",
           "strength": "Styrka",
+          "hybrid": "Hybrid",
           "crossTraining": "Alternativträning",
           "skiing": "Skidträning",
           "rowing": "Rodd",
@@ -14900,7 +14901,8 @@
           "quickerg": "Bluetooth-erg",
           "phonerun": "Telefonlopning",
           "ai": "AI-pass",
-          "adhoc": "Manuell logg"
+          "adhoc": "Manuell logg",
+          "hybrid": "Hybridpass"
         }
       },
       "assignmentTypes": {

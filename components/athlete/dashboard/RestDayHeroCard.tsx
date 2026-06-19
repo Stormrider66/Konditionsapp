@@ -749,6 +749,7 @@ function formatRecentActivityType(type: string, tr: (key: string) => string): st
     CYCLING: 'recentActivity.types.cycling',
     SWIMMING: 'recentActivity.types.swimming',
     STRENGTH: 'recentActivity.types.strength',
+    HYBRID: 'recentActivity.types.hybrid',
     CROSS_TRAINING: 'recentActivity.types.crossTraining',
     SKIING: 'recentActivity.types.skiing',
     ROWING: 'recentActivity.types.rowing',
@@ -771,6 +772,7 @@ function formatRecentActivitySource(
     phonerun: 'recentActivity.sources.phonerun',
     ai: 'recentActivity.sources.ai',
     adhoc: 'recentActivity.sources.adhoc',
+    hybrid: 'recentActivity.sources.hybrid',
   }
   return tr(labelKeys[source])
 }

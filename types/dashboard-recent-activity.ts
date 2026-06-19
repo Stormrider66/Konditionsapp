@@ -7,6 +7,7 @@ export type DashboardRecentActivitySource =
   | 'phonerun'
   | 'ai'
   | 'adhoc'
+  | 'hybrid'
 
 export interface DashboardRecentActivitySummary {
   id: string

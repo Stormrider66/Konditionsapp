@@ -426,6 +426,13 @@ model HybridWorkoutLog {
   notes         String? @db.Text
   focusModeUsed Boolean @default(true)
 
+  // Training load reference (created after completion)
+  trainingLoadId String?
+
+  // Link to matching Garmin activity (auto-linked or manual)
+  garminActivityId String?         @unique
+  garminActivity   GarminActivity? @relation("HybridLogGarminLink", fields: [garminActivityId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -433,6 +440,7 @@ model HybridWorkoutLog {
   @@index([athleteId])
   @@index([startedAt])
   @@index([status])
+  @@index([trainingLoadId])
 }
 
 /// Per-round log within a Hybrid workout

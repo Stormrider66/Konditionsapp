@@ -37,7 +37,7 @@ import {
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'ai' | 'adhoc' | 'adhoc+garmin'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'ai' | 'adhoc' | 'adhoc+garmin' | 'hybrid' | 'hybrid+garmin'
   name: string
   type: string
   sport?: string
@@ -143,7 +143,7 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - days)
 
     // Fetch all data sources in parallel
-    const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, phoneRunSessions, aiWods, adHocWorkouts] = await Promise.all([
+    const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, phoneRunSessions, aiWods, adHocWorkouts, hybridWorkoutLogs] = await Promise.all([
       // Manual workout logs - filter by athleteId (the user ID of the athlete)
       athleteId
         ? prisma.workoutLog.findMany({
@@ -244,6 +244,51 @@ export async function GET(request: NextRequest) {
         orderBy: { workoutDate: 'desc' },
         take: limit,
       }),
+
+      // Hybrid focus-mode logs (completed only), include linked Garmin activity
+      prisma.hybridWorkoutLog.findMany({
+        where: {
+          athleteId: clientId,
+          status: 'COMPLETED',
+          startedAt: { gte: startDate },
+        },
+        include: {
+          workout: {
+            select: {
+              name: true,
+              format: true,
+              movements: {
+                select: {
+                  reps: true,
+                  weightMale: true,
+                  weightFemale: true,
+                  distance: true,
+                  exercise: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                },
+                orderBy: { order: 'asc' },
+              },
+            },
+          },
+          garminActivity: {
+            select: {
+              id: true,
+              tss: true,
+              averageHeartrate: true,
+              maxHeartrate: true,
+              duration: true,
+              distance: true,
+              calories: true,
+              deviceName: true,
+            },
+          },
+        },
+        orderBy: { startedAt: 'desc' },
+        take: limit,
+      }),
     ])
 
     const activities: UnifiedActivity[] = []
@@ -304,12 +349,15 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Build set of Garmin activity IDs linked to ad-hoc workouts (to skip in Garmin loop)
-    const linkedGarminIds = new Set(
-      adHocWorkouts
+    // Build set of Garmin activity IDs linked to app-side workouts (to skip in Garmin loop)
+    const linkedGarminIds = new Set([
+      ...adHocWorkouts
         .map((a) => a.garminActivityId)
-        .filter((id): id is string => Boolean(id))
-    )
+        .filter((id): id is string => Boolean(id)),
+      ...hybridWorkoutLogs
+        .map((log) => log.garminActivityId)
+        .filter((id): id is string => Boolean(id)),
+    ])
 
     // Process Garmin activities from GarminActivity model (Gap 5 fix)
     for (const activity of garminActivities) {
@@ -555,13 +603,51 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    // Process completed hybrid focus logs (merge with linked Garmin data when available)
+    for (const log of hybridWorkoutLogs) {
+      const garmin = log.garminActivity
+      const durationMin = garmin?.duration
+        ? Math.round(garmin.duration / 60)
+        : log.totalTime
+          ? Math.round(log.totalTime / 60)
+          : undefined
+      const estimatedTSS = log.totalTime
+        ? Math.round((log.totalTime / 60) * ((log.sessionRPE || 7) / 10) * 1.1)
+        : undefined
+
+      activities.push({
+        id: log.id,
+        source: garmin ? 'hybrid+garmin' : 'hybrid',
+        name: log.workout?.name || t(locale, 'Hybrid workout', 'Hybridpass'),
+        type: 'HYBRID',
+        date: log.completedAt || log.startedAt,
+        duration: durationMin,
+        distance: garmin?.distance ? garmin.distance / 1000 : undefined,
+        avgHR: garmin?.averageHeartrate || undefined,
+        maxHR: garmin?.maxHeartrate || undefined,
+        calories: garmin?.calories || undefined,
+        tss: garmin?.tss || estimatedTSS,
+        completed: true,
+        notes: log.notes || undefined,
+        sessionRPE: log.sessionRPE || undefined,
+        hybridFormat: log.workout?.format || undefined,
+        movements: log.workout?.movements.map((movement) => ({
+          name: movement.exercise.name,
+          reps: movement.reps || undefined,
+          weight: movement.weightMale ?? movement.weightFemale ?? undefined,
+          distance: movement.distance || undefined,
+        })) || undefined,
+        deviceModel: garmin?.deviceName || undefined,
+      })
+    }
+
     // Sort by date (newest first)
     activities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
     // Create normalized activities for deduplication
     const normalizedActivities: NormalizedActivity[] = activities.map(activity => ({
       id: activity.id,
-      source: (activity.source === 'adhoc+garmin' ? 'adhoc' : activity.source) as ActivitySource,
+      source: (activity.source === 'adhoc+garmin' ? 'adhoc' : activity.source === 'hybrid+garmin' ? 'hybrid' : activity.source) as ActivitySource,
       date: new Date(activity.date),
       startTime: new Date(activity.date),
       duration: (activity.duration || 0) * 60, // Convert to seconds
@@ -604,6 +690,7 @@ export async function GET(request: NextRequest) {
         phonerun: phoneRunSessions.length,
         ai: aiWods.length,
         adhoc: adHocWorkouts.length,
+        hybrid: hybridWorkoutLogs.length,
       },
       deduplication: {
         totalBeforeDedup: activities.length,

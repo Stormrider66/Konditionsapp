@@ -119,6 +119,9 @@ async function getSyncedActivityLoadByClient(
         clientId: { in: clientIds },
         startDate: { gte: startDate, lt: endDate },
         tss: { not: null },
+        adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
       select: {
         id: true,

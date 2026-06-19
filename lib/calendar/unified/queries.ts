@@ -514,7 +514,13 @@ export const fetchAdHoc = ({ clientId, startDate, endDate, itemsMode, maxItemsPe
 
 export const fetchGarminActivities = ({ clientId, startDate, endDate, maxItemsPerSource }: QueryInput) =>
   prisma.garminActivity.findMany({
-    where: { clientId, startDate: { gte: startDate, lte: endDate } },
+    where: {
+      clientId,
+      startDate: { gte: startDate, lte: endDate },
+      adHocWorkout: null,
+      cardioSessionLog: null,
+      hybridWorkoutLog: null,
+    },
     select: {
       id: true,
       name: true,

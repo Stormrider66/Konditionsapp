@@ -14,6 +14,7 @@ import { verifyCronAuth } from '@/lib/api/cron-auth'
 import { prisma } from '@/lib/prisma'
 import { findMatchingGarminActivity, findMatchingAdHocWorkout, linkAdHocToGarmin } from '@/lib/training/adhoc-garmin-matcher'
 import { linkGarminToCardioLog } from '@/lib/cardio/garmin-cardio-link'
+import { linkGarminToHybridLog } from '@/lib/hybrid/garmin-hybrid-link'
 import { logger } from '@/lib/logger'
 import { subDays } from 'date-fns'
 
@@ -66,6 +67,8 @@ export async function GET(request: NextRequest) {
       where: {
         startDate: { gte: since },
         adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
       select: {
         id: true,
@@ -118,13 +121,48 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    logger.info('Link-workouts cron completed', { linked, cardioLinked, checkedAdHocs: unlinkedAdHocs.length, checkedGarmins: unlinkedGarmins.length, checkedCardioLogs: unlinkedCardioLogs.length })
+    // Strategy 4: completed hybrid focus-mode sessions whose watch recording
+    // synced after completion (the completion-time link attempt missed).
+    const unlinkedHybridLogs = await prisma.hybridWorkoutLog.findMany({
+      where: {
+        status: 'COMPLETED',
+        garminActivityId: null,
+        startedAt: { gte: since },
+      },
+      select: { id: true },
+      take: 50,
+    })
+
+    let hybridLinked = 0
+    for (const log of unlinkedHybridLogs) {
+      try {
+        if (await linkGarminToHybridLog(log.id)) hybridLinked++
+      } catch (err) {
+        logger.warn('Failed to link hybrid log to Garmin', { logId: log.id, error: String(err) })
+      }
+    }
+
+    logger.info('Link-workouts cron completed', {
+      linked,
+      cardioLinked,
+      hybridLinked,
+      checkedAdHocs: unlinkedAdHocs.length,
+      checkedGarmins: unlinkedGarmins.length,
+      checkedCardioLogs: unlinkedCardioLogs.length,
+      checkedHybridLogs: unlinkedHybridLogs.length,
+    })
 
     return NextResponse.json({
       success: true,
       linked,
       cardioLinked,
-      checked: { adHocs: unlinkedAdHocs.length, garmins: unlinkedGarmins.length, cardioLogs: unlinkedCardioLogs.length },
+      hybridLinked,
+      checked: {
+        adHocs: unlinkedAdHocs.length,
+        garmins: unlinkedGarmins.length,
+        cardioLogs: unlinkedCardioLogs.length,
+        hybridLogs: unlinkedHybridLogs.length,
+      },
     })
   } catch (error) {
     logger.error('Link-workouts cron failed', { error: String(error) })

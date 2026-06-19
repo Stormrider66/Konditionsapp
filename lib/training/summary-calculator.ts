@@ -159,6 +159,9 @@ async function fetchWeeklyTrainingData(
       where: {
         clientId,
         startDate: { gte: weekStart, lte: weekEnd },
+        adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
     }),
 
@@ -1056,6 +1059,9 @@ export async function calculateYearlySummary(
       where: {
         clientId,
         startDate: { gte: yearStart, lte: yearEnd },
+        adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
       select: {
         mappedType: true,

@@ -50,6 +50,8 @@ export async function GET(request: NextRequest) {
       where: {
         clientId,
         adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
         startDate: { gte: since },
       },
       select: {

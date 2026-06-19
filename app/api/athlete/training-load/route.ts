@@ -106,6 +106,9 @@ export async function GET(request: NextRequest) {
       where: {
         clientId,
         startDate: { gte: twentyEightDaysAgo },
+        adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
       select: {
         id: true,

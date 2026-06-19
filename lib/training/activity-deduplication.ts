@@ -23,7 +23,7 @@ import {
   type QuickErgMachineType,
 } from '@/lib/quick-erg/session-summary'
 
-export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'manual' | 'ai' | 'adhoc'
+export type ActivitySource = 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'manual' | 'ai' | 'adhoc' | 'hybrid'
 
 export interface NormalizedActivity {
   id: string
@@ -72,6 +72,7 @@ const SOURCE_PRIORITY: Record<ActivitySource, number> = {
   ai: 2, // AI-generated, less metadata
   manual: 1, // User input, least reliable
   adhoc: 1, // Ad-hoc workout input, same as manual
+  hybrid: 1, // Hybrid focus log, sensor data may enrich it when linked
 }
 
 const DEFAULT_OPTIONS: Required<DeduplicationOptions> = {
@@ -280,7 +281,7 @@ export function areTypesCompatible(typeA: string, typeB: string): boolean {
     ['ROWING', 'INDOOR_ROWING', 'ROWER'],
     ['SKIING', 'SKIERG', 'CROSS_COUNTRY_SKI', 'NORDIC_SKI', 'CROSS_COUNTRY_SKIING', 'RESORT_SKIING', 'BACKCOUNTRY_SKIING'],
     ['SWIMMING', 'SWIM', 'POOL_SWIM', 'OPEN_WATER_SWIM', 'POOL_SWIMMING', 'OPEN_WATER_SWIMMING'],
-    ['STRENGTH', 'WEIGHT_TRAINING', 'WEIGHTS', 'GYM', 'STRENGTH_TRAINING', 'INDOOR_CARDIO', 'HIIT', 'CARDIO', 'CROSS_TRAINING', 'FUNCTIONAL_FITNESS'],
+    ['STRENGTH', 'WEIGHT_TRAINING', 'WEIGHTS', 'GYM', 'STRENGTH_TRAINING', 'INDOOR_CARDIO', 'HIIT', 'CARDIO', 'CROSS_TRAINING', 'FUNCTIONAL_FITNESS', 'HYBRID'],
     ['WALKING', 'WALK', 'HIKE', 'HIKING'],
     ['RECOVERY', 'YOGA', 'PILATES', 'STRETCHING'],
   ]

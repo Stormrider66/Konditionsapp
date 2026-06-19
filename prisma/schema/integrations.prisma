@@ -203,6 +203,7 @@ model GarminActivity {
   zoneDistribution ActivityHRZoneDistribution?
   adHocWorkout     AdHocWorkout?               @relation("AdHocGarminLink")
   cardioSessionLog CardioSessionLog?           @relation("CardioLogGarminLink")
+  hybridWorkoutLog HybridWorkoutLog?           @relation("HybridLogGarminLink")
 
   @@index([clientId])
   @@index([startDate])

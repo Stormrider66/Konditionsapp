@@ -58,7 +58,7 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
 
   const athleteUserId = client?.athleteAccount?.userId ?? null
 
-  const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, phoneRunSessions, aiWods, adHocWorkouts] = await Promise.all([
+  const [manualLogs, stravaActivities, garminActivities, concept2Results, quickErgSessions, phoneRunSessions, aiWods, adHocWorkouts, hybridWorkoutLogs] = await Promise.all([
     athleteUserId
       ? prisma.workoutLog.findMany({
           where: {
@@ -84,6 +84,9 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
       where: {
         clientId,
         startDate: { gte: since },
+        adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
       orderBy: { startDate: 'desc' },
       take: 5,
@@ -128,6 +131,28 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
         workoutDate: { gte: since },
       },
       orderBy: { workoutDate: 'desc' },
+      take: 5,
+    }),
+    prisma.hybridWorkoutLog.findMany({
+      where: {
+        athleteId: clientId,
+        status: 'COMPLETED',
+        startedAt: { gte: since },
+      },
+      include: {
+        workout: { select: { name: true, format: true } },
+        garminActivity: {
+          select: {
+            tss: true,
+            averageHeartrate: true,
+            duration: true,
+            distance: true,
+            calories: true,
+            deviceName: true,
+          },
+        },
+      },
+      orderBy: { startedAt: 'desc' },
       take: 5,
     }),
   ])
@@ -323,6 +348,47 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
     })
   }
 
+  for (const log of hybridWorkoutLogs) {
+    const garmin = log.garminActivity
+    const durationMinutes = garmin?.duration
+      ? Math.round(garmin.duration / 60)
+      : log.totalTime
+        ? Math.round(log.totalTime / 60)
+        : undefined
+    const estimatedTSS = log.totalTime
+      ? Math.round((log.totalTime / 60) * ((log.sessionRPE || 7) / 10) * 1.1)
+      : undefined
+
+    candidates.push({
+      summary: {
+        id: log.id,
+        source: 'hybrid',
+        name: log.workout?.name || 'Hybrid workout',
+        type: 'HYBRID',
+        date: log.completedAt || log.startedAt,
+        durationMinutes,
+        distanceKm: garmin?.distance ? Math.round((garmin.distance / 1000) * 10) / 10 : undefined,
+        avgHR: garmin?.averageHeartrate || undefined,
+        calories: garmin?.calories || undefined,
+        tss: garmin?.tss ? Math.round(garmin.tss) : estimatedTSS,
+        deviceModel: garmin?.deviceName || undefined,
+        notes: log.notes || undefined,
+      },
+      normalized: {
+        id: `hybrid-${log.id}`,
+        source: 'hybrid' as ActivitySource,
+        date: log.completedAt || log.startedAt,
+        startTime: log.startedAt,
+        duration: (durationMinutes || 0) * 60,
+        type: 'HYBRID',
+        distance: garmin?.distance || undefined,
+        tss: garmin?.tss || estimatedTSS,
+        avgHR: garmin?.averageHeartrate || undefined,
+        originalId: log.id,
+      },
+    })
+  }
+
   const { deduplicated } = deduplicateActivities(candidates.map((candidate) => candidate.normalized))
   const keptIds = new Set(deduplicated.map((activity) => activity.id))
 
@@ -382,6 +448,9 @@ export async function getDashboardWeeklyLoad(clientId: string): Promise<Dashboar
       where: {
         clientId,
         startDate: { gte: twentyEightDaysAgo },
+        adHocWorkout: null,
+        cardioSessionLog: null,
+        hybridWorkoutLog: null,
       },
       select: {
         garminActivityId: true,

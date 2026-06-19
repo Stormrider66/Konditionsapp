@@ -668,6 +668,17 @@ async function processActivity(activity: GarminActivityPayload) {
     logger.warn('Failed to auto-link Garmin to ad-hoc', { error: err })
   }
 
+  // Auto-link with matching hybrid focus-mode log if one exists
+  try {
+    const { linkGarminToHybridLogByActivity } = await import('@/lib/hybrid/garmin-hybrid-link')
+    const linkedHybrid = await linkGarminToHybridLogByActivity(garminRecord.id)
+    if (linkedHybrid) {
+      logger.info('Auto-linked Garmin activity to hybrid workout log', { garminActivityId: garminRecord.id })
+    }
+  } catch (err) {
+    logger.warn('Failed to auto-link Garmin to hybrid workout log', { error: err })
+  }
+
   // Auto-complete matching cardio session assignment
   try {
     await completeCardioAssignmentFromGarmin(clientId, startDate, activity)
