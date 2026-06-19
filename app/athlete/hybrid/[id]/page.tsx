@@ -43,6 +43,26 @@ export default async function AthleteHybridWorkoutPage({ params }: PageProps) {
     notFound();
   }
 
+  const assignment = await prisma.hybridWorkoutAssignment.findFirst({
+    where: {
+      workoutId: id,
+      athleteId: clientId,
+      status: { in: ['PENDING', 'SCHEDULED', 'MODIFIED'] },
+    },
+    orderBy: [
+      { assignedDate: 'desc' },
+      { createdAt: 'desc' },
+    ],
+    select: {
+      id: true,
+      assignedDate: true,
+      status: true,
+      notes: true,
+      customScaling: true,
+      scalingNotes: true,
+    },
+  });
+
   // Get PR for this workout
   const personalBest = await prisma.hybridWorkoutResult.findFirst({
     where: {
@@ -61,6 +81,7 @@ export default async function AthleteHybridWorkoutPage({ params }: PageProps) {
           workout={workout as any}
           clientId={clientId}
           personalBest={personalBest as any}
+          assignment={assignment}
         />
       </Suspense>
     </div>

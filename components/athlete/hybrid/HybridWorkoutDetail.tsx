@@ -47,9 +47,12 @@ import {
   Edit,
   AlertCircle,
   StopCircle,
+  Maximize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { WorkoutTimer, type TimerSegment } from './WorkoutTimer';
+import { HybridFocusMode } from './HybridFocusMode';
+import { buildHybridPlanSegments } from './hybrid-workout-plan';
 import { useWorkoutThemeOptional } from '@/lib/themes/ThemeProvider';
 import { MINIMALIST_WHITE_THEME } from '@/lib/themes/definitions';
 import {
@@ -58,7 +61,7 @@ import {
 } from '@/lib/workouts/future-completion-client';
 import { useLocale, useTranslations } from '@/i18n/client';
 import { getExerciseDisplayName } from '@/lib/exercises/display-name';
-import type { HybridMetconBlock, HybridMetconBlockMovement, HybridMetconData } from '@/types';
+import type { HybridMetconData } from '@/types';
 
 interface HybridMovement {
   id: string;
@@ -131,6 +134,16 @@ interface HybridWorkoutDetailProps {
   clientId: string;
   personalBest: HybridWorkoutResult | null;
   basePath?: string;
+  assignment?: HybridWorkoutAssignment | null;
+}
+
+interface HybridWorkoutAssignment {
+  id: string;
+  assignedDate: string | Date;
+  status: string;
+  notes?: string | null;
+  customScaling?: string | null;
+  scalingNotes?: string | null;
 }
 
 type TranslationKey = Parameters<ReturnType<typeof useTranslations>>[0]
@@ -174,110 +187,33 @@ function getTimerMode(format: string): 'FOR_TIME' | 'AMRAP' | 'EMOM' | 'TABATA' 
   }
 }
 
-function parseDurationFromNotes(notes?: string | null): number | null {
-  if (!notes) return null;
-
-  const minuteMatch = notes.match(/(\d+(?:[,.]\d+)?)\s*(?:min|minutes?|minuter)\b/i);
-  if (minuteMatch) {
-    return Math.round(parseFloat(minuteMatch[1].replace(',', '.')) * 60);
-  }
-
-  const secondMatch = notes.match(/(\d+(?:[,.]\d+)?)\s*(?:s|sec|secs|seconds?|sek|sekunder)\b/i);
-  if (secondMatch) {
-    return Math.round(parseFloat(secondMatch[1].replace(',', '.')));
-  }
-
-  return null;
-}
-
-function getBlockDurationSeconds(block: HybridMetconBlock): number {
-  const rounds = block.rounds ?? 1;
-  const noteDuration = block.format !== 'EMOM' && rounds <= 1 ? parseDurationFromNotes(block.notes) : null;
-
-  if (noteDuration && noteDuration > 0) return noteDuration;
-  if (block.intervalSeconds && block.intervalSeconds > 0) return block.intervalSeconds;
-  if (block.workSeconds && block.restSeconds) return block.workSeconds + block.restSeconds;
-  if (block.workSeconds && block.workSeconds > 0) return block.workSeconds;
-
-  const movementDuration = Math.max(...block.movements.map((movement) => movement.duration ?? 0), 0);
-  return movementDuration > 0 ? movementDuration : 60;
-}
-
-function formatMetconMovement(movement: HybridMetconBlockMovement): string {
-  const prescription: string[] = [];
-
-  if (movement.reps) prescription.push(`${movement.reps} reps`);
-  if (movement.calories) prescription.push(`${movement.calories} cal`);
-  if (movement.distance) prescription.push(`${movement.distance}m`);
-  if (movement.duration) {
-    const mins = Math.floor(movement.duration / 60);
-    const secs = movement.duration % 60;
-    prescription.push(mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs}s`);
-  }
-
-  const weight =
-    movement.weightMale && movement.weightFemale
-      ? `${movement.weightMale}/${movement.weightFemale}kg`
-      : movement.weightMale
-        ? `${movement.weightMale}kg`
-        : movement.weightFemale
-          ? `${movement.weightFemale}kg`
-          : null;
-
-  return [movement.exerciseName, prescription.join(' '), weight ? `@ ${weight}` : null]
-    .filter(Boolean)
-    .join(' ');
-}
-
 function buildTimerSegments(
   metconData: HybridMetconData | null | undefined,
   t: ReturnType<typeof useTranslations>
 ): TimerSegment[] {
-  if (!metconData?.blocks?.length) return [];
-
-  return metconData.blocks.flatMap((block, blockIndex) => {
-    const blockTitle = block.title || t('timerPlan.block', { number: blockIndex + 1 });
-    const rounds = Math.max(1, block.rounds ?? 1);
-    const durationSeconds = getBlockDurationSeconds(block);
-    const movements = [...block.movements]
-      .sort((a, b) => a.order - b.order)
-      .map(formatMetconMovement);
-    const blockSegments: TimerSegment[] = Array.from({ length: rounds }, (_, roundIndex) => ({
-      id: `${block.id}-round-${roundIndex + 1}`,
-      type: 'work',
-      title: rounds > 1
-        ? t('timerPlan.roundTitle', {
-            block: blockTitle,
-            round: roundIndex + 1,
-            total: rounds,
-          })
-        : blockTitle,
-      durationSeconds,
-      blockTitle,
-      movements,
-      notes: block.notes ?? undefined,
-    }));
-
-    if (block.restAfterSeconds && block.restAfterSeconds > 0) {
-      blockSegments.push({
-        id: `${block.id}-rest-after`,
-        type: 'rest',
-        title: t('timerPlan.restAfter', { block: blockTitle }),
-        durationSeconds: block.restAfterSeconds,
-        blockTitle,
-      });
-    }
-
-    return blockSegments;
-  });
+  return buildHybridPlanSegments(metconData, {
+    blockTitle: (number) => t('timerPlan.block', { number }),
+    roundTitle: (block, round, total) => t('timerPlan.roundTitle', { block, round, total }),
+    restAfter: (block) => t('timerPlan.restAfter', { block }),
+  }).map((segment) => ({
+    ...segment,
+    movements: segment.movements.map((movement) => movement.label),
+  }));
 }
 
-export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath = '' }: HybridWorkoutDetailProps) {
+export function HybridWorkoutDetail({
+  workout,
+  clientId,
+  personalBest,
+  basePath = '',
+  assignment = null,
+}: HybridWorkoutDetailProps) {
   const t = useTranslations('components.hybridWorkoutDetail');
   const locale = useLocale();
   const router = useRouter();
   const [isLoggingOpen, setIsLoggingOpen] = useState(false);
   const [isTimerOpen, setIsTimerOpen] = useState(false);
+  const [isFocusModeOpen, setIsFocusModeOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('workout');
   const [timerResult, setTimerResult] = useState<number | null>(null);
   const timerSegments = buildTimerSegments(workout.metconData, t);
@@ -316,6 +252,18 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
           </div>
         </div>
         <div className="flex gap-2">
+          {assignment && assignment.status !== 'COMPLETED' && (
+            <Button
+              size="lg"
+              className="gap-2"
+              onClick={() => setIsFocusModeOpen(true)}
+            >
+              <Maximize2 className="h-5 w-5" />
+              <span className="hidden sm:inline">{t('actions.focusMode')}</span>
+              <span className="sm:hidden">{t('actions.focus')}</span>
+            </Button>
+          )}
+
           {/* Timer Button */}
           <Dialog open={isTimerOpen} onOpenChange={setIsTimerOpen}>
             <DialogTrigger asChild>
@@ -382,6 +330,17 @@ export function HybridWorkoutDetail({ workout, clientId, personalBest, basePath 
           </Dialog>
         </div>
       </div>
+
+      {isFocusModeOpen && assignment && (
+        <HybridFocusMode
+          assignmentId={assignment.id}
+          onClose={() => setIsFocusModeOpen(false)}
+          onComplete={() => {
+            setIsFocusModeOpen(false);
+            router.refresh();
+          }}
+        />
+      )}
 
       {/* PR Card */}
       {personalBest && (

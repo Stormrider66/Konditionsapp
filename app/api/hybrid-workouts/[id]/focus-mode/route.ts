@@ -100,6 +100,7 @@ export async function GET(
       where: {
         workoutId: workout.id,
         athleteId: clientId,
+        assignmentId: assignment.id,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
       include: {
@@ -258,6 +259,7 @@ export async function POST(
       where: {
         workoutId: assignment.workoutId,
         athleteId: clientId,
+        assignmentId: assignment.id,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
     })
@@ -376,6 +378,7 @@ export async function PUT(
       where: {
         workoutId: assignment.workoutId,
         athleteId: clientId,
+        assignmentId: assignment.id,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
     })

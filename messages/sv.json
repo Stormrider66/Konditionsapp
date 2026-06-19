@@ -16540,6 +16540,59 @@
         "hard": "Hårt"
       }
     },
+    "hybridFocusMode": {
+      "badge": "Fokus",
+      "empty": "Kunde inte ladda det här fokuspasset.",
+      "progress": "{completed}/{total} arbetsdelar",
+      "step": "Steg {current}/{total}",
+      "restMessage": "Vila. Nästa arbetsdel startar när timern är klar.",
+      "screen": {
+        "awake": "Skärmen hålls vaken",
+        "standard": "Standard skärm"
+      },
+      "type": {
+        "work": "Arbete",
+        "rest": "Vila",
+        "completed": "Loggat"
+      },
+      "timer": {
+        "remaining": "Kvar",
+        "elapsed": "Förflutet {time}"
+      },
+      "plan": {
+        "title": "Plan",
+        "block": "Block {number}",
+        "roundTitle": "{block} · Varv {round}/{total}",
+        "restAfter": "Vila efter {block}"
+      },
+      "actions": {
+        "start": "Starta",
+        "pause": "Pausa",
+        "previous": "Föregående",
+        "next": "Nästa",
+        "resetSegment": "Återställ del",
+        "completeRound": "Logga del",
+        "skipRest": "Hoppa över vila",
+        "finish": "Slutför",
+        "backToPlan": "Tillbaka",
+        "saveWorkout": "Spara pass",
+        "retry": "Försök igen",
+        "close": "Stäng"
+      },
+      "completion": {
+        "title": "Pass slutfört",
+        "summary": "{completed}/{total} arbetsdelar loggade · {time}",
+        "rpe": "RPE {rpe}",
+        "notesPlaceholder": "Anteckningar från passet"
+      },
+      "toast": {
+        "loadFailed": "Kunde inte ladda fokusläget",
+        "startFailed": "Kunde inte starta fokusläget",
+        "roundFailed": "Kunde inte logga varvet",
+        "completeFailed": "Kunde inte slutföra passet",
+        "completed": "Passet är slutfört"
+      }
+    },
     "amrapTimer": {
       "timeCap": "{time} tidsgräns",
       "rounds": "rundor",
@@ -16674,6 +16727,8 @@
         "custom": "Egen anpassning"
       },
       "actions": {
+        "focusMode": "Fokusläge",
+        "focus": "Fokus",
         "timer": "Timer",
         "logResult": "Logga Resultat",
         "log": "Logga",

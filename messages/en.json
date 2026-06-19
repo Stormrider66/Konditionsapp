@@ -16180,6 +16180,59 @@
         "hard": "Hard"
       }
     },
+    "hybridFocusMode": {
+      "badge": "Focus",
+      "empty": "Could not load this focus session.",
+      "progress": "{completed}/{total} work segments",
+      "step": "Step {current}/{total}",
+      "restMessage": "Rest. The next work segment starts when this timer ends.",
+      "screen": {
+        "awake": "Screen awake",
+        "standard": "Standard screen"
+      },
+      "type": {
+        "work": "Work",
+        "rest": "Rest",
+        "completed": "Logged"
+      },
+      "timer": {
+        "remaining": "Remaining",
+        "elapsed": "Elapsed {time}"
+      },
+      "plan": {
+        "title": "Plan",
+        "block": "Block {number}",
+        "roundTitle": "{block} · Round {round}/{total}",
+        "restAfter": "Rest after {block}"
+      },
+      "actions": {
+        "start": "Start",
+        "pause": "Pause",
+        "previous": "Previous",
+        "next": "Next",
+        "resetSegment": "Reset segment",
+        "completeRound": "Log segment",
+        "skipRest": "Skip rest",
+        "finish": "Finish",
+        "backToPlan": "Back",
+        "saveWorkout": "Save workout",
+        "retry": "Retry",
+        "close": "Close"
+      },
+      "completion": {
+        "title": "Workout complete",
+        "summary": "{completed}/{total} work segments logged · {time}",
+        "rpe": "RPE {rpe}",
+        "notesPlaceholder": "Notes from the session"
+      },
+      "toast": {
+        "loadFailed": "Could not load focus mode",
+        "startFailed": "Could not start focus mode",
+        "roundFailed": "Could not log round",
+        "completeFailed": "Could not complete workout",
+        "completed": "Workout completed"
+      }
+    },
     "amrapTimer": {
       "timeCap": "{time} time cap",
       "rounds": "rounds",
@@ -16314,6 +16367,8 @@
         "custom": "Custom scaling"
       },
       "actions": {
+        "focusMode": "Focus mode",
+        "focus": "Focus",
         "timer": "Timer",
         "logResult": "Log result",
         "log": "Log",
