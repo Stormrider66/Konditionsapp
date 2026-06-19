@@ -4000,8 +4000,8 @@
             "colActions": "Åtgärder",
             "empty": "Inga spelare matchar.",
             "legendHealthy": "Frisk",
-            "legendLimited": "Begränsad",
-            "legendInjured": "Skadad",
+            "legendLimited": "Bevaka",
+            "legendInjured": "Kräver koll",
             "legendRestrictions": "R = Restriktioner"
           },
           "actionInbox": {
@@ -4033,6 +4033,15 @@
             "green": "Frisk",
             "amber": "Begränsad",
             "red": "Skadad",
+            "statusReason": {
+              "healthy": "Frisk",
+              "injured": "Skadad",
+              "restricted": "Begränsad",
+              "highLoad": "Hög belastning",
+              "loadWatch": "Belastning",
+              "lowReadiness": "Låg readiness",
+              "readinessWatch": "Readiness"
+            },
             "none": "Inga",
             "profile": "Profil",
             "calendar": "Kalender",

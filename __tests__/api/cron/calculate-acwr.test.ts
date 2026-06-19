@@ -163,7 +163,7 @@ describe('POST /api/cron/calculate-acwr', () => {
     ] as never)
     // Most-recent carrier entry with prior EWMA values
     vi.mocked(prisma.$queryRaw).mockResolvedValue([
-      { clientId: 'client-1', acuteLoad: 60, chronicLoad: 50 },
+      { clientId: 'client-1', acuteLoad: 60, chronicLoad: 50, summaryCount: 20 },
     ])
 
     await postCron(buildRequest(`Bearer ${SECRET}`))
@@ -177,6 +177,28 @@ describe('POST /api/cron/calculate-acwr', () => {
     expect(row.dailyLoad).toBe(300)
     expect(row.acuteLoad).toBeCloseTo(156, 0)
     expect(row.chronicLoad).toBeCloseTo(75, 0)
+  })
+
+  it('withholds a first-week load spike until ACWR baseline history is reliable', async () => {
+    vi.mocked(prisma.client.findMany).mockResolvedValue([
+      { id: 'client-1', name: 'Alice' },
+    ] as never)
+    vi.mocked(prisma.trainingLoad.groupBy).mockResolvedValue([
+      { clientId: 'client-1', _sum: { dailyLoad: 43 } },
+    ] as never)
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      { clientId: 'client-1', acuteLoad: 0, chronicLoad: 0, summaryCount: 3 },
+    ])
+
+    await postCron(buildRequest(`Bearer ${SECRET}`))
+
+    const row = createManyArgs().data[0]
+    expect(row.dailyLoad).toBe(43)
+    expect(row.acuteLoad).toBeCloseTo(17.2)
+    expect(row.chronicLoad).toBeCloseTo(4.3)
+    expect(row.acwr).toBeNull()
+    expect(row.acwrZone).toBeNull()
+    expect(row.injuryRisk).toBeNull()
   })
 
   it('adds synced activity TSS to yesterday workout load', async () => {
@@ -201,7 +223,7 @@ describe('POST /api/cron/calculate-acwr', () => {
       },
     ] as never)
     vi.mocked(prisma.$queryRaw).mockResolvedValue([
-      { clientId: 'client-1', acuteLoad: 30, chronicLoad: 40 },
+      { clientId: 'client-1', acuteLoad: 30, chronicLoad: 40, summaryCount: 20 },
     ])
 
     await postCron(buildRequest(`Bearer ${SECRET}`))
@@ -253,7 +275,7 @@ describe('POST /api/cron/calculate-acwr', () => {
     expect(row.dailyLoad).toBe(55)
   })
 
-  it('seeds EWMA from the daily load when no prior training load exists', async () => {
+  it('seeds EWMA but withholds ACWR risk until summary history is reliable', async () => {
     vi.mocked(prisma.client.findMany).mockResolvedValue([
       { id: 'client-1', name: 'Alice' },
     ] as never)
@@ -261,11 +283,13 @@ describe('POST /api/cron/calculate-acwr', () => {
 
     await postCron(buildRequest(`Bearer ${SECRET}`))
 
-    // dailyTSS = 0, previousEWMA = null → acute = 0, chronic = 0,
-    // ACWR = 0 (chronic guard avoids divide-by-zero) → DETRAINING, LOW.
+    // dailyTSS = 0, previousEWMA = null → acute = 0, chronic = 0. The row
+    // carries the EWMA baseline, but not the risk signal before day 21.
     const row = createManyArgs().data[0]
-    expect(row.acwr).toBe(0)
-    expect(row.acwrZone).toBe('DETRAINING')
-    expect(row.injuryRisk).toBe('LOW')
+    expect(row.acuteLoad).toBe(0)
+    expect(row.chronicLoad).toBe(0)
+    expect(row.acwr).toBeNull()
+    expect(row.acwrZone).toBeNull()
+    expect(row.injuryRisk).toBeNull()
   })
 })

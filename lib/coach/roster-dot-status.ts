@@ -10,6 +10,14 @@
  */
 
 export type RosterDotLevel = 'red' | 'amber' | 'green'
+export type RosterStatusReason =
+  | 'healthy'
+  | 'injured'
+  | 'restricted'
+  | 'highLoad'
+  | 'loadWatch'
+  | 'lowReadiness'
+  | 'readinessWatch'
 
 export interface RosterDotInput {
   activeInjuryCount: number
@@ -49,4 +57,17 @@ export function rosterDotLevel(member: RosterDotInput): RosterDotLevel {
   }
 
   return 'green'
+}
+
+export function rosterStatusReason(member: RosterDotInput): RosterStatusReason {
+  const readiness = member.readinessLevel
+  const acwr = member.acwrZone
+
+  if (member.activeInjuryCount > 0) return 'injured'
+  if (readiness != null && RED_READINESS.has(readiness)) return 'lowReadiness'
+  if (isHighAcwr(acwr)) return 'highLoad'
+  if (member.activeRestrictionCount > 0) return 'restricted'
+  if (readiness === 'FAIR') return 'readinessWatch'
+  if (acwr === 'CAUTION') return 'loadWatch'
+  return 'healthy'
 }

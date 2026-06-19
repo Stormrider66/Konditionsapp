@@ -14,8 +14,13 @@ export interface RailMember {
   position: string | null
   /** Blended medical + readiness + ACWR status (computed server-side). */
   statusLevel: RosterDotLevel
+  activeInjuryCount: number
   /** Active restriction count, for the "R" marker. */
   activeRestrictionCount: number
+  /** Latest DailyMetrics.readinessLevel, or null when no current signal. */
+  readinessLevel: string | null
+  /** Latest reliable ACWR zone, or null while baseline history is insufficient. */
+  acwrZone: string | null
   /** Whether the member can receive assigned workouts in the athlete app. */
   hasAthleteAccount?: boolean
 }

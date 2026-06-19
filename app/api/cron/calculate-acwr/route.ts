@@ -37,6 +37,7 @@ import {
   normalizeStravaActivity,
   type NormalizedActivity,
 } from '@/lib/training/activity-deduplication'
+import { hasReliableAcwrSummary } from '@/lib/training/acwr-confidence'
 
 export const maxDuration = 300
 
@@ -291,11 +292,22 @@ export async function POST(request: NextRequest) {
     // reset the moving averages). DISTINCT ON walks the
     // (clientId, source, date) index instead of one findFirst per athlete.
     const previousEntries = await prisma.$queryRaw<
-      { clientId: string; acuteLoad: number | null; chronicLoad: number | null }[]
+      {
+        clientId: string
+        acuteLoad: number | null
+        chronicLoad: number | null
+        summaryCount: number | bigint | null
+      }[]
     >`
-      SELECT DISTINCT ON ("clientId") "clientId", "acuteLoad", "chronicLoad"
+      SELECT DISTINCT ON ("clientId")
+        "clientId",
+        "acuteLoad",
+        "chronicLoad",
+        COUNT(*) OVER (PARTITION BY "clientId") AS "summaryCount"
       FROM "TrainingLoad"
-      WHERE "source" = 'ACWR_SUMMARY' AND "clientId" = ANY(${ids})
+      WHERE "source" = 'ACWR_SUMMARY'
+        AND "clientId" = ANY(${ids})
+        AND "date" < ${today}
       ORDER BY "clientId", "date" DESC
     `
     const previousByClient = new Map(previousEntries.map((r) => [r.clientId, r]))
@@ -317,12 +329,15 @@ export async function POST(request: NextRequest) {
         CHRONIC_ALPHA
       )
 
-      // Calculate ACWR (avoid division by zero)
+      // Calculate ACWR (avoid division by zero), but do not publish the risk
+      // signal until the EWMA baseline has enough daily summary history.
       const acwr = chronicLoad > 0 ? acuteLoad / chronicLoad : 0
-      const { zone, injuryRisk } = determineACWRZone(acwr)
+      const previousSummaryCount = Number(previousEntry?.summaryCount ?? 0)
+      const hasReliableAcwr = hasReliableAcwrSummary(previousSummaryCount + 1)
+      const acwrZone = hasReliableAcwr ? determineACWRZone(acwr) : null
 
-      if (zone === 'DANGER' || zone === 'CRITICAL') {
-        logger.warn('Athlete in danger zone', { athleteName: athlete.name, acwr: acwr.toFixed(2), zone })
+      if (acwrZone?.zone === 'DANGER' || acwrZone?.zone === 'CRITICAL') {
+        logger.warn('Athlete in danger zone', { athleteName: athlete.name, acwr: acwr.toFixed(2), zone: acwrZone.zone })
       }
 
       return {
@@ -335,9 +350,9 @@ export async function POST(request: NextRequest) {
         intensity: 'MODERATE', // Default
         acuteLoad,
         chronicLoad,
-        acwr,
-        acwrZone: zone,
-        injuryRisk,
+        acwr: hasReliableAcwr ? acwr : null,
+        acwrZone: acwrZone?.zone ?? null,
+        injuryRisk: acwrZone?.injuryRisk ?? null,
       }
     })
 

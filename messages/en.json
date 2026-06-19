@@ -4000,8 +4000,8 @@
             "colActions": "Actions",
             "empty": "No players match.",
             "legendHealthy": "Healthy",
-            "legendLimited": "Limited",
-            "legendInjured": "Injured",
+            "legendLimited": "Watch",
+            "legendInjured": "Needs attention",
             "legendRestrictions": "R = Restrictions"
           },
           "actionInbox": {
@@ -4033,6 +4033,15 @@
             "green": "Healthy",
             "amber": "Limited",
             "red": "Injured",
+            "statusReason": {
+              "healthy": "Healthy",
+              "injured": "Injured",
+              "restricted": "Limited",
+              "highLoad": "High load",
+              "loadWatch": "Load watch",
+              "lowReadiness": "Low readiness",
+              "readinessWatch": "Readiness watch"
+            },
             "none": "None",
             "profile": "Profile",
             "calendar": "Calendar",

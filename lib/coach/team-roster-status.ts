@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { AssignmentStatus } from '@prisma/client'
+import { hasReliableAcwrSummary } from '@/lib/training/acwr-confidence'
 
 export interface TeamRosterRestrictionSummary {
   type: string
@@ -129,6 +130,7 @@ export async function getTeamRosterStatus(
     activeRestrictions,
     recentMetrics,
     recentLoads,
+    acwrSummaryCounts,
   ] = await Promise.all([
     prisma.strengthSessionAssignment.groupBy({ by: ['athleteId'], where: dayActiveWhere, _count: { id: true } }),
     prisma.cardioSessionAssignment.groupBy({ by: ['athleteId'], where: dayActiveWhere, _count: { id: true } }),
@@ -177,6 +179,15 @@ export async function getTeamRosterStatus(
       },
       select: { clientId: true, acwrZone: true },
       orderBy: { date: 'desc' },
+    }),
+    prisma.trainingLoad.groupBy({
+      by: ['clientId'],
+      where: {
+        clientId: { in: memberIds },
+        date: { lt: dayEnd },
+        source: 'ACWR_SUMMARY',
+      },
+      _count: { id: true },
     }),
   ])
 
@@ -230,10 +241,17 @@ export async function getTeamRosterStatus(
     }
   })
 
-  const acwrZones = new Map<string, string>()
+  const reliableAcwrClients = new Set<string>()
+  acwrSummaryCounts.forEach((row) => {
+    if (hasReliableAcwrSummary(row._count.id)) {
+      reliableAcwrClients.add(row.clientId)
+    }
+  })
+
+  const acwrZones = new Map<string, string | null>()
   recentLoads.forEach((load) => {
-    if (load.acwrZone && !acwrZones.has(load.clientId)) {
-      acwrZones.set(load.clientId, load.acwrZone)
+    if (!acwrZones.has(load.clientId)) {
+      acwrZones.set(load.clientId, load.acwrZone ?? null)
     }
   })
 
@@ -247,6 +265,6 @@ export async function getTeamRosterStatus(
     activeRestrictionCount: restrictionSummaries.get(member.id)?.length ?? 0,
     restrictionSummaries: restrictionSummaries.get(member.id) ?? [],
     readinessLevel: readinessLevels.get(member.id) ?? null,
-    acwrZone: acwrZones.get(member.id) ?? null,
+    acwrZone: reliableAcwrClients.has(member.id) ? (acwrZones.get(member.id) ?? null) : null,
   }))
 }
