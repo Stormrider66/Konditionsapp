@@ -1,10 +1,12 @@
 'use client'
 
+import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocale } from 'next-intl'
 import {
   Activity,
   BarChart3,
+  CalendarDays,
   ChevronDown,
   ChevronUp,
   CheckCircle2,
@@ -13,7 +15,10 @@ import {
   Eye,
   Heart,
   Loader2,
+  MessageSquare,
+  Plus,
   Timer,
+  UserRound,
   Zap,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog'
 import { cn } from '@/lib/utils'
 
 type WorkoutKind = 'strength' | 'cardio' | 'hybrid' | 'agility' | 'interval'
@@ -268,6 +274,7 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
   const [error, setError] = useState<string | null>(null)
   const [isExpanded, setIsExpanded] = useState(false)
   const [activeTab, setActiveTab] = useState<'sessions' | 'players'>('sessions')
+  const [assignTargetAthleteId, setAssignTargetAthleteId] = useState<string | null>(null)
 
   // Jump straight from the headline "missed" number to the players behind it:
   // expand the panel, switch to the players tab and apply the missed filter.
@@ -494,7 +501,14 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
                     ) : (
                       <div className="grid gap-3 xl:grid-cols-2">
                         {filteredPlayers.map((player) => (
-                          <PlayerCard key={player.athleteId} player={player} locale={uiLocale} />
+                          <PlayerCard
+                            key={player.athleteId}
+                            player={player}
+                            locale={uiLocale}
+                            businessSlug={businessSlug}
+                            teamId={teamId}
+                            onAssign={() => setAssignTargetAthleteId(player.athleteId)}
+                          />
                         ))}
                       </div>
                     )}
@@ -547,6 +561,19 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
           </div>
         </SheetContent>
       </Sheet>
+
+      <TeamWorkoutAssignmentDialog
+        teamId={teamId}
+        preselectAthleteId={assignTargetAthleteId ?? undefined}
+        open={assignTargetAthleteId !== null}
+        onOpenChange={(open) => {
+          if (!open) setAssignTargetAthleteId(null)
+        }}
+        onAssigned={() => {
+          setAssignTargetAthleteId(null)
+          void loadSummary()
+        }}
+      />
     </GlassCard>
   )
 }
@@ -639,7 +666,19 @@ function SessionCard({ session, locale, onOpen }: { session: MonitorSession; loc
   )
 }
 
-function PlayerCard({ player, locale }: { player: MonitorPlayer; locale: string }) {
+function PlayerCard({
+  player,
+  locale,
+  businessSlug,
+  teamId,
+  onAssign,
+}: {
+  player: MonitorPlayer
+  locale: string
+  businessSlug: string
+  teamId: string
+  onAssign: () => void
+}) {
   return (
     <div className="rounded-lg border bg-background/80 p-4 dark:border-white/10 dark:bg-slate-950/40">
       <div className="flex items-start justify-between gap-3">
@@ -657,6 +696,30 @@ function PlayerCard({ player, locale }: { player: MonitorPlayer; locale: string 
         <span>{player.pending} {localized(locale, 'väntar', 'pending')}</span>
         <span>{player.missed} {localized(locale, 'missade', 'missed')}</span>
         <span>RPE {formatNumber(player.avgRpe)}</span>
+      </div>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <Button asChild variant="outline" size="sm" className="justify-start">
+          <Link href={`/${businessSlug}/coach/clients/${player.athleteId}`}>
+            <UserRound className="h-4 w-4" />
+            {localized(locale, 'Profil', 'Profile')}
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="sm" className="justify-start">
+          <Link href={`/${businessSlug}/coach/athletes/${player.athleteId}/calendar`}>
+            <CalendarDays className="h-4 w-4" />
+            {localized(locale, 'Kalender', 'Calendar')}
+          </Link>
+        </Button>
+        <Button type="button" size="sm" className="justify-start" onClick={onAssign}>
+          <Plus className="h-4 w-4" />
+          {localized(locale, 'Tilldela', 'Assign')}
+        </Button>
+        <Button asChild variant="outline" size="sm" className="justify-start">
+          <Link href={`/${businessSlug}/coach/teams/${teamId}/chat`}>
+            <MessageSquare className="h-4 w-4" />
+            {localized(locale, 'Lagchatt', 'Team chat')}
+          </Link>
+        </Button>
       </div>
     </div>
   )
