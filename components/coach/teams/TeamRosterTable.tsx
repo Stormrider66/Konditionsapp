@@ -154,8 +154,12 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
     router.push(`/${businessSlug}/coach/${path}?${params.toString()}`)
   }
 
-  const pushPlayerTab = (clientId: string, tab: 'calendar' | 'programs') => {
-    router.push(`/${businessSlug}/coach/clients/${clientId}?tab=${tab}`)
+  const pushPlayerDestination = (clientId: string, destination: 'calendar' | 'planning') => {
+    if (destination === 'calendar') {
+      router.push(`/${businessSlug}/coach/athletes/${clientId}/calendar`)
+      return
+    }
+    router.push(`/${businessSlug}/coach/clients/${clientId}?tab=planning`)
   }
 
   const saveField = async (
@@ -368,7 +372,7 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => pushPlayerTab(m.id, 'calendar')}
+                  onClick={() => pushPlayerDestination(m.id, 'calendar')}
                   aria-label={copy(locale, `Open calendar for ${m.name}`, `Öppna kalender för ${m.name}`)}
                   title={copy(locale, 'Open player calendar', 'Öppna spelarkalender')}
                 >
@@ -396,9 +400,9 @@ export function TeamRosterTable({ teamId, businessSlug, members }: TeamRosterTab
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8"
-                  onClick={() => pushPlayerTab(m.id, 'programs')}
-                  aria-label={copy(locale, `Open programs for ${m.name}`, `Öppna program för ${m.name}`)}
-                  title={copy(locale, 'Open player programs', 'Öppna spelarprogram')}
+                  onClick={() => pushPlayerDestination(m.id, 'planning')}
+                  aria-label={copy(locale, `Open planning for ${m.name}`, `Öppna planering för ${m.name}`)}
+                  title={copy(locale, 'Open player planning', 'Öppna spelarplanering')}
                 >
                   <ClipboardList className="h-4 w-4" />
                 </Button>
