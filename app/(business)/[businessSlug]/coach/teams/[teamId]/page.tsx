@@ -186,6 +186,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
     position: member.position,
     statusLevel: rosterDotLevel(member),
     activeRestrictionCount: member.activeRestrictionCount,
+    hasAthleteAccount: Boolean(member.athleteAccount),
   }))
 
   return (

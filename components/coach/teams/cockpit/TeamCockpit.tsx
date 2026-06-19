@@ -9,10 +9,19 @@ import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedul
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
 import { TeamSelectedPlayerPanel } from './TeamSelectedPlayerPanel'
 import { TeamSelectedSessionPanel } from './TeamSelectedSessionPanel'
+import { TeamUnplannedPlayersQueue, type QueueCopyWorkout } from './TeamUnplannedPlayersQueue'
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog'
 import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
 
-const ACTIVE_ASSIGNMENT_STATUSES = new Set(['PENDING', 'SCHEDULED', 'MODIFIED'])
+const ACTIVE_ASSIGNMENT_STATUSES = new Set(['PENDING', 'SCHEDULED', 'MODIFIED', 'ASSIGNED', 'ACTIVE', 'IN_PROGRESS'])
+
+type AssignTarget = {
+  athleteId?: string
+  athleteIds?: string[]
+  workoutType?: QueueCopyWorkout['workoutType']
+  workoutId?: string
+  workoutName?: string | null
+}
 
 interface TeamCockpitProps {
   teamId: string
@@ -36,6 +45,17 @@ function startOfDay(date: Date): Date {
   return next
 }
 
+function copyWorkoutFromEvent(event: ScheduleEvent | null): QueueCopyWorkout | null {
+  if (!event?.linkedWorkoutId || !event.linkedWorkoutType) return null
+  const type = event.linkedWorkoutType.toLowerCase()
+  if (type !== 'strength' && type !== 'cardio' && type !== 'hybrid' && type !== 'agility') return null
+  return {
+    workoutType: type,
+    workoutId: event.linkedWorkoutId,
+    workoutName: event.linkedWorkoutName ?? event.title,
+  }
+}
+
 /**
  * Client shell for the Idag cockpit. Owns the day's event fetch plus the
  * cross-pane interaction state (selected session/player, position filter) so
@@ -55,7 +75,7 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
   const [selectedPlayerUpcomingLoading, setSelectedPlayerUpcomingLoading] = useState(false)
   const [missedFollowUps, setMissedFollowUps] = useState<number | null>(null)
   // Assignment dialog: null = closed; {athleteId} preselects one player.
-  const [assignTarget, setAssignTarget] = useState<{ athleteId?: string } | null>(null)
+  const [assignTarget, setAssignTarget] = useState<AssignTarget | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   const dayStartIso = useMemo(() => startOfDay(viewedDate).toISOString(), [viewedDate])
@@ -251,6 +271,7 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
   const selectedSessionEvent = selectedSessionId
     ? events.find((event) => event.id === selectedSessionId) ?? null
     : null
+  const selectedSessionCopyWorkout = copyWorkoutFromEvent(selectedSessionEvent)
   const selectedMember = selectedPlayerId
     ? members.find((member) => member.id === selectedPlayerId) ?? null
     : null
@@ -307,6 +328,24 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
         events={events}
         signals={actionSignals}
         missedFollowUps={missedFollowUps}
+      />
+      <TeamUnplannedPlayersQueue
+        members={members}
+        coverageByMember={coverageByMember}
+        loading={loading}
+        locale={locale}
+        viewedDate={viewedDate}
+        businessSlug={businessSlug}
+        teamId={teamId}
+        copyWorkout={selectedSessionCopyWorkout}
+        onAssignSelected={(athleteIds, workout) => {
+          setAssignTarget({
+            athleteIds,
+            workoutType: workout?.workoutType,
+            workoutId: workout?.workoutId,
+            workoutName: workout?.workoutName,
+          })
+        }}
       />
       <div className="mb-3 flex flex-wrap justify-end gap-2">
         <TeamDayPrintButton
@@ -386,7 +425,11 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
 
       <TeamWorkoutAssignmentDialog
         teamId={teamId}
+        workoutType={assignTarget?.workoutType}
+        workoutId={assignTarget?.workoutId}
+        workoutName={assignTarget?.workoutName ?? undefined}
         preselectAthleteId={assignTarget?.athleteId}
+        preselectAthleteIds={assignTarget?.athleteIds}
         open={assignTarget !== null}
         onOpenChange={(next) => {
           if (!next) setAssignTarget(null)

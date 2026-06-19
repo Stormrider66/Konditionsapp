@@ -4079,6 +4079,21 @@
             "statusActive": "Active",
             "statusModified": "Modified",
             "statusPending": "Pending"
+          },
+          "unplannedQueue": {
+            "title": "Unplanned players ({count})",
+            "subtitle": "No assigned session for {date}",
+            "selected": "{count} selected",
+            "selectAll": "Select all",
+            "clearSelection": "Clear selection",
+            "selectPlayer": "Select {name}",
+            "noPosition": "No position",
+            "assignExisting": "Assign existing",
+            "copySelectedSession": "Copy selected session",
+            "copyNeedsSession": "Select a linked session first",
+            "createStrength": "Create strength",
+            "createCardio": "Create cardio",
+            "createHybrid": "Create hybrid"
           }
         },
         "stats": {

@@ -16,6 +16,8 @@ export interface RailMember {
   statusLevel: RosterDotLevel
   /** Active restriction count, for the "R" marker. */
   activeRestrictionCount: number
+  /** Whether the member can receive assigned workouts in the athlete app. */
+  hasAthleteAccount?: boolean
 }
 
 /** Per-member session coverage on the viewed day, derived from that day's events. */

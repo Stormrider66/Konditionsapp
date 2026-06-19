@@ -85,6 +85,8 @@ interface TeamWorkoutAssignmentDialogProps {
   teamId?: string
   /** Open with only this athlete marked (per-player quick-assign). */
   preselectAthleteId?: string
+  /** Open with only these athletes marked (bulk quick-assign). */
+  preselectAthleteIds?: string[]
   trigger?: React.ReactNode
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -103,6 +105,7 @@ export function TeamWorkoutAssignmentDialog({
   workoutName,
   teamId: fixedTeamId,
   preselectAthleteId,
+  preselectAthleteIds,
   trigger,
   open: controlledOpen,
   onOpenChange: controlledOnOpenChange,
@@ -130,6 +133,14 @@ export function TeamWorkoutAssignmentDialog({
     : pickedWorkout
   const effWorkoutType = effectiveWorkout?.type
   const effWorkoutId = effectiveWorkout?.id
+  const preselectedIds = useMemo(() => {
+    const ids = preselectAthleteIds && preselectAthleteIds.length > 0
+      ? preselectAthleteIds
+      : preselectAthleteId
+        ? [preselectAthleteId]
+        : []
+    return Array.from(new Set(ids))
+  }, [preselectAthleteId, preselectAthleteIds])
 
   // Location & trainer
   const [locations, setLocations] = useState<LocationOption[]>([])
@@ -198,10 +209,11 @@ export function TeamWorkoutAssignmentDialog({
           const nextTeam: Team = { id: raw.id, name: raw.name, members }
           setTeam(nextTeam)
           // Default selection: everyone (account-less + blocked are filtered by
-          // the inclusion rule, not by exclusions). Preselect narrows to one.
-          if (preselectAthleteId) {
+          // the inclusion rule, not by exclusions). Preselect narrows the set.
+          if (preselectedIds.length > 0) {
+            const preselectedSet = new Set(preselectedIds)
             setExcludedMembers(
-              members.filter((m) => m.hasAthleteAccount && m.id !== preselectAthleteId).map((m) => m.id)
+              members.filter((m) => m.hasAthleteAccount && !preselectedSet.has(m.id)).map((m) => m.id)
             )
           } else {
             setExcludedMembers([])
@@ -213,7 +225,7 @@ export function TeamWorkoutAssignmentDialog({
         setLoadingTeam(false)
       }
     },
-    [businessHeaders, preselectAthleteId]
+    [businessHeaders, preselectedIds]
   )
 
   useEffect(() => {

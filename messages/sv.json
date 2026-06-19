@@ -4079,6 +4079,21 @@
             "statusActive": "Pågår",
             "statusModified": "Ändrad",
             "statusPending": "Väntar"
+          },
+          "unplannedQueue": {
+            "title": "Oplanerade spelare ({count})",
+            "subtitle": "Inget tilldelat pass för {date}",
+            "selected": "{count} valda",
+            "selectAll": "Välj alla",
+            "clearSelection": "Rensa val",
+            "selectPlayer": "Välj {name}",
+            "noPosition": "Ingen position",
+            "assignExisting": "Tilldela befintligt",
+            "copySelectedSession": "Kopiera valt pass",
+            "copyNeedsSession": "Välj ett kopplat pass först",
+            "createStrength": "Skapa styrka",
+            "createCardio": "Skapa kondition",
+            "createHybrid": "Skapa hybrid"
           }
         },
         "stats": {
