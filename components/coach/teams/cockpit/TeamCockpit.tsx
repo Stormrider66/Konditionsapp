@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
 import { TeamSelectedPlayerPanel } from './TeamSelectedPlayerPanel'
+import { TeamSelectedSessionPanel } from './TeamSelectedSessionPanel'
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog'
 import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
 
@@ -219,6 +220,9 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
 
   const selectedSessionId = selection?.kind === 'session' ? selection.id : null
   const selectedPlayerId = selection?.kind === 'player' ? selection.id : null
+  const selectedSessionEvent = selectedSessionId
+    ? events.find((event) => event.id === selectedSessionId) ?? null
+    : null
   const selectedMember = selectedPlayerId
     ? members.find((member) => member.id === selectedPlayerId) ?? null
     : null
@@ -286,23 +290,33 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
         </Button>
       </div>
       <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
-        <TeamSchedulePane
-          teamId={teamId}
-          businessSlug={businessSlug}
-          locale={locale}
-          events={events}
-          loading={loading}
-          error={error}
-          viewedDate={viewedDate}
-          isToday={isToday}
-          onPrevDay={() => stepDay(-1)}
-          onNextDay={() => stepDay(1)}
-          onToday={() => goToDay(today)}
-          selectedSessionId={selectedSessionId}
-          highlightedEventIds={highlightedEventIds}
-          dimmedEventIds={dimmedEventIds}
-          onSelectSession={onSelectSession}
-        />
+        <div className="space-y-4">
+          <TeamSchedulePane
+            teamId={teamId}
+            businessSlug={businessSlug}
+            locale={locale}
+            events={events}
+            loading={loading}
+            error={error}
+            viewedDate={viewedDate}
+            isToday={isToday}
+            onPrevDay={() => stepDay(-1)}
+            onNextDay={() => stepDay(1)}
+            onToday={() => goToDay(today)}
+            selectedSessionId={selectedSessionId}
+            highlightedEventIds={highlightedEventIds}
+            dimmedEventIds={dimmedEventIds}
+            onSelectSession={onSelectSession}
+          />
+          <TeamSelectedSessionPanel
+            event={selectedSessionEvent}
+            members={members}
+            locale={locale}
+            businessSlug={businessSlug}
+            teamId={teamId}
+            onClear={() => setSelection(null)}
+          />
+        </div>
         <div className="space-y-4">
           <TeamRosterRail
             members={members}

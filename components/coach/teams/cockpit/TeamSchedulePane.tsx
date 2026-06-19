@@ -38,12 +38,34 @@ export interface ScheduleEvent {
   contentStatus?: string
   linkedWorkoutId?: string | null
   linkedWorkoutType?: string | null
+  linkedWorkoutName?: string | null
   assignedBroadcastId?: string | null
   responsibleCoach?: { id: string; name: string | null } | null
   assignmentSummary?: {
+    id?: string
     totalAssigned: number
     totalCompleted: number
-    athletes?: Array<{ athleteId: string; status: string }>
+    completionRate?: number
+    missingAssignmentCount?: number
+    missingAthletes?: Array<{
+      athleteId: string
+      athleteName: string
+      jerseyNumber: number | null
+      position: string | null
+    }>
+    athletes?: Array<{
+      assignmentId?: string
+      athleteId: string
+      athleteName?: string
+      jerseyNumber?: number | null
+      position?: string | null
+      workoutType?: 'strength' | 'cardio' | 'hybrid' | 'agility'
+      status: string
+      completedAt?: string | Date | null
+      rpe?: number | null
+      duration?: number | null
+      notes?: string | null
+    }>
   } | null
 }
 
@@ -143,7 +165,7 @@ function printableKind(event: ScheduleEvent): PrintableWorkoutKind | null {
   }
 }
 
-function workoutPrintHref(event: ScheduleEvent, businessSlug: string): string | null {
+export function workoutPrintHref(event: ScheduleEvent, businessSlug: string): string | null {
   if (!event.linkedWorkoutId) return null
   const kind = printableKind(event)
   if (!kind) return null
