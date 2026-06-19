@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { Plus, TabletSmartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { TeamActionInbox, type TeamActionSignals } from './TeamActionInbox'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
 import { TeamSelectedPlayerPanel } from './TeamSelectedPlayerPanel'
@@ -19,6 +20,7 @@ interface TeamCockpitProps {
   businessSlug: string
   locale: Locale
   members: RailMember[]
+  actionSignals: TeamActionSignals
 }
 
 type Selection =
@@ -41,7 +43,7 @@ function startOfDay(date: Date): Date {
  * its players, click a player to spotlight their sessions, filter both panes by
  * position at once.
  */
-export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }: TeamCockpitProps) {
+export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, actionSignals }: TeamCockpitProps) {
   const today = useMemo(() => startOfDay(new Date()), [])
   const [viewedDate, setViewedDate] = useState<Date>(() => startOfDay(new Date()))
   const [events, setEvents] = useState<ScheduleEvent[]>([])
@@ -51,6 +53,7 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
   const [positionFilter, setPositionFilter] = useState<string | null>(null)
   const [selectedPlayerUpcomingEvents, setSelectedPlayerUpcomingEvents] = useState<ScheduleEvent[]>([])
   const [selectedPlayerUpcomingLoading, setSelectedPlayerUpcomingLoading] = useState(false)
+  const [missedFollowUps, setMissedFollowUps] = useState<number | null>(null)
   // Assignment dialog: null = closed; {athleteId} preselects one player.
   const [assignTarget, setAssignTarget] = useState<{ athleteId?: string } | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -90,6 +93,31 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
     void load()
     return () => controller.abort()
   }, [teamId, businessSlug, dayStartIso, refreshKey])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadMissedFollowUps() {
+      try {
+        const params = new URLSearchParams({
+          businessSlug,
+          days: '7',
+        })
+        const res = await fetch(`/api/teams/${teamId}/workout-monitor?${params}`, {
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error('failed')
+        const data = await res.json()
+        setMissedFollowUps(typeof data?.data?.totals?.missed === 'number' ? data.data.totals.missed : 0)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setMissedFollowUps(null)
+      }
+    }
+
+    void loadMissedFollowUps()
+    return () => controller.abort()
+  }, [teamId, businessSlug, refreshKey])
 
   useEffect(() => {
     if (selection?.kind !== 'player') {
@@ -272,6 +300,14 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
 
   return (
     <>
+      <TeamActionInbox
+        teamBasePath={`/${businessSlug}/coach/teams/${teamId}`}
+        locale={locale}
+        viewedDate={viewedDate}
+        events={events}
+        signals={actionSignals}
+        missedFollowUps={missedFollowUps}
+      />
       <div className="mb-3 flex flex-wrap justify-end gap-2">
         <TeamDayPrintButton
           teamId={teamId}

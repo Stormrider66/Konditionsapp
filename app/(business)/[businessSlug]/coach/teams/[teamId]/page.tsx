@@ -22,7 +22,6 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2 } from 'lucide-react'
 import { TeamPhaseStrip } from '@/components/coach/teams/cockpit/TeamPhaseStrip'
-import { TeamAttentionStrip } from '@/components/coach/teams/cockpit/TeamAttentionStrip'
 import { type RailMember } from '@/components/coach/teams/cockpit/TeamRosterRail'
 import { TeamCockpit } from '@/components/coach/teams/cockpit/TeamCockpit'
 import { getTranslations } from '@/i18n/server'
@@ -204,13 +203,6 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
             progress={phase.progress}
           />
         )}
-        <TeamAttentionStrip
-          teamBasePath={`/${businessSlug}/coach/teams/${teamId}`}
-          injuredPlayers={injuredPlayers}
-          limitedPlayers={limitedPlayers}
-          withoutWorkoutPlayers={withoutWorkoutPlayers}
-          highAcwrPlayers={highAcwrPlayers}
-        />
       </div>
 
       {/* Two-pane cockpit body (schedule timeline | roster rail). The client
@@ -221,6 +213,12 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         businessSlug={businessSlug}
         locale={locale}
         members={railMembers}
+        actionSignals={{
+          injuredPlayers,
+          limitedPlayers,
+          withoutWorkoutPlayers,
+          highAcwrPlayers,
+        }}
       />
 
       {!setupComplete && (

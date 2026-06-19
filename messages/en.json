@@ -4004,6 +4004,26 @@
             "legendInjured": "Injured",
             "legendRestrictions": "R = Restrictions"
           },
+          "actionInbox": {
+            "title": "Action inbox",
+            "subtitle": "Signals for {date}",
+            "clear": "All clear",
+            "empty": "No urgent health, planning, assignment, or follow-up signals right now.",
+            "moreNames": "+{count} more",
+            "injuredTitle": "{count, plural, =1 {# injured player} other {# injured players}}",
+            "limitedTitle": "{count, plural, =1 {# limited player} other {# limited players}}",
+            "highAcwrTitle": "{count, plural, =1 {# high ACWR player} other {# high ACWR players}}",
+            "withoutWorkoutTitle": "{count} without a session today",
+            "missingContentTitle": "{count, plural, =1 {# session needs content} other {# sessions need content}}",
+            "readyTitle": "{count, plural, =1 {# session ready to assign} other {# sessions ready to assign}}",
+            "missedTitle": "{count} missed in the last 7 days",
+            "missedDetail": "Review players and sessions that need follow-up.",
+            "openHealth": "Open health",
+            "openRoster": "Open roster",
+            "openCalendar": "Open calendar",
+            "assignNow": "Assign now",
+            "openFollowUp": "Open follow-up"
+          },
           "playerPanel": {
             "title": "Selected player",
             "clear": "Clear player selection",

@@ -4004,6 +4004,26 @@
             "legendInjured": "Skadad",
             "legendRestrictions": "R = Restriktioner"
           },
+          "actionInbox": {
+            "title": "Åtgärdsinkorg",
+            "subtitle": "Signaler för {date}",
+            "clear": "Allt klart",
+            "empty": "Inga akuta signaler kring hälsa, planering, tilldelning eller uppföljning just nu.",
+            "moreNames": "+{count} till",
+            "injuredTitle": "{count, plural, =1 {# skadad spelare} other {# skadade spelare}}",
+            "limitedTitle": "{count, plural, =1 {# begränsad spelare} other {# begränsade spelare}}",
+            "highAcwrTitle": "{count, plural, =1 {# spelare med hög ACWR} other {# spelare med hög ACWR}}",
+            "withoutWorkoutTitle": "{count} utan pass idag",
+            "missingContentTitle": "{count, plural, =1 {# pass saknar innehåll} other {# pass saknar innehåll}}",
+            "readyTitle": "{count, plural, =1 {# pass klart att tilldela} other {# pass klara att tilldela}}",
+            "missedTitle": "{count} missade senaste 7 dagarna",
+            "missedDetail": "Granska spelare och pass som behöver följas upp.",
+            "openHealth": "Öppna hälsa",
+            "openRoster": "Öppna trupp",
+            "openCalendar": "Öppna kalender",
+            "assignNow": "Tilldela nu",
+            "openFollowUp": "Öppna uppföljning"
+          },
           "playerPanel": {
             "title": "Vald spelare",
             "clear": "Rensa spelarval",
