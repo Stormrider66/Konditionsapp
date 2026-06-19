@@ -4003,6 +4003,31 @@
             "legendLimited": "Limited",
             "legendInjured": "Injured",
             "legendRestrictions": "R = Restrictions"
+          },
+          "playerPanel": {
+            "title": "Selected player",
+            "clear": "Clear player selection",
+            "sessionsToday": "Sessions",
+            "status": "Status",
+            "restrictions": "Restrictions",
+            "green": "Healthy",
+            "amber": "Limited",
+            "red": "Injured",
+            "none": "None",
+            "profile": "Profile",
+            "calendar": "Calendar",
+            "assign": "Assign session",
+            "teamChat": "Team chat",
+            "viewedDay": "Viewed day",
+            "nextSevenDays": "Next 7 days",
+            "noSessionsToday": "No assigned sessions on this day.",
+            "noUpcoming": "No assigned sessions in the next 7 days.",
+            "loading": "Loading",
+            "allDay": "All day",
+            "statusCompleted": "Done",
+            "statusAssigned": "Assigned",
+            "statusPlanned": "Planned",
+            "moreEvents": "More sessions hidden."
           }
         },
         "stats": {

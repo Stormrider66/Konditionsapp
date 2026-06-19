@@ -6,6 +6,7 @@ import { Plus, TabletSmartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
+import { TeamSelectedPlayerPanel } from './TeamSelectedPlayerPanel'
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog'
 import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
 
@@ -47,6 +48,8 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
   const [error, setError] = useState(false)
   const [selection, setSelection] = useState<Selection>(null)
   const [positionFilter, setPositionFilter] = useState<string | null>(null)
+  const [selectedPlayerUpcomingEvents, setSelectedPlayerUpcomingEvents] = useState<ScheduleEvent[]>([])
+  const [selectedPlayerUpcomingLoading, setSelectedPlayerUpcomingLoading] = useState(false)
   // Assignment dialog: null = closed; {athleteId} preselects one player.
   const [assignTarget, setAssignTarget] = useState<{ athleteId?: string } | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -87,9 +90,55 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
     return () => controller.abort()
   }, [teamId, businessSlug, dayStartIso, refreshKey])
 
+  useEffect(() => {
+    if (selection?.kind !== 'player') {
+      return
+    }
+
+    const controller = new AbortController()
+    const selectedPlayerId = selection.id
+    const rangeStart = new Date(dayStartIso)
+    rangeStart.setDate(rangeStart.getDate() + 1)
+    const rangeEnd = new Date(dayStartIso)
+    rangeEnd.setDate(rangeEnd.getDate() + 8)
+    const params = new URLSearchParams({
+      from: rangeStart.toISOString(),
+      to: rangeEnd.toISOString(),
+      businessSlug,
+    })
+
+    async function loadUpcoming() {
+      setSelectedPlayerUpcomingLoading(true)
+      try {
+        const res = await fetch(`/api/coach/teams/${teamId}/events?${params}`, {
+          headers: { 'x-business-slug': businessSlug },
+          signal: controller.signal,
+        })
+        if (!res.ok) throw new Error('failed')
+        const data = await res.json()
+        const nextEvents = Array.isArray(data.events)
+          ? (data.events as ScheduleEvent[]).filter((event) =>
+              event.assignmentSummary?.athletes?.some((athlete) => athlete.athleteId === selectedPlayerId)
+            )
+          : []
+        setSelectedPlayerUpcomingEvents(nextEvents)
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return
+        setSelectedPlayerUpcomingEvents([])
+      } finally {
+        if (!controller.signal.aborted) setSelectedPlayerUpcomingLoading(false)
+      }
+    }
+
+    void loadUpcoming()
+    return () => controller.abort()
+  }, [teamId, businessSlug, dayStartIso, selection, refreshKey])
+
   const goToDay = useCallback((next: Date) => {
     setViewedDate(startOfDay(next))
     setSelection(null) // a session/player selection doesn't carry across days
+    setSelectedPlayerUpcomingEvents([])
+    setSelectedPlayerUpcomingLoading(false)
   }, [])
 
   const stepDay = useCallback(
@@ -98,12 +147,16 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
   )
 
   const onSelectSession = useCallback((eventId: string) => {
+    setSelectedPlayerUpcomingEvents([])
+    setSelectedPlayerUpcomingLoading(false)
     setSelection((current) =>
       current?.kind === 'session' && current.id === eventId ? null : { kind: 'session', id: eventId }
     )
   }, [])
 
   const onSelectPlayer = useCallback((memberId: string) => {
+    setSelectedPlayerUpcomingEvents([])
+    setSelectedPlayerUpcomingLoading(false)
     setSelection((current) =>
       current?.kind === 'player' && current.id === memberId ? null : { kind: 'player', id: memberId }
     )
@@ -166,6 +219,9 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
 
   const selectedSessionId = selection?.kind === 'session' ? selection.id : null
   const selectedPlayerId = selection?.kind === 'player' ? selection.id : null
+  const selectedMember = selectedPlayerId
+    ? members.find((member) => member.id === selectedPlayerId) ?? null
+    : null
 
   // Schedule pane: highlight the selected player's sessions; dim sessions that
   // fall outside the active player selection or the position filter.
@@ -204,6 +260,10 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
   const selectedPlayerHasNoSession =
     selectedPlayerId != null && (eventsByPlayer.get(selectedPlayerId)?.size ?? 0) === 0
 
+  const selectedPlayerDayEvents = selectedPlayerId
+    ? events.filter((event) => eventsByPlayer.get(selectedPlayerId)?.has(event.id))
+    : []
+
   const isToday = startOfDay(viewedDate).getTime() === today.getTime()
 
   return (
@@ -226,37 +286,52 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
         </Button>
       </div>
       <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
-      <TeamSchedulePane
-        teamId={teamId}
-        businessSlug={businessSlug}
-        locale={locale}
-        events={events}
-        loading={loading}
-        error={error}
-        viewedDate={viewedDate}
-        isToday={isToday}
-        onPrevDay={() => stepDay(-1)}
-        onNextDay={() => stepDay(1)}
-        onToday={() => goToDay(today)}
-        selectedSessionId={selectedSessionId}
-        highlightedEventIds={highlightedEventIds}
-        dimmedEventIds={dimmedEventIds}
-        onSelectSession={onSelectSession}
-      />
-      <TeamRosterRail
-        members={members}
-        rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
-        athleteCalendarHrefBase={`/${businessSlug}/coach/athletes`}
-        coverageByMember={coverageByMember}
-        positions={positions}
-        positionFilter={positionFilter}
-        onPositionFilterChange={setPositionFilter}
-        selectedPlayerId={selectedPlayerId}
-        onSelectPlayer={onSelectPlayer}
-        sessionParticipantIds={sessionParticipantIds}
-        selectedPlayerHasNoSession={selectedPlayerHasNoSession}
-        onQuickAssign={(memberId) => setAssignTarget({ athleteId: memberId })}
-      />
+        <TeamSchedulePane
+          teamId={teamId}
+          businessSlug={businessSlug}
+          locale={locale}
+          events={events}
+          loading={loading}
+          error={error}
+          viewedDate={viewedDate}
+          isToday={isToday}
+          onPrevDay={() => stepDay(-1)}
+          onNextDay={() => stepDay(1)}
+          onToday={() => goToDay(today)}
+          selectedSessionId={selectedSessionId}
+          highlightedEventIds={highlightedEventIds}
+          dimmedEventIds={dimmedEventIds}
+          onSelectSession={onSelectSession}
+        />
+        <div className="space-y-4">
+          <TeamRosterRail
+            members={members}
+            rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
+            athleteCalendarHrefBase={`/${businessSlug}/coach/athletes`}
+            coverageByMember={coverageByMember}
+            positions={positions}
+            positionFilter={positionFilter}
+            onPositionFilterChange={setPositionFilter}
+            selectedPlayerId={selectedPlayerId}
+            onSelectPlayer={onSelectPlayer}
+            sessionParticipantIds={sessionParticipantIds}
+            selectedPlayerHasNoSession={selectedPlayerHasNoSession}
+            onQuickAssign={(memberId) => setAssignTarget({ athleteId: memberId })}
+          />
+          <TeamSelectedPlayerPanel
+            member={selectedMember}
+            locale={locale}
+            viewedDate={viewedDate}
+            dayEvents={selectedPlayerDayEvents}
+            upcomingEvents={selectedPlayerUpcomingEvents}
+            dayCoverage={selectedPlayerId ? coverageByMember.get(selectedPlayerId) : undefined}
+            upcomingLoading={selectedPlayerUpcomingLoading}
+            businessSlug={businessSlug}
+            teamId={teamId}
+            onAssign={(memberId) => setAssignTarget({ athleteId: memberId })}
+            onClear={() => setSelection(null)}
+          />
+        </div>
       </div>
 
       <TeamWorkoutAssignmentDialog

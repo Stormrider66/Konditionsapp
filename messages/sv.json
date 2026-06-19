@@ -4003,6 +4003,31 @@
             "legendLimited": "Begränsad",
             "legendInjured": "Skadad",
             "legendRestrictions": "R = Restriktioner"
+          },
+          "playerPanel": {
+            "title": "Vald spelare",
+            "clear": "Rensa spelarval",
+            "sessionsToday": "Pass",
+            "status": "Status",
+            "restrictions": "Restriktioner",
+            "green": "Frisk",
+            "amber": "Begränsad",
+            "red": "Skadad",
+            "none": "Inga",
+            "profile": "Profil",
+            "calendar": "Kalender",
+            "assign": "Tilldela pass",
+            "teamChat": "Lagchatt",
+            "viewedDay": "Visad dag",
+            "nextSevenDays": "Nästa 7 dagar",
+            "noSessionsToday": "Inga tilldelade pass den här dagen.",
+            "noUpcoming": "Inga tilldelade pass de kommande 7 dagarna.",
+            "loading": "Laddar",
+            "allDay": "Heldag",
+            "statusCompleted": "Klar",
+            "statusAssigned": "Tilldelad",
+            "statusPlanned": "Planerad",
+            "moreEvents": "Fler pass är dolda."
           }
         },
         "stats": {
