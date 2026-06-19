@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, UserRound } from 'lucide-react'
 import { UnifiedCalendar } from '@/components/calendar'
 import { getTranslations } from '@/i18n/server'
 
@@ -54,17 +54,25 @@ export default async function BusinessAthleteCalendarPage({
 
   return (
     <div className="container py-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <Link href={`${basePath}/coach/clients/${client.id}`}>
-          <Button variant="ghost" size="sm" className="mb-2">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            {t('backToAthlete', { athleteName: client.name })}
-          </Button>
-        </Link>
-        <h1 className="text-2xl font-bold">{t('title', { athleteName: client.name })}</h1>
-        <p className="text-muted-foreground">
-          {t('description')}
-        </p>
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <Link href={`${basePath}/coach/clients/${client.id}`}>
+            <Button variant="ghost" size="sm" className="mb-2">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              {t('backToAthlete', { athleteName: client.name })}
+            </Button>
+          </Link>
+          <h1 className="text-2xl font-bold">{t('title', { athleteName: client.name })}</h1>
+          <p className="text-muted-foreground">
+            {t('description')}
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href={`${basePath}/coach/clients/${client.id}`}>
+            <UserRound className="h-4 w-4 mr-2" />
+            {t('viewProfile')}
+          </Link>
+        </Button>
       </div>
 
       <UnifiedCalendar

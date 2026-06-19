@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Users, Search, Check, CheckCheck, Plus } from 'lucide-react'
+import { Users, Search, Check, CheckCheck, Plus, CalendarDays } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 import type { RosterDotLevel } from '@/lib/coach/roster-dot-status'
@@ -28,6 +28,8 @@ interface TeamRosterRailProps {
   members: RailMember[]
   /** Link to the full Trupp tab. */
   rosterHref: string
+  /** Base route for coach-managed athlete calendars. */
+  athleteCalendarHrefBase: string
   /** Session coverage for the viewed day, keyed by member id. */
   coverageByMember: Map<string, DayCoverage>
   /** Distinct positions present in the squad, for the filter dropdown. */
@@ -56,6 +58,7 @@ const DOT_COLOR: Record<RosterDotLevel, string> = {
 export function TeamRosterRail({
   members,
   rosterHref,
+  athleteCalendarHrefBase,
   coverageByMember,
   positions,
   positionFilter,
@@ -142,12 +145,13 @@ export function TeamRosterRail({
         </select>
       </div>
 
-      <div className="grid grid-cols-[2rem_1fr_2.5rem_2.5rem_3.5rem] items-center gap-2 border-b px-4 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground dark:border-white/10">
+      <div className="grid grid-cols-[2rem_minmax(0,1fr)_2.5rem_2.5rem_3.5rem_2.25rem] items-center gap-2 border-b px-4 py-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground dark:border-white/10">
         <span>#</span>
         <span>{t('cockpit.rail.colName')}</span>
         <span>{t('cockpit.rail.colPos')}</span>
         <span className="text-center">{t('cockpit.rail.colWorkout')}</span>
         <span className="text-center">{t('cockpit.rail.colStatus')}</span>
+        <span className="sr-only">{t('cockpit.rail.colActions')}</span>
       </div>
 
       <div className="max-h-[28rem] divide-y overflow-y-auto dark:divide-white/5">
@@ -171,6 +175,8 @@ export function TeamRosterRail({
               showQuickAssign={selectedPlayerId === member.id && selectedPlayerHasNoSession}
               onQuickAssign={() => onQuickAssign(member.id)}
               quickAssignLabel={t('cockpit.rail.quickAssign')}
+              calendarHref={`${athleteCalendarHrefBase}/${member.id}/calendar`}
+              calendarLabel={t('cockpit.rail.openCalendar', { name: member.name })}
             />
           ))
         )}
@@ -196,6 +202,8 @@ function RosterRow({
   showQuickAssign,
   onQuickAssign,
   quickAssignLabel,
+  calendarHref,
+  calendarLabel,
 }: {
   member: RailMember
   coverage: DayCoverage | undefined
@@ -206,6 +214,8 @@ function RosterRow({
   showQuickAssign: boolean
   onQuickAssign: () => void
   quickAssignLabel: string
+  calendarHref: string
+  calendarLabel: string
 }) {
   const active = coverage?.active ?? 0
   const completed = coverage?.completed ?? 0
@@ -222,33 +232,43 @@ function RosterRow({
         dimmed && 'opacity-40'
       )}
     >
-      <button
-        type="button"
-        onClick={onSelect}
-        aria-pressed={selected}
-        className="grid w-full grid-cols-[2rem_1fr_2.5rem_2.5rem_3.5rem] items-center gap-2 px-4 py-2 text-left text-sm hover:bg-muted/60 dark:hover:bg-white/5"
-      >
-        <span className="tabular-nums text-muted-foreground">{member.jerseyNumber ?? '–'}</span>
-        <span className="truncate dark:text-white">{member.name}</span>
-        <span className="text-muted-foreground">{member.position ?? '–'}</span>
-        <span className="flex justify-center">
-          {done ? (
-            <CheckCheck className="h-4 w-4 text-emerald-500" />
-          ) : assigned ? (
-            <Check className="h-4 w-4 text-blue-500" />
-          ) : (
-            <span className="text-muted-foreground">–</span>
-          )}
-        </span>
-        <span className="flex items-center justify-center gap-1">
-          <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', statusColor)} />
-          {member.activeRestrictionCount > 0 && (
-            <span className="text-[11px] font-medium text-muted-foreground">
-              {member.activeRestrictionCount}R
-            </span>
-          )}
-        </span>
-      </button>
+      <div className="grid grid-cols-[minmax(0,1fr)_2.25rem] items-stretch">
+        <button
+          type="button"
+          onClick={onSelect}
+          aria-pressed={selected}
+          className="grid w-full grid-cols-[2rem_minmax(0,1fr)_2.5rem_2.5rem_3.5rem] items-center gap-2 px-4 pr-1 py-2 text-left text-sm hover:bg-muted/60 dark:hover:bg-white/5"
+        >
+          <span className="tabular-nums text-muted-foreground">{member.jerseyNumber ?? '–'}</span>
+          <span className="truncate dark:text-white">{member.name}</span>
+          <span className="text-muted-foreground">{member.position ?? '–'}</span>
+          <span className="flex justify-center">
+            {done ? (
+              <CheckCheck className="h-4 w-4 text-emerald-500" />
+            ) : assigned ? (
+              <Check className="h-4 w-4 text-blue-500" />
+            ) : (
+              <span className="text-muted-foreground">–</span>
+            )}
+          </span>
+          <span className="flex items-center justify-center gap-1">
+            <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', statusColor)} />
+            {member.activeRestrictionCount > 0 && (
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {member.activeRestrictionCount}R
+              </span>
+            )}
+          </span>
+        </button>
+        <Link
+          href={calendarHref}
+          aria-label={calendarLabel}
+          title={calendarLabel}
+          className="mr-3 my-1.5 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+        >
+          <CalendarDays className="h-4 w-4" />
+        </Link>
+      </div>
       {showQuickAssign && (
         <div className="px-4 pb-2">
           <button

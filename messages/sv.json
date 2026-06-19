@@ -2953,6 +2953,7 @@
       },
       "athleteCalendar": {
         "backToAthlete": "Tillbaka till {athleteName}",
+        "viewProfile": "Visa profil",
         "title": "{athleteName}s kalender",
         "description": "Hantera atletens träningspass, tävlingar och händelser"
       },
@@ -3991,10 +3992,12 @@
             "filterPosition": "Filtrera på position",
             "allPositions": "Alla positioner",
             "quickAssign": "Tilldela pass",
+            "openCalendar": "Öppna {name}s kalender",
             "colName": "Namn",
             "colPos": "Pos",
             "colWorkout": "Pass",
             "colStatus": "Status",
+            "colActions": "Åtgärder",
             "empty": "Inga spelare matchar.",
             "legendHealthy": "Frisk",
             "legendLimited": "Begränsad",

@@ -2953,6 +2953,7 @@
       },
       "athleteCalendar": {
         "backToAthlete": "Back to {athleteName}",
+        "viewProfile": "View profile",
         "title": "{athleteName}'s calendar",
         "description": "Manage the athlete's workouts, competitions, and events"
       },
@@ -3991,10 +3992,12 @@
             "filterPosition": "Filter by position",
             "allPositions": "All positions",
             "quickAssign": "Assign session",
+            "openCalendar": "Open {name}'s calendar",
             "colName": "Name",
             "colPos": "Pos",
             "colWorkout": "Session",
             "colStatus": "Status",
+            "colActions": "Actions",
             "empty": "No players match.",
             "legendHealthy": "Healthy",
             "legendLimited": "Limited",

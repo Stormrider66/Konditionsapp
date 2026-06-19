@@ -246,6 +246,7 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members }:
       <TeamRosterRail
         members={members}
         rosterHref={`/${businessSlug}/coach/teams/${teamId}/trupp`}
+        athleteCalendarHrefBase={`/${businessSlug}/coach/athletes`}
         coverageByMember={coverageByMember}
         positions={positions}
         positionFilter={positionFilter}
