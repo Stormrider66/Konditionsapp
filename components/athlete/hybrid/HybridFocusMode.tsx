@@ -323,29 +323,6 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
     selectSegment(currentIndex + 1);
   }, [currentIndex, segments.length, selectSegment]);
 
-  useEffect(() => {
-    if (!isRunning || showComplete || !currentSegment) return;
-
-    const interval = window.setInterval(() => {
-      setElapsedSeconds((value) => value + 1);
-      setSegmentElapsedSeconds((value) => value + 1);
-      setRemainingSeconds((value) => {
-        if (value <= 1) {
-          if (currentSegment.type === 'rest' && !autoAdvancedRef.current) {
-            autoAdvancedRef.current = true;
-            window.setTimeout(advanceToNextSegment, 0);
-          }
-
-          return 0;
-        }
-
-        return value - 1;
-      });
-    }, 1000);
-
-    return () => window.clearInterval(interval);
-  }, [advanceToNextSegment, currentSegment, isRunning, showComplete]);
-
   const ensureSessionStarted = useCallback(async () => {
     if (hasStarted) return;
 
@@ -394,15 +371,16 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
     autoAdvancedRef.current = false;
   };
 
-  const handleCompleteSegment = async () => {
-    if (!currentSegment) return;
-
-    if (currentSegment.type === 'rest') {
+  const completeSegment = useCallback(async (
+    segment: HybridPlanSegment,
+    durationSeconds?: number
+  ) => {
+    if (segment.type === 'rest') {
       advanceToNextSegment();
       return;
     }
 
-    if (!currentSegment.roundNumber) {
+    if (!segment.roundNumber) {
       advanceToNextSegment();
       return;
     }
@@ -412,8 +390,8 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
     try {
       await ensureSessionStarted();
 
-      const duration = Math.max(1, segmentElapsedSeconds || currentSegment.durationSeconds);
-      const movements = currentSegment.movements.map((movement) => ({
+      const duration = Math.max(1, durationSeconds || segment.durationSeconds);
+      const movements = segment.movements.map((movement) => ({
         movementId: movement.id,
         movementName: movement.name,
         reps: movement.logValue,
@@ -422,7 +400,7 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
       }));
 
       const response = await fetch(
-        `/api/hybrid-workouts/${assignmentId}/rounds/${currentSegment.roundNumber}`,
+        `/api/hybrid-workouts/${assignmentId}/rounds/${segment.roundNumber}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -441,7 +419,7 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
 
       setCompletedRoundNumbers((previous) => {
         const next = new Set(previous);
-        next.add(currentSegment.roundNumber as number);
+        next.add(segment.roundNumber as number);
         return next;
       });
 
@@ -451,7 +429,43 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
     } finally {
       setIsSavingSegment(false);
     }
+  }, [advanceToNextSegment, assignmentId, ensureSessionStarted, t]);
+
+  const handleCompleteSegment = () => {
+    if (!currentSegment) return;
+
+    void completeSegment(
+      currentSegment,
+      segmentElapsedSeconds || currentSegment.durationSeconds
+    );
   };
+
+  useEffect(() => {
+    if (!isRunning || showComplete || !currentSegment) return;
+
+    const interval = window.setInterval(() => {
+      setElapsedSeconds((value) => value + 1);
+      setSegmentElapsedSeconds((value) => value + 1);
+      setRemainingSeconds((value) => {
+        if (value <= 1) {
+          if (!autoAdvancedRef.current) {
+            autoAdvancedRef.current = true;
+            const finishedSegment = currentSegment;
+
+            window.setTimeout(() => {
+              void completeSegment(finishedSegment, finishedSegment.durationSeconds);
+            }, 0);
+          }
+
+          return 0;
+        }
+
+        return value - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [completeSegment, currentSegment, isRunning, showComplete]);
 
   const handleFinishWorkout = async () => {
     setIsCompleting(true);
