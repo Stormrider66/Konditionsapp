@@ -13,6 +13,8 @@ import {
   RotateCcw,
   SkipForward,
   Timer,
+  Volume2,
+  VolumeX,
   X,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -106,6 +108,18 @@ interface FocusApiResponse<T> {
   data?: T;
   error?: string;
   message?: string;
+}
+
+type BrowserAudioContextConstructor = new () => AudioContext;
+
+type WindowWithWebkitAudio = Window & {
+  webkitAudioContext?: BrowserAudioContextConstructor;
+};
+
+function getAudioContextConstructor(): BrowserAudioContextConstructor | null {
+  if (typeof window === 'undefined') return null;
+
+  return window.AudioContext ?? (window as WindowWithWebkitAudio).webkitAudioContext ?? null;
 }
 
 function isHybridMetconData(value: unknown): value is HybridMetconData {
@@ -229,11 +243,125 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
   const [isSavingSegment, setIsSavingSegment] = useState(false);
   const [showComplete, setShowComplete] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
+  const [audioReady, setAudioReady] = useState(false);
   const [sessionRpe, setSessionRpe] = useState(7);
   const [notes, setNotes] = useState('');
   const autoAdvancedRef = useRef(false);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const countdownCueRef = useRef<number | null>(null);
 
   const { isActive: screenAwake } = useScreenWakeLock({ enabled: hasStarted || isRunning });
+
+  const ensureAudioReady = useCallback(async (forceEnabled = false) => {
+    if (!forceEnabled && !isSoundEnabled) return false;
+
+    const AudioContextConstructor = getAudioContextConstructor();
+    if (!AudioContextConstructor) {
+      setIsSoundEnabled(false);
+      setAudioReady(false);
+      toast.error(t('toast.audioUnsupported'));
+      return false;
+    }
+
+    let audioContext = audioContextRef.current;
+    if (!audioContext || audioContext.state === 'closed') {
+      audioContext = new AudioContextConstructor();
+      audioContextRef.current = audioContext;
+    }
+
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+
+    const isReady = audioContext.state === 'running';
+    setAudioReady(isReady);
+    return isReady;
+  }, [isSoundEnabled, t]);
+
+  const playTone = useCallback((
+    frequency: number,
+    durationMs: number,
+    offsetMs = 0,
+    volume = 0.08,
+    type: OscillatorType = 'sine'
+  ) => {
+    if (!isSoundEnabled) return;
+
+    const audioContext = audioContextRef.current;
+    if (!audioContext || audioContext.state !== 'running') return;
+
+    const startTime = audioContext.currentTime + offsetMs / 1000;
+    const stopTime = startTime + durationMs / 1000;
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, startTime);
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(volume, startTime + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, stopTime);
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+    oscillator.addEventListener('ended', () => {
+      oscillator.disconnect();
+      gain.disconnect();
+    }, { once: true });
+    oscillator.start(startTime);
+    oscillator.stop(stopTime + 0.03);
+  }, [isSoundEnabled]);
+
+  const playCountdownCue = useCallback((secondsRemaining: number) => {
+    void ensureAudioReady().then((ready) => {
+      if (!ready) return;
+
+      playTone(secondsRemaining === 1 ? 1046.5 : 880, 115, 0, 0.07, 'square');
+    });
+  }, [ensureAudioReady, playTone]);
+
+  const playSegmentCue = useCallback((segment?: HybridPlanSegment) => {
+    void ensureAudioReady().then((ready) => {
+      if (!ready) return;
+
+      if (segment?.type === 'rest') {
+        playTone(660, 140, 0, 0.07, 'triangle');
+        playTone(440, 190, 150, 0.07, 'triangle');
+        return;
+      }
+
+      playTone(523.25, 120, 0, 0.08, 'triangle');
+      playTone(783.99, 180, 135, 0.08, 'triangle');
+    });
+  }, [ensureAudioReady, playTone]);
+
+  const playFinishCue = useCallback(() => {
+    void ensureAudioReady().then((ready) => {
+      if (!ready) return;
+
+      playTone(523.25, 110, 0, 0.08, 'triangle');
+      playTone(659.25, 110, 120, 0.08, 'triangle');
+      playTone(783.99, 220, 240, 0.08, 'triangle');
+    });
+  }, [ensureAudioReady, playTone]);
+
+  const handleToggleSound = async () => {
+    if (isSoundEnabled) {
+      setIsSoundEnabled(false);
+      setAudioReady(false);
+      return;
+    }
+
+    setIsSoundEnabled(true);
+    await ensureAudioReady(true);
+  };
+
+  useEffect(() => {
+    return () => {
+      const audioContext = audioContextRef.current;
+      audioContextRef.current = null;
+      void audioContext?.close().catch(() => {});
+    };
+  }, []);
 
   const buildSegmentsForData = useCallback((focusData: HybridFocusData) => {
     const metconData = isHybridMetconData(focusData.workout.metconData)
@@ -311,17 +439,21 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
     setRemainingSeconds(segments[nextIndex]?.durationSeconds ?? 0);
     setSegmentElapsedSeconds(0);
     autoAdvancedRef.current = false;
+    countdownCueRef.current = null;
   }, [segments]);
 
   const advanceToNextSegment = useCallback(() => {
     if (currentIndex >= segments.length - 1) {
+      playFinishCue();
       setIsRunning(false);
       setShowComplete(true);
       return;
     }
 
-    selectSegment(currentIndex + 1);
-  }, [currentIndex, segments.length, selectSegment]);
+    const nextIndex = currentIndex + 1;
+    selectSegment(nextIndex);
+    playSegmentCue(segments[nextIndex]);
+  }, [currentIndex, playFinishCue, playSegmentCue, segments, selectSegment]);
 
   const ensureSessionStarted = useCallback(async () => {
     if (hasStarted) return;
@@ -357,6 +489,7 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
     try {
       if (!isRunning) {
         await ensureSessionStarted();
+        await ensureAudioReady();
       }
 
       setIsRunning((value) => !value);
@@ -369,6 +502,7 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
     setRemainingSeconds(currentSegment?.durationSeconds ?? 0);
     setSegmentElapsedSeconds(0);
     autoAdvancedRef.current = false;
+    countdownCueRef.current = null;
   };
 
   const completeSegment = useCallback(async (
@@ -450,6 +584,7 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
         if (value <= 1) {
           if (!autoAdvancedRef.current) {
             autoAdvancedRef.current = true;
+            countdownCueRef.current = null;
             const finishedSegment = currentSegment;
 
             window.setTimeout(() => {
@@ -460,12 +595,20 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
           return 0;
         }
 
-        return value - 1;
+        const nextValue = value - 1;
+        if (nextValue <= 3 && nextValue > 0 && countdownCueRef.current !== nextValue) {
+          countdownCueRef.current = nextValue;
+          window.setTimeout(() => {
+            playCountdownCue(nextValue);
+          }, 0);
+        }
+
+        return nextValue;
       });
     }, 1000);
 
     return () => window.clearInterval(interval);
-  }, [completeSegment, currentSegment, isRunning, showComplete]);
+  }, [completeSegment, currentSegment, isRunning, playCountdownCue, showComplete]);
 
   const handleFinishWorkout = async () => {
     setIsCompleting(true);
@@ -614,6 +757,12 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
   const currentRoundDone = currentSegment.roundNumber
     ? completedRoundNumbers.has(currentSegment.roundNumber)
     : false;
+  const soundStatusKey: 'screen.soundOff' | 'screen.soundReady' | 'screen.soundOn' = !isSoundEnabled
+    ? 'screen.soundOff'
+    : audioReady
+      ? 'screen.soundReady'
+      : 'screen.soundOn';
+  const soundActionLabel = t(isSoundEnabled ? 'actions.muteSound' : 'actions.unmuteSound');
 
   return (
     <div className="fixed inset-0 z-50 bg-neutral-950 text-white">
@@ -636,8 +785,21 @@ export function HybridFocusMode({ assignmentId, onClose, onComplete }: HybridFoc
             <div className="mt-1 flex items-center gap-2 text-xs text-white/55">
               <span>{data.workout.format}</span>
               <span>{t(screenAwake ? 'screen.awake' : 'screen.standard')}</span>
+              <span>{t(soundStatusKey)}</span>
             </div>
           </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-white hover:bg-white/10 hover:text-white"
+            onClick={() => {
+              void handleToggleSound();
+            }}
+            aria-label={soundActionLabel}
+            title={soundActionLabel}
+          >
+            {isSoundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+          </Button>
           <Button
             variant="outline"
             className="hidden border-white/15 bg-transparent text-white hover:bg-white/10 hover:text-white sm:inline-flex"

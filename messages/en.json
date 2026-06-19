@@ -16188,7 +16188,10 @@
       "restMessage": "Rest. The next work segment starts when this timer ends.",
       "screen": {
         "awake": "Screen awake",
-        "standard": "Standard screen"
+        "standard": "Standard screen",
+        "soundOn": "Sound on",
+        "soundReady": "Sound ready",
+        "soundOff": "Muted"
       },
       "type": {
         "work": "Work",
@@ -16217,7 +16220,9 @@
         "backToPlan": "Back",
         "saveWorkout": "Save workout",
         "retry": "Retry",
-        "close": "Close"
+        "close": "Close",
+        "muteSound": "Mute sound",
+        "unmuteSound": "Turn on sound"
       },
       "completion": {
         "title": "Workout complete",
@@ -16230,7 +16235,8 @@
         "startFailed": "Could not start focus mode",
         "roundFailed": "Could not log round",
         "completeFailed": "Could not complete workout",
-        "completed": "Workout completed"
+        "completed": "Workout completed",
+        "audioUnsupported": "Audio is not supported in this browser"
       }
     },
     "amrapTimer": {

@@ -16548,7 +16548,10 @@
       "restMessage": "Vila. Nästa arbetsdel startar när timern är klar.",
       "screen": {
         "awake": "Skärmen hålls vaken",
-        "standard": "Standard skärm"
+        "standard": "Standard skärm",
+        "soundOn": "Ljud på",
+        "soundReady": "Ljud redo",
+        "soundOff": "Tystat"
       },
       "type": {
         "work": "Arbete",
@@ -16577,7 +16580,9 @@
         "backToPlan": "Tillbaka",
         "saveWorkout": "Spara pass",
         "retry": "Försök igen",
-        "close": "Stäng"
+        "close": "Stäng",
+        "muteSound": "Stäng av ljud",
+        "unmuteSound": "Slå på ljud"
       },
       "completion": {
         "title": "Pass slutfört",
@@ -16590,7 +16595,8 @@
         "startFailed": "Kunde inte starta fokusläget",
         "roundFailed": "Kunde inte logga varvet",
         "completeFailed": "Kunde inte slutföra passet",
-        "completed": "Passet är slutfört"
+        "completed": "Passet är slutfört",
+        "audioUnsupported": "Ljud stöds inte i den här webbläsaren"
       }
     },
     "amrapTimer": {
