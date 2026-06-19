@@ -5336,6 +5336,8 @@
       "overviewDescription": "Today’s decisions",
       "planning": "Planning",
       "planningDescription": "Calendar & programs",
+      "monitoring": "Monitoring",
+      "monitoringDescription": "Load & recovery",
       "development": "Development",
       "developmentDescription": "Tests & trends",
       "profile": "Profile",

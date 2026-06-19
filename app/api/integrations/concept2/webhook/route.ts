@@ -17,6 +17,7 @@ import { createCustomRateLimiter } from '@/lib/rate-limit-redis'
 import { getRequestIp } from '@/lib/api/rate-limit'
 import { logger } from '@/lib/logger'
 import { verifyWebhookUrlToken } from '@/lib/integrations/webhook-url-token'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 import type {
   Concept2Result,
   Concept2EquipmentType,
@@ -339,6 +340,7 @@ async function processConcept2Event(data: Concept2WebhookPayload['data']): Promi
       });
 
       logger.debug('Synced Concept2 result', { clientId, resultId: result.id })
+      await refreshWorkoutEvaluationsAround(clientId, workoutDate)
 
       // Dispatch to Managed Agent (non-blocking)
       import('@/lib/managed-agents').then(({ dispatchEvent }) =>
@@ -359,7 +361,7 @@ async function processConcept2Event(data: Concept2WebhookPayload['data']): Promi
     // delete (mirrors the add/update ownership check above).
     const existing = await prisma.concept2Result.findUnique({
       where: { concept2Id: result_id },
-      select: { id: true, clientId: true },
+      select: { id: true, clientId: true, date: true },
     });
 
     if (existing) {
@@ -374,6 +376,7 @@ async function processConcept2Event(data: Concept2WebhookPayload['data']): Promi
 
       if (token) {
         await prisma.concept2Result.delete({ where: { id: existing.id } });
+        await refreshWorkoutEvaluationsAround(existing.clientId, existing.date)
         logger.debug('Deleted Concept2 result', { resultId: result_id })
       } else {
         logger.info('Ignoring Concept2 delete for client without active connection', {

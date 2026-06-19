@@ -8,6 +8,7 @@ import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { invalidateUnifiedCalendarCacheForClient } from '@/lib/calendar/unified/invalidate'
 import { syncQuickErgCoachAlertsSafely } from '@/lib/quick-erg/coach-alerts'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 import {
   buildQuickErgDedupeKey,
   buildQuickErgSessionAnalysis,
@@ -155,12 +156,13 @@ export async function POST(request: NextRequest) {
 
     const existing = await prisma.quickErgSession.findUnique({
       where: { dedupeKey },
-      select: { id: true, trainingLoadId: true },
+      select: { id: true, trainingLoadId: true, startedAt: true },
     })
 
     if (existing) {
       await invalidateUnifiedCalendarCacheForClient(resolved.clientId)
       await syncQuickErgCoachAlertsSafely({ sessionId: existing.id })
+      await refreshWorkoutEvaluationsAround(resolved.clientId, existing.startedAt)
 
       return NextResponse.json({
         success: true,
@@ -236,6 +238,7 @@ export async function POST(request: NextRequest) {
     })
     await invalidateUnifiedCalendarCacheForClient(resolved.clientId)
     await syncQuickErgCoachAlertsSafely({ sessionId: result.session.id })
+    await refreshWorkoutEvaluationsAround(resolved.clientId, startedAt)
 
     return NextResponse.json({
       success: true,

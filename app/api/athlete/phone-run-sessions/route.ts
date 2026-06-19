@@ -13,6 +13,7 @@ import {
   type PhoneRunRawSample,
 } from '@/lib/outdoor-run/session-summary'
 import { prisma } from '@/lib/prisma'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 
 const SOURCES = ['ANDROID_CHROME_PWA'] as const
 
@@ -104,10 +105,11 @@ export async function POST(request: NextRequest) {
 
     const existing = await prisma.phoneRunSession.findUnique({
       where: { dedupeKey },
-      select: { id: true, trainingLoadId: true },
+      select: { id: true, trainingLoadId: true, startedAt: true },
     })
 
     if (existing) {
+      await refreshWorkoutEvaluationsAround(resolved.clientId, existing.startedAt)
       return NextResponse.json({
         success: true,
         duplicate: true,
@@ -171,6 +173,7 @@ export async function POST(request: NextRequest) {
       durationSec: analysis.summary.durationSec,
       distanceMeters: analysis.summary.distanceMeters,
     })
+    await refreshWorkoutEvaluationsAround(resolved.clientId, startedAt)
 
     return NextResponse.json({
       success: true,

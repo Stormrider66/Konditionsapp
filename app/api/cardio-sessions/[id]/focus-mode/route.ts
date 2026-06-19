@@ -8,6 +8,7 @@ import { buildCardioFocusModeSegments } from '@/lib/cardio/focus-mode-segments'
 import { linkGarminToCardioLog } from '@/lib/cardio/garmin-cardio-link'
 import { resolveAthleteHrZones } from '@/lib/cardio/athlete-hr-zones'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -524,6 +525,7 @@ export async function PUT(
       } catch (error) {
         logError('Garmin link after cardio completion failed:', error)
       }
+      await refreshWorkoutEvaluationsAround(assignment.athleteId, updatedLog.startedAt)
     }
 
     return NextResponse.json({

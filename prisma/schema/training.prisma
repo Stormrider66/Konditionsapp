@@ -901,6 +901,73 @@ model TrainingLoad {
   @@index([clientId, injuryRisk]) // Filter by injury risk level
 }
 
+/// Coach-facing merged workout evaluation built from Garmin, Bluetooth erg,
+/// app GPS, focus-mode, hybrid, and manual sources.
+model WorkoutEvaluation {
+  id       String @id @default(uuid())
+  clientId String
+
+  startedAt   DateTime
+  completedAt DateTime?
+
+  // Stable merge key for idempotent rebuilds, usually client + source group.
+  dedupeKey String @unique
+
+  // Source metadata and computed evaluation payloads.
+  sourceLinks        Json
+  summary            Json
+  timelinePreview    Json
+  segmentEvaluations Json
+  zoneSummary        Json
+  fatigueSummary     Json
+  readinessContext   Json?
+
+  confidence    String // HIGH, MEDIUM, LOW
+  primarySource String
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, startedAt])
+  @@index([clientId, confidence])
+  @@index([primarySource])
+}
+
+/// Future native athlete app upload surface for BLE/GPS captures. Raw samples
+/// live here; WorkoutEvaluation stores only chart-ready previews.
+model WorkoutSensorCapture {
+  id       String @id @default(uuid())
+  clientId String
+
+  source      String // NATIVE_CAPTURE, CONCEPT2_PM5_BLUETOOTH, WATTBIKE_BLUETOOTH, HR_BELT_BLUETOOTH, APP_GPS
+  startedAt   DateTime
+  completedAt DateTime
+
+  devices Json
+  samples Json
+  summary Json?
+
+  plannedWorkoutId String?
+  calendarEventId  String?
+  rpe              Int?
+  notes            String? @db.Text
+
+  workoutEvaluationId String?
+
+  dedupeKey String? @unique
+
+  client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, startedAt])
+  @@index([source])
+  @@index([workoutEvaluationId])
+}
+
 // ============================================
 // QUICK ERG SESSION CAPTURE
 // ============================================

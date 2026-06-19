@@ -2,17 +2,18 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { LayoutGrid, CalendarDays, TrendingUp, UserCircle } from 'lucide-react'
+import { Activity, LayoutGrid, CalendarDays, TrendingUp, UserCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
 
-export type ClientDetailTab = 'overview' | 'planning' | 'development' | 'profile'
+export type ClientDetailTab = 'overview' | 'planning' | 'monitoring' | 'development' | 'profile'
 
 interface ClientDetailTabsProps {
   clientId: string
   content: {
     overview: React.ReactNode
     planning: React.ReactNode
+    monitoring: React.ReactNode
     development: React.ReactNode
     profile: React.ReactNode
   }
@@ -22,6 +23,7 @@ interface ClientDetailTabsProps {
 const TAB_CONFIG: { value: ClientDetailTab; labelKey: string; descriptionKey: string; icon: React.ElementType }[] = [
   { value: 'overview', labelKey: 'overview', descriptionKey: 'overviewDescription', icon: LayoutGrid },
   { value: 'planning', labelKey: 'planning', descriptionKey: 'planningDescription', icon: CalendarDays },
+  { value: 'monitoring', labelKey: 'monitoring', descriptionKey: 'monitoringDescription', icon: Activity },
   { value: 'development', labelKey: 'development', descriptionKey: 'developmentDescription', icon: TrendingUp },
   { value: 'profile', labelKey: 'profile', descriptionKey: 'profileDescription', icon: UserCircle },
 ]
@@ -38,13 +40,17 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
     programs: 'planning',
     logs: 'planning',
     analysis: 'development',
+    workouts: 'monitoring',
+    workoutEvaluation: 'monitoring',
+    fatigue: 'monitoring',
+    readiness: 'monitoring',
+    load: 'monitoring',
     tests: 'development',
     fullProfile: 'profile',
     physiology: 'development',
     performance: 'development',
     training: 'planning',
     health: 'profile',
-    readiness: 'overview',
     technique: 'development',
     goals: 'profile',
     body: 'profile',
@@ -73,7 +79,7 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       {/* Tab Navigation */}
       <div className="sticky top-0 z-10 bg-gray-50 pb-3 sm:pb-4">
-        <TabsList className="w-full h-auto p-1 bg-white dark:bg-slate-900 shadow-sm rounded-lg border border-gray-200 dark:border-white/10 grid grid-cols-4 gap-0.5 sm:gap-1">
+        <TabsList className="w-full h-auto p-1 bg-white dark:bg-slate-900 shadow-sm rounded-lg border border-gray-200 dark:border-white/10 grid grid-cols-5 gap-0.5 sm:gap-1">
           {TAB_CONFIG.map(({ value, labelKey, descriptionKey, icon: Icon }) => (
             <TabsTrigger
               key={value}
@@ -102,6 +108,10 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
 
       <TabsContent value="planning" className="mt-0">
         {content.planning}
+      </TabsContent>
+
+      <TabsContent value="monitoring" className="mt-0">
+        {content.monitoring}
       </TabsContent>
 
       <TabsContent value="development" className="mt-0">

@@ -5336,6 +5336,8 @@
       "overviewDescription": "Beslut idag",
       "planning": "Planering",
       "planningDescription": "Kalender & program",
+      "monitoring": "Monitoring",
+      "monitoringDescription": "Belastning & återhämtning",
       "development": "Utveckling",
       "developmentDescription": "Tester & trend",
       "profile": "Profil",

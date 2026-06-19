@@ -8,6 +8,7 @@
 import { prisma } from '@/lib/prisma';
 import { getConcept2Results, getConcept2Result } from './client';
 import { logger } from '@/lib/logger'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 import type {
   Concept2Result,
   Concept2EquipmentType,
@@ -319,6 +320,8 @@ export async function syncConcept2Results(
             isVerified: detailedResult.verified || false,
           },
         });
+
+        await refreshWorkoutEvaluationsAround(clientId, workoutDate)
 
         result.synced++;
       } catch (error) {

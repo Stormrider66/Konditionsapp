@@ -16,6 +16,7 @@ import { findMatchingGarminActivity, findMatchingAdHocWorkout, linkAdHocToGarmin
 import { linkGarminToCardioLog } from '@/lib/cardio/garmin-cardio-link'
 import { linkGarminToHybridLog } from '@/lib/hybrid/garmin-hybrid-link'
 import { logger } from '@/lib/logger'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 import { subDays } from 'date-fns'
 
 export const dynamic = 'force-dynamic'
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
         )
         if (match) {
           await linkAdHocToGarmin(adHoc.id, match.id)
+          await refreshWorkoutEvaluationsAround(adHoc.athleteId, adHoc.workoutDate)
           linked++
         }
       } catch (err) {
@@ -93,6 +95,7 @@ export async function GET(request: NextRequest) {
         })
         if (match) {
           await linkAdHocToGarmin(match.id, garmin.id)
+          await refreshWorkoutEvaluationsAround(garmin.clientId, garmin.startDate)
           linked++
         }
       } catch (err) {
@@ -108,14 +111,17 @@ export async function GET(request: NextRequest) {
         garminActivityId: null,
         startedAt: { gte: since },
       },
-      select: { id: true },
+      select: { id: true, athleteId: true, startedAt: true },
       take: 50,
     })
 
     let cardioLinked = 0
     for (const log of unlinkedCardioLogs) {
       try {
-        if (await linkGarminToCardioLog(log.id)) cardioLinked++
+        if (await linkGarminToCardioLog(log.id)) {
+          await refreshWorkoutEvaluationsAround(log.athleteId, log.startedAt)
+          cardioLinked++
+        }
       } catch (err) {
         logger.warn('Failed to link cardio log to Garmin', { logId: log.id, error: String(err) })
       }
@@ -129,14 +135,17 @@ export async function GET(request: NextRequest) {
         garminActivityId: null,
         startedAt: { gte: since },
       },
-      select: { id: true },
+      select: { id: true, athleteId: true, startedAt: true },
       take: 50,
     })
 
     let hybridLinked = 0
     for (const log of unlinkedHybridLogs) {
       try {
-        if (await linkGarminToHybridLog(log.id)) hybridLinked++
+        if (await linkGarminToHybridLog(log.id)) {
+          await refreshWorkoutEvaluationsAround(log.athleteId, log.startedAt)
+          hybridLinked++
+        }
       } catch (err) {
         logger.warn('Failed to link hybrid log to Garmin', { logId: log.id, error: String(err) })
       }

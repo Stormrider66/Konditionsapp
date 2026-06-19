@@ -31,6 +31,7 @@ import type {
 import { CoachCockpitCard } from '@/components/coach/athlete-profile/ui'
 import { OverviewTab } from '@/components/coach/athlete-profile/OverviewTab'
 import { PlanningTab } from '@/components/coach/athlete-profile/PlanningTab'
+import { MonitoringTab } from '@/components/coach/athlete-profile/MonitoringTab'
 import { DevelopmentTab } from '@/components/coach/athlete-profile/DevelopmentTab'
 import { ProfileTab } from '@/components/coach/athlete-profile/ProfileTab'
 import { Button } from '@/components/ui/button'
@@ -516,6 +517,13 @@ export function ClientDetailView({ id, businessSlug, initial }: ClientDetailView
                 hasHockeyLogs={isHockeyAthlete}
                 setAthletePlans={setAthletePlans}
                 onRefetchClient={fetchClient}
+              />
+            ),
+            monitoring: (
+              <MonitoringTab
+                id={id}
+                basePath={basePath}
+                businessSlug={businessSlug}
               />
             ),
             development: (

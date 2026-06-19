@@ -562,6 +562,8 @@ model Client {
   athleteProfile        AthleteProfile?
   dailyMetrics          DailyMetrics[]
   trainingLoads         TrainingLoad[]
+  workoutEvaluations    WorkoutEvaluation[]
+  workoutSensorCaptures WorkoutSensorCapture[]
   programsEngine        TrainingProgramEngine[]
   fieldTests            FieldTest[]
   selfReportedLactates  SelfReportedLactate[]

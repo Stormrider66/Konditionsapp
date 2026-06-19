@@ -5,6 +5,7 @@ import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { linkGarminToHybridLog } from '@/lib/hybrid/garmin-hybrid-link'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -491,6 +492,7 @@ export async function PUT(
       } catch (error) {
         logError('Garmin link after hybrid completion failed:', error)
       }
+      await refreshWorkoutEvaluationsAround(assignment.athleteId, updatedLog.startedAt)
     }
 
     return NextResponse.json({

@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { processGarminActivityZonesForClient } from '@/lib/integrations/zone-distribution-service'
+import { refreshWorkoutEvaluationsAround } from '@/lib/workout-evaluation'
 import {
   GarminActivity,
   GarminBodyComposition,
@@ -692,6 +693,8 @@ async function processActivity(activity: GarminActivityPayload) {
   } catch (err) {
     logger.warn('Failed to auto-complete strength assignment from Garmin', { error: err })
   }
+
+  await refreshWorkoutEvaluationsAround(clientId, startDate)
 }
 
 async function processSleepData(sleep: GarminSleepData & { userId?: string }) {
@@ -929,7 +932,7 @@ async function processActivityDetails(detail: GarminActivityDetailsPayload) {
 
   const existing = await prisma.garminActivity.findUnique({
     where: { garminActivityId: BigInt(activityId) },
-    select: { id: true },
+    select: { id: true, startDate: true },
   })
 
   if (!existing) {
@@ -1015,6 +1018,8 @@ async function processActivityDetails(detail: GarminActivityDetailsPayload) {
         logger.warn('Failed to re-slice cardio log HR after details', { activityId }, error)
       }
     }
+
+    await refreshWorkoutEvaluationsAround(clientId, existing.startDate)
   }
 }
 

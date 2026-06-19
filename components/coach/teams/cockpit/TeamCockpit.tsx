@@ -9,6 +9,7 @@ import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedul
 import { TeamRosterRail, type RailMember, type DayCoverage } from './TeamRosterRail'
 import { TeamSelectedPlayerPanel } from './TeamSelectedPlayerPanel'
 import { TeamSelectedSessionPanel } from './TeamSelectedSessionPanel'
+import { TeamMonitoringRollup } from './TeamMonitoringRollup'
 import { TeamUnplannedPlayersQueue, type QueueCopyWorkout } from './TeamUnplannedPlayersQueue'
 import { TeamWorkoutAssignmentDialog } from '@/components/coach/team/TeamWorkoutAssignmentDialog'
 import { TeamDayPrintButton } from '@/components/coach/teams/TeamDayPrintButton'
@@ -364,6 +365,11 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
           {locale === 'sv' ? 'Tilldela pass' : 'Assign workout'}
         </Button>
       </div>
+      <TeamMonitoringRollup
+        teamId={teamId}
+        businessSlug={businessSlug}
+        locale={locale}
+      />
       <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
         <div className="space-y-4">
           <TeamSchedulePane
