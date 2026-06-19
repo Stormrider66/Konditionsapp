@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { PlayerStaffNotesPanel } from '@/components/coach/player-notes/PlayerStaffNotesPanel'
 import { useTranslations } from '@/i18n/client'
 import { rosterStatusReason } from '@/lib/coach/roster-dot-status'
 import { cn } from '@/lib/utils'
@@ -188,6 +189,15 @@ export function TeamSelectedPlayerPanel({
             </Link>
           </Button>
         </div>
+
+        <PlayerStaffNotesPanel
+          key={member.id}
+          clientId={member.id}
+          businessSlug={businessSlug}
+          teamId={teamId}
+          variant="compact"
+          limit={3}
+        />
 
         <section>
           <div className="mb-2 flex items-center justify-between gap-2">

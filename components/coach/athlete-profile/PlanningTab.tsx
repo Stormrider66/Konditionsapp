@@ -14,6 +14,8 @@ import { CreateAthletePlanDialog } from '@/components/coach/clients/CreateAthlet
 import { RaceFuelingCard } from '@/components/athlete/fueling/RaceFuelingCard'
 import { AthletePlanSummaryCard, AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAccountDialog'
+import { AthletePlanStaffNoteCard } from '@/components/coach/player-notes/AthletePlanStaffNoteCard'
+import { PlayerStaffNotesPanel } from '@/components/coach/player-notes/PlayerStaffNotesPanel'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
 import { PlanCompliance } from './PlanCompliance'
 import type { ClientWithTests, ProgramSummary } from './types'
@@ -21,6 +23,7 @@ import type { ClientWithTests, ProgramSummary } from './types'
 interface PlanningTabProps {
   id: string
   basePath: string
+  businessSlug: string
   client: ClientWithTests
   programs: ProgramSummary[]
   programsLoading: boolean
@@ -46,6 +49,7 @@ interface PlanningTabProps {
 export function PlanningTab({
   id,
   basePath,
+  businessSlug,
   client,
   programs,
   programsLoading,
@@ -129,7 +133,7 @@ export function PlanningTab({
         </div>
 
         {activeAthletePlan && (
-          <div className="mt-5">
+          <div className="mt-5 space-y-4">
             <AthletePlanSummaryCard
               plan={activeAthletePlan}
               now={now}
@@ -147,6 +151,12 @@ export function PlanningTab({
                   }
                 />
               }
+            />
+            <AthletePlanStaffNoteCard
+              clientId={id}
+              businessSlug={businessSlug}
+              plan={activeAthletePlan}
+              onSaved={(plan) => setAthletePlans((current) => current.map((item) => item.id === plan.id ? plan : item))}
             />
           </div>
         )}
@@ -275,6 +285,13 @@ export function PlanningTab({
       </div>
 
       <PlanCompliance clientId={id} weeks={8} />
+
+      <PlayerStaffNotesPanel
+        clientId={id}
+        businessSlug={businessSlug}
+        variant="full"
+        limit={20}
+      />
 
       <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 lg:p-6">
         <UnifiedCalendar

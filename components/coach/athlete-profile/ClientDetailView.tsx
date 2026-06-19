@@ -496,6 +496,7 @@ export function ClientDetailView({ id, businessSlug, initial }: ClientDetailView
               <PlanningTab
                 id={id}
                 basePath={basePath}
+                businessSlug={businessSlug}
                 client={client}
                 programs={programs}
                 programsLoading={programsLoading}
@@ -559,4 +560,3 @@ export function ClientDetailView({ id, businessSlug, initial }: ClientDetailView
     </div>
   )
 }
-

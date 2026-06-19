@@ -155,6 +155,11 @@ model AthletePlan {
   description String? @db.Text
   status      String  @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
 
+  staffPlanNote                 String?   @db.Text
+  staffPlanNoteVisibleToAthlete Boolean   @default(false)
+  staffPlanNoteUpdatedAt        DateTime?
+  staffPlanNoteAuthorId         String?
+
   startDate DateTime
   endDate   DateTime
 
@@ -163,11 +168,13 @@ model AthletePlan {
 
   client Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
   coach  User   @relation("CoachAthletePlans", fields: [coachId], references: [id])
+  staffPlanNoteAuthor User? @relation("AthletePlanStaffNoteAuthor", fields: [staffPlanNoteAuthorId], references: [id], onDelete: SetNull)
   blocks AthletePlanBlock[]
 
   @@index([clientId, startDate, endDate])
   @@index([coachId])
   @@index([status])
+  @@index([staffPlanNoteAuthorId])
 }
 
 model AthletePlanBlock {

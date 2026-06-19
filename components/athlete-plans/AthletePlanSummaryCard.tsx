@@ -26,9 +26,20 @@ export interface AthletePlanBlockSummary {
 
 export interface AthletePlanSummary {
   id: string
+  clientId?: string
+  coachId?: string
   name: string
   description: string | null
   status: string
+  staffPlanNote?: string | null
+  staffPlanNoteVisibleToAthlete?: boolean
+  staffPlanNoteUpdatedAt?: string | Date | null
+  staffPlanNoteAuthorId?: string | null
+  staffPlanNoteAuthor?: {
+    id: string
+    name: string | null
+    email: string | null
+  } | null
   startDate: string | Date
   endDate: string | Date
   blocks: AthletePlanBlockSummary[]

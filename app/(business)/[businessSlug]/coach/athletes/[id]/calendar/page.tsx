@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, UserRound } from 'lucide-react'
 import { UnifiedCalendar } from '@/components/calendar'
+import { AthletePlanStaffNoteCard } from '@/components/coach/player-notes/AthletePlanStaffNoteCard'
+import { PlayerStaffNotesPanel } from '@/components/coach/player-notes/PlayerStaffNotesPanel'
 import { getTranslations } from '@/i18n/server'
 
 interface BusinessAthleteCalendarPageProps {
@@ -45,12 +47,59 @@ export default async function BusinessAthleteCalendarPage({
     select: {
       id: true,
       name: true,
+      teamId: true,
     },
   })
 
   if (!client) {
     notFound()
   }
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const activeAthletePlan = await prisma.athletePlan.findFirst({
+    where: {
+      clientId: client.id,
+      status: 'ACTIVE',
+      startDate: { lte: today },
+      endDate: { gte: today },
+    },
+    select: {
+      id: true,
+      clientId: true,
+      coachId: true,
+      name: true,
+      description: true,
+      status: true,
+      staffPlanNote: true,
+      staffPlanNoteVisibleToAthlete: true,
+      staffPlanNoteUpdatedAt: true,
+      staffPlanNoteAuthorId: true,
+      staffPlanNoteAuthor: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      startDate: true,
+      endDate: true,
+      blocks: {
+        orderBy: { order: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          focus: true,
+          description: true,
+          order: true,
+          startDate: true,
+          endDate: true,
+        },
+      },
+    },
+    orderBy: { startDate: 'desc' },
+  })
 
   return (
     <div className="container py-6 max-w-7xl mx-auto">
@@ -73,6 +122,24 @@ export default async function BusinessAthleteCalendarPage({
             {t('viewProfile')}
           </Link>
         </Button>
+      </div>
+
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        <PlayerStaffNotesPanel
+          clientId={client.id}
+          businessSlug={businessSlug}
+          teamId={client.teamId ?? undefined}
+          variant="compact"
+          limit={3}
+        />
+        {activeAthletePlan && (
+          <AthletePlanStaffNoteCard
+            clientId={client.id}
+            businessSlug={businessSlug}
+            plan={activeAthletePlan}
+            compact
+          />
+        )}
       </div>
 
       <UnifiedCalendar

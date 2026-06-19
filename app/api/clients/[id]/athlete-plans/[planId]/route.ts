@@ -60,6 +60,17 @@ function planSelect() {
     name: true,
     description: true,
     status: true,
+    staffPlanNote: true,
+    staffPlanNoteVisibleToAthlete: true,
+    staffPlanNoteUpdatedAt: true,
+    staffPlanNoteAuthorId: true,
+    staffPlanNoteAuthor: {
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+    },
     startDate: true,
     endDate: true,
     createdAt: true,

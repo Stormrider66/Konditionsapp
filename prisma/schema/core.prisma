@@ -238,6 +238,7 @@ model User {
   organizations         Organization[]
   teamWorkoutBroadcasts TeamWorkoutBroadcast[] @relation("CoachBroadcasts")
   teamNotes             TeamNote[]             @relation("TeamNoteAuthor")
+  playerStaffNotes      PlayerStaffNote[]      @relation("PlayerStaffNoteAuthor")
 
   // Calendar System relations
   createdCalendarEvents  CalendarEvent[]       @relation("CreatedCalendarEvents")
@@ -270,6 +271,7 @@ model User {
 
   // Multi-part program generation sessions
   programGenerationSessions ProgramGenerationSession[] @relation("CoachProgramGenSessions")
+  athletePlanStaffNoteUpdates AthletePlan[] @relation("AthletePlanStaffNoteAuthor")
 
   // Live HR Streaming System relations
   liveHRSessions LiveHRSession[] @relation("CoachLiveHRSessions")
@@ -446,7 +448,8 @@ model Team {
   hybridWorkouts   HybridWorkout[]   @relation("TeamHybridWorkouts")
 
   // Shared staff notes
-  notes TeamNote[]
+  notes            TeamNote[]
+  playerStaffNotes PlayerStaffNote[] @relation("TeamPlayerStaffNotes")
 
   // Team chat (docs/TEAM_CHAT_DESIGN.md)
   chatThreads Thread[] @relation("TeamChatThreads")
@@ -477,6 +480,31 @@ model TeamNote {
   team   Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
   author User @relation("TeamNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
+  @@index([teamId, createdAt])
+  @@index([authorId])
+}
+
+model PlayerStaffNote {
+  id        String   @id @default(uuid())
+  clientId  String
+  teamId    String?
+  authorId  String
+  body      String   @db.Text
+  category  String   @default("OTHER")
+
+  isPinned         Boolean @default(false)
+  actionRequired   Boolean @default(false)
+  visibleToAthlete Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client Client @relation("ClientStaffNotes", fields: [clientId], references: [id], onDelete: Cascade)
+  team   Team?  @relation("TeamPlayerStaffNotes", fields: [teamId], references: [id], onDelete: SetNull)
+  author User   @relation("PlayerStaffNoteAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, isPinned, createdAt])
+  @@index([clientId, actionRequired, createdAt])
   @@index([teamId, createdAt])
   @@index([authorId])
 }
@@ -524,6 +552,7 @@ model Client {
   tests            Test[]
   trainingPrograms TrainingProgram[]
   athletePlans     AthletePlan[]
+  staffNotes       PlayerStaffNote[] @relation("ClientStaffNotes")
   athleteAccount   AthleteAccount?
 
   // Team chat (docs/TEAM_CHAT_DESIGN.md)
