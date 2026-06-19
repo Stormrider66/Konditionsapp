@@ -10,7 +10,6 @@ import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDia
 import {
   AthletePlanSummaryCard,
   getPlanBlockColor,
-  type AthletePlanBlockSummary,
   type AthletePlanSummary,
 } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import Link from 'next/link'
@@ -91,6 +90,27 @@ interface TeamCalendarViewProps {
   teamName: string
   businessSlug?: string
   initialTeamPlans?: AthletePlanSummary[]
+}
+
+type AssignableWorkoutType = 'strength' | 'cardio' | 'hybrid' | 'agility'
+
+interface TeamMemberPreview {
+  id: string
+  name: string
+  athleteAccount?: { id: string } | null
+}
+
+interface RestrictionPreviewBlocked {
+  athleteId: string
+  exerciseNames?: string[]
+}
+
+function workoutTypeForRestrictionPreview(type: string | null | undefined): AssignableWorkoutType | null {
+  const normalized = type?.toLowerCase()
+  if (normalized === 'strength' || normalized === 'cardio' || normalized === 'hybrid' || normalized === 'agility') {
+    return normalized
+  }
+  return null
 }
 
 export function TeamCalendarView({
@@ -403,6 +423,61 @@ export function TeamCalendarView({
     }
   }
 
+  const confirmAssignmentRestrictionPreview = async (event: TeamEvent): Promise<boolean> => {
+    const workoutType = workoutTypeForRestrictionPreview(event.linkedWorkoutType)
+    if (!workoutType || !event.linkedWorkoutId) return true
+
+    try {
+      const params = new URLSearchParams()
+      if (businessSlug) params.set('businessSlug', businessSlug)
+      const query = params.size ? `?${params}` : ''
+      const headers: Record<string, string> = businessSlug ? { 'x-business-slug': businessSlug } : {}
+
+      const teamResponse = await fetch(`/api/teams/${teamId}${query}`, { headers })
+      const teamJson = await teamResponse.json()
+      const members = ((teamJson?.data?.members ?? []) as TeamMemberPreview[])
+        .filter((member) => Boolean(member.athleteAccount))
+
+      if (!teamResponse.ok || members.length === 0) return true
+
+      const previewResponse = await fetch(`/api/teams/${teamId}/assign-workout/preview${query}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...headers,
+        },
+        body: JSON.stringify({
+          workoutType,
+          workoutId: event.linkedWorkoutId,
+          athleteIds: members.map((member) => member.id),
+        }),
+      })
+      const previewJson = await previewResponse.json()
+      if (!previewResponse.ok || !previewJson?.success) return true
+
+      const blocked = (previewJson.data?.blocked ?? []) as RestrictionPreviewBlocked[]
+      if (blocked.length === 0) return true
+
+      const nameById = new Map(members.map((member) => [member.id, member.name]))
+      const blockedLines = blocked.slice(0, 5).map((item) => {
+        const name = nameById.get(item.athleteId) ?? text(locale, 'Okänd spelare', 'Unknown player')
+        const exercises = item.exerciseNames?.slice(0, 3).join(', ')
+        return exercises ? `${name}: ${exercises}` : name
+      })
+      const more = blocked.length > 5
+        ? text(locale, `\n+${blocked.length - 5} till`, `\n+${blocked.length - 5} more`)
+        : ''
+
+      return confirm(text(
+        locale,
+        `${blocked.length} spelare blockeras av aktiva restriktioner och kommer att hoppas över:\n\n${blockedLines.join('\n')}${more}\n\nVill du tilldela passet till resterande spelare?`,
+        `${blocked.length} players are blocked by active restrictions and will be skipped:\n\n${blockedLines.join('\n')}${more}\n\nAssign this workout to the remaining players?`
+      ))
+    } catch {
+      return true
+    }
+  }
+
   const handleAssignReadyWorkout = async (event: TeamEvent) => {
     if (!canAssignContentType(event.type) || !event.linkedWorkoutId) {
       toast.error(text(locale, 'Din roll kan inte tilldela det här passet', 'Your role cannot assign this workout'))
@@ -411,6 +486,9 @@ export function TeamCalendarView({
 
     setAssigningEventId(event.id)
     try {
+      const shouldContinue = await confirmAssignmentRestrictionPreview(event)
+      if (!shouldContinue) return
+
       const params = new URLSearchParams()
       if (businessSlug) params.set('businessSlug', businessSlug)
       const res = await fetch(`/api/coach/teams/${teamId}/events/${event.id}/assign-workout${params.size ? `?${params}` : ''}`, {
@@ -425,6 +503,14 @@ export function TeamCalendarView({
       if (!res.ok) throw new Error('Failed')
       const data = await res.json()
       toast.success(text(locale, `Tilldelat till ${data.assignmentCount ?? 'laget'} spelare`, `Assigned to ${data.assignmentCount ?? 'the team'} players`))
+      if (Array.isArray(data.skipped) && data.skipped.length > 0) {
+        const skippedNames = data.skipped.slice(0, 4).map((item: { name?: string }) => item.name).filter(Boolean).join(', ')
+        toast.warning(text(
+          locale,
+          `${data.skipped.length} spelare hoppades över på grund av restriktioner${skippedNames ? `: ${skippedNames}` : ''}`,
+          `${data.skipped.length} players were skipped by restrictions${skippedNames ? `: ${skippedNames}` : ''}`
+        ))
+      }
       await fetchEvents()
     } catch {
       toast.error(text(locale, 'Kunde inte tilldela passet', 'Could not assign the workout'))
