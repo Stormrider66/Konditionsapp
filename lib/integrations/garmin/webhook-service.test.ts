@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
     },
   },
   processGarminActivityZonesForClient: vi.fn(),
+  refreshWorkoutEvaluationsAround: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -38,6 +39,10 @@ vi.mock('@/lib/logger', () => ({
 
 vi.mock('@/lib/integrations/zone-distribution-service', () => ({
   processGarminActivityZonesForClient: mocks.processGarminActivityZonesForClient,
+}))
+
+vi.mock('@/lib/workout-evaluation', () => ({
+  refreshWorkoutEvaluationsAround: mocks.refreshWorkoutEvaluationsAround,
 }))
 
 vi.mock('@/lib/training/adhoc-garmin-matcher', () => ({
@@ -66,6 +71,7 @@ describe('Garmin webhook zone processing', () => {
     mocks.prisma.bodyComposition.upsert.mockResolvedValue({} as never)
     mocks.prisma.dailyMetrics.upsert.mockResolvedValue({} as never)
     mocks.processGarminActivityZonesForClient.mockResolvedValue(null as never)
+    mocks.refreshWorkoutEvaluationsAround.mockResolvedValue(undefined as never)
   })
 
   it('processes zone distribution after saving a Garmin activity summary with heart rate', async () => {
@@ -100,7 +106,8 @@ describe('Garmin webhook zone processing', () => {
   })
 
   it('reprocesses zone distribution when Garmin activity details add HR stream data', async () => {
-    mocks.prisma.garminActivity.findUnique.mockResolvedValue({ id: 'garmin-row-1' } as never)
+    const startDate = new Date('2026-05-20T09:39:13.000Z')
+    mocks.prisma.garminActivity.findUnique.mockResolvedValue({ id: 'garmin-row-1', startDate } as never)
     mocks.prisma.garminActivity.update.mockResolvedValue({} as never)
 
     const result = await processGarminWebhookPayload({
@@ -123,6 +130,7 @@ describe('Garmin webhook zone processing', () => {
 
     expect(result.activityDetails).toBe(1)
     expect(mocks.processGarminActivityZonesForClient).toHaveBeenCalledWith('client-1', 'garmin-row-1')
+    expect(mocks.refreshWorkoutEvaluationsAround).toHaveBeenCalledWith('client-1', startDate)
   })
 
   it('saves plausible Garmin body composition data', async () => {

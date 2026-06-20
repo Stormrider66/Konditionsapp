@@ -187,6 +187,7 @@ PerformancePattern
 PhoneRunSession
 PhysioAssignment
 PlatformConfig
+PlayerStaffNote
 PredictionValidation
 PricingOverride
 PricingTier
@@ -231,6 +232,11 @@ SupportTicket
 SystemError
 SystemMetric
 Team
+TeamCaptureParticipant
+TeamCaptureReading
+TeamCaptureSegment
+TeamCaptureSession
+TeamCaptureStation
 TeamCoachAssignment
 TeamDrill
 TeamDrillView
@@ -271,9 +277,12 @@ WODGlobalLearningAggregate
 WODPreferenceProfile
 WeeklyReport
 WeeklyTrainingSummary
+WhoopActivity
 Workout
+WorkoutEvaluation
 WorkoutFuelingLog
 WorkoutFuelingPrescription
+WorkoutSensorCapture
 WorkoutLog
 WorkoutModification
 WorkoutSegment
