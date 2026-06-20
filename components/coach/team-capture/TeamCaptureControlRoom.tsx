@@ -3,11 +3,15 @@
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
+  Activity,
   AlertTriangle,
   ArrowRightLeft,
   Bike,
   CheckCircle2,
   Circle,
+  Flame,
+  Gauge,
+  HeartPulse,
   Pause,
   Play,
   Radio,
@@ -27,6 +31,7 @@ import { cn } from '@/lib/utils'
 type CaptureStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
 type MachineType = 'BIKEERG' | 'ROWER' | 'SKIERG' | 'WATTBIKE' | 'ASSAULT_BIKE' | 'ECHO_BIKE' | 'AIR_BIKE' | 'RUN' | 'REST'
 type ParticipantStatus = 'PLANNED' | 'WATCH_STARTED' | 'READY' | 'NEEDS_HELP'
+const LIVE_READING_FRESH_SECONDS = 12
 
 interface CaptureParticipant {
   id: string
@@ -51,6 +56,20 @@ interface CaptureStation {
   status: string
   lastSeenAt: string | Date | null
   deviceName: string | null
+  readings?: CaptureReading[]
+}
+
+interface CaptureReading {
+  id: string
+  timestamp: string | Date
+  offsetSec: number | null
+  power: number | null
+  cadence: number | null
+  strokeRate: number | null
+  paceSecPer500m: number | null
+  distanceMeters: number | null
+  calories: number | null
+  heartRate: number | null
 }
 
 interface CaptureSegment {
@@ -112,6 +131,7 @@ export function TeamCaptureControlRoom({
   const [busy, setBusy] = useState(false)
   const [attributionBusyId, setAttributionBusyId] = useState<string | null>(null)
   const [participantBusyId, setParticipantBusyId] = useState<string | null>(null)
+  const [showLiveMetrics, setShowLiveMetrics] = useState(true)
   const [now, setNow] = useState(0)
 
   const baseHref = `/${businessSlug}/coach/teams/${teamId}/capture/${session.id}`
@@ -160,6 +180,30 @@ export function TeamCaptureControlRoom({
   const elapsedSec = session.masterStartedAt && now > 0
     ? Math.max(0, Math.floor((now - new Date(session.masterStartedAt).getTime()) / 1000))
     : 0
+
+  const liveStationRows = useMemo(
+    () => session.stations.map((station) => {
+      const currentSegment = session.segments.find((segment) =>
+        segment.stationId === station.id &&
+        segment.plannedStartSec <= elapsedSec &&
+        segment.plannedEndSec >= elapsedSec
+      )
+      const participant = currentSegment ? participantById.get(currentSegment.participantId) : null
+      const latestReading = station.readings?.[0] ?? null
+
+      return {
+        station,
+        currentSegment,
+        participant,
+        latestReading,
+      }
+    }),
+    [elapsedSec, participantById, session.segments, session.stations]
+  )
+  const liveReadingCount = liveStationRows.filter((row) => {
+    const ageSec = secondsSince(row.latestReading?.timestamp, now)
+    return ageSec !== undefined && ageSec <= LIVE_READING_FRESH_SECONDS
+  }).length
 
   const refresh = async () => {
     const response = await fetch(`/api/coach/team-capture-sessions/${session.id}`, { credentials: 'same-origin' })
@@ -297,6 +341,13 @@ export function TeamCaptureControlRoom({
             <CheckCircle2 className="mr-2 h-4 w-4" />
             {text(locale, 'Resolve', 'Sammanställ')}
           </Button>
+          <Button
+            variant={showLiveMetrics ? 'default' : 'outline'}
+            onClick={() => setShowLiveMetrics((value) => !value)}
+          >
+            <Activity className="mr-2 h-4 w-4" />
+            {showLiveMetrics ? text(locale, 'Hide live', 'Dölj live') : text(locale, 'Show live', 'Visa live')}
+          </Button>
           <Button variant="ghost" size="icon" onClick={() => void refresh()} disabled={busy} aria-label="Refresh">
             <RefreshCw className="h-4 w-4" />
           </Button>
@@ -390,6 +441,109 @@ export function TeamCaptureControlRoom({
           </table>
         </div>
       </div>
+
+      {showLiveMetrics && (
+        <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/10">
+            <div className="flex items-center gap-2 font-medium dark:text-white">
+              <Activity className="h-4 w-4 text-emerald-600" />
+              {text(locale, 'Live station metrics', 'Livevärden från stationer')}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <Badge variant={liveReadingCount > 0 ? 'default' : 'outline'}>
+                {liveReadingCount}/{session.stations.length} {text(locale, 'live', 'live')}
+              </Badge>
+              <Badge variant="secondary">{text(locale, 'Watts · pulse · pace · calories', 'Watt · puls · pace · kalorier')}</Badge>
+            </div>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead className="border-b bg-muted/80 text-xs uppercase text-muted-foreground dark:border-white/10 dark:bg-slate-900/90">
+                <tr>
+                  <th className="px-4 py-2 text-left">{text(locale, 'Station', 'Station')}</th>
+                  <th className="px-4 py-2 text-left">{text(locale, 'Player', 'Spelare')}</th>
+                  <th className="px-4 py-2 text-left">{text(locale, 'Round', 'Runda')}</th>
+                  <th className="px-4 py-2 text-right">
+                    <span className="inline-flex items-center gap-1">
+                      <Gauge className="h-3.5 w-3.5" />
+                      W
+                    </span>
+                  </th>
+                  <th className="px-4 py-2 text-right">
+                    <span className="inline-flex items-center gap-1">
+                      <HeartPulse className="h-3.5 w-3.5" />
+                      {text(locale, 'Pulse', 'Puls')}
+                    </span>
+                  </th>
+                  <th className="px-4 py-2 text-right">{text(locale, 'Pace', 'Pace')}</th>
+                  <th className="px-4 py-2 text-right">
+                    <span className="inline-flex items-center gap-1">
+                      <Flame className="h-3.5 w-3.5" />
+                      {text(locale, 'Cals', 'Kal')}
+                    </span>
+                  </th>
+                  <th className="px-4 py-2 text-left">{text(locale, 'Sample', 'Signal')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y dark:divide-white/10">
+                {liveStationRows.map(({ station, currentSegment, participant, latestReading }) => {
+                  const ageSec = secondsSince(latestReading?.timestamp, now)
+                  const isFresh = ageSec !== undefined && ageSec <= LIVE_READING_FRESH_SECONDS
+
+                  return (
+                    <tr key={station.id} className={cn(isFresh && 'bg-emerald-50/50 dark:bg-emerald-950/20')}>
+                      <td className="px-4 py-3 dark:text-slate-100">
+                        <div className="flex items-center gap-2 font-medium">
+                          {stationIcon(station.machineType)}
+                          {station.label}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {station.deviceName || labelFromEquipmentKey(station.equipmentKey ?? station.machineType)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 dark:text-slate-100">
+                        {participant ? (
+                          <div className="font-medium">
+                            {participant.jerseyNumber != null ? `#${participant.jerseyNumber} ` : ''}
+                            {participant.displayName}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">{text(locale, 'Waiting', 'Väntar')}</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 tabular-nums dark:text-slate-100">
+                        {currentSegment
+                          ? `H${currentSegment.heatNumber} · R${currentSegment.roundNumber}`
+                          : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
+                        {formatLiveWatts(latestReading?.power)}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
+                        {formatLiveHeartRate(latestReading?.heartRate)}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
+                        {formatPace(latestReading?.paceSecPer500m)}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
+                        {formatLiveCalories(latestReading?.calories)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={isFresh ? 'default' : station.status === 'ONLINE' ? 'secondary' : 'outline'}>
+                            {isFresh ? text(locale, 'Live', 'Live') : station.status}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">{formatAge(ageSec, locale)}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {session.stations.map((station) => (
@@ -567,9 +721,38 @@ function metric(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
+function secondsSince(value: string | Date | null | undefined, now: number): number | undefined {
+  if (!value || now <= 0) return undefined
+  const time = new Date(value).getTime()
+  if (!Number.isFinite(time)) return undefined
+  return Math.max(0, Math.floor((now - time) / 1000))
+}
+
+function formatAge(ageSec: number | undefined, locale: 'en' | 'sv'): string {
+  if (ageSec === undefined) return '-'
+  if (ageSec <= 2) return text(locale, 'now', 'nu')
+  if (ageSec < 60) return `${ageSec}s`
+  return `${Math.floor(ageSec / 60)}m`
+}
+
 function formatNumber(value: unknown): string {
   const numberValue = metric(value)
   return numberValue === undefined ? '-' : String(Math.round(numberValue))
+}
+
+function formatLiveWatts(value: unknown): string {
+  const numberValue = metric(value)
+  return numberValue === undefined ? '-' : `${Math.round(numberValue)} W`
+}
+
+function formatLiveHeartRate(value: unknown): string {
+  const numberValue = metric(value)
+  return numberValue === undefined ? '-' : `${Math.round(numberValue)} bpm`
+}
+
+function formatLiveCalories(value: unknown): string {
+  const numberValue = metric(value)
+  return numberValue === undefined ? '-' : `${Math.round(numberValue)} kcal`
 }
 
 function formatWatts(avgPower: unknown, maxPower: unknown): string {

@@ -257,7 +257,15 @@ export async function getTeamCaptureSession(sessionId: string) {
     include: {
       team: { select: { id: true, name: true } },
       participants: { orderBy: [{ heatNumber: 'asc' }, { laneNumber: 'asc' }] },
-      stations: { orderBy: [{ laneNumber: 'asc' }, { stationIndex: 'asc' }] },
+      stations: {
+        orderBy: [{ laneNumber: 'asc' }, { stationIndex: 'asc' }],
+        include: {
+          readings: {
+            orderBy: { timestamp: 'desc' },
+            take: 1,
+          },
+        },
+      },
       segments: { orderBy: [{ heatNumber: 'asc' }, { laneNumber: 'asc' }, { segmentIndex: 'asc' }] },
     },
   })
