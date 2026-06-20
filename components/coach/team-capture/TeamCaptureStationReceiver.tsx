@@ -92,7 +92,7 @@ export function TeamCaptureStationReceiver({
   station,
 }: TeamCaptureStationReceiverProps) {
   const [session, setSession] = useState(initialSession)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(0)
   const [sentCount, setSentCount] = useState(0)
   const [sending, setSending] = useState(false)
   const slot = slotForStation(station)
@@ -106,7 +106,7 @@ export function TeamCaptureStationReceiver({
     () => new Map(session.participants.map((participant) => [participant.id, participant])),
     [session.participants]
   )
-  const elapsedSec = session.masterStartedAt
+  const elapsedSec = session.masterStartedAt && now > 0
     ? Math.max(0, Math.floor((now - new Date(session.masterStartedAt).getTime()) / 1000))
     : 0
   const currentSegment = session.segments.find((segment) =>

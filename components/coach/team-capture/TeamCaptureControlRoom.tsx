@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Bike, CheckCircle2, Pause, Play, Radio, RefreshCw, Square, Waves } from 'lucide-react'
+import { ArrowRightLeft, Bike, CheckCircle2, Pause, Play, Radio, RefreshCw, Square, Waves } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -86,7 +86,8 @@ export function TeamCaptureControlRoom({
 }: TeamCaptureControlRoomProps) {
   const [session, setSession] = useState(initialSession)
   const [busy, setBusy] = useState(false)
-  const [now, setNow] = useState(Date.now())
+  const [attributionBusyId, setAttributionBusyId] = useState<string | null>(null)
+  const [now, setNow] = useState(0)
 
   const baseHref = `/${businessSlug}/coach/teams/${teamId}/capture/${session.id}`
   const participantById = useMemo(
@@ -97,8 +98,20 @@ export function TeamCaptureControlRoom({
     () => Array.from(new Set(session.participants.map((participant) => participant.laneNumber))).sort((a, b) => a - b),
     [session.participants]
   )
+  const reviewSegments = useMemo(
+    () => session.segments
+      .filter((segment) => segment.machineType === 'BIKEERG' || segment.machineType === 'ROWER')
+      .sort((a, b) =>
+        a.heatNumber - b.heatNumber ||
+        a.roundNumber - b.roundNumber ||
+        a.laneNumber - b.laneNumber ||
+        a.plannedStartSec - b.plannedStartSec
+      ),
+    [session.segments]
+  )
+  const missingSegments = reviewSegments.filter((segment) => segment.status === 'NO_DATA')
 
-  const elapsedSec = session.masterStartedAt
+  const elapsedSec = session.masterStartedAt && now > 0
     ? Math.max(0, Math.floor((now - new Date(session.masterStartedAt).getTime()) / 1000))
     : 0
 
@@ -155,6 +168,30 @@ export function TeamCaptureControlRoom({
       toast.error(text(locale, 'Could not resolve capture', 'Kunde inte sammanställa fångsten'))
     } finally {
       setBusy(false)
+    }
+  }
+
+  const updateAttribution = async (segmentId: string, clientId: string) => {
+    setAttributionBusyId(segmentId)
+    try {
+      const response = await fetch(`/api/coach/team-capture-sessions/${session.id}/attribution`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          segmentId,
+          clientId,
+          reason: 'Coach corrected station attribution',
+        }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.success) throw new Error(payload.error || 'Failed')
+      setSession(payload.data)
+      toast.success(text(locale, 'Attribution updated. Resolve again to refresh evaluations.', 'Kopplingen är ändrad. Sammanställ igen för att uppdatera utvärderingarna.'))
+    } catch {
+      toast.error(text(locale, 'Could not update attribution', 'Kunde inte ändra koppling'))
+    } finally {
+      setAttributionBusyId(null)
     }
   }
 
@@ -269,6 +306,115 @@ export function TeamCaptureControlRoom({
           })}
         </div>
       </div>
+
+      <div className="mt-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/10">
+          <div className="flex items-center gap-2 font-medium dark:text-white">
+            <ArrowRightLeft className="h-4 w-4" />
+            {text(locale, 'Review and attribution', 'Granskning och koppling')}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <Badge variant="secondary">{reviewSegments.length} {text(locale, 'machine segments', 'maskinsegment')}</Badge>
+            {missingSegments.length > 0 && (
+              <Badge variant="destructive">{missingSegments.length} {text(locale, 'missing data', 'saknar data')}</Badge>
+            )}
+            {session.resolvedAt && <Badge variant="outline">{text(locale, 'Resolved', 'Sammanställd')}</Badge>}
+          </div>
+        </div>
+        <div className="max-h-[520px] overflow-auto">
+          <table className="w-full min-w-[920px] text-sm">
+            <thead className="sticky top-0 border-b bg-muted/80 text-xs uppercase text-muted-foreground backdrop-blur dark:border-white/10 dark:bg-slate-900/90">
+              <tr>
+                <th className="px-4 py-2 text-left">{text(locale, 'Round', 'Runda')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Lane', 'Bana')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Station', 'Station')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Player', 'Spelare')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Status', 'Status')}</th>
+                <th className="px-4 py-2 text-right">{text(locale, 'Power', 'Watt')}</th>
+                <th className="px-4 py-2 text-right">{text(locale, 'Pace', 'Pace')}</th>
+                <th className="px-4 py-2 text-right">{text(locale, 'Calories', 'Kalorier')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y dark:divide-white/10">
+              {reviewSegments.map((segment) => {
+                const summary = summaryRecord(segment.summary)
+                const participant = participantById.get(segment.participantId)
+                return (
+                  <tr key={segment.id} className={cn(segment.status === 'NO_DATA' && 'bg-red-50/60 dark:bg-red-950/20')}>
+                    <td className="px-4 py-3 dark:text-slate-100">
+                      H{segment.heatNumber} · R{segment.roundNumber}
+                    </td>
+                    <td className="px-4 py-3 dark:text-slate-100">{segment.laneNumber}</td>
+                    <td className="px-4 py-3 dark:text-slate-100">{segment.machineType === 'BIKEERG' ? 'BikeErg' : 'RowErg'}</td>
+                    <td className="px-4 py-3">
+                      <select
+                        className="w-full rounded-md border bg-background px-2 py-1 text-sm dark:border-white/10"
+                        value={segment.clientId}
+                        disabled={attributionBusyId === segment.id}
+                        onChange={(event) => void updateAttribution(segment.id, event.target.value)}
+                        aria-label={text(locale, 'Change player attribution', 'Ändra spelarkoppling')}
+                      >
+                        {session.participants.map((item) => (
+                          <option key={item.clientId} value={item.clientId}>
+                            {item.jerseyNumber != null ? `#${item.jerseyNumber} ` : ''}
+                            {item.displayName}
+                          </option>
+                        ))}
+                      </select>
+                      {participant && participant.clientId !== segment.clientId && (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {text(locale, 'Originally', 'Ursprungligen')}: {participant.displayName}
+                        </p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={segment.status === 'RESOLVED' ? 'default' : segment.status === 'NO_DATA' ? 'destructive' : 'outline'}>
+                        {segment.status}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">{formatWatts(summary.avgPower, summary.maxPower)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">{formatPace(summary.avgPaceSecPer500m)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">{formatNumber(summary.calories)}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
+}
+
+function summaryRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {}
+}
+
+function metric(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function formatNumber(value: unknown): string {
+  const numberValue = metric(value)
+  return numberValue === undefined ? '-' : String(Math.round(numberValue))
+}
+
+function formatWatts(avgPower: unknown, maxPower: unknown): string {
+  const avg = metric(avgPower)
+  const max = metric(maxPower)
+  if (avg === undefined && max === undefined) return '-'
+  if (max === undefined) return `${Math.round(avg ?? 0)} W`
+  if (avg === undefined) return `${Math.round(max)} W max`
+  return `${Math.round(avg)} / ${Math.round(max)} W`
+}
+
+function formatPace(value: unknown): string {
+  const seconds = metric(value)
+  if (seconds === undefined) return '-'
+  const totalSeconds = Math.round(seconds)
+  const min = Math.floor(totalSeconds / 60)
+  const sec = totalSeconds % 60
+  return `${min}:${String(sec).padStart(2, '0')}/500`
 }
