@@ -322,32 +322,6 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
 
   return (
     <>
-      <TeamActionInbox
-        teamBasePath={`/${businessSlug}/coach/teams/${teamId}`}
-        locale={locale}
-        viewedDate={viewedDate}
-        events={events}
-        signals={actionSignals}
-        missedFollowUps={missedFollowUps}
-      />
-      <TeamUnplannedPlayersQueue
-        members={members}
-        coverageByMember={coverageByMember}
-        loading={loading}
-        locale={locale}
-        viewedDate={viewedDate}
-        businessSlug={businessSlug}
-        teamId={teamId}
-        copyWorkout={selectedSessionCopyWorkout}
-        onAssignSelected={(athleteIds, workout) => {
-          setAssignTarget({
-            athleteIds,
-            workoutType: workout?.workoutType,
-            workoutId: workout?.workoutId,
-            workoutName: workout?.workoutName,
-          })
-        }}
-      />
       <div className="mb-3 flex flex-wrap justify-end gap-2">
         <TeamDayPrintButton
           teamId={teamId}
@@ -365,11 +339,6 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
           {locale === 'sv' ? 'Tilldela pass' : 'Assign workout'}
         </Button>
       </div>
-      <TeamMonitoringRollup
-        teamId={teamId}
-        businessSlug={businessSlug}
-        locale={locale}
-      />
       <div className="mb-8 grid gap-4 lg:grid-cols-[3fr_2fr]">
         <div className="space-y-4">
           <TeamSchedulePane
@@ -428,6 +397,38 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
           />
         </div>
       </div>
+
+      <TeamActionInbox
+        teamBasePath={`/${businessSlug}/coach/teams/${teamId}`}
+        locale={locale}
+        viewedDate={viewedDate}
+        events={events}
+        signals={actionSignals}
+        missedFollowUps={missedFollowUps}
+      />
+      <TeamUnplannedPlayersQueue
+        members={members}
+        coverageByMember={coverageByMember}
+        loading={loading}
+        locale={locale}
+        viewedDate={viewedDate}
+        businessSlug={businessSlug}
+        teamId={teamId}
+        copyWorkout={selectedSessionCopyWorkout}
+        onAssignSelected={(athleteIds, workout) => {
+          setAssignTarget({
+            athleteIds,
+            workoutType: workout?.workoutType,
+            workoutId: workout?.workoutId,
+            workoutName: workout?.workoutName,
+          })
+        }}
+      />
+      <TeamMonitoringRollup
+        teamId={teamId}
+        businessSlug={businessSlug}
+        locale={locale}
+      />
 
       <TeamWorkoutAssignmentDialog
         teamId={teamId}
