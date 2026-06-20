@@ -40,6 +40,7 @@ const EXPECTED_TOOL_KEYS = [
   'getAthleteReadinessHistory',
   'getAthleteTrainingLoad',
   'getAthleteTestResults',
+  'getTrainingCaptureGuide',
   // assignment-tools
   'assignSessionToAthlete',
 ] as const

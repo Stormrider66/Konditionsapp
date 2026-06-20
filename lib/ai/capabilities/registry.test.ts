@@ -48,6 +48,7 @@ describe('AI capability registry', () => {
 
     expect(capabilities.some((capability) => capability.requiresConfirmation)).toBe(false)
     expect(capabilities.map((capability) => capability.id)).toContain('listAthletes')
+    expect(capabilities.map((capability) => capability.id)).toContain('getTrainingCaptureGuide')
   })
 
   it('filters coach capabilities by staff permissions', () => {

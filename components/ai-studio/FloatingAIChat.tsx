@@ -1577,6 +1577,24 @@ export function FloatingAIChat({
   const contextualQuickPrompts = useMemo<QuickPrompt[]>(() => {
     if (!pageContext || !hasContext || !isContextEnabled) return []
 
+    const normalizedTitle = pageContext.title.toLowerCase()
+    if (normalizedTitle.includes('team capture') || normalizedTitle.includes('lagfångst')) {
+      return [
+        {
+          label: copy.teamCaptureGuide,
+          prompt: copy.teamCaptureGuidePrompt,
+        },
+        {
+          label: copy.nextSteps,
+          prompt: copy.nextStepsPrompt,
+        },
+        {
+          label: copy.explainConcepts,
+          prompt: copy.explainConceptsPrompt,
+        },
+      ]
+    }
+
     if (pageContext.type === 'video-analysis') {
       return [
         {

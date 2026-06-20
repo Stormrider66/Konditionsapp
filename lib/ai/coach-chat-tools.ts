@@ -18,6 +18,7 @@ import { createNavigationTools } from './coach-tools/navigation-tools'
 import { createMessagingTools } from './coach-tools/messaging-tools'
 import { createMonitoringTools } from './coach-tools/monitoring-tools'
 import { createAssignmentTools } from './coach-tools/assignment-tools'
+import { createPlatformHelpTools } from './coach-tools/platform-help-tools'
 import { getConfirmedAiCapabilityIds } from '@/lib/ai/capabilities/registry'
 import {
   type AiActionDraftContext,
@@ -61,6 +62,7 @@ export function createCoachChatTools(
     ...createMessagingTools(ctx),
     ...createMonitoringTools(ctx),
     ...createAssignmentTools(ctx),
+    ...createPlatformHelpTools(ctx),
   }
 
   if (!operationContext?.enabled) return tools

@@ -87,6 +87,17 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
       { id: 'hockey-aerobic-profile', title: 'Aerob profil', conceptKey: 'vo2max' },
     ],
   },
+  'coach/teams/[id]/capture': {
+    pageTitle: 'Team Capture',
+    description: 'Lagbaserad capture-sida där coachen väljer ett Cardio-/Hybridpass, bygger banor/heat/rundor/stationer, startar masterklockan och använder station receivers för Concept2 PM5, Wattbike/air bikes samt Garmin/manuell timing för löpning och vila.',
+    concepts: ['trainingZones', 'liveHrZones', 'tss', 'hrv'],
+    cards: [
+      { id: 'team-capture-template', title: 'Passmall och stationer', conceptKey: 'trainingZones' },
+      { id: 'team-capture-lanes', title: 'Banor, heat och startlista' },
+      { id: 'team-capture-receivers', title: 'Bluetooth station receivers', conceptKey: 'liveHrZones' },
+      { id: 'team-capture-review', title: 'Post-session review och Workout Evaluation', conceptKey: 'tss' },
+    ],
+  },
   'coach/teams/[id]/multivariate': {
     pageTitle: 'Hockey multivariate analysis',
     description: 'MVA/SIMCA-vy för teamdata. Används för PCA/PLS/SIMCA-arbete med hockeyvariabler, outliers, score/loadings, VIP, positionkluster och export/import av analysartefakter.',
@@ -369,6 +380,16 @@ const PAGE_CONTEXT_EN: Record<string, PageContextText> = {
       { id: 'hockey-pathway', title: 'Development pathway' },
       { id: 'hockey-simca-export', title: 'SIMCA export' },
       { id: 'hockey-aerobic-profile', title: 'Aerobic profile' },
+    ],
+  },
+  'coach/teams/[id]/capture': {
+    pageTitle: 'Team Capture',
+    description: 'Team session capture page where the coach picks a Cardio/Hybrid workout, builds lanes/heats/rounds/stations, starts one master clock, and uses station receivers for Concept2 PM5, Wattbike/air bikes plus Garmin/manual timing for running and rest.',
+    cards: [
+      { id: 'team-capture-template', title: 'Workout template and stations' },
+      { id: 'team-capture-lanes', title: 'Lanes, heats, and startlist' },
+      { id: 'team-capture-receivers', title: 'Bluetooth station receivers' },
+      { id: 'team-capture-review', title: 'Post-session review and Workout Evaluation' },
     ],
   },
   'coach/teams/[id]/multivariate': {

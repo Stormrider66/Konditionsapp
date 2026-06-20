@@ -152,6 +152,16 @@ export const AI_CAPABILITY_REGISTRY: AiCapabilityDefinition[] = [
     requiredStaffPermissions: ['canViewAthletes'],
   },
   {
+    id: 'getTrainingCaptureGuide',
+    label: 'Training capture guide',
+    description: 'Explain Team Capture, Workout Evaluation, Garmin, Concept2 PM5, Wattbike/air-bike receivers, Bluetooth HR, and troubleshooting.',
+    role: 'COACH',
+    surface: 'coach_chat',
+    actionType: 'read',
+    riskLevel: 'low',
+    requiresConfirmation: false,
+  },
+  {
     id: 'generateStrengthSession',
     label: 'Generate strength session',
     description: 'Create and save a strength session.',
