@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { workoutEvaluationTestUtils } from './engine'
-import type { SegmentEvaluation, NormalizedSensorSample, WorkoutZoneSummary } from './types'
+import type { SegmentEvaluation, NormalizedSensorSample, WorkoutSource, WorkoutZoneSummary } from './types'
 
 const emptyZoneSummary: WorkoutZoneSummary = {
   zone1Seconds: 0,
@@ -40,7 +40,72 @@ function segment(index: number, avgPower: number, avgPaceSecPerKm: number, avgHr
   }
 }
 
+function candidate(input: {
+  id: string
+  source: WorkoutSource
+  type: string
+  startMin: number
+  durationMin?: number
+  priority?: number
+}) {
+  const startedAt = new Date(input.startMin * 60 * 1000)
+  return {
+    id: input.id,
+    source: input.source,
+    label: input.id,
+    type: input.type,
+    startedAt,
+    completedAt: input.durationMin ? new Date(startedAt.getTime() + input.durationMin * 60 * 1000) : null,
+    priority: input.priority ?? 50,
+    confidence: 'MEDIUM' as const,
+    raw: {},
+  }
+}
+
 describe('workout evaluation engine utilities', () => {
+  it('merges compatible focus and Garmin sources for the same workout', () => {
+    const groups = workoutEvaluationTestUtils.buildGroups([
+      candidate({ id: 'focus-1', source: 'CARDIO_FOCUS', type: 'RUNNING', startMin: 60, durationMin: 30, priority: 100 }),
+      candidate({ id: 'garmin-1', source: 'GARMIN', type: 'RUNNING', startMin: 63, durationMin: 29, priority: 60 }),
+    ])
+
+    expect(groups).toHaveLength(1)
+    expect(groups[0].candidates.map((item) => item.source).sort()).toEqual(['CARDIO_FOCUS', 'GARMIN'])
+  })
+
+  it('does not merge separate nearby activities from the same source', () => {
+    const groups = workoutEvaluationTestUtils.buildGroups([
+      candidate({ id: 'garmin-1', source: 'GARMIN', type: 'RUNNING', startMin: 60, durationMin: 5 }),
+      candidate({ id: 'garmin-2', source: 'GARMIN', type: 'RUNNING', startMin: 70, durationMin: 5 }),
+    ])
+
+    expect(groups).toHaveLength(2)
+  })
+
+  it('does not merge nearby incompatible source types', () => {
+    const groups = workoutEvaluationTestUtils.buildGroups([
+      candidate({ id: 'run-1', source: 'APP_GPS', type: 'RUNNING', startMin: 60, durationMin: 20 }),
+      candidate({ id: 'strength-1', source: 'MANUAL', type: 'STRENGTH', startMin: 64, durationMin: 30 }),
+    ])
+
+    expect(groups).toHaveLength(2)
+  })
+
+  it('keeps dedupe keys stable across small start-time corrections', () => {
+    const early = workoutEvaluationTestUtils.sourceDedupeKey('client-1', {
+      candidates: [candidate({ id: 'focus', source: 'CARDIO_FOCUS', type: 'RUNNING', startMin: 19, durationMin: 20 })],
+      startedAt: new Date(19 * 60 * 1000),
+      completedAt: new Date(39 * 60 * 1000),
+    })
+    const late = workoutEvaluationTestUtils.sourceDedupeKey('client-1', {
+      candidates: [candidate({ id: 'garmin', source: 'GARMIN', type: 'RUNNING', startMin: 21, durationMin: 20 })],
+      startedAt: new Date(21 * 60 * 1000),
+      completedAt: new Date(41 * 60 * 1000),
+    })
+
+    expect(early).toBe(late)
+  })
+
   it('maps timeline samples into HR zone totals and high-intensity seconds', () => {
     const summary = workoutEvaluationTestUtils.zoneSummaryFromTimeline([
       { timeSec: 0, heartRate: 120, hrZone: 1 },

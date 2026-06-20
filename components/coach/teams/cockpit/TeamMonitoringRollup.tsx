@@ -52,6 +52,8 @@ interface TeamMonitoringRollupProps {
   locale: Locale
 }
 
+type IntervalSortMode = 'z45' | 'recovery' | 'drop' | 'compliance' | 'fatigue'
+
 function copy(locale: Locale, sv: string, en: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -76,10 +78,15 @@ function metric(value: number | null | undefined, suffix = '') {
   return `${Math.round(value)}${suffix}`
 }
 
+function dropValue(player: TeamMonitoringPlayer): number | null {
+  return player.latestWorkout?.powerDropPct ?? player.latestWorkout?.paceDropPct ?? null
+}
+
 export function TeamMonitoringRollup({ teamId, businessSlug, locale }: TeamMonitoringRollupProps) {
   const [data, setData] = useState<TeamMonitoringPayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [sortMode, setSortMode] = useState<IntervalSortMode>('fatigue')
 
   useEffect(() => {
     const controller = new AbortController()
@@ -111,12 +118,15 @@ export function TeamMonitoringRollup({ teamId, businessSlug, locale }: TeamMonit
   const intervalComparison = useMemo(() => {
     return (data?.players ?? [])
       .filter((player) => player.latestWorkout)
-      .sort((a, b) =>
-        (b.latestWorkout?.z4z5Minutes ?? 0) - (a.latestWorkout?.z4z5Minutes ?? 0) ||
-        (b.fatigueScore ?? 0) - (a.fatigueScore ?? 0)
-      )
-      .slice(0, 8)
-  }, [data?.players])
+      .sort((a, b) => {
+        if (sortMode === 'z45') return (b.latestWorkout?.z4z5Minutes ?? 0) - (a.latestWorkout?.z4z5Minutes ?? 0)
+        if (sortMode === 'recovery') return (a.latestWorkout?.avgRecoveryHrDrop ?? 999) - (b.latestWorkout?.avgRecoveryHrDrop ?? 999)
+        if (sortMode === 'drop') return (dropValue(b) ?? -999) - (dropValue(a) ?? -999)
+        if (sortMode === 'compliance') return (a.latestWorkout?.complianceScore ?? 999) - (b.latestWorkout?.complianceScore ?? 999)
+        return (b.fatigueScore ?? 0) - (a.fatigueScore ?? 0)
+      })
+      .slice(0, 12)
+  }, [data?.players, sortMode])
 
   return (
     <div className="mb-4 rounded-lg border bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
@@ -191,8 +201,35 @@ export function TeamMonitoringRollup({ teamId, businessSlug, locale }: TeamMonit
           </div>
 
           <div className="rounded-lg border border-gray-200 dark:border-white/10">
+            <div className="border-b px-3 py-2 dark:border-white/10">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+                <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  {copy(locale, 'Intervalljamforelse', 'Interval comparison')}
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {([
+                    ['fatigue', copy(locale, 'Fatigue', 'Fatigue')],
+                    ['z45', 'Z4/Z5'],
+                    ['recovery', copy(locale, 'Recovery', 'Recovery')],
+                    ['drop', copy(locale, 'Drop-off', 'Drop-off')],
+                    ['compliance', copy(locale, 'Compliance', 'Compliance')],
+                  ] as Array<[IntervalSortMode, string]>).map(([mode, label]) => (
+                    <Button
+                      key={mode}
+                      type="button"
+                      size="sm"
+                      variant={sortMode === mode ? 'default' : 'outline'}
+                      className="h-7 px-2 text-xs"
+                      onClick={() => setSortMode(mode)}
+                    >
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-[minmax(130px,1fr)_repeat(5,minmax(64px,0.55fr))] gap-2 border-b px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground dark:border-white/10">
-              <span>{copy(locale, 'Intervalljamforelse', 'Interval comparison')}</span>
+              <span>{copy(locale, 'Spelare', 'Player')}</span>
               <span>Z4/Z5</span>
               <span>{copy(locale, 'Recovery', 'Recovery')}</span>
               <span>{copy(locale, 'Drop', 'Drop')}</span>
@@ -215,7 +252,7 @@ export function TeamMonitoringRollup({ teamId, businessSlug, locale }: TeamMonit
                     <span className="truncate font-medium text-gray-900 dark:text-white">{player.name}</span>
                     <span>{metric(workout?.z4z5Minutes, 'm')}</span>
                     <span>{metric(workout?.avgRecoveryHrDrop)}</span>
-                    <span>{workout?.powerDropPct !== null && workout?.powerDropPct !== undefined ? `${Math.round(workout.powerDropPct)}%` : workout?.paceDropPct !== null && workout?.paceDropPct !== undefined ? `${Math.round(workout.paceDropPct)}%` : '-'}</span>
+                    <span>{dropValue(player) !== null ? `${Math.round(dropValue(player) ?? 0)}%` : '-'}</span>
                     <span>{metric(workout?.complianceScore)}</span>
                     <span>{metric(player.fatigueScore)}</span>
                   </Link>

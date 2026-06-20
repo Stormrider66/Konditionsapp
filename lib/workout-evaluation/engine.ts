@@ -18,7 +18,18 @@ import type {
 const MAX_TIMELINE_POINTS = 900
 const OVERLAP_THRESHOLD = 0.5
 const START_MATCH_WINDOW_MS = 20 * 60 * 1000
+const STRONG_START_MATCH_WINDOW_MS = 8 * 60 * 1000
+const DEDUPE_BUCKET_MS = 20 * 60 * 1000
 const DEFAULT_MAX_HR = 185
+
+const STRUCTURED_TIMING_SOURCES = new Set<WorkoutSource>([
+  'CARDIO_FOCUS',
+  'HYBRID_FOCUS',
+  'CONCEPT2_PM5_BLUETOOTH',
+  'WATTBIKE_BLUETOOTH',
+  'APP_GPS',
+  'NATIVE_CAPTURE',
+])
 
 type JsonRecord = Record<string, unknown>
 
@@ -112,9 +123,60 @@ function overlapRatio(a: CandidateGroup, b: SourceCandidate): number {
   return overlapMs / Math.min(aLength, bLength)
 }
 
+function normalizedWorkoutType(type: string): string {
+  const upper = type.toUpperCase()
+  if (upper.includes('RUN')) return 'RUNNING'
+  if (upper.includes('BIKE') || upper.includes('CYCL')) return 'CYCLING'
+  if (upper.includes('SKI')) return 'SKIING'
+  if (upper.includes('ROW')) return 'ROWING'
+  if (upper.includes('HYBRID') || upper.includes('CROSSFIT') || upper.includes('HYROX')) return 'HYBRID'
+  if (upper.includes('STRENGTH')) return 'STRENGTH'
+  if (upper.includes('CARDIO')) return 'CARDIO'
+  return upper
+}
+
+function typesCompatible(a: string, b: string): boolean {
+  const left = normalizedWorkoutType(a)
+  const right = normalizedWorkoutType(b)
+  if (left === right) return true
+  if (left === 'CARDIO' || right === 'CARDIO') return true
+  if (left === 'HYBRID' || right === 'HYBRID') return true
+  if ((left === 'ROWING' || left === 'SKIING') && right === 'CARDIO') return true
+  if ((right === 'ROWING' || right === 'SKIING') && left === 'CARDIO') return true
+  return false
+}
+
+function groupHasSameSource(group: CandidateGroup, candidate: SourceCandidate): boolean {
+  return group.candidates.some((item) => item.source === candidate.source)
+}
+
+function groupHasCompatibleType(group: CandidateGroup, candidate: SourceCandidate): boolean {
+  return group.candidates.some((item) => typesCompatible(item.type, candidate.type))
+}
+
+function groupHasStructuredTiming(group: CandidateGroup, candidate: SourceCandidate): boolean {
+  return STRUCTURED_TIMING_SOURCES.has(candidate.source) ||
+    group.candidates.some((item) => STRUCTURED_TIMING_SOURCES.has(item.source))
+}
+
 function shouldMerge(group: CandidateGroup, candidate: SourceCandidate): boolean {
-  if (overlapRatio(group, candidate) >= OVERLAP_THRESHOLD) return true
-  return Math.abs(group.startedAt.getTime() - candidate.startedAt.getTime()) <= START_MATCH_WINDOW_MS
+  const overlap = overlapRatio(group, candidate)
+  const startDiff = Math.abs(group.startedAt.getTime() - candidate.startedAt.getTime())
+  const compatibleType = groupHasCompatibleType(group, candidate)
+
+  if (groupHasSameSource(group, candidate) && overlap < OVERLAP_THRESHOLD) {
+    return false
+  }
+
+  if (overlap >= OVERLAP_THRESHOLD && compatibleType) return true
+  if (startDiff > START_MATCH_WINDOW_MS || !compatibleType) return false
+
+  const hasOpenEnd = !group.completedAt || !candidate.completedAt
+  if (hasOpenEnd) return true
+
+  if (overlap > 0) return true
+
+  return groupHasStructuredTiming(group, candidate) && startDiff <= STRONG_START_MATCH_WINDOW_MS
 }
 
 function buildGroups(candidates: SourceCandidate[]): CandidateGroup[] {
@@ -748,7 +810,7 @@ async function readinessContext(clientId: string, startedAt: Date): Promise<Work
 }
 
 function sourceDedupeKey(clientId: string, group: CandidateGroup): string {
-  const twentyMinuteBucket = Math.floor(group.startedAt.getTime() / (20 * 60 * 1000))
+  const twentyMinuteBucket = Math.round(group.startedAt.getTime() / DEDUPE_BUCKET_MS)
   return `${clientId}:workout:${twentyMinuteBucket}`
 }
 
@@ -1129,7 +1191,7 @@ export async function refreshWorkoutEvaluationsAround(clientId: string, date: Da
       clientId,
       startDate: subDays(date, 1),
       endDate: addDays(date, 1),
-      deleteMissing: false,
+      deleteMissing: true,
     })
   } catch (error) {
     logger.warn('Workout evaluation refresh failed', { clientId, date: date.toISOString() }, error)
@@ -1139,6 +1201,7 @@ export async function refreshWorkoutEvaluationsAround(clientId: string, date: Da
 export const workoutEvaluationTestUtils = {
   buildGroups,
   buildFatigueSummary,
+  sourceDedupeKey,
   downsampleTimeline,
   zoneSummaryFromTimeline,
 }

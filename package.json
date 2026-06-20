@@ -49,6 +49,7 @@
     "qa:hockey-pilot-summary": "node load-tests/k6/check-hockey-pilot-summary.cjs",
     "qa:hockey-pilot-tooling": "vitest run scripts/qa-hockey-browser-env.test.ts scripts/qa-hockey-deployment-commit.test.ts scripts/qa-hockey-evidence-commands.test.ts scripts/qa-hockey-pilot-env.test.ts scripts/hockey-pilot-evidence.test.ts scripts/hockey-pilot-evidence-index.test.ts scripts/qa-cron-config.test.ts scripts/qa-daily-metrics-backlog.test.ts scripts/qa-launch-config.test.ts scripts/qa-ai-billing-readiness.test.ts scripts/prepare-ai-billing-smoke.test.ts scripts/qa-hockey-pilot-gates.test.ts scripts/qa-hockey-pilot-wave-plan.test.ts scripts/qa-hockey-pilot-monitoring.test.ts scripts/qa-hockey-pilot-incidents.test.ts load-tests/k6/check-hockey-pilot-summary.test.ts load-tests/k6/run.test.ts",
     "qa:hockey-pilot-readiness": "node scripts/qa-hockey-pilot-readiness.cjs",
+    "backfill:workout-evaluations": "tsx --tsconfig tsconfig.scripts.json scripts/backfill-workout-evaluations.ts",
     "seed:skelleftea-hockey-demo": "tsx --tsconfig tsconfig.scripts.json scripts/seed-skelleftea-hockey-demo.ts",
     "cleanup:skelleftea-ateam-mock-tests": "tsx --tsconfig tsconfig.scripts.json scripts/cleanup-skelleftea-ateam-mock-tests.ts",
     "seed:hockey-knowledge-skill": "tsx --tsconfig tsconfig.scripts.json scripts/seed-hockey-knowledge-skill.ts",

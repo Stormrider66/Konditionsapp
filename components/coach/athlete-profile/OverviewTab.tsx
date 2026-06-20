@@ -20,6 +20,7 @@ import { CreateAthleteAccountDialog } from '@/components/client/CreateAthleteAcc
 import { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { CoachQuickErgOverviewCard } from '@/components/coach/quick-erg/CoachQuickErgWidgets'
 import { GarminFreshnessBadge } from './GarminFreshnessBadge'
+import { MonitoringSummaryCard } from './MonitoringSummaryCard'
 import type { ClientWithTests, ProgramSummary, CoachSnapshotTone, CoachSnapshotAction } from './types'
 
 interface OverviewTabProps {
@@ -196,8 +197,9 @@ export function OverviewTab({
         <>
           <GarminFreshnessBadge clientId={id} />
 
-          <div className="grid gap-4 lg:grid-cols-3">
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
             <ClientLoadSummary clientId={id} />
+            <MonitoringSummaryCard clientId={id} href={`${basePath}/clients/${id}?tab=monitoring`} />
             <ReadinessDashboard clientId={id} />
             <ClientFuelingSummary clientId={id} plansHref={`${basePath}/clients/${id}/fueling`} />
           </div>
