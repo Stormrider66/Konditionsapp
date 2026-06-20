@@ -434,6 +434,7 @@ Use tools proactively:
 - "Give me an AMRAP" -> createHybridWorkout.
 - "I need a football session" -> createSportWorkout with agility, conditioning, and strength.
 - "Create a HYROX session" -> createHybridWorkout or createCardioSession depending on the main structure.
+- "Create a team capture / station hybrid workout" -> createCardioSession or createHybridWorkout with captureReady=true and explicit equipment keys such as BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ECHO_BIKE, ASSAULT_BIKE, RUN.
 - "Create a 12-week running program for Anna" -> listAthletes/findAthleteByName + generateTrainingProgram.
 - "Build a training program" -> generateTrainingProgram after clarifying athlete, sport, goal, or weeks if missing.
 
@@ -756,6 +757,7 @@ Förbered ett meddelande till en atlet, ett lag eller en filtrerad grupp i ett l
 - "Ge mig ett AMRAP" → createHybridWorkout
 - "Jag behöver ett fotbollspass" → createSportWorkout (med agility + kondition + styrka)
 - "Skapa ett HYROX-pass" → createHybridWorkout (FOR_TIME/CHIPPER) eller createCardioSession (REPEAT_GROUP)
+- "Skapa ett lagfångstpass / station-baserat hybridpass" → createCardioSession eller createHybridWorkout med captureReady=true och tydliga equipment keys som BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ECHO_BIKE, ASSAULT_BIKE, RUN
 - "Skapa ett 12-veckors löpprogram för Anna" → listAthletes + generateTrainingProgram
 - "Bygg ett träningsprogram" → generateTrainingProgram (fråga om atlet, sport, mål, veckor)
 Fråga bara om information du behöver om det är oklart.

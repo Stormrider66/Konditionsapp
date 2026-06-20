@@ -30,6 +30,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
+import { labelFromEquipmentKey } from '@/lib/team-capture/equipment'
 import type {
   EvaluationConfidence,
   NormalizedSensorSample,
@@ -573,7 +574,15 @@ export function MonitoringTab({ id, basePath, businessSlug }: MonitoringTabProps
                         key={`${segment.segmentIndex}-${segment.label}`}
                         className="grid grid-cols-[minmax(120px,1.2fr)_repeat(5,minmax(70px,0.7fr))] gap-2 px-3 py-2 text-sm"
                       >
-                        <span className="truncate font-medium text-gray-900 dark:text-white">{segment.label}</span>
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium text-gray-900 dark:text-white">{segment.label}</span>
+                          {segment.planned.equipmentKey && (
+                            <span className="text-xs text-muted-foreground">
+                              {labelFromEquipmentKey(segment.planned.equipmentKey)}
+                              {segment.planned.captureMethod ? ` · ${segment.planned.captureMethod.replaceAll('_', ' ').toLowerCase()}` : ''}
+                            </span>
+                          )}
+                        </span>
                         <span>{metricDisplay(segment.actual.avgHr)} / {metricDisplay(segment.actual.maxHr)}</span>
                         <span>{metricDisplay(segment.actual.avgHrPercentMax, '%')}</span>
                         <span>{metricDisplay(segment.actual.avgPower)}</span>

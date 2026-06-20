@@ -9,8 +9,9 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
 import type { WattbikeSample } from '@/lib/integrations/wattbike'
+import { receiverSlotForEquipment } from '@/lib/team-capture/equipment'
 
-type MachineType = 'BIKEERG' | 'ROWER' | 'RUN' | 'REST'
+type MachineType = 'BIKEERG' | 'ROWER' | 'SKIERG' | 'WATTBIKE' | 'ASSAULT_BIKE' | 'ECHO_BIKE' | 'AIR_BIKE' | 'RUN' | 'REST'
 
 interface CaptureParticipant {
   id: string
@@ -21,7 +22,10 @@ interface CaptureParticipant {
 interface CaptureStation {
   id: string
   laneNumber: number
+  stationIndex: number
   machineType: MachineType
+  equipmentKey: string | null
+  captureMethod: string
   label: string
   status: string
   deviceName: string | null
@@ -60,7 +64,7 @@ function text(locale: 'en' | 'sv', en: string, sv: string): string {
 }
 
 function slotForStation(station: CaptureStation): string {
-  return station.machineType === 'BIKEERG' ? 'BIKE_ERG' : 'ROW'
+  return receiverSlotForEquipment(station.equipmentKey ?? station.machineType) ?? 'BIKE_ERG'
 }
 
 function readingFromSample(sample: WattbikeSample) {
@@ -96,6 +100,7 @@ export function TeamCaptureStationReceiver({
   const [sentCount, setSentCount] = useState(0)
   const [sending, setSending] = useState(false)
   const slot = slotForStation(station)
+  const isBluetoothStation = station.captureMethod === 'BLUETOOTH_STATION'
   const fleet = useErgFleet([slot])
   const device = fleet.devices[slot]
   const connected = device?.status === 'connected'
@@ -136,14 +141,14 @@ export function TeamCaptureStationReceiver({
   }, [session.id])
 
   useEffect(() => {
-    if (!device?.client || !connected) return
+    if (!isBluetoothStation || !device?.client || !connected) return
     return device.client.on('data', (sample) => {
       bufferRef.current.push(readingFromSample(sample))
     })
-  }, [device?.client, connected])
+  }, [device?.client, connected, isBluetoothStation])
 
   useEffect(() => {
-    if (!connected) return
+    if (!isBluetoothStation || !connected) return
     const interval = setInterval(() => {
       if (bufferRef.current.length === 0 || sending) return
       const readings = bufferRef.current.splice(0, 120)
@@ -171,7 +176,7 @@ export function TeamCaptureStationReceiver({
         .finally(() => setSending(false))
     }, 2000)
     return () => clearInterval(interval)
-  }, [connected, device?.client, device?.name, locale, sending, session.id, station.id, station.label])
+  }, [connected, device?.client, device?.name, isBluetoothStation, locale, sending, session.id, station.id, station.label])
 
   return (
     <div className="container mx-auto px-4 pb-8">
@@ -181,12 +186,14 @@ export function TeamCaptureStationReceiver({
             {text(locale, 'Back to control room', 'Till kontrollrummet')}
           </Link>
           <h2 className="mt-2 flex items-center gap-2 text-3xl font-semibold dark:text-white">
-            {station.machineType === 'BIKEERG' ? <Bike className="h-7 w-7" /> : <Waves className="h-7 w-7" />}
+            {stationIcon(station.machineType)}
             {station.label}
           </h2>
         </div>
         <Badge variant={connected ? 'default' : 'outline'} className="text-sm">
-          {connected ? text(locale, 'Connected', 'Ansluten') : text(locale, 'Offline', 'Offline')}
+          {isBluetoothStation
+            ? connected ? text(locale, 'Connected', 'Ansluten') : text(locale, 'Offline', 'Offline')
+            : text(locale, 'Manual', 'Manuell')}
         </Badge>
       </div>
 
@@ -197,19 +204,27 @@ export function TeamCaptureStationReceiver({
             {text(locale, 'Bluetooth receiver', 'Bluetoothmottagare')}
           </div>
           <div className="space-y-3">
-            <Button
-              type="button"
-              className="w-full"
-              onClick={() => void fleet.connectSlot(slot).catch(() => {})}
-              disabled={!fleet.isSupported || connecting || connected}
-            >
-              {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bluetooth className="mr-2 h-4 w-4" />}
-              {connected ? text(locale, 'Connected', 'Ansluten') : text(locale, 'Connect machine', 'Anslut maskin')}
-            </Button>
-            {connected && (
-              <Button type="button" variant="outline" className="w-full" onClick={() => void fleet.disconnectSlot(slot)}>
-                {text(locale, 'Disconnect', 'Koppla från')}
-              </Button>
+            {isBluetoothStation ? (
+              <>
+                <Button
+                  type="button"
+                  className="w-full"
+                  onClick={() => void fleet.connectSlot(slot).catch(() => {})}
+                  disabled={!fleet.isSupported || connecting || connected}
+                >
+                  {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bluetooth className="mr-2 h-4 w-4" />}
+                  {connected ? text(locale, 'Connected', 'Ansluten') : text(locale, 'Connect machine', 'Anslut maskin')}
+                </Button>
+                {connected && (
+                  <Button type="button" variant="outline" className="w-full" onClick={() => void fleet.disconnectSlot(slot)}>
+                    {text(locale, 'Disconnect', 'Koppla från')}
+                  </Button>
+                )}
+              </>
+            ) : (
+              <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground dark:border-white/10">
+                {text(locale, 'This station is captured from Garmin lap timing or manual review.', 'Den här stationen fångas via Garmin-varv eller manuell granskning.')}
+              </div>
             )}
             {!fleet.isSupported && (
               <p className="text-sm text-amber-600">
@@ -246,4 +261,9 @@ export function TeamCaptureStationReceiver({
       </div>
     </div>
   )
+}
+
+function stationIcon(machineType: MachineType) {
+  if (machineType === 'ROWER' || machineType === 'SKIERG') return <Waves className="h-7 w-7" />
+  return <Bike className="h-7 w-7" />
 }

@@ -4,8 +4,10 @@
 
 import { tool } from 'ai'
 import { z } from 'zod'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { getAccessibleTeam } from '@/lib/coach/team-access'
 import {
   type CoachToolContext,
   CARDIO_TOOL_SPORTS,
@@ -13,7 +15,18 @@ import {
 } from './shared'
 
 export function createWorkoutTools(ctx: CoachToolContext) {
-  const { coachUserId, locale } = ctx
+  const { coachUserId, businessSlug, locale } = ctx
+
+  const resolveTeamId = async (teamId?: string) => {
+    if (!teamId) return null
+    const team = await getAccessibleTeam(coachUserId, teamId, businessSlug)
+    return team?.id ?? null
+  }
+
+  const teamCaptureHref = (teamId: string | null, workoutType: 'CARDIO' | 'HYBRID', workoutId: string) => {
+    if (!teamId || !businessSlug) return null
+    return `/${businessSlug}/coach/teams/${teamId}/capture?workoutType=${workoutType}&workoutId=${workoutId}`
+  }
 
   return {
     createCardioSession: tool({
@@ -26,10 +39,13 @@ export function createWorkoutTools(ctx: CoachToolContext) {
         name: z.string().describe('Session name in the coach chat language.'),
         description: z.string().optional().describe('Short description in the coach chat language.'),
         sport: z.enum(CARDIO_TOOL_SPORTS).default('RUNNING').describe('Sport/activity. Use TEAM_ICE_HOCKEY for hockey-specific 7x40/RSA/shift repeats, TEAM_BASKETBALL for court repeats, TENNIS/PADEL for point intervals, and the corresponding sport for other team sports.'),
+        teamId: z.string().optional().describe('Optional team ID when this workout should be team-capture ready for a specific team.'),
+        captureReady: z.boolean().optional().describe('Set true when the coach wants to use this workout in Team Capture. Use explicit equipment fields on station steps.'),
         segments: z.array(z.object({
           type: z.enum(['WARMUP', 'COOLDOWN', 'INTERVAL', 'STEADY', 'RECOVERY', 'HILL', 'DRILLS', 'REPEAT_GROUP']).describe('Segment type.'),
           duration: z.number().optional().describe('Time in seconds.'),
           distance: z.number().optional().describe('Distance in meters.'),
+          equipment: z.string().optional().describe('Equipment key such as BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ECHO_BIKE, ASSAULT_BIKE, RUN.'),
           pace: z.string().optional().describe('Pace, for example "4:30" (min/km).'),
           zone: z.number().min(1).max(5).optional().describe('Heart-rate zone 1-5.'),
           notes: z.string().optional().describe('Instructions in the coach chat language.'),
@@ -53,8 +69,9 @@ export function createWorkoutTools(ctx: CoachToolContext) {
         })).describe('Session segments in order.'),
         tags: z.array(z.string()).optional(),
       }),
-      execute: async ({ name, description, sport, segments, tags }) => {
+      execute: async ({ name, description, sport, teamId, captureReady, segments, tags }) => {
         try {
+          const resolvedTeamId = await resolveTeamId(teamId)
           // Calculate totals
           let totalDuration = 0
           let totalDistance = 0
@@ -79,10 +96,11 @@ export function createWorkoutTools(ctx: CoachToolContext) {
               name,
               description,
               sport: sport || 'RUNNING',
-              segments: segments as any,
+              segments: segments as Prisma.InputJsonValue,
               totalDuration: totalDuration > 0 ? totalDuration : null,
               totalDistance: totalDistance > 0 ? totalDistance : null,
               coachId: coachUserId,
+              teamId: resolvedTeamId,
               tags: tags || [],
             },
           })
@@ -98,10 +116,12 @@ export function createWorkoutTools(ctx: CoachToolContext) {
             totalDuration: `${durationMin} min`,
             totalDistance: distanceKm ? `${distanceKm} km` : null,
             segmentCount: segments.length,
+            captureReady: Boolean(captureReady),
+            teamCaptureUrl: teamCaptureHref(resolvedTeamId, 'CARDIO', session.id),
             message: toolText(
               locale,
-              `Cardio session "${name}" was created and saved in Cardio Studio.${distanceKm ? ` Total distance: ${distanceKm} km.` : ''} Total time: ${durationMin} min.`,
-              `Konditionspass "${name}" skapat och sparat i Cardio Studio.${distanceKm ? ` Total distans: ${distanceKm} km.` : ''} Total tid: ${durationMin} min.`
+              `Cardio session "${name}" was created and saved in Cardio Studio.${distanceKm ? ` Total distance: ${distanceKm} km.` : ''} Total time: ${durationMin} min.${captureReady ? ' It is ready for Team Capture.' : ''}`,
+              `Konditionspass "${name}" skapat och sparat i Cardio Studio.${distanceKm ? ` Total distans: ${distanceKm} km.` : ''} Total tid: ${durationMin} min.${captureReady ? ' Det är redo för lagfångst.' : ''}`
             ),
           }
         } catch (error) {
@@ -130,8 +150,11 @@ export function createWorkoutTools(ctx: CoachToolContext) {
         totalRounds: z.number().optional().describe('Number of rounds.'),
         totalMinutes: z.number().optional().describe('Total time in minutes (for AMRAP/EMOM).'),
         repScheme: z.string().optional().describe('Rep scheme, for example "21-15-9" or "5-5-5-5-5".'),
+        teamId: z.string().optional().describe('Optional team ID when this workout should be team-capture ready for a specific team.'),
+        captureReady: z.boolean().optional().describe('Set true when the coach wants to start Team Capture from this workout. Use explicit equipment on station movements.'),
         movements: z.array(z.object({
           exerciseName: z.string().describe('Exercise name in English or Swedish.'),
+          equipment: z.string().optional().describe('Equipment key such as BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ECHO_BIKE, ASSAULT_BIKE, RUN.'),
           order: z.number().describe('Order.'),
           reps: z.number().optional(),
           calories: z.number().optional(),
@@ -143,8 +166,9 @@ export function createWorkoutTools(ctx: CoachToolContext) {
         })).describe('Exercises/movements in the session.'),
         tags: z.array(z.string()).optional(),
       }),
-      execute: async ({ name, description, format, timeCap, workTime, restTime, totalRounds, totalMinutes, repScheme, movements, tags }) => {
+      execute: async ({ name, description, format, timeCap, workTime, restTime, totalRounds, totalMinutes, repScheme, teamId, captureReady, movements, tags }) => {
         try {
+          const resolvedTeamId = await resolveTeamId(teamId)
           // Look up exercises in the library by name
           const allExercises = await prisma.exercise.findMany({
             where: { OR: [{ isPublic: true }, { coachId: coachUserId }] },
@@ -187,7 +211,27 @@ export function createWorkoutTools(ctx: CoachToolContext) {
               repScheme,
               scalingLevel: 'RX',
               coachId: coachUserId,
+              teamId: resolvedTeamId,
               tags: tags || [],
+              metconData: captureReady
+                ? {
+                    blocks: [{
+                      title: name,
+                      format,
+                      rounds: totalRounds ?? 1,
+                      restAfterSeconds: restTime ?? 0,
+                      movements: movements.map((movement) => ({
+                        exerciseName: movement.exerciseName,
+                        equipment: movement.equipment,
+                        calories: movement.calories,
+                        distance: movement.distance,
+                        duration: movement.duration,
+                        reps: movement.reps,
+                        notes: movement.notes,
+                      })),
+                    }],
+                  }
+                : undefined,
               movements: {
                 create: movementData,
               },
@@ -200,10 +244,12 @@ export function createWorkoutTools(ctx: CoachToolContext) {
             name,
             format,
             movementCount: movements.length,
+            captureReady: Boolean(captureReady),
+            teamCaptureUrl: teamCaptureHref(resolvedTeamId, 'HYBRID', workout.id),
             message: toolText(
               locale,
-              `Hybrid session "${name}" (${format}) was created with ${movements.length} movements and saved in Hybrid Studio.`,
-              `Hybridpass "${name}" (${format}) skapat med ${movements.length} övningar och sparat i Hybrid Studio.`
+              `Hybrid session "${name}" (${format}) was created with ${movements.length} movements and saved in Hybrid Studio.${captureReady ? ' It is ready for Team Capture.' : ''}`,
+              `Hybridpass "${name}" (${format}) skapat med ${movements.length} övningar och sparat i Hybrid Studio.${captureReady ? ' Det är redo för lagfångst.' : ''}`
             ),
           }
         } catch (error) {
@@ -285,7 +331,7 @@ export function createWorkoutTools(ctx: CoachToolContext) {
               description,
               workoutType: 'mixed',
               requestedDuration: duration,
-              workoutJson: workoutJson as any,
+              workoutJson: workoutJson as Prisma.InputJsonValue,
               source: 'chat',
               status: 'GENERATED',
             },

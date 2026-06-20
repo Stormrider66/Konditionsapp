@@ -5,16 +5,22 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
+import { listTeamCaptureWorkoutOptions } from '@/lib/team-capture/workout-template'
 
 interface PageProps {
   params: Promise<{
     businessSlug: string
     teamId: string
   }>
+  searchParams: Promise<{
+    workoutType?: string
+    workoutId?: string
+  }>
 }
 
-export default async function TeamCapturePage({ params }: PageProps) {
+export default async function TeamCapturePage({ params, searchParams }: PageProps) {
   const { businessSlug, teamId } = await params
+  const query = await searchParams
   const user = await requireCoach()
   const locale: 'en' | 'sv' = user.language === 'sv' ? 'sv' : 'en'
 
@@ -24,7 +30,7 @@ export default async function TeamCapturePage({ params }: PageProps) {
   const team = await getAccessibleTeam(user.id, teamId, businessSlug)
   if (!team) notFound()
 
-  const [members, existingSessions] = await Promise.all([
+  const [members, existingSessions, workoutOptions] = await Promise.all([
     prisma.client.findMany({
       where: { teamId },
       orderBy: [{ jerseyNumber: 'asc' }, { name: 'asc' }],
@@ -48,6 +54,11 @@ export default async function TeamCapturePage({ params }: PageProps) {
         _count: { select: { participants: true } },
       },
     }),
+    listTeamCaptureWorkoutOptions({
+      coachId: user.id,
+      teamId,
+      take: 16,
+    }),
   ])
 
   return (
@@ -58,6 +69,9 @@ export default async function TeamCapturePage({ params }: PageProps) {
       locale={locale}
       members={members}
       existingSessions={serialize(existingSessions)}
+      workoutOptions={serialize(workoutOptions)}
+      initialWorkoutType={query.workoutType}
+      initialWorkoutId={query.workoutId}
     />
   )
 }

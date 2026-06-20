@@ -16,6 +16,7 @@ import {
   withTeamCaptureDefaults,
   type TeamCaptureSessionOptions,
 } from './schedule'
+import { loadTeamCaptureTemplateForWorkout } from './workout-template'
 
 type JsonRecord = Record<string, unknown>
 
@@ -63,10 +64,7 @@ export interface ResolveTeamCaptureResult {
   athleteIds: string[]
 }
 
-const MACHINE_CAPTURE_TYPES = new Set<TeamCaptureMachineType>([
-  TeamCaptureMachineType.BIKEERG,
-  TeamCaptureMachineType.ROWER,
-])
+const BLUETOOTH_CAPTURE_METHOD = 'BLUETOOTH_STATION'
 
 function toJson(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue
@@ -118,6 +116,12 @@ export async function createTeamCaptureSession(
   if (!team) return null
 
   const defaults = withTeamCaptureDefaults(input)
+  const template = await loadTeamCaptureTemplateForWorkout({
+    coachId,
+    teamId: input.teamId,
+    workoutType: input.workoutType,
+    workoutId: input.workoutId,
+  })
   const members = await prisma.client.findMany({
     where: {
       teamId: input.teamId,
@@ -134,10 +138,13 @@ export async function createTeamCaptureSession(
 
   if (members.length === 0) return null
 
-  const lanePlan = buildTeamCaptureLanePlan(members, defaults)
-  const structure = buildTeamCaptureStructure(defaults)
+  const templateOptions = { ...defaults, template }
+  const lanePlan = buildTeamCaptureLanePlan(members, templateOptions)
+  const structure = buildTeamCaptureStructure(templateOptions)
   const name =
     input.name?.trim() ||
+    template.workoutName?.trim() ||
+    template.name?.trim() ||
     input.workoutName?.trim() ||
     'Hybrid capture - 10 rounds'
 
@@ -149,15 +156,17 @@ export async function createTeamCaptureSession(
         teamEventId: input.teamEventId ?? null,
         broadcastId: input.broadcastId ?? null,
         name,
-        workoutType: input.workoutType ?? 'HYBRID',
+        workoutType: template.workoutType ?? input.workoutType ?? 'HYBRID',
         workoutId: input.workoutId ?? null,
-        workoutName: input.workoutName ?? name,
+        workoutName: template.workoutName ?? input.workoutName ?? name,
+        templateSource: template.source,
+        templateSummary: toJson(template.summary),
         laneCount: defaults.laneCount,
-        roundCount: defaults.roundCount,
+        roundCount: template.roundCount,
         bikeCalories: defaults.bikeCalories,
         rowCalories: defaults.rowCalories,
         runDistanceMeters: defaults.runDistanceMeters,
-        restBetweenRoundsSeconds: defaults.restBetweenRoundsSeconds,
+        restBetweenRoundsSeconds: template.restBetweenRoundsSeconds,
         estimatedBikeSeconds: defaults.estimatedBikeSeconds,
         estimatedRowSeconds: defaults.estimatedRowSeconds,
         estimatedRunSeconds: defaults.estimatedRunSeconds,
@@ -191,12 +200,16 @@ export async function createTeamCaptureSession(
         data: {
           sessionId: created.id,
           laneNumber: plan.laneNumber,
+          stationIndex: plan.stationIndex,
           machineType: plan.machineType,
+          equipmentKey: plan.equipmentKey,
+          captureMethod: plan.captureMethod,
+          targetMetric: plan.targetMetric,
           label: plan.label,
         },
-        select: { id: true, laneNumber: true, machineType: true },
+        select: { id: true, laneNumber: true, stationIndex: true },
       })
-      stations.set(`${station.laneNumber}:${station.machineType}`, station.id)
+      stations.set(`${station.laneNumber}:${station.stationIndex}`, station.id)
     }
 
     await tx.teamCaptureSegment.createMany({
@@ -204,17 +217,22 @@ export async function createTeamCaptureSession(
         sessionId: created.id,
         participantId: participants.get(segment.clientId)!,
         clientId: segment.clientId,
-        stationId: stations.get(`${segment.laneNumber}:${segment.machineType}`) ?? null,
+        stationId: stations.get(`${segment.laneNumber}:${segment.stationIndex}`) ?? null,
         laneNumber: segment.laneNumber,
         heatNumber: segment.heatNumber,
         roundNumber: segment.roundNumber,
         segmentIndex: segment.segmentIndex,
+        stationIndex: segment.stationIndex,
         machineType: segment.machineType,
+        equipmentKey: segment.equipmentKey,
+        captureMethod: segment.captureMethod,
         label: segment.label,
         plannedStartSec: segment.plannedStartSec,
         plannedEndSec: segment.plannedEndSec,
         targetCalories: segment.targetCalories ?? null,
         targetDistanceMeters: segment.targetDistanceMeters ?? null,
+        targetDurationSec: segment.targetDurationSec ?? null,
+        targetPower: segment.targetPower ?? null,
       })),
     })
 
@@ -230,7 +248,7 @@ export async function getTeamCaptureSession(sessionId: string) {
     include: {
       team: { select: { id: true, name: true } },
       participants: { orderBy: [{ heatNumber: 'asc' }, { laneNumber: 'asc' }] },
-      stations: { orderBy: [{ laneNumber: 'asc' }, { machineType: 'asc' }] },
+      stations: { orderBy: [{ laneNumber: 'asc' }, { stationIndex: 'asc' }] },
       segments: { orderBy: [{ heatNumber: 'asc' }, { laneNumber: 'asc' }, { segmentIndex: 'asc' }] },
     },
   })
@@ -290,7 +308,7 @@ export async function recordTeamCaptureStationReadings(
           item.machineType === input.machineType
       )
 
-  if (!station || !MACHINE_CAPTURE_TYPES.has(station.machineType)) return null
+  if (!station || station.captureMethod !== BLUETOOTH_CAPTURE_METHOD) return null
 
   const masterStartedAt = session.masterStartedAt
   const rows = input.readings.map((reading) => {
@@ -302,6 +320,7 @@ export async function recordTeamCaptureStationReadings(
       stationId: station.id,
       laneNumber: station.laneNumber,
       machineType: station.machineType,
+      equipmentKey: station.equipmentKey,
       timestamp,
       offsetSec,
       source: reading.source ?? 'NATIVE_STATION',
@@ -405,7 +424,7 @@ export async function resolveTeamCaptureSession(
   const segmentUpdates: Prisma.PrismaPromise<unknown>[] = []
 
   for (const segment of session.segments) {
-    if (!segment.stationId || !MACHINE_CAPTURE_TYPES.has(segment.machineType)) continue
+    if (!segment.stationId || segment.captureMethod !== BLUETOOTH_CAPTURE_METHOD) continue
     const startAt = startedAtForSegment(session.masterStartedAt, segment.plannedStartSec, segment.actualStartAt)
     const endAt = endedAtForSegment(session.masterStartedAt, segment.plannedEndSec, segment.actualEndAt)
     const segmentReadings = (readingsByStation.get(segment.stationId) ?? [])
@@ -519,7 +538,10 @@ async function exportTeamCaptureSensorCaptures(session: NonNullable<Awaited<Retu
           id: station.deviceId ?? station.id,
           name: station.deviceName ?? station.label,
           type: station.machineType,
+          equipmentKey: station.equipmentKey ?? segment.equipmentKey,
+          captureMethod: station.captureMethod,
           stationId: station.id,
+          stationIndex: station.stationIndex,
           laneNumber: station.laneNumber,
         })
       }
@@ -540,6 +562,7 @@ async function exportTeamCaptureSensorCaptures(session: NonNullable<Awaited<Retu
             : reading.calories ?? undefined,
           sourceStationId: reading.stationId,
           machineType: reading.machineType,
+          equipmentKey: reading.equipmentKey ?? segment.equipmentKey ?? undefined,
           roundNumber: segment.roundNumber,
         })
       }
@@ -550,10 +573,14 @@ async function exportTeamCaptureSensorCaptures(session: NonNullable<Awaited<Retu
         roundNumber: segment.roundNumber,
         segmentIndex: segment.segmentIndex,
         machineType: segment.machineType,
+        equipmentKey: segment.equipmentKey ?? undefined,
+        captureMethod: segment.captureMethod,
         plannedStartSec: segment.plannedStartSec - participant.expectedStartOffsetSec,
         plannedEndSec: segment.plannedEndSec - participant.expectedStartOffsetSec,
         targetCalories: segment.targetCalories ?? undefined,
         targetDistanceMeters: segment.targetDistanceMeters ?? undefined,
+        targetDurationSec: segment.targetDurationSec ?? undefined,
+        targetPower: segment.targetPower ?? undefined,
         status: segment.status,
         summary: segment.summary ?? undefined,
       })

@@ -42,6 +42,8 @@ export interface SegmentEvaluation {
     power?: number
     paceSecPerKm?: number
     calories?: number
+    equipmentKey?: string
+    captureMethod?: string
   }
   actual: {
     durationSec?: number

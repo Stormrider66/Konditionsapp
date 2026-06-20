@@ -8,7 +8,12 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { buildTeamCaptureLanePlan, type TeamCaptureMemberInput } from '@/lib/team-capture/schedule'
+import {
+  buildDefaultTeamCaptureTemplate,
+  buildTeamCaptureLanePlan,
+  type TeamCaptureMemberInput,
+  type TeamCaptureTemplate,
+} from '@/lib/team-capture/schedule'
 
 interface ExistingSession {
   id: string
@@ -26,6 +31,14 @@ interface TeamCaptureLauncherProps {
   locale: 'en' | 'sv'
   members: TeamCaptureMemberInput[]
   existingSessions: ExistingSession[]
+  workoutOptions: Array<{
+    id: string
+    type: 'CARDIO' | 'HYBRID'
+    name: string
+    template: TeamCaptureTemplate
+  }>
+  initialWorkoutType?: string
+  initialWorkoutId?: string
 }
 
 function text(locale: 'en' | 'sv', en: string, sv: string): string {
@@ -39,12 +52,33 @@ export function TeamCaptureLauncher({
   locale,
   members,
   existingSessions,
+  workoutOptions,
+  initialWorkoutType,
+  initialWorkoutId,
 }: TeamCaptureLauncherProps) {
   const router = useRouter()
   const [creating, setCreating] = useState(false)
-  const plan = useMemo(() => buildTeamCaptureLanePlan(members), [members])
+  const defaultTemplate = useMemo(() => buildDefaultTeamCaptureTemplate(), [])
+  const initialSelection = useMemo(() => {
+    const matched = workoutOptions.find((option) =>
+      option.id === initialWorkoutId &&
+      (!initialWorkoutType || option.type === initialWorkoutType.toUpperCase())
+    )
+    return matched ? `${matched.type}:${matched.id}` : 'DEFAULT'
+  }, [initialWorkoutId, initialWorkoutType, workoutOptions])
+  const [selectedWorkoutKey, setSelectedWorkoutKey] = useState(initialSelection)
+  const selectedWorkout = useMemo(
+    () => workoutOptions.find((option) => `${option.type}:${option.id}` === selectedWorkoutKey),
+    [selectedWorkoutKey, workoutOptions]
+  )
+  const template = selectedWorkout?.template ?? defaultTemplate
+  const plan = useMemo(() => buildTeamCaptureLanePlan(members, { template }), [members, template])
   const heatNumbers = Array.from(new Set(plan.participants.map((item) => item.heatNumber)))
-  const lanes = Array.from({ length: 6 }, (_, index) => index + 1)
+  const plannedLanes = Array.from(new Set(plan.participants.map((item) => item.laneNumber)))
+  const lanes = plannedLanes.length > 0 ? plannedLanes : Array.from({ length: 6 }, (_, index) => index + 1)
+  const receiverLaneCount = new Set(plan.stations.map((station) => station.laneNumber)).size || lanes.length || 6
+  const receiverStations = template.stations.filter((station) => station.captureMethod === 'BLUETOOTH_STATION')
+  const runOrManualStations = template.stations.filter((station) => station.captureMethod !== 'BLUETOOTH_STATION')
 
   const createSession = async () => {
     setCreating(true)
@@ -54,9 +88,10 @@ export function TeamCaptureLauncher({
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          name: `${teamName} hybrid capture`,
-          workoutType: 'HYBRID',
-          workoutName: '10 rounds - BikeErg / RowErg / Run',
+          name: `${teamName} ${template.name}`,
+          workoutType: selectedWorkout?.type ?? template.workoutType ?? 'HYBRID',
+          workoutId: selectedWorkout?.id ?? null,
+          workoutName: selectedWorkout?.name ?? template.workoutName ?? template.name,
           participantIds: members.map((member) => member.id),
         }),
       })
@@ -79,7 +114,7 @@ export function TeamCaptureLauncher({
             {text(locale, 'Team capture', 'Lagfångst')}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {text(locale, '10 rounds: 20 cal BikeErg, 20 cal RowErg, 200 m run, 1:00 rest.', '10 rundor: 20 cal BikeErg, 20 cal RowErg, 200 m löpning, 1:00 vila.')}
+            {text(locale, 'Pick a saved Cardio/Hybrid workout, then start the lane-based capture clock.', 'Välj ett sparat konditions-/hybridpass och starta sedan lagfångsten.')}
           </p>
         </div>
         <Button onClick={createSession} disabled={creating || members.length === 0}>
@@ -114,6 +149,64 @@ export function TeamCaptureLauncher({
           </div>
         </div>
       )}
+
+      <div className="mb-4 rounded-lg border bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
+          <div>
+            <label className="mb-2 block text-sm font-medium dark:text-white">
+              {text(locale, 'Workout template', 'Passmall')}
+            </label>
+            <select
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm dark:border-white/10"
+              value={selectedWorkoutKey}
+              onChange={(event) => setSelectedWorkoutKey(event.target.value)}
+            >
+              <option value="DEFAULT">{text(locale, 'Default: BikeErg + RowErg + Run', 'Standard: BikeErg + RowErg + löpning')}</option>
+              {workoutOptions.map((option) => (
+                <option key={`${option.type}:${option.id}`} value={`${option.type}:${option.id}`}>
+                  {option.type} · {option.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-2 md:grid-cols-3">
+            <PreflightBox label={text(locale, 'Rounds', 'Rundor')} value={String(template.roundCount)} />
+            <PreflightBox label={text(locale, 'Stations / lane', 'Stationer / bana')} value={String(template.stations.length)} />
+            <PreflightBox label={text(locale, 'Per heat', 'Per heat')} value={`${Math.round(plan.heatDurationSec / 60)} min`} />
+          </div>
+        </div>
+
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          <div className="rounded-md border p-3 dark:border-white/10">
+            <div className="mb-2 text-sm font-medium dark:text-white">
+              {text(locale, 'Receiver needs', 'Mottagare som behövs')}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {receiverStations.length > 0 ? receiverStations.map((station) => (
+                <Badge key={station.stationIndex} variant="secondary">
+                  {receiverLaneCount} x {station.label}
+                </Badge>
+              )) : (
+                <span className="text-sm text-muted-foreground">-</span>
+              )}
+            </div>
+          </div>
+          <div className="rounded-md border p-3 dark:border-white/10">
+            <div className="mb-2 text-sm font-medium dark:text-white">
+              {text(locale, 'Garmin / manual segments', 'Garmin / manuella segment')}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {runOrManualStations.length > 0 ? runOrManualStations.map((station) => (
+                <Badge key={station.stationIndex} variant="outline">
+                  {station.label}
+                </Badge>
+              )) : (
+                <span className="text-sm text-muted-foreground">-</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
@@ -170,12 +263,21 @@ export function TeamCaptureLauncher({
           <div className="space-y-3 text-sm">
             <SetupRow label={text(locale, 'Players', 'Spelare')} value={String(members.length)} />
             <SetupRow label={text(locale, 'Heats', 'Heat')} value={String(heatNumbers.length)} />
-            <SetupRow label={text(locale, 'BikeErgs', 'BikeErgs')} value="6" />
-            <SetupRow label={text(locale, 'RowErgs', 'RowErgs')} value="6" />
+            <SetupRow label={text(locale, 'Bluetooth receivers', 'Bluetoothmottagare')} value={String(receiverStations.length * 6)} />
+            <SetupRow label={text(locale, 'Workout', 'Pass')} value={template.name} />
             <SetupRow label={text(locale, 'Planned time per heat', 'Planerad tid per heat')} value={`${Math.round(plan.heatDurationSec / 60)} min`} />
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function PreflightBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border px-3 py-2 dark:border-white/10">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 font-semibold dark:text-white">{value}</p>
     </div>
   )
 }

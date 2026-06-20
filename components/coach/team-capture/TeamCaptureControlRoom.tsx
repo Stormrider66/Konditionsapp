@@ -7,10 +7,11 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { labelFromEquipmentKey } from '@/lib/team-capture/equipment'
 import { cn } from '@/lib/utils'
 
 type CaptureStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
-type MachineType = 'BIKEERG' | 'ROWER' | 'RUN' | 'REST'
+type MachineType = 'BIKEERG' | 'ROWER' | 'SKIERG' | 'WATTBIKE' | 'ASSAULT_BIKE' | 'ECHO_BIKE' | 'AIR_BIKE' | 'RUN' | 'REST'
 
 interface CaptureParticipant {
   id: string
@@ -25,7 +26,10 @@ interface CaptureParticipant {
 interface CaptureStation {
   id: string
   laneNumber: number
+  stationIndex: number
   machineType: MachineType
+  equipmentKey: string | null
+  captureMethod: string
   label: string
   status: string
   lastSeenAt: string | Date | null
@@ -40,7 +44,10 @@ interface CaptureSegment {
   laneNumber: number
   heatNumber: number
   roundNumber: number
+  stationIndex: number
   machineType: MachineType
+  equipmentKey: string | null
+  captureMethod: string
   label: string
   plannedStartSec: number
   plannedEndSec: number
@@ -100,7 +107,7 @@ export function TeamCaptureControlRoom({
   )
   const reviewSegments = useMemo(
     () => session.segments
-      .filter((segment) => segment.machineType === 'BIKEERG' || segment.machineType === 'ROWER')
+      .filter((segment) => segment.captureMethod === 'BLUETOOTH_STATION')
       .sort((a, b) =>
         a.heatNumber - b.heatNumber ||
         a.roundNumber - b.roundNumber ||
@@ -247,7 +254,7 @@ export function TeamCaptureControlRoom({
           >
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 font-medium dark:text-white">
-                {station.machineType === 'BIKEERG' ? <Bike className="h-4 w-4" /> : <Waves className="h-4 w-4" />}
+                {stationIcon(station.machineType)}
                 {station.label}
               </div>
               <Badge variant={station.status === 'ONLINE' ? 'default' : 'outline'}>
@@ -327,7 +334,7 @@ export function TeamCaptureControlRoom({
               <tr>
                 <th className="px-4 py-2 text-left">{text(locale, 'Round', 'Runda')}</th>
                 <th className="px-4 py-2 text-left">{text(locale, 'Lane', 'Bana')}</th>
-                <th className="px-4 py-2 text-left">{text(locale, 'Station', 'Station')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Equipment', 'Utrustning')}</th>
                 <th className="px-4 py-2 text-left">{text(locale, 'Player', 'Spelare')}</th>
                 <th className="px-4 py-2 text-left">{text(locale, 'Status', 'Status')}</th>
                 <th className="px-4 py-2 text-right">{text(locale, 'Power', 'Watt')}</th>
@@ -345,7 +352,7 @@ export function TeamCaptureControlRoom({
                       H{segment.heatNumber} · R{segment.roundNumber}
                     </td>
                     <td className="px-4 py-3 dark:text-slate-100">{segment.laneNumber}</td>
-                    <td className="px-4 py-3 dark:text-slate-100">{segment.machineType === 'BIKEERG' ? 'BikeErg' : 'RowErg'}</td>
+                    <td className="px-4 py-3 dark:text-slate-100">{labelFromEquipmentKey(segment.equipmentKey ?? segment.machineType)}</td>
                     <td className="px-4 py-3">
                       <select
                         className="w-full rounded-md border bg-background px-2 py-1 text-sm dark:border-white/10"
@@ -390,6 +397,11 @@ function summaryRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {}
+}
+
+function stationIcon(machineType: MachineType) {
+  if (machineType === 'ROWER' || machineType === 'SKIERG') return <Waves className="h-4 w-4" />
+  return <Bike className="h-4 w-4" />
 }
 
 function metric(value: unknown): number | undefined {

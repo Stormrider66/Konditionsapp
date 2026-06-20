@@ -12,6 +12,11 @@ enum TeamCaptureSessionStatus {
 enum TeamCaptureMachineType {
   BIKEERG
   ROWER
+  SKIERG
+  WATTBIKE
+  ASSAULT_BIKE
+  ECHO_BIKE
+  AIR_BIKE
   RUN
   REST
 }
@@ -42,6 +47,8 @@ model TeamCaptureSession {
   workoutType String?
   workoutId   String?
   workoutName String?
+  templateSource String?
+  templateSummary Json?
 
   laneCount                Int @default(6)
   roundCount               Int @default(10)
@@ -111,7 +118,11 @@ model TeamCaptureStation {
   session TeamCaptureSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   laneNumber  Int
+  stationIndex Int @default(0)
   machineType TeamCaptureMachineType
+  equipmentKey String?
+  captureMethod String @default("BLUETOOTH_STATION")
+  targetMetric String?
   label       String
 
   receiverName String?
@@ -126,8 +137,10 @@ model TeamCaptureStation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([sessionId, laneNumber, machineType])
+  @@unique([sessionId, laneNumber, stationIndex])
   @@index([sessionId])
+  @@index([sessionId, laneNumber, machineType])
+  @@index([equipmentKey])
   @@index([deviceId])
 }
 
@@ -141,6 +154,7 @@ model TeamCaptureReading {
 
   laneNumber  Int
   machineType TeamCaptureMachineType
+  equipmentKey String?
   timestamp   DateTime
   offsetSec   Int?
 
@@ -179,13 +193,18 @@ model TeamCaptureSegment {
   heatNumber   Int
   roundNumber  Int
   segmentIndex Int
+  stationIndex Int @default(0)
   machineType  TeamCaptureMachineType
+  equipmentKey String?
+  captureMethod String @default("BLUETOOTH_STATION")
   label        String
 
   plannedStartSec      Int
   plannedEndSec        Int
   targetCalories       Int?
   targetDistanceMeters Int?
+  targetDurationSec    Int?
+  targetPower          Int?
 
   actualStartAt DateTime?
   actualEndAt   DateTime?
@@ -205,4 +224,5 @@ model TeamCaptureSegment {
   @@index([stationId])
   @@index([clientId])
   @@index([sessionId, laneNumber, roundNumber])
+  @@index([equipmentKey])
 }

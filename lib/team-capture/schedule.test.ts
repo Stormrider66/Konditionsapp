@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildTeamCaptureLanePlan } from './schedule'
+import {
+  buildTeamCaptureLanePlan,
+  buildTemplateSummary,
+  createStationTemplate,
+} from './schedule'
 
 function members(count: number) {
   return Array.from({ length: count }, (_, index) => ({
@@ -70,5 +74,58 @@ describe('team capture lane schedule', () => {
       'Round 2 RowErg 22 cal',
       'Round 2 Run 150 m',
     ])
+  })
+
+  it('adapts station receivers to a custom builder template', () => {
+    const template = buildTemplateSummary({
+      source: 'HYBRID',
+      workoutType: 'HYBRID',
+      workoutName: 'Echo / Ski / Run',
+      name: 'Echo / Ski / Run',
+      roundCount: 2,
+      restBetweenRoundsSeconds: 60,
+      stations: [
+        createStationTemplate({
+          stationIndex: 0,
+          equipmentKey: 'ECHO_BIKE',
+          targetCalories: 20,
+          estimatedSeconds: 70,
+        }),
+        createStationTemplate({
+          stationIndex: 1,
+          equipmentKey: 'SKI_ERG',
+          targetCalories: 18,
+          estimatedSeconds: 65,
+        }),
+        createStationTemplate({
+          stationIndex: 2,
+          equipmentKey: 'RUN',
+          targetDistanceMeters: 200,
+          estimatedSeconds: 45,
+        }),
+      ],
+    })
+
+    const plan = buildTeamCaptureLanePlan(members(6), { template })
+
+    expect(plan.stations).toHaveLength(12)
+    expect(plan.stations.map((station) => station.equipmentKey)).toContain('ECHO_BIKE')
+    expect(plan.stations.map((station) => station.equipmentKey)).toContain('SKI_ERG')
+    expect(plan.stations.map((station) => station.equipmentKey)).not.toContain('RUN')
+
+    const firstAthleteSegments = plan.segments.filter((segment) => segment.clientId === 'client-1')
+    expect(firstAthleteSegments.map((segment) => segment.equipmentKey)).toEqual([
+      'ECHO_BIKE',
+      'SKI_ERG',
+      'RUN',
+      'REST',
+      'ECHO_BIKE',
+      'SKI_ERG',
+      'RUN',
+    ])
+    expect(firstAthleteSegments[2]).toMatchObject({
+      captureMethod: 'GARMIN_LAP_OR_MANUAL',
+      targetDistanceMeters: 200,
+    })
   })
 })
