@@ -2,7 +2,21 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowRightLeft, Bike, CheckCircle2, Pause, Play, Radio, RefreshCw, Square, Waves } from 'lucide-react'
+import {
+  AlertTriangle,
+  ArrowRightLeft,
+  Bike,
+  CheckCircle2,
+  Circle,
+  Pause,
+  Play,
+  Radio,
+  RefreshCw,
+  Square,
+  Timer,
+  Waves,
+  Watch,
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
@@ -12,15 +26,18 @@ import { cn } from '@/lib/utils'
 
 type CaptureStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
 type MachineType = 'BIKEERG' | 'ROWER' | 'SKIERG' | 'WATTBIKE' | 'ASSAULT_BIKE' | 'ECHO_BIKE' | 'AIR_BIKE' | 'RUN' | 'REST'
+type ParticipantStatus = 'PLANNED' | 'WATCH_STARTED' | 'READY' | 'NEEDS_HELP'
 
 interface CaptureParticipant {
   id: string
   clientId: string
   displayName: string
   jerseyNumber: number | null
+  position: string | null
   laneNumber: number
   heatNumber: number
   expectedStartOffsetSec: number
+  status: ParticipantStatus | string
 }
 
 interface CaptureStation {
@@ -94,6 +111,7 @@ export function TeamCaptureControlRoom({
   const [session, setSession] = useState(initialSession)
   const [busy, setBusy] = useState(false)
   const [attributionBusyId, setAttributionBusyId] = useState<string | null>(null)
+  const [participantBusyId, setParticipantBusyId] = useState<string | null>(null)
   const [now, setNow] = useState(0)
 
   const baseHref = `/${businessSlug}/coach/teams/${teamId}/capture/${session.id}`
@@ -117,6 +135,27 @@ export function TeamCaptureControlRoom({
     [session.segments]
   )
   const missingSegments = reviewSegments.filter((segment) => segment.status === 'NO_DATA')
+  const sortedParticipants = useMemo(
+    () => [...session.participants].sort((a, b) =>
+      a.heatNumber - b.heatNumber ||
+      a.laneNumber - b.laneNumber ||
+      (a.jerseyNumber ?? 9999) - (b.jerseyNumber ?? 9999) ||
+      a.displayName.localeCompare(b.displayName)
+    ),
+    [session.participants]
+  )
+  const readinessCounts = useMemo(() => {
+    return sortedParticipants.reduce(
+      (counts, participant) => {
+        if (participant.status === 'READY') counts.ready += 1
+        else if (participant.status === 'WATCH_STARTED') counts.watchStarted += 1
+        else if (participant.status === 'NEEDS_HELP') counts.needsHelp += 1
+        else counts.planned += 1
+        return counts
+      },
+      { ready: 0, watchStarted: 0, needsHelp: 0, planned: 0 }
+    )
+  }, [sortedParticipants])
 
   const elapsedSec = session.masterStartedAt && now > 0
     ? Math.max(0, Math.floor((now - new Date(session.masterStartedAt).getTime()) / 1000))
@@ -202,6 +241,25 @@ export function TeamCaptureControlRoom({
     }
   }
 
+  const updateParticipantStatus = async (participantId: string, status: ParticipantStatus) => {
+    setParticipantBusyId(participantId)
+    try {
+      const response = await fetch(`/api/coach/team-capture-sessions/${session.id}/participants`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ participantId, status }),
+      })
+      const payload = await response.json()
+      if (!response.ok || !payload.success) throw new Error(payload.error || 'Failed')
+      setSession(payload.data)
+    } catch {
+      toast.error(text(locale, 'Could not update player readiness', 'Kunde inte uppdatera spelarstatus'))
+    } finally {
+      setParticipantBusyId(null)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 pb-8">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -242,6 +300,94 @@ export function TeamCaptureControlRoom({
           <Button variant="ghost" size="icon" onClick={() => void refresh()} disabled={busy} aria-label="Refresh">
             <RefreshCw className="h-4 w-4" />
           </Button>
+        </div>
+      </div>
+
+      <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/10">
+          <div className="flex items-center gap-2 font-medium dark:text-white">
+            <Watch className="h-4 w-4 text-blue-600" />
+            {text(locale, 'Garmin watch roster', 'Garmin-klockor')}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <Badge variant="default">{readinessCounts.ready} {text(locale, 'ready', 'redo')}</Badge>
+            <Badge variant="secondary">{readinessCounts.watchStarted} {text(locale, 'watch started', 'klocka startad')}</Badge>
+            {readinessCounts.needsHelp > 0 && (
+              <Badge variant="destructive">{readinessCounts.needsHelp} {text(locale, 'needs help', 'behöver hjälp')}</Badge>
+            )}
+            <Badge variant="outline">{sortedParticipants.length} {text(locale, 'players', 'spelare')}</Badge>
+          </div>
+        </div>
+        <div className="max-h-[360px] overflow-auto">
+          <table className="w-full min-w-[860px] text-sm">
+            <thead className="sticky top-0 border-b bg-muted/80 text-xs uppercase text-muted-foreground backdrop-blur dark:border-white/10 dark:bg-slate-900/90">
+              <tr>
+                <th className="px-4 py-2 text-left">{text(locale, 'Lane', 'Bana')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Player', 'Spelare')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Status', 'Status')}</th>
+                <th className="px-4 py-2 text-left">{text(locale, 'Watch check', 'Klockcheck')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y dark:divide-white/10">
+              {sortedParticipants.map((participant) => (
+                <tr key={participant.id}>
+                  <td className="px-4 py-3 tabular-nums dark:text-slate-100">
+                    H{participant.heatNumber} · {text(locale, 'Lane', 'Bana')} {participant.laneNumber}
+                  </td>
+                  <td className="px-4 py-3 dark:text-slate-100">
+                    <div className="font-medium">
+                      {participant.jerseyNumber != null ? `#${participant.jerseyNumber} ` : ''}
+                      {participant.displayName}
+                    </div>
+                    {participant.position && <div className="text-xs text-muted-foreground">{participant.position}</div>}
+                  </td>
+                  <td className="px-4 py-3">
+                    <ParticipantStatusBadge status={participant.status} locale={locale} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant={participant.status === 'PLANNED' ? 'secondary' : 'outline'}
+                        disabled={participantBusyId === participant.id}
+                        onClick={() => updateParticipantStatus(participant.id, 'PLANNED')}
+                      >
+                        <Circle className="mr-1.5 h-3.5 w-3.5" />
+                        {text(locale, 'Waiting', 'Väntar')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={participant.status === 'WATCH_STARTED' ? 'secondary' : 'outline'}
+                        disabled={participantBusyId === participant.id}
+                        onClick={() => updateParticipantStatus(participant.id, 'WATCH_STARTED')}
+                      >
+                        <Timer className="mr-1.5 h-3.5 w-3.5" />
+                        {text(locale, 'Started', 'Startad')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={participant.status === 'READY' ? 'default' : 'outline'}
+                        disabled={participantBusyId === participant.id}
+                        onClick={() => updateParticipantStatus(participant.id, 'READY')}
+                      >
+                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                        {text(locale, 'Ready', 'Redo')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={participant.status === 'NEEDS_HELP' ? 'destructive' : 'outline'}
+                        disabled={participantBusyId === participant.id}
+                        onClick={() => updateParticipantStatus(participant.id, 'NEEDS_HELP')}
+                      >
+                        <AlertTriangle className="mr-1.5 h-3.5 w-3.5" />
+                        {text(locale, 'Help', 'Hjälp')}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -402,6 +548,19 @@ function summaryRecord(value: unknown): Record<string, unknown> {
 function stationIcon(machineType: MachineType) {
   if (machineType === 'ROWER' || machineType === 'SKIERG') return <Waves className="h-4 w-4" />
   return <Bike className="h-4 w-4" />
+}
+
+function ParticipantStatusBadge({ status, locale }: { status: string; locale: 'en' | 'sv' }) {
+  if (status === 'READY') {
+    return <Badge variant="default">{text(locale, 'Ready', 'Redo')}</Badge>
+  }
+  if (status === 'WATCH_STARTED') {
+    return <Badge variant="secondary">{text(locale, 'Watch started', 'Klocka startad')}</Badge>
+  }
+  if (status === 'NEEDS_HELP') {
+    return <Badge variant="destructive">{text(locale, 'Needs help', 'Behöver hjälp')}</Badge>
+  }
+  return <Badge variant="outline">{text(locale, 'Waiting', 'Väntar')}</Badge>
 }
 
 function metric(value: unknown): number | undefined {

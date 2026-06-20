@@ -57,6 +57,15 @@ export interface RecordStationReadingsInput {
   readings: TeamCaptureReadingInput[]
 }
 
+export const TEAM_CAPTURE_PARTICIPANT_STATUSES = [
+  'PLANNED',
+  'WATCH_STARTED',
+  'READY',
+  'NEEDS_HELP',
+] as const
+
+export type TeamCaptureParticipantStatus = typeof TEAM_CAPTURE_PARTICIPANT_STATUSES[number]
+
 export interface ResolveTeamCaptureResult {
   sessionId: string
   resolvedSegments: number
@@ -289,6 +298,27 @@ export async function updateTeamCaptureSessionStatus(
   })
 
   return getTeamCaptureSession(updated.id)
+}
+
+export async function updateTeamCaptureParticipantStatus(
+  userId: string,
+  sessionId: string,
+  participantId: string,
+  status: TeamCaptureParticipantStatus,
+  businessSlug?: string
+) {
+  const session = await getAccessibleTeamCaptureSession(userId, sessionId, businessSlug)
+  if (!session) return null
+
+  const participant = session.participants.find((item) => item.id === participantId)
+  if (!participant) return null
+
+  await prisma.teamCaptureParticipant.update({
+    where: { id: participantId },
+    data: { status },
+  })
+
+  return getTeamCaptureSession(sessionId)
 }
 
 export async function recordTeamCaptureStationReadings(
