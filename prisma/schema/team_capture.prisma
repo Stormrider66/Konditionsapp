@@ -1,0 +1,208 @@
+// TEAM HYBRID CAPTURE
+// Fixed-lane team sessions with station receivers for BikeErg/RowErg data.
+
+enum TeamCaptureSessionStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum TeamCaptureMachineType {
+  BIKEERG
+  ROWER
+  RUN
+  REST
+}
+
+enum TeamCaptureSegmentStatus {
+  PLANNED
+  RESOLVED
+  MANUAL_OVERRIDE
+  NO_DATA
+}
+
+model TeamCaptureSession {
+  id      String @id @default(uuid())
+  teamId  String
+  coachId String
+
+  team  Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  coach User @relation("CoachTeamCaptureSessions", fields: [coachId], references: [id])
+
+  teamEventId String?
+  teamEvent   TeamEvent? @relation("TeamEventCaptureSessions", fields: [teamEventId], references: [id], onDelete: SetNull)
+
+  broadcastId String?
+  broadcast   TeamWorkoutBroadcast? @relation("TeamBroadcastCaptureSessions", fields: [broadcastId], references: [id], onDelete: SetNull)
+
+  name        String
+  status      TeamCaptureSessionStatus @default(DRAFT)
+  workoutType String?
+  workoutId   String?
+  workoutName String?
+
+  laneCount                Int @default(6)
+  roundCount               Int @default(10)
+  bikeCalories             Int @default(20)
+  rowCalories              Int @default(20)
+  runDistanceMeters        Int @default(200)
+  restBetweenRoundsSeconds Int @default(60)
+  estimatedBikeSeconds     Int @default(75)
+  estimatedRowSeconds      Int @default(75)
+  estimatedRunSeconds      Int @default(45)
+
+  structure Json
+  lanePlan  Json
+
+  masterStartedAt DateTime?
+  completedAt     DateTime?
+  resolvedAt      DateTime?
+
+  participants TeamCaptureParticipant[]
+  stations     TeamCaptureStation[]
+  readings     TeamCaptureReading[]
+  segments     TeamCaptureSegment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([teamId, createdAt])
+  @@index([coachId])
+  @@index([teamEventId])
+  @@index([broadcastId])
+  @@index([status])
+}
+
+model TeamCaptureParticipant {
+  id        String @id @default(uuid())
+  sessionId String
+  clientId  String
+
+  session TeamCaptureSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  client  Client             @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  laneNumber Int
+  heatNumber Int @default(1)
+  startOrder Int
+
+  displayName  String
+  jerseyNumber Int?
+  position     String?
+
+  expectedStartOffsetSec Int    @default(0)
+  status                 String @default("PLANNED")
+
+  segments TeamCaptureSegment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, clientId])
+  @@index([sessionId, laneNumber])
+  @@index([clientId])
+}
+
+model TeamCaptureStation {
+  id        String @id @default(uuid())
+  sessionId String
+
+  session TeamCaptureSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  laneNumber  Int
+  machineType TeamCaptureMachineType
+  label       String
+
+  receiverName String?
+  deviceName   String?
+  deviceId     String?
+  status       String    @default("OFFLINE")
+  lastSeenAt   DateTime?
+
+  readings TeamCaptureReading[]
+  segments TeamCaptureSegment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sessionId, laneNumber, machineType])
+  @@index([sessionId])
+  @@index([deviceId])
+}
+
+model TeamCaptureReading {
+  id        String @id @default(uuid())
+  sessionId String
+  stationId String
+
+  session TeamCaptureSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  station TeamCaptureStation @relation(fields: [stationId], references: [id], onDelete: Cascade)
+
+  laneNumber  Int
+  machineType TeamCaptureMachineType
+  timestamp   DateTime
+  offsetSec   Int?
+
+  source   String  @default("NATIVE_STATION")
+  deviceId String?
+
+  power          Int?
+  cadence        Int?
+  strokeRate     Int?
+  paceSecPer500m Int?
+  distanceMeters Float?
+  calories       Float?
+  heartRate      Int?
+  raw            Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([sessionId, timestamp])
+  @@index([stationId, timestamp])
+  @@index([sessionId, laneNumber, machineType, timestamp])
+}
+
+model TeamCaptureSegment {
+  id            String  @id @default(uuid())
+  sessionId     String
+  participantId String
+  clientId      String
+  stationId     String?
+
+  session     TeamCaptureSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant TeamCaptureParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  client      Client                 @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  station     TeamCaptureStation?    @relation(fields: [stationId], references: [id], onDelete: SetNull)
+
+  laneNumber   Int
+  heatNumber   Int
+  roundNumber  Int
+  segmentIndex Int
+  machineType  TeamCaptureMachineType
+  label        String
+
+  plannedStartSec      Int
+  plannedEndSec        Int
+  targetCalories       Int?
+  targetDistanceMeters Int?
+
+  actualStartAt DateTime?
+  actualEndAt   DateTime?
+  status        TeamCaptureSegmentStatus @default(PLANNED)
+  summary       Json?
+
+  overrideById           String?
+  overrideBy             User?   @relation("TeamCaptureSegmentOverrides", fields: [overrideById], references: [id], onDelete: SetNull)
+  overrideReason         String? @db.Text
+  workoutSensorCaptureId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sessionId, clientId])
+  @@index([participantId])
+  @@index([stationId])
+  @@index([clientId])
+  @@index([sessionId, laneNumber, roundNumber])
+}

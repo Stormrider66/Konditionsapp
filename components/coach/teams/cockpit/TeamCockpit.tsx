@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, TabletSmartphone } from 'lucide-react'
+import { Plus, Radio, TabletSmartphone } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TeamActionInbox, type TeamActionSignals } from './TeamActionInbox'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
@@ -332,6 +332,12 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
           <Link href={`/${businessSlug}/coach/teams/${teamId}/kiosk`}>
             <TabletSmartphone className="mr-1.5 h-4 w-4" />
             Focus mode
+          </Link>
+        </Button>
+        <Button asChild type="button" variant="outline">
+          <Link href={`/${businessSlug}/coach/teams/${teamId}/capture`}>
+            <Radio className="mr-1.5 h-4 w-4" />
+            {locale === 'sv' ? 'Lagfångst' : 'Capture mode'}
           </Link>
         </Button>
         <Button type="button" onClick={() => setAssignTarget({})}>

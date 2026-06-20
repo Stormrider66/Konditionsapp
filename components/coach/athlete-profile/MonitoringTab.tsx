@@ -81,6 +81,7 @@ const SOURCE_LABELS: Record<string, string> = {
   HYBRID_FOCUS: 'Hybrid',
   MANUAL: 'Manual',
   NATIVE_CAPTURE: 'Mobile',
+  TEAM_CAPTURE: 'Team capture',
 }
 
 const FATIGUE_LABELS: Record<WorkoutFatigueSummary['level'], { en: string; sv: string }> = {

@@ -9,6 +9,7 @@ export type WorkoutSource =
   | 'HYBRID_FOCUS'
   | 'MANUAL'
   | 'NATIVE_CAPTURE'
+  | 'TEAM_CAPTURE'
 
 export type EvaluationConfidence = 'HIGH' | 'MEDIUM' | 'LOW'
 export type FatigueLevel = 'LOW' | 'MODERATE' | 'HIGH' | 'VERY_HIGH'
@@ -98,7 +99,7 @@ export interface WorkoutEvaluationSummary {
   tss?: number
   trimp?: number
   rpe?: number
-  plannedStructure: 'FOCUS_SEGMENTS' | 'HYBRID_ROUNDS' | 'GARMIN_LAPS' | 'DETECTED_INTERVALS' | 'WHOLE_WORKOUT'
+  plannedStructure: 'FOCUS_SEGMENTS' | 'HYBRID_ROUNDS' | 'TEAM_CAPTURE_SEGMENTS' | 'GARMIN_LAPS' | 'DETECTED_INTERVALS' | 'WHOLE_WORKOUT'
   sourceBadges: WorkoutSource[]
 }
 

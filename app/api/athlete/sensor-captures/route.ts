@@ -14,6 +14,7 @@ const SOURCES = [
   'WATTBIKE_BLUETOOTH',
   'HR_BELT_BLUETOOTH',
   'APP_GPS',
+  'TEAM_CAPTURE',
 ] as const
 
 const deviceSchema = z.object({

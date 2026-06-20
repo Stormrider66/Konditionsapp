@@ -67,6 +67,7 @@ model TeamEvent {
   // Optional links to existing features
   intervalSessionId String?          @unique
   intervalSession   IntervalSession? @relation(fields: [intervalSessionId], references: [id], onDelete: SetNull)
+  captureSessions   TeamCaptureSession[] @relation("TeamEventCaptureSessions")
 
   // Tracking
   createdById String
@@ -131,6 +132,7 @@ model TeamWorkoutBroadcast {
   cardioAssignments   CardioSessionAssignment[]
   hybridAssignments   HybridWorkoutAssignment[]
   agilityAssignments  AgilityWorkoutAssignment[]
+  captureSessions     TeamCaptureSession[] @relation("TeamBroadcastCaptureSessions")
 
   @@index([teamId])
   @@index([coachId])

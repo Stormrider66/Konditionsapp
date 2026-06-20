@@ -274,7 +274,9 @@ model User {
   athletePlanStaffNoteUpdates AthletePlan[] @relation("AthletePlanStaffNoteAuthor")
 
   // Live HR Streaming System relations
-  liveHRSessions LiveHRSession[] @relation("CoachLiveHRSessions")
+  liveHRSessions              LiveHRSession[]      @relation("CoachLiveHRSessions")
+  teamCaptureSessions         TeamCaptureSession[] @relation("CoachTeamCaptureSessions")
+  teamCaptureSegmentOverrides TeamCaptureSegment[] @relation("TeamCaptureSegmentOverrides")
 
   // Live Interval Session System relations
   intervalSessions  IntervalSession[]         @relation("CoachIntervalSessions")
@@ -421,6 +423,7 @@ model Team {
 
   // Team workout broadcasts
   workoutBroadcasts TeamWorkoutBroadcast[]
+  captureSessions   TeamCaptureSession[]
 
   // Live HR Streaming System
   liveHRSessions LiveHRSession[]
@@ -564,6 +567,8 @@ model Client {
   trainingLoads         TrainingLoad[]
   workoutEvaluations    WorkoutEvaluation[]
   workoutSensorCaptures WorkoutSensorCapture[]
+  teamCaptureParticipations TeamCaptureParticipant[]
+  teamCaptureSegments       TeamCaptureSegment[]
   programsEngine        TrainingProgramEngine[]
   fieldTests            FieldTest[]
   selfReportedLactates  SelfReportedLactate[]

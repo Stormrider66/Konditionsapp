@@ -29,6 +29,7 @@ const STRUCTURED_TIMING_SOURCES = new Set<WorkoutSource>([
   'WATTBIKE_BLUETOOTH',
   'APP_GPS',
   'NATIVE_CAPTURE',
+  'TEAM_CAPTURE',
 ])
 
 type JsonRecord = Record<string, unknown>
@@ -301,7 +302,7 @@ function sourceSamples(candidate: SourceCandidate, groupStart: Date, maxHr: numb
     return samples
   }
 
-  if (candidate.source === 'NATIVE_CAPTURE' || candidate.source === 'HR_BELT_BLUETOOTH') {
+  if (candidate.source === 'NATIVE_CAPTURE' || candidate.source === 'TEAM_CAPTURE' || candidate.source === 'HR_BELT_BLUETOOTH') {
     return asArray(candidate.raw.samples).map((item) => {
       const sample = item as JsonRecord
       return withHrDerivedFields({
@@ -576,6 +577,29 @@ function buildDetectedIntervalSegments(candidate: SourceCandidate, timeline: Nor
   })
 }
 
+function buildTeamCaptureSegments(candidate: SourceCandidate, timeline: NormalizedSensorSample[]): SegmentEvaluation[] {
+  const summary = candidate.raw.summary as JsonRecord | null | undefined
+  return asArray(summary?.segments).map((item, index) => {
+    const segment = item as JsonRecord
+    const startSec = asNumber(segment.plannedStartSec) ?? asNumber(segment.startSec) ?? 0
+    const endSec = asNumber(segment.plannedEndSec) ?? asNumber(segment.endSec) ?? startSec
+    const duration = Math.max(0, endSec - startSec)
+    const evaluation: SegmentEvaluation = {
+      segmentIndex: asNumber(segment.segmentIndex) ?? index,
+      label: asString(segment.label) ?? `Segment ${index + 1}`,
+      planned: {
+        durationSec: duration || undefined,
+        calories: asNumber(segment.targetCalories),
+        distanceMeters: asNumber(segment.targetDistanceMeters),
+      },
+      actual: segmentActual(sliceSamples(timeline, startSec, endSec), duration || undefined),
+      compliance: { intensityHit: null, targetHit: null, score: 100 },
+    }
+    evaluation.compliance = complianceScore(evaluation)
+    return evaluation
+  })
+}
+
 function buildLapSegments(candidate: SourceCandidate, timeline: NormalizedSensorSample[], groupStart: Date): SegmentEvaluation[] {
   return asArray(candidate.raw.laps).map((item, index) => {
     const lap = item as JsonRecord
@@ -640,6 +664,11 @@ function buildSegments(group: CandidateGroup, timeline: NormalizedSensorSample[]
       return evaluation
     })
     return { plannedStructure: 'HYBRID_ROUNDS', segments }
+  }
+
+  const teamCapture = group.candidates.find((candidate) => candidate.source === 'TEAM_CAPTURE')
+  if (teamCapture && asArray((teamCapture.raw.summary as JsonRecord | null | undefined)?.segments).length > 0) {
+    return { plannedStructure: 'TEAM_CAPTURE_SEGMENTS', segments: buildTeamCaptureSegments(teamCapture, timeline) }
   }
 
   const quick = group.candidates.find((candidate) =>
@@ -767,7 +796,7 @@ function buildSourceLinks(group: CandidateGroup): WorkoutSourceLink[] {
 }
 
 function groupConfidence(group: CandidateGroup, timeline: NormalizedSensorSample[], segments: SegmentEvaluation[]): EvaluationConfidence {
-  const hasFocus = group.candidates.some((candidate) => candidate.source === 'CARDIO_FOCUS' || candidate.source === 'HYBRID_FOCUS' || candidate.source === 'NATIVE_CAPTURE' || candidate.source === 'APP_GPS')
+  const hasFocus = group.candidates.some((candidate) => candidate.source === 'CARDIO_FOCUS' || candidate.source === 'HYBRID_FOCUS' || candidate.source === 'NATIVE_CAPTURE' || candidate.source === 'TEAM_CAPTURE' || candidate.source === 'APP_GPS')
   const hasStream = timeline.length >= 30
   if (hasFocus && hasStream) return 'HIGH'
   if (hasStream || segments.length > 1 || group.candidates.length > 1) return 'MEDIUM'
@@ -877,6 +906,7 @@ function quickErgSource(machineType: string | null | undefined, source: string |
 
 function sensorCaptureSource(source: string): WorkoutSource {
   if (
+    source === 'TEAM_CAPTURE' ||
     source === 'CONCEPT2_PM5_BLUETOOTH' ||
     source === 'WATTBIKE_BLUETOOTH' ||
     source === 'HR_BELT_BLUETOOTH' ||
@@ -1116,11 +1146,12 @@ async function loadCandidates(clientId: string, startDate: Date, endDate: Date):
 
   for (const capture of sensorCaptures) {
     const source = sensorCaptureSource(capture.source)
+    const summary = capture.summary as JsonRecord | null | undefined
     candidates.push({
       id: capture.id,
       source,
-      label: 'Native sensor capture',
-      type: asString((capture.summary as JsonRecord | null | undefined)?.type) ?? 'OTHER',
+      label: asString(summary?.name) ?? (source === 'TEAM_CAPTURE' ? 'Team capture session' : 'Native sensor capture'),
+      type: asString(summary?.type) ?? 'OTHER',
       startedAt: capture.startedAt,
       completedAt: capture.completedAt,
       priority: 90,
