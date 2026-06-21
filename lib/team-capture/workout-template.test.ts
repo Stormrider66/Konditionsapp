@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   buildTeamCaptureTemplateFromCardioSession,
   buildTeamCaptureTemplateFromHybridWorkout,
+  teamCaptureCardioSessionWhere,
+  teamCaptureHybridWorkoutWhere,
 } from './workout-template'
 
 describe('team capture workout templates', () => {
@@ -87,5 +89,38 @@ describe('team capture workout templates', () => {
       machineType: 'ASSAULT_BIKE',
       targetCalories: 20,
     })
+  })
+
+  it('requires business-bound workouts when listing templates in an organisation', () => {
+    const cardioWhere = teamCaptureCardioSessionWhere({
+      coachId: 'coach-1',
+      teamId: 'team-1',
+      businessId: 'business-1',
+    })
+    const hybridWhere = teamCaptureHybridWorkoutWhere({
+      coachId: 'coach-1',
+      teamId: 'team-1',
+      businessId: 'business-1',
+    })
+
+    expect(cardioWhere).toEqual({
+      AND: [
+        {
+          OR: [
+            { coachId: 'coach-1' },
+            { teamId: 'team-1' },
+            { isPublic: true },
+          ],
+        },
+        {
+          OR: expect.arrayContaining([
+            { tags: { has: '__business:business-1' } },
+            { teamId: 'team-1' },
+            { assignments: { some: { athlete: { businessId: 'business-1' } } } },
+          ]),
+        },
+      ],
+    })
+    expect(hybridWhere).toEqual(cardioWhere)
   })
 })

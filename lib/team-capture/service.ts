@@ -23,6 +23,7 @@ type JsonRecord = Record<string, unknown>
 export interface CreateTeamCaptureSessionInput extends TeamCaptureSessionOptions {
   teamId: string
   businessSlug?: string
+  businessId?: string
   teamEventId?: string | null
   broadcastId?: string | null
   workoutType?: string | null
@@ -128,6 +129,7 @@ export async function createTeamCaptureSession(
   const template = await loadTeamCaptureTemplateForWorkout({
     coachId,
     teamId: input.teamId,
+    businessId: input.businessId,
     workoutType: input.workoutType,
     workoutId: input.workoutId,
   })

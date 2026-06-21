@@ -1,6 +1,7 @@
 import type { Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
+import { getWorkoutBusinessTag } from '@/lib/workouts/business-tags'
 import { inferEquipmentFromText, normalizeEquipmentKey } from './equipment'
 import {
   buildDefaultTeamCaptureTemplate,
@@ -39,6 +40,86 @@ function asString(value: unknown): string | undefined {
 function positiveInt(value: unknown): number | undefined {
   const numberValue = asNumber(value)
   return numberValue && numberValue > 0 ? Math.round(numberValue) : undefined
+}
+
+export function teamCaptureCardioSessionWhere(input: {
+  coachId: string
+  teamId: string
+  businessId?: string
+}): Prisma.CardioSessionWhereInput {
+  const accessWhere: Prisma.CardioSessionWhereInput = {
+    OR: [
+      { coachId: input.coachId },
+      { teamId: input.teamId },
+      { isPublic: true },
+    ],
+  }
+
+  if (!input.businessId) return accessWhere
+
+  return {
+    AND: [
+      accessWhere,
+      {
+        OR: [
+          { tags: { has: getWorkoutBusinessTag(input.businessId) } },
+          { teamId: input.teamId },
+          { assignments: { some: { athlete: { businessId: input.businessId } } } },
+          {
+            teamWorkoutBroadcasts: {
+              some: {
+                team: {
+                  members: {
+                    some: { businessId: input.businessId },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  }
+}
+
+export function teamCaptureHybridWorkoutWhere(input: {
+  coachId: string
+  teamId: string
+  businessId?: string
+}): Prisma.HybridWorkoutWhereInput {
+  const accessWhere: Prisma.HybridWorkoutWhereInput = {
+    OR: [
+      { coachId: input.coachId },
+      { teamId: input.teamId },
+      { isPublic: true },
+    ],
+  }
+
+  if (!input.businessId) return accessWhere
+
+  return {
+    AND: [
+      accessWhere,
+      {
+        OR: [
+          { tags: { has: getWorkoutBusinessTag(input.businessId) } },
+          { teamId: input.teamId },
+          { assignments: { some: { athlete: { businessId: input.businessId } } } },
+          {
+            teamWorkoutBroadcasts: {
+              some: {
+                team: {
+                  members: {
+                    some: { businessId: input.businessId },
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  }
 }
 
 function normaliseDistanceMeters(value: unknown): number | undefined {
@@ -244,6 +325,7 @@ export function buildTeamCaptureTemplateFromHybridWorkout(workout: {
 export async function loadTeamCaptureTemplateForWorkout(input: {
   coachId: string
   teamId: string
+  businessId?: string
   workoutType?: string | null
   workoutId?: string | null
 }): Promise<TeamCaptureTemplate> {
@@ -254,11 +336,7 @@ export async function loadTeamCaptureTemplateForWorkout(input: {
     const session = await prisma.cardioSession.findFirst({
       where: {
         id: input.workoutId,
-        OR: [
-          { coachId: input.coachId },
-          { teamId: input.teamId },
-          { isPublic: true },
-        ],
+        AND: [teamCaptureCardioSessionWhere(input)],
       },
       select: { id: true, name: true, sport: true, segments: true },
     })
@@ -269,11 +347,7 @@ export async function loadTeamCaptureTemplateForWorkout(input: {
     const workout = await prisma.hybridWorkout.findFirst({
       where: {
         id: input.workoutId,
-        OR: [
-          { coachId: input.coachId },
-          { teamId: input.teamId },
-          { isPublic: true },
-        ],
+        AND: [teamCaptureHybridWorkoutWhere(input)],
       },
       select: {
         id: true,
@@ -313,29 +387,18 @@ export async function loadTeamCaptureTemplateForWorkout(input: {
 export async function listTeamCaptureWorkoutOptions(input: {
   coachId: string
   teamId: string
+  businessId?: string
   take?: number
 }): Promise<CaptureWorkoutOption[]> {
   const [cardio, hybrid] = await Promise.all([
     prisma.cardioSession.findMany({
-      where: {
-        OR: [
-          { coachId: input.coachId },
-          { teamId: input.teamId },
-          { isPublic: true },
-        ],
-      },
+      where: teamCaptureCardioSessionWhere(input),
       orderBy: { updatedAt: 'desc' },
       take: input.take ?? 12,
       select: { id: true, name: true, sport: true, segments: true },
     }),
     prisma.hybridWorkout.findMany({
-      where: {
-        OR: [
-          { coachId: input.coachId },
-          { teamId: input.teamId },
-          { isPublic: true },
-        ],
-      },
+      where: teamCaptureHybridWorkoutWhere(input),
       orderBy: { updatedAt: 'desc' },
       take: input.take ?? 12,
       select: {

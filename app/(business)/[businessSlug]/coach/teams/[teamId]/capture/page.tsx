@@ -57,6 +57,7 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
     listTeamCaptureWorkoutOptions({
       coachId: user.id,
       teamId,
+      businessId: membership.businessId,
       take: 16,
     }),
   ])

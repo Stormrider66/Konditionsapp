@@ -6,6 +6,7 @@ import { getRequestedBusinessScope } from '@/lib/auth/current-user'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 import { createTeamCaptureSession } from '@/lib/team-capture/service'
+import { resolveWorkoutBusinessScope } from '@/lib/workouts/business-scope'
 
 interface RouteContext {
   params: Promise<{ teamId: string }>
@@ -42,8 +43,17 @@ export async function POST(request: NextRequest, context: RouteContext) {
     locale = resolveRequestLocale(request, user.language)
     const { teamId } = await context.params
     const scope = getRequestedBusinessScope(request)
+    const businessScope = await resolveWorkoutBusinessScope(user.id, request)
+    const businessId = businessScope?.businessId
     const body = await request.json().catch(() => ({}))
     const parsed = createSchema.safeParse(body)
+
+    if (!businessScope) {
+      return NextResponse.json(
+        { success: false, error: t(locale, 'Business not found', 'Verksamheten hittades inte') },
+        { status: 403 },
+      )
+    }
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -55,6 +65,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const session = await createTeamCaptureSession(user.id, {
       teamId,
       businessSlug: scope.businessSlug,
+      businessId,
       ...parsed.data,
     })
 
