@@ -57,6 +57,37 @@ function copyWorkoutFromEvent(event: ScheduleEvent | null): QueueCopyWorkout | n
   }
 }
 
+function formatDateParam(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function firstLinkedWorkoutEvent(events: ScheduleEvent[], types: Set<string>): ScheduleEvent | null {
+  return [...events]
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())
+    .find((event) => {
+      const type = event.linkedWorkoutType?.toUpperCase()
+      return Boolean(type && event.linkedWorkoutId && types.has(type))
+    }) ?? null
+}
+
+function buildTeamStrengthHref(businessSlug: string, teamId: string, viewedDate: Date): string {
+  const params = new URLSearchParams({ date: formatDateParam(viewedDate) })
+  return `/${businessSlug}/coach/teams/${teamId}/kiosk?${params}`
+}
+
+function buildTeamCardioHref(businessSlug: string, teamId: string, viewedDate: Date, plannedEvent: ScheduleEvent | null): string {
+  const params = new URLSearchParams({ date: formatDateParam(viewedDate) })
+  if (plannedEvent?.linkedWorkoutId && plannedEvent.linkedWorkoutType) {
+    params.set('teamEventId', plannedEvent.id)
+    params.set('workoutType', plannedEvent.linkedWorkoutType.toUpperCase())
+    params.set('workoutId', plannedEvent.linkedWorkoutId)
+  }
+  return `/${businessSlug}/coach/teams/${teamId}/capture?${params}`
+}
+
 /**
  * Client shell for the Idag cockpit. Owns the day's event fetch plus the
  * cross-pane interaction state (selected session/player, position filter) so
@@ -319,6 +350,12 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
     : []
 
   const isToday = startOfDay(viewedDate).getTime() === today.getTime()
+  const plannedTeamCardioEvent = useMemo(
+    () => firstLinkedWorkoutEvent(events, new Set(['CARDIO', 'HYBRID'])),
+    [events]
+  )
+  const teamStrengthHref = buildTeamStrengthHref(businessSlug, teamId, viewedDate)
+  const teamCardioHref = buildTeamCardioHref(businessSlug, teamId, viewedDate, plannedTeamCardioEvent)
 
   return (
     <>
@@ -329,13 +366,13 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
           coachBasePath={`/${businessSlug}/coach`}
         />
         <Button asChild type="button" variant="outline">
-          <Link href={`/${businessSlug}/coach/teams/${teamId}/kiosk`}>
+          <Link href={teamStrengthHref}>
             <Dumbbell className="mr-1.5 h-4 w-4" />
             {locale === 'sv' ? 'Lagstyrka' : 'Team strength'}
           </Link>
         </Button>
         <Button asChild type="button" variant="outline">
-          <Link href={`/${businessSlug}/coach/teams/${teamId}/capture`}>
+          <Link href={teamCardioHref}>
             <Radio className="mr-1.5 h-4 w-4" />
             {locale === 'sv' ? 'Lagkondition' : 'Team cardio'}
           </Link>

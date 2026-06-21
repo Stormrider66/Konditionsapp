@@ -32,6 +32,7 @@ interface TeamKioskClientProps {
   teamName: string
   businessSlug: string
   locale: Locale
+  initialDate?: string
 }
 
 export function TeamKioskClient({
@@ -39,6 +40,7 @@ export function TeamKioskClient({
   teamName,
   businessSlug,
   locale,
+  initialDate,
 }: TeamKioskClientProps) {
   const [members, setMembers] = useState<KioskMember[]>([])
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null)
@@ -53,6 +55,7 @@ export function TeamKioskClient({
     setError(null)
     try {
       const params = new URLSearchParams({ businessSlug })
+      if (initialDate) params.set('date', initialDate)
       const response = await fetch(`/api/coach/teams/${teamId}/kiosk?${params}`, {
         headers: { 'x-business-slug': businessSlug },
       })
@@ -66,7 +69,7 @@ export function TeamKioskClient({
     } finally {
       setLoading(false)
     }
-  }, [businessSlug, locale, teamId])
+  }, [businessSlug, initialDate, locale, teamId])
 
   useEffect(() => {
     void Promise.resolve().then(loadRoster)
@@ -150,7 +153,7 @@ export function TeamKioskClient({
                 {text(locale, 'Lagstyrka', 'Team strength')}
               </Badge>
             </div>
-            <p className="text-xs text-slate-400">{formatToday(locale)}</p>
+            <p className="text-xs text-slate-400">{formatToday(locale, initialDate)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

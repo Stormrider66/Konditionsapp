@@ -9,10 +9,14 @@ interface TeamKioskPageProps {
     businessSlug: string
     teamId: string
   }>
+  searchParams: Promise<{
+    date?: string
+  }>
 }
 
-export default async function TeamKioskPage({ params }: TeamKioskPageProps) {
+export default async function TeamKioskPage({ params, searchParams }: TeamKioskPageProps) {
   const { businessSlug, teamId } = await params
+  const query = await searchParams
   const user = await requireCoach()
   const locale = user.language === 'sv' ? 'sv' : 'en'
 
@@ -32,6 +36,7 @@ export default async function TeamKioskPage({ params }: TeamKioskPageProps) {
       teamName={team.name}
       businessSlug={businessSlug}
       locale={locale}
+      initialDate={query.date}
     />
   )
 }

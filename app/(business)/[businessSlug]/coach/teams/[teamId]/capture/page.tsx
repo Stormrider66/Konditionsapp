@@ -5,7 +5,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
-import { listTeamCaptureWorkoutOptions } from '@/lib/team-capture/workout-template'
+import { listTeamCaptureWorkoutOptions, loadTeamCaptureWorkoutOption } from '@/lib/team-capture/workout-template'
 
 interface PageProps {
   params: Promise<{
@@ -13,9 +13,20 @@ interface PageProps {
     teamId: string
   }>
   searchParams: Promise<{
+    date?: string
+    teamEventId?: string
     workoutType?: string
     workoutId?: string
   }>
+}
+
+function dayBounds(dateParam?: string) {
+  const dayStart = dateParam ? new Date(dateParam) : new Date()
+  if (Number.isNaN(dayStart.getTime())) return null
+  dayStart.setHours(0, 0, 0, 0)
+  const dayEnd = new Date(dayStart)
+  dayEnd.setDate(dayEnd.getDate() + 1)
+  return { dayStart, dayEnd }
 }
 
 export default async function TeamCapturePage({ params, searchParams }: PageProps) {
@@ -29,6 +40,44 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
 
   const team = await getAccessibleTeam(user.id, teamId, businessSlug)
   if (!team) notFound()
+
+  const bounds = dayBounds(query.date)
+  const plannedEvent = query.teamEventId
+    ? await prisma.teamEvent.findFirst({
+        where: {
+          id: query.teamEventId,
+          teamId,
+          linkedWorkoutType: { in: ['CARDIO', 'HYBRID'] },
+          linkedWorkoutId: { not: null },
+        },
+        select: {
+          id: true,
+          linkedWorkoutType: true,
+          linkedWorkoutId: true,
+          linkedWorkoutName: true,
+        },
+      })
+    : bounds
+      ? await prisma.teamEvent.findFirst({
+          where: {
+            teamId,
+            startDate: { gte: bounds.dayStart, lt: bounds.dayEnd },
+            linkedWorkoutType: { in: ['CARDIO', 'HYBRID'] },
+            linkedWorkoutId: { not: null },
+          },
+          orderBy: { startDate: 'asc' },
+          select: {
+            id: true,
+            linkedWorkoutType: true,
+            linkedWorkoutId: true,
+            linkedWorkoutName: true,
+          },
+        })
+      : null
+
+  const initialWorkoutType = query.workoutType ?? plannedEvent?.linkedWorkoutType ?? undefined
+  const initialWorkoutId = query.workoutId ?? plannedEvent?.linkedWorkoutId ?? undefined
+  const initialTeamEventId = query.teamEventId ?? plannedEvent?.id ?? undefined
 
   const [members, existingSessions, workoutOptions] = await Promise.all([
     prisma.client.findMany({
@@ -61,6 +110,19 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
       take: 16,
     }),
   ])
+  const plannedOption = initialWorkoutType && initialWorkoutId
+    ? await loadTeamCaptureWorkoutOption({
+        coachId: user.id,
+        teamId,
+        businessId: membership.businessId,
+        workoutType: initialWorkoutType,
+        workoutId: initialWorkoutId,
+      })
+    : null
+  const normalizedWorkoutOptions = plannedOption &&
+    !workoutOptions.some((option) => option.id === plannedOption.id && option.type === plannedOption.type)
+    ? [plannedOption, ...workoutOptions]
+    : workoutOptions
 
   return (
     <TeamCaptureLauncher
@@ -70,9 +132,11 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
       locale={locale}
       members={members}
       existingSessions={serialize(existingSessions)}
-      workoutOptions={serialize(workoutOptions)}
-      initialWorkoutType={query.workoutType}
-      initialWorkoutId={query.workoutId}
+      workoutOptions={serialize(normalizedWorkoutOptions)}
+      initialWorkoutType={initialWorkoutType}
+      initialWorkoutId={initialWorkoutId}
+      initialTeamEventId={initialTeamEventId}
+      plannedWorkoutRequested={Boolean(initialWorkoutType && initialWorkoutId)}
     />
   )
 }

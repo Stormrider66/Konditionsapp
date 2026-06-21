@@ -86,6 +86,13 @@ function formatCompletedAt(value: string | Date | null | undefined, locale: Loca
   })
 }
 
+function formatDateParam(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function assignmentStatusLabel(status: string, t: (key: string) => string) {
   switch (status) {
     case 'COMPLETED':
@@ -168,6 +175,9 @@ export function TeamSelectedSessionPanel({
   const printHref = workoutPrintHref(event, businessSlug)
   const content = contentState(event, t)
   const showMissingContent = needsContent(event)
+  const teamStrengthHref = `/${businessSlug}/coach/teams/${teamId}/kiosk?${new URLSearchParams({
+    date: formatDateParam(new Date(event.startDate)),
+  })}`
 
   return (
     <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
@@ -263,7 +273,7 @@ export function TeamSelectedSessionPanel({
             </Link>
           </Button>
           <Button asChild variant="outline" size="sm" className="justify-start">
-            <Link href={`/${businessSlug}/coach/teams/${teamId}/kiosk`}>
+            <Link href={teamStrengthHref}>
               <Dumbbell className="h-4 w-4" />
               {t('focus')}
             </Link>

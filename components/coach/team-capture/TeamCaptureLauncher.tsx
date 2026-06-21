@@ -39,6 +39,8 @@ interface TeamCaptureLauncherProps {
   }>
   initialWorkoutType?: string
   initialWorkoutId?: string
+  initialTeamEventId?: string
+  plannedWorkoutRequested?: boolean
 }
 
 function text(locale: 'en' | 'sv', en: string, sv: string): string {
@@ -62,6 +64,8 @@ export function TeamCaptureLauncher({
   workoutOptions,
   initialWorkoutType,
   initialWorkoutId,
+  initialTeamEventId,
+  plannedWorkoutRequested = false,
 }: TeamCaptureLauncherProps) {
   const router = useRouter()
   const [creating, setCreating] = useState(false)
@@ -72,23 +76,39 @@ export function TeamCaptureLauncher({
       option.id === initialWorkoutId &&
       (!initialWorkoutType || option.type === initialWorkoutType.toUpperCase())
     )
-    return matched ? `${matched.type}:${matched.id}` : 'DEFAULT'
+    return matched ? `${matched.type}:${matched.id}` : 'NONE'
   }, [initialWorkoutId, initialWorkoutType, workoutOptions])
   const [selectedWorkoutKey, setSelectedWorkoutKey] = useState(initialSelection)
   const selectedWorkout = useMemo(
     () => workoutOptions.find((option) => `${option.type}:${option.id}` === selectedWorkoutKey),
     [selectedWorkoutKey, workoutOptions]
   )
-  const template = selectedWorkout?.template ?? defaultTemplate
-  const plan = useMemo(() => buildTeamCaptureLanePlan(members, { template, laneCount }), [laneCount, members, template])
-  const heatNumbers = Array.from(new Set(plan.participants.map((item) => item.heatNumber)))
-  const plannedLanes = Array.from(new Set(plan.participants.map((item) => item.laneNumber)))
+  const template = selectedWorkout?.template ?? (selectedWorkoutKey === 'DEFAULT' ? defaultTemplate : null)
+  const plan = useMemo(
+    () => (template ? buildTeamCaptureLanePlan(members, { template, laneCount }) : null),
+    [laneCount, members, template]
+  )
+  const heatNumbers = plan ? Array.from(new Set(plan.participants.map((item) => item.heatNumber))) : []
+  const plannedLanes = plan ? Array.from(new Set(plan.participants.map((item) => item.laneNumber))) : []
   const lanes = plannedLanes.length > 0 ? plannedLanes : Array.from({ length: 6 }, (_, index) => index + 1)
-  const receiverLaneCount = new Set(plan.stations.map((station) => station.laneNumber)).size || lanes.length || 6
-  const receiverStations = template.stations.filter((station) => station.captureMethod === 'BLUETOOTH_STATION')
-  const runOrManualStations = template.stations.filter((station) => station.captureMethod !== 'BLUETOOTH_STATION')
+  const receiverLaneCount = plan ? new Set(plan.stations.map((station) => station.laneNumber)).size || lanes.length || 6 : lanes.length || 6
+  const receiverStations = template?.stations.filter((station) => station.captureMethod === 'BLUETOOTH_STATION') ?? []
+  const runOrManualStations = template?.stations.filter((station) => station.captureMethod !== 'BLUETOOTH_STATION') ?? []
+  const plannedWorkoutMissing = plannedWorkoutRequested && !selectedWorkout
+  const selectedWorkoutMatchesInitial =
+    Boolean(
+      selectedWorkout &&
+      initialWorkoutId &&
+      selectedWorkout.id === initialWorkoutId &&
+      (!initialWorkoutType || selectedWorkout.type === initialWorkoutType.toUpperCase())
+    )
 
   const createSession = async () => {
+    if (!template) {
+      toast.error(text(locale, 'Choose a Team cardio workout first', 'Välj ett lagkonditionspass först'))
+      return
+    }
+
     setCreating(true)
     try {
       const response = await fetch(`/api/coach/teams/${teamId}/capture-sessions`, {
@@ -97,6 +117,7 @@ export function TeamCaptureLauncher({
         credentials: 'same-origin',
         body: JSON.stringify({
           name: `${teamName} ${template.name}`,
+          teamEventId: selectedWorkoutMatchesInitial ? initialTeamEventId ?? null : null,
           workoutType: selectedWorkout?.type ?? template.workoutType ?? 'HYBRID',
           workoutId: selectedWorkout?.id ?? null,
           workoutName: selectedWorkout?.name ?? template.workoutName ?? template.name,
@@ -126,7 +147,7 @@ export function TeamCaptureLauncher({
             {text(locale, 'Pick a saved Cardio/Hybrid workout, then start the lane-based team clock.', 'Välj ett sparat konditions-/hybridpass och starta sedan lagets klocka.')}
           </p>
         </div>
-        <Button onClick={createSession} disabled={creating || members.length === 0}>
+        <Button onClick={createSession} disabled={creating || members.length === 0 || !template}>
           <Play className="mr-2 h-4 w-4" />
           {creating ? text(locale, 'Creating...', 'Skapar...') : text(locale, 'Create team cardio', 'Skapa lagkondition')}
         </Button>
@@ -170,7 +191,12 @@ export function TeamCaptureLauncher({
               value={selectedWorkoutKey}
               onChange={(event) => setSelectedWorkoutKey(event.target.value)}
             >
-              <option value="DEFAULT">{text(locale, 'Default: BikeErg + RowErg + Run', 'Standard: BikeErg + RowErg + löpning')}</option>
+              <option value="NONE">
+                {plannedWorkoutMissing
+                  ? text(locale, 'Planned workout is not Team cardio-ready', 'Planerat pass passar inte för lagkondition')
+                  : text(locale, 'No Team cardio workout selected', 'Inget lagkonditionspass valt')}
+              </option>
+              <option value="DEFAULT">{text(locale, 'Manual default: BikeErg + RowErg + Run', 'Manuell standard: BikeErg + RowErg + löpning')}</option>
               {workoutOptions.map((option) => (
                 <option key={`${option.type}:${option.id}`} value={`${option.type}:${option.id}`}>
                   {option.type} · {option.name}
@@ -195,12 +221,20 @@ export function TeamCaptureLauncher({
             </select>
           </div>
           <div className="grid gap-2 md:grid-cols-4">
-            <PreflightBox label={text(locale, 'Rounds', 'Rundor')} value={String(template.roundCount)} />
-            <PreflightBox label={text(locale, 'Stations / lane', 'Stationer / bana')} value={String(template.stations.length)} />
-            <PreflightBox label={text(locale, 'Start delay', 'Startfördröjning')} value={formatShortDuration(plan.startIntervalSeconds)} />
-            <PreflightBox label={text(locale, 'Per player', 'Per spelare')} value={`${Math.round(plan.heatDurationSec / 60)} min`} />
+            <PreflightBox label={text(locale, 'Rounds', 'Rundor')} value={template ? String(template.roundCount) : '-'} />
+            <PreflightBox label={text(locale, 'Stations / lane', 'Stationer / bana')} value={template ? String(template.stations.length) : '-'} />
+            <PreflightBox label={text(locale, 'Start delay', 'Startfördröjning')} value={plan ? formatShortDuration(plan.startIntervalSeconds) : '-'} />
+            <PreflightBox label={text(locale, 'Per player', 'Per spelare')} value={plan ? `${Math.round(plan.heatDurationSec / 60)} min` : '-'} />
           </div>
         </div>
+
+        {!template && (
+          <div className="mt-4 rounded-md border border-dashed bg-muted/20 p-4 text-sm text-muted-foreground dark:border-white/10">
+            {plannedWorkoutMissing
+              ? text(locale, 'The planned workout for this day cannot be converted into Team cardio stations yet. Pick another Cardio/Hybrid workout or edit the plan.', 'Det planerade passet för dagen kan inte byggas om till lagkonditionsstationer ännu. Välj ett annat konditions-/hybridpass eller justera planen.')
+              : text(locale, 'No Team cardio workout is loaded for this day. Pick a capture-ready Cardio/Hybrid workout to build lanes and stations.', 'Inget lagkonditionspass är laddat för den här dagen. Välj ett capture-ready konditions-/hybridpass för att bygga banor och stationer.')}
+          </div>
+        )}
 
         <div className="mt-4 grid gap-3 md:grid-cols-2">
           <div className="rounded-md border p-3 dark:border-white/10">
@@ -234,6 +268,7 @@ export function TeamCaptureLauncher({
         </div>
       </div>
 
+      {template && plan ? (
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
         <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
           <div className="flex items-center justify-between border-b px-4 py-3 dark:border-white/10">
@@ -295,6 +330,7 @@ export function TeamCaptureLauncher({
           </div>
         </div>
       </div>
+      ) : null}
     </div>
   )
 }

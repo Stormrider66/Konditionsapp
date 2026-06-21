@@ -107,8 +107,9 @@ export function text(locale: Locale, svText: string, enText: string): string {
   return locale === 'sv' ? svText : enText
 }
 
-export function formatToday(locale: Locale): string {
-  return new Date().toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-GB', {
+export function formatToday(locale: Locale, dateValue?: string): string {
+  const date = dateValue ? new Date(dateValue) : new Date()
+  return date.toLocaleDateString(locale === 'sv' ? 'sv-SE' : 'en-GB', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

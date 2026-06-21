@@ -384,6 +384,70 @@ export async function loadTeamCaptureTemplateForWorkout(input: {
   return buildDefaultTeamCaptureTemplate()
 }
 
+export async function loadTeamCaptureWorkoutOption(input: {
+  coachId: string
+  teamId: string
+  businessId?: string
+  workoutType?: string | null
+  workoutId?: string | null
+}): Promise<CaptureWorkoutOption | null> {
+  const type = input.workoutType?.toUpperCase()
+  if (!input.workoutId || !type) return null
+
+  if (type === 'CARDIO') {
+    const session = await prisma.cardioSession.findFirst({
+      where: {
+        id: input.workoutId,
+        AND: [teamCaptureCardioSessionWhere(input)],
+      },
+      select: { id: true, name: true, sport: true, segments: true },
+    })
+    const template = session ? buildTeamCaptureTemplateFromCardioSession(session) : null
+    return session && template ? { id: session.id, type: 'CARDIO', name: session.name, template } : null
+  }
+
+  if (type === 'HYBRID') {
+    const workout = await prisma.hybridWorkout.findFirst({
+      where: {
+        id: input.workoutId,
+        AND: [teamCaptureHybridWorkoutWhere(input)],
+      },
+      select: {
+        id: true,
+        name: true,
+        format: true,
+        totalRounds: true,
+        restTime: true,
+        metconData: true,
+        movements: {
+          orderBy: { order: 'asc' },
+          select: {
+            order: true,
+            reps: true,
+            calories: true,
+            distance: true,
+            duration: true,
+            notes: true,
+            exercise: {
+              select: {
+                name: true,
+                nameSv: true,
+                nameEn: true,
+                equipment: true,
+                equipmentTypes: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    const template = workout ? buildTeamCaptureTemplateFromHybridWorkout(workout) : null
+    return workout && template ? { id: workout.id, type: 'HYBRID', name: workout.name, template } : null
+  }
+
+  return null
+}
+
 export async function listTeamCaptureWorkoutOptions(input: {
   coachId: string
   teamId: string
