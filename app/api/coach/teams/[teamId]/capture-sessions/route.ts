@@ -26,6 +26,7 @@ const createSchema = z.object({
   rowCalories: z.number().int().min(1).max(200).optional(),
   runDistanceMeters: z.number().int().min(10).max(5000).optional(),
   restBetweenRoundsSeconds: z.number().int().min(0).max(600).optional(),
+  startIntervalSeconds: z.number().int().min(5).max(1800).optional(),
   estimatedBikeSeconds: z.number().int().min(10).max(900).optional(),
   estimatedRowSeconds: z.number().int().min(10).max(900).optional(),
   estimatedRunSeconds: z.number().int().min(5).max(900).optional(),

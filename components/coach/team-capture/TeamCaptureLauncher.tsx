@@ -45,6 +45,13 @@ function text(locale: 'en' | 'sv', en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
 
+function formatShortDuration(seconds: number): string {
+  if (seconds % 60 === 0) return `${seconds / 60} min`
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return minutes > 0 ? `${minutes}:${String(remainingSeconds).padStart(2, '0')} min` : `${seconds} s`
+}
+
 export function TeamCaptureLauncher({
   businessSlug,
   teamId,
@@ -58,6 +65,7 @@ export function TeamCaptureLauncher({
 }: TeamCaptureLauncherProps) {
   const router = useRouter()
   const [creating, setCreating] = useState(false)
+  const [laneCount, setLaneCount] = useState(6)
   const defaultTemplate = useMemo(() => buildDefaultTeamCaptureTemplate(), [])
   const initialSelection = useMemo(() => {
     const matched = workoutOptions.find((option) =>
@@ -72,7 +80,7 @@ export function TeamCaptureLauncher({
     [selectedWorkoutKey, workoutOptions]
   )
   const template = selectedWorkout?.template ?? defaultTemplate
-  const plan = useMemo(() => buildTeamCaptureLanePlan(members, { template }), [members, template])
+  const plan = useMemo(() => buildTeamCaptureLanePlan(members, { template, laneCount }), [laneCount, members, template])
   const heatNumbers = Array.from(new Set(plan.participants.map((item) => item.heatNumber)))
   const plannedLanes = Array.from(new Set(plan.participants.map((item) => item.laneNumber)))
   const lanes = plannedLanes.length > 0 ? plannedLanes : Array.from({ length: 6 }, (_, index) => index + 1)
@@ -93,6 +101,7 @@ export function TeamCaptureLauncher({
           workoutId: selectedWorkout?.id ?? null,
           workoutName: selectedWorkout?.name ?? template.workoutName ?? template.name,
           participantIds: members.map((member) => member.id),
+          laneCount,
         }),
       })
       const payload = await response.json()
@@ -151,8 +160,8 @@ export function TeamCaptureLauncher({
       )}
 
       <div className="mb-4 rounded-lg border bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
-        <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-          <div>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_2fr]">
+          <div className="min-w-0">
             <label className="mb-2 block text-sm font-medium dark:text-white">
               {text(locale, 'Workout template', 'Passmall')}
             </label>
@@ -169,10 +178,27 @@ export function TeamCaptureLauncher({
               ))}
             </select>
           </div>
-          <div className="grid gap-2 md:grid-cols-3">
+          <div>
+            <label className="mb-2 block text-sm font-medium dark:text-white">
+              {text(locale, 'Start group', 'Startgrupp')}
+            </label>
+            <select
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm dark:border-white/10"
+              value={laneCount}
+              onChange={(event) => setLaneCount(Number(event.target.value))}
+            >
+              {Array.from({ length: 12 }, (_, index) => index + 1).map((count) => (
+                <option key={count} value={count}>
+                  {count} {text(locale, 'lanes', 'banor')}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grid gap-2 md:grid-cols-4">
             <PreflightBox label={text(locale, 'Rounds', 'Rundor')} value={String(template.roundCount)} />
             <PreflightBox label={text(locale, 'Stations / lane', 'Stationer / bana')} value={String(template.stations.length)} />
-            <PreflightBox label={text(locale, 'Per heat', 'Per heat')} value={`${Math.round(plan.heatDurationSec / 60)} min`} />
+            <PreflightBox label={text(locale, 'Start delay', 'Startfördröjning')} value={formatShortDuration(plan.startIntervalSeconds)} />
+            <PreflightBox label={text(locale, 'Per player', 'Per spelare')} value={`${Math.round(plan.heatDurationSec / 60)} min`} />
           </div>
         </div>
 
@@ -215,7 +241,7 @@ export function TeamCaptureLauncher({
               <Users className="h-4 w-4" />
               {text(locale, 'Startlist by lane', 'Startlista per bana')}
             </div>
-            <Badge variant="secondary">6 {text(locale, 'lanes', 'banor')}</Badge>
+            <Badge variant="secondary">{laneCount} {text(locale, 'lanes', 'banor')}</Badge>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
@@ -224,7 +250,7 @@ export function TeamCaptureLauncher({
                   <th className="px-4 py-2 text-left">{text(locale, 'Lane', 'Bana')}</th>
                   {heatNumbers.map((heat) => (
                     <th key={heat} className="px-4 py-2 text-left">
-                      {text(locale, 'Heat', 'Heat')} {heat}
+                      {text(locale, 'Start', 'Start')} {heat}
                     </th>
                   ))}
                 </tr>
@@ -262,10 +288,10 @@ export function TeamCaptureLauncher({
           </div>
           <div className="space-y-3 text-sm">
             <SetupRow label={text(locale, 'Players', 'Spelare')} value={String(members.length)} />
-            <SetupRow label={text(locale, 'Heats', 'Heat')} value={String(heatNumbers.length)} />
-            <SetupRow label={text(locale, 'Bluetooth receivers', 'Bluetoothmottagare')} value={String(receiverStations.length * 6)} />
+            <SetupRow label={text(locale, 'Start groups', 'Startgrupper')} value={String(heatNumbers.length)} />
+            <SetupRow label={text(locale, 'Bluetooth receivers', 'Bluetoothmottagare')} value={String(receiverStations.length * laneCount)} />
             <SetupRow label={text(locale, 'Workout', 'Pass')} value={template.name} />
-            <SetupRow label={text(locale, 'Planned time per heat', 'Planerad tid per heat')} value={`${Math.round(plan.heatDurationSec / 60)} min`} />
+            <SetupRow label={text(locale, 'Total planned time', 'Total planerad tid')} value={`${Math.round(plan.totalPlannedDurationSec / 60)} min`} />
           </div>
         </div>
       </div>

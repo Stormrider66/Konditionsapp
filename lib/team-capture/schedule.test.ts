@@ -21,8 +21,9 @@ describe('team capture lane schedule', () => {
 
     expect(plan.participants).toHaveLength(22)
     expect(plan.stations).toHaveLength(12)
-    expect(plan.heatDurationSec).toBe(10 * (75 + 75 + 45) + 9 * 60)
-    expect(plan.totalPlannedDurationSec).toBe(plan.heatDurationSec * 4)
+    expect(plan.startIntervalSeconds).toBe(60)
+    expect(plan.heatDurationSec).toBe(10 * (60 + 60 + 60) + 9 * 60)
+    expect(plan.totalPlannedDurationSec).toBe(plan.heatDurationSec + 3 * 60)
 
     expect(plan.participants[0]).toMatchObject({
       clientId: 'client-1',
@@ -35,7 +36,7 @@ describe('team capture lane schedule', () => {
       clientId: 'client-7',
       laneNumber: 1,
       heatNumber: 2,
-      expectedStartOffsetSec: plan.heatDurationSec,
+      expectedStartOffsetSec: 60,
     })
 
     const firstAthleteSegments = plan.segments.filter((segment) => segment.clientId === 'client-1')
@@ -45,6 +46,20 @@ describe('team capture lane schedule', () => {
       roundNumber: 10,
       machineType: 'RUN',
       targetDistanceMeters: 200,
+    })
+
+    const laneOneBikeSegments = plan.segments.filter(
+      (segment) => segment.laneNumber === 1 && segment.roundNumber === 1 && segment.equipmentKey === 'BIKE_ERG'
+    )
+    expect(laneOneBikeSegments[0]).toMatchObject({
+      clientId: 'client-1',
+      plannedStartSec: 0,
+      plannedEndSec: 60,
+    })
+    expect(laneOneBikeSegments[1]).toMatchObject({
+      clientId: 'client-7',
+      plannedStartSec: 60,
+      plannedEndSec: 120,
     })
   })
 
@@ -58,7 +73,7 @@ describe('team capture lane schedule', () => {
       restBetweenRoundsSeconds: 75,
     })
 
-    expect(plan.participants[3]).toMatchObject({ laneNumber: 1, heatNumber: 2 })
+    expect(plan.participants[3]).toMatchObject({ laneNumber: 1, heatNumber: 2, expectedStartOffsetSec: 60 })
     expect(plan.stations).toHaveLength(6)
 
     const labels = plan.segments

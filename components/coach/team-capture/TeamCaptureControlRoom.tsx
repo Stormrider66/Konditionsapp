@@ -383,7 +383,7 @@ export function TeamCaptureControlRoom({
               {sortedParticipants.map((participant) => (
                 <tr key={participant.id}>
                   <td className="px-4 py-3 tabular-nums dark:text-slate-100">
-                    H{participant.heatNumber} · {text(locale, 'Lane', 'Bana')} {participant.laneNumber}
+                    {text(locale, 'Start', 'Start')} {participant.heatNumber} · {text(locale, 'Lane', 'Bana')} {participant.laneNumber}
                   </td>
                   <td className="px-4 py-3 dark:text-slate-100">
                     <div className="font-medium">
@@ -513,7 +513,7 @@ export function TeamCaptureControlRoom({
                       </td>
                       <td className="px-4 py-3 tabular-nums dark:text-slate-100">
                         {currentSegment
-                          ? `H${currentSegment.heatNumber} · R${currentSegment.roundNumber}`
+                          ? `${text(locale, 'Start', 'Start')} ${currentSegment.heatNumber} · R${currentSegment.roundNumber}`
                           : '-'}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
@@ -649,7 +649,7 @@ export function TeamCaptureControlRoom({
                 return (
                   <tr key={segment.id} className={cn(segment.status === 'NO_DATA' && 'bg-red-50/60 dark:bg-red-950/20')}>
                     <td className="px-4 py-3 dark:text-slate-100">
-                      H{segment.heatNumber} · R{segment.roundNumber}
+                      {text(locale, 'Start', 'Start')} {segment.heatNumber} · R{segment.roundNumber}
                     </td>
                     <td className="px-4 py-3 dark:text-slate-100">{segment.laneNumber}</td>
                     <td className="px-4 py-3 dark:text-slate-100">{labelFromEquipmentKey(segment.equipmentKey ?? segment.machineType)}</td>

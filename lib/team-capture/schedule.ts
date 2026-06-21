@@ -20,6 +20,7 @@ export interface TeamCaptureSessionOptions {
   rowCalories?: number
   runDistanceMeters?: number
   restBetweenRoundsSeconds?: number
+  startIntervalSeconds?: number
   estimatedBikeSeconds?: number
   estimatedRowSeconds?: number
   estimatedRunSeconds?: number
@@ -102,6 +103,7 @@ export interface TeamCaptureLanePlan {
   participants: TeamCaptureParticipantPlan[]
   stations: TeamCaptureStationPlan[]
   segments: TeamCaptureSegmentPlan[]
+  startIntervalSeconds: number
   heatDurationSec: number
   totalPlannedDurationSec: number
 }
@@ -113,6 +115,7 @@ export const DEFAULT_TEAM_CAPTURE_OPTIONS = {
   rowCalories: 20,
   runDistanceMeters: 200,
   restBetweenRoundsSeconds: 60,
+  startIntervalSeconds: 60,
   estimatedBikeSeconds: 75,
   estimatedRowSeconds: 75,
   estimatedRunSeconds: 45,
@@ -128,6 +131,7 @@ export function withTeamCaptureDefaults(
     rowCalories: clampInt(options.rowCalories, DEFAULT_TEAM_CAPTURE_OPTIONS.rowCalories, 1, 200),
     runDistanceMeters: clampInt(options.runDistanceMeters, DEFAULT_TEAM_CAPTURE_OPTIONS.runDistanceMeters, 10, 5000),
     restBetweenRoundsSeconds: clampInt(options.restBetweenRoundsSeconds, DEFAULT_TEAM_CAPTURE_OPTIONS.restBetweenRoundsSeconds, 0, 600),
+    startIntervalSeconds: clampInt(options.startIntervalSeconds, DEFAULT_TEAM_CAPTURE_OPTIONS.startIntervalSeconds, 5, 1800),
     estimatedBikeSeconds: clampInt(options.estimatedBikeSeconds, DEFAULT_TEAM_CAPTURE_OPTIONS.estimatedBikeSeconds, 10, 900),
     estimatedRowSeconds: clampInt(options.estimatedRowSeconds, DEFAULT_TEAM_CAPTURE_OPTIONS.estimatedRowSeconds, 10, 900),
     estimatedRunSeconds: clampInt(options.estimatedRunSeconds, DEFAULT_TEAM_CAPTURE_OPTIONS.estimatedRunSeconds, 5, 900),
@@ -171,12 +175,14 @@ export function buildDefaultTeamCaptureTemplate(options: TeamCaptureSessionOptio
 export function buildTeamCaptureStructure(options: TeamCaptureSessionOptions = {}) {
   const defaults = withTeamCaptureDefaults(options)
   const template = options.template ?? buildDefaultTeamCaptureTemplate(defaults)
+  const startIntervalSeconds = resolveStartIntervalSeconds(template, defaults.startIntervalSeconds)
   return {
     version: 2,
-    mode: 'FIXED_LANES',
+    mode: 'WAVE_START_FIXED_LANES',
     identity: 'STARTLIST_TIMING',
     laneCount: defaults.laneCount,
     roundCount: template.roundCount,
+    startIntervalSeconds,
     stations: template.stations,
     restBetweenRoundsSeconds: template.restBetweenRoundsSeconds,
     templateSource: template.source,
@@ -189,7 +195,8 @@ export function buildTeamCaptureLanePlan(
 ): TeamCaptureLanePlan {
   const defaults = withTeamCaptureDefaults(options)
   const template = options.template ?? buildDefaultTeamCaptureTemplate(defaults)
-  const roundWorkSec = template.stations.reduce((sum, station) => sum + station.estimatedSeconds, 0)
+  const startIntervalSeconds = resolveStartIntervalSeconds(template, defaults.startIntervalSeconds)
+  const roundWorkSec = template.stations.reduce((sum, station) => sum + stationSlotSeconds(station, startIntervalSeconds), 0)
   const heatDurationSec =
     template.roundCount * roundWorkSec +
     Math.max(0, template.roundCount - 1) * template.restBetweenRoundsSeconds
@@ -204,7 +211,7 @@ export function buildTeamCaptureLanePlan(
       laneNumber,
       heatNumber,
       startOrder: index + 1,
-      expectedStartOffsetSec: (heatNumber - 1) * heatDurationSec,
+      expectedStartOffsetSec: (heatNumber - 1) * startIntervalSeconds,
     }
   })
 
@@ -231,6 +238,7 @@ export function buildTeamCaptureLanePlan(
         (roundNumber - 1) * (roundWorkSec + template.restBetweenRoundsSeconds)
       let cursor = roundBase
       for (const station of template.stations) {
+        const durationSec = stationSlotSeconds(station, startIntervalSeconds)
         out.push({
           clientId: participant.clientId,
           laneNumber: participant.laneNumber,
@@ -243,13 +251,13 @@ export function buildTeamCaptureLanePlan(
           captureMethod: station.captureMethod,
           label: `Round ${roundNumber} ${targetLabel(station)}`,
           plannedStartSec: cursor,
-          plannedEndSec: cursor + station.estimatedSeconds,
+          plannedEndSec: cursor + durationSec,
           targetCalories: station.targetCalories,
           targetDistanceMeters: station.targetDistanceMeters,
-          targetDurationSec: station.targetDurationSec ?? station.estimatedSeconds,
+          targetDurationSec: station.targetDurationSec ?? durationSec,
           targetPower: station.targetPower,
         })
-        cursor += station.estimatedSeconds
+        cursor += durationSec
       }
       if (roundNumber < template.roundCount && template.restBetweenRoundsSeconds > 0) {
         const rest = createStationTemplate({
@@ -283,8 +291,9 @@ export function buildTeamCaptureLanePlan(
     participants,
     stations,
     segments,
+    startIntervalSeconds,
     heatDurationSec,
-    totalPlannedDurationSec: heatCount * heatDurationSec,
+    totalPlannedDurationSec: Math.max(0, heatCount - 1) * startIntervalSeconds + heatDurationSec,
   }
 }
 
@@ -346,6 +355,24 @@ function formatDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+function resolveStartIntervalSeconds(
+  template: TeamCaptureTemplate,
+  requestedStartIntervalSeconds: number
+): number {
+  const longestExplicitBluetoothStation = template.stations
+    .filter((station) => station.captureMethod === 'BLUETOOTH_STATION')
+    .reduce((longest, station) => Math.max(longest, station.targetDurationSec ?? 0), 0)
+
+  return Math.max(requestedStartIntervalSeconds, longestExplicitBluetoothStation)
+}
+
+function stationSlotSeconds(
+  station: TeamCaptureStationTemplate,
+  startIntervalSeconds: number
+): number {
+  return station.targetDurationSec ?? startIntervalSeconds
 }
 
 function targetLabel(station: TeamCaptureStationTemplate): string {
