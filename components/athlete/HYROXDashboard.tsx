@@ -15,6 +15,7 @@ import {
   Activity
 } from 'lucide-react'
 import { HyroxRaceAnalysisCard } from './HyroxRaceAnalysisCard'
+import { HyroxRaceTracker } from './hyrox/HyroxRaceTracker'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 
 interface HYROXSettings {
@@ -282,6 +283,8 @@ export function HYROXDashboard({ settings, gender }: HYROXDashboardProps) {
                      settings.experienceLevel === 'advanced' ? 'advanced' :
                      settings.experienceLevel === 'intermediate' ? 'intermediate' : 'beginner'}
       />
+
+      <HyroxRaceTracker gender={gender} />
 
       {/* Running Stats */}
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>

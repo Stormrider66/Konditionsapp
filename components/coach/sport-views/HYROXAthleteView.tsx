@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,7 +8,7 @@ import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Clock, Target, TrendingUp, TrendingDown, AlertCircle, Calculator, Play } from 'lucide-react'
+import { Activity, Clock, Gauge, HeartPulse, Target, TrendingUp, TrendingDown, AlertCircle, Calculator, Play } from 'lucide-react'
 import { useWorkoutThemeOptional, MINIMALIST_WHITE_THEME } from '@/lib/themes'
 import { SportTestHistory } from '@/components/tests/shared'
 
@@ -76,6 +76,183 @@ function formatRunTime(seconds: number): string {
 
 // Race simulation constants
 const ROXZONE_ESTIMATE = 15 // Average roxzone transition time in seconds
+
+interface HyroxEvaluationSummary {
+  id: string
+  startedAt: string
+  summary: {
+    name?: string
+    type?: string
+    durationSec?: number
+    avgHr?: number
+    maxHr?: number
+    hyrox?: {
+      status?: string
+      mode?: string
+      raceType?: string
+      expectedLapCount?: number
+      actualLapCount?: number
+      performance?: {
+        hyroxStations?: Record<string, number>
+        hyroxRunSplits?: number[]
+        hyroxTotalTime?: number
+        roxzoneTime?: number
+        stationTime?: number
+        runningTime?: number
+      }
+    }
+  }
+  fatigueSummary?: {
+    level?: string
+    score?: number
+    paceDropPct?: number
+    highIntensitySeconds?: number
+  }
+  confidence?: string
+}
+
+const HYROX_STATION_REVIEW_LABELS: Record<string, string> = {
+  skiErg: 'SkiErg',
+  sledPush: 'Sled Push',
+  sledPull: 'Sled Pull',
+  burpeeBroadJump: 'Burpee Broad Jump',
+  rowing: 'Row',
+  farmersCarry: "Farmer's Carry",
+  sandbagLunge: 'Sandbag Lunge',
+  wallBalls: 'Wall Balls',
+}
+
+function HYROXEvaluationReviewCard({ clientId }: { clientId: string }) {
+  const locale = useLocale()
+  const isSv = locale === 'sv'
+  const t = (sv: string, en: string) => isSv ? sv : en
+  const themeContext = useWorkoutThemeOptional()
+  const theme = themeContext?.appTheme || MINIMALIST_WHITE_THEME
+  const [evaluation, setEvaluation] = useState<HyroxEvaluationSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadEvaluation() {
+      setLoading(true)
+      try {
+        const response = await fetch(`/api/clients/${clientId}/workout-evaluations?days=365&limit=50`, { cache: 'no-store' })
+        const json = await response.json()
+        if (!response.ok || !json.success) throw new Error(json.error || 'Failed')
+        const latest = (json.data || []).find((item: HyroxEvaluationSummary) =>
+          item.summary?.type === 'HYROX' || item.summary?.hyrox
+        )
+        if (!cancelled) setEvaluation(latest ?? null)
+      } catch {
+        if (!cancelled) setEvaluation(null)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    void loadEvaluation()
+    return () => {
+      cancelled = true
+    }
+  }, [clientId])
+
+  const performance = evaluation?.summary?.hyrox?.performance
+  const stationEntries = Object.entries(performance?.hyroxStations ?? {})
+  const weakestStation = stationEntries.length > 0
+    ? stationEntries.reduce((slowest, current) => current[1] > slowest[1] ? current : slowest)
+    : null
+  const strongestStation = stationEntries.length > 0
+    ? stationEntries.reduce((fastest, current) => current[1] < fastest[1] ? current : fastest)
+    : null
+
+  return (
+    <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
+      <CardHeader className="pb-2">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
+              <Gauge className="h-5 w-5 text-orange-500" />
+              {t('Senaste HYROX-utvärdering', 'Latest HYROX evaluation')}
+            </CardTitle>
+            <CardDescription style={{ color: theme.colors.textMuted }}>
+              {t('Garmin-varv, stationstider, Roxzone och pulsrespons', 'Garmin laps, station times, Roxzone, and HR response')}
+            </CardDescription>
+          </div>
+          {evaluation?.summary?.hyrox?.status && (
+            <Badge variant={evaluation.summary.hyrox.status === 'CONFIRMED' ? 'default' : 'secondary'}>
+              {evaluation.summary.hyrox.status}
+            </Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <p className="text-sm" style={{ color: theme.colors.textMuted }}>{t('Läser HYROX-data...', 'Loading HYROX data...')}</p>
+        ) : !evaluation ? (
+          <p className="text-sm" style={{ color: theme.colors.textMuted }}>
+            {t('Inga importerade HYROX-race eller simuleringar ännu.', 'No imported HYROX races or simulations yet.')}
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.colors.border }}>
+                <Clock className="mb-1 h-4 w-4" style={{ color: theme.colors.textMuted }} />
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Total tid', 'Total time')}</p>
+                <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
+                  {formatTime(Math.round(performance?.hyroxTotalTime ?? evaluation.summary.durationSec ?? 0))}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.colors.border }}>
+                <Activity className="mb-1 h-4 w-4" style={{ color: theme.colors.textMuted }} />
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>Roxzone</p>
+                <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
+                  {formatTime(Math.round(performance?.roxzoneTime ?? 0))}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.colors.border }}>
+                <HeartPulse className="mb-1 h-4 w-4" style={{ color: theme.colors.textMuted }} />
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Puls', 'Heart rate')}</p>
+                <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
+                  {evaluation.summary.avgHr ? `${Math.round(evaluation.summary.avgHr)} / ${Math.round(evaluation.summary.maxHr ?? evaluation.summary.avgHr)}` : '-'}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.colors.border }}>
+                <TrendingDown className="mb-1 h-4 w-4" style={{ color: theme.colors.textMuted }} />
+                <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Fatigue', 'Fatigue')}</p>
+                <p className="font-semibold" style={{ color: theme.colors.textPrimary }}>
+                  {evaluation.fatigueSummary?.level ?? '-'}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.colors.border }}>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>{t('Stationer', 'Stations')}</p>
+                <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                  {stationEntries.map(([key, seconds]) => (
+                    <div key={key} className="flex justify-between gap-2">
+                      <span style={{ color: theme.colors.textMuted }}>{HYROX_STATION_REVIEW_LABELS[key] ?? key}</span>
+                      <span style={{ color: theme.colors.textPrimary }}>{formatTime(Math.round(seconds))}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="rounded-lg border p-3" style={{ borderColor: theme.colors.border }}>
+                <p className="text-sm font-medium" style={{ color: theme.colors.textPrimary }}>{t('Analys', 'Analysis')}</p>
+                <div className="mt-2 space-y-2 text-sm" style={{ color: theme.colors.textMuted }}>
+                  <p>{t('Starkast:', 'Strongest:')} {strongestStation ? HYROX_STATION_REVIEW_LABELS[strongestStation[0]] ?? strongestStation[0] : '-'}</p>
+                  <p>{t('Behöver mest tid:', 'Most time spent:')} {weakestStation ? HYROX_STATION_REVIEW_LABELS[weakestStation[0]] ?? weakestStation[0] : '-'}</p>
+                  <p>{t('Löpningar:', 'Runs:')} {performance?.hyroxRunSplits?.length ?? 0} · {t('Pace drop:', 'Pace drop:')} {evaluation.fatigueSummary?.paceDropPct ?? 0}%</p>
+                  <p>{t('Källa:', 'Source:')} {evaluation.confidence ?? '-'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
 
 export function HYROXAthleteView({ clientId, clientName: _clientName, settings }: HYROXAthleteViewProps) {
   const locale = useLocale()
@@ -270,6 +447,8 @@ export function HYROXAthleteView({ clientId, clientName: _clientName, settings }
           </div>
         </CardContent>
       </Card>
+
+      <HYROXEvaluationReviewCard clientId={clientId} />
 
       {/* Station Times Grid */}
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>

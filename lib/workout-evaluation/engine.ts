@@ -1210,7 +1210,10 @@ export async function recalculateWorkoutEvaluationsForClient(
       where: {
         clientId: input.clientId,
         startedAt: { gte: startDate, lt: endDate },
-        ...(dedupeKeys.length > 0 ? { dedupeKey: { notIn: dedupeKeys } } : {}),
+        dedupeKey: {
+          startsWith: `${input.clientId}:workout:`,
+          ...(dedupeKeys.length > 0 ? { notIn: dedupeKeys } : {}),
+        },
       },
     })
     deleted = deleteResult.count
