@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Plus, Radio, TabletSmartphone } from 'lucide-react'
+import { Dumbbell, Plus, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { TeamActionInbox, type TeamActionSignals } from './TeamActionInbox'
 import { TeamSchedulePane, type ScheduleEvent, type Locale } from './TeamSchedulePane'
@@ -330,8 +330,8 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
         />
         <Button asChild type="button" variant="outline">
           <Link href={`/${businessSlug}/coach/teams/${teamId}/kiosk`}>
-            <TabletSmartphone className="mr-1.5 h-4 w-4" />
-            Focus mode
+            <Dumbbell className="mr-1.5 h-4 w-4" />
+            {locale === 'sv' ? 'Lagstyrka' : 'Team strength'}
           </Link>
         </Button>
         <Button asChild type="button" variant="outline">

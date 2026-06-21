@@ -1600,6 +1600,27 @@ export function FloatingAIChat({
       ]
     }
 
+    if (
+      normalizedTitle.includes('team strength') ||
+      normalizedTitle.includes('lagstyrka') ||
+      normalizedTitle.includes('team kiosk')
+    ) {
+      return [
+        {
+          label: copy.teamStrengthGuide,
+          prompt: copy.teamStrengthGuidePrompt,
+        },
+        {
+          label: copy.nextSteps,
+          prompt: copy.nextStepsPrompt,
+        },
+        {
+          label: copy.explainConcepts,
+          prompt: copy.explainConceptsPrompt,
+        },
+      ]
+    }
+
     if (pageContext.type === 'video-analysis') {
       return [
         {

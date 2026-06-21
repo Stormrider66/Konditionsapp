@@ -301,6 +301,7 @@ You can answer questions about how this platform works (features, navigation, st
 
 ## TEAM CARDIO, GARMIN, AND SENSOR INTEGRATIONS
 Trainomics has a Team cardio (formerly Team Capture) and Workout Evaluation workflow for team hybrid/interval sessions.
+- Team strength is the shared team strength logging screen where athletes choose their name and log assigned strength sets from one tablet or shared computer.
 - When the coach asks how Team cardio, Team Capture, Garmin, Concept2, PM5, Wattbike, Bluetooth, HR belts, station receivers, indoor running, source confidence, or workout evaluation works: use getTrainingCaptureGuide before answering unless the page context already gives the exact answer.
 - Team cardio starts one master clock for the group, builds lane/start-group/round/station timing from Cardio or Hybrid builder templates, and assigns station data to athletes by lane plus planned time window.
 - Supported capture equipment keys include BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ASSAULT_BIKE, ECHO_BIKE, AIR_BIKE, RUN, and REST.
@@ -310,6 +311,7 @@ Trainomics has a Team cardio (formerly Team Capture) and Workout Evaluation work
 - Indoor running can be handled with planned distance plus Garmin lap or manual split timing; do not claim GPS is precise indoors unless there is a dedicated indoor sensor source.
 - Browser Bluetooth is limited, especially on iPad/Safari. Recommend native station receiver apps or Android/Chrome fallback for reliable machine capture.
 - If the coach asks to open the setup page, use suggestCoachNavigation with destination teamCapture and a team when possible.
+- If the coach asks to open Team strength, Lagstyrka, or the shared strength logging screen, use suggestCoachNavigation with destination teamStrength and a team when possible.
 - Be clear about source confidence: exact focus/team timing plus stream data is high confidence; Garmin/PM5 matched by time overlap is medium; workout-level averages/manual splits are lower confidence.
 
 ${visibleActionResponsePolicy(locale)}
@@ -450,6 +452,7 @@ Use tools proactively:
 - "Give me an AMRAP" -> createHybridWorkout.
 - "How does Team cardio work with Garmin and Concept2?" -> getTrainingCaptureGuide.
 - "Open Team cardio for Skellefteå" -> suggestCoachNavigation with destination teamCapture + teamName.
+- "Open Team strength for Skellefteå" -> suggestCoachNavigation with destination teamStrength + teamName.
 - "I need a football session" -> createSportWorkout with agility, conditioning, and strength.
 - "Create a HYROX session" -> createHybridWorkout or createCardioSession depending on the main structure.
 - "Create a team cardio / station hybrid workout" -> createCardioSession or createHybridWorkout with captureReady=true and explicit equipment keys such as BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ECHO_BIKE, ASSAULT_BIKE, RUN.
@@ -537,6 +540,7 @@ Du kan svara på frågor om hur plattformen fungerar (funktioner, navigering, st
 
 ## LAGKONDITION, GARMIN OCH SENSORINTEGRATIONER
 Trainomics har ett Lagkondition-flöde (tidigare Team Capture) och Workout Evaluation för lagbaserade hybrid-/intervallpass.
+- Lagstyrka är lagets gemensamma styrkeloggningssida där spelare väljer sitt namn och loggar tilldelade styrkeset från en platta eller gemensam dator.
 - När coachen frågar hur Lagkondition, Team Capture, Garmin, Concept2, PM5, Wattbike, Bluetooth, pulsband, station receivers, inomhuslöpning, source confidence eller workout evaluation fungerar: använd getTrainingCaptureGuide innan du svarar om inte sidkontexten redan ger det exakta svaret.
 - Lagkondition startar en gemensam masterklocka för gruppen, bygger bana/startgrupp/runda/station från Cardio- eller Hybridmallar och kopplar stationsdata till atleter via bana plus planerat tidsfönster.
 - Stödda equipment keys är BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ASSAULT_BIKE, ECHO_BIKE, AIR_BIKE, RUN och REST.
@@ -546,6 +550,7 @@ Trainomics har ett Lagkondition-flöde (tidigare Team Capture) och Workout Evalu
 - Inomhuslöpning kan hanteras med planerad distans plus Garmin lap eller manuell split; påstå inte att GPS är exakt inomhus om ingen särskild inomhussensor finns.
 - Browser-Bluetooth är begränsat, särskilt på iPad/Safari. Rekommendera native station receiver-appar eller Android/Chrome fallback för stabil maskinfångst.
 - Om coachen vill öppna upplägget: använd suggestCoachNavigation med destination teamCapture och ett lag när det går.
+- Om coachen vill öppna Lagstyrka eller gemensam styrkeloggning: använd suggestCoachNavigation med destination teamStrength och ett lag när det går.
 - Var tydlig med source confidence: exakt focus/team timing plus stream-data är hög confidence; Garmin/PM5 matchat via tidsöverlapp är medium; snittvärden/manuella splits är lägre confidence.
 
 ${visibleActionResponsePolicy(locale)}
@@ -791,6 +796,7 @@ Förbered ett meddelande till en atlet, ett lag eller en filtrerad grupp i ett l
 - "Ge mig ett AMRAP" → createHybridWorkout
 - "Hur fungerar Lagkondition med Garmin och Concept2?" → getTrainingCaptureGuide
 - "Öppna Lagkondition för Skellefteå" → suggestCoachNavigation med destination teamCapture + teamName
+- "Öppna Lagstyrka för Skellefteå" → suggestCoachNavigation med destination teamStrength + teamName
 - "Jag behöver ett fotbollspass" → createSportWorkout (med agility + kondition + styrka)
 - "Skapa ett HYROX-pass" → createHybridWorkout (FOR_TIME/CHIPPER) eller createCardioSession (REPEAT_GROUP)
 - "Skapa ett lagkonditionspass / station-baserat hybridpass" → createCardioSession eller createHybridWorkout med captureReady=true och tydliga equipment keys som BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ECHO_BIKE, ASSAULT_BIKE, RUN

@@ -98,6 +98,16 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
       { id: 'team-capture-review', title: 'Post-session review och Workout Evaluation', conceptKey: 'tss' },
     ],
   },
+  'coach/teams/[id]/kiosk': {
+    pageTitle: 'Lagstyrka',
+    description: 'Lagbaserad styrkesida där spelare väljer sitt namn på en gemensam skärm och loggar dagens tilldelade styrkepass, set, belastning, reps och pass-RPE.',
+    concepts: ['oneRM', 'readiness', 'tss'],
+    cards: [
+      { id: 'team-strength-roster', title: 'Spelarlista och dagens styrkepass' },
+      { id: 'team-strength-logging', title: 'Setloggning med vikt, reps och RPE', conceptKey: 'oneRM' },
+      { id: 'team-strength-progress', title: 'Genomförande och status' },
+    ],
+  },
   'coach/teams/[id]/multivariate': {
     pageTitle: 'Hockey multivariate analysis',
     description: 'MVA/SIMCA-vy för teamdata. Används för PCA/PLS/SIMCA-arbete med hockeyvariabler, outliers, score/loadings, VIP, positionkluster och export/import av analysartefakter.',
@@ -390,6 +400,15 @@ const PAGE_CONTEXT_EN: Record<string, PageContextText> = {
       { id: 'team-capture-lanes', title: 'Lanes, start groups, and startlist' },
       { id: 'team-capture-receivers', title: 'Bluetooth station receivers' },
       { id: 'team-capture-review', title: 'Post-session review and Workout Evaluation' },
+    ],
+  },
+  'coach/teams/[id]/kiosk': {
+    pageTitle: 'Team strength',
+    description: 'Team strength page where players choose their name on a shared screen and log today’s assigned strength workout, sets, load, reps, and session RPE.',
+    cards: [
+      { id: 'team-strength-roster', title: 'Player roster and today’s strength work' },
+      { id: 'team-strength-logging', title: 'Set logging with weight, reps, and RPE' },
+      { id: 'team-strength-progress', title: 'Completion and status' },
     ],
   },
   'coach/teams/[id]/multivariate': {

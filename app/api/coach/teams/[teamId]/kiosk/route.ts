@@ -150,9 +150,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
         { status: 401 }
       )
     }
-    console.error('Error loading team kiosk:', error)
+    console.error('Error loading team strength:', error)
     return NextResponse.json(
-      { success: false, error: t(locale, 'Failed to load kiosk', 'Kunde inte ladda kiosk-läget') },
+      { success: false, error: t(locale, 'Failed to load team strength', 'Kunde inte ladda lagstyrka') },
       { status: 500 }
     )
   }

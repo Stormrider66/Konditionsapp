@@ -124,6 +124,7 @@ export type CoachNavigationDestination =
   | 'athleteEdit'
   | 'teamDashboard'
   | 'teamCalendar'
+  | 'teamStrength'
   | 'teamCapture'
   | 'teamTests'
 

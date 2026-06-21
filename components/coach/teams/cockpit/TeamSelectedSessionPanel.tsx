@@ -9,7 +9,6 @@ import {
   Dumbbell,
   MapPin,
   Printer,
-  TabletSmartphone,
   UserCheck,
   Users,
   X,
@@ -265,7 +264,7 @@ export function TeamSelectedSessionPanel({
           </Button>
           <Button asChild variant="outline" size="sm" className="justify-start">
             <Link href={`/${businessSlug}/coach/teams/${teamId}/kiosk`}>
-              <TabletSmartphone className="h-4 w-4" />
+              <Dumbbell className="h-4 w-4" />
               {t('focus')}
             </Link>
           </Button>

@@ -144,7 +144,12 @@ export function TeamKioskClient({
             </Link>
           </Button>
           <div className="min-w-0">
-            <p className="truncate text-lg font-semibold">{teamName}</p>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <p className="truncate text-lg font-semibold">{teamName}</p>
+              <Badge variant="secondary" className="bg-white/10 text-slate-100">
+                {text(locale, 'Lagstyrka', 'Team strength')}
+              </Badge>
+            </div>
             <p className="text-xs text-slate-400">{formatToday(locale)}</p>
           </div>
         </div>

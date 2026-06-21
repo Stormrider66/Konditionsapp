@@ -53,6 +53,7 @@ export function createNavigationTools(ctx: CoachToolContext) {
           'athleteEdit',
           'teamDashboard',
           'teamCalendar',
+          'teamStrength',
           'teamCapture',
           'teamTests',
         ]).describe('Target coach page.'),
@@ -73,6 +74,7 @@ export function createNavigationTools(ctx: CoachToolContext) {
           const teamDestinations = new Set<CoachNavigationDestination>([
             'teamDashboard',
             'teamCalendar',
+            'teamStrength',
             'teamCapture',
             'teamTests',
           ])
@@ -193,6 +195,11 @@ export function createNavigationTools(ctx: CoachToolContext) {
                 href: `/coach/teams/${team.id}/calendar`,
                 label: toolText(locale, `Open ${team.name}'s calendar`, `Öppna ${team.name}s kalender`),
                 description: toolText(locale, 'Team calendar', 'Lagets kalender'),
+              },
+              teamStrength: {
+                href: `/coach/teams/${team.id}/kiosk`,
+                label: toolText(locale, `Open ${team.name}'s Team strength`, `Öppna ${team.name}s lagstyrka`),
+                description: toolText(locale, 'Team strength shared logging screen', 'Lagstyrka för gemensam styrkeloggning'),
               },
               teamCapture: {
                 href: `/coach/teams/${team.id}/capture`,
