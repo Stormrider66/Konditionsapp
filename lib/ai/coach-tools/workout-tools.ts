@@ -39,8 +39,8 @@ export function createWorkoutTools(ctx: CoachToolContext) {
         name: z.string().describe('Session name in the coach chat language.'),
         description: z.string().optional().describe('Short description in the coach chat language.'),
         sport: z.enum(CARDIO_TOOL_SPORTS).default('RUNNING').describe('Sport/activity. Use TEAM_ICE_HOCKEY for hockey-specific 7x40/RSA/shift repeats, TEAM_BASKETBALL for court repeats, TENNIS/PADEL for point intervals, and the corresponding sport for other team sports.'),
-        teamId: z.string().optional().describe('Optional team ID when this workout should be team-capture ready for a specific team.'),
-        captureReady: z.boolean().optional().describe('Set true when the coach wants to use this workout in Team Capture. Use explicit equipment fields on station steps.'),
+        teamId: z.string().optional().describe('Optional team ID when this workout should be Team cardio ready for a specific team.'),
+        captureReady: z.boolean().optional().describe('Set true when the coach wants to use this workout in Team cardio. Use explicit equipment fields on station steps.'),
         segments: z.array(z.object({
           type: z.enum(['WARMUP', 'COOLDOWN', 'INTERVAL', 'STEADY', 'RECOVERY', 'HILL', 'DRILLS', 'REPEAT_GROUP']).describe('Segment type.'),
           duration: z.number().optional().describe('Time in seconds.'),
@@ -120,8 +120,8 @@ export function createWorkoutTools(ctx: CoachToolContext) {
             teamCaptureUrl: teamCaptureHref(resolvedTeamId, 'CARDIO', session.id),
             message: toolText(
               locale,
-              `Cardio session "${name}" was created and saved in Cardio Studio.${distanceKm ? ` Total distance: ${distanceKm} km.` : ''} Total time: ${durationMin} min.${captureReady ? ' It is ready for Team Capture.' : ''}`,
-              `Konditionspass "${name}" skapat och sparat i Cardio Studio.${distanceKm ? ` Total distans: ${distanceKm} km.` : ''} Total tid: ${durationMin} min.${captureReady ? ' Det är redo för lagfångst.' : ''}`
+              `Cardio session "${name}" was created and saved in Cardio Studio.${distanceKm ? ` Total distance: ${distanceKm} km.` : ''} Total time: ${durationMin} min.${captureReady ? ' It is ready for Team cardio.' : ''}`,
+              `Konditionspass "${name}" skapat och sparat i Cardio Studio.${distanceKm ? ` Total distans: ${distanceKm} km.` : ''} Total tid: ${durationMin} min.${captureReady ? ' Det är redo för lagkondition.' : ''}`
             ),
           }
         } catch (error) {
@@ -150,8 +150,8 @@ export function createWorkoutTools(ctx: CoachToolContext) {
         totalRounds: z.number().optional().describe('Number of rounds.'),
         totalMinutes: z.number().optional().describe('Total time in minutes (for AMRAP/EMOM).'),
         repScheme: z.string().optional().describe('Rep scheme, for example "21-15-9" or "5-5-5-5-5".'),
-        teamId: z.string().optional().describe('Optional team ID when this workout should be team-capture ready for a specific team.'),
-        captureReady: z.boolean().optional().describe('Set true when the coach wants to start Team Capture from this workout. Use explicit equipment on station movements.'),
+        teamId: z.string().optional().describe('Optional team ID when this workout should be Team cardio ready for a specific team.'),
+        captureReady: z.boolean().optional().describe('Set true when the coach wants to start Team cardio from this workout. Use explicit equipment on station movements.'),
         movements: z.array(z.object({
           exerciseName: z.string().describe('Exercise name in English or Swedish.'),
           equipment: z.string().optional().describe('Equipment key such as BIKE_ERG, ROW, SKI_ERG, WATTBIKE, ECHO_BIKE, ASSAULT_BIKE, RUN.'),
@@ -248,8 +248,8 @@ export function createWorkoutTools(ctx: CoachToolContext) {
             teamCaptureUrl: teamCaptureHref(resolvedTeamId, 'HYBRID', workout.id),
             message: toolText(
               locale,
-              `Hybrid session "${name}" (${format}) was created with ${movements.length} movements and saved in Hybrid Studio.${captureReady ? ' It is ready for Team Capture.' : ''}`,
-              `Hybridpass "${name}" (${format}) skapat med ${movements.length} övningar och sparat i Hybrid Studio.${captureReady ? ' Det är redo för lagfångst.' : ''}`
+              `Hybrid session "${name}" (${format}) was created with ${movements.length} movements and saved in Hybrid Studio.${captureReady ? ' It is ready for Team cardio.' : ''}`,
+              `Hybridpass "${name}" (${format}) skapat med ${movements.length} övningar och sparat i Hybrid Studio.${captureReady ? ' Det är redo för lagkondition.' : ''}`
             ),
           }
         } catch (error) {

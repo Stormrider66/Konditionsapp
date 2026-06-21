@@ -337,7 +337,7 @@ export function TeamCockpit({ teamId, teamName, businessSlug, locale, members, a
         <Button asChild type="button" variant="outline">
           <Link href={`/${businessSlug}/coach/teams/${teamId}/capture`}>
             <Radio className="mr-1.5 h-4 w-4" />
-            {locale === 'sv' ? 'Lagfångst' : 'Capture mode'}
+            {locale === 'sv' ? 'Lagkondition' : 'Team cardio'}
           </Link>
         </Button>
         <Button type="button" onClick={() => setAssignTarget({})}>

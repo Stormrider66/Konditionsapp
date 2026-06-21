@@ -252,10 +252,10 @@ export function TeamCaptureControlRoom({
       })
       const payload = await response.json()
       if (!response.ok || !payload.success) throw new Error(payload.error || 'Failed')
-      toast.success(text(locale, 'Capture resolved into athlete evaluations', 'Fångsten har kopplats till spelarnas utvärderingar'))
+      toast.success(text(locale, 'Team cardio resolved into athlete evaluations', 'Lagkonditionen har kopplats till spelarnas utvärderingar'))
       await refresh()
     } catch {
-      toast.error(text(locale, 'Could not resolve capture', 'Kunde inte sammanställa fångsten'))
+      toast.error(text(locale, 'Could not resolve team cardio', 'Kunde inte sammanställa lagkonditionen'))
     } finally {
       setBusy(false)
     }

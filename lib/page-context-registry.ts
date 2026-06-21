@@ -88,12 +88,12 @@ export const PAGE_CONTEXT_REGISTRY: Record<string, PageContextConfig> = {
     ],
   },
   'coach/teams/[id]/capture': {
-    pageTitle: 'Team Capture',
-    description: 'Lagbaserad capture-sida där coachen väljer ett Cardio-/Hybridpass, bygger banor/heat/rundor/stationer, startar masterklockan och använder station receivers för Concept2 PM5, Wattbike/air bikes samt Garmin/manuell timing för löpning och vila.',
+    pageTitle: 'Lagkondition',
+    description: 'Lagbaserad konditionssida där coachen väljer ett Cardio-/Hybridpass, bygger banor/startgrupper/rundor/stationer, startar masterklockan och använder station receivers för Concept2 PM5, Wattbike/air bikes samt Garmin/manuell timing för löpning och vila.',
     concepts: ['trainingZones', 'liveHrZones', 'tss', 'hrv'],
     cards: [
       { id: 'team-capture-template', title: 'Passmall och stationer', conceptKey: 'trainingZones' },
-      { id: 'team-capture-lanes', title: 'Banor, heat och startlista' },
+      { id: 'team-capture-lanes', title: 'Banor, startgrupper och startlista' },
       { id: 'team-capture-receivers', title: 'Bluetooth station receivers', conceptKey: 'liveHrZones' },
       { id: 'team-capture-review', title: 'Post-session review och Workout Evaluation', conceptKey: 'tss' },
     ],
@@ -383,11 +383,11 @@ const PAGE_CONTEXT_EN: Record<string, PageContextText> = {
     ],
   },
   'coach/teams/[id]/capture': {
-    pageTitle: 'Team Capture',
-    description: 'Team session capture page where the coach picks a Cardio/Hybrid workout, builds lanes/heats/rounds/stations, starts one master clock, and uses station receivers for Concept2 PM5, Wattbike/air bikes plus Garmin/manual timing for running and rest.',
+    pageTitle: 'Team cardio',
+    description: 'Team cardio page where the coach picks a Cardio/Hybrid workout, builds lanes/start groups/rounds/stations, starts one master clock, and uses station receivers for Concept2 PM5, Wattbike/air bikes plus Garmin/manual timing for running and rest.',
     cards: [
       { id: 'team-capture-template', title: 'Workout template and stations' },
-      { id: 'team-capture-lanes', title: 'Lanes, heats, and startlist' },
+      { id: 'team-capture-lanes', title: 'Lanes, start groups, and startlist' },
       { id: 'team-capture-receivers', title: 'Bluetooth station receivers' },
       { id: 'team-capture-review', title: 'Post-session review and Workout Evaluation' },
     ],

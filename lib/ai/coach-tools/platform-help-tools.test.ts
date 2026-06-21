@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { buildTrainingCaptureGuide } from './platform-help-tools'
 
 describe('training capture guide', () => {
-  it('explains the all-source Team Capture workflow in English', () => {
+  it('explains the all-source Team cardio workflow in English', () => {
     const guide = buildTrainingCaptureGuide('ALL', 'en')
 
     expect(guide.success).toBe(true)

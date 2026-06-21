@@ -108,7 +108,7 @@ export function TeamCaptureLauncher({
       if (!response.ok || !payload.success) throw new Error(payload.error || 'Failed')
       router.push(`/${businessSlug}/coach/teams/${teamId}/capture/${payload.data.id}`)
     } catch {
-      toast.error(text(locale, 'Could not create capture session', 'Kunde inte skapa fångstpass'))
+      toast.error(text(locale, 'Could not create team cardio session', 'Kunde inte skapa lagkondition'))
     } finally {
       setCreating(false)
     }
@@ -120,22 +120,22 @@ export function TeamCaptureLauncher({
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-semibold dark:text-white">
             <Radio className="h-6 w-6 text-blue-600" />
-            {text(locale, 'Team capture', 'Lagfångst')}
+            {text(locale, 'Team cardio', 'Lagkondition')}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            {text(locale, 'Pick a saved Cardio/Hybrid workout, then start the lane-based capture clock.', 'Välj ett sparat konditions-/hybridpass och starta sedan lagfångsten.')}
+            {text(locale, 'Pick a saved Cardio/Hybrid workout, then start the lane-based team clock.', 'Välj ett sparat konditions-/hybridpass och starta sedan lagets klocka.')}
           </p>
         </div>
         <Button onClick={createSession} disabled={creating || members.length === 0}>
           <Play className="mr-2 h-4 w-4" />
-          {creating ? text(locale, 'Creating...', 'Skapar...') : text(locale, 'Create capture session', 'Skapa fångstpass')}
+          {creating ? text(locale, 'Creating...', 'Skapar...') : text(locale, 'Create team cardio', 'Skapa lagkondition')}
         </Button>
       </div>
 
       {existingSessions.length > 0 && (
         <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
           <div className="border-b px-4 py-3 font-medium dark:border-white/10 dark:text-white">
-            {text(locale, 'Recent capture sessions', 'Senaste fångstpass')}
+            {text(locale, 'Recent team cardio sessions', 'Senaste lagkonditionspass')}
           </div>
           <div className="divide-y dark:divide-white/10">
             {existingSessions.map((session) => (

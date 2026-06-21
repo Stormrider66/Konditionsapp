@@ -58,7 +58,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: t(locale, 'Invalid capture session', 'Ogiltigt fångstpass'), details: parsed.error.flatten() },
+        { success: false, error: t(locale, 'Invalid team cardio session', 'Ogiltig lagkondition'), details: parsed.error.flatten() },
         { status: 400 },
       )
     }
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logger.error('Failed to create team capture session', {}, error)
     return NextResponse.json(
-      { success: false, error: t(locale, 'Failed to create capture session', 'Kunde inte skapa fångstpass') },
+      { success: false, error: t(locale, 'Failed to create team cardio session', 'Kunde inte skapa lagkondition') },
       { status: 500 },
     )
   }

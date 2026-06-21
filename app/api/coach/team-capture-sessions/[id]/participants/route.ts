@@ -54,7 +54,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (!session) {
       return NextResponse.json(
-        { success: false, error: t(locale, 'Capture session not found', 'Fångstpasset hittades inte') },
+        { success: false, error: t(locale, 'Team cardio session not found', 'Lagkonditionen hittades inte') },
         { status: 404 },
       )
     }

@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
     if (!session) {
       return NextResponse.json(
-        { success: false, error: t(locale, 'Capture session not found', 'Fångstpasset hittades inte') },
+        { success: false, error: t(locale, 'Team cardio session not found', 'Lagkonditionen hittades inte') },
         { status: 404 },
       )
     }
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logger.error('Failed to load team capture session', {}, error)
     return NextResponse.json(
-      { success: false, error: t(locale, 'Failed to load capture session', 'Kunde inte läsa fångstpass') },
+      { success: false, error: t(locale, 'Failed to load team cardio session', 'Kunde inte läsa lagkondition') },
       { status: 500 },
     )
   }
@@ -70,7 +70,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const session = await updateTeamCaptureSessionStatus(user.id, id, parsed.data.status, scope.businessSlug)
     if (!session) {
       return NextResponse.json(
-        { success: false, error: t(locale, 'Capture session not found', 'Fångstpasset hittades inte') },
+        { success: false, error: t(locale, 'Team cardio session not found', 'Lagkonditionen hittades inte') },
         { status: 404 },
       )
     }
@@ -79,7 +79,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logger.error('Failed to update team capture session', {}, error)
     return NextResponse.json(
-      { success: false, error: t(locale, 'Failed to update capture session', 'Kunde inte uppdatera fångstpass') },
+      { success: false, error: t(locale, 'Failed to update team cardio session', 'Kunde inte uppdatera lagkondition') },
       { status: 500 },
     )
   }

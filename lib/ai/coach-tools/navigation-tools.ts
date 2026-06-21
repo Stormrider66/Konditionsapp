@@ -196,8 +196,8 @@ export function createNavigationTools(ctx: CoachToolContext) {
               },
               teamCapture: {
                 href: `/coach/teams/${team.id}/capture`,
-                label: toolText(locale, `Open ${team.name}'s Team Capture`, `Öppna ${team.name}s lagfångst`),
-                description: toolText(locale, 'Team Capture setup and control room', 'Team Capture-upplägg och kontrollrum'),
+                label: toolText(locale, `Open ${team.name}'s Team cardio`, `Öppna ${team.name}s lagkondition`),
+                description: toolText(locale, 'Team cardio setup and control room', 'Lagkondition med startlista, stationer och kontrollrum'),
               },
               teamTests: {
                 href: `/coach/teams/${team.id}/tests`,

@@ -1578,7 +1578,12 @@ export function FloatingAIChat({
     if (!pageContext || !hasContext || !isContextEnabled) return []
 
     const normalizedTitle = pageContext.title.toLowerCase()
-    if (normalizedTitle.includes('team capture') || normalizedTitle.includes('lagfångst')) {
+    if (
+      normalizedTitle.includes('team cardio') ||
+      normalizedTitle.includes('team capture') ||
+      normalizedTitle.includes('lagkondition') ||
+      normalizedTitle.includes('lagfångst')
+    ) {
       return [
         {
           label: copy.teamCaptureGuide,

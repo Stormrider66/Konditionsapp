@@ -153,8 +153,8 @@ export const AI_CAPABILITY_REGISTRY: AiCapabilityDefinition[] = [
   },
   {
     id: 'getTrainingCaptureGuide',
-    label: 'Training capture guide',
-    description: 'Explain Team Capture, Workout Evaluation, Garmin, Concept2 PM5, Wattbike/air-bike receivers, Bluetooth HR, and troubleshooting.',
+    label: 'Team cardio guide',
+    description: 'Explain Team cardio, Workout Evaluation, Garmin, Concept2 PM5, Wattbike/air-bike receivers, Bluetooth HR, and troubleshooting.',
     role: 'COACH',
     surface: 'coach_chat',
     actionType: 'read',

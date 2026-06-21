@@ -48,11 +48,11 @@ export function buildTrainingCaptureGuide(
     return {
       success: true,
       topic,
-      title: 'Team Capture, Garmin och Bluetooth-fångst',
-      message: 'Här är den praktiska modellen för hur Trainomics Team Capture, Garmin och ergometerdata fungerar tillsammans.',
+      title: 'Lagkondition, Garmin och Bluetooth-insamling',
+      message: 'Här är den praktiska modellen för hur Trainomics Lagkondition, Garmin och ergometerdata fungerar tillsammans.',
       workflow: [
         'Skapa passet i Cardio Studio, Hybrid Studio eller via AI-chatten med tydliga stationer och equipment keys.',
-        'Öppna lagets Team Capture-sida och välj passmallen. Systemet bygger banor, rundor, stationer, vila och mottagarbehov från passet.',
+        'Öppna lagets Lagkondition-sida och välj passmallen. Systemet bygger banor, rundor, stationer, vila och mottagarbehov från passet.',
         'Coach startar masterklockan för hela laget. Atleterna följer startlista/bana och behöver inte ha telefonen på sig.',
         'Stationplattor/mottagare paras med BikeErg, RowErg, SkiErg, Wattbike eller air bike och skickar maskindata till rätt bana/tidsfönster.',
         'Atleterna startar Garmin-klockan för puls, belastning och eventuell varvtid. Inomhuslöpning kan registreras via Garmin lap eller manuell split.',
@@ -80,8 +80,8 @@ export function buildTrainingCaptureGuide(
         'Samma verkliga pass ska bli en Workout Evaluation per atlet, inte flera dubbletter.',
         'Maskindata från stationmottagare används för watt, pace, kadens/stroke rate, distans och kalorier när det finns.',
         'Garmin används främst för puls, HR-zoner, belastning, HRV/sömn/stress/RHR och sena synkar efter passet.',
-        'Om Garmin-data kommer efter Team Capture uppdateras evalueringen och tidslinjen matchas mot rundor/segment.',
-        'Fokus-/Team Capture-timing styr segmentgränserna; Garmin-laps och maskindata används för att fylla faktisk prestation.',
+        'Om Garmin-data kommer efter Lagkondition uppdateras evalueringen och tidslinjen matchas mot rundor/segment.',
+        'Lagkondition-timing styr segmentgränserna; Garmin-laps och maskindata används för att fylla faktisk prestation.',
       ],
       limitations: [
         'iPad/Safari har inte tillförlitligt Web Bluetooth-stöd; native station receiver eller Android/Chrome är bättre för direkt maskinfångst.',
@@ -102,11 +102,11 @@ export function buildTrainingCaptureGuide(
   return {
     success: true,
     topic,
-    title: 'Team Capture, Garmin, and Bluetooth capture',
-    message: 'Here is the practical model for how Trainomics Team Capture, Garmin, and ergometer data work together.',
+    title: 'Team cardio, Garmin, and Bluetooth capture',
+    message: 'Here is the practical model for how Trainomics Team cardio, Garmin, and ergometer data work together.',
     workflow: [
       'Create the workout in Cardio Studio, Hybrid Studio, or through AI chat with explicit stations and equipment keys.',
-      'Open the team Team Capture page and choose the workout template. The system builds lanes, rounds, stations, rest, and receiver needs from the workout.',
+      'Open the team Team cardio page and choose the workout template. The system builds lanes, rounds, stations, rest, and receiver needs from the workout.',
       'The coach starts one master clock for the team. Athletes follow the startlist/lane plan and do not need phones during the session.',
       'Station tablets/receivers pair with BikeErg, RowErg, SkiErg, Wattbike, or air bikes and stream machine data into the right lane/time window.',
       'Athletes start Garmin watches for HR, load, and optional lap timing. Indoor run splits can come from Garmin lap or manual review.',
@@ -134,8 +134,8 @@ export function buildTrainingCaptureGuide(
       'One real-world workout should become one Workout Evaluation per athlete, not duplicate workouts.',
       'Station receiver data is preferred for watts, pace, cadence/stroke rate, distance, and calories when available.',
       'Garmin is primarily used for HR, HR zones, load, HRV/sleep/stress/RHR, and late post-session syncs.',
-      'If Garmin data arrives after Team Capture, the evaluation is recalculated and aligned to the round/segment timeline.',
-      'Focus/Team Capture timing defines segment boundaries; Garmin laps and machine data fill in actual performance.',
+      'If Garmin data arrives after Team cardio, the evaluation is recalculated and aligned to the round/segment timeline.',
+      'Team cardio timing defines segment boundaries; Garmin laps and machine data fill in actual performance.',
     ],
     limitations: [
       'iPad/Safari does not provide reliable Web Bluetooth support; a native station receiver or Android/Chrome is better for direct machine capture.',
@@ -160,14 +160,14 @@ function localizedSections(topic: CaptureGuideTopic, locale: 'en' | 'sv'): Captu
 }
 
 const sectionTopics: Record<string, CaptureGuideTopic[]> = {
-  'Team Capture workflow': ['TEAM_CAPTURE'],
+  'Team cardio workflow': ['TEAM_CAPTURE'],
   'Workout evaluation': ['WORKOUT_EVALUATION'],
   'Garmin role': ['GARMIN'],
   'Concept2 PM5 role': ['CONCEPT2_PM5'],
   'Wattbike and air-bike role': ['WATTBIKE'],
   'Bluetooth HR belts': ['BLUETOOTH_HR'],
   'Troubleshooting': ['TROUBLESHOOTING'],
-  'Team Capture-flöde': ['TEAM_CAPTURE'],
+  'Lagkondition-flöde': ['TEAM_CAPTURE'],
   'Workout Evaluation': ['WORKOUT_EVALUATION'],
   'Garmins roll': ['GARMIN'],
   'Concept2 PM5-roll': ['CONCEPT2_PM5'],
@@ -178,19 +178,19 @@ const sectionTopics: Record<string, CaptureGuideTopic[]> = {
 
 const enSections: CaptureGuideSection[] = [
   {
-    title: 'Team Capture workflow',
+    title: 'Team cardio workflow',
     bullets: [
-      'Use Team Capture for group hybrid/interval sessions where the coach starts one shared timer.',
-      'Saved Cardio and Hybrid workouts can drive the capture template automatically.',
-      'AI-created workouts should use captureReady=true and explicit equipment keys so the capture page can adapt.',
-      'The lane plan assigns athletes by lane, heat, round, station, and time window.',
+      'Use Team cardio for group hybrid/interval sessions where the coach starts one shared timer.',
+      'Saved Cardio and Hybrid workouts can drive the team template automatically.',
+      'AI-created workouts should use captureReady=true and explicit equipment keys so the Team cardio page can adapt.',
+      'The lane plan assigns athletes by lane, start group, round, station, and time window.',
     ],
   },
   {
     title: 'Workout evaluation',
     bullets: [
-      'Completed Team Capture sessions export one sensor capture per athlete.',
-      'Workout Evaluation merges Team Capture timing, station data, Garmin HR/load, focus logs, and manual corrections.',
+      'Completed Team cardio sessions export one sensor capture per athlete.',
+      'Workout Evaluation merges Team cardio timing, station data, Garmin HR/load, focus logs, and manual corrections.',
       'The athlete Monitoring area shows HR curves, zone time, power/pace, segment compliance, HR recovery, fatigue, and source confidence.',
     ],
   },
@@ -239,19 +239,19 @@ const enSections: CaptureGuideSection[] = [
 
 const svSections: CaptureGuideSection[] = [
   {
-    title: 'Team Capture-flöde',
+    title: 'Lagkondition-flöde',
     bullets: [
-      'Använd Team Capture för lagpass där coachen startar en gemensam timer.',
-      'Sparade Cardio- och Hybridpass kan automatiskt styra capture-mallen.',
-      'AI-skapade pass ska använda captureReady=true och tydliga equipment keys så capture-sidan kan anpassa sig.',
-      'Startlistan kopplar atlet till bana, heat, runda, station och tidsfönster.',
+      'Använd Lagkondition för lagpass där coachen startar en gemensam timer.',
+      'Sparade Cardio- och Hybridpass kan automatiskt styra lagmallen.',
+      'AI-skapade pass ska använda captureReady=true och tydliga equipment keys så Lagkondition-sidan kan anpassa sig.',
+      'Startlistan kopplar atlet till bana, startgrupp, runda, station och tidsfönster.',
     ],
   },
   {
     title: 'Workout Evaluation',
     bullets: [
-      'Slutförda Team Capture-pass exporterar en sensor capture per atlet.',
-      'Workout Evaluation slår ihop Team Capture-timing, stationsdata, Garmin-puls/load, focus logs och manuella korrigeringar.',
+      'Slutförda Lagkondition-pass exporterar en sensor capture per atlet.',
+      'Workout Evaluation slår ihop Lagkondition-timing, stationsdata, Garmin-puls/load, focus logs och manuella korrigeringar.',
       'Atletens Monitoring-vy visar pulskurva, zontid, watt/pace, segmentträff, HR recovery, fatigue och source confidence.',
     ],
   },
@@ -305,8 +305,8 @@ export function createPlatformHelpTools(ctx: CoachToolContext) {
     getTrainingCaptureGuide: tool({
       description: toolText(
         locale,
-        'Read-only guide for explaining Trainomics Team Capture, Workout Evaluation, Garmin merge behavior, Concept2 PM5, Wattbike/air-bike Bluetooth station receivers, HR belts, source confidence, and troubleshooting. Use whenever a coach asks how capture, Garmin, Concept2, Wattbike, Bluetooth, or team hybrid sessions work.',
-        'Läsverktyg som förklarar Trainomics Team Capture, Workout Evaluation, Garmin-merge, Concept2 PM5, Wattbike/air-bike Bluetooth-stationer, pulsband, source confidence och felsökning. Använd när coachen frågar hur capture, Garmin, Concept2, Wattbike, Bluetooth eller laghybridpass fungerar.'
+        'Read-only guide for explaining Trainomics Team cardio, Workout Evaluation, Garmin merge behavior, Concept2 PM5, Wattbike/air-bike Bluetooth station receivers, HR belts, source confidence, and troubleshooting. Use whenever a coach asks how team cardio, capture, Garmin, Concept2, Wattbike, Bluetooth, or team hybrid sessions work.',
+        'Läsverktyg som förklarar Trainomics Lagkondition, Workout Evaluation, Garmin-merge, Concept2 PM5, Wattbike/air-bike Bluetooth-stationer, pulsband, source confidence och felsökning. Använd när coachen frågar hur lagkondition, capture, Garmin, Concept2, Wattbike, Bluetooth eller laghybridpass fungerar.'
       ),
       inputSchema: z.object({
         topic: z.enum([

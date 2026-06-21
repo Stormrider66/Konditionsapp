@@ -26,7 +26,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     if (!result) {
       return NextResponse.json(
-        { success: false, error: t(locale, 'Capture session not ready to resolve', 'Fångstpasset är inte redo att sammanställas') },
+        { success: false, error: t(locale, 'Team cardio session not ready to resolve', 'Lagkonditionen är inte redo att sammanställas') },
         { status: 400 },
       )
     }
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   } catch (error) {
     logger.error('Failed to resolve team capture session', {}, error)
     return NextResponse.json(
-      { success: false, error: t(locale, 'Failed to resolve capture session', 'Kunde inte sammanställa fångstpass') },
+      { success: false, error: t(locale, 'Failed to resolve team cardio session', 'Kunde inte sammanställa lagkondition') },
       { status: 500 },
     )
   }
