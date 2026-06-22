@@ -100,6 +100,7 @@ function resolveActivityHref(activity: UnifiedActivity, basePath: string): strin
     case 'concept2':
     case 'phonerun':
     case 'manual':
+    case 'ai':
       return `${basePath}/athlete/activity/${source}/${id}`
     case 'adhoc':
     case 'adhoc+garmin':

@@ -11,9 +11,11 @@
 import type { Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
+import { getProgressionHistory } from '@/lib/training-engine/progression'
 import type {
   ActivityDetailData,
   ActivityDetailSource,
+  ActivityExerciseProgression,
   ActivitySplit,
   ActivityStreamPoint,
   ActivityStrengthExercise,
@@ -218,7 +220,9 @@ export async function buildActivityDetail(
     case 'phonerun':
       return buildPhoneRun(id, clientId)
     case 'manual':
-      return buildManual(id, athleteUserId)
+      return buildManual(id, clientId, athleteUserId)
+    case 'ai':
+      return buildAi(id, clientId)
     default:
       return null
   }
@@ -281,6 +285,7 @@ async function buildGarmin(id: string, clientId: string): Promise<ActivityDetail
     trend,
     isStrength: false,
     strengthExercises: [],
+    strengthProgression: [],
   }
 }
 
@@ -391,6 +396,7 @@ async function buildStrava(id: string, clientId: string): Promise<ActivityDetail
     trend,
     isStrength: false,
     strengthExercises: [],
+    strengthProgression: [],
   }
 }
 
@@ -493,6 +499,7 @@ async function buildConcept2(id: string, clientId: string): Promise<ActivityDeta
     trend,
     isStrength: false,
     strengthExercises: [],
+    strengthProgression: [],
     notes: result.comments || undefined,
   }
 }
@@ -602,6 +609,7 @@ async function buildPhoneRun(id: string, clientId: string): Promise<ActivityDeta
     trend,
     isStrength: false,
     strengthExercises: [],
+    strengthProgression: [],
     notes: session.notes || undefined,
   }
 }
@@ -651,6 +659,7 @@ async function buildPhoneRunTrend(
 
 async function buildManual(
   id: string,
+  clientId: string,
   athleteUserId: string | null
 ): Promise<ActivityDetailData | null> {
   if (!athleteUserId) return null
@@ -670,6 +679,7 @@ async function buildManual(
   const mode = classifyMode(displayType)
   const strengthExercises = groupSetLogs(log.setLogs)
   const isStrength = strengthExercises.length > 0 || displayType.toUpperCase() === 'STRENGTH'
+  const strengthProgression = await buildExerciseProgression(clientId, strengthExercises)
   const trend = await buildManualTrend(log, athleteUserId, mode, isStrength)
 
   return {
@@ -696,8 +706,105 @@ async function buildManual(
     trend,
     isStrength,
     strengthExercises,
+    strengthProgression,
     notes: log.notes || undefined,
   }
+}
+
+/**
+ * Fetch per-exercise estimated-1RM history (from the nightly-rolled-up
+ * ProgressionTracking table, keyed by Client.id) for the given exercises.
+ * Only exercises with at least two history points are returned. Exported so
+ * other strength surfaces (e.g. the ad-hoc detail page) can reuse it.
+ */
+export async function buildExerciseProgression(
+  clientId: string,
+  exercises: Array<{ exerciseId: string; name: string }>
+): Promise<ActivityExerciseProgression[]> {
+  if (exercises.length === 0) return []
+
+  const histories = await Promise.all(
+    exercises.map(async (exercise) => {
+      const { history, trend, progressionRate } = await getProgressionHistory(
+        clientId,
+        exercise.exerciseId,
+        12
+      )
+      const points = history
+        .slice()
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .map((h) => ({
+          date: new Date(h.date).toISOString(),
+          estimated1RM: Math.round(h.estimated1RM * 10) / 10,
+          weight: h.weight,
+          reps: h.reps,
+        }))
+      return { exercise, points, trend, progressionRate }
+    })
+  )
+
+  return histories
+    .filter((h) => h.points.length >= 2)
+    .map((h): ActivityExerciseProgression => ({
+      exerciseId: h.exercise.exerciseId,
+      name: h.exercise.name,
+      trend: h.trend,
+      progressionRate: Math.round(h.progressionRate * 100) / 100,
+      points: h.points,
+    }))
+}
+
+async function buildAi(id: string, clientId: string): Promise<ActivityDetailData | null> {
+  const wod = await prisma.aIGeneratedWOD.findUnique({ where: { id } })
+  if (!wod || wod.clientId !== clientId) return null
+
+  const trend = await buildAiTrend(wod, clientId)
+
+  return {
+    id: wod.id,
+    source: 'ai',
+    name: wod.title,
+    type: wod.primarySport || 'STRENGTH',
+    date: (wod.completedAt || wod.createdAt).toISOString(),
+    durationSec: (wod.actualDuration || wod.requestedDuration) ? (wod.actualDuration || wod.requestedDuration) * 60 : undefined,
+    perceivedEffort: wod.sessionRPE || undefined,
+    streams: [],
+    zones: null,
+    splits: [],
+    trend,
+    isStrength: false,
+    strengthExercises: [],
+    strengthProgression: [],
+    notes: wod.subtitle || undefined,
+  }
+}
+
+async function buildAiTrend(
+  current: { id: string; primarySport: string | null; completedAt: Date | null; createdAt: Date },
+  clientId: string
+): Promise<ActivityTrend> {
+  const rows = await prisma.aIGeneratedWOD.findMany({
+    where: {
+      clientId,
+      status: 'COMPLETED',
+      completedAt: { gte: trendStartDate() },
+      ...(current.primarySport ? { primarySport: current.primarySport } : {}),
+    },
+    orderBy: { completedAt: 'desc' },
+    take: 30,
+    select: { id: true, completedAt: true, createdAt: true, actualDuration: true, sessionRPE: true },
+  })
+
+  const points: ActivityTrendPoint[] = rows.map((r) => ({
+    id: r.id,
+    date: (r.completedAt || r.createdAt).toISOString(),
+    avgHR: undefined,
+    tss: r.sessionRPE || undefined,
+    distanceKm: undefined,
+    isCurrent: r.id === current.id,
+  }))
+
+  return finalizeTrend(points, null, false)
 }
 
 function groupSetLogs(

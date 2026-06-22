@@ -38,6 +38,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GarminAttribution } from '@/components/ui/GarminAttribution'
+import { StrengthProgressionTrends } from '@/components/athlete/activity/StrengthProgressionTrends'
 import type {
   ActivityDetailData,
   ActivityStrengthExercise,
@@ -128,6 +129,7 @@ const SOURCE_LABEL: Record<ActivityDetailData['source'], string> = {
   concept2: 'Concept2',
   phonerun: 'GPS',
   manual: 'Manual',
+  ai: 'AI',
 }
 
 export function ActivityDetailClient({ activity, basePath = '', locale }: ActivityDetailClientProps) {
@@ -292,6 +294,10 @@ export function ActivityDetailClient({ activity, basePath = '', locale }: Activi
                 ))}
               </CardContent>
             </Card>
+          )}
+
+          {activity.strengthProgression.length > 0 && (
+            <StrengthProgressionTrends progression={activity.strengthProgression} locale={locale} />
           )}
 
           {activity.notes && (

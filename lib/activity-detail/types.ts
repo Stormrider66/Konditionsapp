@@ -15,6 +15,7 @@ export type ActivityDetailSource =
   | 'concept2'
   | 'phonerun'
   | 'manual'
+  | 'ai'
 
 export const ACTIVITY_DETAIL_SOURCES: readonly ActivityDetailSource[] = [
   'garmin',
@@ -22,6 +23,7 @@ export const ACTIVITY_DETAIL_SOURCES: readonly ActivityDetailSource[] = [
   'concept2',
   'phonerun',
   'manual',
+  'ai',
 ]
 
 export function isActivityDetailSource(value: string): value is ActivityDetailSource {
@@ -105,6 +107,24 @@ export interface ActivityStrengthExercise {
   bestEstimated1RM?: number
 }
 
+/** One historical point of an exercise's estimated-1RM progression. */
+export interface ActivityProgressionPoint {
+  date: string
+  estimated1RM: number
+  weight: number
+  reps: number
+}
+
+/** Cross-session strength progression for a single exercise. */
+export interface ActivityExerciseProgression {
+  exerciseId: string
+  name: string
+  trend: 'IMPROVING' | 'STABLE' | 'DECLINING'
+  /** kg per week. */
+  progressionRate: number
+  points: ActivityProgressionPoint[]
+}
+
 export interface ActivityDetailData {
   id: string
   source: ActivityDetailSource
@@ -148,6 +168,8 @@ export interface ActivityDetailData {
   // Strength (populated for set-based sessions)
   isStrength: boolean
   strengthExercises: ActivityStrengthExercise[]
+  /** Per-exercise cross-session e1RM progression (set-based sessions only). */
+  strengthProgression: ActivityExerciseProgression[]
 
   notes?: string
 }

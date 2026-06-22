@@ -31,6 +31,8 @@ import {
 import { cn } from '@/lib/utils'
 import type { ParsedWorkout, ParsedStrengthExercise, ParsedCardioSegment, ParsedHybridMovement } from '@/lib/adhoc-workout/types'
 import { formatParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
+import { buildExerciseProgression } from '@/lib/activity-detail/build-detail'
+import { StrengthProgressionTrends } from '@/components/athlete/activity/StrengthProgressionTrends'
 import { getLocale, getTranslations } from '@/i18n/server'
 
 interface AdHocWorkoutDetailPageProps {
@@ -66,6 +68,16 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
 
   const parsed = adHocWorkout.parsedStructure as unknown as ParsedWorkout | null
   const formattedDistanceKm = formatParsedWorkoutDistanceKm(parsed)
+
+  // Cross-session strength progression for library-matched strength exercises.
+  const strengthProgression = parsed?.strengthExercises?.length
+    ? await buildExerciseProgression(
+        clientId,
+        parsed.strengthExercises
+          .filter((e): e is ParsedStrengthExercise & { exerciseId: string } => Boolean(e.exerciseId))
+          .map((e) => ({ exerciseId: e.exerciseId, name: e.exerciseName }))
+      )
+    : []
 
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-4xl mx-auto">
@@ -283,6 +295,12 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
             </div>
           </GlassCardContent>
         </GlassCard>
+      )}
+
+      {strengthProgression.length > 0 && (
+        <div className="mb-8">
+          <StrengthProgressionTrends progression={strengthProgression} locale={locale} />
+        </div>
       )}
 
       {/* Cardio Segments */}
