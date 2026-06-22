@@ -82,6 +82,26 @@ const SOURCE_CONFIG = {
   'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
 }
 
+/**
+ * Map an activity to its detail destination. Cardio/stream sources without a
+ * dedicated page go to the unified `/athlete/activity/[source]/[id]` view;
+ * sources that already have a rich detail page link there directly.
+ */
+function resolveActivityHref(source: string, id: string, basePath: string): string | undefined {
+  switch (source) {
+    case 'quickerg':
+      return `${basePath}/athlete/quick-erg/${id}`
+    case 'garmin':
+    case 'strava':
+    case 'concept2':
+    case 'phonerun':
+    case 'manual':
+      return `${basePath}/athlete/activity/${source}/${id}`
+    default:
+      return undefined
+  }
+}
+
 const TYPE_ICONS: Record<string, ReactNode> = {
   RUNNING: <PersonStanding className="h-4 w-4" />,
   CYCLING: <Bike className="h-4 w-4" />,
@@ -305,9 +325,7 @@ function ActivityCard({
     : sourceConfig.label[labelLocale]
   const dateFnsLocale = locale === 'sv' ? sv : enUS
   const typeIcon = TYPE_ICONS[activity.type] || <Activity className="h-4 w-4" />
-  const detailHref = activity.source === 'quickerg'
-    ? `${basePath}/athlete/quick-erg/${activity.id}`
-    : undefined
+  const detailHref = resolveActivityHref(activity.source, activity.id, basePath)
 
   if (variant === 'glass') {
     return (
