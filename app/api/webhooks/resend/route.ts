@@ -16,7 +16,7 @@
 //   3. Resend signs payloads with svix; we verify before trusting anything.
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
-import { Webhook, WebhookVerificationError } from 'svix'
+import { Webhook } from 'svix'
 
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
@@ -93,6 +93,10 @@ function failureReason(data: ResendEmailEventData): string | null {
     data.suppressed?.type ||
     null
   )
+}
+
+function isWebhookVerificationError(error: unknown): error is Error {
+  return error instanceof Error && error.name === 'WebhookVerificationError'
 }
 
 async function handleEmailEvent(event: ResendWebhookEvent) {
@@ -184,8 +188,8 @@ export async function POST(request: NextRequest) {
   try {
     const wh = new Webhook(secret)
     event = wh.verify(rawBody, headers) as ResendWebhookEvent
-  } catch (err) {
-    if (err instanceof WebhookVerificationError) {
+  } catch (err: unknown) {
+    if (isWebhookVerificationError(err)) {
       logger.warn('Resend webhook signature verification failed', { error: err.message })
       return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     }
