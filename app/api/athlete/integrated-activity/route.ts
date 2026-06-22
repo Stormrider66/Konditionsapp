@@ -72,6 +72,9 @@ interface UnifiedActivity {
   strengthExercises?: Array<{ exerciseName: string; sets: number; reps: number | string; weight?: number; weightString?: string }>
   hybridFormat?: string
   movements?: Array<{ name: string; reps?: number; weight?: number; distance?: number }>
+  // HybridWorkout template id — the hybrid detail route is keyed by the
+  // workout (not the log), so the card needs it to link correctly.
+  hybridWorkoutId?: string
 }
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -620,6 +623,7 @@ export async function GET(request: NextRequest) {
         source: garmin ? 'hybrid+garmin' : 'hybrid',
         name: log.workout?.name || t(locale, 'Hybrid workout', 'Hybridpass'),
         type: 'HYBRID',
+        hybridWorkoutId: log.workoutId,
         date: log.completedAt || log.startedAt,
         duration: durationMin,
         distance: garmin?.distance ? garmin.distance / 1000 : undefined,

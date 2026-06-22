@@ -29,7 +29,7 @@ import { enUS, sv } from 'date-fns/locale'
 
 interface UnifiedActivity {
   id: string
-  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'ai' | 'adhoc' | 'adhoc+garmin'
+  source: 'manual' | 'strava' | 'garmin' | 'concept2' | 'quickerg' | 'phonerun' | 'ai' | 'adhoc' | 'adhoc+garmin' | 'hybrid' | 'hybrid+garmin'
   name: string
   type: string
   sport?: string
@@ -62,6 +62,7 @@ interface UnifiedActivity {
   strengthExercises?: Array<{ exerciseName: string; sets: number; reps: number | string; weight?: number; weightString?: string }>
   hybridFormat?: string
   movements?: Array<{ name: string; reps?: number; weight?: number; distance?: number }>
+  hybridWorkoutId?: string
 }
 
 interface IntegratedRecentActivityProps {
@@ -80,6 +81,8 @@ const SOURCE_CONFIG = {
   ai: { label: { en: 'AI session', sv: 'AI-Pass' }, color: 'bg-purple-100 text-purple-700', icon: '✨' },
   adhoc: { label: { en: 'Manual', sv: 'Manuell' }, color: 'bg-emerald-100 text-emerald-700', icon: '✏️' },
   'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
+  hybrid: { label: { en: 'Hybrid', sv: 'Hybrid' }, color: 'bg-teal-100 text-teal-700', icon: '🔀' },
+  'hybrid+garmin': { label: { en: 'Hybrid + Garmin', sv: 'Hybrid + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '🔀' },
 }
 
 /**
@@ -87,7 +90,8 @@ const SOURCE_CONFIG = {
  * dedicated page go to the unified `/athlete/activity/[source]/[id]` view;
  * sources that already have a rich detail page link there directly.
  */
-function resolveActivityHref(source: string, id: string, basePath: string): string | undefined {
+function resolveActivityHref(activity: UnifiedActivity, basePath: string): string | undefined {
+  const { source, id } = activity
   switch (source) {
     case 'quickerg':
       return `${basePath}/athlete/quick-erg/${id}`
@@ -97,6 +101,15 @@ function resolveActivityHref(source: string, id: string, basePath: string): stri
     case 'phonerun':
     case 'manual':
       return `${basePath}/athlete/activity/${source}/${id}`
+    case 'adhoc':
+    case 'adhoc+garmin':
+      return `${basePath}/athlete/ad-hoc/${id}`
+    case 'hybrid':
+    case 'hybrid+garmin':
+      // The hybrid detail route is keyed by the workout template, not the log.
+      return activity.hybridWorkoutId
+        ? `${basePath}/athlete/hybrid/${activity.hybridWorkoutId}`
+        : undefined
     default:
       return undefined
   }
@@ -325,7 +338,7 @@ function ActivityCard({
     : sourceConfig.label[labelLocale]
   const dateFnsLocale = locale === 'sv' ? sv : enUS
   const typeIcon = TYPE_ICONS[activity.type] || <Activity className="h-4 w-4" />
-  const detailHref = resolveActivityHref(activity.source, activity.id, basePath)
+  const detailHref = resolveActivityHref(activity, basePath)
 
   if (variant === 'glass') {
     return (
