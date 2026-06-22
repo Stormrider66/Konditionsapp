@@ -114,6 +114,24 @@ function activityEnd(startedAt: Date, durationSec?: number | null, elapsedSec?: 
   return seconds && seconds > 0 ? addSeconds(startedAt, seconds) : null
 }
 
+function adHocEvaluationTiming(workout: {
+  workoutDate: Date
+  garminActivity?: { startDate: Date; duration: number | null; elapsedTime: number | null } | null
+}): { startedAt: Date; completedAt: Date | null } {
+  if (!workout.garminActivity) {
+    return { startedAt: workout.workoutDate, completedAt: null }
+  }
+
+  return {
+    startedAt: workout.garminActivity.startDate,
+    completedAt: activityEnd(
+      workout.garminActivity.startDate,
+      workout.garminActivity.duration,
+      workout.garminActivity.elapsedTime
+    ),
+  }
+}
+
 function overlapRatio(a: CandidateGroup, b: SourceCandidate): number {
   const aEnd = a.completedAt ?? addSeconds(a.startedAt, 60)
   const bEnd = b.completedAt ?? addSeconds(b.startedAt, 60)
@@ -1169,13 +1187,15 @@ async function loadCandidates(clientId: string, startDate: Date, endDate: Date):
   }
 
   for (const workout of adHocWorkouts) {
+    const timing = adHocEvaluationTiming(workout)
+
     candidates.push({
       id: workout.id,
       source: 'MANUAL',
       label: workout.workoutName ?? 'Ad-hoc workout',
       type: workout.parsedType ?? 'OTHER',
-      startedAt: workout.workoutDate,
-      completedAt: null,
+      startedAt: timing.startedAt,
+      completedAt: timing.completedAt,
       priority: workout.garminActivity ? 42 : 32,
       confidence: workout.garminActivity ? 'MEDIUM' : 'LOW',
       raw: {
@@ -1236,6 +1256,7 @@ export async function refreshWorkoutEvaluationsAround(clientId: string, date: Da
 }
 
 export const workoutEvaluationTestUtils = {
+  adHocEvaluationTiming,
   buildGroups,
   buildFatigueSummary,
   sourceDedupeKey,

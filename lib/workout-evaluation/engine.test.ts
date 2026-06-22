@@ -91,6 +91,31 @@ describe('workout evaluation engine utilities', () => {
     expect(groups).toHaveLength(2)
   })
 
+  it('uses linked Garmin timing so ad-hoc photo logs merge with their watch recording', () => {
+    const timing = workoutEvaluationTestUtils.adHocEvaluationTiming({
+      workoutDate: new Date(31 * 60 * 1000),
+      garminActivity: {
+        startDate: new Date(0),
+        duration: 30 * 60,
+        elapsedTime: null,
+      },
+    })
+
+    const groups = workoutEvaluationTestUtils.buildGroups([
+      candidate({ id: 'garmin-1', source: 'GARMIN', type: 'CROSS_TRAINING', startMin: 0, durationMin: 30 }),
+      {
+        ...candidate({ id: 'adhoc-1', source: 'MANUAL', type: 'HYROX', startMin: 31 }),
+        startedAt: timing.startedAt,
+        completedAt: timing.completedAt,
+      },
+    ])
+
+    expect(timing.startedAt).toEqual(new Date(0))
+    expect(timing.completedAt).toEqual(new Date(30 * 60 * 1000))
+    expect(groups).toHaveLength(1)
+    expect(groups[0].candidates.map((item) => item.source).sort()).toEqual(['GARMIN', 'MANUAL'])
+  })
+
   it('keeps dedupe keys stable across small start-time corrections', () => {
     const early = workoutEvaluationTestUtils.sourceDedupeKey('client-1', {
       candidates: [candidate({ id: 'focus', source: 'CARDIO_FOCUS', type: 'RUNNING', startMin: 19, durationMin: 20 })],

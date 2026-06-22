@@ -234,6 +234,7 @@ export async function GET(request: NextRequest) {
           garminActivity: {
             select: {
               id: true,
+              startDate: true,
               tss: true,
               averageHeartrate: true,
               maxHeartrate: true,
@@ -572,7 +573,7 @@ export async function GET(request: NextRequest) {
         name: workoutName,
         type: adhoc.parsedType || parsed?.type || 'OTHER',
         sport: parsed?.sport || undefined,
-        date: adhoc.workoutDate,
+        date: garmin?.startDate || adhoc.workoutDate,
         duration: mergedDuration,
         distance: mergedDistance,
         avgHR: mergedAvgHR,

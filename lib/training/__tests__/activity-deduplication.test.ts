@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  areTypesCompatible,
   deduplicateActivities,
   normalizeConcept2Activity,
   normalizeGarminActivity,
@@ -94,5 +95,10 @@ describe('quick erg activity normalization', () => {
     expect(result.deduplicated).toHaveLength(1)
     expect(result.duplicatesRemoved).toBe(1)
     expect(result.matchedPairs[0].confidence).toBeGreaterThanOrEqual(0.5)
+  })
+
+  it('treats HYROX photo logs as compatible with Garmin cross-training labels', () => {
+    expect(areTypesCompatible('HYROX', 'CROSS_TRAINING')).toBe(true)
+    expect(areTypesCompatible('HYROX', 'INDOOR_CARDIO')).toBe(true)
   })
 })
