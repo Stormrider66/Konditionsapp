@@ -23,7 +23,7 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
 
-const REALTIME_MODEL = 'gpt-realtime'
+const REALTIME_MODEL = 'gpt-realtime-2'
 
 const requestSchema = z.object({
   durationSeconds: z.number().min(0).max(7200),

@@ -31,7 +31,8 @@ export const runtime = 'nodejs'
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
 
-const REALTIME_MODEL = 'gpt-realtime'
+const REALTIME_MODEL = 'gpt-realtime-2'
+const REALTIME_REASONING_EFFORT = 'low'
 const REALTIME_VOICE = 'marin'
 const realtimeModeSchema = z.enum([
   'coach_operator',
@@ -447,6 +448,9 @@ export async function POST(request: NextRequest) {
     formData.set('session', JSON.stringify({
       type: 'realtime',
       model: REALTIME_MODEL,
+      reasoning: {
+        effort: REALTIME_REASONING_EFFORT,
+      },
       instructions: buildRealtimeInstructions(
         parsed.data.pageContext,
         parsed.data.isAthleteChat,
@@ -498,6 +502,7 @@ export async function POST(request: NextRequest) {
         'Cache-Control': 'no-store',
         'X-AI-Realtime-Provider': 'openai',
         'X-AI-Realtime-Model': REALTIME_MODEL,
+        'X-AI-Realtime-Reasoning-Effort': REALTIME_REASONING_EFFORT,
         'X-AI-Realtime-Mode': parsed.data.mode ?? (parsed.data.isAthleteChat ? 'athlete_support' : 'coach_operator'),
       },
     })
