@@ -15,11 +15,14 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
   Activity,
+  ClipboardCheck,
   Clock,
   Flame,
   Gauge,
   Heart,
   Loader2,
+  Radio,
+  ShieldAlert,
   Target,
   TrendingDown,
   TrendingUp,
@@ -153,6 +156,8 @@ export function CardioSessionSummaryView({
         {data && (
           <div className="space-y-6">
             <HeroStats data={data} tw={tw} />
+            {showAthleteName && <CoachReviewCard data={data} tw={tw} />}
+            {data.liveData.segmentsWithSamples > 0 && <LiveDataCard data={data} tw={tw} />}
             {data.calorieAdherence && <AdherenceCard data={data} tw={tw} />}
             {data.roundFade && <FadeCard data={data} tw={tw} />}
             {data.rounds.length > 1 && <RoundTable data={data} locale={locale} tw={tw} />}
@@ -214,6 +219,127 @@ function HeroStats({ data, tw }: { data: SummaryResponse; tw: Tw }) {
           <p className="text-xl font-black tabular-nums">{stat.value}</p>
         </div>
       ))}
+    </div>
+  )
+}
+
+function CoachReviewCard({ data, tw }: { data: SummaryResponse; tw: Tw }) {
+  const review = data.coachReview
+  const toneClasses = review.tone === 'concern'
+    ? 'border-red-500/40 bg-red-50 text-red-950 dark:bg-red-950/20 dark:text-red-100'
+    : review.tone === 'watch'
+      ? 'border-amber-500/40 bg-amber-50 text-amber-950 dark:bg-amber-950/20 dark:text-amber-100'
+      : 'border-emerald-500/40 bg-emerald-50 text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-100'
+  const badgeClasses: Record<string, string> = {
+    urgent: 'bg-red-600 text-white',
+    warning: 'bg-amber-500 text-white',
+    info: 'bg-slate-700 text-white dark:bg-slate-200 dark:text-slate-950',
+  }
+  const lines = [
+    review.bestRep ? { label: tw('Bästa repetition', 'Best rep'), value: review.bestRep } : null,
+    review.consistency ? { label: tw('Jämnhet', 'Consistency'), value: review.consistency } : null,
+    review.cadence ? { label: tw('Rytm', 'Rhythm'), value: review.cadence } : null,
+    review.recovery ? { label: tw('Återhämtning', 'Recovery'), value: review.recovery } : null,
+    review.painFlag ? { label: tw('Varningssignal', 'Flag'), value: review.painFlag } : null,
+  ].filter((item): item is { label: string; value: string } => item != null)
+
+  return (
+    <div className={cn('rounded-xl border p-4', toneClasses)}>
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="mb-1 flex items-center gap-2">
+            {review.tone === 'concern' ? (
+              <ShieldAlert className="h-5 w-5" />
+            ) : (
+              <ClipboardCheck className="h-5 w-5" />
+            )}
+            <p className="text-xs font-black uppercase tracking-wider">
+              {tw('Coachgranskning', 'Coach review')}
+            </p>
+          </div>
+          <h2 className="text-lg font-black tracking-tight">{review.headline}</h2>
+          <p className="mt-1 text-sm font-medium opacity-80">{review.summary}</p>
+        </div>
+        {review.flags.length > 0 && (
+          <div className="flex flex-wrap gap-1 sm:justify-end">
+            {review.flags.map((flag) => (
+              <Badge key={`${flag.label}-${flag.severity}`} className={cn('font-bold', badgeClasses[flag.severity])}>
+                {flag.label}
+              </Badge>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {lines.length > 0 && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {lines.map((line) => (
+            <div key={line.label} className="rounded-lg bg-white/55 p-3 dark:bg-black/20">
+              <p className="text-[10px] font-black uppercase tracking-wider opacity-70">{line.label}</p>
+              <p className="mt-1 text-sm font-semibold leading-snug">{line.value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="mt-3 rounded-lg bg-white/70 p-3 dark:bg-black/30">
+        <p className="text-[10px] font-black uppercase tracking-wider opacity-70">
+          {tw('Nästa justering', 'Next adjustment')}
+        </p>
+        <p className="mt-1 text-sm font-bold leading-snug">{review.suggestedAdjustment}</p>
+      </div>
+    </div>
+  )
+}
+
+function LiveDataCard({ data, tw }: { data: SummaryResponse; tw: Tw }) {
+  const live = data.liveData
+  const metricLabels: Record<string, string> = {
+    power: tw('watt', 'power'),
+    heartRate: tw('puls', 'heart rate'),
+    cadence: tw('kadens', 'cadence'),
+    strokeRate: tw('frekvens', 'stroke rate'),
+    pace: tw('tempo', 'pace'),
+    distance: tw('distans', 'distance'),
+    calories: tw('kcal', 'calories'),
+    speed: tw('hastighet', 'speed'),
+  }
+  const metrics = live.metrics.map((metric) => metricLabels[metric] ?? metric)
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Radio className="h-4 w-4" />
+          <span className="text-xs font-bold uppercase tracking-wider">
+            {tw('Sparad livedata', 'Saved live data')}
+          </span>
+        </div>
+        <Badge variant="secondary" className="font-bold">
+          {live.sampleSeconds}s
+        </Badge>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <MiniStat label={tw('Segment', 'Segments')} value={`${live.segmentsWithSamples}`} />
+        <MiniStat label={tw('Rik data', 'Rich data')} value={`${live.segmentsWithRichSamples}`} />
+        {live.avgCadence != null && <MiniStat label="RPM" value={`${live.avgCadence}`} />}
+        {live.avgStrokeRate != null && <MiniStat label="SPM" value={`${live.avgStrokeRate}`} />}
+        {live.avgHeartRate != null && <MiniStat label={tw('Puls', 'HR')} value={`${live.avgHeartRate}`} />}
+        {live.avgRecoveryHrDrop != null && <MiniStat label={tw('Pulsfall', 'HR drop')} value={`${live.avgRecoveryHrDrop}`} />}
+      </div>
+      {metrics.length > 0 && (
+        <p className="mt-3 text-xs font-medium text-muted-foreground">
+          {tw('Mätpunkter', 'Metrics')}: {metrics.join(' · ')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted/50 p-2">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-lg font-black tabular-nums">{value}</p>
     </div>
   )
 }

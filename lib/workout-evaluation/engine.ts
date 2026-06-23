@@ -3,6 +3,7 @@ import { addDays, subDays } from 'date-fns'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { getAthleteZones } from '@/lib/integrations/zone-distribution-service'
+import { extractPowerSamples, normalizeCardioSensorSamples } from '@/lib/cardio/sensor-samples'
 import type {
   EvaluationConfidence,
   NormalizedSensorSample,
@@ -308,13 +309,32 @@ function sourceSamples(candidate: SourceCandidate, groupStart: Date, maxHr: numb
       const startOffset = startedAt
         ? Math.max(0, Math.round((startedAt.getTime() - groupStart.getTime()) / 1000))
         : offsetFromGroup
-      const powerSamples = asNumberArray(item.powerSamples)
-      const length = Math.max(duration, powerSamples.length)
+      const sensorSamples = normalizeCardioSensorSamples(item.powerSamples)
+      const powerSamples = extractPowerSamples(item.powerSamples)
+      const length = Math.max(
+        duration,
+        sensorSamples?.power?.length ?? 0,
+        sensorSamples?.heartRate?.length ?? 0,
+        sensorSamples?.cadence?.length ?? 0,
+        sensorSamples?.strokeRate?.length ?? 0,
+        sensorSamples?.paceSeconds?.length ?? 0,
+        sensorSamples?.distanceMeters?.length ?? 0,
+        sensorSamples?.calories?.length ?? 0,
+        sensorSamples?.speedKmh?.length ?? 0,
+        powerSamples.length,
+      )
       for (let index = 0; index < length; index++) {
+        const speedKmh = asNumber(sensorSamples?.speedKmh?.[index])
         samples.push(withHrDerivedFields({
           timeSec: startOffset + index,
-          heartRate: asNumber(item.actualAvgHR),
-          power: powerSamples[index],
+          heartRate: asNumber(sensorSamples?.heartRate?.[index]) ?? asNumber(item.actualAvgHR),
+          power: asNumber(sensorSamples?.power?.[index]) ?? powerSamples[index],
+          paceSecPer500m: asNumber(sensorSamples?.paceSeconds?.[index]),
+          speedMps: speedKmh === undefined ? undefined : speedKmh / 3.6,
+          cadence: asNumber(sensorSamples?.cadence?.[index]),
+          strokeRate: asNumber(sensorSamples?.strokeRate?.[index]),
+          distanceMeters: asNumber(sensorSamples?.distanceMeters?.[index]),
+          calories: asNumber(sensorSamples?.calories?.[index]),
         }, maxHr, zones))
       }
     }

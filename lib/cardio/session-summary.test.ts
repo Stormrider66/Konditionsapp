@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import type { Prisma } from '@prisma/client'
 import { buildCardioSessionSummary } from './session-summary'
 
 // EMOM-style triple-erg session: 10 rounds of [BikeErg 60s/16cal,
@@ -219,5 +220,59 @@ describe('buildCardioSessionSummary', () => {
     expect(summary.rounds).toHaveLength(10)
     expect(summary.rounds[9].complete).toBe(false)
     expect(summary.roundFade!.lastRound).toBe(9)
+  })
+
+  it('builds coach review and live-data coverage from rich samples', () => {
+    const logs = emomLogs() as Array<ReturnType<typeof emomLogs>[number] & { powerSamples?: Prisma.JsonValue | null }>
+    logs[0].powerSamples = {
+      power: [220, 222, 224],
+      cadence: [69, 70, 71],
+      heartRate: [150, 153, 156],
+      distanceMeters: [0, 9, 18],
+      calories: [0, 1, 2],
+    } as unknown as Prisma.JsonValue
+    logs[3].powerSamples = {
+      heartRate: [158, 152, 148],
+    } as unknown as Prisma.JsonValue
+
+    const summary = buildCardioSessionSummary({
+      session: {
+        id: 'session-1',
+        name: 'Triple erg EMOM',
+        description: null,
+        sport: 'FUNCTIONAL_FITNESS',
+        segments: TRIPLE_ERG_SEGMENTS as never,
+      },
+      log: {
+        id: 'log-1',
+        startedAt: new Date('2026-06-13T10:00:00Z'),
+        completedAt: new Date('2026-06-13T10:39:00Z'),
+        status: 'COMPLETED',
+        actualDuration: 39 * 60,
+        sessionRPE: 8,
+        notes: 'Pain/injury mentioned: left calf tightness',
+        avgHeartRate: null,
+        maxHeartRate: null,
+        segmentLogs: logs,
+      },
+      locale: 'en',
+    })
+
+    expect(summary.liveData).toMatchObject({
+      segmentsWithSamples: 2,
+      segmentsWithRichSamples: 2,
+      sampleSeconds: 6,
+      avgCadence: 70,
+      avgRecoveryHrDrop: 10,
+    })
+    expect(summary.liveData.metrics).toEqual(['cadence', 'calories', 'distance', 'heartRate', 'power'])
+    expect(summary.windows[0]).toMatchObject({
+      avgCadence: 70,
+      sensorSampleCount: 3,
+    })
+    expect(summary.coachReview.tone).toBe('concern')
+    expect(summary.coachReview.painFlag).toContain('Pain or injury')
+    expect(summary.coachReview.cadence).toContain('low-rhythm')
+    expect(summary.coachReview.flags.map((flag) => flag.label)).toContain('Pain/injury mentioned')
   })
 })

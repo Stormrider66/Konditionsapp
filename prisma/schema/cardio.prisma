@@ -206,8 +206,9 @@ model CardioSegmentLog {
   actualMaxPower Int? // peak watts
   actualCalories Int? // kcal burned (machine-measured delta, or manually entered)
 
-  // Per-second watt samples from the connected erg (number[], 1 Hz from
-  // segment start) — powers power-vs-HR charts in the summary.
+  // Per-second samples from the connected erg (legacy number[] watts, or a
+  // richer 1 Hz object with power/cadence/HR/distance/calories from segment
+  // start) — powers charts, evaluations, and coach review cards.
   powerSamples Json?
 
   // Status

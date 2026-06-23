@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
-import type { CardioSegmentType } from '@prisma/client'
+import type { CardioSegmentType, Prisma } from '@prisma/client'
 import { logError } from '@/lib/logger-console'
 import { buildCardioFocusModeSegments, type AppLocale } from '@/lib/cardio/focus-mode-segments'
+import { sanitizeCardioSensorSamples } from '@/lib/cardio/sensor-samples'
 import { resolveRequestLocale } from '@/lib/i18n/request-locale'
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -69,12 +70,9 @@ export async function PUT(
     }
     const startedAtDate = parseInstant(startedAt)
     const completedAtDate = parseInstant(completedAt)
-    // 1 Hz watt series; null = no sample that second. Capped at 2h.
-    const sanitizedPowerSamples = Array.isArray(powerSamples)
-      ? powerSamples
-          .slice(0, 7200)
-          .map((v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? Math.round(v) : null))
-      : undefined
+    // 1 Hz sensor series; legacy clients send number[] watts, newer focus mode
+    // sends { power, cadence, HR, distance, ... } arrays. Capped at 2h.
+    const sanitizedPowerSamples = sanitizeCardioSensorSamples(powerSamples) as Prisma.InputJsonValue | undefined
 
     // Get assignment with session
     const assignment = await prisma.cardioSessionAssignment.findUnique({

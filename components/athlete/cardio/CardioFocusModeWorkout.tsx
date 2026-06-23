@@ -62,6 +62,7 @@ import {
   evaluateCardioLiveInsight,
   formatCardioLiveInsightForCoach,
 } from '@/lib/ai/live-voice-coaching/cardio-insights'
+import type { CardioSensorSampleSeries, NullableNumberSeries } from '@/lib/cardio/sensor-samples'
 import type {
   LiveMachineMetrics,
   LivePerformanceSnapshot,
@@ -144,7 +145,7 @@ interface CardioFocusModeWorkoutProps {
       // with watch HR streams and power charts.
       startedAt?: string
       completedAt?: string
-      powerSamples?: (number | null)[]
+      powerSamples?: CardioSensorSampleSeries | (number | null)[]
     }
   ) => Promise<void>
 }
@@ -174,6 +175,68 @@ function liveMachineTypeForEquipment(equipment?: string | null): LiveHRMachineTy
   if (equipment === 'BIKE_ERG') return 'CONCEPT2_BIKEERG'
   if (equipment === 'WATTBIKE') return 'WATTBIKE'
   return undefined
+}
+
+function createEmptySensorSamples(): CardioSensorSampleSeries {
+  return {
+    version: 1,
+    sampleRateHz: 1,
+    power: [],
+    heartRate: [],
+    cadence: [],
+    strokeRate: [],
+    paceSeconds: [],
+    distanceMeters: [],
+    calories: [],
+    speedKmh: [],
+  }
+}
+
+function writeSampleValue(series: NullableNumberSeries | undefined, second: number, value: number | null | undefined): NullableNumberSeries | undefined {
+  if (value == null || !Number.isFinite(value)) return series
+  const next = series ?? []
+  while (next.length <= second) next.push(null)
+  next[second] = value
+  return next
+}
+
+function writeSensorSample(
+  series: CardioSensorSampleSeries,
+  second: number,
+  sample: {
+    power?: number | null
+    heartRate?: number | null
+    cadence?: number | null
+    strokeRate?: number | null
+    paceSeconds?: number | null
+    distanceMeters?: number | null
+    calories?: number | null
+    speedKmh?: number | null
+  },
+) {
+  if (second < 0 || second >= 7200) return
+  series.power = writeSampleValue(series.power, second, sample.power)
+  series.heartRate = writeSampleValue(series.heartRate, second, sample.heartRate)
+  series.cadence = writeSampleValue(series.cadence, second, sample.cadence)
+  series.strokeRate = writeSampleValue(series.strokeRate, second, sample.strokeRate)
+  series.paceSeconds = writeSampleValue(series.paceSeconds, second, sample.paceSeconds)
+  series.distanceMeters = writeSampleValue(series.distanceMeters, second, sample.distanceMeters)
+  series.calories = writeSampleValue(series.calories, second, sample.calories)
+  series.speedKmh = writeSampleValue(series.speedKmh, second, sample.speedKmh)
+}
+
+function compactSensorSamples(series: CardioSensorSampleSeries): CardioSensorSampleSeries | null {
+  const keys = ['power', 'heartRate', 'cadence', 'strokeRate', 'paceSeconds', 'distanceMeters', 'calories', 'speedKmh'] as const
+  const length = Math.max(0, ...keys.map((key) => series[key]?.length ?? 0))
+  if (length === 0) return null
+
+  const next: CardioSensorSampleSeries = { version: 1, sampleRateHz: 1 }
+  for (const key of keys) {
+    const values = series[key]
+    if (!values?.some((value) => typeof value === 'number' && Number.isFinite(value))) continue
+    next[key] = Array.from({ length }, (_, index) => values[index] ?? null)
+  }
+  return next
 }
 
 export function CardioFocusModeWorkout({
@@ -279,6 +342,11 @@ export function CardioFocusModeWorkout({
   const segHrRef = useRef<number[]>([])
   const hrBand = useHeartRateBand((bpm) => {
     if (accumulatingRef.current) segHrRef.current.push(bpm)
+    const startedAt = segWindowRef.current.startedAt
+    if (startedAt != null) {
+      const sec = Math.floor((Date.now() - startedAt) / 1000)
+      writeSensorSample(segSensorSamplesRef.current, sec, { heartRate: bpm })
+    }
   })
   const [measuredForForm, setMeasuredForForm] = useState<{
     actualAvgPower?: number
@@ -290,10 +358,12 @@ export function CardioFocusModeWorkout({
   }>({})
   const segPowerRef = useRef<number[]>([])
   const segMaxRef = useRef(0)
+  const segSensorSamplesRef = useRef<CardioSensorSampleSeries>(createEmptySensorSamples())
   // Rower distance is cumulative for the session; the segment's metres are the
   // delta between the first and last sample seen while accumulating.
   const segDistStartRef = useRef<number | null>(null)
   const segDistLastRef = useRef<number | null>(null)
+  const segSensorDistStartRef = useRef<number | null>(null)
   // Machine calories are cumulative too. The live per-segment kcal is kept in
   // state tagged with its segment index, so a stale value never renders after
   // advancing (state is only ever written from the BLE data callback).
@@ -316,7 +386,7 @@ export function CardioFocusModeWorkout({
   const pendingWindowRef = useRef<{
     startedAt?: string
     completedAt: string
-    powerSamples?: (number | null)[]
+    powerSamples?: CardioSensorSampleSeries | (number | null)[]
   } | null>(null)
 
   const currentSegment = segments[currentIndex]
@@ -423,16 +493,19 @@ export function CardioFocusModeWorkout({
   const segmentWindow = useCallback((): {
     startedAt?: string
     completedAt: string
-    powerSamples?: (number | null)[]
+    powerSamples?: CardioSensorSampleSeries | (number | null)[]
   } => {
     const startedMs = segWindowRef.current.startedAt
     const endedMs = segWindowRef.current.endedAt ?? Date.now()
     const samples = segSamplesRef.current
+    const sensorSamples = compactSensorSamples(segSensorSamplesRef.current)
     return {
       ...(startedMs != null ? { startedAt: new Date(startedMs).toISOString() } : {}),
       completedAt: new Date(endedMs).toISOString(),
-      ...(samples.length > 0
-        ? { powerSamples: samples.map((v) => (v == null ? null : Math.round(v))) }
+      ...(sensorSamples
+        ? { powerSamples: sensorSamples }
+        : samples.length > 0
+          ? { powerSamples: samples.map((v) => (v == null ? null : Math.round(v))) }
         : {}),
     }
   }, [])
@@ -445,16 +518,49 @@ export function CardioFocusModeWorkout({
     // mid-segment must restart the deltas from the new machine's counters.
     segDistStartRef.current = null
     segDistLastRef.current = null
+    segSensorDistStartRef.current = null
     segCalStartRef.current = null
     segCalLastRef.current = null
     const off = activeClient.on('data', (s) => {
       if (!accumulatingRef.current) return
+      const startedAt = segWindowRef.current.startedAt
+      const sampleSecond = startedAt != null
+        ? Math.floor((Date.now() - startedAt) / 1000)
+        : null
+      if (typeof s.distance === 'number' && segSensorDistStartRef.current == null) {
+        segSensorDistStartRef.current = s.distance
+      }
+      const sampleDistanceMeters =
+        typeof s.distance === 'number' && segSensorDistStartRef.current != null
+          ? Math.max(0, s.distance - segSensorDistStartRef.current)
+          : null
+      const sampleCalories =
+        typeof s.calories === 'number' && segCalStartRef.current != null
+          ? Math.max(0, Math.round(s.calories - segCalStartRef.current))
+          : null
+
+      if (sampleSecond != null) {
+        writeSensorSample(segSensorSamplesRef.current, sampleSecond, {
+          power: typeof s.power === 'number' ? Math.round(s.power) : null,
+          heartRate: typeof s.heartRate === 'number' ? Math.round(s.heartRate) : null,
+          cadence: typeof s.cadence === 'number'
+            ? Math.round(s.cadence)
+            : typeof s.avgCadence === 'number'
+              ? Math.round(s.avgCadence)
+              : null,
+          strokeRate: typeof s.strokeRate === 'number' ? Math.round(s.strokeRate) : null,
+          paceSeconds: typeof s.pace === 'number' ? Math.round(s.pace) : null,
+          distanceMeters: sampleDistanceMeters,
+          calories: sampleCalories,
+          speedKmh: typeof s.speed === 'number' ? Math.round(s.speed * 10) / 10 : null,
+        })
+      }
+
       if (typeof s.power === 'number') {
         segPowerRef.current.push(s.power)
         if (s.power > segMaxRef.current) segMaxRef.current = s.power
         // 1 Hz series bucketed by second since the timer started (last sample
         // in a second wins; missed seconds stay null).
-        const startedAt = segWindowRef.current.startedAt
         if (startedAt != null) {
           const sec = Math.floor((Date.now() - startedAt) / 1000)
           if (sec >= 0 && sec < 3600) {
@@ -501,11 +607,14 @@ export function CardioFocusModeWorkout({
     segMaxRef.current = 0
     segDistStartRef.current = null
     segDistLastRef.current = null
+    segSensorDistStartRef.current = null
     segCalStartRef.current = null
     segCalLastRef.current = null
     currentIndexRef.current = currentIndex
     segWindowRef.current = { startedAt: null, endedAt: null }
     segSamplesRef.current = []
+    // eslint-disable-next-line react-hooks/immutability
+    segSensorSamplesRef.current = createEmptySensorSamples()
     segHrRef.current = []
   }, [currentIndex])
 
@@ -862,7 +971,7 @@ export function CardioFocusModeWorkout({
       actualDuration?: number
       startedAt?: string
       completedAt?: string
-      powerSamples?: (number | null)[]
+      powerSamples?: CardioSensorSampleSeries | (number | null)[]
       actualAvgPower?: number
       actualMaxPower?: number
       actualDistance?: number
