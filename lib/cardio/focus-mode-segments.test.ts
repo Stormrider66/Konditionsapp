@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCardioFocusModeSegments, resolveSegmentPower } from './focus-mode-segments'
+import { buildCardioFocusModeSegments, parseCadenceToRpm, resolveSegmentPower } from './focus-mode-segments'
 
 describe('buildCardioFocusModeSegments', () => {
   it('expands flat repeats and rest intervals into loggable focus steps', () => {
@@ -111,6 +111,28 @@ describe('buildCardioFocusModeSegments', () => {
 
     // No power target at all
     expect(resolveSegmentPower({}, 320)).toEqual({})
+  })
+
+  it('parses cadence target ranges and carries repeat-step cadence targets', () => {
+    expect(parseCadenceToRpm('85-95')).toBe(90)
+
+    const segments = buildCardioFocusModeSegments({
+      locale: 'en',
+      segments: [
+        {
+          id: 'group',
+          type: 'REPEAT_GROUP',
+          repeats: 2,
+          steps: [
+            { id: 'work', type: 'INTERVAL', duration: 180, targetType: 'cadence', targetValue: '88-92' },
+          ],
+        },
+      ],
+    })
+
+    expect(segments).toHaveLength(2)
+    expect(segments[0].plannedCadence).toBe(90)
+    expect(segments[1].plannedCadence).toBe(90)
   })
 
   it('normalizes repeat-group REST steps to the persisted RECOVERY segment type', () => {

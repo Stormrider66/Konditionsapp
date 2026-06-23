@@ -275,4 +275,174 @@ describe('buildCardioSessionSummary', () => {
     expect(summary.coachReview.cadence).toContain('low-rhythm')
     expect(summary.coachReview.flags.map((flag) => flag.label)).toContain('Pain/injury mentioned')
   })
+
+  it('grades planned bike intervals against actual timing, power, cadence, rest, and HR recovery', () => {
+    const segments = [
+      {
+        id: 'bike-intervals',
+        type: 'INTERVAL',
+        duration: 180,
+        repeats: 3,
+        restDuration: 60,
+        power: '250',
+        cadence: '90',
+        equipment: 'WATTBIKE',
+      },
+    ]
+    const logs = [
+      {
+        id: 'work-1',
+        segmentIndex: 0,
+        actualDuration: 180,
+        actualDistance: null,
+        actualPace: null,
+        actualAvgHR: 160,
+        actualMaxHR: 170,
+        actualAvgPower: 252,
+        actualMaxPower: 282,
+        actualCalories: null,
+        powerSamples: {
+          power: [250, 252, 254],
+          cadence: [89, 90, 91],
+          heartRate: [152, 160, 170],
+        } as unknown as Prisma.JsonValue,
+        completed: true,
+        skipped: false,
+      },
+      {
+        id: 'rest-1',
+        segmentIndex: 1,
+        actualDuration: 60,
+        actualDistance: null,
+        actualPace: null,
+        actualAvgHR: null,
+        actualMaxHR: null,
+        actualAvgPower: null,
+        actualMaxPower: null,
+        actualCalories: null,
+        powerSamples: {
+          heartRate: [165, 150],
+        } as unknown as Prisma.JsonValue,
+        completed: true,
+        skipped: false,
+      },
+      {
+        id: 'work-2',
+        segmentIndex: 2,
+        actualDuration: 170,
+        actualDistance: null,
+        actualPace: null,
+        actualAvgHR: 166,
+        actualMaxHR: 176,
+        actualAvgPower: 232,
+        actualMaxPower: 260,
+        actualCalories: null,
+        powerSamples: {
+          power: [230, 232, 234],
+          cadence: [81, 82, 83],
+          heartRate: [160, 166, 176],
+        } as unknown as Prisma.JsonValue,
+        completed: true,
+        skipped: false,
+      },
+      {
+        id: 'rest-2',
+        segmentIndex: 3,
+        actualDuration: 85,
+        actualDistance: null,
+        actualPace: null,
+        actualAvgHR: null,
+        actualMaxHR: null,
+        actualAvgPower: null,
+        actualMaxPower: null,
+        actualCalories: null,
+        powerSamples: {
+          heartRate: [170, 160],
+        } as unknown as Prisma.JsonValue,
+        completed: true,
+        skipped: false,
+      },
+      {
+        id: 'work-3',
+        segmentIndex: 4,
+        actualDuration: null,
+        actualDistance: null,
+        actualPace: null,
+        actualAvgHR: null,
+        actualMaxHR: null,
+        actualAvgPower: null,
+        actualMaxPower: null,
+        actualCalories: null,
+        completed: false,
+        skipped: true,
+      },
+    ]
+
+    const summary = buildCardioSessionSummary({
+      session: {
+        id: 'session-1',
+        name: '10 x 3 bike',
+        description: null,
+        sport: 'CYCLING',
+        segments: segments as never,
+      },
+      log: {
+        id: 'log-1',
+        startedAt: new Date('2026-06-13T10:00:00Z'),
+        completedAt: new Date('2026-06-13T10:15:00Z'),
+        status: 'COMPLETED',
+        actualDuration: 900,
+        sessionRPE: 8,
+        notes: null,
+        avgHeartRate: null,
+        maxHeartRate: null,
+        segmentLogs: logs,
+      },
+      locale: 'en',
+    })
+
+    expect(summary.plannedVsActual).not.toBeNull()
+    expect(summary.windows[0]).toMatchObject({
+      plannedPower: 250,
+      plannedCadence: 90,
+    })
+    expect(summary.plannedVsActual).toMatchObject({
+      tone: 'offPlan',
+      analyzedWindows: 3,
+      onTargetWindows: 1,
+      watchWindows: 1,
+      missedWindows: 1,
+      restTiming: {
+        segments: 2,
+        onTarget: 1,
+        avgDeltaSeconds: 13,
+        longestOverSeconds: 25,
+      },
+      heartRateRecovery: {
+        recoverySegments: 2,
+        avgDropBpm: 13,
+        status: 'okay',
+      },
+    })
+    expect(summary.plannedVsActual!.executionScore).toBeLessThan(65)
+    expect(summary.plannedVsActual!.powerHitRate).toBeCloseTo(1 / 3, 5)
+    expect(summary.plannedVsActual!.cadenceHitRate).toBeCloseTo(1 / 3, 5)
+    expect(summary.plannedVsActual!.timingHitRate).toBeCloseTo(1 / 3, 5)
+    expect(summary.plannedVsActual!.windows[0].power).toMatchObject({
+      target: 250,
+      actual: 252,
+      status: 'onTarget',
+    })
+    expect(summary.plannedVsActual!.windows[1]).toMatchObject({
+      outcome: 'watch',
+      power: { status: 'low' },
+      cadence: { status: 'low' },
+      timing: { status: 'short' },
+    })
+    expect(summary.plannedVsActual!.windows[2]).toMatchObject({
+      outcome: 'missed',
+      skipped: true,
+    })
+    expect(summary.plannedVsActual!.keyFindings.join(' ')).toContain('below power target')
+  })
 })

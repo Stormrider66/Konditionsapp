@@ -74,6 +74,7 @@ export interface FocusModeSegment {
   plannedZone?: number
   plannedCalories?: number // kcal target (airbike/rower intervals)
   plannedPower?: number // absolute watt target (parsed)
+  plannedCadence?: number // RPM/SPM target (parsed)
   powerRelPercent?: number // relative power target, e.g. 80
   powerRelTo?: CardioRelativeRef // what the % is relative to (OPENER/FTP/CP)
   isBenchmark?: boolean // opener/prolog whose logged result anchors relative targets
@@ -189,6 +190,15 @@ export function parsePowerToWatts(power: string | undefined): number | undefined
   if (!power) return undefined
   const match = power.match(/\d+/)
   return match ? parseInt(match[0], 10) : undefined
+}
+
+export function parseCadenceToRpm(cadence: string | undefined): number | undefined {
+  if (!cadence) return undefined
+  const matches = cadence.match(/\d+(?:\.\d+)?/g)
+  if (!matches || matches.length === 0) return undefined
+  const values = matches.slice(0, 2).map((value) => Number(value)).filter(Number.isFinite)
+  if (values.length === 0) return undefined
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
 }
 
 // Structured power-target fields for a focus-mode segment.
@@ -323,6 +333,9 @@ export function buildCardioFocusModeSegments({
               (step.targetType === 'calories' && step.targetValue
                 ? parseInt(step.targetValue, 10) || undefined
                 : undefined),
+            plannedCadence: step.targetType === 'cadence'
+              ? parseCadenceToRpm(step.targetValue)
+              : undefined,
             notes: noteParts.join(' - '),
             equipment: step.equipment,
             groupId,
@@ -378,6 +391,7 @@ export function buildCardioFocusModeSegments({
           plannedPace: parsePaceToSeconds(seg.pace),
           plannedZone: seg.zone,
           plannedCalories: seg.calories,
+          plannedCadence: parseCadenceToRpm(seg.cadence),
           notes: noteParts.join(' - '),
           equipment: seg.equipment,
           groupId,
@@ -436,6 +450,7 @@ export function buildCardioFocusModeSegments({
       plannedPace: parsePaceToSeconds(seg.pace),
       plannedZone: seg.zone,
       plannedCalories: seg.calories,
+      plannedCadence: parseCadenceToRpm(seg.cadence),
       notes: noteParts.join(' - ') || seg.notes,
       equipment: seg.equipment,
       ...powerFields({

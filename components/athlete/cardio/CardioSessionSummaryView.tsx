@@ -20,6 +20,7 @@ import {
   Flame,
   Gauge,
   Heart,
+  ListChecks,
   Loader2,
   Radio,
   ShieldAlert,
@@ -33,6 +34,8 @@ import { useLocale } from '@/i18n/client'
 import { EQUIPMENT_OPTIONS, equipmentLabel } from '@/components/coach/cardio/cardio-session-model'
 import type {
   CardioSessionSummaryData,
+  PlannedActualMetric,
+  PlannedActualWindow,
   RoundSummary,
   SummaryWindow,
 } from '@/lib/cardio/session-summary'
@@ -156,6 +159,7 @@ export function CardioSessionSummaryView({
         {data && (
           <div className="space-y-6">
             <HeroStats data={data} tw={tw} />
+            {data.plannedVsActual && <PlannedVsActualCard data={data} locale={locale} tw={tw} />}
             {showAthleteName && <CoachReviewCard data={data} tw={tw} />}
             {data.liveData.segmentsWithSamples > 0 && <LiveDataCard data={data} tw={tw} />}
             {data.calorieAdherence && <AdherenceCard data={data} tw={tw} />}
@@ -219,6 +223,185 @@ function HeroStats({ data, tw }: { data: SummaryResponse; tw: Tw }) {
           <p className="text-xl font-black tabular-nums">{stat.value}</p>
         </div>
       ))}
+    </div>
+  )
+}
+
+function rateText(rate: number | null): string {
+  return rate == null ? '–' : `${Math.round(rate * 100)}%`
+}
+
+function signedNumber(value: number): string {
+  return `${value > 0 ? '+' : ''}${Math.round(value)}`
+}
+
+function metricStatusLabel(status: PlannedActualMetric['status'], tw: Tw): string {
+  switch (status) {
+    case 'onTarget':
+      return tw('på mål', 'on target')
+    case 'low':
+      return tw('lågt', 'low')
+    case 'high':
+      return tw('högt', 'high')
+    case 'short':
+      return tw('kort', 'short')
+    case 'long':
+      return tw('lång', 'long')
+    case 'missed':
+      return tw('saknas', 'missing')
+  }
+}
+
+function outcomeLabel(outcome: PlannedActualWindow['outcome'], tw: Tw): string {
+  if (outcome === 'onTarget') return tw('På mål', 'On target')
+  if (outcome === 'missed') return tw('Missad', 'Missed')
+  return tw('Bevaka', 'Watch')
+}
+
+function outcomeClass(outcome: PlannedActualWindow['outcome']): string {
+  if (outcome === 'onTarget') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+  if (outcome === 'missed') return 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+  return 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+}
+
+function metricPair(
+  metric: PlannedActualMetric | null,
+  unit: string,
+  tw: Tw,
+  formatter: (value: number) => string = (value) => `${Math.round(value)}${unit}`,
+): string | null {
+  if (!metric) return null
+  const target = formatter(metric.target)
+  const actual = metric.actual == null ? '–' : formatter(metric.actual)
+  const delta = metric.delta == null
+    ? ''
+    : ` · ${signedNumber(metric.delta)}${unit}`
+  return `${actual}/${target}${delta} · ${metricStatusLabel(metric.status, tw)}`
+}
+
+function PlannedVsActualCard({
+  data,
+  locale,
+  tw,
+}: {
+  data: SummaryResponse
+  locale: 'en' | 'sv'
+  tw: Tw
+}) {
+  const analysis = data.plannedVsActual
+  if (!analysis) return null
+  const toneClasses = analysis.tone === 'offPlan'
+    ? 'border-red-500/30 bg-red-50/80 dark:bg-red-950/15'
+    : analysis.tone === 'watch'
+      ? 'border-amber-500/30 bg-amber-50/80 dark:bg-amber-950/15'
+      : 'border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/15'
+  const visibleWindows = analysis.windows
+    .filter((window) => window.outcome !== 'onTarget')
+    .slice(0, 5)
+  const rows = visibleWindows.length > 0 ? visibleWindows : analysis.windows.slice(0, 3)
+  const restValue = analysis.restTiming.segments > 0
+    ? `${analysis.restTiming.onTarget}/${analysis.restTiming.segments}`
+    : '–'
+  const hrDropValue = analysis.heartRateRecovery.avgDropBpm != null
+    ? `${analysis.heartRateRecovery.avgDropBpm}`
+    : '–'
+
+  return (
+    <div className={cn('rounded-xl border p-4', toneClasses)}>
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+            <ListChecks className="h-5 w-5" />
+            <p className="text-xs font-black uppercase tracking-wider">
+              {tw('Plan vs faktiskt', 'Planned vs actual')}
+            </p>
+          </div>
+          <h2 className="text-lg font-black tracking-tight">{analysis.headline}</h2>
+          <p className="mt-1 text-sm font-medium text-muted-foreground">{analysis.summary}</p>
+        </div>
+        <Badge className="w-fit text-base font-black tabular-nums">
+          {analysis.executionScore}/100
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <MiniStat label={tw('På mål', 'On target')} value={`${analysis.onTargetWindows}/${analysis.analyzedWindows}`} />
+        <MiniStat label={tw('Tid', 'Timing')} value={rateText(analysis.timingHitRate)} />
+        <MiniStat label={tw('Watt', 'Power')} value={rateText(analysis.powerHitRate)} />
+        <MiniStat label={tw('Vila', 'Rest')} value={restValue} />
+        <MiniStat label={tw('Pulsfall', 'HR drop')} value={hrDropValue} />
+      </div>
+
+      {analysis.keyFindings.length > 0 && (
+        <div className="mt-3 space-y-1.5 text-sm font-semibold">
+          {analysis.keyFindings.map((finding) => (
+            <div key={finding} className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-50" />
+              <span>{finding}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {rows.length > 0 && (
+        <div className="mt-4 overflow-hidden rounded-lg border bg-background/60">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b px-3 py-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+            <span>{tw('Intervall', 'Interval')}</span>
+            <span>{tw('Status', 'Status')}</span>
+          </div>
+          {rows.map((window) => (
+            <PlannedActualRow key={window.index} window={window} locale={locale} tw={tw} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function PlannedActualRow({
+  window,
+  locale,
+  tw,
+}: {
+  window: PlannedActualWindow
+  locale: 'en' | 'sv'
+  tw: Tw
+}) {
+  const metrics = [
+    metricPair(window.timing, 's', tw, fmtClock),
+    metricPair(window.power, ' W', tw),
+    metricPair(window.calories, ' kcal', tw),
+    metricPair(
+      window.cadence,
+      window.equipment === 'ROW' || window.equipment === 'SKI_ERG' ? ' spm' : ' rpm',
+      tw,
+    ),
+  ].filter((value): value is string => value != null)
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 border-b px-3 py-2 last:border-b-0">
+      <div className="min-w-0">
+        <p className="font-bold">
+          {window.label}
+          {window.equipment && (
+            <span className="ml-1 text-xs font-semibold text-muted-foreground">
+              {machineLabel(window.equipment, locale)}
+            </span>
+          )}
+        </p>
+        {metrics.length > 0 && (
+          <p className="mt-0.5 text-xs font-medium text-muted-foreground">
+            {metrics.join(' · ')}
+          </p>
+        )}
+        {window.notes.length > 0 && (
+          <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
+            {window.notes[0]}
+          </p>
+        )}
+      </div>
+      <Badge className={cn('h-fit font-bold', outcomeClass(window.outcome))}>
+        {outcomeLabel(window.outcome, tw)}
+      </Badge>
     </div>
   )
 }

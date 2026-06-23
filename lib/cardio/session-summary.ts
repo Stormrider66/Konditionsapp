@@ -33,6 +33,7 @@ export interface SummaryWindow {
   plannedDuration: number | null // seconds
   plannedCalories: number | null
   plannedPower: number | null
+  plannedCadence: number | null
   actualDuration: number | null // seconds
   actualCalories: number | null
   actualDistance: number | null // km
@@ -129,6 +130,66 @@ export interface LiveDataOverview {
   avgRecoveryHrDrop: number | null
 }
 
+export type PlannedActualMetricStatus = 'onTarget' | 'low' | 'high' | 'short' | 'long' | 'missed'
+
+export interface PlannedActualMetric {
+  target: number
+  actual: number | null
+  delta: number | null
+  deltaPercent: number | null
+  status: PlannedActualMetricStatus
+}
+
+export interface PlannedActualWindow {
+  index: number
+  label: string
+  equipment: string | null
+  round: number | null
+  completed: boolean
+  skipped: boolean
+  outcome: 'onTarget' | 'watch' | 'missed'
+  timing: PlannedActualMetric | null
+  power: PlannedActualMetric | null
+  calories: PlannedActualMetric | null
+  cadence: PlannedActualMetric | null
+  avgHeartRate: number | null
+  maxHeartRate: number | null
+  recoveryDrop: number | null
+  notes: string[]
+}
+
+export interface PlannedActualRestTiming {
+  segments: number
+  onTarget: number
+  avgDeltaSeconds: number | null
+  longestOverSeconds: number | null
+}
+
+export interface PlannedActualHeartRateRecovery {
+  recoverySegments: number
+  avgDropBpm: number | null
+  status: 'strong' | 'okay' | 'slow' | 'unknown'
+}
+
+export interface PlannedVsActualAnalysis {
+  tone: 'positive' | 'watch' | 'offPlan'
+  executionScore: number
+  headline: string
+  summary: string
+  analyzedWindows: number
+  onTargetWindows: number
+  watchWindows: number
+  missedWindows: number
+  timingHitRate: number | null
+  powerHitRate: number | null
+  calorieHitRate: number | null
+  cadenceHitRate: number | null
+  restTiming: PlannedActualRestTiming
+  heartRateRecovery: PlannedActualHeartRateRecovery
+  keyFindings: string[]
+  windows: PlannedActualWindow[]
+}
+
 export interface CardioSessionSummaryData {
   session: {
     id: string
@@ -163,6 +224,7 @@ export interface CardioSessionSummaryData {
   equipment: EquipmentSummary[]
   calorieAdherence: CalorieAdherence | null
   liveData: LiveDataOverview
+  plannedVsActual: PlannedVsActualAnalysis | null
   coachReview: CoachReviewCardData
   windows: SummaryWindow[] // all work windows in execution order
 }
@@ -230,6 +292,7 @@ function toWindow(seg: FocusModeSegment, sensorStats: CardioSensorSeriesStats): 
     plannedDuration: seg.plannedDuration ?? null,
     plannedCalories: seg.plannedCalories ?? null,
     plannedPower: seg.plannedPower ?? null,
+    plannedCadence: seg.plannedCadence ?? null,
     actualDuration: seg.actualDuration ?? null,
     actualCalories: seg.actualCalories ?? null,
     actualDistance: seg.actualDistance ?? null,
@@ -421,6 +484,353 @@ function isRowingLikeEquipment(equipment: string | null): boolean {
 function hasPainFlag(notes: string | null | undefined): boolean {
   if (!notes) return false
   return /\b(pain|injur|hurt|ache|cramp|smärta|smärtor|smart|ont|skada|värk|vark|kramp)\b/iu.test(notes)
+}
+
+function roundOne(value: number): number {
+  return Math.round(value * 10) / 10
+}
+
+function compareTarget(input: {
+  target: number | null | undefined
+  actual: number | null | undefined
+  tolerancePercent: number
+  toleranceAbsolute: number
+  lowStatus?: PlannedActualMetricStatus
+  highStatus?: PlannedActualMetricStatus
+}): PlannedActualMetric | null {
+  const { target, actual, tolerancePercent, toleranceAbsolute } = input
+  if (target == null || !Number.isFinite(target)) return null
+  if (actual == null || !Number.isFinite(actual)) {
+    return {
+      target,
+      actual: null,
+      delta: null,
+      deltaPercent: null,
+      status: 'missed',
+    }
+  }
+
+  const delta = actual - target
+  const tolerance = Math.max(toleranceAbsolute, Math.abs(target) * tolerancePercent)
+  const deltaPercent = target !== 0 ? (delta / target) * 100 : null
+  return {
+    target,
+    actual,
+    delta,
+    deltaPercent,
+    status: Math.abs(delta) <= tolerance
+      ? 'onTarget'
+      : delta < 0
+        ? input.lowStatus ?? 'low'
+        : input.highStatus ?? 'high',
+  }
+}
+
+function metricScore(metric: PlannedActualMetric | null): number | null {
+  if (!metric) return null
+  if (metric.status === 'onTarget') return 1
+  if (metric.status === 'missed') return 0
+  return 0.55
+}
+
+function metricHitRate(metrics: Array<PlannedActualMetric | null>): number | null {
+  const present = metrics.filter((metric): metric is PlannedActualMetric => metric != null)
+  if (present.length === 0) return null
+  return present.filter((metric) => metric.status === 'onTarget').length / present.length
+}
+
+function durationActual(window: SummaryWindow): number | null {
+  return window.actualDuration ?? (window.sensorSampleCount > 0 ? window.sensorSampleCount : null)
+}
+
+function powerActual(window: SummaryWindow): number | null {
+  return window.actualAvgPower ?? window.sensorStats.avgPower
+}
+
+function caloriesActual(window: SummaryWindow): number | null {
+  return window.actualCalories ?? window.sensorStats.calories
+}
+
+function cadenceActual(window: SummaryWindow): number | null {
+  return isRowingLikeEquipment(window.equipment)
+    ? window.avgStrokeRate
+    : window.avgCadence
+}
+
+function plannedWindowLabel(window: SummaryWindow, locale: AppLocale): string {
+  if (window.round != null) return text(locale, `Round ${window.round}`, `Runda ${window.round}`)
+  return text(locale, `Segment ${window.index + 1}`, `Segment ${window.index + 1}`)
+}
+
+function metricDeltaText(metric: PlannedActualMetric, unit: string): string {
+  if (metric.delta == null) return ''
+  const roundedDelta = unit === 's' ? Math.round(metric.delta) : roundOne(metric.delta)
+  const sign = roundedDelta > 0 ? '+' : ''
+  if (metric.deltaPercent == null) return `${sign}${roundedDelta}${unit}`
+  return `${sign}${roundedDelta}${unit} (${pct(metric.deltaPercent)})`
+}
+
+function buildPlannedActualWindow(window: SummaryWindow, locale: AppLocale): PlannedActualWindow {
+  const timing = compareTarget({
+    target: window.plannedDuration,
+    actual: durationActual(window),
+    tolerancePercent: 0.05,
+    toleranceAbsolute: 5,
+    lowStatus: 'short',
+    highStatus: 'long',
+  })
+  const power = compareTarget({
+    target: window.plannedPower,
+    actual: powerActual(window),
+    tolerancePercent: 0.05,
+    toleranceAbsolute: 10,
+  })
+  const calories = compareTarget({
+    target: window.plannedCalories,
+    actual: caloriesActual(window),
+    tolerancePercent: 0.05,
+    toleranceAbsolute: 1,
+  })
+  const cadence = compareTarget({
+    target: window.plannedCadence,
+    actual: cadenceActual(window),
+    tolerancePercent: 0.05,
+    toleranceAbsolute: 3,
+  })
+  const metrics = [timing, power, calories, cadence].filter(
+    (metric): metric is PlannedActualMetric => metric != null,
+  )
+  const notes: string[] = []
+
+  if (window.skipped || !window.completed) {
+    notes.push(text(locale, 'Work interval was not completed.', 'Arbetsdelen slutfördes inte.'))
+  }
+  if (timing && timing.status !== 'onTarget') {
+    notes.push(text(
+      locale,
+      `Timing ${metricDeltaText(timing, 's')} vs plan.`,
+      `Tid ${metricDeltaText(timing, 's')} mot plan.`,
+    ))
+  }
+  if (power && power.status !== 'onTarget') {
+    notes.push(text(
+      locale,
+      `Power ${metricDeltaText(power, ' W')} vs target.`,
+      `Watt ${metricDeltaText(power, ' W')} mot mål.`,
+    ))
+  }
+  if (calories && calories.status !== 'onTarget') {
+    notes.push(text(
+      locale,
+      `Calories ${metricDeltaText(calories, ' kcal')} vs target.`,
+      `Kalorier ${metricDeltaText(calories, ' kcal')} mot mål.`,
+    ))
+  }
+  if (cadence && cadence.status !== 'onTarget') {
+    notes.push(text(
+      locale,
+      `Rhythm ${metricDeltaText(cadence, isRowingLikeEquipment(window.equipment) ? ' spm' : ' rpm')} vs target.`,
+      `Rytm ${metricDeltaText(cadence, isRowingLikeEquipment(window.equipment) ? ' spm' : ' rpm')} mot mål.`,
+    ))
+  }
+
+  const outcome = window.skipped || !window.completed
+    ? 'missed'
+    : metrics.some((metric) => metric.status !== 'onTarget')
+      ? 'watch'
+      : 'onTarget'
+
+  return {
+    index: window.index,
+    label: plannedWindowLabel(window, locale),
+    equipment: window.equipment,
+    round: window.round,
+    completed: window.completed,
+    skipped: window.skipped,
+    outcome,
+    timing,
+    power,
+    calories,
+    cadence,
+    avgHeartRate: window.actualAvgHR ?? window.sensorStats.avgHeartRate,
+    maxHeartRate: window.actualMaxHR ?? window.sensorStats.maxHeartRate,
+    recoveryDrop: null,
+    notes: notes.slice(0, 3),
+  }
+}
+
+function buildRestTiming(
+  restSegments: FocusModeSegment[],
+  sensorStatsBySegment: Map<number, CardioSensorSeriesStats>,
+): PlannedActualRestTiming {
+  const comparisons = restSegments
+    .filter((segment) => segment.plannedDuration != null)
+    .map((segment) => {
+      const stats = sensorStatsBySegment.get(segment.index)
+      const actual = segment.actualDuration ?? (stats && stats.sampleCount > 0 ? stats.sampleCount : null)
+      return compareTarget({
+        target: segment.plannedDuration,
+        actual,
+        tolerancePercent: 0.1,
+        toleranceAbsolute: 10,
+        lowStatus: 'short',
+        highStatus: 'long',
+      })
+    })
+    .filter((metric): metric is PlannedActualMetric => metric != null)
+
+  const deltas = comparisons
+    .map((metric) => metric.delta)
+    .filter((value): value is number => value != null)
+  const avgDelta = mean(deltas)
+  const over = deltas.filter((delta) => delta > 0)
+
+  return {
+    segments: comparisons.length,
+    onTarget: comparisons.filter((metric) => metric.status === 'onTarget').length,
+    avgDeltaSeconds: avgDelta != null ? Math.round(avgDelta) : null,
+    longestOverSeconds: over.length > 0 ? Math.round(Math.max(...over)) : null,
+  }
+}
+
+function buildHeartRateRecovery(recoveryStats: CardioSensorSeriesStats[]): PlannedActualHeartRateRecovery {
+  const drops = recoveryStats
+    .map((stats) => stats.heartRateDrop)
+    .filter((value): value is number => typeof value === 'number')
+  const avgDrop = mean(drops)
+  const roundedDrop = avgDrop != null ? Math.round(avgDrop) : null
+  return {
+    recoverySegments: drops.length,
+    avgDropBpm: roundedDrop,
+    status: roundedDrop == null
+      ? 'unknown'
+      : roundedDrop >= 18
+        ? 'strong'
+        : roundedDrop >= 10
+          ? 'okay'
+          : 'slow',
+  }
+}
+
+function countMetricStatus(
+  windows: PlannedActualWindow[],
+  metric: keyof Pick<PlannedActualWindow, 'timing' | 'power' | 'calories' | 'cadence'>,
+  statuses: PlannedActualMetricStatus[],
+): number {
+  return windows.filter((window) => {
+    const value = window[metric]
+    return value != null && statuses.includes(value.status)
+  }).length
+}
+
+function buildPlannedVsActualAnalysis(input: {
+  windows: SummaryWindow[]
+  restSegments: FocusModeSegment[]
+  sensorStatsBySegment: Map<number, CardioSensorSeriesStats>
+  recoveryStats: CardioSensorSeriesStats[]
+  locale: AppLocale
+}): PlannedVsActualAnalysis | null {
+  const { windows, restSegments, sensorStatsBySegment, recoveryStats, locale } = input
+  if (windows.length === 0) return null
+
+  const analyzedWindows = windows.map((window) => buildPlannedActualWindow(window, locale))
+  const onTargetWindows = analyzedWindows.filter((window) => window.outcome === 'onTarget').length
+  const watchWindows = analyzedWindows.filter((window) => window.outcome === 'watch').length
+  const missedWindows = analyzedWindows.filter((window) => window.outcome === 'missed').length
+  const windowScores = analyzedWindows.map((window) => {
+    if (window.outcome === 'missed') return 0
+    const metricScores = [window.timing, window.power, window.calories, window.cadence]
+      .map(metricScore)
+      .filter((value): value is number => value != null)
+    if (metricScores.length === 0) return window.completed ? 1 : 0
+    return metricScores.reduce((sumValue, value) => sumValue + value, 0) / metricScores.length
+  })
+  const executionScore = Math.round((mean(windowScores) ?? 0) * 100)
+  const timingHitRate = metricHitRate(analyzedWindows.map((window) => window.timing))
+  const powerHitRate = metricHitRate(analyzedWindows.map((window) => window.power))
+  const calorieHitRate = metricHitRate(analyzedWindows.map((window) => window.calories))
+  const cadenceHitRate = metricHitRate(analyzedWindows.map((window) => window.cadence))
+  const restTiming = buildRestTiming(restSegments, sensorStatsBySegment)
+  const heartRateRecovery = buildHeartRateRecovery(recoveryStats)
+  const keyFindings: string[] = []
+
+  const lowPower = countMetricStatus(analyzedWindows, 'power', ['low', 'missed'])
+  const highPower = countMetricStatus(analyzedWindows, 'power', ['high'])
+  const shortTiming = countMetricStatus(analyzedWindows, 'timing', ['short', 'missed'])
+  const longTiming = countMetricStatus(analyzedWindows, 'timing', ['long'])
+  const lowCadence = countMetricStatus(analyzedWindows, 'cadence', ['low', 'missed'])
+  const lowCalories = countMetricStatus(analyzedWindows, 'calories', ['low', 'missed'])
+
+  if (executionScore >= 85 && missedWindows === 0) {
+    keyFindings.push(text(locale, 'Most intervals matched the plan.', 'De flesta intervallerna matchade planen.'))
+  }
+  if (lowPower > 0) {
+    keyFindings.push(text(locale, `${lowPower} interval(s) finished below power target.`, `${lowPower} intervall låg under wattmålet.`))
+  }
+  if (highPower > 0) {
+    keyFindings.push(text(locale, `${highPower} interval(s) were above power target.`, `${highPower} intervall låg över wattmålet.`))
+  }
+  if (shortTiming > 0 || longTiming > 0) {
+    keyFindings.push(text(
+      locale,
+      `${shortTiming + longTiming} interval(s) drifted from planned work time.`,
+      `${shortTiming + longTiming} intervall avvek från planerad arbetstid.`,
+    ))
+  }
+  if (lowCadence > 0) {
+    keyFindings.push(text(locale, `${lowCadence} interval(s) missed cadence/rhythm target.`, `${lowCadence} intervall missade kadens-/rytmmålet.`))
+  }
+  if (lowCalories > 0) {
+    keyFindings.push(text(locale, `${lowCalories} interval(s) missed calorie target.`, `${lowCalories} intervall missade kalorimålet.`))
+  }
+  if (restTiming.segments > 0 && restTiming.onTarget < restTiming.segments) {
+    keyFindings.push(text(
+      locale,
+      `Rest timing matched ${restTiming.onTarget}/${restTiming.segments} recoveries.`,
+      `Vilopausernas timing matchade ${restTiming.onTarget}/${restTiming.segments} återhämtningar.`,
+    ))
+  }
+  if (heartRateRecovery.status === 'slow') {
+    keyFindings.push(text(locale, 'Heart-rate recovery was slow between efforts.', 'Pulsåterhämtningen var långsam mellan intervallerna.'))
+  }
+  if (keyFindings.length === 0) {
+    keyFindings.push(text(locale, 'Completed work is logged, but there were few explicit targets to grade.', 'Arbetet är loggat, men det fanns få tydliga mål att bedöma.'))
+  }
+
+  const tone: PlannedVsActualAnalysis['tone'] = executionScore >= 85 && missedWindows === 0
+    ? 'positive'
+    : executionScore >= 65 && missedWindows <= Math.max(1, Math.floor(analyzedWindows.length * 0.15))
+      ? 'watch'
+      : 'offPlan'
+  const headline = tone === 'positive'
+    ? text(locale, 'Executed close to plan', 'Genomfört nära plan')
+    : tone === 'watch'
+      ? text(locale, 'Plan mostly followed with a few misses', 'Planen följdes mest, med några missar')
+      : text(locale, 'Session drifted from the plan', 'Passet avvek från planen')
+  const summary = text(
+    locale,
+    `${onTargetWindows}/${analyzedWindows.length} work intervals were on target. Execution score ${executionScore}/100.`,
+    `${onTargetWindows}/${analyzedWindows.length} arbetsintervaller var på mål. Genomförandescore ${executionScore}/100.`,
+  )
+
+  return {
+    tone,
+    executionScore,
+    headline,
+    summary,
+    analyzedWindows: analyzedWindows.length,
+    onTargetWindows,
+    watchWindows,
+    missedWindows,
+    timingHitRate,
+    powerHitRate,
+    calorieHitRate,
+    cadenceHitRate,
+    restTiming,
+    heartRateRecovery,
+    keyFindings: keyFindings.slice(0, 4),
+    windows: analyzedWindows,
+  }
 }
 
 function buildLiveDataOverview(
@@ -713,6 +1123,13 @@ export function buildCardioSessionSummary({
     .map((item) => item.stats)
   const roundFade = buildRoundFade(rounds)
   const equipment = buildEquipmentSummaries(windows)
+  const plannedVsActual = buildPlannedVsActualAnalysis({
+    windows,
+    restSegments,
+    sensorStatsBySegment,
+    recoveryStats,
+    locale,
+  })
   const coachReview = buildCoachReview({
     windows,
     roundFade,
@@ -756,6 +1173,7 @@ export function buildCardioSessionSummary({
     equipment,
     calorieAdherence,
     liveData,
+    plannedVsActual,
     coachReview,
     windows,
   }
