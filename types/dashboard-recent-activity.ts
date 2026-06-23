@@ -22,4 +22,7 @@ export interface DashboardRecentActivitySummary {
   tss?: number
   deviceModel?: string
   notes?: string
+  /** HybridWorkout template id — the hybrid detail route is keyed by the
+   * workout (not the log), so the hero needs it to deep-link correctly. */
+  hybridWorkoutId?: string
 }

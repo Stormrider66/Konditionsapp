@@ -363,6 +363,7 @@ export async function getDashboardRecentActivitySummary(clientId: string): Promi
       summary: {
         id: log.id,
         source: 'hybrid',
+        hybridWorkoutId: log.workoutId,
         name: log.workout?.name || 'Hybrid workout',
         type: 'HYBRID',
         date: log.completedAt || log.startedAt,

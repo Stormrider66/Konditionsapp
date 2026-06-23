@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Activity, Clock, MapPin, Heart, Flame, TrendingUp, Bike, PersonStanding, Waves, Ship, Zap, Dumbbell } from 'lucide-react'
 import { GarminAttribution } from '@/components/ui/GarminAttribution'
+import { resolveActivityDetailHref } from '@/lib/activity-detail/href'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { formatDistanceToNow } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
@@ -83,37 +84,6 @@ const SOURCE_CONFIG = {
   'adhoc+garmin': { label: { en: 'Manual + Garmin', sv: 'Manuell + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '📱' },
   hybrid: { label: { en: 'Hybrid', sv: 'Hybrid' }, color: 'bg-teal-100 text-teal-700', icon: '🔀' },
   'hybrid+garmin': { label: { en: 'Hybrid + Garmin', sv: 'Hybrid + Garmin' }, color: 'bg-teal-100 text-teal-700', icon: '🔀' },
-}
-
-/**
- * Map an activity to its detail destination. Cardio/stream sources without a
- * dedicated page go to the unified `/athlete/activity/[source]/[id]` view;
- * sources that already have a rich detail page link there directly.
- */
-function resolveActivityHref(activity: UnifiedActivity, basePath: string): string | undefined {
-  const { source, id } = activity
-  switch (source) {
-    case 'quickerg':
-      return `${basePath}/athlete/quick-erg/${id}`
-    case 'garmin':
-    case 'strava':
-    case 'concept2':
-    case 'phonerun':
-    case 'manual':
-    case 'ai':
-      return `${basePath}/athlete/activity/${source}/${id}`
-    case 'adhoc':
-    case 'adhoc+garmin':
-      return `${basePath}/athlete/ad-hoc/${id}`
-    case 'hybrid':
-    case 'hybrid+garmin':
-      // The hybrid detail route is keyed by the workout template, not the log.
-      return activity.hybridWorkoutId
-        ? `${basePath}/athlete/hybrid/${activity.hybridWorkoutId}`
-        : undefined
-    default:
-      return undefined
-  }
 }
 
 const TYPE_ICONS: Record<string, ReactNode> = {
@@ -339,7 +309,9 @@ function ActivityCard({
     : sourceConfig.label[labelLocale]
   const dateFnsLocale = locale === 'sv' ? sv : enUS
   const typeIcon = TYPE_ICONS[activity.type] || <Activity className="h-4 w-4" />
-  const detailHref = resolveActivityHref(activity, basePath)
+  const detailHref = resolveActivityDetailHref(activity.source, activity.id, basePath, {
+    hybridWorkoutId: activity.hybridWorkoutId,
+  })
 
   if (variant === 'glass') {
     return (

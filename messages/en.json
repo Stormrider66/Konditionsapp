@@ -14612,7 +14612,8 @@
       "actions": {
         "createDailyWorkout": "Create Daily Workout",
         "remaining": "{count} today",
-        "viewCalendar": "View calendar"
+        "viewCalendar": "View calendar",
+        "viewDetails": "View details"
       },
       "nextWorkout": "Next workout",
       "aiWorkout": "AI workout",

@@ -13,7 +13,7 @@
  */
 
 import Link from 'next/link'
-import { useState, useMemo, useSyncExternalStore } from 'react'
+import { useState, useMemo, useSyncExternalStore, type ReactNode } from 'react'
 import { Moon, Sunrise, Heart, Battery, Calendar, ChevronRight, Sparkles, Zap, Activity, Timer, Route } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -23,6 +23,7 @@ import { DashboardVisualLayer } from './DashboardVisualLayer'
 import { getRestDayVisual } from './dashboard-visuals'
 import type { WODResponse } from '@/types/wod'
 import type { DashboardRecentActivitySummary } from '@/types/dashboard-recent-activity'
+import { resolveActivityDetailHref } from '@/lib/activity-detail/href'
 import { useLocale, useTranslations } from '@/i18n/client'
 import {
   DashboardItem,
@@ -345,6 +346,11 @@ export function RestDayHeroCard({
     [mode, readinessScore]
   )
   const hasRecentActivity = !!recentActivity
+  const recentActivityHref = recentActivity
+    ? resolveActivityDetailHref(recentActivity.source, recentActivity.id, basePath, {
+        hybridWorkoutId: recentActivity.hybridWorkoutId,
+      })
+    : undefined
   const badgeLabel = hasRecentActivity ? t('badges.recentActivity') : mode === 'rest-day' ? t('badges.restDay') : t('badges.openDay')
   const description = hasRecentActivity
     ? buildRecentActivityDescription(recentActivity, tr)
@@ -453,68 +459,75 @@ export function RestDayHeroCard({
           </div>
 
           {recentActivity && (
-            <div className="mb-4 flex flex-wrap gap-2">
-              <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
-                {formatRecentActivitySource(recentActivity.source, tr)}
-              </Badge>
-              <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
-                {formatRecentActivityDate(recentActivity.date, locale)}
-              </Badge>
-              {recentActivity.deviceModel ? (
+            <RecentActivitySummaryShell href={recentActivityHref}>
+              <div className="mb-4 flex flex-wrap gap-2">
                 <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
-                  {recentActivity.deviceModel}
+                  {formatRecentActivitySource(recentActivity.source, tr)}
                 </Badge>
-              ) : null}
-            </div>
-          )}
+                <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
+                  {formatRecentActivityDate(recentActivity.date, locale)}
+                </Badge>
+                {recentActivity.deviceModel ? (
+                  <Badge variant="secondary" className="bg-white/75 text-slate-600 hover:bg-white dark:bg-white/10 dark:text-slate-200 dark:hover:bg-white/15">
+                    {recentActivity.deviceModel}
+                  </Badge>
+                ) : null}
+              </div>
 
-          {recentActivity && (
-            <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
-              {recentActivity.durationMinutes ? (
-                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    {t('stats.duration')}
+              <div className="grid grid-cols-2 gap-3 lg:max-w-xl">
+                {recentActivity.durationMinutes ? (
+                  <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
+                      {t('stats.duration')}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
+                      <Timer className="h-4 w-4 text-cyan-500" />
+                      {recentActivity.durationMinutes} min
+                    </div>
                   </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
-                    <Timer className="h-4 w-4 text-cyan-500" />
-                    {recentActivity.durationMinutes} min
+                ) : null}
+                {recentActivity.distanceKm ? (
+                  <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
+                      {t('stats.distance')}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
+                      <Route className="h-4 w-4 text-cyan-500" />
+                      {recentActivity.distanceKm} km
+                    </div>
                   </div>
+                ) : null}
+                {recentActivity.avgHR ? (
+                  <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
+                      {t('stats.heartRate')}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
+                      <Heart className="h-4 w-4 text-cyan-500" />
+                      {recentActivity.avgHR} bpm
+                    </div>
+                  </div>
+                ) : null}
+                {recentActivity.tss ? (
+                  <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
+                      {t('stats.load')}
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
+                      <Zap className="h-4 w-4 text-cyan-500" />
+                      {recentActivity.tss} TSS
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              {recentActivityHref && (
+                <div className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-cyan-700 dark:text-cyan-200">
+                  {t('actions.viewDetails')}
+                  <ChevronRight className="h-4 w-4 transition-transform group-hover/details:translate-x-1" />
                 </div>
-              ) : null}
-              {recentActivity.distanceKm ? (
-                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    {t('stats.distance')}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
-                    <Route className="h-4 w-4 text-cyan-500" />
-                    {recentActivity.distanceKm} km
-                  </div>
-                </div>
-              ) : null}
-              {recentActivity.avgHR ? (
-                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    {t('stats.heartRate')}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
-                    <Heart className="h-4 w-4 text-cyan-500" />
-                    {recentActivity.avgHR} bpm
-                  </div>
-                </div>
-              ) : null}
-              {recentActivity.tss ? (
-                <div className="rounded-xl border border-slate-200/80 bg-white/75 p-3 backdrop-blur dark:border-white/10 dark:bg-white/10">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-300/70">
-                    {t('stats.load')}
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-lg font-semibold text-slate-950 dark:text-white">
-                    <Zap className="h-4 w-4 text-cyan-500" />
-                    {recentActivity.tss} TSS
-                  </div>
-                </div>
-              ) : null}
-            </div>
+              )}
+            </RecentActivitySummaryShell>
           )}
 
           {/* Recovery Tip */}
@@ -698,6 +711,21 @@ export function RestDayHeroCard({
       />
     </GlassCard>
   )
+}
+
+/** Wraps the recent-activity summary in a deep link when one is resolvable. */
+function RecentActivitySummaryShell({ href, children }: { href?: string; children: ReactNode }) {
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="block group/details -mx-2 mb-2 rounded-2xl px-2 py-2 transition-colors hover:bg-white/50 dark:hover:bg-white/5"
+      >
+        {children}
+      </Link>
+    )
+  }
+  return <div>{children}</div>
 }
 
 function buildRecentActivityTitle(

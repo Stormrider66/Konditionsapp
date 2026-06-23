@@ -14972,7 +14972,8 @@
       "actions": {
         "createDailyWorkout": "Skapa Dagens Pass",
         "remaining": "{count} idag",
-        "viewCalendar": "Visa kalender"
+        "viewCalendar": "Visa kalender",
+        "viewDetails": "Visa detaljer"
       },
       "nextWorkout": "Nästa pass",
       "aiWorkout": "AI-Pass",
