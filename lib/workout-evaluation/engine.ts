@@ -271,12 +271,13 @@ function sourceSamples(candidate: SourceCandidate, groupStart: Date, maxHr: numb
   if (candidate.source === 'CONCEPT2_PM5_BLUETOOTH' || candidate.source === 'WATTBIKE_BLUETOOTH') {
     return asArray(candidate.raw.samples).map((item) => {
       const sample = item as JsonRecord
+      const speedKmh = asNumber(sample.speed)
       return withHrDerivedFields({
         timeSec: offsetFromGroup + (asNumber(sample.elapsedSec) ?? asNumber(sample.timeSec) ?? 0),
         heartRate: asNumber(sample.heartRate),
         power: asNumber(sample.power),
         paceSecPer500m: asNumber(sample.pace500m),
-        speedMps: asNumber(sample.speed),
+        speedMps: speedKmh === undefined ? undefined : speedKmh / 3.6,
         cadence: asNumber(sample.cadence),
         strokeRate: asNumber(sample.strokeRate),
         distanceMeters: asNumber(sample.distanceMeters),
@@ -1260,6 +1261,7 @@ export const workoutEvaluationTestUtils = {
   buildGroups,
   buildFatigueSummary,
   sourceDedupeKey,
+  sourceSamples,
   downsampleTimeline,
   zoneSummaryFromTimeline,
 }

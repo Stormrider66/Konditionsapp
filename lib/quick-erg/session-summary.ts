@@ -112,6 +112,14 @@ function lastDefined<T>(values: Array<T | undefined>): T | undefined {
   return undefined
 }
 
+function sampleCadence(sample: WattbikeSample): number | undefined {
+  return isNum(sample.cadence) ? sample.cadence : sample.avgCadence
+}
+
+function sampleSpeed(sample: WattbikeSample): number | undefined {
+  return isNum(sample.speed) ? sample.speed : sample.avgSpeed
+}
+
 function bestAverageWindow(values: number[], windowSec: number): { value: number; startSec: number } | null {
   if (values.length < windowSec) return null
 
@@ -197,6 +205,7 @@ export function compactBluetoothSamples(samples: WattbikeSample[]): QuickErgSamp
   const sorted = [...samples].sort((a, b) => a.t - b.t)
   const t0 = sorted[0].t
   const seconds = Math.floor((sorted[sorted.length - 1].t - t0) / 1000) + 1
+  const hasReportedDistance = sorted.some((sample) => isNum(sample.distance))
 
   const bySecond: WattbikeSample[][] = Array.from({ length: seconds }, () => [])
   for (const sample of sorted) {
@@ -206,18 +215,26 @@ export function compactBluetoothSamples(samples: WattbikeSample[]): QuickErgSamp
 
   const state: Omit<QuickErgSample, 'elapsedSec'> = {}
   const compact: QuickErgSample[] = []
+  let estimatedDistanceMeters = 0
 
   bySecond.forEach((bucket, elapsedSec) => {
     for (const sample of bucket) {
       if (isNum(sample.power)) state.power = Math.round(sample.power)
-      if (isNum(sample.cadence)) state.cadence = Math.round(sample.cadence)
-      if (isNum(sample.speed)) state.speed = Math.round(sample.speed * 10) / 10
+      const cadence = sampleCadence(sample)
+      const speed = sampleSpeed(sample)
+      if (isNum(cadence)) state.cadence = Math.round(cadence)
+      if (isNum(speed)) state.speed = Math.round(speed * 10) / 10
       if (isNum(sample.distance)) state.distanceMeters = Math.round(sample.distance)
       if (isNum(sample.heartRate)) state.heartRate = Math.round(sample.heartRate)
       if (isNum(sample.pace)) state.pace500m = Math.round(sample.pace)
       if (isNum(sample.strokeRate)) state.strokeRate = Math.round(sample.strokeRate)
       if (isNum(sample.strokeCount)) state.strokeCount = Math.round(sample.strokeCount)
       if (isNum(sample.calories)) state.calories = Math.round(sample.calories)
+    }
+
+    if (!hasReportedDistance && isNum(state.speed) && state.speed > 0) {
+      estimatedDistanceMeters += state.speed / 3.6
+      state.distanceMeters = Math.round(estimatedDistanceMeters)
     }
 
     compact.push({ elapsedSec, ...state })

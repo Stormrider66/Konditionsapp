@@ -122,6 +122,10 @@ interface BinnedSeries {
 const isNum = (v: number | undefined): v is number => typeof v === 'number';
 const mean = (xs: number[]): number =>
   xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0;
+const sampleCadence = (s: WattbikeSample): number | undefined =>
+  isNum(s.cadence) ? s.cadence : s.avgCadence;
+const sampleSpeed = (s: WattbikeSample): number | undefined =>
+  isNum(s.speed) ? s.speed : s.avgSpeed;
 
 /** Normalized Power: 30 s rolling average → 4th power → mean → 4th root. */
 function normalizedPower(power: number[]): number | undefined {
@@ -205,7 +209,7 @@ export class WattbikeRecorder {
     const lastCalories = [...this.samples].reverse().find((s) => isNum(s.calories))?.calories;
     const lastPace = [...this.samples].reverse().find((s) => isNum(s.pace))?.pace;
     const lastStrokeRate = [...this.samples].reverse().find((s) => isNum(s.strokeRate))?.strokeRate;
-    const lastSpeed = [...this.samples].reverse().find((s) => isNum(s.speed))?.speed;
+    const lastSpeed = [...this.samples].reverse().map(sampleSpeed).find(isNum);
     return {
       elapsedSec: Math.round(this.elapsedSec),
       sampleCount: this.samples.length,
@@ -370,8 +374,9 @@ export class WattbikeRecorder {
         b.p += s.power;
         b.pc++;
       }
-      if (isNum(s.cadence)) {
-        b.c += s.cadence;
+      const cadenceValue = sampleCadence(s);
+      if (isNum(cadenceValue)) {
+        b.c += cadenceValue;
         b.cc++;
       }
       if (isNum(s.heartRate)) {

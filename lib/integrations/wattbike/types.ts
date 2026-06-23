@@ -34,8 +34,12 @@ export interface WattbikeSample {
   power?: number;
   /** Instantaneous cadence in rpm (bikes only). */
   cadence?: number;
+  /** Average cadence in rpm, if the bike reports average but not instantaneous cadence. */
+  avgCadence?: number;
   /** Instantaneous speed in km/h. */
   speed?: number;
+  /** Average speed in km/h, if the bike reports average but not instantaneous speed. */
+  avgSpeed?: number;
   /** Average power reported by the machine (watts), if present. */
   avgPower?: number;
   /** Total distance in metres, if present. */

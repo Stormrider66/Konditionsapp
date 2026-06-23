@@ -73,6 +73,18 @@ describe('WattbikeRecorder binning + live metrics', () => {
       avgStrokeRate: 28,
     });
   });
+
+  it('uses average cadence and speed fallbacks in live metrics', () => {
+    const rec = new WattbikeRecorder();
+    rec.start();
+    rec.add({ t: 1000, power: 180, avgCadence: 88, avgSpeed: 30.2, source: 'ftms' });
+    rec.add({ t: 2000, power: 200, avgCadence: 90, avgSpeed: 31.4, source: 'ftms' });
+    rec.stop();
+
+    const live = rec.liveMetrics();
+    expect(live.cadence).toBe(90);
+    expect(live.speed).toBe(31.4);
+  });
 });
 
 describe('TT_20MIN raw data', () => {

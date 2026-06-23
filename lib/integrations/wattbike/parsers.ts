@@ -32,12 +32,18 @@ export function parseIndoorBikeData(dv: DataView): WattbikeSample {
     sample.speed = dv.getUint16(offset, true) * 0.01; // 0.01 km/h
     offset += 2;
   }
-  if (flags & 0x0002) offset += 2; // Average Speed
+  if (flags & 0x0002) {
+    sample.avgSpeed = dv.getUint16(offset, true) * 0.01; // 0.01 km/h
+    offset += 2;
+  }
   if (flags & 0x0004) {
     sample.cadence = dv.getUint16(offset, true) * 0.5; // 0.5 rpm
     offset += 2;
   }
-  if (flags & 0x0008) offset += 2; // Average Cadence
+  if (flags & 0x0008) {
+    sample.avgCadence = dv.getUint16(offset, true) * 0.5; // 0.5 rpm
+    offset += 2;
+  }
   if (flags & 0x0010) {
     // Total Distance — uint24
     sample.distance =

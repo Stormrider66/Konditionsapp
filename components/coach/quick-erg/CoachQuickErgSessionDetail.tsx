@@ -129,6 +129,10 @@ function formatPace500m(seconds?: number | null): string {
   return seconds ? `${formatClock(seconds)} /500m` : '--'
 }
 
+function formatSpeed(kmh?: number | null): string {
+  return kmh || kmh === 0 ? `${Math.round(kmh * 10) / 10} km/h` : '--'
+}
+
 function sourceLabel(source: string, locale: string): string {
   switch (source) {
     case 'BLUETOOTH_PM5':
@@ -463,6 +467,8 @@ export async function CoachQuickErgSessionDetail({
   const summary = asSummary(session.summary)
   const bestEfforts = asBestEfforts(session.bestEfforts)
   const intervals = asIntervals(session.detectedIntervals)
+  const isRower = displayMachineType === 'CONCEPT2_ROW' || displayMachineType === 'CONCEPT2_SKIERG'
+  const rhythmUnit = isRower ? 'spm' : 'rpm'
   const backHref = `/${businessSlug}/coach/clients/${clientId}?tab=development#quick-erg`
   const planMatch: CoachQuickErgPlanMatchView | null = matchedAssignment
     ? {
@@ -562,7 +568,8 @@ export async function CoachQuickErgSessionDetail({
               <MetricTile label={text(locale, 'Normalized', 'Normaliserad')} value={metric(session.normalizedPower, 'W')} icon={<Gauge className="h-3.5 w-3.5" />} />
               <MetricTile label={text(locale, 'Heart rate', 'Puls')} value={metric(session.avgHeartRate, 'bpm')} icon={<Heart className="h-3.5 w-3.5" />} />
               <MetricTile label={text(locale, 'Max HR', 'Maxpuls')} value={metric(session.maxHeartRate, 'bpm')} icon={<Heart className="h-3.5 w-3.5" />} />
-              <MetricTile label={text(locale, 'Cadence', 'Kadens')} value={decimalMetric(session.avgCadence ?? session.avgStrokeRate, 'rpm')} icon={<Activity className="h-3.5 w-3.5" />} />
+              <MetricTile label={text(locale, 'Cadence', 'Kadens')} value={decimalMetric(session.avgCadence ?? session.avgStrokeRate, rhythmUnit)} icon={<Activity className="h-3.5 w-3.5" />} />
+              <MetricTile label={text(locale, 'Speed', 'Hastighet')} value={formatSpeed(summary?.avgSpeed)} icon={<Gauge className="h-3.5 w-3.5" />} />
               <MetricTile label={text(locale, 'Pace', 'Tempo')} value={formatPace500m(session.avgPace500m)} icon={<Clock className="h-3.5 w-3.5" />} />
               <MetricTile label={text(locale, 'Calories', 'Kalorier')} value={metric(session.calories, 'kcal')} icon={<Activity className="h-3.5 w-3.5" />} />
               <MetricTile label="RPE" value={session.rpe ? `${session.rpe}/10` : '--'} icon={<AlertTriangle className="h-3.5 w-3.5" />} />

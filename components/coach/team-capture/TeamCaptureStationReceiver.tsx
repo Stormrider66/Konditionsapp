@@ -71,7 +71,7 @@ function readingFromSample(sample: WattbikeSample) {
   return {
     timestamp: new Date().toISOString(),
     power: sample.power,
-    cadence: sample.cadence,
+    cadence: sample.cadence ?? sample.avgCadence,
     strokeRate: sample.strokeRate,
     paceSecPer500m: sample.pace,
     distanceMeters: sample.distance,
@@ -80,7 +80,9 @@ function readingFromSample(sample: WattbikeSample) {
     raw: {
       t: sample.t,
       source: sample.source,
-      speed: sample.speed,
+      speed: sample.speed ?? sample.avgSpeed,
+      avgSpeed: sample.avgSpeed,
+      avgCadence: sample.avgCadence,
       avgPower: sample.avgPower,
       elapsedTime: sample.elapsedTime,
       strokeCount: sample.strokeCount,

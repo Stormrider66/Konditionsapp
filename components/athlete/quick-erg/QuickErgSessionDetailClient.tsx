@@ -140,6 +140,7 @@ interface ChartPoint {
   cadence?: number
   strokeRate?: number
   pace500m?: number
+  speed?: number
   distanceMeters?: number
 }
 
@@ -170,6 +171,12 @@ function formatDistance(meters?: number | null): string {
   if (!meters) return '--'
   if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`
   return `${Math.round(meters)} m`
+}
+
+function formatSpeed(kmh?: number | null): string {
+  return kmh === undefined || kmh === null || !Number.isFinite(kmh)
+    ? '--'
+    : `${kmh.toFixed(1)} km/h`
 }
 
 function formatRecordValue(record: QuickErgPersonalBest): string {
@@ -257,6 +264,7 @@ function buildChartData(samples: QuickErgSample[]): ChartPoint[] {
     cadence: sample.cadence,
     strokeRate: sample.strokeRate,
     pace500m: sample.pace500m,
+    speed: sample.speed,
     distanceMeters: sample.distanceMeters,
   }))
 }
@@ -295,6 +303,7 @@ export function QuickErgSessionDetailClient({
   const rhythmLabel = isRower ? 'spm' : 'rpm'
   const rhythmValue = isRower ? session.avgStrokeRate : session.avgCadence
   const rhythmMax = isRower ? session.maxStrokeRate : session.maxCadence
+  const avgSpeed = session.summary?.avgSpeed ?? null
   const hasChartData = chartData.length > 1
   const [matchingAssignmentId, setMatchingAssignmentId] = useState<string | null>(null)
   const [unmatchingPlannedSession, setUnmatchingPlannedSession] = useState(false)
@@ -544,7 +553,7 @@ export function QuickErgSessionDetailClient({
 
       <div className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-6">
         <MetricCard icon={<Clock className="h-4 w-4" />} label={text(locale, 'Time', 'Tid')} value={formatDuration(session.durationSec)} />
-        <MetricCard icon={<MapPin className="h-4 w-4" />} label={text(locale, 'Distance', 'Distans')} value={formatDistance(session.distanceMeters)} />
+        <MetricCard icon={<MapPin className="h-4 w-4" />} label={text(locale, 'Distance', 'Distans')} value={formatDistance(session.distanceMeters)} sub={!isRower && avgSpeed ? formatSpeed(avgSpeed) : undefined} />
         <MetricCard icon={<Zap className="h-4 w-4" />} label={text(locale, 'Avg power', 'Snitteffekt')} value={session.avgPower ? `${session.avgPower} W` : '--'} sub={session.maxPower ? `Max ${session.maxPower} W` : undefined} />
         <MetricCard icon={<Gauge className="h-4 w-4" />} label="NP" value={session.normalizedPower ? `${session.normalizedPower} W` : '--'} />
         <MetricCard icon={<Heart className="h-4 w-4" />} label={text(locale, 'Heart rate', 'Puls')} value={session.avgHeartRate ? `${session.avgHeartRate} bpm` : '--'} sub={session.maxHeartRate ? `Max ${session.maxHeartRate}` : undefined} />
@@ -601,7 +610,7 @@ export function QuickErgSessionDetailClient({
                           <YAxis yAxisId="pace" orientation="right" tick={{ fontSize: 12 }} />
                           <Tooltip content={<CustomTooltip />} />
                           <Line yAxisId="rhythm" type="monotone" dataKey={isRower ? 'strokeRate' : 'cadence'} name={rhythmLabel} stroke="#059669" strokeWidth={2} dot={false} connectNulls />
-                          <Line yAxisId="pace" type="monotone" dataKey="pace500m" name="/500m" stroke="#7c3aed" strokeWidth={2} dot={false} connectNulls />
+                          <Line yAxisId="pace" type="monotone" dataKey={isRower ? 'pace500m' : 'speed'} name={isRower ? '/500m' : 'km/h'} stroke="#7c3aed" strokeWidth={2} dot={false} connectNulls />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
@@ -844,6 +853,11 @@ function ReviewCard({
   onRpeChange: (value: number | null) => void
   onNotesChange: (value: string) => void
 }) {
+  const isRower = session.machineType === 'CONCEPT2_ROW' || session.machineType === 'CONCEPT2_SKIERG'
+  const rhythmValue = isRower ? session.avgStrokeRate : session.avgCadence
+  const rhythmLabel = isRower ? 'spm' : 'rpm'
+  const speedValue = session.summary?.avgSpeed
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
@@ -870,7 +884,8 @@ function ReviewCard({
         <div className="grid grid-cols-2 gap-3">
           <MiniStat label="RPE" value={session.rpe ? `${session.rpe}/10` : '--'} />
           <MiniStat label="kcal" value={session.calories ? String(session.calories) : '--'} />
-          <MiniStat label="/500m" value={formatPace(session.avgPace500m)} />
+          <MiniStat label={rhythmLabel} value={rhythmValue ? `${Math.round(rhythmValue)}` : '--'} />
+          <MiniStat label={isRower ? '/500m' : text(locale, 'Speed', 'Hastighet')} value={isRower ? formatPace(session.avgPace500m) : formatSpeed(speedValue)} />
           <MiniStat label="Samples" value={String(session.samples.length)} />
         </div>
 

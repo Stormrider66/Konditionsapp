@@ -32,6 +32,25 @@ describe('compactBluetoothSamples', () => {
       heartRate: 142,
     })
   })
+
+  it('uses average bike cadence/speed and derives distance when no total distance is reported', () => {
+    const samples: WattbikeSample[] = [
+      { t: 1000, power: 100, avgSpeed: 18, avgCadence: 90, source: 'ftms' },
+      { t: 2000, power: 120, avgSpeed: 18, avgCadence: 92, source: 'ftms' },
+      { t: 3000, power: 140, avgSpeed: 18, avgCadence: 94, source: 'ftms' },
+    ]
+
+    const compact = compactBluetoothSamples(samples)
+    const analysis = buildQuickErgSessionAnalysis(compact)
+
+    expect(compact[0]).toMatchObject({ cadence: 90, speed: 18, distanceMeters: 5 })
+    expect(compact[2]).toMatchObject({ cadence: 94, speed: 18, distanceMeters: 15 })
+    expect(analysis.summary).toMatchObject({
+      distanceMeters: 15,
+      avgCadence: 92,
+      avgSpeed: 18,
+    })
+  })
 })
 
 describe('buildQuickErgSessionAnalysis', () => {

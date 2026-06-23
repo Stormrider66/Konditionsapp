@@ -112,6 +112,22 @@ describe('parseIndoorBikeData (FTMS 0x2AD2)', () => {
     expect(s.power).toBe(250);
   });
 
+  it('decodes average speed and cadence when instantaneous fields are absent', () => {
+    // flags 0x004B = bit0 (no inst speed) + avg speed + avg cadence + power.
+    const dv = frame([
+      ['u16', 0x004b],
+      ['u16', 2840], // average speed ×0.01 → 28.40 km/h
+      ['u16', 176], // average cadence ×0.5 → 88 rpm
+      ['s16', 205], // watts
+    ]);
+    const s = parseIndoorBikeData(dv);
+    expect(s.speed).toBeUndefined();
+    expect(s.avgSpeed).toBeCloseTo(28.4);
+    expect(s.cadence).toBeUndefined();
+    expect(s.avgCadence).toBe(88);
+    expect(s.power).toBe(205);
+  });
+
   it('decodes distance and heart rate with offsets intact', () => {
     // flags 0x0251 = bit0 (no speed) + distance (bit4) + power (bit6) + HR (bit9)
     const dv = frame([

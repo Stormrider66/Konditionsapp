@@ -175,6 +175,28 @@ describe('workout evaluation engine utilities', () => {
     expect(preview.at(-1)?.timeSec).toBeGreaterThan(0)
   })
 
+  it('converts quick erg bike speed from km/h to m/s for evaluation timelines', () => {
+    const samples = workoutEvaluationTestUtils.sourceSamples(
+      {
+        ...candidate({ id: 'wattbike-1', source: 'WATTBIKE_BLUETOOTH', type: 'CYCLING', startMin: 0, durationMin: 5 }),
+        raw: {
+          samples: [
+            { elapsedSec: 0, speed: 36, power: 200, cadence: 90 },
+          ],
+        },
+      },
+      new Date(0),
+      200,
+      [],
+    )
+
+    expect(samples[0]).toMatchObject({
+      speedMps: 10,
+      cadence: 90,
+      power: 200,
+    })
+  })
+
   it('detects fatigue from power fade, pace fade, HR drift, and high intensity time', () => {
     const fatigue = workoutEvaluationTestUtils.buildFatigueSummary(
       [

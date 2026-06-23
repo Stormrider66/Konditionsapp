@@ -164,7 +164,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
           clientId: activeClientId,
           ergometerType: selectedMachineType,
           power: Math.round(sample.power),
-          cadence: Math.round(machine.kind === 'rower' ? sample.strokeRate ?? 0 : sample.cadence ?? 0) || undefined,
+          cadence: Math.round(machine.kind === 'rower' ? sample.strokeRate ?? 0 : sample.cadence ?? sample.avgCadence ?? 0) || undefined,
           heartRate: typeof sample.heartRate === 'number' ? Math.round(sample.heartRate) : undefined,
           deviceId: device?.client.getDeviceId() ?? undefined,
         }),
@@ -276,7 +276,11 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
             {machine.kind === 'rower' ? copy.cadenceRower : copy.cadenceBike}:{' '}
             {machine.kind === 'rower'
               ? displayLatest?.strokeRate != null ? Math.round(displayLatest.strokeRate) : '-'
-              : displayLatest?.cadence != null ? Math.round(displayLatest.cadence) : '-'}
+              : displayLatest?.cadence != null
+                ? Math.round(displayLatest.cadence)
+                : displayLatest?.avgCadence != null
+                  ? Math.round(displayLatest.avgCadence)
+                  : '-'}
           </span>
           <span className="flex items-center gap-1 tabular-nums">
             <Heart className="h-4 w-4 text-rose-500" />

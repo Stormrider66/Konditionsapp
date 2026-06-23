@@ -89,6 +89,26 @@ function formatPace(sec?: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`
 }
 
+function formatDistance(meters?: number | null): string {
+  if (meters === undefined || meters === null || !Number.isFinite(meters)) return '--'
+  if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`
+  return `${Math.round(meters)} m`
+}
+
+function formatSpeed(kmh?: number | null): string {
+  return kmh === undefined || kmh === null || !Number.isFinite(kmh)
+    ? '--'
+    : kmh.toFixed(1)
+}
+
+function sampleCadence(sample: WattbikeSample): number | undefined {
+  return typeof sample.cadence === 'number' ? sample.cadence : sample.avgCadence
+}
+
+function sampleSpeed(sample: WattbikeSample): number | undefined {
+  return typeof sample.speed === 'number' ? sample.speed : sample.avgSpeed
+}
+
 function sourceFromSamples(sourceRef: { pm5: boolean; cps: boolean }): QuickErgSource {
   if (sourceRef.pm5) return 'BLUETOOTH_PM5'
   if (sourceRef.cps) return 'BLUETOOTH_CPS'
@@ -97,9 +117,9 @@ function sourceFromSamples(sourceRef: { pm5: boolean; cps: boolean }): QuickErgS
 
 function sampleHasMovement(sample: WattbikeSample, previous?: WattbikeSample | null): boolean {
   if ((sample.power ?? 0) >= 20) return true
-  if ((sample.cadence ?? 0) >= 5) return true
+  if ((sampleCadence(sample) ?? 0) >= 5) return true
   if ((sample.strokeRate ?? 0) >= 5) return true
-  if ((sample.speed ?? 0) >= 1) return true
+  if ((sampleSpeed(sample) ?? 0) >= 1) return true
 
   if (
     typeof sample.distance === 'number' &&
@@ -184,20 +204,20 @@ export function QuickErgCapture() {
       }
 
       if (!recordingRef.current) {
-        setLive((current) => current ?? {
+        setLive((current) => ({
           elapsedSec: 0,
           sampleCount: 0,
-          power: sample.power ? Math.round(sample.power) : 0,
+          power: sample.power ? Math.round(sample.power) : (current?.power ?? 0),
           avgPower: 0,
-          maxPower: sample.power ? Math.round(sample.power) : 0,
-          cadence: sample.cadence,
-          heartRate: sample.heartRate,
-          distanceMeters: sample.distance,
-          calories: sample.calories,
-          pace: sample.pace,
-          strokeRate: sample.strokeRate,
-          speed: sample.speed,
-        })
+          maxPower: sample.power ? Math.round(sample.power) : (current?.maxPower ?? 0),
+          cadence: sampleCadence(sample) ?? current?.cadence,
+          heartRate: sample.heartRate ?? current?.heartRate,
+          distanceMeters: sample.distance ?? current?.distanceMeters,
+          calories: sample.calories ?? current?.calories,
+          pace: sample.pace ?? current?.pace,
+          strokeRate: sample.strokeRate ?? current?.strokeRate,
+          speed: sampleSpeed(sample) ?? current?.speed,
+        }))
         return
       }
 
@@ -279,6 +299,8 @@ export function QuickErgCapture() {
     ? reviewSummary?.durationSec ?? live?.elapsedSec ?? 0
     : live?.elapsedSec ?? 0
   const canSave = !!analysis && analysis.summary.durationSec >= 5 && phase !== 'saving'
+  const reviewRhythm = isRower ? reviewSummary?.avgStrokeRate : reviewSummary?.avgCadence
+  const reviewRhythmLabel = isRower ? text(locale, 'Avg spm', 'Snitt spm') : text(locale, 'Avg rpm', 'Snitt rpm')
 
   if (!wb.isSupported) {
     return (
@@ -383,13 +405,13 @@ export function QuickErgCapture() {
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Metric icon={<Gauge className="h-4 w-4" />} value={formatDuration(elapsed)} label={text(locale, 'Time', 'Tid')} />
-              <Metric icon={<Waves className="h-4 w-4" />} value={live?.distanceMeters ? `${Math.round(live.distanceMeters)} m` : '--'} label={text(locale, 'Distance', 'Distans')} />
+              <Metric icon={<Waves className="h-4 w-4" />} value={formatDistance(live?.distanceMeters)} label={text(locale, 'Distance', 'Distans')} />
               <Metric icon={isRower ? <Ship className="h-4 w-4" /> : <Bike className="h-4 w-4" />} value={isRower ? live?.strokeRate ?? '--' : live?.cadence ?? '--'} label={isRower ? 'spm' : 'rpm'} />
               <Metric icon={<Heart className="h-4 w-4" />} value={live?.heartRate ?? '--'} label="bpm" />
               <Metric icon={<Flame className="h-4 w-4" />} value={live?.calories ?? '--'} label="kcal" />
               <Metric icon={<ZapMetricIcon />} value={live?.avgPower ?? 0} label={text(locale, 'Avg W', 'Snitt W')} />
               <Metric icon={<ZapMetricIcon />} value={live?.maxPower ?? 0} label={text(locale, 'Max W', 'Max W')} />
-              <Metric icon={<Gauge className="h-4 w-4" />} value={live?.sampleCount ?? 0} label={text(locale, 'Samples', 'Samples')} />
+              <Metric icon={<Gauge className="h-4 w-4" />} value={formatSpeed(live?.speed)} label="km/h" />
             </div>
 
             <Button variant="destructive" className="w-full" onClick={handleStop}>
@@ -408,13 +430,19 @@ export function QuickErgCapture() {
 
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Metric icon={<Gauge className="h-4 w-4" />} value={formatDuration(reviewSummary.durationSec)} label={text(locale, 'Time', 'Tid')} />
-              <Metric icon={<Waves className="h-4 w-4" />} value={reviewSummary.distanceMeters ? `${Math.round(reviewSummary.distanceMeters)} m` : '--'} label={text(locale, 'Distance', 'Distans')} />
+              <Metric icon={<Waves className="h-4 w-4" />} value={formatDistance(reviewSummary.distanceMeters)} label={text(locale, 'Distance', 'Distans')} />
               <Metric icon={<ZapMetricIcon />} value={reviewSummary.avgPower ?? '--'} label={text(locale, 'Avg W', 'Snitt W')} />
               <Metric icon={<ZapMetricIcon />} value={reviewSummary.maxPower ?? '--'} label={text(locale, 'Max W', 'Max W')} />
               <Metric icon={<Heart className="h-4 w-4" />} value={reviewSummary.avgHeartRate ?? '--'} label={text(locale, 'Avg HR', 'Snittpuls')} />
               <Metric icon={<Heart className="h-4 w-4" />} value={reviewSummary.maxHeartRate ?? '--'} label={text(locale, 'Max HR', 'Maxpuls')} />
               <Metric icon={<Flame className="h-4 w-4" />} value={reviewSummary.calories ?? '--'} label="kcal" />
-              <Metric icon={<Ship className="h-4 w-4" />} value={reviewSummary.avgPace500m ? formatPace(reviewSummary.avgPace500m) : '--'} label="/500m" />
+              <Metric icon={isRower ? <Ship className="h-4 w-4" /> : <Bike className="h-4 w-4" />} value={reviewRhythm ? Math.round(reviewRhythm) : '--'} label={reviewRhythmLabel} />
+              {!isRower && (
+                <Metric icon={<Gauge className="h-4 w-4" />} value={formatSpeed(reviewSummary.avgSpeed)} label="km/h" />
+              )}
+              {isRower && (
+                <Metric icon={<Ship className="h-4 w-4" />} value={reviewSummary.avgPace500m ? formatPace(reviewSummary.avgPace500m) : '--'} label="/500m" />
+              )}
             </div>
 
             {analysis.bestEfforts.length > 0 && (
