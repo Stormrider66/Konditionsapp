@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Library, Plus, Timer, Sparkles, BookOpen, FileUp } from 'lucide-react'
+import { ClipboardCheck, Library, Plus, Timer, Sparkles, BookOpen, FileUp } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { CardioSessionBuilder } from './CardioSessionBuilder'
@@ -103,6 +104,14 @@ export function CardioDashboard({ businessId }: CardioDashboardProps = {}) {
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
+          {businessSlug && (
+            <Button asChild variant="outline" size="sm" className="sm:size-default">
+              <Link href={`/${businessSlug}/coach/review-inbox`}>
+                <ClipboardCheck className="mr-2 h-4 w-4" />
+                {copy(locale, 'Review inbox', 'Granskningsinkorg')}
+              </Link>
+            </Button>
+          )}
           <Button variant="outline" onClick={() => setShowImporter(true)} size="sm" className="sm:size-default">
             <FileUp className="mr-2 h-4 w-4" />
             {copy(locale, 'Import session', 'Importera pass')}
