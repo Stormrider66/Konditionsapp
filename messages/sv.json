@@ -14629,7 +14629,9 @@
       "sentButtonLabelWithCount": "Skickat ({count})",
       "buttons": {
         "copy": "Kopiera",
-        "messages": "Meddelanden"
+        "messages": "Meddelanden",
+        "open": "Öppna",
+        "openWorkout": "Öppna passet"
       }
     },
     "memoryIndicator": {

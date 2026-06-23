@@ -14269,7 +14269,9 @@
       "sentButtonLabelWithCount": "Sent ({count})",
       "buttons": {
         "copy": "Copy",
-        "messages": "Messages"
+        "messages": "Messages",
+        "open": "Open",
+        "openWorkout": "Open workout"
       }
     },
     "memoryIndicator": {

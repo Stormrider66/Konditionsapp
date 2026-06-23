@@ -2,12 +2,17 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { AlertTriangle, Check, Copy, Loader2, MessageSquare, Send, Users } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Check, Copy, Loader2, MessageSquare, Send, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { useLocale, useTranslations } from '@/i18n/client'
+import {
+  getAiCapabilityActionResultLink,
+  resolveAppHref,
+  type ActionResultLink,
+} from '@/lib/ai/action-result-links'
 
 type CoachMessageAction = {
   type: 'sendCoachMessage'
@@ -62,8 +67,7 @@ interface ChatActionCardProps {
 }
 
 function resolveHref(href: string, basePath = '') {
-  if (!basePath || !href.startsWith('/coach')) return href
-  return `${basePath}${href}`
+  return resolveAppHref(href, basePath)
 }
 
 export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActionCardProps) {
@@ -71,6 +75,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'cancelled' | 'error'>('idle')
   const [sentCount, setSentCount] = useState<number | null>(null)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [genericExecutionResponse, setGenericExecutionResponse] = useState<unknown>(null)
   const t = useTranslations('components.chatActionCard')
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
 
@@ -88,6 +93,9 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
       genericAction.body,
       ...(genericAction.details || []),
     ].filter(Boolean).join('\n')
+    const resultLink: ActionResultLink | null = isSent
+      ? getAiCapabilityActionResultLink(genericAction, genericExecutionResponse, basePath)
+      : null
 
     async function handleGenericCopy() {
       try {
@@ -116,6 +124,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
         }
 
         setStatus('sent')
+        setGenericExecutionResponse(data)
         setStatusMessage(data.message || (locale === 'sv' ? 'Åtgärden har körts.' : 'Action executed.'))
         toast({
           title: locale === 'sv' ? 'Åtgärd utförd' : 'Action executed',
@@ -296,6 +305,14 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
             {genericAction.reviewHref && (
               <Button asChild type="button" variant="ghost" size="sm" className="h-9">
                 <Link href={resolveHref(genericAction.reviewHref, basePath)}>{locale === 'sv' ? 'Öppna' : 'Open'}</Link>
+              </Button>
+            )}
+            {resultLink && (!genericAction.reviewHref || resultLink.href !== resolveHref(genericAction.reviewHref, basePath)) && (
+              <Button asChild type="button" variant="outline" size="sm" className="h-9">
+                <Link href={resultLink.href}>
+                  {resultLink.label === 'openWorkout' ? t('buttons.openWorkout') : t('buttons.open')}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
               </Button>
             )}
           </div>
