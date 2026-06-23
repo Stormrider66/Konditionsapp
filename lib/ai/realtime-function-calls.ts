@@ -45,3 +45,9 @@ export function buildRealtimeFunctionOutputEvents(callId: string, output: unknow
     },
   ]
 }
+
+export function claimRealtimeFunctionCall(processedCallIds: Set<string>, callId: string): boolean {
+  if (processedCallIds.has(callId)) return false
+  processedCallIds.add(callId)
+  return true
+}

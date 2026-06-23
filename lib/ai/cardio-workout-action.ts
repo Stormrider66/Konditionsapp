@@ -14,6 +14,23 @@ const equipmentValues = [
   'BIKE_ERG', 'ROW', 'SKI_ERG', 'SWIM', 'OTHER',
 ] as const
 
+const cardioWorkoutStationSchema = z.object({
+  equipment: z.enum(equipmentValues).optional().describe('Machine/modality. Concept2 machines: BIKE_ERG, ROW, SKI_ERG.'),
+  durationSeconds: z.number().int().min(10).max(3600).optional().describe('Fixed work window in seconds (e.g. 60 for on-the-minute work).'),
+  calories: z.number().int().min(1).max(200).optional().describe('Calorie goal. Without durationSeconds the station ends when the target is reached.'),
+  distanceMeters: z.number().int().min(50).max(50000).optional().describe('Distance in meters, if distance-based.'),
+  targetWatts: z.number().int().min(30).max(1000).optional().describe('Power target in watts.'),
+  zone: z.number().int().min(1).max(5).optional().describe('Intensity zone 1-5.'),
+  notes: z.string().max(300).optional(),
+}).superRefine((station, ctx) => {
+  if (station.durationSeconds != null || station.calories != null || station.distanceMeters != null) return
+  ctx.addIssue({
+    code: 'custom',
+    message: 'Each station needs durationSeconds, calories, or distanceMeters.',
+    path: ['durationSeconds'],
+  })
+})
+
 export const createCardioWorkoutInputSchema = z.object({
   name: z.string().min(1).max(120).describe('Short session name, e.g. "Triple erg EMOM".'),
   description: z.string().max(500).optional().describe('One-line description of the session.'),
@@ -23,15 +40,7 @@ export const createCardioWorkoutInputSchema = z.object({
   cooldownMinutes: z.number().int().min(1).max(60).optional().describe('Optional cool-down duration in minutes.'),
   rounds: z.number().int().min(1).max(30).optional().describe('Rounds of the station circuit. Default 1.'),
   restBetweenRoundsSeconds: z.number().int().min(5).max(600).optional().describe('Rest between rounds in seconds.'),
-  stations: z.array(z.object({
-    equipment: z.enum(equipmentValues).optional().describe('Machine/modality. Concept2 machines: BIKE_ERG, ROW, SKI_ERG.'),
-    durationSeconds: z.number().int().min(10).max(3600).optional().describe('Fixed work window in seconds (e.g. 60 for on-the-minute work).'),
-    calories: z.number().int().min(1).max(200).optional().describe('Calorie goal. Without durationSeconds the station ends when the target is reached.'),
-    distanceMeters: z.number().int().min(50).max(50000).optional().describe('Distance in meters, if distance-based.'),
-    targetWatts: z.number().int().min(30).max(1000).optional().describe('Power target in watts.'),
-    zone: z.number().int().min(1).max(5).optional().describe('Intensity zone 1-5.'),
-    notes: z.string().max(300).optional(),
-  })).min(1).max(10).describe('The stations of one round, in order.'),
+  stations: z.array(cardioWorkoutStationSchema).min(1).max(10).describe('The stations of one round, in order.'),
 })
 
 export type CreateCardioWorkoutInput = z.infer<typeof createCardioWorkoutInputSchema>
@@ -232,6 +241,11 @@ export function buildCreateCardioWorkoutRealtimeTool(locale: AppLocale): Realtim
           maxItems: 10,
           items: {
             type: 'object',
+            anyOf: [
+              { required: ['durationSeconds'] },
+              { required: ['calories'] },
+              { required: ['distanceMeters'] },
+            ],
             properties: {
               equipment: {
                 type: 'string',

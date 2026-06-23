@@ -18,6 +18,7 @@ import {
 } from '@/lib/ai/realtime-voice-client'
 import {
   buildRealtimeFunctionOutputEvents,
+  claimRealtimeFunctionCall,
   extractRealtimeFunctionCalls,
   type RealtimeFunctionCall,
 } from '@/lib/ai/realtime-function-calls'
@@ -73,6 +74,7 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
   const realtimeStartedAtRef = useRef<number | null>(null)
   const realtimeUsageRef = useRef(createRealtimeVoiceUsageAccumulator())
   const realtimeUsageReportedRef = useRef(true)
+  const processedRealtimeFunctionCallIdsRef = useRef<Set<string>>(new Set())
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
 
   const [isTranscribingVoice, setIsTranscribingVoice] = useState(false)
@@ -221,6 +223,7 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
     const dataChannel = realtimeDataChannelRef.current
     realtimeDataChannelRef.current = null
     dataChannel?.close()
+    processedRealtimeFunctionCallIdsRef.current.clear()
 
     const peer = realtimePeerRef.current
     realtimePeerRef.current = null
@@ -497,6 +500,8 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
   }, [])
 
   const handleRealtimeFunctionCall = useCallback(async (call: RealtimeFunctionCall) => {
+    if (!claimRealtimeFunctionCall(processedRealtimeFunctionCallIdsRef.current, call.callId)) return
+
     if (call.name !== REALTIME_CARDIO_WORKOUT_TOOL_NAME) {
       const output = {
         success: false,

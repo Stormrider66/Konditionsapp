@@ -68,6 +68,16 @@ describe('cardio workout live voice action', () => {
     expect(parsed.success).toBe(false)
   })
 
+  it('rejects stations without a duration, calorie, or distance target', () => {
+    const parsed = createCardioWorkoutInputSchema.safeParse({
+      name: 'Empty bike station',
+      sport: 'CYCLING',
+      stations: [{ equipment: 'BIKE', zone: 3 }],
+    })
+
+    expect(parsed.success).toBe(false)
+  })
+
   it('exposes one OpenAI Realtime function schema', () => {
     const tool = buildCreateCardioWorkoutRealtimeTool('en')
 

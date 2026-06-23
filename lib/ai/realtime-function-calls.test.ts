@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildRealtimeFunctionOutputEvents,
+  claimRealtimeFunctionCall,
   extractRealtimeFunctionCalls,
 } from './realtime-function-calls'
 
@@ -48,5 +49,13 @@ describe('realtime function call helpers', () => {
       message: 'Prepared card',
     })
     expect(events[1]).toEqual({ type: 'response.create' })
+  })
+
+  it('claims each realtime function call id only once', () => {
+    const processed = new Set<string>()
+
+    expect(claimRealtimeFunctionCall(processed, 'call-1')).toBe(true)
+    expect(claimRealtimeFunctionCall(processed, 'call-1')).toBe(false)
+    expect(claimRealtimeFunctionCall(processed, 'call-2')).toBe(true)
   })
 })

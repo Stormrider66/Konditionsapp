@@ -171,6 +171,23 @@ describe('realtime action draft route', () => {
     expect(mockCreateAiActionDraftForTool).not.toHaveBeenCalled()
   })
 
+  it('rejects workout drafts with stations that have no work target', async () => {
+    const response = await POST(request({
+      toolName: 'createCardioWorkout',
+      arguments: {
+        name: 'Empty bike station',
+        sport: 'CYCLING',
+        stations: [{ equipment: 'BIKE', zone: 3 }],
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(body.success).toBe(false)
+    expect(body.error).toBe('The workout details were incomplete or invalid.')
+    expect(mockCreateAiActionDraftForTool).not.toHaveBeenCalled()
+  })
+
   it('blocks drafting when athlete consent is missing', async () => {
     mockGetConsentStatus.mockResolvedValue({ hasRequiredConsent: false })
 
