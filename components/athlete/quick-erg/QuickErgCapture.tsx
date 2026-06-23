@@ -15,6 +15,7 @@ import {
   Play,
   RotateCcw,
   Save,
+  ShieldCheck,
   Ship,
   Square,
   Waves,
@@ -40,6 +41,7 @@ import {
   type WattbikeLiveMetrics,
   type WattbikeSample,
 } from '@/lib/integrations/wattbike'
+import { useScreenWakeLock } from '@/hooks/use-screen-wake-lock'
 import { useWattbike } from '@/hooks/use-wattbike'
 import {
   formatMachineName,
@@ -140,6 +142,9 @@ export function QuickErgCapture() {
 
   const [recorder] = useState(() => new WattbikeRecorder())
   const [phase, setPhase] = useState<Phase>('idle')
+  const { isActive: wakeLockActive } = useScreenWakeLock({
+    enabled: phase === 'recording',
+  })
   const [machineType, setMachineType] = useState<QuickErgMachineType>('CONCEPT2_ROW')
   const [live, setLive] = useState<WattbikeLiveMetrics | null>(null)
   const [analysis, setAnalysis] = useState<QuickErgSessionAnalysis | null>(null)
@@ -413,6 +418,15 @@ export function QuickErgCapture() {
               <Metric icon={<ZapMetricIcon />} value={live?.maxPower ?? 0} label={text(locale, 'Max W', 'Max W')} />
               <Metric icon={<Gauge className="h-4 w-4" />} value={formatSpeed(live?.speed)} label="km/h" />
             </div>
+
+            {wakeLockActive && (
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="gap-1">
+                  <ShieldCheck className="h-3 w-3" />
+                  {text(locale, 'Screen awake', 'Skarm aktiv')}
+                </Badge>
+              </div>
+            )}
 
             <Button variant="destructive" className="w-full" onClick={handleStop}>
               <Square className="mr-2 h-4 w-4" />
