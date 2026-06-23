@@ -8,7 +8,7 @@
  */
 
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import {
@@ -100,6 +100,21 @@ export function AthleteStrengthClient({
   const dateLocale = locale === 'sv' ? sv : enUS
   const [activeTab, setActiveTab] = useState<string>('history')
   const [focusModeAssignmentId, setFocusModeAssignmentId] = useState<string | null>(null)
+  const startParamHandled = useRef(false)
+
+  useEffect(() => {
+    if (startParamHandled.current || typeof window === 'undefined') return
+    const startId = new URLSearchParams(window.location.search).get('start')
+    if (!startId) {
+      startParamHandled.current = true
+      return
+    }
+    startParamHandled.current = true
+    if (upcomingAssignments.some((assignment) => assignment.id === startId)) {
+      setActiveTab('upcoming')
+      setFocusModeAssignmentId(startId)
+    }
+  }, [upcomingAssignments])
 
   const handleAssigned = () => {
     // Refresh the page to show updated assignments

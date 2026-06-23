@@ -9,11 +9,11 @@ import { requireAiAllowance } from '@/lib/ai/billing/require-ai-allowance'
 import { isAiAssistantOperationsEnabled } from '@/lib/ai/capabilities/feature-gate'
 import { createAiActionDraftForTool } from '@/lib/ai/capabilities/action-drafts'
 import {
-  buildCreateCardioWorkoutPreview,
-  CREATE_CARDIO_WORKOUT_TOOL_NAME,
-  createCardioWorkoutInputSchema,
-  getCreateCardioWorkoutClarification,
-} from '@/lib/ai/cardio-workout-action'
+  buildAthleteLiveVoiceActionPreview,
+  getAthleteLiveVoiceActionClarification,
+  getAthleteLiveVoiceActionDraftSchema,
+  isAthleteLiveVoiceActionDraftToolName,
+} from '@/lib/ai/athlete-live-voice-tools'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
 
@@ -21,7 +21,7 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 const requestSchema = z.object({
-  toolName: z.literal(CREATE_CARDIO_WORKOUT_TOOL_NAME),
+  toolName: z.string().min(1).max(120),
   arguments: z.unknown(),
   callId: z.string().max(200).optional(),
 })
@@ -94,6 +94,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const toolName = parsedRequest.data.toolName
+    if (!isAthleteLiveVoiceActionDraftToolName(toolName)) {
+      return NextResponse.json(
+        { success: false, error: t(locale, 'Unsupported live voice action.', 'Live voice-åtgärden stöds inte.') },
+        { status: 400 }
+      )
+    }
+
     let rawArguments: unknown
     try {
       rawArguments = parseToolArguments(parsedRequest.data.arguments)
@@ -104,19 +112,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const parsedInput = createCardioWorkoutInputSchema.safeParse(rawArguments)
+    const parsedInput = getAthleteLiveVoiceActionDraftSchema(toolName).safeParse(rawArguments)
     if (!parsedInput.success) {
       return NextResponse.json(
         {
           success: false,
-          error: t(locale, 'The workout details were incomplete or invalid.', 'Passdetaljerna var ofullständiga eller ogiltiga.'),
+          error: t(locale, 'The action details were incomplete or invalid.', 'Åtgärdsdetaljerna var ofullständiga eller ogiltiga.'),
           details: parsedInput.error.flatten(),
         },
         { status: 400 }
       )
     }
 
-    const clarification = getCreateCardioWorkoutClarification(parsedInput.data, locale)
+    const clarification = getAthleteLiveVoiceActionClarification(toolName, parsedInput.data, locale)
     if (clarification) {
       return NextResponse.json({
         success: false,
@@ -147,7 +155,7 @@ export async function POST(request: NextRequest) {
     }
 
     const draft = await createAiActionDraftForTool(
-      CREATE_CARDIO_WORKOUT_TOOL_NAME,
+      toolName,
       parsedInput.data,
       {
         enabled: true,
@@ -159,7 +167,7 @@ export async function POST(request: NextRequest) {
         clientId: resolved.clientId,
         locale,
       },
-      buildCreateCardioWorkoutPreview(parsedInput.data, locale)
+      buildAthleteLiveVoiceActionPreview(toolName, parsedInput.data, locale)
     )
 
     return NextResponse.json({

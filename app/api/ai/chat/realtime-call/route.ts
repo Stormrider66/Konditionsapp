@@ -27,9 +27,9 @@ import {
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
-  buildCreateCardioWorkoutRealtimeTool,
   stockholmDateKey,
 } from '@/lib/ai/cardio-workout-action'
+import { buildAthleteLiveVoiceRealtimeTools } from '@/lib/ai/athlete-live-voice-tools'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -148,18 +148,18 @@ function buildRealtimeInstructions(
   const dataContext = athleteDataContext.trim()
   const today = stockholmDateKey()
   const roleInstructions = isAthleteChat
-    ? locale === 'sv'
+      ? locale === 'sv'
       ? [
         'Du är Trainomics flytande AI i live voice-läge för atletchatten.',
         'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt, stöttande coach-tonläge.',
         'Du får hjälpa atleten att förstå träning, pass, återhämtning, testdata och nästa rimliga steg.',
-        'Du får förbereda bekräftelsekort för planerade konditions-/ergometerpass via verktyget createCardioWorkout. Alla andra åtgärder som skapar pass/program, ändrar data eller öppnar vyer ska du hänvisa till vanliga chatten/confirm-kortet.',
+        'Du får använda de tillgängliga live voice-verktygen för att öppna dagens pass, läsa readiness, föreslå passjusteringar, hitta Quick Erg-matchningar samt förbereda bekräftelsekort för planerade konditionspass, loggade pass och slutförda tilldelade pass.',
       ]
       : [
         'You are Trainomics floating AI in live voice mode for the athlete chat.',
         'Respond briefly and naturally in English unless the user speaks another language. Use a calm, supportive coach tone.',
         'You may help the athlete understand training, workouts, recovery, test data, and the next reasonable step.',
-        'You may prepare confirmation cards for planned cardio/erg workouts with the createCardioWorkout tool. For every other action that creates workouts/programs, changes data, or opens views, ask the user to use the regular chat/confirmation card.',
+        'You may use the available live voice tools to open today workout, read readiness, suggest workout modifications, find Quick Erg matches, and prepare confirmation cards for planned cardio workouts, logged workouts, and completed assigned workouts.',
       ]
     : locale === 'sv'
       ? [
@@ -185,7 +185,20 @@ function buildRealtimeInstructions(
         `Dagens datum i Stockholm är ${today}. När atleten säger idag ska du skicka date="${today}". För intervallpass ska du fråga efter vila och intensitet innan du anropar createCardioWorkout. Verktyget förbereder bara ett synligt bekräftelsekort; inget sparas förrän atleten bekräftar kortet.`
       )
       : '',
-    t(locale, 'Do not claim that you navigated, sent, created, updated, or deleted anything in the app during live voice mode.', 'Du får inte påstå att du har navigerat, skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.'),
+    isAthleteChat
+      ? t(
+        locale,
+        'Only say a view was opened after an open/navigation tool returns success. Never say a workout was created, logged, completed, matched, updated, or deleted until the athlete confirms the visible card or review screen.',
+        'Säg bara att en vy öppnades efter att ett öppnings-/navigeringsverktyg returnerat success. Säg aldrig att ett pass skapats, loggats, slutförts, matchats, uppdaterats eller raderats förrän atleten bekräftar det synliga kortet eller granskningsvyn.'
+      )
+      : t(locale, 'Do not claim that you navigated, sent, created, updated, or deleted anything in the app during live voice mode.', 'Du får inte påstå att du har navigerat, skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.'),
+    isAthleteChat
+      ? t(
+        locale,
+        'If rest, intensity, RPE, duration, or workout identity is missing for a write action, ask one short follow-up before preparing a card. Unsupported actions such as meals or check-ins should be routed to normal text chat.',
+        'Om vila, intensitet, RPE, duration eller vilket pass det gäller saknas för en skrivåtgärd ska du ställa en kort följdfråga innan du förbereder ett kort. Åtgärder som inte stöds, som måltider eller check-ins, ska hänvisas till vanlig textchatt.'
+      )
+      : '',
     t(locale, 'You do not have access to the full knowledge-skill library in live voice. Stay within the curated mode and ask the user to use text chat if expert knowledge needs to be selected.', 'Du har inte tillgång till hela knowledge-skill-biblioteket i live voice. Håll dig till det kuraterade läget och be användaren använda textchatten om expertkunskap behöver väljas.'),
     t(locale, 'If you lack access or data, say that clearly out loud and suggest a safe next step.', 'Om du saknar åtkomst eller data, säg det tydligt i ord och föreslå ett säkert nästa steg.'),
     dataContext ? `${t(locale, 'Available athlete data', 'Tillgänglig atletdata')}:\n${dataContext}` : '',
@@ -485,7 +498,7 @@ export async function POST(request: NextRequest) {
       },
       ...(parsed.data.isAthleteChat
         ? {
-          tools: [buildCreateCardioWorkoutRealtimeTool(locale)],
+          tools: buildAthleteLiveVoiceRealtimeTools(locale),
           tool_choice: 'auto',
         }
         : {}),

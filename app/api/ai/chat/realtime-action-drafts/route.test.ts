@@ -80,13 +80,13 @@ describe('realtime action draft route', () => {
       business: { slug: 'skelleftea' },
     })
     mockIsAiAssistantOperationsEnabled.mockResolvedValue(true)
-    mockCreateAiActionDraftForTool.mockImplementation(async (_capabilityId, _input, _context, preview) => ({
+    mockCreateAiActionDraftForTool.mockImplementation(async (capabilityId, _input, _context, preview) => ({
       success: true,
       message: 'Prepared action',
       action: {
         type: 'aiCapabilityAction',
         id: 'draft-1',
-        capabilityId: 'createCardioWorkout',
+        capabilityId,
         title: preview.title,
         description: preview.description,
         targetLabel: preview.targetLabel,
@@ -141,6 +141,58 @@ describe('realtime action draft route', () => {
     )
   })
 
+  it('creates an AI action draft for logging a completed workout', async () => {
+    const response = await POST(request({
+      toolName: 'logCompletedWorkout',
+      callId: 'call-log-1',
+      arguments: {
+        date: '2026-06-23',
+        name: 'Lunch ride',
+        workoutType: 'CARDIO',
+        sport: 'CYCLING',
+        durationMinutes: 42,
+        distanceKm: 18.5,
+        perceivedEffort: 6,
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.action.capabilityId).toBe('logCompletedWorkout')
+    expect(body.action.details).toContain('Duration: 42 min')
+    expect(mockCreateAiActionDraftForTool).toHaveBeenCalledWith(
+      'logCompletedWorkout',
+      expect.objectContaining({
+        workoutType: 'CARDIO',
+        durationMinutes: 42,
+      }),
+      expect.objectContaining({
+        actorRole: 'ATHLETE',
+        clientId: 'client-1',
+      }),
+      expect.objectContaining({
+        title: 'Lunch ride',
+      })
+    )
+  })
+
+  it('asks for completion details before drafting an assigned workout completion', async () => {
+    const response = await POST(request({
+      toolName: 'completeAssignedWorkout',
+      arguments: {
+        kind: 'CARDIO',
+        date: '2026-06-23',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(false)
+    expect(body.needsClarification).toBe(true)
+    expect(mockCreateAiActionDraftForTool).not.toHaveBeenCalled()
+  })
+
   it('returns clarification instead of drafting repeated intervals without rest or intensity', async () => {
     const response = await POST(request({
       toolName: 'createCardioWorkout',
@@ -184,7 +236,7 @@ describe('realtime action draft route', () => {
 
     expect(response.status).toBe(400)
     expect(body.success).toBe(false)
-    expect(body.error).toBe('The workout details were incomplete or invalid.')
+    expect(body.error).toBe('The action details were incomplete or invalid.')
     expect(mockCreateAiActionDraftForTool).not.toHaveBeenCalled()
   })
 

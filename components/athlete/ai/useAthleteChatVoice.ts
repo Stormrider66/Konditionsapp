@@ -29,7 +29,23 @@ const ATHLETE_VOICE_AUTO_SEND_KEY = 'athlete-floating-ai-voice-auto-send'
 const ATHLETE_SPOKEN_REPLIES_KEY = 'athlete-floating-ai-spoken-replies'
 const ATHLETE_VOICE_OPERATOR_KEY = 'athlete-floating-ai-voice-operator-mode'
 const ATHLETE_VOICE_GUIDE_DISMISSED_KEY = 'athlete-floating-ai-voice-guide-dismissed'
-const REALTIME_CARDIO_WORKOUT_TOOL_NAME = 'createCardioWorkout'
+const REALTIME_ACTION_DRAFT_TOOL_NAMES = new Set([
+  'createCardioWorkout',
+  'logCompletedWorkout',
+  'completeAssignedWorkout',
+])
+const REALTIME_DIRECT_TOOL_NAMES = new Set([
+  'openTodayWorkout',
+  'getReadinessBriefing',
+  'proposeWorkoutModification',
+  'getQuickErgMatchSuggestions',
+])
+
+export interface RealtimeNavigationResult {
+  href: string
+  label?: string
+  autoNavigate?: boolean
+}
 
 interface UseAthleteChatVoiceOptions {
   addAssistantNotice: (content: string) => void
@@ -42,6 +58,7 @@ interface UseAthleteChatVoiceOptions {
   setInput: (value: string) => void
   textareaRef: RefObject<HTMLTextAreaElement | null>
   onRealtimeActionDraft?: (result: ChatActionResult) => void
+  onRealtimeNavigation?: (navigation: RealtimeNavigationResult) => void
 }
 
 export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
@@ -502,7 +519,9 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
   const handleRealtimeFunctionCall = useCallback(async (call: RealtimeFunctionCall) => {
     if (!claimRealtimeFunctionCall(processedRealtimeFunctionCallIdsRef.current, call.callId)) return
 
-    if (call.name !== REALTIME_CARDIO_WORKOUT_TOOL_NAME) {
+    const isActionDraftTool = REALTIME_ACTION_DRAFT_TOOL_NAMES.has(call.name)
+    const isDirectTool = REALTIME_DIRECT_TOOL_NAMES.has(call.name)
+    if (!isActionDraftTool && !isDirectTool) {
       const output = {
         success: false,
         error: locale === 'sv'
@@ -514,8 +533,11 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
     }
 
     try {
-      setRealtimeVoiceStatus(locale === 'sv' ? 'Förbereder bekräftelsekort...' : 'Preparing confirmation card...')
-      const response = await fetch('/api/ai/chat/realtime-action-drafts', {
+      setRealtimeVoiceStatus(isActionDraftTool
+        ? (locale === 'sv' ? 'Förbereder bekräftelsekort...' : 'Preparing confirmation card...')
+        : (locale === 'sv' ? 'Hämtar i appen...' : 'Checking the app...'))
+
+      const response = await fetch(isActionDraftTool ? '/api/ai/chat/realtime-action-drafts' : '/api/ai/chat/realtime-tools', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -524,11 +546,22 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
           callId: call.callId,
         }),
       })
-      const payload = await response.json().catch(() => ({})) as ChatActionResult
+      const payload = await response.json().catch(() => ({})) as ChatActionResult & {
+        message?: string
+        navigation?: RealtimeNavigationResult
+        needsClarification?: boolean
+        error?: string
+      }
 
       if (payload.success && payload.action?.type === 'aiCapabilityAction') {
         optionsRef.current.onRealtimeActionDraft?.(payload)
         setRealtimeVoiceStatus(locale === 'sv' ? 'Bekräftelsekort klart.' : 'Confirmation card ready.')
+      } else if (payload.success && payload.navigation?.href) {
+        optionsRef.current.onRealtimeNavigation?.(payload.navigation)
+        setRealtimeVoiceStatus(payload.message || (locale === 'sv' ? 'Öppnar vy...' : 'Opening view...'))
+      } else if (payload.success && payload.message) {
+        addAssistantNotice(payload.message)
+        setRealtimeVoiceStatus(payload.message)
       } else if (!payload.needsClarification) {
         const message = payload.error || (locale === 'sv'
           ? 'Kunde inte förbereda live voice-åtgärden.'

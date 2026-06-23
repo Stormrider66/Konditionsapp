@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import { Button } from '@/components/ui/button'
@@ -66,7 +67,8 @@ import {
 } from '@/lib/ai/billing/client-errors'
 import { AiAllowanceBlockedAction } from '@/components/athlete/ai/AiAllowanceBlockedAction'
 import { VoiceModesGuide } from '@/components/ai-studio/VoiceModesGuide'
-import { useAthleteChatVoice } from './useAthleteChatVoice'
+import { useAthleteChatVoice, type RealtimeNavigationResult } from './useAthleteChatVoice'
+import { resolveAppHref } from '@/lib/ai/action-result-links'
 import {
   AthleteChatConsentPanel,
   AthleteChatLoadingPanel,
@@ -126,6 +128,7 @@ export function AthleteFloatingChat({
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const quickPrompts = getAthleteQuickPrompts(undefined, locale)
   const { toast } = useToast()
+  const router = useRouter()
   const basePath = useBasePath()
   const {
     buttonFloatingStyle,
@@ -209,6 +212,13 @@ export function AthleteFloatingChat({
       },
     ].slice(-3))
   }, [])
+  const handleRealtimeNavigation = useCallback((navigation: RealtimeNavigationResult) => {
+    const href = resolveAppHref(navigation.href, basePath)
+    addAssistantNotice(locale === 'sv' ? 'Öppnar rätt vy i appen.' : 'Opening the right view in the app.')
+    if (navigation.autoNavigate !== false) {
+      router.push(href)
+    }
+  }, [addAssistantNotice, basePath, locale, router])
 
   // Mental prep context (set when opened from MentalPrepCard)
   const [mentalPrepContext, setMentalPrepContext] = useState<MentalPrepChatEvent | null>(null)
@@ -787,6 +797,7 @@ export function AthleteFloatingChat({
     setInput,
     textareaRef,
     onRealtimeActionDraft: addRealtimeActionResult,
+    onRealtimeNavigation: handleRealtimeNavigation,
   })
 
   // Speak new assistant replies and notices aloud (at most once each)
