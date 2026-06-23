@@ -37,6 +37,12 @@ const SHARED_TOOLS: FunctionDeclaration[] = [
     parameters: { type: Type.OBJECT, properties: {} },
   },
   {
+    name: 'get_live_metrics',
+    description:
+      'Get live bike/erg metrics such as power, target power, average power, cadence/RPM, stroke rate, distance, calories, heart rate, and timer state.',
+    parameters: { type: Type.OBJECT, properties: {} },
+  },
+  {
     name: 'adjust_intensity',
     description: "Note that the athlete wants to adjust their workout intensity.",
     parameters: {

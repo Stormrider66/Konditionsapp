@@ -10,6 +10,7 @@ import type { WorkoutContextForLive, StrengthWorkoutContextForLive, HybridWorkou
 export interface SystemPromptOptions {
   hrAvailable?: boolean
   cameraEnabled?: boolean
+  locale?: 'en' | 'sv'
 }
 
 export function buildLiveCoachingSystemInstruction(
@@ -28,6 +29,9 @@ export function buildLiveCoachingSystemInstruction(
       if (s.plannedDistance) {
         parts.push(s.plannedDistance < 1 ? `${Math.round(s.plannedDistance * 1000)}m` : `${s.plannedDistance.toFixed(1)}km`)
       }
+      if (s.plannedCalories) parts.push(`${s.plannedCalories} cal`)
+      if (s.plannedPower) parts.push(`${s.plannedPower} W`)
+      if (s.equipment) parts.push(`equipment: ${s.equipment}`)
       if (s.notes) parts.push(`(${s.notes})`)
       return parts.join(' | ')
     })
@@ -36,6 +40,7 @@ export function buildLiveCoachingSystemInstruction(
   const totalDuration = context.totalDuration
     ? `${Math.round(context.totalDuration / 60)} minutes`
     : `${context.segments.length} segments`
+  const defaultLanguage = options.locale === 'sv' ? 'Swedish' : 'English'
 
   let prompt = `You are a real-time voice coach guiding an athlete through a cardio workout session.
 
@@ -61,9 +66,11 @@ ${segmentList}
 8. Do NOT provide medical advice. If the athlete reports pain, recommend they stop and contact their coach.
 9. Match your energy to the segment type: calm during warmup/recovery, motivating during intervals.
 10. Start by greeting the athlete and briefly describing the session structure.
+11. If you receive [LIVE METRICS] messages, use them naturally for brief coaching: watts vs target, cadence/RPM, stroke rate, distance, calories, HR, and timer state.
+12. Do not invent live metrics. If a metric is missing or unavailable, say that you do not have it.
 
 ## Language
-Respond in the same language the athlete speaks. Default to English if unclear.
+Respond in the same language the athlete speaks. Default to ${defaultLanguage} if unclear.
 
 ## Tools
 You have tools to control the workout. Use them ONLY when the athlete explicitly requests an action:
@@ -73,6 +80,7 @@ You have tools to control the workout. Use them ONLY when the athlete explicitly
 - mark_segment_complete: When athlete says "done" or "finished" with current segment
 - get_current_status: When athlete asks where they are in the workout
 - get_heart_rate: When athlete asks about their heart rate or zone
+- get_live_metrics: When athlete asks about watts, cadence/RPM, distance, calories, pace, or current machine status
 - adjust_intensity: When athlete says "easier" or "harder"
 
 After using a tool, briefly confirm the action to the athlete.`
@@ -123,6 +131,8 @@ export function buildStrengthCoachingSystemInstruction(
     })
     .join('\n')
 
+  const defaultLanguage = options.locale === 'sv' ? 'Swedish' : 'English'
+
   let prompt = `You are a real-time voice coach guiding an athlete through a strength training workout.
 
 ## Workout Details
@@ -151,7 +161,7 @@ ${exerciseList}
 12. Start by greeting the athlete and announcing the first exercise.
 
 ## Language
-Respond in the same language the athlete speaks. Default to English if unclear.
+Respond in the same language the athlete speaks. Default to ${defaultLanguage} if unclear.
 
 ## Tools
 Use these tools to control the workout:
@@ -163,6 +173,7 @@ Use these tools to control the workout:
 - pause_workout / resume_workout: Pause or resume
 - get_current_status: Get overall workout progress
 - get_heart_rate: Get current HR if monitor is connected
+- get_live_metrics: Get any live HR or machine metrics available in this view
 - adjust_intensity: Note easier/harder preference
 
 After using a tool, briefly confirm the action.`
@@ -209,6 +220,7 @@ export function buildHybridCoachingSystemInstruction(
   options: SystemPromptOptions = {}
 ): string {
   const formatDesc = FORMAT_DESCRIPTIONS[context.format] || context.format
+  const defaultLanguage = options.locale === 'sv' ? 'Swedish' : 'English'
 
   const movementList = context.movements
     .map((m) => {
@@ -304,13 +316,14 @@ Guide the athlete through each movement in order. Announce movements, track prog
 8. Do NOT provide medical advice. If athlete reports pain, recommend they stop.
 
 ## Language
-Respond in the same language the athlete speaks. Default to English if unclear.
+Respond in the same language the athlete speaks. Default to ${defaultLanguage} if unclear.
 
 ## Tools
 - complete_round: Log a completed round (use when athlete says "done", "round", or finishes the sequence)
 - get_workout_timer: Get elapsed time, remaining time, and round count
 - pause_workout / resume_workout: Pause or resume
 - get_heart_rate: Get current HR if monitor connected
+- get_live_metrics: Get any live HR or machine metrics available in this view
 - adjust_intensity: Note easier/harder preference
 - end_coaching: End the voice coaching session
 

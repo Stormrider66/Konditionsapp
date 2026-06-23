@@ -2,7 +2,7 @@
  * Live Voice Coaching Types
  *
  * Type definitions for the Gemini 3.1 Flash Live real-time voice coaching system.
- * Supports both cardio and strength workout types.
+ * Supports cardio, strength, and hybrid workout types.
  */
 
 /** Session config returned to client after init */
@@ -10,8 +10,8 @@ export interface LiveVoiceSessionConfig {
   ephemeralToken: string
   sessionId: string
   model: string
-  workoutType: 'cardio' | 'strength'
-  workoutContext: WorkoutContextForLive | StrengthWorkoutContextForLive
+  workoutType: 'cardio' | 'strength' | 'hybrid'
+  workoutContext: WorkoutContextForLive | StrengthWorkoutContextForLive | HybridWorkoutContextForLive
 }
 
 // ─── Cardio Types ───────────────────────────────────────────────────────────
@@ -32,8 +32,35 @@ export interface LiveSegmentInfo {
   typeName: string
   plannedDuration?: number
   plannedDistance?: number
+  plannedCalories?: number
+  plannedPower?: number
   plannedZone?: number
+  equipment?: string
   notes?: string
+}
+
+/** Compact live snapshot from a connected bike/erg plus HR/timer state. */
+export interface LiveMachineMetrics {
+  available: boolean
+  connected?: boolean
+  equipment?: string | null
+  machineType?: string | null
+  power?: number | null
+  targetPower?: number | null
+  averagePower?: number | null
+  maxPower?: number | null
+  cadence?: number | null
+  strokeRate?: number | null
+  paceSeconds?: number | null
+  distanceKm?: number | null
+  calories?: number | null
+  targetCalories?: number | null
+  heartRate?: number | null
+  heartRateZone?: number | null
+  segmentIndex?: number
+  segmentTypeName?: string
+  timeRemainingSeconds?: number | null
+  isTimerRunning?: boolean
 }
 
 // ─── Strength Types ─────────────────────────────────────────────────────────
@@ -94,10 +121,12 @@ export interface HybridMovementForLive {
 /** Tool function names available during live coaching */
 export type LiveToolName =
   // Shared tools
+  | 'end_coaching'
   | 'pause_workout'
   | 'resume_workout'
   | 'get_current_status'
   | 'get_heart_rate'
+  | 'get_live_metrics'
   | 'adjust_intensity'
   // Cardio-specific tools
   | 'skip_segment'
@@ -165,6 +194,7 @@ export interface LiveCoachingToolCallbacks {
     completedSets?: number
     targetSets?: number
   }>
+  onGetExerciseStatus?: () => LiveExerciseStatus | null
   onSkipExercise?: () => void
   onCompleteExercise?: () => void
   onStartRestTimer?: (seconds?: number) => void

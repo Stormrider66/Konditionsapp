@@ -69,6 +69,8 @@ interface IntervalTimerProps {
   disableVoiceCues?: boolean
   /** Force pause from parent (e.g. live voice coach tool call) */
   forcePaused?: boolean
+  /** External time adjustment from parent controls (positive extends, negative reduces). */
+  externalAdjustment?: { id: number; seconds: number } | null
   /** Called when timer state changes (for live voice coach status reporting) */
   onStateChange?: (state: { seconds: number; isRunning: boolean }) => void
 }
@@ -178,6 +180,7 @@ export function IntervalTimer({
   voiceSpeak,
   disableVoiceCues = false,
   forcePaused,
+  externalAdjustment,
   onStateChange,
 }: IntervalTimerProps) {
   const t = useTranslations('components.intervalTimer')
@@ -196,6 +199,7 @@ export function IntervalTimer({
   const endAtRef = useRef<number | null>(null) // deadline while running
   const secondsRef = useRef(duration) // remaining, for (re)anchoring on resume
   const completedRef = useRef(false)
+  const lastExternalAdjustmentIdRef = useRef<number | null>(null)
   useEffect(() => {
     secondsRef.current = seconds
   }, [seconds])
@@ -364,6 +368,19 @@ export function IntervalTimer({
     }
     setSeconds((prev) => Math.max(0, prev - reduceSeconds))
   }
+
+  useEffect(() => {
+    if (!externalAdjustment) return
+    if (lastExternalAdjustmentIdRef.current === externalAdjustment.id) return
+    lastExternalAdjustmentIdRef.current = externalAdjustment.id
+
+    if (externalAdjustment.seconds > 0) {
+      extendTime(externalAdjustment.seconds)
+    } else if (externalAdjustment.seconds < 0) {
+      reduceTime(Math.abs(externalAdjustment.seconds))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalAdjustment])
 
   // Calculate circle progress
   const progress = (seconds / duration) * 100

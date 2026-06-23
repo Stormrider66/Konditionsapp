@@ -14,6 +14,7 @@ import { logger } from '@/lib/logger'
 import { getResolvedGoogleKey } from '@/lib/user-api-keys'
 import { createGoogleGenAIClient, generateContent } from '@/lib/ai/google-genai-client'
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
+import { parseLiveVoiceSummaryJson } from './summary-json'
 
 export async function generateSessionSummary(
   sessionId: string,
@@ -110,7 +111,7 @@ Respond ONLY with valid JSON.`
     } = {}
 
     try {
-      analysis = JSON.parse(result.text)
+      analysis = parseLiveVoiceSummaryJson(result.text) as typeof analysis
     } catch {
       logger.warn('Failed to parse session summary JSON', { sessionId })
       analysis = { summary: result.text }

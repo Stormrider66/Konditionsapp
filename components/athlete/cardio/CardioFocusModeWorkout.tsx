@@ -54,6 +54,7 @@ import {
   buildSessionCompleteCue,
 } from '@/hooks/use-voice-coach'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
+import type { LiveMachineMetrics } from '@/lib/ai/live-voice-coaching/types'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
 import { useHeartRateBand } from '@/hooks/use-heart-rate-band'
@@ -215,10 +216,13 @@ export function CardioFocusModeWorkout({
   // Timer state exposed for live voice coach
   const [timerState, setTimerState] = useState<{ seconds: number; isRunning: boolean }>({ seconds: 0, isRunning: false })
   const [forcePaused, setForcePaused] = useState<boolean | undefined>(undefined)
+  const [timerAdjustment, setTimerAdjustment] = useState<{ id: number; seconds: number } | null>(null)
+  const timerAdjustmentIdRef = useRef(0)
+  const [powerAdjustmentPctBySegment, setPowerAdjustmentPctBySegment] = useState<Record<number, number>>({})
 
   // Live HR feed (only polls when live coach is connected)
-  const liveCoachConnectedRef = useRef(false)
-  const hr = useAthleteHR(liveCoachConnectedRef.current)
+  const [pollLiveHr, setPollLiveHr] = useState(false)
+  const hr = useAthleteHR(pollLiveHr)
 
   // Live erg power (focus-mode): Wattbike/FTMS bikes, airbikes, and Concept2
   // PM5 ergs (row/ski) all stream through the same client type. A mixed-erg
@@ -298,51 +302,6 @@ export function CardioFocusModeWorkout({
     powerSamples?: (number | null)[]
   } | null>(null)
 
-  // Live AI Voice Coach (Gemini Live API)
-  const liveCoach = useLiveVoiceCoach({
-    assignmentId,
-    segments,
-    currentSegmentIndex: currentIndex,
-    isTimerRunning: timerState.isRunning,
-    timerSecondsRemaining: timerState.seconds,
-    heartRate: hr.heartRate,
-    heartRateZone: hr.zone,
-    toolCallbacks: {
-      onSkipSegment: () => {
-        if (currentIndex < segments.length - 1) {
-          setCurrentIndex((prev) => prev + 1)
-          setViewState('timer')
-          setTimerElapsed(0)
-          setForcePaused(undefined)
-        }
-      },
-      onPauseWorkout: () => {
-        setForcePaused(true)
-      },
-      onResumeWorkout: () => {
-        setForcePaused(false)
-      },
-      onExtendSegment: () => {
-        // Timer will receive new duration on next render
-      },
-      onMarkSegmentComplete: () => {
-        handleTimerComplete()
-      },
-      onAdjustIntensity: () => {
-        // Noted by the AI — no direct action needed
-      },
-    },
-  })
-  const liveCoachActive = liveCoach.status === 'connected'
-  liveCoachConnectedRef.current = liveCoachActive
-
-  // When live coach is active, disable basic voice cues
-  useEffect(() => {
-    if (liveCoachActive && voice.enabled) {
-      voice.stop()
-    }
-  }, [liveCoachActive, voice])
-
   const currentSegment = segments[currentIndex]
   const completedCount = segments.filter((s) => s.completed || s.skipped).length
   const progressPercent = segments.length > 0 ? (completedCount / segments.length) * 100 : 0
@@ -375,7 +334,11 @@ export function CardioFocusModeWorkout({
   const resolvedPower = currentSegment
     ? resolveSegmentPower(currentSegment, openerPower)
     : {}
-  const currentTargetPower = resolvedPower.watts
+  const baseTargetPower = resolvedPower.watts
+  const currentPowerAdjustmentPct = powerAdjustmentPctBySegment[currentIndex] ?? 0
+  const currentTargetPower = typeof baseTargetPower === 'number'
+    ? Math.max(1, Math.round(baseTargetPower * (1 + currentPowerAdjustmentPct / 100)))
+    : baseTargetPower
   const currentTargetPowerPending = resolvedPower.pendingLabel
 
   // After a work effort the "rest between rounds" runs as a single auto-advancing
@@ -557,6 +520,118 @@ export function CardioFocusModeWorkout({
 
   // Live kcal burned in the current segment (null until the machine reports energy).
   const liveSegmentCalories = calLive && calLive.idx === currentIndex ? calLive.kcal : null
+  const coachHeartRate = hrBand.bpm ?? activeDevice?.latest?.heartRate ?? hr.heartRate ?? null
+  const coachHeartRateZone = liveHrZone ?? hr.zone ?? null
+  const liveMachineMetrics = useMemo<LiveMachineMetrics>(() => {
+    const latest = activeDevice?.latest
+    const cadence = latest?.cadence ?? latest?.avgCadence ?? null
+    const distanceKm =
+      segDistStartRef.current != null && segDistLastRef.current != null && segDistLastRef.current >= segDistStartRef.current
+        ? Math.round(segDistLastRef.current - segDistStartRef.current) / 1000
+        : typeof latest?.distance === 'number'
+          ? Math.round(latest.distance) / 1000
+          : null
+
+    return {
+      available: activeConnected || coachHeartRate != null,
+      connected: activeConnected,
+      equipment: activeDevice?.slot || currentSegment?.equipment || null,
+      machineType: liveMachineType ?? null,
+      power: typeof latest?.power === 'number' ? Math.round(latest.power) : null,
+      targetPower: typeof currentTargetPower === 'number' ? currentTargetPower : null,
+      averagePower:
+        powerAvgLive?.idx === currentIndex
+          ? powerAvgLive.avg
+          : typeof latest?.avgPower === 'number'
+            ? Math.round(latest.avgPower)
+            : null,
+      maxPower: segMaxRef.current > 0 ? Math.round(segMaxRef.current) : null,
+      cadence: typeof cadence === 'number' ? Math.round(cadence) : null,
+      strokeRate: typeof latest?.strokeRate === 'number' ? Math.round(latest.strokeRate) : null,
+      paceSeconds: typeof latest?.pace === 'number' ? Math.round(latest.pace) : null,
+      distanceKm,
+      calories: liveSegmentCalories,
+      targetCalories: currentSegment?.plannedCalories ?? null,
+      heartRate: coachHeartRate,
+      heartRateZone: coachHeartRateZone,
+      segmentIndex: currentIndex,
+      segmentTypeName: currentSegment?.typeName,
+      timeRemainingSeconds: timerState.seconds,
+      isTimerRunning: timerState.isRunning,
+    }
+  }, [
+    activeConnected,
+    activeDevice?.slot,
+    activeDevice?.latest,
+    currentSegment?.equipment,
+    currentSegment?.plannedCalories,
+    currentSegment?.typeName,
+    liveMachineType,
+    currentTargetPower,
+    powerAvgLive,
+    currentIndex,
+    liveSegmentCalories,
+    coachHeartRate,
+    coachHeartRateZone,
+    timerState.seconds,
+    timerState.isRunning,
+  ])
+
+  // Live AI Voice Coach (Gemini Live API)
+  const liveCoach = useLiveVoiceCoach({
+    assignmentId,
+    segments,
+    currentSegmentIndex: currentIndex,
+    isTimerRunning: timerState.isRunning,
+    timerSecondsRemaining: timerState.seconds,
+    heartRate: coachHeartRate,
+    heartRateZone: coachHeartRateZone,
+    liveMetrics: liveMachineMetrics,
+    toolCallbacks: {
+      onSkipSegment: () => {
+        if (currentIndex < segments.length - 1) {
+          setCurrentIndex((prev) => prev + 1)
+          setViewState('timer')
+          setTimerElapsed(0)
+          setForcePaused(undefined)
+        }
+      },
+      onPauseWorkout: () => {
+        setForcePaused(true)
+      },
+      onResumeWorkout: () => {
+        setForcePaused(false)
+      },
+      onExtendSegment: (seconds) => {
+        const safeSeconds = Math.max(5, Math.min(600, Math.round(seconds || 30)))
+        timerAdjustmentIdRef.current += 1
+        setTimerAdjustment({ id: timerAdjustmentIdRef.current, seconds: safeSeconds })
+      },
+      onMarkSegmentComplete: () => {
+        handleTimerComplete()
+      },
+      onAdjustIntensity: (direction) => {
+        if (typeof currentTargetPower !== 'number') return
+        setPowerAdjustmentPctBySegment((prev) => {
+          const current = prev[currentIndex] ?? 0
+          const next = Math.max(-20, Math.min(20, current + (direction === 'harder' ? 5 : -5)))
+          return { ...prev, [currentIndex]: next }
+        })
+      },
+    },
+  })
+  const liveCoachActive = liveCoach.status === 'connected'
+
+  useEffect(() => {
+    setPollLiveHr((prev) => (prev === liveCoachActive ? prev : liveCoachActive))
+  }, [liveCoachActive])
+
+  // When live coach is active, disable basic voice cues
+  useEffect(() => {
+    if (liveCoachActive && voice.enabled) {
+      voice.stop()
+    }
+  }, [liveCoachActive, voice])
 
   // ERG: set the bike's resistance to the segment's target watts (opt-out via
   // toggle). Bikes with a motor brake only — airbikes and rowing ergs are
@@ -1090,6 +1165,7 @@ export function CardioFocusModeWorkout({
             voiceSpeak={voice.speak}
             disableVoiceCues={liveCoachActive}
             forcePaused={forcePaused}
+            externalAdjustment={timerAdjustment}
             onStateChange={setTimerState}
           />
         ) : viewState === 'timer' && !currentSegment.plannedDuration ? (

@@ -57,6 +57,7 @@ export class AudioCaptureManager {
   private workletNode: AudioWorkletNode | null = null
   private scriptProcessor: ScriptProcessorNode | null = null
   private sourceNode: MediaStreamAudioSourceNode | null = null
+  private sinkNode: GainNode | null = null
   private _isCapturing = false
   private _isMuted = false
 
@@ -116,8 +117,12 @@ export class AudioCaptureManager {
       }
     }
 
+    this.sinkNode = this.audioContext.createGain()
+    this.sinkNode.gain.value = 0
+
     this.sourceNode.connect(this.workletNode)
-    this.workletNode.connect(this.audioContext.destination)
+    this.workletNode.connect(this.sinkNode)
+    this.sinkNode.connect(this.audioContext.destination)
   }
 
   private setupScriptProcessor(): void {
@@ -133,8 +138,12 @@ export class AudioCaptureManager {
       }
     }
 
+    this.sinkNode = this.audioContext.createGain()
+    this.sinkNode.gain.value = 0
+
     this.sourceNode.connect(this.scriptProcessor)
-    this.scriptProcessor.connect(this.audioContext.destination)
+    this.scriptProcessor.connect(this.sinkNode)
+    this.sinkNode.connect(this.audioContext.destination)
   }
 
   mute(): void {
@@ -162,6 +171,11 @@ export class AudioCaptureManager {
     if (this.sourceNode) {
       this.sourceNode.disconnect()
       this.sourceNode = null
+    }
+
+    if (this.sinkNode) {
+      this.sinkNode.disconnect()
+      this.sinkNode = null
     }
 
     if (this.mediaStream) {

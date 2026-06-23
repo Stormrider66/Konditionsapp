@@ -7,7 +7,7 @@
  * Shows one exercise at a time with swipe navigation.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -191,8 +191,8 @@ export function FocusModeWorkout({
   const { isActive: screenAwake } = useScreenWakeLock()
 
   // Live AI Voice Coach
-  const liveCoachConnectedRef = useRef(false)
-  const hr = useAthleteHR(liveCoachConnectedRef.current)
+  const [pollLiveHr, setPollLiveHr] = useState(false)
+  const hr = useAthleteHR(pollLiveHr)
 
   const liveCoach = useLiveVoiceCoach({
     assignmentId,
@@ -216,6 +216,20 @@ export function FocusModeWorkout({
       onSkipSegment: () => {},
       onExtendSegment: () => {},
       onMarkSegmentComplete: () => {},
+      onGetExerciseStatus: () => {
+        if (!currentExercise) return null
+        const lastLog = currentExercise.setLogs[currentExercise.setLogs.length - 1]
+        return {
+          exerciseName: getExerciseDisplayName(currentExercise, locale),
+          completedSets: currentExercise.completedSets,
+          targetSets: currentExercise.sets,
+          targetReps: currentExercise.repsTarget,
+          targetWeight: currentExercise.weight ?? null,
+          lastSetWeight: lastLog?.weight ?? null,
+          lastSetReps: lastLog?.repsCompleted ?? null,
+          nextSetNumber: currentExercise.completedSets + 1,
+        }
+      },
       onLogSet: async (logData) => {
         if (!currentExercise) return { success: false }
         try {
@@ -267,7 +281,10 @@ export function FocusModeWorkout({
       },
     },
   })
-  liveCoachConnectedRef.current = liveCoach.status === 'connected'
+  const liveCoachActive = liveCoach.status === 'connected'
+  useEffect(() => {
+    setPollLiveHr((prev) => (prev === liveCoachActive ? prev : liveCoachActive))
+  }, [liveCoachActive])
 
   // Fetch workout data
   const fetchWorkoutData = useCallback(async () => {

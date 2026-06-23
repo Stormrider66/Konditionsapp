@@ -193,7 +193,7 @@ export async function POST(request: Request) {
       }
 
       workoutContext = ctx
-      systemInstruction = buildStrengthCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera })
+      systemInstruction = buildStrengthCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera, locale })
       tools = STRENGTH_COACHING_TOOLS
     } else if (workoutType === 'hybrid') {
       // ─── Hybrid Workout ─────────────────────────────────────────────
@@ -241,7 +241,7 @@ export async function POST(request: Request) {
       }
 
       workoutContext = ctx
-      systemInstruction = buildHybridCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera })
+      systemInstruction = buildHybridCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera, locale })
       tools = HYBRID_COACHING_TOOLS
     } else {
       // ─── Cardio Workout ─────────────────────────────────────────────
@@ -265,7 +265,9 @@ export async function POST(request: Request) {
 
       const rawSegments = (assignment.session.segments ?? []) as Array<{
         type?: string; typeName?: string; duration?: number; plannedDuration?: number
-        distance?: number; plannedDistance?: number; zone?: number; plannedZone?: number; notes?: string
+        distance?: number; plannedDistance?: number; calories?: number; plannedCalories?: number
+        power?: number; plannedPower?: number; targetPower?: number
+        zone?: number; plannedZone?: number; equipment?: string; notes?: string
       }>
 
       const segments: LiveSegmentInfo[] = rawSegments.map((seg, i) => ({
@@ -274,7 +276,10 @@ export async function POST(request: Request) {
         typeName: seg.typeName || seg.type || 'Steady',
         plannedDuration: seg.plannedDuration ?? seg.duration ?? undefined,
         plannedDistance: seg.plannedDistance ?? seg.distance ?? undefined,
+        plannedCalories: seg.plannedCalories ?? seg.calories ?? undefined,
+        plannedPower: seg.plannedPower ?? seg.power ?? seg.targetPower ?? undefined,
         plannedZone: seg.plannedZone ?? seg.zone ?? undefined,
+        equipment: seg.equipment ?? undefined,
         notes: seg.notes ?? undefined,
       }))
 
@@ -290,7 +295,7 @@ export async function POST(request: Request) {
       }
 
       workoutContext = ctx
-      systemInstruction = buildLiveCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera })
+      systemInstruction = buildLiveCoachingSystemInstruction(ctx, { hrAvailable, cameraEnabled: enableCamera, locale })
       tools = CARDIO_COACHING_TOOLS
     }
 

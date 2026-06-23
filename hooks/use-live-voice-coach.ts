@@ -18,7 +18,9 @@ import type {
   LiveCoachingToolCallbacks,
   LiveWorkoutStatus,
   LiveVoiceSessionConfig,
+  LiveMachineMetrics,
 } from '@/lib/ai/live-voice-coaching/types'
+import type { VideoCaptureManager } from '@/lib/ai/live-voice-coaching/video-capture'
 import { estimateLiveSessionCost } from '@/lib/ai/gemini-config'
 import {
   type AiAllowanceExhaustedError,
@@ -68,6 +70,61 @@ interface TranscriptEntry {
   timestamp: string
 }
 
+function roundedBucket(value: number | null | undefined, bucket: number): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return '-'
+  return String(Math.round(value / bucket) * bucket)
+}
+
+function buildLiveMetricsSignature(metrics: LiveMachineMetrics): string {
+  return [
+    metrics.segmentIndex ?? '-',
+    roundedBucket(metrics.power, 5),
+    roundedBucket(metrics.targetPower, 5),
+    roundedBucket(metrics.averagePower, 5),
+    roundedBucket(metrics.cadence, 2),
+    roundedBucket(metrics.strokeRate, 2),
+    roundedBucket(metrics.distanceKm != null ? metrics.distanceKm * 100 : null, 5),
+    roundedBucket(metrics.calories, 2),
+    roundedBucket(metrics.heartRate, 3),
+    roundedBucket(metrics.timeRemainingSeconds, 15),
+    metrics.isTimerRunning ? 'run' : 'paused',
+  ].join('|')
+}
+
+function buildLiveMetricsMessage(metrics: LiveMachineMetrics): string {
+  const parts: string[] = []
+
+  if (metrics.equipment) parts.push(`equipment ${metrics.equipment}`)
+  if (metrics.segmentTypeName) parts.push(`segment ${metrics.segmentTypeName}`)
+  if (typeof metrics.power === 'number') parts.push(`${Math.round(metrics.power)} W`)
+  if (typeof metrics.targetPower === 'number') {
+    const delta = typeof metrics.power === 'number' ? ` (${Math.round(metrics.power - metrics.targetPower)} W vs target)` : ''
+    parts.push(`target ${Math.round(metrics.targetPower)} W${delta}`)
+  }
+  if (typeof metrics.averagePower === 'number') parts.push(`avg ${Math.round(metrics.averagePower)} W`)
+  if (typeof metrics.cadence === 'number') parts.push(`${Math.round(metrics.cadence)} rpm`)
+  if (typeof metrics.strokeRate === 'number') parts.push(`${Math.round(metrics.strokeRate)} spm`)
+  if (typeof metrics.paceSeconds === 'number') {
+    const mins = Math.floor(metrics.paceSeconds / 60)
+    const secs = Math.round(metrics.paceSeconds % 60).toString().padStart(2, '0')
+    parts.push(`${mins}:${secs}/500m`)
+  }
+  if (typeof metrics.distanceKm === 'number') parts.push(`${metrics.distanceKm.toFixed(2)} km`)
+  if (typeof metrics.calories === 'number') {
+    parts.push(`${metrics.calories}${metrics.targetCalories ? `/${metrics.targetCalories}` : ''} cal`)
+  }
+  if (typeof metrics.heartRate === 'number') {
+    parts.push(`${Math.round(metrics.heartRate)} bpm${metrics.heartRateZone ? ` Z${metrics.heartRateZone}` : ''}`)
+  }
+  if (typeof metrics.timeRemainingSeconds === 'number') {
+    const mins = Math.floor(metrics.timeRemainingSeconds / 60)
+    const secs = Math.round(metrics.timeRemainingSeconds % 60).toString().padStart(2, '0')
+    parts.push(`${mins}:${secs} remaining`)
+  }
+
+  return `[LIVE METRICS] ${parts.length > 0 ? parts.join(' | ') : 'No live machine metrics available.'}`
+}
+
 export interface UseLiveVoiceCoachOptions {
   assignmentId: string
   /** Workout type */
@@ -81,6 +138,8 @@ export interface UseLiveVoiceCoachOptions {
   heartRate?: number | null
   /** Current HR zone (1-5) */
   heartRateZone?: number | null
+  /** Current bike/erg metrics, when a machine is connected */
+  liveMetrics?: LiveMachineMetrics | null
   /** Enable camera for form coaching */
   enableCamera?: boolean
 }
@@ -114,6 +173,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     toolCallbacks,
     heartRate,
     heartRateZone,
+    liveMetrics,
     enableCamera,
   } = options
 
@@ -131,16 +191,24 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
   const clientRef = useRef<GeminiLiveVoiceClient | null>(null)
   const captureRef = useRef<AudioCaptureManager | null>(null)
   const playbackRef = useRef<AudioPlaybackManager | null>(null)
+  const videoCaptureRef = useRef<VideoCaptureManager | null>(null)
   const sessionIdRef = useRef<string | null>(null)
   const startTimeRef = useRef<number>(0)
   const callbacksRef = useRef(toolCallbacks)
   callbacksRef.current = toolCallbacks
+  const disconnectRef = useRef<(() => void) | null>(null)
+  const sessionReportedRef = useRef(false)
 
   // Transcript collection
   const transcriptsRef = useRef<TranscriptEntry[]>([])
 
   // HR tracking for deduplication
   const lastSentHRRef = useRef<number | null>(null)
+  const lastSentMetricsRef = useRef<{
+    at: number
+    signature: string
+    segmentIndex: number | null
+  } | null>(null)
 
   // Keep latest state in refs for tool call responses
   const stateRef = useRef({
@@ -150,6 +218,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     timerSecondsRemaining,
     heartRate: heartRate ?? null,
     heartRateZone: heartRateZone ?? null,
+    liveMetrics: liveMetrics ?? null,
   })
   stateRef.current = {
     currentSegmentIndex,
@@ -158,6 +227,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     timerSecondsRemaining,
     heartRate: heartRate ?? null,
     heartRateZone: heartRateZone ?? null,
+    liveMetrics: liveMetrics ?? null,
   }
 
   const supported = typeof window !== 'undefined' && AudioCaptureManager.isSupported()
@@ -184,6 +254,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     if (!tc?.functionCalls) return
 
     const responses: Array<{ id: string; name: string; response: Record<string, unknown> }> = []
+    let shouldEndCoaching = false
 
     for (const call of tc.functionCalls) {
       const { name, id, args } = call
@@ -195,8 +266,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       switch (name) {
         case 'end_coaching': {
           result = { success: true, message: 'Coaching session ending' }
-          // Defer disconnect to after tool response is sent
-          setTimeout(() => { cbs.onEndCoaching?.() }, 500)
+          shouldEndCoaching = true
           break
         }
         case 'skip_segment':
@@ -234,15 +304,31 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
             isRunning: state.isTimerRunning,
             segmentsCompleted: state.currentSegmentIndex,
           }
-          result = statusData as unknown as Record<string, unknown>
+          result = {
+            ...statusData,
+            liveMetricsAvailable: state.liveMetrics?.available === true,
+            liveMetrics: state.liveMetrics?.available ? state.liveMetrics : undefined,
+          } as unknown as Record<string, unknown>
           break
         }
         case 'get_heart_rate': {
+          const metricHr = state.liveMetrics?.heartRate ?? null
+          const metricZone = state.liveMetrics?.heartRateZone ?? null
           result = {
-            heartRate: state.heartRate,
-            zone: state.heartRateZone,
-            available: state.heartRate !== null,
+            heartRate: state.heartRate ?? metricHr,
+            zone: state.heartRateZone ?? metricZone,
+            available: state.heartRate !== null || metricHr !== null,
           }
+          break
+        }
+        case 'get_live_metrics': {
+          result = state.liveMetrics?.available
+            ? { success: true, ...state.liveMetrics }
+            : {
+                success: false,
+                available: false,
+                message: 'No live bike/erg metrics are available right now.',
+              }
           break
         }
         // ─── Strength-specific tools ────────────────────────────────
@@ -265,8 +351,10 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
           break
         }
         case 'get_exercise_status': {
-          // Delegate to parent via get_current_status equivalent for strength
-          result = { success: true, message: 'Use get_current_status for workout info' }
+          const exerciseStatus = cbs.onGetExerciseStatus?.()
+          result = exerciseStatus
+            ? { success: true, ...exerciseStatus }
+            : { success: false, message: 'Exercise status is not available in this view.' }
           break
         }
         case 'skip_exercise': {
@@ -307,6 +395,13 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     if (responses.length > 0) {
       clientRef.current?.sendToolResponse(responses)
     }
+
+    if (shouldEndCoaching) {
+      setTimeout(() => {
+        disconnectRef.current?.()
+        callbacksRef.current.onEndCoaching?.()
+      }, 500)
+    }
   }, [])
 
   const connect = useCallback(async () => {
@@ -316,6 +411,11 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     setError(null)
     setAiAllowanceAction(null)
     transcriptsRef.current = []
+    sessionIdRef.current = null
+    startTimeRef.current = 0
+    sessionReportedRef.current = false
+    lastSentHRRef.current = null
+    lastSentMetricsRef.current = null
 
     try {
       // Fetch ephemeral token from server
@@ -413,14 +513,53 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
       // Start camera capture if enabled
       if (enableCamera) {
         import('@/lib/ai/live-voice-coaching/video-capture').then(({ VideoCaptureManager }) => {
+          if (!clientRef.current?.isConnected) return
           const video = new VideoCaptureManager()
+          videoCaptureRef.current = video
           video.onFrame = (base64, mimeType) => {
             client.sendVideoFrame(base64, mimeType)
           }
-          video.start().catch(() => {})
+          video.start()
+            .then(() => {
+              if (videoCaptureRef.current !== video || !clientRef.current?.isConnected) {
+                video.stop()
+              }
+            })
+            .catch(() => {
+              if (videoCaptureRef.current === video) videoCaptureRef.current = null
+            })
         }).catch(() => {})
       }
     } catch (err) {
+      captureRef.current?.stop()
+      playbackRef.current?.close()
+      videoCaptureRef.current?.stop()
+      clientRef.current?.close()
+      captureRef.current = null
+      playbackRef.current = null
+      videoCaptureRef.current = null
+      clientRef.current = null
+
+      if (sessionIdRef.current) {
+        const duration = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 : 0
+        if (duration > 0 && !sessionReportedRef.current) {
+          sessionReportedRef.current = true
+          fetch('/api/athlete/live-voice-coaching/end', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            keepalive: true,
+            body: JSON.stringify({
+              sessionId: sessionIdRef.current,
+              durationSeconds: Math.round(duration),
+              audioInputSeconds: 0,
+              audioOutputSeconds: 0,
+              segmentsCompleted: stateRef.current.currentSegmentIndex,
+              endReason: 'error',
+            }),
+          }).catch(() => {})
+        }
+      }
+
       if (isAiAllowanceExhaustedError(err)) {
         setAiAllowanceError(err)
       } else {
@@ -436,16 +575,19 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     const client = clientRef.current
     const capture = captureRef.current
     const playback = playbackRef.current
+    const video = videoCaptureRef.current
     const duration = startTimeRef.current > 0 ? (Date.now() - startTimeRef.current) / 1000 : 0
     const transcripts = [...transcriptsRef.current]
 
     // Stop audio
     capture?.stop()
     playback?.close()
+    video?.stop()
     client?.close()
 
     captureRef.current = null
     playbackRef.current = null
+    videoCaptureRef.current = null
     clientRef.current = null
 
     setIsListening(false)
@@ -454,22 +596,37 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     setAiAllowanceAction(null)
 
     // Report session end with transcripts
-    if (sessionId && duration > 0) {
-      fetch('/api/athlete/live-voice-coaching/end', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          durationSeconds: Math.round(duration),
-          audioInputSeconds: client?.audioInputDuration ?? 0,
-          audioOutputSeconds: client?.audioOutputDuration ?? 0,
-          segmentsCompleted: stateRef.current.currentSegmentIndex,
-          endReason: 'user_cancelled',
-          transcripts: transcripts.length > 0 ? transcripts : undefined,
-        }),
-      }).catch(() => {})
+    if (sessionId && duration > 0 && !sessionReportedRef.current) {
+      sessionReportedRef.current = true
+      const body = JSON.stringify({
+        sessionId,
+        durationSeconds: Math.round(duration),
+        audioInputSeconds: client?.audioInputDuration ?? 0,
+        audioOutputSeconds: client?.audioOutputDuration ?? 0,
+        segmentsCompleted: stateRef.current.currentSegmentIndex,
+        endReason: 'user_cancelled',
+        transcripts: transcripts.length > 0 ? transcripts : undefined,
+      })
+      const sentByBeacon =
+        typeof navigator !== 'undefined' &&
+        typeof navigator.sendBeacon === 'function' &&
+        document.visibilityState === 'hidden' &&
+        navigator.sendBeacon(
+          '/api/athlete/live-voice-coaching/end',
+          new Blob([body], { type: 'application/json' }),
+        )
+
+      if (!sentByBeacon) {
+        fetch('/api/athlete/live-voice-coaching/end', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          body,
+        }).catch(() => {})
+      }
     }
   }, [])
+  disconnectRef.current = disconnect
 
   const toggleMute = useCallback(() => {
     const capture = captureRef.current
@@ -491,6 +648,17 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
         disconnect()
       }
     }
+  }, [disconnect])
+
+  // Page/tab close: use the same keepalive reporting path as manual disconnect.
+  useEffect(() => {
+    const handlePageHide = () => {
+      if (clientRef.current?.isConnected) {
+        disconnect()
+      }
+    }
+    window.addEventListener('pagehide', handlePageHide)
+    return () => window.removeEventListener('pagehide', handlePageHide)
   }, [disconnect])
 
   // Surface errors visibly. Allowance errors render their own inline action
@@ -530,6 +698,29 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     const zoneText = heartRateZone ? ` (Zone ${heartRateZone})` : ''
     clientRef.current.sendText(`[HR UPDATE] Current heart rate: ${heartRate} bpm${zoneText}`)
   }, [heartRate, heartRateZone, status])
+
+  // Send compact live machine/erg updates. This is intentionally throttled so
+  // the coach stays aware without turning every BLE sample into model context.
+  useEffect(() => {
+    if (status !== 'connected' || !clientRef.current?.isConnected) return
+    if (!liveMetrics?.available) return
+
+    const now = Date.now()
+    const signature = buildLiveMetricsSignature(liveMetrics)
+    const last = lastSentMetricsRef.current
+    const segmentChanged = last?.segmentIndex !== (liveMetrics.segmentIndex ?? null)
+    const stale = !last || now - last.at >= 30_000
+    const throttleElapsed = !last || now - last.at >= 10_000
+
+    if (!segmentChanged && !stale && (!throttleElapsed || last.signature === signature)) return
+
+    lastSentMetricsRef.current = {
+      at: now,
+      signature,
+      segmentIndex: liveMetrics.segmentIndex ?? null,
+    }
+    clientRef.current.sendText(buildLiveMetricsMessage(liveMetrics))
+  }, [liveMetrics, status])
 
   return {
     status,
