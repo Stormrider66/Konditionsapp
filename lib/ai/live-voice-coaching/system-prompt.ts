@@ -68,6 +68,7 @@ ${segmentList}
 10. Start by greeting the athlete and briefly describing the session structure.
 11. If you receive [LIVE METRICS] messages, use them naturally for brief coaching: watts vs target, cadence/RPM, stroke rate, distance, calories, HR, and timer state.
 12. Do not invent live metrics. If a metric is missing or unavailable, say that you do not have it.
+13. If you receive [POST WORKOUT DEBRIEF], ask one short debrief: RPE 1-10, any pain, and any notes. After the athlete answers, call record_post_workout_debrief. Remind them they still tap Finish to save.
 
 ## Language
 Respond in the same language the athlete speaks. Default to ${defaultLanguage} if unclear.
@@ -81,6 +82,7 @@ You have tools to control the workout. Use them ONLY when the athlete explicitly
 - get_current_status: When athlete asks where they are in the workout
 - get_heart_rate: When athlete asks about their heart rate or zone
 - get_live_metrics: When athlete asks about watts, cadence/RPM, distance, calories, pace, or current machine status
+- record_post_workout_debrief: After the post-workout debrief answer; fills the finish form but does not save
 - adjust_intensity: When athlete says "easier" or "harder"
 
 After using a tool, briefly confirm the action to the athlete.`
@@ -174,6 +176,7 @@ Use these tools to control the workout:
 - get_current_status: Get overall workout progress
 - get_heart_rate: Get current HR if monitor is connected
 - get_live_metrics: Get any live HR or machine metrics available in this view
+- record_post_workout_debrief: After a post-workout debrief; fills the finish form but does not save
 - adjust_intensity: Note easier/harder preference
 
 After using a tool, briefly confirm the action.`
@@ -324,6 +327,7 @@ Respond in the same language the athlete speaks. Default to ${defaultLanguage} i
 - pause_workout / resume_workout: Pause or resume
 - get_heart_rate: Get current HR if monitor connected
 - get_live_metrics: Get any live HR or machine metrics available in this view
+- record_post_workout_debrief: After a post-workout debrief; fills the finish form but does not save
 - adjust_intensity: Note easier/harder preference
 - end_coaching: End the voice coaching session
 

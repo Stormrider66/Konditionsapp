@@ -23,6 +23,8 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   X,
   ChevronLeft,
@@ -36,6 +38,7 @@ import {
   Gauge,
   Heart,
   ShieldCheck,
+  MessageSquareText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -54,7 +57,11 @@ import {
   buildSessionCompleteCue,
 } from '@/hooks/use-voice-coach'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
-import type { LiveMachineMetrics } from '@/lib/ai/live-voice-coaching/types'
+import type {
+  LiveMachineMetrics,
+  LivePerformanceSnapshot,
+  LivePostWorkoutDebrief,
+} from '@/lib/ai/live-voice-coaching/types'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
 import { useHeartRateBand } from '@/hooks/use-heart-rate-band'
@@ -184,7 +191,11 @@ export function CardioFocusModeWorkout({
   const [showExitDialog, setShowExitDialog] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const [sessionRPE, setSessionRPE] = useState(5)
-  const [sessionNotes, _setSessionNotes] = useState('')
+  const [sessionNotes, setSessionNotes] = useState('')
+  const [painMentioned, setPainMentioned] = useState(false)
+  const [painDetails, setPainDetails] = useState('')
+  const [debriefCapturedAt, setDebriefCapturedAt] = useState<string | null>(null)
+  const debriefPromptSentRef = useRef(false)
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { isActive: screenAwake } = useScreenWakeLock()
@@ -576,6 +587,68 @@ export function CardioFocusModeWorkout({
     timerState.seconds,
     timerState.isRunning,
   ])
+  const postWorkoutDebrief = useMemo<LivePostWorkoutDebrief>(() => ({
+    sessionRpe: sessionRPE,
+    notes: sessionNotes.trim() || null,
+    painMentioned,
+    painDetails: painMentioned ? painDetails.trim() || null : null,
+    capturedAt: debriefCapturedAt ?? undefined,
+  }), [sessionRPE, sessionNotes, painMentioned, painDetails, debriefCapturedAt])
+  const performanceSnapshot = useMemo<LivePerformanceSnapshot>(() => {
+    const completedSegments = segments.filter((s) => s.completed).length
+    const skippedSegments = segments.filter((s) => s.skipped).length
+    const powerSegments = segments.filter((s) => typeof s.actualAvgPower === 'number')
+    const hrSegments = segments.filter((s) => typeof s.actualAvgHR === 'number')
+    const maxHrSegments = segments.filter((s) => typeof s.actualMaxHR === 'number')
+
+    return {
+      workoutName: sessionName,
+      sport: _sport,
+      totalSegments: segments.length,
+      completedSegments,
+      skippedSegments,
+      totalPlannedDurationSeconds: segments.reduce((sum, s) => sum + (s.plannedDuration ?? 0), 0),
+      totalActualDurationSeconds: segments.reduce((sum, s) => sum + (s.actualDuration ?? 0), 0) || null,
+      avgHeartRate: hrSegments.length > 0
+        ? Math.round(hrSegments.reduce((sum, s) => sum + (s.actualAvgHR ?? 0), 0) / hrSegments.length)
+        : null,
+      maxHeartRate: maxHrSegments.length > 0
+        ? Math.max(...maxHrSegments.map((s) => s.actualMaxHR ?? 0))
+        : null,
+      avgPower: powerSegments.length > 0
+        ? Math.round(powerSegments.reduce((sum, s) => sum + (s.actualAvgPower ?? 0), 0) / powerSegments.length)
+        : null,
+      maxPower: segments.some((s) => typeof s.actualMaxPower === 'number')
+        ? Math.max(...segments.map((s) => s.actualMaxPower ?? 0))
+        : null,
+      totalDistanceKm: segments.some((s) => typeof s.actualDistance === 'number')
+        ? Math.round(segments.reduce((sum, s) => sum + (s.actualDistance ?? 0), 0) * 100) / 100
+        : null,
+      totalCalories: segments.some((s) => typeof s.actualCalories === 'number')
+        ? Math.round(segments.reduce((sum, s) => sum + (s.actualCalories ?? 0), 0))
+        : null,
+      segments: segments.map((s, index) => {
+        const resolvedSegmentPower = resolveSegmentPower(s, openerPower).watts
+        return {
+          index,
+          typeName: s.typeName,
+          completed: s.completed,
+          skipped: s.skipped,
+          plannedDurationSeconds: s.plannedDuration ?? null,
+          actualDurationSeconds: s.actualDuration ?? null,
+          plannedPower: typeof resolvedSegmentPower === 'number'
+            ? resolvedSegmentPower
+            : s.plannedPower ?? null,
+          actualAvgPower: s.actualAvgPower ?? null,
+          actualMaxPower: s.actualMaxPower ?? null,
+          actualAvgHR: s.actualAvgHR ?? null,
+          actualMaxHR: s.actualMaxHR ?? null,
+          actualCalories: s.actualCalories ?? null,
+          notes: s.notes ?? null,
+        }
+      }),
+    }
+  }, [segments, sessionName, _sport, openerPower])
 
   // Live AI Voice Coach (Gemini Live API)
   const liveCoach = useLiveVoiceCoach({
@@ -587,6 +660,8 @@ export function CardioFocusModeWorkout({
     heartRate: coachHeartRate,
     heartRateZone: coachHeartRateZone,
     liveMetrics: liveMachineMetrics,
+    postWorkoutDebrief,
+    performanceSnapshot,
     toolCallbacks: {
       onSkipSegment: () => {
         if (currentIndex < segments.length - 1) {
@@ -618,6 +693,13 @@ export function CardioFocusModeWorkout({
           return { ...prev, [currentIndex]: next }
         })
       },
+      onRecordPostWorkoutDebrief: (debrief) => {
+        if (typeof debrief.sessionRpe === 'number') setSessionRPE(debrief.sessionRpe)
+        if (debrief.notes) setSessionNotes(debrief.notes)
+        setPainMentioned(debrief.painMentioned === true)
+        setPainDetails(debrief.painDetails ?? '')
+        setDebriefCapturedAt(debrief.capturedAt ?? new Date().toISOString())
+      },
     },
   })
   const liveCoachActive = liveCoach.status === 'connected'
@@ -632,6 +714,26 @@ export function CardioFocusModeWorkout({
       voice.stop()
     }
   }, [liveCoachActive, voice])
+
+  useEffect(() => {
+    if (!showCompleteDialog) {
+      debriefPromptSentRef.current = false
+      return
+    }
+    if (!liveCoachActive || debriefPromptSentRef.current) return
+
+    debriefPromptSentRef.current = true
+    const powerText = performanceSnapshot.avgPower
+      ? `avg ${performanceSnapshot.avgPower} W${performanceSnapshot.maxPower ? `, max ${performanceSnapshot.maxPower} W` : ''}`
+      : 'no average power saved yet'
+    const hrText = performanceSnapshot.avgHeartRate
+      ? `avg HR ${performanceSnapshot.avgHeartRate}${performanceSnapshot.maxHeartRate ? `, max HR ${performanceSnapshot.maxHeartRate}` : ''}`
+      : 'no heart-rate summary saved yet'
+
+    liveCoach.sendContextMessage(
+      `[POST WORKOUT DEBRIEF] The workout is complete. Ask one short debrief: session RPE 1-10, any pain/injury, and any notes for the coach. After the athlete answers, call record_post_workout_debrief. Do not claim the workout is saved; the athlete still taps Finish. Snapshot: ${performanceSnapshot.completedSegments}/${performanceSnapshot.totalSegments} segments completed, ${powerText}, ${hrText}.`
+    )
+  }, [showCompleteDialog, liveCoachActive, liveCoach, performanceSnapshot])
 
   // ERG: set the bike's resistance to the segment's target watts (opt-out via
   // toggle). Bikes with a motor brake only — airbikes and rowing ergs are
@@ -880,9 +982,17 @@ export function CardioFocusModeWorkout({
 
   // Handle final completion
   const handleFinalComplete = () => {
+    const finalNotes = [
+      sessionNotes.trim(),
+      painMentioned
+        ? `Pain/injury mentioned${painDetails.trim() ? `: ${painDetails.trim()}` : ''}`
+        : null,
+    ].filter(Boolean).join('\n\n')
+
+    liveCoach.disconnect('completed')
     onComplete({
       sessionRPE,
-      notes: sessionNotes || undefined,
+      notes: finalNotes || undefined,
     })
   }
 
@@ -1358,6 +1468,45 @@ export function CardioFocusModeWorkout({
                 <span>{t('rpe.moderate')}</span>
                 <span>{t('rpe.hard')}</span>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <MessageSquareText className="h-4 w-4" />
+                {tw('Anteckningar till coachen', 'Notes for coach')}
+                {debriefCapturedAt && (
+                  <Badge variant="secondary" className="ml-auto text-[10px]">
+                    {tw('Röst', 'Voice')}
+                  </Badge>
+                )}
+              </Label>
+              <Textarea
+                value={sessionNotes}
+                onChange={(event) => setSessionNotes(event.target.value)}
+                placeholder={tw('Hur kändes passet?', 'How did the workout feel?')}
+                className="min-h-[90px]"
+              />
+            </div>
+
+            <div className="space-y-3 rounded-md border border-slate-200 p-3 dark:border-white/10">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="cardio-pain-mentioned"
+                  checked={painMentioned}
+                  onCheckedChange={(checked) => setPainMentioned(checked === true)}
+                />
+                <Label htmlFor="cardio-pain-mentioned" className="text-sm font-medium">
+                  {tw('Smärta eller skadekänning', 'Pain or injury concern')}
+                </Label>
+              </div>
+              {painMentioned && (
+                <Textarea
+                  value={painDetails}
+                  onChange={(event) => setPainDetails(event.target.value)}
+                  placeholder={tw('Kort beskrivning', 'Brief details')}
+                  className="min-h-[70px]"
+                />
+              )}
             </div>
           </div>
 

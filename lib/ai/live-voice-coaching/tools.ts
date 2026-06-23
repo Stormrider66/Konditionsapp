@@ -43,6 +43,37 @@ const SHARED_TOOLS: FunctionDeclaration[] = [
     parameters: { type: Type.OBJECT, properties: {} },
   },
   {
+    name: 'record_post_workout_debrief',
+    description:
+      'Record the athlete post-workout debrief after asking for RPE, pain/injury, and any notes. This only fills the confirmation form; it does not save the workout.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        sessionRpe: {
+          type: Type.INTEGER,
+          description: 'Session RPE from 1-10, if the athlete gave one.',
+        },
+        painMentioned: {
+          type: Type.BOOLEAN,
+          description: 'Whether the athlete reported pain, injury, or unusual discomfort.',
+        },
+        painDetails: {
+          type: Type.STRING,
+          description: 'Brief pain or injury details, if mentioned.',
+        },
+        notes: {
+          type: Type.STRING,
+          description: 'Short athlete notes about the workout, adjustments, or how it felt.',
+        },
+        mood: {
+          type: Type.STRING,
+          enum: ['positive', 'neutral', 'struggling', 'frustrated'],
+          description: 'Observed athlete mood from the debrief.',
+        },
+      },
+    },
+  },
+  {
     name: 'adjust_intensity',
     description: "Note that the athlete wants to adjust their workout intensity.",
     parameters: {

@@ -19,6 +19,8 @@ import type {
   LiveWorkoutStatus,
   LiveVoiceSessionConfig,
   LiveMachineMetrics,
+  LivePostWorkoutDebrief,
+  LivePerformanceSnapshot,
 } from '@/lib/ai/live-voice-coaching/types'
 import type { VideoCaptureManager } from '@/lib/ai/live-voice-coaching/video-capture'
 import { estimateLiveSessionCost } from '@/lib/ai/gemini-config'
@@ -140,6 +142,10 @@ export interface UseLiveVoiceCoachOptions {
   heartRateZone?: number | null
   /** Current bike/erg metrics, when a machine is connected */
   liveMetrics?: LiveMachineMetrics | null
+  /** Structured post-workout debrief to include when the coaching session ends */
+  postWorkoutDebrief?: LivePostWorkoutDebrief | null
+  /** Performance facts to include when the coaching session ends */
+  performanceSnapshot?: LivePerformanceSnapshot | null
   /** Enable camera for form coaching */
   enableCamera?: boolean
 }
@@ -157,7 +163,8 @@ export interface UseLiveVoiceCoachReturn {
     url: string
   } | null
   connect: () => Promise<void>
-  disconnect: () => void
+  disconnect: (endReason?: 'completed' | 'user_cancelled' | 'error' | 'timeout') => void
+  sendContextMessage: (message: string) => void
   toggleMute: () => void
   supported: boolean
 }
@@ -174,6 +181,8 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     heartRate,
     heartRateZone,
     liveMetrics,
+    postWorkoutDebrief,
+    performanceSnapshot,
     enableCamera,
   } = options
 
@@ -219,6 +228,8 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     heartRate: heartRate ?? null,
     heartRateZone: heartRateZone ?? null,
     liveMetrics: liveMetrics ?? null,
+    postWorkoutDebrief: postWorkoutDebrief ?? null,
+    performanceSnapshot: performanceSnapshot ?? null,
   })
   stateRef.current = {
     currentSegmentIndex,
@@ -228,6 +239,8 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     heartRate: heartRate ?? null,
     heartRateZone: heartRateZone ?? null,
     liveMetrics: liveMetrics ?? null,
+    postWorkoutDebrief: postWorkoutDebrief ?? null,
+    performanceSnapshot: performanceSnapshot ?? null,
   }
 
   const supported = typeof window !== 'undefined' && AudioCaptureManager.isSupported()
@@ -329,6 +342,26 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
                 available: false,
                 message: 'No live bike/erg metrics are available right now.',
               }
+          break
+        }
+        case 'record_post_workout_debrief': {
+          const debrief: LivePostWorkoutDebrief = {
+            sessionRpe: typeof args?.sessionRpe === 'number'
+              ? Math.max(1, Math.min(10, Math.round(args.sessionRpe)))
+              : null,
+            notes: typeof args?.notes === 'string' && args.notes.trim() ? args.notes.trim() : null,
+            painMentioned: args?.painMentioned === true,
+            painDetails: typeof args?.painDetails === 'string' && args.painDetails.trim() ? args.painDetails.trim() : null,
+            mood: ['positive', 'neutral', 'struggling', 'frustrated'].includes(args?.mood)
+              ? args.mood
+              : null,
+            capturedAt: new Date().toISOString(),
+          }
+          cbs.onRecordPostWorkoutDebrief?.(debrief)
+          result = {
+            success: true,
+            message: 'Debrief captured. The athlete still needs to tap Finish to save.',
+          }
           break
         }
         // ─── Strength-specific tools ────────────────────────────────
@@ -570,7 +603,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     }
   }, [assignmentId, status, handleToolCall, enableCamera, setAiAllowanceError, workoutType])
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback((endReason: 'completed' | 'user_cancelled' | 'error' | 'timeout' = 'user_cancelled') => {
     const sessionId = sessionIdRef.current
     const client = clientRef.current
     const capture = captureRef.current
@@ -604,8 +637,10 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
         audioInputSeconds: client?.audioInputDuration ?? 0,
         audioOutputSeconds: client?.audioOutputDuration ?? 0,
         segmentsCompleted: stateRef.current.currentSegmentIndex,
-        endReason: 'user_cancelled',
+        endReason,
         transcripts: transcripts.length > 0 ? transcripts : undefined,
+        debrief: stateRef.current.postWorkoutDebrief ?? undefined,
+        performanceSnapshot: stateRef.current.performanceSnapshot ?? undefined,
       })
       const sentByBeacon =
         typeof navigator !== 'undefined' &&
@@ -627,6 +662,12 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     }
   }, [])
   disconnectRef.current = disconnect
+
+  const sendContextMessage = useCallback((message: string) => {
+    if (!message.trim()) return
+    if (status !== 'connected' || !clientRef.current?.isConnected) return
+    clientRef.current.sendText(message)
+  }, [status])
 
   const toggleMute = useCallback(() => {
     const capture = captureRef.current
@@ -733,6 +774,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
     aiAllowanceAction,
     connect,
     disconnect,
+    sendContextMessage,
     toggleMute,
     supported,
   }

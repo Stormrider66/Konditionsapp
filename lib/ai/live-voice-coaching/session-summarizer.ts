@@ -16,6 +16,58 @@ import { createGoogleGenAIClient, generateContent } from '@/lib/ai/google-genai-
 import { GEMINI_MODELS } from '@/lib/ai/gemini-config'
 import { parseLiveVoiceSummaryJson } from './summary-json'
 
+async function buildWorkoutFacts(session: {
+  cardioAssignmentId: string | null
+  strengthAssignmentId: string | null
+  hybridAssignmentId: string | null
+}): Promise<string | null> {
+  if (session.cardioAssignmentId) {
+    const log = await prisma.cardioSessionLog.findFirst({
+      where: { assignmentId: session.cardioAssignmentId },
+      orderBy: { startedAt: 'desc' },
+      include: {
+        segmentLogs: { orderBy: { segmentIndex: 'asc' } },
+        session: { select: { name: true, sport: true } },
+      },
+    })
+
+    if (!log) return null
+
+    const aggregate = [
+      `Workout: ${log.session.name}`,
+      `Sport: ${log.session.sport}`,
+      `Status: ${log.status}`,
+      log.sessionRPE != null ? `RPE: ${log.sessionRPE}/10` : null,
+      log.actualDuration != null ? `Duration: ${Math.round(log.actualDuration / 60)} min` : null,
+      log.avgPower != null ? `Avg power: ${log.avgPower} W` : null,
+      log.maxPower != null ? `Max power: ${log.maxPower} W` : null,
+      log.avgHeartRate != null ? `Avg HR: ${log.avgHeartRate} bpm` : null,
+      log.maxHeartRate != null ? `Max HR: ${log.maxHeartRate} bpm` : null,
+      log.actualDistance != null ? `Distance: ${log.actualDistance.toFixed(2)} km` : null,
+      log.notes ? `Notes: ${log.notes}` : null,
+    ].filter(Boolean).join(' | ')
+
+    const segments = log.segmentLogs
+      .slice(0, 30)
+      .map((s) => {
+        const parts = [`#${s.segmentIndex + 1} ${s.segmentType}`]
+        if (s.skipped) parts.push('skipped')
+        if (s.plannedPower != null) parts.push(`target ${s.plannedPower} W`)
+        if (s.actualAvgPower != null) parts.push(`avg ${s.actualAvgPower} W`)
+        if (s.actualMaxPower != null) parts.push(`max ${s.actualMaxPower} W`)
+        if (s.actualAvgHR != null) parts.push(`avg HR ${s.actualAvgHR}`)
+        if (s.actualCalories != null) parts.push(`${s.actualCalories} cal`)
+        if (s.notes) parts.push(`notes: ${s.notes}`)
+        return parts.join(', ')
+      })
+      .join(' ; ')
+
+    return [aggregate, segments ? `Segments: ${segments}` : null].filter(Boolean).join('\n')
+  }
+
+  return null
+}
+
 export async function generateSessionSummary(
   sessionId: string,
   clientId: string
@@ -60,14 +112,25 @@ export async function generateSessionSummary(
   const transcriptText = session.transcripts
     .map((t) => `${t.role === 'athlete' ? 'Athlete' : 'AI Coach'}: ${t.content}`)
     .join('\n')
+  const workoutFacts = await buildWorkoutFacts(session)
 
   // Generate summary with structured analysis
   const client = createGoogleGenAIClient(googleKey)
 
-  const prompt = `Analyze this voice coaching session transcript and provide a structured summary in JSON format.
+  const prompt = `Analyze this voice coaching session transcript and provide a structured coach-facing summary in JSON format.
+
+Use all available context:
+- Normal transcript lines show what the athlete and AI coach said.
+- [SESSION METRICS] and [SEGMENTS] lines are structured performance facts from the app.
+- [POST WORKOUT DEBRIEF] lines are athlete finish-form answers captured by voice.
+- Workout facts below are saved log data when available.
+
+The summary should help the coach quickly understand execution quality, target-vs-actual performance, athlete feedback, pain/injury concerns, and follow-up opportunities.
 
 ## Transcript
 ${transcriptText}
+
+${workoutFacts ? `## Saved Workout Facts\n${workoutFacts}\n` : ''}
 
 ## Required JSON Output
 {
@@ -75,6 +138,8 @@ ${transcriptText}
   "athleteMood": "positive" | "neutral" | "struggling" | "frustrated",
   "keyMoments": ["array of notable moments (max 5)"],
   "intensityFeedback": "easier" | "appropriate" | "harder" | null,
+  "performanceInsights": ["specific execution insights such as watts vs target, cadence/HR response, completed/skipped segments (max 5)"],
+  "coachFollowUps": ["suggested coach follow-up questions/actions (max 3)"],
   "painOrInjuryMentioned": boolean,
   "painDetails": "description of pain/injury if mentioned, null otherwise",
   "memorableInfo": [
@@ -105,6 +170,8 @@ Respond ONLY with valid JSON.`
       summary?: string
       athleteMood?: string
       keyMoments?: string[]
+      performanceInsights?: string[]
+      coachFollowUps?: string[]
       painOrInjuryMentioned?: boolean
       painDetails?: string
       memorableInfo?: Array<{ type: string; content: string; importance: number }>
@@ -117,11 +184,21 @@ Respond ONLY with valid JSON.`
       analysis = { summary: result.text }
     }
 
+    const summaryText = [
+      analysis.summary,
+      analysis.performanceInsights?.length
+        ? `Performance insights: ${analysis.performanceInsights.join(' ')}`
+        : null,
+      analysis.coachFollowUps?.length
+        ? `Coach follow-ups: ${analysis.coachFollowUps.join(' ')}`
+        : null,
+    ].filter(Boolean).join('\n\n')
+
     // Update session with summary and memories
     await prisma.liveVoiceCoachingSession.update({
       where: { id: sessionId },
       data: {
-        summary: analysis.summary ?? null,
+        summary: summaryText || null,
         extractedMemories: analysis.memorableInfo ?? undefined,
         painOrInjuryFlagged: analysis.painOrInjuryMentioned ?? false,
       },

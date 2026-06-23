@@ -63,6 +63,48 @@ export interface LiveMachineMetrics {
   isTimerRunning?: boolean
 }
 
+/** Structured athlete debrief captured at workout end. */
+export interface LivePostWorkoutDebrief {
+  sessionRpe?: number | null
+  notes?: string | null
+  painMentioned?: boolean
+  painDetails?: string | null
+  mood?: 'positive' | 'neutral' | 'struggling' | 'frustrated' | null
+  capturedAt?: string
+}
+
+/** Compact session performance facts sent with the live-coach end report. */
+export interface LivePerformanceSnapshot {
+  workoutName?: string
+  sport?: string
+  totalSegments?: number
+  completedSegments?: number
+  skippedSegments?: number
+  totalPlannedDurationSeconds?: number | null
+  totalActualDurationSeconds?: number | null
+  avgHeartRate?: number | null
+  maxHeartRate?: number | null
+  avgPower?: number | null
+  maxPower?: number | null
+  totalDistanceKm?: number | null
+  totalCalories?: number | null
+  segments?: Array<{
+    index: number
+    typeName: string
+    completed?: boolean
+    skipped?: boolean
+    plannedDurationSeconds?: number | null
+    actualDurationSeconds?: number | null
+    plannedPower?: number | null
+    actualAvgPower?: number | null
+    actualMaxPower?: number | null
+    actualAvgHR?: number | null
+    actualMaxHR?: number | null
+    actualCalories?: number | null
+    notes?: string | null
+  }>
+}
+
 // ─── Strength Types ─────────────────────────────────────────────────────────
 
 /** Strength workout data serialized for the Live API system instruction */
@@ -127,6 +169,7 @@ export type LiveToolName =
   | 'get_current_status'
   | 'get_heart_rate'
   | 'get_live_metrics'
+  | 'record_post_workout_debrief'
   | 'adjust_intensity'
   // Cardio-specific tools
   | 'skip_segment'
@@ -182,6 +225,7 @@ export interface LiveCoachingToolCallbacks {
   onPauseWorkout: () => void
   onResumeWorkout: () => void
   onAdjustIntensity: (direction: 'easier' | 'harder', note?: string) => void
+  onRecordPostWorkoutDebrief?: (debrief: LivePostWorkoutDebrief) => void
   // Cardio-specific
   onSkipSegment: () => void
   onExtendSegment: (seconds: number) => void

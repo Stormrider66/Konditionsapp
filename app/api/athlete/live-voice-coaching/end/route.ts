@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { estimateLiveSessionCost } from '@/lib/ai/gemini-config'
 import { generateSessionSummary } from '@/lib/ai/live-voice-coaching/session-summarizer'
+import { buildSyntheticLiveVoiceTranscripts } from '@/lib/ai/live-voice-coaching/end-report'
 import { logAiUsage } from '@/lib/ai/usage-logger'
 
 export const dynamic = 'force-dynamic'
@@ -22,6 +23,44 @@ const endSchema = z.object({
     content: z.string(),
     timestamp: z.string(),
   })).optional(),
+  debrief: z.object({
+    sessionRpe: z.number().int().min(1).max(10).nullable().optional(),
+    notes: z.string().max(2000).nullable().optional(),
+    painMentioned: z.boolean().optional(),
+    painDetails: z.string().max(1000).nullable().optional(),
+    mood: z.enum(['positive', 'neutral', 'struggling', 'frustrated']).nullable().optional(),
+    capturedAt: z.string().optional(),
+  }).optional(),
+  performanceSnapshot: z.object({
+    workoutName: z.string().max(200).optional(),
+    sport: z.string().max(60).optional(),
+    totalSegments: z.number().int().min(0).max(200).optional(),
+    completedSegments: z.number().int().min(0).max(200).optional(),
+    skippedSegments: z.number().int().min(0).max(200).optional(),
+    totalPlannedDurationSeconds: z.number().int().min(0).max(24 * 3600).nullable().optional(),
+    totalActualDurationSeconds: z.number().int().min(0).max(24 * 3600).nullable().optional(),
+    avgHeartRate: z.number().int().min(0).max(260).nullable().optional(),
+    maxHeartRate: z.number().int().min(0).max(260).nullable().optional(),
+    avgPower: z.number().int().min(0).max(3000).nullable().optional(),
+    maxPower: z.number().int().min(0).max(3000).nullable().optional(),
+    totalDistanceKm: z.number().min(0).max(1000).nullable().optional(),
+    totalCalories: z.number().int().min(0).max(20000).nullable().optional(),
+    segments: z.array(z.object({
+      index: z.number().int().min(0).max(500),
+      typeName: z.string().max(120),
+      completed: z.boolean().optional(),
+      skipped: z.boolean().optional(),
+      plannedDurationSeconds: z.number().int().min(0).max(24 * 3600).nullable().optional(),
+      actualDurationSeconds: z.number().int().min(0).max(24 * 3600).nullable().optional(),
+      plannedPower: z.number().int().min(0).max(3000).nullable().optional(),
+      actualAvgPower: z.number().int().min(0).max(3000).nullable().optional(),
+      actualMaxPower: z.number().int().min(0).max(3000).nullable().optional(),
+      actualAvgHR: z.number().int().min(0).max(260).nullable().optional(),
+      actualMaxHR: z.number().int().min(0).max(260).nullable().optional(),
+      actualCalories: z.number().int().min(0).max(20000).nullable().optional(),
+      notes: z.string().max(500).nullable().optional(),
+    })).max(200).optional(),
+  }).optional(),
 })
 
 function t(locale: AppLocale, en: string, sv: string): string {
@@ -58,6 +97,8 @@ export async function POST(request: Request) {
       segmentsCompleted,
       endReason,
       transcripts,
+      debrief,
+      performanceSnapshot,
     } = parsed.data
 
     // Find session and verify ownership
@@ -89,10 +130,16 @@ export async function POST(request: Request) {
       estimatedCost: cost.totalCost,
     })
 
+    const syntheticTranscripts = buildSyntheticLiveVoiceTranscripts({
+      debrief,
+      performanceSnapshot,
+    })
+    const allTranscripts = [...(transcripts ?? []), ...syntheticTranscripts]
+
     // Save transcripts if provided
-    if (transcripts && transcripts.length > 0) {
+    if (allTranscripts.length > 0) {
       await prisma.liveVoiceTranscript.createMany({
-        data: transcripts.map((t) => ({
+        data: allTranscripts.map((t) => ({
           sessionId,
           role: t.role,
           content: t.content,
@@ -122,11 +169,12 @@ export async function POST(request: Request) {
       durationSeconds,
       estimatedCost: cost.totalCost,
       endReason,
-      transcriptCount: transcripts?.length ?? 0,
+      transcriptCount: allTranscripts.length,
+      syntheticTranscriptCount: syntheticTranscripts.length,
     })
 
     // Fire async summary generation (don't block the response)
-    if (transcripts && transcripts.length > 0) {
+    if (allTranscripts.length > 0) {
       generateSessionSummary(sessionId, clientId).catch((err) => {
         logger.error('Failed to generate voice coaching summary', { sessionId, error: err })
       })
