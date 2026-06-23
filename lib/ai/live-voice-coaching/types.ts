@@ -226,6 +226,7 @@ export interface LiveCoachingToolCallbacks {
   onResumeWorkout: () => void
   onAdjustIntensity: (direction: 'easier' | 'harder', note?: string) => void
   onRecordPostWorkoutDebrief?: (debrief: LivePostWorkoutDebrief) => void
+  onPainConcernDetected?: (transcript: string) => void
   // Cardio-specific
   onSkipSegment: () => void
   onExtendSegment: (seconds: number) => void

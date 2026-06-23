@@ -57,6 +57,11 @@ import {
   buildSessionCompleteCue,
 } from '@/hooks/use-voice-coach'
 import { useLiveVoiceCoach } from '@/hooks/use-live-voice-coach'
+import {
+  createCardioLiveInsightState,
+  evaluateCardioLiveInsight,
+  formatCardioLiveInsightForCoach,
+} from '@/lib/ai/live-voice-coaching/cardio-insights'
 import type {
   LiveMachineMetrics,
   LivePerformanceSnapshot,
@@ -196,6 +201,7 @@ export function CardioFocusModeWorkout({
   const [painDetails, setPainDetails] = useState('')
   const [debriefCapturedAt, setDebriefCapturedAt] = useState<string | null>(null)
   const debriefPromptSentRef = useRef(false)
+  const liveInsightStateRef = useRef(createCardioLiveInsightState())
   const [timerElapsed, setTimerElapsed] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { isActive: screenAwake } = useScreenWakeLock()
@@ -700,9 +706,17 @@ export function CardioFocusModeWorkout({
         setPainDetails(debrief.painDetails ?? '')
         setDebriefCapturedAt(debrief.capturedAt ?? new Date().toISOString())
       },
+      onPainConcernDetected: (transcript) => {
+        setPainMentioned(true)
+        setPainDetails((prev) => prev.trim() ? prev : transcript)
+      },
     },
   })
   const liveCoachActive = liveCoach.status === 'connected'
+
+  useEffect(() => {
+    liveInsightStateRef.current = createCardioLiveInsightState()
+  }, [assignmentId, currentIndex])
 
   useEffect(() => {
     setPollLiveHr((prev) => (prev === liveCoachActive ? prev : liveCoachActive))
@@ -734,6 +748,54 @@ export function CardioFocusModeWorkout({
       `[POST WORKOUT DEBRIEF] The workout is complete. Ask one short debrief: session RPE 1-10, any pain/injury, and any notes for the coach. After the athlete answers, call record_post_workout_debrief. Do not claim the workout is saved; the athlete still taps Finish. Snapshot: ${performanceSnapshot.completedSegments}/${performanceSnapshot.totalSegments} segments completed, ${powerText}, ${hrText}.`
     )
   }, [showCompleteDialog, liveCoachActive, liveCoach, performanceSnapshot])
+
+  useEffect(() => {
+    if (!liveCoachActive || showCompleteDialog) return
+    if (!liveMachineMetrics.available) return
+
+    const plannedDuration = currentSegment?.plannedDuration ?? null
+    const segmentElapsedSeconds = plannedDuration != null
+      ? Math.max(0, plannedDuration - Math.max(0, timerState.seconds))
+      : elapsedDisplay
+    const currentSegmentAvgPower = powerAvgLive?.idx === currentIndex
+      ? powerAvgLive.avg
+      : liveMachineMetrics.averagePower ?? null
+    const previousWorkAvgPowers = segments
+      .slice(0, currentIndex)
+      .filter((segment) => isWorkType(segment.type) && typeof segment.actualAvgPower === 'number')
+      .map((segment) => segment.actualAvgPower as number)
+
+    const insight = evaluateCardioLiveInsight({
+      nowMs: Date.now(),
+      metrics: liveMachineMetrics,
+      segmentIndex: currentIndex,
+      segmentType: currentSegment?.type,
+      segmentTypeName: currentSegment?.typeName,
+      isWorkSegment: isWorkType(currentSegment?.type),
+      segmentElapsedSeconds,
+      segmentPlannedDurationSeconds: plannedDuration,
+      currentSegmentAvgPower,
+      previousWorkAvgPowers,
+      painMentioned,
+    }, liveInsightStateRef.current)
+
+    if (!insight) return
+    liveCoach.sendContextMessage(formatCardioLiveInsightForCoach(insight))
+  }, [
+    currentIndex,
+    currentSegment?.plannedDuration,
+    currentSegment?.type,
+    currentSegment?.typeName,
+    elapsedDisplay,
+    liveCoach,
+    liveCoachActive,
+    liveMachineMetrics,
+    painMentioned,
+    powerAvgLive,
+    segments,
+    showCompleteDialog,
+    timerState.seconds,
+  ])
 
   // ERG: set the bike's resistance to the segment's target watts (opt-out via
   // toggle). Bikes with a motor brake only — airbikes and rowing ergs are

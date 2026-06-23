@@ -127,6 +127,35 @@ function buildLiveMetricsMessage(metrics: LiveMachineMetrics): string {
   return `[LIVE METRICS] ${parts.length > 0 ? parts.join(' | ') : 'No live machine metrics available.'}`
 }
 
+function containsPainConcern(text: string): boolean {
+  const normalized = text.toLowerCase()
+  const painPatterns = [
+    /\bpain\b/u,
+    /\bhurts?\b/u,
+    /\bhurting\b/u,
+    /\binjur(y|ed|ies)\b/u,
+    /\baches?\b/u,
+    /\baching\b/u,
+    /\bcramp(s|ing)?\b/u,
+    /\bsharp\b/u,
+    /\bsmärta\b/u,
+    /\bsmärtar\b/u,
+    /\bsmärtor\b/u,
+    /\bsmarta\b/u,
+    /\bsmartar\b/u,
+    /\bsmartor\b/u,
+    /\bont\b/u,
+    /\bskada(d)?\b/u,
+    /\bvärk\b/u,
+    /\bvark\b/u,
+    /\bkramp\b/u,
+  ]
+  const negatedPainPattern =
+    /\b(no|not|without|none|ingen|inte|utan|nej)\b.{0,24}\b(pain|hurt|hurts|injury|ache|cramp|smärta|smärtar|smärtor|smarta|smartar|smartor|ont|skada|värk|vark|kramp)\b/u
+  if (negatedPainPattern.test(normalized)) return false
+  return painPatterns.some((pattern) => pattern.test(normalized))
+}
+
 export interface UseLiveVoiceCoachOptions {
   assignmentId: string
   /** Workout type */
@@ -509,6 +538,9 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
                 content: text,
                 timestamp: new Date().toISOString(),
               })
+              if (containsPainConcern(text)) {
+                callbacksRef.current.onPainConcernDetected?.(text.trim())
+              }
             }
           },
           onOutputTranscript: (text) => {
