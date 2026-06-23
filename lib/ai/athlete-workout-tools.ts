@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger'
 import { rollupAssignmentProgression } from '@/lib/training-engine/progression/assignment-rollup'
 import { estimateCalories } from '@/lib/adhoc-workout/calorie-estimator'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
+import { createCardioWorkoutInputSchema } from '@/lib/ai/cardio-workout-action'
 
 type ChatLocale = 'en' | 'sv'
 
@@ -594,33 +595,7 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
         'Create a structured cardio/erg session (intervals, EMOM rounds, machine circuits) and assign it to the athlete so it can be started in focus mode with live machine data. Use when the athlete asks for a cardio, rowing, BikeErg, SkiErg, bike or interval workout to DO (not one they already did). Each station can have a fixed time window (e.g. 60 s on the minute), a calorie goal, or both — with both, the window runs on the clock and the calories are the goal within it.',
         'Skapa ett strukturerat konditions-/ergometerpass (intervaller, EMOM-rundor, maskincirklar) och tilldela det till atleten så att det kan startas i fokusläge med live-maskindata. Använd när atleten ber om ett konditions-, rodd-, BikeErg-, SkiErg-, cykel- eller intervallpass att GÖRA (inte ett de redan gjort). Varje station kan ha ett fast tidsfönster (t.ex. 60 s varje minut), ett kalorimål, eller båda — med båda går fönstret på klockan och kalorierna är målet inom det.'
       ),
-      inputSchema: z.object({
-        name: z.string().describe('Short session name, e.g. "Triple erg EMOM".'),
-        description: z.string().optional().describe('One-line description of the session.'),
-        sport: z.enum([
-          'RUNNING', 'CYCLING', 'SKIING', 'SWIMMING', 'TRIATHLON', 'HYROX',
-          'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'STRENGTH',
-          'TEAM_FOOTBALL', 'TEAM_ICE_HOCKEY', 'TEAM_HANDBALL', 'TEAM_FLOORBALL',
-          'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL',
-        ]).optional().describe('Sport. Default GENERAL_FITNESS.'),
-        date: z.string().optional().describe('Assignment date (YYYY-MM-DD). Default: today.'),
-        warmupMinutes: z.number().int().min(1).max(60).optional().describe('Optional warm-up duration in minutes.'),
-        cooldownMinutes: z.number().int().min(1).max(60).optional().describe('Optional cool-down duration in minutes.'),
-        rounds: z.number().int().min(1).max(30).optional().describe('Rounds of the station circuit. Default 1.'),
-        restBetweenRoundsSeconds: z.number().int().min(5).max(600).optional().describe('Rest between rounds in seconds.'),
-        stations: z.array(z.object({
-          equipment: z.enum([
-            'RUN', 'TREADMILL', 'BIKE', 'ASSAULT_BIKE', 'ECHO_BIKE', 'WATTBIKE',
-            'BIKE_ERG', 'ROW', 'SKI_ERG', 'SWIM', 'OTHER',
-          ]).optional().describe('Machine/modality. Concept2 machines: BIKE_ERG, ROW, SKI_ERG.'),
-          durationSeconds: z.number().int().min(10).max(3600).optional().describe('Fixed work window in seconds (e.g. 60 for on-the-minute work).'),
-          calories: z.number().int().min(1).max(200).optional().describe('Calorie goal. Without durationSeconds the station ends when the target is reached.'),
-          distanceMeters: z.number().int().min(50).max(50000).optional().describe('Distance in meters, if distance-based.'),
-          targetWatts: z.number().int().min(30).max(1000).optional().describe('Power target in watts.'),
-          zone: z.number().int().min(1).max(5).optional().describe('Intensity zone 1-5.'),
-          notes: z.string().optional(),
-        })).min(1).max(10).describe('The stations of one round, in order.'),
-      }),
+      inputSchema: createCardioWorkoutInputSchema,
       execute: async ({ name, description, sport, date, warmupMinutes, cooldownMinutes, rounds, restBetweenRoundsSeconds, stations }) => {
         try {
           const client = await prisma.client.findUnique({

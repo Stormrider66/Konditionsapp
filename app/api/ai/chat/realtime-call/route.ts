@@ -26,6 +26,10 @@ import {
 } from '@/lib/user-api-keys'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import {
+  buildCreateCardioWorkoutRealtimeTool,
+  stockholmDateKey,
+} from '@/lib/ai/cardio-workout-action'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -142,19 +146,20 @@ function buildRealtimeInstructions(
 ): string {
   const context = pageContext.trim()
   const dataContext = athleteDataContext.trim()
+  const today = stockholmDateKey()
   const roleInstructions = isAthleteChat
     ? locale === 'sv'
       ? [
         'Du är Trainomics flytande AI i live voice-läge för atletchatten.',
         'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt, stöttande coach-tonläge.',
         'Du får hjälpa atleten att förstå träning, pass, återhämtning, testdata och nästa rimliga steg.',
-        'För åtgärder som skapar pass/program, ändrar data eller öppnar vyer: be användaren använda den vanliga chatten/confirm-kortet så åtgärden blir synlig och bekräftad.',
+        'Du får förbereda bekräftelsekort för planerade konditions-/ergometerpass via verktyget createCardioWorkout. Alla andra åtgärder som skapar pass/program, ändrar data eller öppnar vyer ska du hänvisa till vanliga chatten/confirm-kortet.',
       ]
       : [
         'You are Trainomics floating AI in live voice mode for the athlete chat.',
         'Respond briefly and naturally in English unless the user speaks another language. Use a calm, supportive coach tone.',
         'You may help the athlete understand training, workouts, recovery, test data, and the next reasonable step.',
-        'For actions that create workouts/programs, change data, or open views: ask the user to use the regular chat/confirmation card so the action is visible and confirmed.',
+        'You may prepare confirmation cards for planned cardio/erg workouts with the createCardioWorkout tool. For every other action that creates workouts/programs, changes data, or opens views, ask the user to use the regular chat/confirmation card.',
       ]
     : locale === 'sv'
       ? [
@@ -173,6 +178,13 @@ function buildRealtimeInstructions(
   return [
     ...roleInstructions,
     buildModeInstructions(mode, locale),
+    isAthleteChat
+      ? t(
+        locale,
+        `Today in Stockholm is ${today}. When the athlete says today, pass date="${today}". For interval workouts, ask for rest duration and intensity before calling createCardioWorkout. The tool only prepares a visible confirmation card; it does not save anything until the athlete confirms the card.`,
+        `Dagens datum i Stockholm är ${today}. När atleten säger idag ska du skicka date="${today}". För intervallpass ska du fråga efter vila och intensitet innan du anropar createCardioWorkout. Verktyget förbereder bara ett synligt bekräftelsekort; inget sparas förrän atleten bekräftar kortet.`
+      )
+      : '',
     t(locale, 'Do not claim that you navigated, sent, created, updated, or deleted anything in the app during live voice mode.', 'Du får inte påstå att du har navigerat, skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.'),
     t(locale, 'You do not have access to the full knowledge-skill library in live voice. Stay within the curated mode and ask the user to use text chat if expert knowledge needs to be selected.', 'Du har inte tillgång till hela knowledge-skill-biblioteket i live voice. Håll dig till det kuraterade läget och be användaren använda textchatten om expertkunskap behöver väljas.'),
     t(locale, 'If you lack access or data, say that clearly out loud and suggest a safe next step.', 'Om du saknar åtkomst eller data, säg det tydligt i ord och föreslå ett säkert nästa steg.'),
@@ -471,6 +483,12 @@ export async function POST(request: NextRequest) {
           voice: REALTIME_VOICE,
         },
       },
+      ...(parsed.data.isAthleteChat
+        ? {
+          tools: [buildCreateCardioWorkoutRealtimeTool(locale)],
+          tool_choice: 'auto',
+        }
+        : {}),
       max_output_tokens: 1200,
     }))
 

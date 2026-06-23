@@ -186,6 +186,10 @@ export function AthleteFloatingChat({
     content: string
     createdAt: Date
   }>>([])
+  const [realtimeActionResults, setRealtimeActionResults] = useState<Array<{
+    id: string
+    result: ChatActionResult
+  }>>([])
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
       ...current,
@@ -193,6 +197,15 @@ export function AthleteFloatingChat({
         id: `athlete-assistant-notice-${Date.now()}-${current.length}`,
         content,
         createdAt: new Date(),
+      },
+    ].slice(-3))
+  }, [])
+  const addRealtimeActionResult = useCallback((result: ChatActionResult) => {
+    setRealtimeActionResults((current) => [
+      ...current,
+      {
+        id: `athlete-realtime-action-${Date.now()}-${current.length}`,
+        result,
       },
     ].slice(-3))
   }, [])
@@ -773,6 +786,7 @@ export function AthleteFloatingChat({
     input,
     setInput,
     textareaRef,
+    onRealtimeActionDraft: addRealtimeActionResult,
   })
 
   // Speak new assistant replies and notices aloud (at most once each)
@@ -821,6 +835,7 @@ export function AthleteFloatingChat({
     setIsOpen(false)
     setMessages([])
     setAssistantNotices([])
+    setRealtimeActionResults([])
     setConversationId(null)
     setSelectedSkillIds([])
     setInput('')
@@ -836,6 +851,7 @@ export function AthleteFloatingChat({
     stopRealtimeVoice(undefined, 'new_chat')
     setMessages([])
     setAssistantNotices([])
+    setRealtimeActionResults([])
     setConversationId(null)
     setSelectedSkillIds([])
     setInput('')
@@ -875,6 +891,7 @@ export function AthleteFloatingChat({
       setMessages(chatMessages)
       setConversationId(loadConversationId)
       setAssistantNotices([])
+      setRealtimeActionResults([])
       setDetectedProgram(null)
       setMentalPrepContext(null)
       mentalPrepContextRef.current = null
@@ -1247,7 +1264,7 @@ export function AthleteFloatingChat({
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
-        {messages.length === 0 && assistantNotices.length === 0 ? (
+        {messages.length === 0 && assistantNotices.length === 0 && realtimeActionResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-emerald-500 mb-3" />
             <h3 className="font-medium mb-1">
@@ -1424,6 +1441,9 @@ export function AthleteFloatingChat({
                 </div>
               )
             })}
+            {realtimeActionResults.map((item) => (
+              <ChatActionCard key={item.id} result={item.result} basePath={basePath} />
+            ))}
             {assistantNotices.map((notice) => (
               <ChatMessage
                 key={notice.id}

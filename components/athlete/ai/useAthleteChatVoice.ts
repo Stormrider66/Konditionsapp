@@ -16,12 +16,19 @@ import {
   createRealtimeVoiceUsageAccumulator,
   hasRealtimeUsageTokens,
 } from '@/lib/ai/realtime-voice-client'
+import {
+  buildRealtimeFunctionOutputEvents,
+  extractRealtimeFunctionCalls,
+  type RealtimeFunctionCall,
+} from '@/lib/ai/realtime-function-calls'
 import { useLocale, useTranslations } from '@/i18n/client'
+import type { ChatActionResult } from '@/components/ai-studio/ChatActionCard'
 
 const ATHLETE_VOICE_AUTO_SEND_KEY = 'athlete-floating-ai-voice-auto-send'
 const ATHLETE_SPOKEN_REPLIES_KEY = 'athlete-floating-ai-spoken-replies'
 const ATHLETE_VOICE_OPERATOR_KEY = 'athlete-floating-ai-voice-operator-mode'
 const ATHLETE_VOICE_GUIDE_DISMISSED_KEY = 'athlete-floating-ai-voice-guide-dismissed'
+const REALTIME_CARDIO_WORKOUT_TOOL_NAME = 'createCardioWorkout'
 
 interface UseAthleteChatVoiceOptions {
   addAssistantNotice: (content: string) => void
@@ -33,6 +40,7 @@ interface UseAthleteChatVoiceOptions {
   input: string
   setInput: (value: string) => void
   textareaRef: RefObject<HTMLTextAreaElement | null>
+  onRealtimeActionDraft?: (result: ChatActionResult) => void
 }
 
 export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
@@ -478,6 +486,64 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
     }
   }, [dismissVoiceGuideCard, isVoiceOperatorModeEnabled, toggleVoiceOperatorMode])
 
+  const sendRealtimeFunctionOutput = useCallback((callId: string, output: unknown): boolean => {
+    const dataChannel = realtimeDataChannelRef.current
+    if (!dataChannel || dataChannel.readyState !== 'open') return false
+
+    for (const event of buildRealtimeFunctionOutputEvents(callId, output)) {
+      dataChannel.send(JSON.stringify(event))
+    }
+    return true
+  }, [])
+
+  const handleRealtimeFunctionCall = useCallback(async (call: RealtimeFunctionCall) => {
+    if (call.name !== REALTIME_CARDIO_WORKOUT_TOOL_NAME) {
+      const output = {
+        success: false,
+        error: locale === 'sv'
+          ? 'Den här live voice-åtgärden stöds inte ännu.'
+          : 'This live voice action is not supported yet.',
+      }
+      sendRealtimeFunctionOutput(call.callId, output)
+      return
+    }
+
+    try {
+      setRealtimeVoiceStatus(locale === 'sv' ? 'Förbereder bekräftelsekort...' : 'Preparing confirmation card...')
+      const response = await fetch('/api/ai/chat/realtime-action-drafts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toolName: call.name,
+          arguments: call.arguments,
+          callId: call.callId,
+        }),
+      })
+      const payload = await response.json().catch(() => ({})) as ChatActionResult
+
+      if (payload.success && payload.action?.type === 'aiCapabilityAction') {
+        optionsRef.current.onRealtimeActionDraft?.(payload)
+        setRealtimeVoiceStatus(locale === 'sv' ? 'Bekräftelsekort klart.' : 'Confirmation card ready.')
+      } else if (!payload.needsClarification) {
+        const message = payload.error || (locale === 'sv'
+          ? 'Kunde inte förbereda live voice-åtgärden.'
+          : 'Could not prepare the live voice action.')
+        addAssistantNotice(message)
+        setRealtimeVoiceStatus(message)
+      }
+
+      sendRealtimeFunctionOutput(call.callId, payload)
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : (locale === 'sv' ? 'Kunde inte förbereda live voice-åtgärden.' : 'Could not prepare the live voice action.')
+      const output = { success: false, error: message }
+      addAssistantNotice(message)
+      setRealtimeVoiceStatus(message)
+      sendRealtimeFunctionOutput(call.callId, output)
+    }
+  }, [addAssistantNotice, locale, sendRealtimeFunctionOutput])
+
   const startRealtimeVoice = useCallback(async () => {
     if (isRealtimeVoiceConnecting || isRealtimeVoiceActive) return
     if (typeof window === 'undefined' || !window.RTCPeerConnection) {
@@ -551,6 +617,10 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
         try {
           const data = JSON.parse(event.data) as { type?: string; error?: { message?: string } }
           addRealtimeUsageFromEvent(realtimeUsageRef.current, data)
+          const functionCalls = extractRealtimeFunctionCalls(data)
+          for (const call of functionCalls) {
+            void handleRealtimeFunctionCall(call)
+          }
           if (data.type === 'error') {
             const message = data.error?.message || t('realtime.unknownError')
             setRealtimeVoiceStatus(message)
@@ -614,6 +684,7 @@ export function useAthleteChatVoice(options: UseAthleteChatVoiceOptions) {
     isRealtimeVoiceConnecting,
     stopAssistantSpeech,
     stopRealtimeVoice,
+    handleRealtimeFunctionCall,
     t,
     toast,
   ])
