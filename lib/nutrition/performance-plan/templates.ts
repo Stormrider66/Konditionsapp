@@ -253,6 +253,34 @@ function buildRecipeFromPreference(input: {
     }
   }
 
+  // Light, between-meal snacks (e.g. morning/afternoon snack that isn't a
+  // pre/post-workout slot) — keep it genuinely snack-sized instead of falling
+  // through to the full salmon-and-potato meal below.
+  if (isSnack) {
+    return {
+      title: sv ? 'Kvargbowl med bär och nötter' : 'Quark bowl with berries and nuts',
+      summary: sv
+        ? 'Litet, proteinrikt mellanmål som tar hungern utan att bli en hel måltid.'
+        : 'Small, protein-rich snack that takes the edge off hunger without becoming a full meal.',
+      servings: 1,
+      prepMinutes: 5,
+      cookMinutes: 0,
+      ingredients: [
+        { name: sv ? 'kvarg eller grekisk yoghurt' : 'quark or Greek yoghurt', amount: macroAmount(input.macros.proteinG * 7, 'g') },
+        { name: sv ? 'bär' : 'berries', amount: '100 g' },
+        { name: sv ? 'frukt' : 'fruit', amount: sv ? '1 st' : '1 piece' },
+        { name: sv ? 'nötter eller frön' : 'nuts or seeds', amount: macroAmount(Math.max(input.macros.fatG, 3) * 1.5, 'g') },
+        { name: sv ? 'honung (valfritt)' : 'honey (optional)', amount: '10 g' },
+      ],
+      steps: sv
+        ? ['Lägg kvarg eller yoghurt i en skål.', 'Toppa med bär, frukt och nötter.', 'Ringla över honung om du vill ha lite sötma.']
+        : ['Add quark or yoghurt to a bowl.', 'Top with berries, fruit, and nuts.', 'Drizzle honey if you want a little sweetness.'],
+      tips: [sv ? 'Byt nötter mot frön om du vill hålla fettet lägre.' : 'Swap nuts for seeds to keep the fat lower.'],
+      source: input.source ?? 'TEMPLATE',
+      prompt: input.preference ?? undefined,
+    }
+  }
+
   return {
     title: sv ? 'Lax, potatis och yoghurtsås' : 'Salmon, potatoes, and yoghurt sauce',
     summary: sv ? 'Näringstät vilodagsmåltid med bra fett och lugna kolhydrater.' : 'Nutrient-dense rest-day meal with quality fats and steady carbohydrates.',
