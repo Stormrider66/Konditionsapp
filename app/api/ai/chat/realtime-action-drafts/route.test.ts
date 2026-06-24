@@ -193,6 +193,42 @@ describe('realtime action draft route', () => {
     expect(mockCreateAiActionDraftForTool).not.toHaveBeenCalled()
   })
 
+  it('creates an AI action draft for live workout feedback', async () => {
+    const response = await POST(request({
+      toolName: 'updateLiveWorkoutFeedback',
+      callId: 'call-feedback-1',
+      arguments: {
+        date: '2026-06-23',
+        rpe: 8,
+        painLevel: 2,
+        painBodyPart: 'left knee',
+        targetAdjustment: 'Increase target by 10 W next interval',
+        note: 'Hard but controlled.',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.action.capabilityId).toBe('updateLiveWorkoutFeedback')
+    expect(body.action.confirmLabel).toBe('Save feedback')
+    expect(body.action.details).toContain('RPE: 8/10')
+    expect(mockCreateAiActionDraftForTool).toHaveBeenCalledWith(
+      'updateLiveWorkoutFeedback',
+      expect.objectContaining({
+        rpe: 8,
+        painBodyPart: 'left knee',
+      }),
+      expect.objectContaining({
+        actorRole: 'ATHLETE',
+        clientId: 'client-1',
+      }),
+      expect.objectContaining({
+        title: 'Update workout feedback',
+      })
+    )
+  })
+
   it('returns clarification instead of drafting repeated intervals without rest or intensity', async () => {
     const response = await POST(request({
       toolName: 'createCardioWorkout',

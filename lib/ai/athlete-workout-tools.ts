@@ -22,6 +22,10 @@ import { rollupAssignmentProgression } from '@/lib/training-engine/progression/a
 import { estimateCalories } from '@/lib/adhoc-workout/calorie-estimator'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { createCardioWorkoutInputSchema } from '@/lib/ai/cardio-workout-action'
+import {
+  executeUpdateLiveWorkoutFeedback,
+  updateLiveWorkoutFeedbackInputSchema,
+} from '@/lib/ai/athlete-live-workout-feedback'
 
 type ChatLocale = 'en' | 'sv'
 
@@ -586,6 +590,17 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
           return { success: false, error: chatText(locale, 'Could not complete the workout. Please try again.', 'Kunde inte slutföra passet. Försök igen.') }
         }
       },
+    }),
+
+    // ── Add feedback to the current cardio/live session ───────────────
+    updateLiveWorkoutFeedback: tool({
+      description: chatText(
+        locale,
+        'Save live workout feedback for the current cardio/erg focus session or today assigned cardio workout: RPE, notes, pain notes, or target-adjustment notes. Requires confirmation when AI operations are enabled.',
+        'Spara livefeedback för aktuellt konditions-/ergometerpass eller dagens tilldelade konditionspass: RPE, noteringar, smärtnoteringar eller måljusteringar. Kräver bekräftelse när AI-åtgärder är aktiverade.'
+      ),
+      inputSchema: updateLiveWorkoutFeedbackInputSchema,
+      execute: async (input) => executeUpdateLiveWorkoutFeedback(clientId, input, locale),
     }),
 
     // ── Create a structured cardio/erg session, assigned and startable ──

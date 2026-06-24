@@ -8,9 +8,12 @@ import { rateLimitJsonResponse } from '@/lib/api/rate-limit'
 import { isAiAssistantOperationsEnabled } from '@/lib/ai/capabilities/feature-gate'
 import { createAiActionDraftForTool } from '@/lib/ai/capabilities/action-drafts'
 import { buildCoachMessageAction } from '@/lib/ai/coach-message-actions'
+import { buildCoachDailyBriefingPreview } from '@/lib/ai/coach-briefing-actions'
 import {
   buildCreateAndAssignCardioWorkoutPreview,
   buildModifyCardioAssignmentPreview,
+  buildModifyTeamCardioAssignmentsPreview,
+  buildRepeatPreviousCardioWorkoutPreview,
 } from '@/lib/ai/coach-cardio-actions'
 import {
   buildPrepareCoachMessageDraftPreview,
@@ -18,10 +21,16 @@ import {
   getCoachLiveVoiceActionDraftSchema,
   isCoachLiveVoiceActionDraftToolName,
   MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME,
+  MODIFY_TEAM_CARDIO_ASSIGNMENTS_TOOL_NAME,
   PREPARE_COACH_MESSAGE_DRAFT_TOOL_NAME,
+  PREPARE_COACH_DAILY_BRIEFING_TOOL_NAME,
+  REPEAT_PREVIOUS_CARDIO_WORKOUT_TOOL_NAME,
   type CoachLiveVoiceActionDraftToolName,
   type CoachLiveVoiceCreateAndAssignCardioInput,
+  type CoachLiveVoiceDailyBriefingInput,
   type CoachLiveVoiceModifyCardioInput,
+  type CoachLiveVoiceModifyTeamCardioInput,
+  type CoachLiveVoiceRepeatPreviousCardioInput,
 } from '@/lib/ai/coach-live-voice-tools'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
@@ -88,6 +97,29 @@ async function createCoachActionDraft(
         buildPrepareCoachMessageDraftPreview(messageResult.action, input as Parameters<typeof buildCoachMessageAction>[1])
       )
     }
+    case PREPARE_COACH_DAILY_BRIEFING_TOOL_NAME: {
+      const preview = await buildCoachDailyBriefingPreview(
+        params.coachUserId,
+        input as CoachLiveVoiceDailyBriefingInput,
+        params.businessSlug,
+        params.locale,
+      )
+      if (!preview.success) return preview
+      return createAiActionDraftForTool(
+        PREPARE_COACH_DAILY_BRIEFING_TOOL_NAME,
+        input,
+        {
+          enabled: true,
+          actorUserId: params.coachUserId,
+          actorRole: 'COACH',
+          surface: 'coach_chat',
+          businessId: params.businessId,
+          businessSlug: params.businessSlug ?? null,
+          locale: params.locale,
+        },
+        preview.preview,
+      )
+    }
     case CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME: {
       const preview = await buildCreateAndAssignCardioWorkoutPreview(
         params.coachUserId,
@@ -121,6 +153,52 @@ async function createCoachActionDraft(
       if (!preview.success) return preview
       return createAiActionDraftForTool(
         MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME,
+        input,
+        {
+          enabled: true,
+          actorUserId: params.coachUserId,
+          actorRole: 'COACH',
+          surface: 'coach_chat',
+          businessId: params.businessId,
+          businessSlug: params.businessSlug ?? null,
+          locale: params.locale,
+        },
+        preview.preview,
+      )
+    }
+    case REPEAT_PREVIOUS_CARDIO_WORKOUT_TOOL_NAME: {
+      const preview = await buildRepeatPreviousCardioWorkoutPreview(
+        params.coachUserId,
+        input as CoachLiveVoiceRepeatPreviousCardioInput,
+        params.businessSlug,
+        params.locale,
+      )
+      if (!preview.success) return preview
+      return createAiActionDraftForTool(
+        REPEAT_PREVIOUS_CARDIO_WORKOUT_TOOL_NAME,
+        input,
+        {
+          enabled: true,
+          actorUserId: params.coachUserId,
+          actorRole: 'COACH',
+          surface: 'coach_chat',
+          businessId: params.businessId,
+          businessSlug: params.businessSlug ?? null,
+          locale: params.locale,
+        },
+        preview.preview,
+      )
+    }
+    case MODIFY_TEAM_CARDIO_ASSIGNMENTS_TOOL_NAME: {
+      const preview = await buildModifyTeamCardioAssignmentsPreview(
+        params.coachUserId,
+        input as CoachLiveVoiceModifyTeamCardioInput,
+        params.businessSlug,
+        params.locale,
+      )
+      if (!preview.success) return preview
+      return createAiActionDraftForTool(
+        MODIFY_TEAM_CARDIO_ASSIGNMENTS_TOOL_NAME,
         input,
         {
           enabled: true,
@@ -183,7 +261,12 @@ export async function POST(request: NextRequest) {
 
     const toolName = parsedRequest.data.toolName
     if (
-      (toolName === CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME || toolName === MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME) &&
+      (
+        toolName === CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME ||
+        toolName === MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME ||
+        toolName === REPEAT_PREVIOUS_CARDIO_WORKOUT_TOOL_NAME ||
+        toolName === MODIFY_TEAM_CARDIO_ASSIGNMENTS_TOOL_NAME
+      ) &&
       (!staffPermissions.canCreateEvents || !staffPermissions.canAccessStudios)
     ) {
       return NextResponse.json(

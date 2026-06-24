@@ -19,6 +19,7 @@ import { createMessagingTools } from './coach-tools/messaging-tools'
 import { createMonitoringTools } from './coach-tools/monitoring-tools'
 import { createAssignmentTools } from './coach-tools/assignment-tools'
 import { createCardioActionTools } from './coach-tools/cardio-action-tools'
+import { createBriefingActionTools } from './coach-tools/briefing-action-tools'
 import { createPlatformHelpTools } from './coach-tools/platform-help-tools'
 import { getConfirmedAiCapabilityIds } from '@/lib/ai/capabilities/registry'
 import {
@@ -64,13 +65,14 @@ export function createCoachChatTools(
     ...createMonitoringTools(ctx),
     ...createAssignmentTools(ctx),
     ...createCardioActionTools(ctx),
+    ...createBriefingActionTools(ctx),
     ...createPlatformHelpTools(ctx),
   }
 
   if (!operationContext?.enabled) return tools
 
   const genericConfirmedIds = getConfirmedAiCapabilityIds('COACH').filter(
-    (id) => id !== 'prepareCoachMessageDraft'
+    (id) => id !== 'prepareCoachMessageDraft' && id !== 'prepareCoachDailyBriefing'
   )
   return wrapToolsWithAiActionDrafts(tools, operationContext, genericConfirmedIds)
 }

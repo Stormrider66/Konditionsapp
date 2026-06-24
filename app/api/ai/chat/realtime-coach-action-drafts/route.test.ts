@@ -9,8 +9,11 @@ const mockRateLimitJsonResponse = vi.hoisted(() => vi.fn())
 const mockIsAiAssistantOperationsEnabled = vi.hoisted(() => vi.fn())
 const mockCreateAiActionDraftForTool = vi.hoisted(() => vi.fn())
 const mockBuildCoachMessageAction = vi.hoisted(() => vi.fn())
+const mockBuildCoachDailyBriefingPreview = vi.hoisted(() => vi.fn())
 const mockBuildCreateAndAssignCardioWorkoutPreview = vi.hoisted(() => vi.fn())
 const mockBuildModifyCardioAssignmentPreview = vi.hoisted(() => vi.fn())
+const mockBuildRepeatPreviousCardioWorkoutPreview = vi.hoisted(() => vi.fn())
+const mockBuildModifyTeamCardioAssignmentsPreview = vi.hoisted(() => vi.fn())
 
 const mockPrisma = vi.hoisted(() => ({
   business: { findUnique: vi.fn() },
@@ -49,12 +52,22 @@ vi.mock('@/lib/ai/coach-message-actions', async (importOriginal) => {
   }
 })
 
+vi.mock('@/lib/ai/coach-briefing-actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ai/coach-briefing-actions')>()
+  return {
+    ...actual,
+    buildCoachDailyBriefingPreview: mockBuildCoachDailyBriefingPreview,
+  }
+})
+
 vi.mock('@/lib/ai/coach-cardio-actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/ai/coach-cardio-actions')>()
   return {
     ...actual,
     buildCreateAndAssignCardioWorkoutPreview: mockBuildCreateAndAssignCardioWorkoutPreview,
     buildModifyCardioAssignmentPreview: mockBuildModifyCardioAssignmentPreview,
+    buildRepeatPreviousCardioWorkoutPreview: mockBuildRepeatPreviousCardioWorkoutPreview,
+    buildModifyTeamCardioAssignmentsPreview: mockBuildModifyTeamCardioAssignmentsPreview,
   }
 })
 
@@ -127,6 +140,19 @@ describe('realtime coach action draft route', () => {
         reviewHref: '/coach/cardio',
       },
     })
+    mockBuildCoachDailyBriefingPreview.mockResolvedValue({
+      success: true,
+      preview: {
+        title: 'Coach briefing - 2026-06-24',
+        description: 'Review 2 athletes needing attention.',
+        targetLabel: 'A Team',
+        details: ['Date: 2026-06-24', 'Attention list: 2'],
+        recipients: [{ clientId: 'client-1', name: 'Henrik', teamName: 'A Team' }],
+        recipientCount: 1,
+        confirmLabel: 'Mark reviewed',
+        reviewHref: '/coach/dashboard',
+      },
+    })
     mockBuildModifyCardioAssignmentPreview.mockResolvedValue({
       success: true,
       preview: {
@@ -137,6 +163,32 @@ describe('realtime coach action draft route', () => {
         recipients: [{ clientId: 'client-1', name: 'Henrik', teamName: 'A Team' }],
         recipientCount: 1,
         confirmLabel: 'Modify assignment',
+        reviewHref: '/coach/cardio',
+      },
+    })
+    mockBuildRepeatPreviousCardioWorkoutPreview.mockResolvedValue({
+      success: true,
+      preview: {
+        title: 'Repeat Threshold Wattbike',
+        description: 'Copies the previous cardio structure.',
+        targetLabel: 'Henrik',
+        details: ['Source workout: Threshold Wattbike', 'Adjustment: Easier than source'],
+        recipients: [{ clientId: 'client-1', name: 'Henrik', teamName: 'A Team' }],
+        recipientCount: 1,
+        confirmLabel: 'Repeat and assign',
+        reviewHref: '/coach/cardio',
+      },
+    })
+    mockBuildModifyTeamCardioAssignmentsPreview.mockResolvedValue({
+      success: true,
+      preview: {
+        title: 'Modify 3 cardio assignments',
+        description: 'Prepares calendar changes for low readiness.',
+        targetLabel: 'A Team - low readiness',
+        details: ['Assignments: 3', 'Structure: 30 min steady'],
+        recipients: [{ clientId: 'client-1', name: 'Henrik', teamName: 'A Team' }],
+        recipientCount: 3,
+        confirmLabel: 'Modify assignments',
         reviewHref: '/coach/cardio',
       },
     })
@@ -282,6 +334,66 @@ describe('realtime coach action draft route', () => {
     expect(body.action.capabilityId).toBe('modifyCardioAssignment')
     expect(body.action.confirmLabel).toBe('Modify assignment')
     expect(mockBuildModifyCardioAssignmentPreview).toHaveBeenCalled()
+  })
+
+  it('creates a confirmation-card draft for a coach daily briefing', async () => {
+    const response = await POST(request({
+      toolName: 'prepareCoachDailyBriefing',
+      arguments: {
+        date: '2026-06-24',
+        teamName: 'A Team',
+        focus: 'MORNING',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.action.capabilityId).toBe('prepareCoachDailyBriefing')
+    expect(body.action.confirmLabel).toBe('Mark reviewed')
+    expect(mockBuildCoachDailyBriefingPreview).toHaveBeenCalled()
+  })
+
+  it('creates a confirmation-card draft for repeating a previous cardio workout', async () => {
+    const response = await POST(request({
+      toolName: 'repeatPreviousCardioWorkout',
+      arguments: {
+        targetType: 'ATHLETE',
+        athleteName: 'Henrik',
+        date: '2026-06-25',
+        adjustment: 'EASIER',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.action.capabilityId).toBe('repeatPreviousCardioWorkout')
+    expect(body.action.confirmLabel).toBe('Repeat and assign')
+    expect(mockBuildRepeatPreviousCardioWorkoutPreview).toHaveBeenCalled()
+  })
+
+  it('creates a confirmation-card draft for batch planned-cardio changes', async () => {
+    const response = await POST(request({
+      toolName: 'modifyTeamCardioAssignments',
+      arguments: {
+        targetType: 'TEAM',
+        teamName: 'A Team',
+        teamTarget: 'LOW_READINESS',
+        currentDate: '2026-06-24',
+        workoutType: 'STEADY',
+        durationSeconds: 1800,
+        intensity: 'Easy Z1-Z2',
+        reason: 'Low readiness',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.action.capabilityId).toBe('modifyTeamCardioAssignments')
+    expect(body.action.recipientCount).toBe(3)
+    expect(mockBuildModifyTeamCardioAssignmentsPreview).toHaveBeenCalled()
   })
 
   it('blocks cardio action drafts without workout assignment permissions', async () => {

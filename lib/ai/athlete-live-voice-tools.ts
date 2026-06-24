@@ -8,6 +8,11 @@ import {
   stockholmDateKey,
   type CreateCardioWorkoutInput,
 } from '@/lib/ai/cardio-workout-action'
+import {
+  buildUpdateLiveWorkoutFeedbackPreview,
+  updateLiveWorkoutFeedbackInputSchema,
+  type UpdateLiveWorkoutFeedbackInput,
+} from '@/lib/ai/athlete-live-workout-feedback'
 
 export { stockholmDateKey } from '@/lib/ai/cardio-workout-action'
 
@@ -17,11 +22,13 @@ export const PROPOSE_WORKOUT_MODIFICATION_TOOL_NAME = 'proposeWorkoutModificatio
 export const GET_QUICK_ERG_MATCH_SUGGESTIONS_TOOL_NAME = 'getQuickErgMatchSuggestions'
 export const LOG_COMPLETED_WORKOUT_TOOL_NAME = 'logCompletedWorkout'
 export const COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME = 'completeAssignedWorkout'
+export const UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME = 'updateLiveWorkoutFeedback'
 
 export const ATHLETE_LIVE_VOICE_ACTION_DRAFT_TOOL_NAMES = [
   CREATE_CARDIO_WORKOUT_TOOL_NAME,
   LOG_COMPLETED_WORKOUT_TOOL_NAME,
   COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME,
+  UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME,
 ] as const
 
 export const ATHLETE_LIVE_VOICE_DIRECT_TOOL_NAMES = [
@@ -123,6 +130,7 @@ export const getQuickErgMatchSuggestionsInputSchema = z.object({
 
 export type LogCompletedWorkoutInput = z.infer<typeof logCompletedWorkoutInputSchema>
 export type CompleteAssignedWorkoutInput = z.infer<typeof completeAssignedWorkoutInputSchema>
+export type AthleteLiveWorkoutFeedbackInput = UpdateLiveWorkoutFeedbackInput
 export type OpenTodayWorkoutInput = z.infer<typeof openTodayWorkoutInputSchema>
 export type GetReadinessBriefingInput = z.infer<typeof getReadinessBriefingInputSchema>
 export type ProposeWorkoutModificationInput = z.infer<typeof proposeWorkoutModificationInputSchema>
@@ -144,6 +152,8 @@ export function getAthleteLiveVoiceActionDraftSchema(toolName: AthleteLiveVoiceA
       return logCompletedWorkoutInputSchema
     case COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME:
       return completeAssignedWorkoutInputSchema
+    case UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME:
+      return updateLiveWorkoutFeedbackInputSchema
   }
 }
 
@@ -185,6 +195,19 @@ export function getAthleteLiveVoiceActionClarification(
         'Ask for at least RPE or actual duration before preparing the completion card.',
         'Fråga efter minst RPE eller faktisk duration innan du förbereder slutförandekortet.'
       )
+    }
+  }
+
+  if (toolName === UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME) {
+    const feedback = input as UpdateLiveWorkoutFeedbackInput
+    if (
+      feedback.rpe == null &&
+      !feedback.note &&
+      feedback.painLevel == null &&
+      !feedback.painBodyPart &&
+      !feedback.targetAdjustment
+    ) {
+      return t(locale, 'Ask what feedback to save before preparing the card.', 'Fråga vilken feedback som ska sparas innan du förbereder kortet.')
     }
   }
 
@@ -258,6 +281,8 @@ export function buildAthleteLiveVoiceActionPreview(
       return buildLogCompletedWorkoutPreview(input as LogCompletedWorkoutInput, locale)
     case COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME:
       return buildCompleteAssignedWorkoutPreview(input as CompleteAssignedWorkoutInput, locale)
+    case UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME:
+      return buildUpdateLiveWorkoutFeedbackPreview(input as UpdateLiveWorkoutFeedbackInput, locale)
   }
 }
 
@@ -320,6 +345,31 @@ function completeAssignedWorkoutRealtimeTool(locale: AppLocale): RealtimeFunctio
         notes: { type: 'string' },
       },
       required: ['kind'],
+    },
+  }
+}
+
+function updateLiveWorkoutFeedbackRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME,
+    description: t(
+      locale,
+      'Prepare a confirmation card to save feedback on the current live cardio/erg workout: RPE, hard/easy note, pain note, or target-adjustment note. The athlete must confirm the card before anything changes.',
+      'Förbered ett bekräftelsekort för att spara feedback på aktuellt live konditions-/ergometerpass: RPE, hårt/lätt-notering, smärtnotering eller måljustering. Atleten måste bekräfta kortet innan något ändras.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: {
+        assignmentId: { type: 'string' },
+        sessionLogId: { type: 'string' },
+        date: { type: 'string', description: t(locale, 'Workout date YYYY-MM-DD. Default today.', 'Passdatum YYYY-MM-DD. Standard idag.') },
+        rpe: { type: 'integer', minimum: 1, maximum: 10 },
+        note: { type: 'string' },
+        painLevel: { type: 'integer', minimum: 0, maximum: 10 },
+        painBodyPart: { type: 'string' },
+        targetAdjustment: { type: 'string', description: t(locale, 'Example: increase target by 10 W, hold 90 rpm, make next interval easier.', 'Exempel: höj målet med 10 W, håll 90 rpm, gör nästa intervall lättare.') },
+      },
     },
   }
 }
@@ -410,5 +460,6 @@ export function buildAthleteLiveVoiceRealtimeTools(locale: AppLocale): RealtimeF
     buildCreateCardioWorkoutRealtimeTool(locale),
     logCompletedWorkoutRealtimeTool(locale),
     completeAssignedWorkoutRealtimeTool(locale),
+    updateLiveWorkoutFeedbackRealtimeTool(locale),
   ]
 }

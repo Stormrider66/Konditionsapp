@@ -137,8 +137,108 @@ export const modifyCardioAssignmentInputSchema = z.object({
   }
 })
 
+export const repeatPreviousCardioWorkoutInputSchema = z.object({
+  targetType: z.enum(['ATHLETE', 'TEAM', 'SELECTED']).default('ATHLETE'),
+  clientId: z.string().uuid().optional(),
+  athleteName: z.string().min(2).max(120).optional(),
+  teamId: z.string().uuid().optional(),
+  teamName: z.string().min(2).max(120).optional(),
+  teamTarget: z.enum(COACH_CARDIO_TEAM_TARGETS).default('ALL'),
+  clientIds: z.array(z.string().uuid()).optional(),
+  sourceAssignmentId: z.string().uuid().optional(),
+  sourceClientId: z.string().uuid().optional(),
+  sourceAthleteName: z.string().min(2).max(120).optional(),
+  sourceDate: z.string().regex(yyyyMmDd).optional(),
+  sourceSessionName: z.string().min(2).max(160).optional(),
+  lookbackDays: z.number().int().min(1).max(120).default(30),
+  date: z.string().regex(yyyyMmDd),
+  name: z.string().min(2).max(160).optional(),
+  adjustment: z.enum(['SAME', 'EASIER', 'HARDER', 'SHORTER', 'LONGER', 'CUSTOM']).default('SAME'),
+  durationScale: z.number().min(0.5).max(1.5).optional(),
+  notes: z.string().max(1000).optional(),
+  tags: z.array(z.string().max(40)).max(12).optional(),
+}).superRefine((value, ctx) => {
+  if (value.targetType === 'ATHLETE' && !value.clientId && !value.athleteName) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['athleteName'], message: 'Provide target clientId or athleteName.' })
+  }
+  if (value.targetType === 'TEAM' && !value.teamId && !value.teamName) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['teamName'], message: 'Provide target teamId or teamName.' })
+  }
+  if ((value.targetType === 'SELECTED' || value.teamTarget === 'SELECTED') && !value.clientIds?.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['clientIds'], message: 'Provide selected clientIds.' })
+  }
+  const canInferSourceFromTarget = value.targetType === 'ATHLETE' && (value.clientId || value.athleteName)
+  if (!value.sourceAssignmentId && !value.sourceClientId && !value.sourceAthleteName && !canInferSourceFromTarget) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['sourceAthleteName'], message: 'Provide a source assignment or source athlete.' })
+  }
+})
+
+export const modifyTeamCardioAssignmentsInputSchema = z.object({
+  targetType: z.enum(['TEAM', 'SELECTED']).default('TEAM'),
+  teamId: z.string().uuid().optional(),
+  teamName: z.string().min(2).max(120).optional(),
+  teamTarget: z.enum(COACH_CARDIO_TEAM_TARGETS).default('ALL'),
+  clientIds: z.array(z.string().uuid()).optional(),
+  currentDate: z.string().regex(yyyyMmDd),
+  sessionName: z.string().min(2).max(160).optional(),
+  newDate: z.string().regex(yyyyMmDd).optional(),
+  name: z.string().min(2).max(160).optional(),
+  workoutType: z.enum(['INTERVAL', 'STEADY']).optional(),
+  sport: z.enum(CARDIO_TOOL_SPORTS).optional(),
+  equipment: z.enum(CARDIO_EQUIPMENT).optional(),
+  rounds: z.number().int().min(1).max(80).optional(),
+  workDurationSeconds: z.number().int().min(10).max(7200).optional(),
+  restDurationSeconds: z.number().int().min(0).max(3600).optional(),
+  durationSeconds: z.number().int().min(60).max(6 * 60 * 60).optional(),
+  intensity: z.string().min(1).max(160).optional(),
+  zone: z.number().min(1).max(5).optional(),
+  targetPower: z.string().max(80).optional(),
+  targetCadence: z.string().max(80).optional(),
+  warmupSeconds: z.number().int().min(0).max(3600).optional(),
+  cooldownSeconds: z.number().int().min(0).max(3600).optional(),
+  notes: z.string().max(1000).optional(),
+  reason: z.string().min(2).max(600).optional(),
+  maxAssignments: z.number().int().min(1).max(50).default(25),
+}).superRefine((value, ctx) => {
+  if (value.targetType === 'TEAM' && !value.teamId && !value.teamName) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['teamName'], message: 'Provide teamId or teamName.' })
+  }
+  if ((value.targetType === 'SELECTED' || value.teamTarget === 'SELECTED') && !value.clientIds?.length) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['clientIds'], message: 'Provide selected clientIds.' })
+  }
+  const hasChange = Boolean(
+    value.newDate ||
+    value.name ||
+    value.workoutType ||
+    value.sport ||
+    value.equipment ||
+    value.rounds ||
+    value.workDurationSeconds ||
+    value.restDurationSeconds != null ||
+    value.durationSeconds ||
+    value.intensity ||
+    value.zone ||
+    value.targetPower ||
+    value.targetCadence ||
+    value.warmupSeconds ||
+    value.cooldownSeconds ||
+    value.notes ||
+    value.reason
+  )
+  if (!hasChange) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['reason'], message: 'Provide at least one change.' })
+  }
+  if (value.workoutType === 'INTERVAL' || value.rounds || value.workDurationSeconds || value.restDurationSeconds != null) {
+    if (!value.rounds) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['rounds'], message: 'Provide interval rounds.' })
+    if (!value.workDurationSeconds) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['workDurationSeconds'], message: 'Provide work duration.' })
+    if (value.restDurationSeconds == null) ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['restDurationSeconds'], message: 'Provide rest duration.' })
+  }
+})
+
 export type CreateAndAssignCardioWorkoutInput = z.infer<typeof createAndAssignCardioWorkoutInputSchema>
 export type ModifyCardioAssignmentInput = z.infer<typeof modifyCardioAssignmentInputSchema>
+export type RepeatPreviousCardioWorkoutInput = z.infer<typeof repeatPreviousCardioWorkoutInputSchema>
+export type ModifyTeamCardioAssignmentsInput = z.infer<typeof modifyTeamCardioAssignmentsInputSchema>
 
 type PublicRecipient = { clientId: string; name: string; teamName: string | null }
 type ResolvedRecipient = PublicRecipient & { teamId: string | null }
@@ -516,7 +616,134 @@ function toPublicRecipients(recipients: ResolvedRecipient[]): PublicRecipient[] 
   }))
 }
 
-function buildWorkoutDetails(input: CreateAndAssignCardioWorkoutInput | ModifyCardioAssignmentInput, workout: BuiltCardioWorkout, locale: AppLocale): string[] {
+async function buildCardioLoadWarnings(
+  ctx: CoachToolContext,
+  recipients: ResolvedRecipient[],
+  targetDateKey: string
+): Promise<string[]> {
+  if (recipients.length === 0) return []
+
+  const date = dateFromKey(targetDateKey)
+  const dayEnd = new Date(date)
+  dayEnd.setUTCHours(23, 59, 59, 999)
+  const sevenDaysAgo = new Date(date)
+  sevenDaysAgo.setUTCDate(date.getUTCDate() - 7)
+  const clientIds = recipients.map((recipient) => recipient.clientId)
+
+  const rows = await prisma.client.findMany({
+    where: {
+      id: { in: clientIds },
+      ...(ctx.businessSlug ? { business: { slug: ctx.businessSlug } } : {}),
+    },
+    select: {
+      id: true,
+      name: true,
+      dailyCheckIns: {
+        where: { date: { lte: dayEnd } },
+        select: { readinessScore: true, readinessDecision: true, date: true },
+        orderBy: { date: 'desc' },
+        take: 1,
+      },
+      dailyMetrics: {
+        where: { date: { lte: dayEnd } },
+        select: { readinessScore: true, readinessLevel: true, recommendedAction: true, injuryPain: true, date: true },
+        orderBy: { date: 'desc' },
+        take: 1,
+      },
+      trainingLoads: {
+        where: {
+          date: { lte: dayEnd },
+          source: 'ACWR_SUMMARY',
+        },
+        select: { acwr: true, acwrZone: true, injuryRisk: true, date: true },
+        orderBy: { date: 'desc' },
+        take: 1,
+      },
+      injuryAssessments: {
+        where: { status: { in: ['ACTIVE', 'MONITORING'] }, resolved: false },
+        select: { bodyPart: true, side: true, painLevel: true, status: true },
+        orderBy: { detectedAt: 'desc' },
+        take: 1,
+      },
+      cardioSessionAssignments: {
+        where: {
+          OR: [
+            { assignedDate: date, status: { in: ['PENDING', 'SCHEDULED', 'MODIFIED'] } },
+            { assignedDate: { gte: sevenDaysAgo, lt: date }, status: { in: ['PENDING', 'SCHEDULED', 'SKIPPED'] } },
+          ],
+        },
+        select: { assignedDate: true, status: true, session: { select: { name: true, totalDuration: true } } },
+        take: 8,
+      },
+      strengthSessionAssignments: {
+        where: { assignedDate: date, status: { in: ['PENDING', 'SCHEDULED', 'MODIFIED'] } },
+        select: { status: true, session: { select: { name: true, estimatedDuration: true } } },
+        take: 5,
+      },
+    },
+  })
+
+  const warnings: string[] = []
+  for (const row of rows) {
+    const checkIn = row.dailyCheckIns?.[0] ?? null
+    const dailyMetrics = row.dailyMetrics?.[0] ?? null
+    const readinessFromMetrics = typeof dailyMetrics?.readinessScore === 'number'
+      ? dailyMetrics.readinessScore <= 10 ? Math.round(dailyMetrics.readinessScore * 10) : Math.round(dailyMetrics.readinessScore)
+      : null
+    const readiness = checkIn?.readinessScore ?? readinessFromMetrics
+    if (typeof readiness === 'number' && readiness < 50) {
+      warnings.push(toolText(ctx.locale, `Load check: ${row.name} readiness is ${readiness}/100.`, `Belastningskoll: ${row.name} har readiness ${readiness}/100.`))
+    }
+    const decision = checkIn?.readinessDecision || dailyMetrics?.recommendedAction
+    if (decision && !['PROCEED', 'TRAIN'].includes(decision)) {
+      warnings.push(toolText(ctx.locale, `Readiness advice: ${row.name} is marked ${decision}.`, `Readinessråd: ${row.name} är markerad ${decision}.`))
+    }
+
+    const plannedToday = [
+      ...(row.cardioSessionAssignments ?? []).filter((assignment) => dateKey(assignment.assignedDate) === targetDateKey),
+      ...(row.strengthSessionAssignments ?? []),
+    ]
+    if (plannedToday.length > 0) {
+      warnings.push(toolText(ctx.locale, `Calendar conflict: ${row.name} already has ${plannedToday.length} planned session(s) on ${targetDateKey}.`, `Kalenderkrock: ${row.name} har redan ${plannedToday.length} planerade pass ${targetDateKey}.`))
+    }
+
+    const missedRecent = (row.cardioSessionAssignments ?? []).filter((assignment) =>
+      dateKey(assignment.assignedDate) !== targetDateKey && ['PENDING', 'SCHEDULED', 'SKIPPED'].includes(assignment.status)
+    )
+    if (missedRecent.length > 0) {
+      warnings.push(toolText(ctx.locale, `Recent missed work: ${row.name} has ${missedRecent.length} unfinished/skipped cardio item(s) in the last 7 days.`, `Nyligen missat: ${row.name} har ${missedRecent.length} ej klara/överhoppade konditionspass senaste 7 dagarna.`))
+    }
+
+    const load = row.trainingLoads?.[0] ?? null
+    if (load?.acwrZone && ['CAUTION', 'DANGER', 'CRITICAL'].includes(load.acwrZone)) {
+      const acwr = typeof load.acwr === 'number' ? ` (${load.acwr.toFixed(2)})` : ''
+      warnings.push(toolText(ctx.locale, `ACWR flag: ${row.name} is ${load.acwrZone}${acwr}.`, `ACWR-flagga: ${row.name} är ${load.acwrZone}${acwr}.`))
+    }
+
+    const injury = row.injuryAssessments?.[0] ?? null
+    if (injury) {
+      const location = [injury.side, injury.bodyPart].filter(Boolean).join(' ')
+      warnings.push(toolText(ctx.locale, `Injury flag: ${row.name} ${location || 'injury'} pain ${injury.painLevel}/10.`, `Skadeflagga: ${row.name} ${location || 'skada'} smärta ${injury.painLevel}/10.`))
+    } else if (typeof dailyMetrics?.injuryPain === 'number' && dailyMetrics.injuryPain >= 4) {
+      warnings.push(toolText(ctx.locale, `Pain flag: ${row.name} reported pain ${dailyMetrics.injuryPain}/10.`, `Smärtflagga: ${row.name} rapporterade smärta ${dailyMetrics.injuryPain}/10.`))
+    }
+  }
+
+  return warnings.slice(0, 10)
+}
+
+function warningDetails(warnings: string[], locale: AppLocale): string[] {
+  if (warnings.length === 0) {
+    return [toolText(locale, 'Load check: no obvious conflicts found.', 'Belastningskoll: inga tydliga konflikter hittades.')]
+  }
+  return warnings.map((warning) => `${toolText(locale, 'Warning', 'Varning')}: ${warning}`)
+}
+
+function buildWorkoutDetails(
+  input: CreateAndAssignCardioWorkoutInput | ModifyCardioAssignmentInput | ModifyTeamCardioAssignmentsInput,
+  workout: BuiltCardioWorkout,
+  locale: AppLocale
+): string[] {
   const details = [
     `${toolText(locale, 'Date', 'Datum')}: ${'date' in input && input.date ? input.date : 'newDate' in input && input.newDate ? input.newDate : toolText(locale, 'Unchanged', 'Oförändrat')}`,
     `${toolText(locale, 'Structure', 'Upplägg')}: ${workout.structureLabel}`,
@@ -541,6 +768,7 @@ export async function buildCreateAndAssignCardioWorkoutPreview(
   const target = await resolveTarget(ctx, input)
   if (!target.success) return target
   const workout = buildCardioWorkout(input, locale)
+  const warnings = await buildCardioLoadWarnings(ctx, target.recipients, input.date)
   return {
     success: true as const,
     target,
@@ -556,6 +784,7 @@ export async function buildCreateAndAssignCardioWorkoutPreview(
         `${toolText(locale, 'Workout', 'Pass')}: ${input.name}`,
         `${toolText(locale, 'Recipients', 'Mottagare')}: ${target.recipients.length}`,
         ...buildWorkoutDetails(input, workout, locale),
+        ...warningDetails(warnings, locale),
       ],
       recipients: toPublicRecipients(target.recipients),
       recipientCount: target.recipients.length,
@@ -748,6 +977,240 @@ function hasWorkoutContentChange(input: ModifyCardioAssignmentInput): boolean {
   )
 }
 
+function hasTeamWorkoutContentChange(input: ModifyTeamCardioAssignmentsInput): boolean {
+  return Boolean(
+    input.name ||
+    input.workoutType ||
+    input.sport ||
+    input.equipment ||
+    input.rounds ||
+    input.workDurationSeconds ||
+    input.restDurationSeconds != null ||
+    input.durationSeconds ||
+    input.intensity ||
+    input.zone ||
+    input.targetPower ||
+    input.targetCadence ||
+    input.warmupSeconds ||
+    input.cooldownSeconds
+  )
+}
+
+function adjustmentLabel(adjustment: RepeatPreviousCardioWorkoutInput['adjustment'], locale: AppLocale): string {
+  switch (adjustment) {
+    case 'EASIER':
+      return toolText(locale, 'Easier than source', 'Lättare än källpasset')
+    case 'HARDER':
+      return toolText(locale, 'Harder than source', 'Hårdare än källpasset')
+    case 'SHORTER':
+      return toolText(locale, 'Shorter than source', 'Kortare än källpasset')
+    case 'LONGER':
+      return toolText(locale, 'Longer than source', 'Längre än källpasset')
+    case 'CUSTOM':
+      return toolText(locale, 'Custom adjustment', 'Anpassad justering')
+    case 'SAME':
+    default:
+      return toolText(locale, 'Same structure', 'Samma upplägg')
+  }
+}
+
+function defaultDurationScale(input: RepeatPreviousCardioWorkoutInput): number {
+  if (typeof input.durationScale === 'number') return input.durationScale
+  if (input.adjustment === 'SHORTER') return 0.75
+  if (input.adjustment === 'LONGER') return 1.2
+  return 1
+}
+
+function adjustZone(value: unknown, adjustment: RepeatPreviousCardioWorkoutInput['adjustment']): unknown {
+  if (typeof value !== 'number') return value
+  if (adjustment === 'EASIER') return Math.max(1, value - 1)
+  if (adjustment === 'HARDER') return Math.min(5, value + 1)
+  return value
+}
+
+function transformCardioSegments(
+  value: unknown,
+  adjustment: RepeatPreviousCardioWorkoutInput['adjustment'],
+  durationScale: number
+): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => transformCardioSegments(item, adjustment, durationScale))
+  }
+  if (!value || typeof value !== 'object') return value
+
+  const next: Record<string, unknown> = {}
+  for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+    if (key === 'duration' && typeof item === 'number' && durationScale !== 1) {
+      next[key] = Math.max(10, Math.round(item * durationScale))
+    } else if (key === 'zone') {
+      next[key] = adjustZone(item, adjustment)
+    } else {
+      next[key] = transformCardioSegments(item, adjustment, durationScale)
+    }
+  }
+  return next
+}
+
+function adjustedAvgZone(avgZone: number | null, adjustment: RepeatPreviousCardioWorkoutInput['adjustment']): number | null {
+  if (avgZone == null) return null
+  if (adjustment === 'EASIER') return Math.max(1, avgZone - 1)
+  if (adjustment === 'HARDER') return Math.min(5, avgZone + 1)
+  return avgZone
+}
+
+function appendDescriptionNote(base: string | null | undefined, note: string): string {
+  return [base, note].filter(Boolean).join('\n\n')
+}
+
+async function resolveSourceAssignment(
+  ctx: CoachToolContext,
+  input: RepeatPreviousCardioWorkoutInput
+): Promise<
+  | { success: true; assignment: ResolvedAssignment }
+  | { success: false; needsClarification?: boolean; error: string; candidates?: Array<{ id: string; name: string; date: string }> }
+> {
+  const sourceInput: ModifyCardioAssignmentInput = {
+    assignmentId: input.sourceAssignmentId,
+    clientId: input.sourceClientId || (input.targetType === 'ATHLETE' ? input.clientId : undefined),
+    athleteName: input.sourceAthleteName || (input.targetType === 'ATHLETE' ? input.athleteName : undefined),
+    currentDate: input.sourceDate,
+    sessionName: input.sourceSessionName,
+    reason: toolText(ctx.locale, 'Repeat previous workout', 'Upprepa tidigare pass'),
+  }
+
+  if (sourceInput.assignmentId) {
+    return resolveAssignment(ctx, sourceInput)
+  }
+
+  const resolved = await resolveAccessibleCoachClient(ctx, sourceInput.clientId, sourceInput.athleteName)
+  if (!resolved.ok) return resolved.result as { success: false; error: string }
+  const since = new Date()
+  since.setUTCDate(since.getUTCDate() - (input.lookbackDays ?? 30))
+  const sourceDate = input.sourceDate ? dateFromKey(input.sourceDate) : null
+  const assignments = await prisma.cardioSessionAssignment.findMany({
+    where: {
+      athleteId: resolved.client.id,
+      assignedDate: sourceDate ?? { gte: since },
+      status: { in: ['COMPLETED', 'MODIFIED', 'PENDING', 'SCHEDULED'] },
+      ...(input.sourceSessionName ? { session: { name: { contains: input.sourceSessionName, mode: 'insensitive' } } } : {}),
+      ...(ctx.businessSlug ? { athlete: { business: { slug: ctx.businessSlug } } } : {}),
+    },
+    select: {
+      id: true,
+      assignedDate: true,
+      notes: true,
+      status: true,
+      calendarEventId: true,
+      athlete: { select: { id: true, name: true, team: { select: { id: true, name: true } } } },
+      session: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          sport: true,
+          segments: true,
+          totalDuration: true,
+          totalDistance: true,
+          avgZone: true,
+          teamId: true,
+          tags: true,
+        },
+      },
+    },
+    orderBy: { assignedDate: 'desc' },
+    take: 6,
+  })
+
+  if (assignments.length === 0) {
+    return {
+      success: false,
+      error: toolText(ctx.locale, 'No previous cardio assignment matched that athlete.', 'Ingen tidigare konditionstilldelning matchade den atleten.'),
+    }
+  }
+  if (sourceDate && assignments.length > 1) {
+    return {
+      success: false,
+      needsClarification: true,
+      error: toolText(ctx.locale, 'Several cardio sessions matched that source date. Ask which one.', 'Flera konditionspass matchade källdatumet. Fråga vilket pass.'),
+      candidates: assignments.map((assignment) => ({
+        id: assignment.id,
+        name: assignment.session.name,
+        date: dateKey(assignment.assignedDate),
+      })),
+    }
+  }
+  return { success: true, assignment: assignments[0] as ResolvedAssignment }
+}
+
+function repeatedSessionName(input: RepeatPreviousCardioWorkoutInput, sourceName: string, locale: AppLocale): string {
+  if (input.name) return input.name
+  if (input.adjustment && input.adjustment !== 'SAME') {
+    return `${sourceName} - ${adjustmentLabel(input.adjustment, locale)}`
+  }
+  return `${sourceName} (${toolText(locale, 'repeat', 'upprepning')})`
+}
+
+async function resolveTeamAssignmentsForModification(
+  ctx: CoachToolContext,
+  input: ModifyTeamCardioAssignmentsInput
+): Promise<
+  | { success: true; target: ResolvedTarget & { success: true }; assignments: ResolvedAssignment[] }
+  | { success: false; needsClarification?: boolean; error: string; candidates?: Array<{ id: string; name: string; date?: string }> }
+> {
+  const target = await resolveTarget(ctx, {
+    targetType: input.targetType === 'SELECTED' ? 'SELECTED' : 'TEAM',
+    teamId: input.teamId,
+    teamName: input.teamName,
+    teamTarget: input.teamTarget,
+    clientIds: input.clientIds,
+  })
+  if (!target.success) return target
+
+  const assignedDate = dateFromKey(input.currentDate)
+  const assignments = await prisma.cardioSessionAssignment.findMany({
+    where: {
+      athleteId: { in: target.recipients.map((recipient) => recipient.clientId) },
+      assignedDate,
+      status: { in: ['PENDING', 'SCHEDULED', 'MODIFIED'] },
+      ...(input.sessionName ? { session: { name: { contains: input.sessionName, mode: 'insensitive' } } } : {}),
+      ...(ctx.businessSlug ? { athlete: { business: { slug: ctx.businessSlug } } } : {}),
+    },
+    select: {
+      id: true,
+      assignedDate: true,
+      notes: true,
+      status: true,
+      calendarEventId: true,
+      athlete: { select: { id: true, name: true, team: { select: { id: true, name: true } } } },
+      session: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          sport: true,
+          segments: true,
+          totalDuration: true,
+          totalDistance: true,
+          avgZone: true,
+          teamId: true,
+          tags: true,
+        },
+      },
+    },
+    orderBy: [{ athlete: { name: 'asc' } }, { createdAt: 'desc' }],
+    take: input.maxAssignments,
+  })
+
+  if (assignments.length === 0) {
+    return {
+      success: false,
+      error: toolText(ctx.locale, 'No planned cardio assignments matched that date and group.', 'Inga planerade konditionstilldelningar matchade datumet och gruppen.'),
+    }
+  }
+
+  return { success: true, target, assignments: assignments as ResolvedAssignment[] }
+}
+
 export async function buildModifyCardioAssignmentPreview(
   coachUserId: string,
   input: ModifyCardioAssignmentInput,
@@ -785,6 +1248,13 @@ export async function buildModifyCardioAssignmentPreview(
   if (input.reason) details.push(`${toolText(locale, 'Reason', 'Orsak')}: ${input.reason}`)
   if (workout) details.push(...buildWorkoutDetails(input, workout, locale))
   if (input.notes) details.push(`${toolText(locale, 'Notes', 'Noteringar')}: ${input.notes}`)
+  const warnings = await buildCardioLoadWarnings(ctx, [{
+    clientId: assignment.athlete.id,
+    name: assignment.athlete.name,
+    teamId: assignment.athlete.team?.id ?? null,
+    teamName: assignment.athlete.team?.name ?? null,
+  }], input.newDate || dateKey(assignment.assignedDate))
+  details.push(...warningDetails(warnings, locale))
 
   return {
     success: true as const,
@@ -902,6 +1372,336 @@ export async function executeModifyCardioAssignment(
       locale,
       `${assignment.athlete.name}'s cardio assignment was modified for ${dateKey(newDate)}.`,
       `${assignment.athlete.name}s konditionstilldelning anpassades till ${dateKey(newDate)}.`
+    ),
+  }
+}
+
+export async function buildRepeatPreviousCardioWorkoutPreview(
+  coachUserId: string,
+  input: RepeatPreviousCardioWorkoutInput,
+  businessSlug: string | undefined,
+  locale: AppLocale
+) {
+  const ctx: CoachToolContext = { coachUserId, businessSlug, locale }
+  const [target, source] = await Promise.all([
+    resolveTarget(ctx, input),
+    resolveSourceAssignment(ctx, input),
+  ])
+  if (!target.success) return target
+  if (!source.success) return source
+
+  const warnings = await buildCardioLoadWarnings(ctx, target.recipients, input.date)
+  const durationScale = defaultDurationScale(input)
+  const scaledDuration = source.assignment.session.totalDuration
+    ? Math.round(source.assignment.session.totalDuration * durationScale)
+    : null
+  const name = repeatedSessionName(input, source.assignment.session.name, locale)
+
+  return {
+    success: true as const,
+    target,
+    source: source.assignment,
+    preview: {
+      title: toolText(locale, `Repeat ${source.assignment.session.name}`, `Upprepa ${source.assignment.session.name}`),
+      description: toolText(
+        locale,
+        `Copies the previous cardio structure and assigns it to ${target.targetLabel}. Nothing is saved until confirmed.`,
+        `Kopierar det tidigare konditionsupplägget och tilldelar det till ${target.targetLabel}. Inget sparas förrän det bekräftas.`
+      ),
+      targetLabel: target.targetLabel,
+      details: [
+        `${toolText(locale, 'New workout', 'Nytt pass')}: ${name}`,
+        `${toolText(locale, 'Source athlete', 'Källatlet')}: ${source.assignment.athlete.name}`,
+        `${toolText(locale, 'Source workout', 'Källpass')}: ${source.assignment.session.name}`,
+        `${toolText(locale, 'Source date', 'Källdatum')}: ${dateKey(source.assignment.assignedDate)}`,
+        `${toolText(locale, 'Date', 'Datum')}: ${input.date}`,
+        `${toolText(locale, 'Recipients', 'Mottagare')}: ${target.recipients.length}`,
+        `${toolText(locale, 'Adjustment', 'Justering')}: ${adjustmentLabel(input.adjustment, locale)}`,
+        scaledDuration ? `${toolText(locale, 'Estimated total', 'Beräknad total tid')}: ${minutesLabel(scaledDuration, locale)}` : null,
+        input.notes ? `${toolText(locale, 'Notes', 'Noteringar')}: ${input.notes}` : null,
+        ...warningDetails(warnings, locale),
+      ].filter((detail): detail is string => Boolean(detail)),
+      recipients: toPublicRecipients(target.recipients),
+      recipientCount: target.recipients.length,
+      confirmLabel: toolText(locale, 'Repeat and assign', 'Upprepa och tilldela'),
+      reviewHref: '/coach/cardio',
+    },
+  }
+}
+
+export async function executeRepeatPreviousCardioWorkout(
+  coachUserId: string,
+  input: RepeatPreviousCardioWorkoutInput,
+  businessSlug: string | undefined,
+  locale: AppLocale
+) {
+  const ctx: CoachToolContext = { coachUserId, businessSlug, locale }
+  const [target, source] = await Promise.all([
+    resolveTarget(ctx, input),
+    resolveSourceAssignment(ctx, input),
+  ])
+  if (!target.success) return target
+  if (!source.success) return source
+
+  const assignedDate = dateFromKey(input.date)
+  const durationScale = defaultDurationScale(input)
+  const sessionName = repeatedSessionName(input, source.assignment.session.name, locale)
+  const segments = transformCardioSegments(source.assignment.session.segments, input.adjustment, durationScale) as Prisma.InputJsonValue
+  const totalDuration = source.assignment.session.totalDuration
+    ? Math.round(source.assignment.session.totalDuration * durationScale)
+    : null
+  const avgZone = adjustedAvgZone(source.assignment.session.avgZone, input.adjustment)
+  const adjustmentNote = [
+    `${toolText(locale, 'Repeated from', 'Upprepat från')}: ${source.assignment.athlete.name} - ${source.assignment.session.name} (${dateKey(source.assignment.assignedDate)})`,
+    `${toolText(locale, 'Adjustment', 'Justering')}: ${adjustmentLabel(input.adjustment, locale)}`,
+    input.notes,
+  ].filter(Boolean).join('\n')
+
+  const result = await prisma.$transaction(async (tx) => {
+    const session = await tx.cardioSession.create({
+      data: {
+        name: sessionName,
+        description: appendDescriptionNote(source.assignment.session.description, adjustmentNote),
+        sport: source.assignment.session.sport,
+        segments,
+        totalDuration,
+        totalDistance: source.assignment.session.totalDistance,
+        avgZone,
+        coachId: coachUserId,
+        teamId: target.teamId || source.assignment.session.teamId,
+        tags: [...new Set([...(source.assignment.session.tags || []), ...(input.tags || []), 'ai-repeat'])],
+      },
+      select: { id: true, name: true },
+    })
+
+    const assignments: Array<{ id: string; athleteName: string }> = []
+    for (const recipient of target.recipients) {
+      const calendarEvent = await tx.calendarEvent.create({
+        data: {
+          clientId: recipient.clientId,
+          type: 'SCHEDULED_WORKOUT',
+          title: `${toolText(locale, 'Cardio', 'Kondition')}: ${session.name}`,
+          description: input.notes || adjustmentNote || null,
+          status: 'SCHEDULED',
+          startDate: assignedDate,
+          endDate: assignedDate,
+          allDay: true,
+          trainingImpact: 'NORMAL',
+          createdById: coachUserId,
+        },
+        select: { id: true },
+      })
+      const assignment = await tx.cardioSessionAssignment.create({
+        data: {
+          sessionId: session.id,
+          athleteId: recipient.clientId,
+          assignedDate,
+          assignedBy: coachUserId,
+          notes: input.notes || adjustmentNote || null,
+          status: 'PENDING',
+          calendarEventId: calendarEvent.id,
+        },
+        select: { id: true },
+      })
+      assignments.push({ id: assignment.id, athleteName: recipient.name })
+    }
+
+    return { session, assignments }
+  })
+
+  return {
+    success: true,
+    savedSessionId: result.session.id,
+    assignmentIds: result.assignments.map((assignment) => assignment.id),
+    recipientCount: result.assignments.length,
+    targetLabel: target.targetLabel,
+    workoutName: result.session.name,
+    assignedDate: input.date,
+    startPath: '/coach/cardio',
+    message: toolText(
+      locale,
+      `"${result.session.name}" was repeated and assigned to ${target.targetLabel} on ${input.date}.`,
+      `"${result.session.name}" upprepades och tilldelades till ${target.targetLabel} den ${input.date}.`
+    ),
+  }
+}
+
+export async function buildModifyTeamCardioAssignmentsPreview(
+  coachUserId: string,
+  input: ModifyTeamCardioAssignmentsInput,
+  businessSlug: string | undefined,
+  locale: AppLocale
+) {
+  const ctx: CoachToolContext = { coachUserId, businessSlug, locale }
+  const resolved = await resolveTeamAssignmentsForModification(ctx, input)
+  if (!resolved.success) return resolved
+
+  const contentChanged = hasTeamWorkoutContentChange(input)
+  const first = resolved.assignments[0]
+  const workout = contentChanged
+    ? buildCardioWorkout({
+        workoutType: input.workoutType,
+        rounds: input.rounds,
+        workDurationSeconds: input.workDurationSeconds,
+        restDurationSeconds: input.restDurationSeconds,
+        durationSeconds: input.durationSeconds ?? first.session.totalDuration ?? undefined,
+        intensity: input.intensity,
+        zone: input.zone ?? first.session.avgZone ?? undefined,
+        equipment: input.equipment,
+        targetPower: input.targetPower,
+        targetCadence: input.targetCadence,
+        warmupSeconds: input.warmupSeconds,
+        cooldownSeconds: input.cooldownSeconds,
+        notes: input.notes,
+      }, locale)
+    : null
+  const warnings = await buildCardioLoadWarnings(
+    ctx,
+    resolved.assignments.map((assignment) => ({
+      clientId: assignment.athlete.id,
+      name: assignment.athlete.name,
+      teamId: assignment.athlete.team?.id ?? null,
+      teamName: assignment.athlete.team?.name ?? null,
+    })),
+    input.newDate || input.currentDate
+  )
+
+  const details = [
+    `${toolText(locale, 'Group', 'Grupp')}: ${resolved.target.targetLabel}`,
+    `${toolText(locale, 'Assignments', 'Tilldelningar')}: ${resolved.assignments.length}`,
+    `${toolText(locale, 'Current date', 'Nuvarande datum')}: ${input.currentDate}`,
+  ]
+  if (input.sessionName) details.push(`${toolText(locale, 'Match', 'Matchning')}: ${input.sessionName}`)
+  if (input.newDate) details.push(`${toolText(locale, 'New date', 'Nytt datum')}: ${input.newDate}`)
+  if (input.reason) details.push(`${toolText(locale, 'Reason', 'Orsak')}: ${input.reason}`)
+  if (workout) details.push(...buildWorkoutDetails(input, workout, locale))
+  if (input.notes) details.push(`${toolText(locale, 'Notes', 'Noteringar')}: ${input.notes}`)
+  details.push(...warningDetails(warnings, locale))
+
+  return {
+    success: true as const,
+    target: resolved.target,
+    assignments: resolved.assignments,
+    preview: {
+      title: toolText(locale, `Modify ${resolved.assignments.length} cardio assignments`, `Anpassa ${resolved.assignments.length} konditionstilldelningar`),
+      description: toolText(
+        locale,
+        `Prepares calendar/workout changes for ${resolved.target.targetLabel}. Nothing changes until confirmed.`,
+        `Förbereder kalender-/passändringar för ${resolved.target.targetLabel}. Inget ändras förrän det bekräftas.`
+      ),
+      targetLabel: resolved.target.targetLabel,
+      details,
+      recipients: toPublicRecipients(resolved.assignments.map((assignment) => ({
+        clientId: assignment.athlete.id,
+        name: assignment.athlete.name,
+        teamId: assignment.athlete.team?.id ?? null,
+        teamName: assignment.athlete.team?.name ?? null,
+      }))),
+      recipientCount: resolved.assignments.length,
+      confirmLabel: toolText(locale, 'Modify assignments', 'Anpassa tilldelningar'),
+      reviewHref: '/coach/cardio',
+    },
+  }
+}
+
+export async function executeModifyTeamCardioAssignments(
+  coachUserId: string,
+  input: ModifyTeamCardioAssignmentsInput,
+  businessSlug: string | undefined,
+  locale: AppLocale
+) {
+  const ctx: CoachToolContext = { coachUserId, businessSlug, locale }
+  const resolved = await resolveTeamAssignmentsForModification(ctx, input)
+  if (!resolved.success) return resolved
+
+  const contentChanged = hasTeamWorkoutContentChange(input)
+  const newDate = input.newDate ? dateFromKey(input.newDate) : dateFromKey(input.currentDate)
+  const first = resolved.assignments[0]
+
+  const result = await prisma.$transaction(async (tx) => {
+    let sharedSessionId: string | null = null
+    let sharedSessionName: string | null = null
+    if (contentChanged) {
+      const workout = buildCardioWorkout({
+        workoutType: input.workoutType,
+        rounds: input.rounds,
+        workDurationSeconds: input.workDurationSeconds,
+        restDurationSeconds: input.restDurationSeconds,
+        durationSeconds: input.durationSeconds ?? first.session.totalDuration ?? undefined,
+        intensity: input.intensity,
+        zone: input.zone ?? first.session.avgZone ?? undefined,
+        equipment: input.equipment,
+        targetPower: input.targetPower,
+        targetCadence: input.targetCadence,
+        warmupSeconds: input.warmupSeconds,
+        cooldownSeconds: input.cooldownSeconds,
+        notes: input.notes || input.reason,
+      }, locale)
+      const session = await tx.cardioSession.create({
+        data: {
+          name: input.name || `${toolText(locale, 'Adjusted cardio', 'Anpassad kondition')} - ${input.currentDate}`,
+          description: input.reason || input.notes || null,
+          sport: input.sport || first.session.sport,
+          segments: workout.segments as Prisma.InputJsonValue,
+          totalDuration: workout.totalDurationSeconds || first.session.totalDuration,
+          totalDistance: workout.totalDistanceMeters ?? first.session.totalDistance,
+          avgZone: workout.avgZone ?? first.session.avgZone,
+          coachId: coachUserId,
+          teamId: resolved.target.teamId,
+          tags: [...new Set([...(first.session.tags || []), 'ai-batch-modified'])],
+        },
+        select: { id: true, name: true },
+      })
+      sharedSessionId = session.id
+      sharedSessionName = session.name
+    }
+
+    const updated: Array<{ id: string; athleteName: string }> = []
+    for (const assignment of resolved.assignments) {
+      const notes = [
+        input.notes || assignment.notes || null,
+        input.reason ? `${toolText(locale, 'Reason', 'Orsak')}: ${input.reason}` : null,
+      ].filter(Boolean).join('\n')
+      await tx.cardioSessionAssignment.update({
+        where: { id: assignment.id },
+        data: {
+          sessionId: sharedSessionId || assignment.session.id,
+          assignedDate: newDate,
+          status: 'MODIFIED',
+          notes: notes || null,
+        },
+      })
+      if (assignment.calendarEventId) {
+        await tx.calendarEvent.update({
+          where: { id: assignment.calendarEventId },
+          data: {
+            title: `${toolText(locale, 'Cardio', 'Kondition')}: ${sharedSessionName || assignment.session.name}`,
+            description: notes || null,
+            startDate: newDate,
+            endDate: newDate,
+            trainingImpact: 'MODIFIED',
+            lastModifiedById: coachUserId,
+          },
+        })
+      }
+      updated.push({ id: assignment.id, athleteName: assignment.athlete.name })
+    }
+
+    return { updated, sharedSessionId, sharedSessionName }
+  })
+
+  return {
+    success: true,
+    assignmentIds: result.updated.map((assignment) => assignment.id),
+    recipientCount: result.updated.length,
+    sessionId: result.sharedSessionId,
+    sessionName: result.sharedSessionName,
+    assignedDate: dateKey(newDate),
+    startPath: '/coach/cardio',
+    message: toolText(
+      locale,
+      `${result.updated.length} cardio assignment(s) were modified for ${dateKey(newDate)}.`,
+      `${result.updated.length} konditionstilldelningar anpassades till ${dateKey(newDate)}.`
     ),
   }
 }

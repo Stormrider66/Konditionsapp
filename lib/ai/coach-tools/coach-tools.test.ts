@@ -46,6 +46,10 @@ const EXPECTED_TOOL_KEYS = [
   // cardio-action-tools
   'createAndAssignCardioWorkout',
   'modifyCardioAssignment',
+  'repeatPreviousCardioWorkout',
+  'modifyTeamCardioAssignments',
+  // briefing-action-tools
+  'prepareCoachDailyBriefing',
 ] as const
 
 describe('createCoachChatTools', () => {

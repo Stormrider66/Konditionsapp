@@ -94,8 +94,11 @@ export type { PageContext } from './floating-chat-tool-status'
 const COACH_VOICE_GUIDE_DISMISSED_KEY = 'floating-ai-voice-guide-dismissed'
 const COACH_REALTIME_ACTION_DRAFT_TOOL_NAMES = new Set([
   'prepareCoachMessageDraft',
+  'prepareCoachDailyBriefing',
   'createAndAssignCardioWorkout',
   'modifyCardioAssignment',
+  'repeatPreviousCardioWorkout',
+  'modifyTeamCardioAssignments',
 ])
 const COACH_REALTIME_DIRECT_TOOL_NAMES = new Set([
   'getCoachReadinessOverview',
