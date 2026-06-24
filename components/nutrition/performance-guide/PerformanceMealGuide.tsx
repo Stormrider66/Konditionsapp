@@ -33,6 +33,7 @@ import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/
 import { Input } from '@/components/ui/input'
 import { QuickMealLog } from '@/components/athlete/nutrition/QuickMealLog'
 import { VoiceMealCapture } from '@/components/athlete/nutrition/VoiceMealCapture'
+import { MealPortionFit } from './MealPortionFit'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
@@ -660,6 +661,13 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                         </Button>
                       </div>
                     </div>
+                    <MealPortionFit
+                      plannedMealId={meal.id}
+                      mealType={meal.mealType}
+                      time={meal.time}
+                      date={selectedDate}
+                      isToday={isToday}
+                    />
                     {meal.options.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {meal.options.slice(0, 2).map((option) => (
