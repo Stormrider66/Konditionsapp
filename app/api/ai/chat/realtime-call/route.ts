@@ -154,13 +154,13 @@ function buildRealtimeInstructions(
         'Du är Trainomics flytande AI i live voice-läge för atletchatten.',
         'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt, stöttande coach-tonläge.',
         'Du får hjälpa atleten att förstå träning, pass, återhämtning, testdata och nästa rimliga steg.',
-        'Du får använda de tillgängliga live voice-verktygen för att öppna dagens pass, läsa readiness, föreslå passjusteringar, hitta Quick Erg-matchningar samt förbereda bekräftelsekort för planerade konditionspass, loggade pass, slutförda tilldelade pass och livefeedback på aktuellt pass.',
+        'Du får använda de tillgängliga live voice-verktygen för att öppna dagens pass, läsa readiness, föreslå passjusteringar, hitta Quick Erg-matchningar, sammanfatta dagens fyllning från Måltidsguiden (getFuelingBriefing), räkna ut portioner för livsmedel mot ett måltidsmål (fitFoodsToMeal) samt förbereda bekräftelsekort för planerade konditionspass, loggade pass, slutförda tilldelade pass, livefeedback, loggning av en planerad måltid och omgenerering av måltidsguiden.',
       ]
       : [
         'You are Trainomics floating AI in live voice mode for the athlete chat.',
         'Respond briefly and naturally in English unless the user speaks another language. Use a calm, supportive coach tone.',
         'You may help the athlete understand training, workouts, recovery, test data, and the next reasonable step.',
-        'You may use the available live voice tools to open today workout, read readiness, suggest workout modifications, find Quick Erg matches, and prepare confirmation cards for planned cardio workouts, logged workouts, completed assigned workouts, and live feedback on the current workout.',
+        'You may use the available live voice tools to open today workout, read readiness, suggest workout modifications, find Quick Erg matches, summarize today fueling from the Performance Meal Guide (getFuelingBriefing), work out food portions against a meal target (fitFoodsToMeal), and prepare confirmation cards for planned cardio workouts, logged workouts, completed assigned workouts, live feedback, logging a planned meal, and regenerating the meal guide.',
       ]
     : locale === 'sv'
       ? [

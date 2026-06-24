@@ -11,6 +11,8 @@ import {
   GET_READINESS_BRIEFING_TOOL_NAME,
   OPEN_TODAY_WORKOUT_TOOL_NAME,
   PROPOSE_WORKOUT_MODIFICATION_TOOL_NAME,
+  GET_FUELING_BRIEFING_TOOL_NAME,
+  FIT_FOODS_TO_MEAL_TOOL_NAME,
   getAthleteLiveVoiceDirectSchema,
   isAthleteLiveVoiceDirectToolName,
   stockholmDateKey,
@@ -19,7 +21,10 @@ import {
   type GetReadinessBriefingInput,
   type OpenTodayWorkoutInput,
   type ProposeWorkoutModificationInput,
+  type GetFuelingBriefingInput,
+  type FitFoodsToMealVoiceInput,
 } from '@/lib/ai/athlete-live-voice-tools'
+import { getFuelingBriefingForVoice, fitFoodsToMealForVoice } from '@/lib/ai/athlete-nutrition-voice'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import {
   asQuickErgStoredPlannedCardioMatch,
@@ -514,6 +519,10 @@ async function executeDirectTool(toolName: AthleteLiveVoiceDirectToolName, clien
       return proposeWorkoutModification(clientId, input as ProposeWorkoutModificationInput, locale)
     case GET_QUICK_ERG_MATCH_SUGGESTIONS_TOOL_NAME:
       return getQuickErgMatchSuggestions(clientId, input as GetQuickErgMatchSuggestionsInput, locale)
+    case GET_FUELING_BRIEFING_TOOL_NAME:
+      return getFuelingBriefingForVoice(clientId, input as GetFuelingBriefingInput, locale)
+    case FIT_FOODS_TO_MEAL_TOOL_NAME:
+      return fitFoodsToMealForVoice(clientId, input as FitFoodsToMealVoiceInput, locale)
   }
 }
 

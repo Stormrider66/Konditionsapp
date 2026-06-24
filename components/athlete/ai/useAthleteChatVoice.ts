@@ -34,12 +34,16 @@ const REALTIME_ACTION_DRAFT_TOOL_NAMES = new Set([
   'logCompletedWorkout',
   'completeAssignedWorkout',
   'updateLiveWorkoutFeedback',
+  'logPlannedMeal',
+  'regeneratePerformanceGuide',
 ])
 const REALTIME_DIRECT_TOOL_NAMES = new Set([
   'openTodayWorkout',
   'getReadinessBriefing',
   'proposeWorkoutModification',
   'getQuickErgMatchSuggestions',
+  'getFuelingBriefing',
+  'fitFoodsToMeal',
 ])
 
 export interface RealtimeNavigationResult {

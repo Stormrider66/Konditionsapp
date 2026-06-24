@@ -23,12 +23,25 @@ export const GET_QUICK_ERG_MATCH_SUGGESTIONS_TOOL_NAME = 'getQuickErgMatchSugges
 export const LOG_COMPLETED_WORKOUT_TOOL_NAME = 'logCompletedWorkout'
 export const COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME = 'completeAssignedWorkout'
 export const UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME = 'updateLiveWorkoutFeedback'
+// Performance Meal Guide voice tools. The action-draft names MUST match the
+// capability registry ids so confirm runs createChatTools[id].execute.
+export const GET_FUELING_BRIEFING_TOOL_NAME = 'getFuelingBriefing'
+export const FIT_FOODS_TO_MEAL_TOOL_NAME = 'fitFoodsToMeal'
+export const LOG_PLANNED_MEAL_TOOL_NAME = 'logPlannedMeal'
+export const REGENERATE_PERFORMANCE_GUIDE_TOOL_NAME = 'regeneratePerformanceGuide'
+
+const VOICE_MEAL_TYPES = [
+  'BREAKFAST', 'MORNING_SNACK', 'LUNCH', 'AFTERNOON_SNACK',
+  'PRE_WORKOUT', 'POST_WORKOUT', 'DINNER', 'EVENING_SNACK',
+] as const
 
 export const ATHLETE_LIVE_VOICE_ACTION_DRAFT_TOOL_NAMES = [
   CREATE_CARDIO_WORKOUT_TOOL_NAME,
   LOG_COMPLETED_WORKOUT_TOOL_NAME,
   COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME,
   UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME,
+  LOG_PLANNED_MEAL_TOOL_NAME,
+  REGENERATE_PERFORMANCE_GUIDE_TOOL_NAME,
 ] as const
 
 export const ATHLETE_LIVE_VOICE_DIRECT_TOOL_NAMES = [
@@ -36,6 +49,8 @@ export const ATHLETE_LIVE_VOICE_DIRECT_TOOL_NAMES = [
   GET_READINESS_BRIEFING_TOOL_NAME,
   PROPOSE_WORKOUT_MODIFICATION_TOOL_NAME,
   GET_QUICK_ERG_MATCH_SUGGESTIONS_TOOL_NAME,
+  GET_FUELING_BRIEFING_TOOL_NAME,
+  FIT_FOODS_TO_MEAL_TOOL_NAME,
 ] as const
 
 export type AthleteLiveVoiceActionDraftToolName = typeof ATHLETE_LIVE_VOICE_ACTION_DRAFT_TOOL_NAMES[number]
@@ -128,6 +143,25 @@ export const getQuickErgMatchSuggestionsInputSchema = z.object({
   limit: z.number().int().min(1).max(5).optional(),
 })
 
+export const getFuelingBriefingInputSchema = z.object({
+  date: z.string().optional(),
+})
+
+export const fitFoodsToMealVoiceInputSchema = z.object({
+  foods: z.string().min(2).max(300),
+  mealType: z.enum(VOICE_MEAL_TYPES).optional(),
+  date: z.string().optional(),
+})
+
+export const logPlannedMealInputSchema = z.object({
+  mealType: z.enum(VOICE_MEAL_TYPES),
+  date: z.string().optional(),
+})
+
+export const regeneratePerformanceGuideInputSchema = z.object({
+  startDate: z.string().optional(),
+})
+
 export type LogCompletedWorkoutInput = z.infer<typeof logCompletedWorkoutInputSchema>
 export type CompleteAssignedWorkoutInput = z.infer<typeof completeAssignedWorkoutInputSchema>
 export type AthleteLiveWorkoutFeedbackInput = UpdateLiveWorkoutFeedbackInput
@@ -135,6 +169,10 @@ export type OpenTodayWorkoutInput = z.infer<typeof openTodayWorkoutInputSchema>
 export type GetReadinessBriefingInput = z.infer<typeof getReadinessBriefingInputSchema>
 export type ProposeWorkoutModificationInput = z.infer<typeof proposeWorkoutModificationInputSchema>
 export type GetQuickErgMatchSuggestionsInput = z.infer<typeof getQuickErgMatchSuggestionsInputSchema>
+export type GetFuelingBriefingInput = z.infer<typeof getFuelingBriefingInputSchema>
+export type FitFoodsToMealVoiceInput = z.infer<typeof fitFoodsToMealVoiceInputSchema>
+export type LogPlannedMealInput = z.infer<typeof logPlannedMealInputSchema>
+export type RegeneratePerformanceGuideInput = z.infer<typeof regeneratePerformanceGuideInputSchema>
 
 export function isAthleteLiveVoiceActionDraftToolName(value: string): value is AthleteLiveVoiceActionDraftToolName {
   return (ATHLETE_LIVE_VOICE_ACTION_DRAFT_TOOL_NAMES as readonly string[]).includes(value)
@@ -154,6 +192,10 @@ export function getAthleteLiveVoiceActionDraftSchema(toolName: AthleteLiveVoiceA
       return completeAssignedWorkoutInputSchema
     case UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME:
       return updateLiveWorkoutFeedbackInputSchema
+    case LOG_PLANNED_MEAL_TOOL_NAME:
+      return logPlannedMealInputSchema
+    case REGENERATE_PERFORMANCE_GUIDE_TOOL_NAME:
+      return regeneratePerformanceGuideInputSchema
   }
 }
 
@@ -167,6 +209,10 @@ export function getAthleteLiveVoiceDirectSchema(toolName: AthleteLiveVoiceDirect
       return proposeWorkoutModificationInputSchema
     case GET_QUICK_ERG_MATCH_SUGGESTIONS_TOOL_NAME:
       return getQuickErgMatchSuggestionsInputSchema
+    case GET_FUELING_BRIEFING_TOOL_NAME:
+      return getFuelingBriefingInputSchema
+    case FIT_FOODS_TO_MEAL_TOOL_NAME:
+      return fitFoodsToMealVoiceInputSchema
   }
 }
 
@@ -269,6 +315,39 @@ export function buildCompleteAssignedWorkoutPreview(input: CompleteAssignedWorko
   }
 }
 
+export function buildLogPlannedMealPreview(input: LogPlannedMealInput, locale: AppLocale): ActionPreview {
+  const date = dateOrToday(input.date)
+  return {
+    title: t(locale, 'Log planned meal', 'Logga planerad måltid'),
+    description: t(
+      locale,
+      'Log this planned meal as eaten, using the planned macros from the meal guide.',
+      'Logga den här planerade måltiden som ätet, med de planerade makrona från måltidsguiden.'
+    ),
+    targetLabel: input.mealType,
+    details: detailsFrom([
+      `${t(locale, 'Date', 'Datum')}: ${date}`,
+      `${t(locale, 'Meal', 'Måltid')}: ${input.mealType}`,
+    ]),
+    confirmLabel: t(locale, 'Log meal', 'Logga måltid'),
+  }
+}
+
+export function buildRegeneratePerformanceGuidePreview(input: RegeneratePerformanceGuideInput, locale: AppLocale): ActionPreview {
+  const date = dateOrToday(input.startDate)
+  return {
+    title: t(locale, 'Regenerate meal guide', 'Generera om måltidsguide'),
+    description: t(
+      locale,
+      'Rebuild the Performance Meal Guide for the week. This replaces the current planned meals and recipes.',
+      'Bygg om Måltidsguiden för prestation för veckan. Detta ersätter de nuvarande planerade måltiderna och recepten.'
+    ),
+    targetLabel: date,
+    details: detailsFrom([`${t(locale, 'Week start', 'Veckostart')}: ${date}`]),
+    confirmLabel: t(locale, 'Regenerate guide', 'Generera om guide'),
+  }
+}
+
 export function buildAthleteLiveVoiceActionPreview(
   toolName: AthleteLiveVoiceActionDraftToolName,
   input: unknown,
@@ -283,6 +362,10 @@ export function buildAthleteLiveVoiceActionPreview(
       return buildCompleteAssignedWorkoutPreview(input as CompleteAssignedWorkoutInput, locale)
     case UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME:
       return buildUpdateLiveWorkoutFeedbackPreview(input as UpdateLiveWorkoutFeedbackInput, locale)
+    case LOG_PLANNED_MEAL_TOOL_NAME:
+      return buildLogPlannedMealPreview(input as LogPlannedMealInput, locale)
+    case REGENERATE_PERFORMANCE_GUIDE_TOOL_NAME:
+      return buildRegeneratePerformanceGuidePreview(input as RegeneratePerformanceGuideInput, locale)
   }
 }
 
@@ -451,6 +534,79 @@ function quickErgMatchRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
   }
 }
 
+function fuelingBriefingRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: GET_FUELING_BRIEFING_TOOL_NAME,
+    description: t(
+      locale,
+      "Summarize how the athlete is fueling today against the Performance Meal Guide: planned vs eaten calories/macros, % of target, what's left, and which planned meals are still un-logged. Read-only.",
+      'Sammanfatta hur atleten fyller på idag jämfört med Måltidsguiden: planerat vs ätet i kalorier/makros, andel av målet, vad som är kvar och vilka planerade måltider som ännu inte loggats. Endast läsning.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: { date: { type: 'string', description: 'YYYY-MM-DD' } },
+    },
+  }
+}
+
+function fitFoodsToMealRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: FIT_FOODS_TO_MEAL_TOOL_NAME,
+    description: t(
+      locale,
+      "Work out how much of each food to eat to hit a planned meal's target. Use when the athlete names foods for a meal and asks how much. Read-only — does not log.",
+      "Räkna ut hur mycket av varje livsmedel atleten ska äta för att träffa en planerad måltids mål. Använd när atleten nämner livsmedel och frågar hur mycket. Endast läsning — loggar inget."
+    ),
+    parameters: {
+      type: 'object',
+      properties: {
+        foods: { type: 'string', description: t(locale, 'Foods as free text, e.g. "yoghurt, banana".', 'Livsmedel som fritext, t.ex. "yoghurt, banan".') },
+        mealType: { type: 'string', enum: [...VOICE_MEAL_TYPES] },
+        date: { type: 'string', description: 'YYYY-MM-DD' },
+      },
+      required: ['foods'],
+    },
+  }
+}
+
+function logPlannedMealRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: LOG_PLANNED_MEAL_TOOL_NAME,
+    description: t(
+      locale,
+      'Prepare a confirmation card to log a planned meal from the meal guide as eaten (planned macros). Use only when the athlete ate exactly the planned meal. The athlete must confirm.',
+      'Förbered ett bekräftelsekort för att logga en planerad måltid från måltidsguiden som ätet (planerade makros). Använd bara när atleten åt exakt den planerade måltiden. Atleten måste bekräfta.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: {
+        mealType: { type: 'string', enum: [...VOICE_MEAL_TYPES] },
+        date: { type: 'string', description: 'YYYY-MM-DD' },
+      },
+      required: ['mealType'],
+    },
+  }
+}
+
+function regeneratePerformanceGuideRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: REGENERATE_PERFORMANCE_GUIDE_TOOL_NAME,
+    description: t(
+      locale,
+      'Prepare a confirmation card to rebuild the Performance Meal Guide for the week. Use only when the athlete asks for a fresh/new guide. Replaces the current guide. The athlete must confirm.',
+      'Förbered ett bekräftelsekort för att bygga om Måltidsguiden för veckan. Använd bara när atleten ber om en ny/fräsch guide. Ersätter nuvarande guide. Atleten måste bekräfta.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: { startDate: { type: 'string', description: 'YYYY-MM-DD' } },
+    },
+  }
+}
+
 export function buildAthleteLiveVoiceRealtimeTools(locale: AppLocale): RealtimeFunctionTool[] {
   return [
     openTodayWorkoutRealtimeTool(locale),
@@ -461,5 +617,9 @@ export function buildAthleteLiveVoiceRealtimeTools(locale: AppLocale): RealtimeF
     logCompletedWorkoutRealtimeTool(locale),
     completeAssignedWorkoutRealtimeTool(locale),
     updateLiveWorkoutFeedbackRealtimeTool(locale),
+    fuelingBriefingRealtimeTool(locale),
+    fitFoodsToMealRealtimeTool(locale),
+    logPlannedMealRealtimeTool(locale),
+    regeneratePerformanceGuideRealtimeTool(locale),
   ]
 }
