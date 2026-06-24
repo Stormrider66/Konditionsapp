@@ -31,6 +31,7 @@ const EXPECTED_WRITE_TOOL_KEYS = [
   'logCompletedWorkout',
   'completeAssignedWorkout',
   'createCardioWorkout',
+  'updateLiveWorkoutFeedback',
 ] as const
 
 describe('createAthleteReadTools', () => {

@@ -176,6 +176,10 @@ MovementScreen
 NutritionRecipe
 NutritionRecipeIngredient
 NutritionGoal
+NutritionPerformancePlan
+NutritionPlanDay
+NutritionPlannedMeal
+NutritionPlannedMealOption
 NutritionWrapped
 OAuthRequestToken
 OneRepMaxHistory

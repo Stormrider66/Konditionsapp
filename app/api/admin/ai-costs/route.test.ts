@@ -206,6 +206,10 @@ describe('admin AI costs route', () => {
   })
 
   it('reconciles app estimates against imported provider invoices', async () => {
+    const now = Date.now()
+    const invoicePeriodStart = new Date(now - 31 * 24 * 60 * 60 * 1000)
+    const invoicePeriodEnd = new Date(now + 24 * 60 * 60 * 1000)
+
     mockPrisma.aIUsageLog.findMany.mockResolvedValue([
       usageLog({ category: 'food_scan', estimatedCost: 1, clientId: 'client-1' }),
       usageLog({ category: 'chat', estimatedCost: 0.5, clientId: 'client-1' }),
@@ -216,16 +220,16 @@ describe('admin AI costs route', () => {
         serviceDescription: 'Gemini API',
         skuDescription: 'Generate content token count',
         costSek: 60,
-        periodStart: new Date('2026-05-01T00:00:00Z'),
-        periodEnd: new Date('2026-06-01T00:00:00Z'),
+        periodStart: invoicePeriodStart,
+        periodEnd: invoicePeriodEnd,
       },
       {
         provider: 'OPENAI',
         serviceDescription: 'OpenAI API',
         skuDescription: 'Responses API',
         costSek: 10,
-        periodStart: new Date('2026-05-01T00:00:00Z'),
-        periodEnd: new Date('2026-06-01T00:00:00Z'),
+        periodStart: invoicePeriodStart,
+        periodEnd: invoicePeriodEnd,
       },
     ])
 
