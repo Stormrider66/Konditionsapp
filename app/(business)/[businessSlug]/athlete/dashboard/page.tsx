@@ -879,7 +879,7 @@ export default async function BusinessAthleteDashboardPage({ params }: BusinessA
             ) },
             { key: 'training-trend-chart', node: <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} /> },
             { key: 'zone-distribution-chart', node: <ZoneDistributionChart clientId={clientId} variant="glass" /> },
-            { key: 'nutrition-dashboard', node: <NutritionDashboard clientId={clientId} /> },
+            { key: 'nutrition-dashboard', node: <NutritionDashboard clientId={clientId} mode="summary" /> },
             { key: 'integrated-recent-activity', node: <IntegratedRecentActivity clientId={clientId} variant="glass" /> },
             { key: 'interval-results-history', node: <IntervalResultsHistory maxAgeHours={24} hideWhenEmpty /> },
             { key: 'athlete-drill-list', node: <AthleteDrillList athletePosition={client.position ?? undefined} /> },

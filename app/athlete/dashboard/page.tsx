@@ -353,7 +353,7 @@ export default async function AthleteDashboardPage() {
 
           <ZoneDistributionChart clientId={clientId} variant="glass" />
 
-          <NutritionDashboard clientId={clientId} />
+          <NutritionDashboard clientId={clientId} mode="summary" />
 
           <IntegratedRecentActivity clientId={clientId} variant="glass" />
 

@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
+  ArrowRight,
   Utensils,
   Settings,
   RefreshCw,
@@ -67,6 +68,7 @@ interface NutritionGoal {
 
 interface NutritionDashboardProps {
   clientId: string
+  mode?: 'full' | 'summary'
 }
 
 const HISTORY_DAYS = 14
@@ -80,7 +82,35 @@ function toISODate(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
-export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
+function SummaryMacroBar({
+  label,
+  current,
+  target,
+  color,
+}: {
+  label: string
+  current: number
+  target: number
+  color: string
+}) {
+  const percentage = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0
+
+  return (
+    <div className="min-w-0 space-y-1">
+      <div className="flex items-center justify-between gap-2 text-[11px]">
+        <span className="truncate text-slate-500 dark:text-slate-400">{label}</span>
+        <span className="shrink-0 font-medium text-slate-700 dark:text-slate-300">
+          {Math.round(current)} / {Math.round(target)}
+        </span>
+      </div>
+      <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+        <div className={`h-full rounded-full transition-all ${color}`} style={{ width: `${percentage}%` }} />
+      </div>
+    </div>
+  )
+}
+
+export function NutritionDashboard({ clientId, mode = 'full' }: NutritionDashboardProps) {
   const t = useTranslations('components.nutritionDashboard')
   const locale = useLocale()
   const basePath = useBasePath()
@@ -263,6 +293,86 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
     nutritionGoal?.goalType === 'WEIGHT_LOSS' ? 'deficit'
     : nutritionGoal?.goalType === 'WEIGHT_GAIN' ? 'surplus'
     : 'maintenance'
+
+  if (mode === 'summary') {
+    const consumed = selectedConsumed ?? { calories: 0, proteinGrams: 0, carbsGrams: 0, fatGrams: 0 }
+    const remainingCalories = Math.max(0, macroGoals.calories - consumed.calories)
+    const mealCount = selectedData?.mealCount ?? 0
+
+    return (
+      <GlassCard>
+        <GlassCardHeader className="pb-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <GlassCardTitle className="flex items-center gap-2 text-base text-cyan-700 dark:text-cyan-300">
+                <Utensils className="h-5 w-5" />
+                {t('summary.title')}
+              </GlassCardTitle>
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 capitalize">
+                {formattedDate}
+              </p>
+            </div>
+            <Button asChild size="sm" variant="outline" className="gap-2">
+              <Link href={`${basePath}/athlete/nutrition`}>
+                {t('summary.openGuide')}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        </GlassCardHeader>
+        <GlassCardContent className="space-y-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="min-w-0 border-b border-slate-200 pb-3 dark:border-slate-800 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {t('summary.calories')}
+              </p>
+              <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">
+                {Math.round(consumed.calories)} / {macroGoals.calories}
+              </p>
+            </div>
+            <div className="min-w-0 border-b border-slate-200 pb-3 dark:border-slate-800 sm:border-b-0 sm:border-r sm:px-4 sm:pb-0">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {t('summary.remaining')}
+              </p>
+              <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">
+                {Math.round(remainingCalories)} kcal
+              </p>
+            </div>
+            <div className="min-w-0 sm:pl-4">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                {t('summary.loggedMeals')}
+              </p>
+              <p className="mt-1 text-xl font-semibold text-slate-900 dark:text-white">
+                {mealCount}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <SummaryMacroBar label={t('summary.macros.calories')} current={consumed.calories} target={macroGoals.calories} color="bg-cyan-500" />
+            <SummaryMacroBar label={t('summary.macros.protein')} current={consumed.proteinGrams} target={macroGoals.proteinGrams} color="bg-emerald-500" />
+            <SummaryMacroBar label={t('summary.macros.carbs')} current={consumed.carbsGrams} target={macroGoals.carbsGrams} color="bg-blue-500" />
+            <SummaryMacroBar label={t('summary.macros.fat')} current={consumed.fatGrams} target={macroGoals.fatGrams} color="bg-amber-500" />
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button asChild className="gap-2 sm:flex-1">
+              <Link href={`${basePath}/athlete/nutrition`}>
+                <Sparkles className="h-4 w-4" />
+                {t('summary.mealGuide')}
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2 sm:flex-1">
+              <Link href={`${basePath}/athlete/nutrition/scan?returnTo=nutrition`}>
+                <Camera className="h-4 w-4" />
+                {t('actions.scanMeal')}
+              </Link>
+            </Button>
+          </div>
+        </GlassCardContent>
+      </GlassCard>
+    )
+  }
 
   return (
     <div className="space-y-4">

@@ -958,8 +958,10 @@
     },
     "nutrition": {
       "backToDashboard": "Back to dashboard",
-      "title": "Nutrition stats",
-      "subtitle": "Trends, goals & distribution"
+      "title": "Nutrition",
+      "subtitle": "Meal guide, recipes, logging & trends",
+      "statsTitle": "Nutrition trends",
+      "statsSubtitle": "History, distribution and adherence over time"
     },
     "lactateEntry": {
       "title": "Report lactate values",
@@ -1650,8 +1652,10 @@
     "nutrition": {
       "stats": {
         "backToDashboard": "Back to dashboard",
-        "title": "Nutrition stats",
-        "subtitle": "Trends, goals & distribution"
+        "title": "Nutrition",
+        "subtitle": "Meal guide, recipes, logging & trends",
+        "statsTitle": "Nutrition trends",
+        "statsSubtitle": "History, distribution and adherence over time"
       },
       "wrapped": {
         "metadataTitle": "Nutrition summary | Nutrition",
@@ -2007,6 +2011,7 @@
     "mobile": {
       "dashboard": "Dashboard",
       "calendar": "Calendar",
+      "nutrition": "Nutrition",
       "athletes": "Athletes",
       "programs": "Programs",
       "tools": "Tools",
@@ -2045,6 +2050,7 @@
         "dashboard": "Overview & today",
         "checkIn": "Daily readiness",
         "calendar": "Training, races & events",
+        "nutrition": "Meal guide, recipes & logging",
         "history": "Training history",
         "programs": "Your training programs",
         "strengthTraining": "Strength sessions & templates",
@@ -13281,6 +13287,20 @@
         "nutritionStats": "Nutrition stats",
         "scanMeal": "Scan meal",
         "refresh": "Refresh"
+      },
+      "summary": {
+        "title": "Today's nutrition",
+        "openGuide": "Open",
+        "calories": "Calories",
+        "remaining": "Remaining",
+        "loggedMeals": "Logged meals",
+        "mealGuide": "Meal guide",
+        "macros": {
+          "calories": "kcal",
+          "protein": "Protein",
+          "carbs": "Carbs",
+          "fat": "Fat"
+        }
       },
       "empty": {
         "title": "No nutrition data available",

@@ -8,7 +8,7 @@ import { SportType } from '@prisma/client'
 import {
   Menu, X, Users, User as UserIcon, Users2, MessageSquare, Calendar, CalendarDays, Dumbbell,
   ClipboardList, TrendingUp, FlaskConical, CheckCircle, Droplet, LayoutDashboard, Video, Settings,
-  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Gift, BarChart3, Shield, Building2
+  Sparkles, FileStack, Activity, ChevronDown, TestTube, Brain, Wrench, Flame, Heart, Gauge, Ship, Gift, BarChart3, Shield, Building2, Utensils
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { NotificationBell } from '@/components/calendar/NotificationsPanel'
@@ -219,6 +219,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: `${basePath}/athlete/dashboard`, label: t('mobile.dashboard'), icon: LayoutDashboard },
     { href: `${basePath}/athlete/check-in`, label: t('mobile.checkIn'), icon: CheckCircle },
     { href: `${basePath}/athlete/calendar`, label: t('mobile.calendar'), icon: Calendar },
+    { href: `${basePath}/athlete/nutrition`, label: t('mobile.nutrition'), icon: Utensils },
   ]
 
   // Athlete grouped navigation for dropdowns
@@ -260,6 +261,7 @@ export function MobileNav({ user, userRole, sportProfile, clientId }: MobileNavP
     { href: `${basePath}/athlete/dashboard`, label: t('mobile.dashboard'), icon: LayoutDashboard, description: t('mobile.descriptions.dashboard') },
     { href: `${basePath}/athlete/check-in`, label: t('mobile.checkIn'), icon: CheckCircle, description: t('mobile.descriptions.checkIn'), highlight: true },
     { href: `${basePath}/athlete/calendar`, label: t('mobile.calendar'), icon: Calendar, description: t('mobile.descriptions.calendar') },
+    { href: `${basePath}/athlete/nutrition`, label: t('mobile.nutrition'), icon: Utensils, description: t('mobile.descriptions.nutrition') },
 
     // Training & History
     { href: `${basePath}/athlete/history`, label: t('mobile.history'), icon: TrendingUp, description: t('mobile.descriptions.history') },

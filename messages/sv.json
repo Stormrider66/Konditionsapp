@@ -958,8 +958,10 @@
     },
     "nutrition": {
       "backToDashboard": "Tillbaka till dashboard",
-      "title": "Koststatistik",
-      "subtitle": "Trender, mål & fördelning"
+      "title": "Kost",
+      "subtitle": "Måltidsguide, recept, loggning & trender",
+      "statsTitle": "Kosttrender",
+      "statsSubtitle": "Historik, fördelning och målföljsamhet över tid"
     },
     "lactateEntry": {
       "title": "Rapportera laktatvärden",
@@ -1650,8 +1652,10 @@
     "nutrition": {
       "stats": {
         "backToDashboard": "Tillbaka till dashboard",
-        "title": "Koststatistik",
-        "subtitle": "Trender, mål & fördelning"
+        "title": "Kost",
+        "subtitle": "Måltidsguide, recept, loggning & trender",
+        "statsTitle": "Kosttrender",
+        "statsSubtitle": "Historik, fördelning och målföljsamhet över tid"
       },
       "wrapped": {
         "metadataTitle": "Kostsammanfattning | Kost",
@@ -2007,6 +2011,7 @@
     "mobile": {
       "dashboard": "Dashboard",
       "calendar": "Kalender",
+      "nutrition": "Kost",
       "athletes": "Atleter",
       "programs": "Program",
       "tools": "Verktyg",
@@ -2045,6 +2050,7 @@
         "dashboard": "Översikt & idag",
         "checkIn": "Daglig readiness",
         "calendar": "Träning, tävlingar & händelser",
+        "nutrition": "Måltidsguide, recept & loggning",
         "history": "Träningshistorik",
         "programs": "Dina träningsprogram",
         "strengthTraining": "Styrkepass & mallar",
@@ -13641,6 +13647,20 @@
         "nutritionStats": "Koststatistik",
         "scanMeal": "Skanna måltid",
         "refresh": "Uppdatera"
+      },
+      "summary": {
+        "title": "Dagens kost",
+        "openGuide": "Öppna",
+        "calories": "Kalorier",
+        "remaining": "Kvar",
+        "loggedMeals": "Loggade mål",
+        "mealGuide": "Måltidsguide",
+        "macros": {
+          "calories": "kcal",
+          "protein": "Protein",
+          "carbs": "Kolhydr.",
+          "fat": "Fett"
+        }
       },
       "empty": {
         "title": "Ingen kostdata tillgänglig",
