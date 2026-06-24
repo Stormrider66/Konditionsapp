@@ -30,6 +30,7 @@ import {
 } from '@/lib/ai/capabilities/action-drafts'
 import { createAthleteReadTools } from '@/lib/ai/athlete-read-tools'
 import { createAthleteWorkoutWriteTools } from '@/lib/ai/athlete-workout-tools'
+import { createAthleteNutritionTools } from '@/lib/ai/athlete-nutrition-tools'
 import { dayKeyFromInput, dayKeyInTimeZone, utcDateFromDayKey } from '@/lib/nutrition/day-key'
 import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
 
@@ -71,6 +72,7 @@ export function createChatTools(
   const tools: Record<string, any> = { // eslint-disable-line
     ...createAthleteReadTools(clientId, locale),
     ...createAthleteWorkoutWriteTools(clientId, locale),
+    ...createAthleteNutritionTools(clientId, locale),
 
     createTodayWorkout: tool({
       description:

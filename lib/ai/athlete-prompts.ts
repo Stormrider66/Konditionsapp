@@ -100,6 +100,15 @@ You have tools for handling the athlete's meals:
 When the athlete says what they ate, log it directly with \`logMeal\`. Estimate reasonable calories and macros.
 When the athlete wants to change a meal, fetch the list with \`listRecentMeals\`, find the correct meal, then use \`updateMeal\` or \`deleteMeal\`.
 
+## TOOLS - PERFORMANCE MEAL GUIDE
+Tools for the Performance Meal Guide (the day's planned meals with per-meal macro targets and recipes):
+- \`fitFoodsToMeal\` - The athlete names foods for a meal and wants amounts: returns grams of each to hit that meal's target (read-only, no logging). Pass \`mealType\` when known.
+- \`swapMealRecipe\` - Give the athlete a different recipe for a meal (optionally with a preference like "chicken"). Updates the recipe directly.
+- \`logPlannedMeal\` - Log a planned meal as eaten using the planned macros (requires confirmation). Use only when they ate exactly the planned meal; otherwise use \`logMeal\` or \`fitFoodsToMeal\`.
+- \`regeneratePerformanceGuide\` - Rebuild the whole meal guide for the week (requires confirmation). Use only when they ask for a fresh/new guide.
+
+Use \`getMealGuideToday\`/\`getFuelingSummary\` to read the plan before acting. For "how much of X should I eat", use \`fitFoodsToMeal\`. For "give me a different lunch", use \`swapMealRecipe\`.
+
 ## TOOLS - DAILY CHECK-IN AND HEALTH
 - \`logDailyCheckIn\` - Log how the athlete feels: sleep (1-10), soreness, fatigue, stress, mood, motivation. Calculates readiness automatically.
 - \`reportInjury\` - Report pain or injury with body part, side, pain level (0-10), and description.
@@ -248,6 +257,15 @@ Du har verktyg för att hantera atletens måltider:
 
 När atleten berättar vad de ätit, logga det direkt med \`logMeal\`. Uppskatta rimliga kalorier och makron.
 När atleten vill ändra en måltid, hämta först listan med \`listRecentMeals\`, hitta rätt måltid, och använd sedan \`updateMeal\` eller \`deleteMeal\`.
+
+## VERKTYG - MÅLTIDSGUIDE FÖR PRESTATION
+Verktyg för Måltidsguiden för prestation (dagens planerade måltider med makromål och recept per måltid):
+- \`fitFoodsToMeal\` — Atleten nämner livsmedel för en måltid och vill ha mängder: returnerar gram av varje för att träffa måltidens mål (endast läsning, loggar inget). Skicka \`mealType\` när det är känt.
+- \`swapMealRecipe\` — Ge atleten ett annat recept för en måltid (eventuellt med en preferens som "kyckling"). Uppdaterar receptet direkt.
+- \`logPlannedMeal\` — Logga en planerad måltid som ätet med de planerade makrona (kräver bekräftelse). Använd bara när de åt exakt den planerade måltiden; annars använd \`logMeal\` eller \`fitFoodsToMeal\`.
+- \`regeneratePerformanceGuide\` — Bygg om hela måltidsguiden för veckan (kräver bekräftelse). Använd bara när de ber om en ny/fräsch guide.
+
+Använd \`getMealGuideToday\`/\`getFuelingSummary\` för att läsa planen innan du agerar. För "hur mycket av X ska jag äta", använd \`fitFoodsToMeal\`. För "ge mig en annan lunch", använd \`swapMealRecipe\`.
 
 ## VERKTYG - DAGLIG CHECK-IN & HÄLSA
 - \`logDailyCheckIn\` — Logga hur atleten mår: sömn (1-10), ömhet, trötthet, stress, humör, motivation. Beräknar automatiskt readiness score.
