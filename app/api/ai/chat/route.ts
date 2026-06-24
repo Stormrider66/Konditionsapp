@@ -9,7 +9,7 @@
  */
 
 import { NextRequest } from 'next/server'
-import { streamText, type LanguageModel } from 'ai'
+import { streamText, stepCountIs, type LanguageModel } from 'ai'
 import { requireCoach, resolveAthleteClientId } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { checkAthleteFeatureAccess } from '@/lib/subscription/feature-access'
@@ -379,7 +379,9 @@ export async function POST(request: NextRequest) {
             conversationId,
           }
         ),
-        maxSteps: 4,
+        // ai@5 ignores maxSteps; stopWhen is what actually enables multi-step
+        // so the model can call a read tool then narrate the result.
+        stopWhen: stepCountIs(4),
       }),
       ...(!isAthleteChat && {
         tools: createCoachChatTools(
@@ -394,7 +396,7 @@ export async function POST(request: NextRequest) {
             conversationId,
           }
         ),
-        maxSteps: 6,
+        stopWhen: stepCountIs(6),
       }),
       ...(provider === 'GOOGLE' && deepThinkEnabled && {
         providerOptions: {
