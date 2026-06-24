@@ -16,6 +16,7 @@ export interface ChatNavigationResult {
     entityType?: 'page' | 'athlete' | 'team'
     entityId?: string | null
     entityName?: string | null
+    autoNavigate?: boolean
   }
 }
 

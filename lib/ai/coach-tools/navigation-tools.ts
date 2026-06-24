@@ -13,6 +13,8 @@ import {
   findAccessibleCoachClients,
   getAccessibleCoachClientById,
   findAccessibleCoachTeam,
+  getCoachAthleteNavigation,
+  getCoachTeamNavigation,
   getStaticCoachNavigation,
 } from './shared'
 
@@ -113,34 +115,13 @@ export function createNavigationTools(ctx: CoachToolContext) {
               }
             }
 
-            const athleteRoutes: Record<string, { href: string; label: string; description: string }> = {
-              athleteProfile: {
-                href: `/coach/clients/${client.id}`,
-                label: toolText(locale, `Open ${client.name}`, `Öppna ${client.name}`),
-                description: toolText(locale, 'Athlete coach profile', 'Atletens coachprofil'),
-              },
-              athleteLogs: {
-                href: `/coach/athletes/${client.id}/logs`,
-                label: toolText(locale, `Open ${client.name}'s training log`, `Öppna ${client.name}s träningslogg`),
-                description: toolText(locale, 'Completed and incomplete sessions', 'Genomförda och ej genomförda pass'),
-              },
-              athleteCalendar: {
-                href: `/coach/athletes/${client.id}/calendar`,
-                label: toolText(locale, `Open ${client.name}'s calendar`, `Öppna ${client.name}s kalender`),
-                description: toolText(locale, 'Athlete planned calendar', 'Atletens planerade kalender'),
-              },
-              athleteFueling: {
-                href: `/coach/clients/${client.id}/fueling`,
-                label: toolText(locale, `Open ${client.name}'s fueling`, `Öppna ${client.name}s fueling`),
-                description: toolText(locale, 'Energy and hydration planning', 'Energi- och vätskeplanering'),
-              },
-              athleteEdit: {
-                href: `/coach/clients/${client.id}/edit`,
-                label: toolText(locale, `Edit ${client.name}`, `Redigera ${client.name}`),
-                description: toolText(locale, 'Athlete profile settings', 'Atletens profilinställningar'),
-              },
+            const navigation = getCoachAthleteNavigation(destination, client, locale)
+            if (!navigation) {
+              return {
+                success: false,
+                error: toolText(locale, 'That destination is not supported yet.', 'Den destinationen stöds inte ännu.'),
+              }
             }
-            const navigation = athleteRoutes[destination]
             return {
               success: true,
               navigation: {
@@ -185,34 +166,13 @@ export function createNavigationTools(ctx: CoachToolContext) {
               }
             }
 
-            const teamRoutes: Record<string, { href: string; label: string; description: string }> = {
-              teamDashboard: {
-                href: `/coach/teams/${team.id}`,
-                label: toolText(locale, `Open ${team.name}`, `Öppna ${team.name}`),
-                description: toolText(locale, 'Team dashboard', 'Lagdashboard'),
-              },
-              teamCalendar: {
-                href: `/coach/teams/${team.id}/calendar`,
-                label: toolText(locale, `Open ${team.name}'s calendar`, `Öppna ${team.name}s kalender`),
-                description: toolText(locale, 'Team calendar', 'Lagets kalender'),
-              },
-              teamStrength: {
-                href: `/coach/teams/${team.id}/kiosk`,
-                label: toolText(locale, `Open ${team.name}'s Team strength`, `Öppna ${team.name}s lagstyrka`),
-                description: toolText(locale, 'Team strength shared logging screen', 'Lagstyrka för gemensam styrkeloggning'),
-              },
-              teamCapture: {
-                href: `/coach/teams/${team.id}/capture`,
-                label: toolText(locale, `Open ${team.name}'s Team cardio`, `Öppna ${team.name}s lagkondition`),
-                description: toolText(locale, 'Team cardio setup and control room', 'Lagkondition med startlista, stationer och kontrollrum'),
-              },
-              teamTests: {
-                href: `/coach/teams/${team.id}/tests`,
-                label: toolText(locale, `Open ${team.name}'s tests`, `Öppna ${team.name}s tester`),
-                description: toolText(locale, 'Team test view', 'Lagets testvy'),
-              },
+            const navigation = getCoachTeamNavigation(destination, team, locale)
+            if (!navigation) {
+              return {
+                success: false,
+                error: toolText(locale, 'That destination is not supported yet.', 'Den destinationen stöds inte ännu.'),
+              }
             }
-            const navigation = teamRoutes[destination]
             return {
               success: true,
               navigation: {

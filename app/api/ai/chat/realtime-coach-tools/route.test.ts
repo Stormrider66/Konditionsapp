@@ -137,6 +137,46 @@ describe('realtime coach direct tools route', () => {
     expect(body.candidates).toHaveLength(2)
   })
 
+  it('returns a navigation result for a static coach page', async () => {
+    const response = await POST(request({
+      toolName: 'suggestCoachNavigation',
+      callId: 'call-nav-1',
+      arguments: { destination: 'messages' },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.callId).toBe('call-nav-1')
+    expect(body.navigation.href).toBe('/coach/messages')
+    expect(body.navigation.entityType).toBe('page')
+    expect(body.navigation.autoNavigate).toBe(true)
+  })
+
+  it('returns a navigation result for an accessible athlete profile', async () => {
+    const clientId = '11111111-1111-4111-8111-111111111111'
+    mockPrisma.client.findMany.mockResolvedValueOnce([
+      {
+        id: clientId,
+        name: 'Henrik Lundholm',
+        team: { id: 'team-1', name: 'A Team' },
+      },
+    ])
+
+    const response = await POST(request({
+      toolName: 'suggestCoachNavigation',
+      arguments: { destination: 'athleteProfile', athleteName: 'Henrik' },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.navigation.href).toBe(`/coach/clients/${clientId}`)
+    expect(body.navigation.entityType).toBe('athlete')
+    expect(body.navigation.entityName).toBe('Henrik Lundholm')
+    expect(body.message).toContain('Henrik Lundholm')
+  })
+
   it('rejects unsupported coach tools', async () => {
     const response = await POST(request({
       toolName: 'deleteWorkout',

@@ -53,8 +53,9 @@ import { cn } from '@/lib/utils'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { getInfoEntriesByKeys } from '@/lib/info-content'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
+import { resolveAppHref } from '@/lib/ai/action-result-links'
 import { useLocale } from '@/i18n/client'
 import { useFloatingChatDrag } from './useFloatingChatDrag'
 import {
@@ -97,6 +98,7 @@ const COACH_REALTIME_ACTION_DRAFT_TOOL_NAMES = new Set([
 const COACH_REALTIME_DIRECT_TOOL_NAMES = new Set([
   'getCoachReadinessOverview',
   'getCoachAthleteCardioSummary',
+  'suggestCoachNavigation',
 ])
 
 interface FloatingAIChatProps {
@@ -147,6 +149,7 @@ export function FloatingAIChat({
   const { toast } = useToast()
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = FLOATING_CHAT_COPY[locale]
+  const router = useRouter()
   const pathname = usePathname()
   const pathBusinessSlug = getBusinessSlugFromPathname(pathname)
   const basePath = pathBusinessSlug ? `/${pathBusinessSlug}` : ''
@@ -226,6 +229,10 @@ export function FloatingAIChat({
   const [realtimeActionResults, setRealtimeActionResults] = useState<Array<{
     id: string
     result: ChatActionResult
+  }>>([])
+  const [realtimeNavigationResults, setRealtimeNavigationResults] = useState<Array<{
+    id: string
+    result: ChatNavigationResult
   }>>([])
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
   const addAssistantNotice = useCallback((content: string) => {
@@ -940,6 +947,16 @@ export function FloatingAIChat({
     ].slice(-4))
   }, [])
 
+  const addRealtimeNavigationResult = useCallback((result: ChatNavigationResult) => {
+    setRealtimeNavigationResults((current) => [
+      ...current,
+      {
+        id: `coach-realtime-navigation-${Date.now()}-${current.length}`,
+        result,
+      },
+    ].slice(-4))
+  }, [])
+
   const sendRealtimeFunctionOutput = useCallback((callId: string, output: unknown): boolean => {
     const dataChannel = realtimeDataChannelRef.current
     if (!dataChannel || dataChannel.readyState !== 'open') return false
@@ -967,8 +984,11 @@ export function FloatingAIChat({
     }
 
     try {
+      const isNavigationTool = call.name === 'suggestCoachNavigation'
       setRealtimeVoiceStatus(isActionDraftTool
         ? (locale === 'sv' ? 'Förbereder bekräftelsekort...' : 'Preparing confirmation card...')
+        : isNavigationTool
+          ? (locale === 'sv' ? 'Öppnar coachvy...' : 'Opening coach view...')
         : (locale === 'sv' ? 'Hämtar coachöversikt...' : 'Checking coach data...'))
 
       const response = await fetch(
@@ -986,6 +1006,7 @@ export function FloatingAIChat({
       )
       const payload = await response.json().catch(() => ({})) as ChatActionResult & {
         message?: string
+        navigation?: ChatNavigationResult['navigation']
         needsClarification?: boolean
         error?: string
       }
@@ -993,6 +1014,12 @@ export function FloatingAIChat({
       if (payload.success && payload.action?.type === 'aiCapabilityAction') {
         addRealtimeActionResult(payload)
         setRealtimeVoiceStatus(locale === 'sv' ? 'Bekräftelsekort klart.' : 'Confirmation card ready.')
+      } else if (payload.success && payload.navigation?.href) {
+        addRealtimeNavigationResult(payload)
+        setRealtimeVoiceStatus(payload.message || (locale === 'sv' ? 'Öppnar vy...' : 'Opening view...'))
+        if (payload.navigation.autoNavigate !== false) {
+          router.push(resolveAppHref(payload.navigation.href, basePath))
+        }
       } else if (payload.success && payload.message) {
         addAssistantNotice(payload.message)
         setRealtimeVoiceStatus(payload.message)
@@ -1017,8 +1044,11 @@ export function FloatingAIChat({
   }, [
     addAssistantNotice,
     addRealtimeActionResult,
+    addRealtimeNavigationResult,
+    basePath,
     locale,
     pathBusinessSlug,
+    router,
     sendRealtimeFunctionOutput,
   ])
 
@@ -1276,6 +1306,7 @@ export function FloatingAIChat({
     setMessages([])
     setAssistantNotices([])
     setRealtimeActionResults([])
+    setRealtimeNavigationResults([])
     setConversationId(null)
     setDetectedProgram(null)
     spokenAssistantMessageIdsRef.current.clear()
@@ -1311,6 +1342,7 @@ export function FloatingAIChat({
       setConversationId(loadConversationId)
       setAssistantNotices([])
       setRealtimeActionResults([])
+      setRealtimeNavigationResults([])
       setDetectedProgram(null)
 
       // Restore the conversation's athlete context
@@ -1655,6 +1687,7 @@ export function FloatingAIChat({
     setMessages([])
     setAssistantNotices([])
     setRealtimeActionResults([])
+    setRealtimeNavigationResults([])
     setConversationId(null)
     setInput('')
     setSelectedSkillIds([])
@@ -1669,6 +1702,7 @@ export function FloatingAIChat({
     setMessages([])
     setAssistantNotices([])
     setRealtimeActionResults([])
+    setRealtimeNavigationResults([])
     setConversationId(null)
     setInput('')
     setSelectedSkillIds([])
@@ -2247,7 +2281,7 @@ export function FloatingAIChat({
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
-        {messages.length === 0 && assistantNotices.length === 0 && realtimeActionResults.length === 0 ? (
+        {messages.length === 0 && assistantNotices.length === 0 && realtimeActionResults.length === 0 && realtimeNavigationResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
             <h3 className="font-medium mb-1">{copy.howCanIHelp}</h3>
@@ -2394,6 +2428,13 @@ export function FloatingAIChat({
                 </div>
               )
             })}
+            {realtimeNavigationResults.map((item) => (
+              <ChatNavigationCard
+                key={item.id}
+                result={item.result}
+                basePath={basePath}
+              />
+            ))}
             {realtimeActionResults.map((item) => (
               <ChatActionCard
                 key={item.id}

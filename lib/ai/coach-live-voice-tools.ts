@@ -6,11 +6,13 @@ import {
 
 export const GET_COACH_READINESS_OVERVIEW_TOOL_NAME = 'getCoachReadinessOverview'
 export const GET_COACH_ATHLETE_CARDIO_SUMMARY_TOOL_NAME = 'getCoachAthleteCardioSummary'
+export const SUGGEST_COACH_NAVIGATION_TOOL_NAME = 'suggestCoachNavigation'
 export const PREPARE_COACH_MESSAGE_DRAFT_TOOL_NAME = 'prepareCoachMessageDraft'
 
 export const COACH_LIVE_VOICE_DIRECT_TOOL_NAMES = [
   GET_COACH_READINESS_OVERVIEW_TOOL_NAME,
   GET_COACH_ATHLETE_CARDIO_SUMMARY_TOOL_NAME,
+  SUGGEST_COACH_NAVIGATION_TOOL_NAME,
 ] as const
 
 export const COACH_LIVE_VOICE_ACTION_DRAFT_TOOL_NAMES = [
@@ -51,8 +53,50 @@ export const coachAthleteCardioSummaryInputSchema = z.object({
   }
 })
 
+export const coachNavigationDestinations = [
+  'dashboard',
+  'calendar',
+  'athletes',
+  'programs',
+  'programBuilder',
+  'aiStudio',
+  'strength',
+  'cardio',
+  'hybrid',
+  'agility',
+  'monitoring',
+  'liveHr',
+  'testOverview',
+  'newTest',
+  'videoAnalysis',
+  'messages',
+  'teams',
+  'settings',
+  'documents',
+  'analytics',
+  'athleteProfile',
+  'athleteLogs',
+  'athleteCalendar',
+  'athleteFueling',
+  'athleteEdit',
+  'teamDashboard',
+  'teamCalendar',
+  'teamStrength',
+  'teamCapture',
+  'teamTests',
+] as const
+
+export const coachNavigationInputSchema = z.object({
+  destination: z.enum(coachNavigationDestinations),
+  clientId: z.string().uuid().optional(),
+  athleteName: z.string().min(2).max(120).optional(),
+  teamId: z.string().uuid().optional(),
+  teamName: z.string().min(2).max(120).optional(),
+})
+
 export type CoachReadinessOverviewInput = z.infer<typeof coachReadinessOverviewInputSchema>
 export type CoachAthleteCardioSummaryInput = z.infer<typeof coachAthleteCardioSummaryInputSchema>
+export type CoachNavigationInput = z.infer<typeof coachNavigationInputSchema>
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -72,6 +116,8 @@ export function getCoachLiveVoiceDirectSchema(toolName: CoachLiveVoiceDirectTool
       return coachReadinessOverviewInputSchema
     case GET_COACH_ATHLETE_CARDIO_SUMMARY_TOOL_NAME:
       return coachAthleteCardioSummaryInputSchema
+    case SUGGEST_COACH_NAVIGATION_TOOL_NAME:
+      return coachNavigationInputSchema
   }
 }
 
@@ -156,10 +202,38 @@ function prepareCoachMessageDraftRealtimeTool(locale: AppLocale): RealtimeFuncti
   }
 }
 
+function suggestCoachNavigationRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: SUGGEST_COACH_NAVIGATION_TOOL_NAME,
+    description: t(
+      locale,
+      'Open or prepare a safe shortcut to a coach page, athlete page, or team page. Use when the coach asks to open, show, go to, or take them to a view. Read-only.',
+      'Öppna eller förbered en säker genväg till en coachsida, atletsida eller lagsida. Använd när coachen ber dig öppna, visa, gå till eller ta dem till en vy. Endast läsning.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: {
+        destination: {
+          type: 'string',
+          enum: coachNavigationDestinations,
+          description: 'Target coach view.',
+        },
+        clientId: { type: 'string' },
+        athleteName: { type: 'string' },
+        teamId: { type: 'string' },
+        teamName: { type: 'string' },
+      },
+      required: ['destination'],
+    },
+  }
+}
+
 export function buildCoachLiveVoiceRealtimeTools(locale: AppLocale): RealtimeFunctionTool[] {
   return [
     coachReadinessOverviewRealtimeTool(locale),
     coachAthleteCardioSummaryRealtimeTool(locale),
+    suggestCoachNavigationRealtimeTool(locale),
     prepareCoachMessageDraftRealtimeTool(locale),
   ]
 }

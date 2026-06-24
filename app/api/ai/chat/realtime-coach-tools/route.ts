@@ -13,12 +13,19 @@ import { stockholmDateKey } from '@/lib/ai/cardio-workout-action'
 import {
   GET_COACH_ATHLETE_CARDIO_SUMMARY_TOOL_NAME,
   GET_COACH_READINESS_OVERVIEW_TOOL_NAME,
+  SUGGEST_COACH_NAVIGATION_TOOL_NAME,
   getCoachLiveVoiceDirectSchema,
   isCoachLiveVoiceDirectToolName,
   type CoachAthleteCardioSummaryInput,
   type CoachLiveVoiceDirectToolName,
+  type CoachNavigationInput,
   type CoachReadinessOverviewInput,
 } from '@/lib/ai/coach-live-voice-tools'
+import {
+  getCoachAthleteNavigation,
+  getCoachTeamNavigation,
+  getStaticCoachNavigation,
+} from '@/lib/ai/coach-tools/shared'
 import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
@@ -447,6 +454,136 @@ async function getCoachAthleteCardioSummary(
   }
 }
 
+const athleteNavigationDestinations = new Set<CoachNavigationInput['destination']>([
+  'athleteProfile',
+  'athleteLogs',
+  'athleteCalendar',
+  'athleteFueling',
+  'athleteEdit',
+])
+
+const teamNavigationDestinations = new Set<CoachNavigationInput['destination']>([
+  'teamDashboard',
+  'teamCalendar',
+  'teamStrength',
+  'teamCapture',
+  'teamTests',
+])
+
+async function suggestCoachNavigation(
+  ctx: CoachRealtimeToolContext,
+  input: CoachNavigationInput
+) {
+  const destination = input.destination
+
+  if (athleteNavigationDestinations.has(destination)) {
+    if (!input.clientId && !input.athleteName) {
+      return {
+        success: false,
+        needsClarification: true,
+        error: t(ctx.locale, 'Ask which athlete to open.', 'Fråga vilken atlet som ska öppnas.'),
+      }
+    }
+
+    const resolved = await resolveAccessibleClient(ctx, input)
+    if (!resolved.ok) return resolved.response
+
+    const client = resolved.client
+    const navigation = getCoachAthleteNavigation(destination, client, ctx.locale)
+    if (!navigation) {
+      return {
+        success: false,
+        error: t(ctx.locale, 'That destination is not supported yet.', 'Den destinationen stöds inte ännu.'),
+      }
+    }
+
+    return {
+      success: true,
+      message: t(
+        ctx.locale,
+        `Opening ${navigation.description.toLowerCase()} for ${client.name}.`,
+        `Öppnar ${navigation.description.toLowerCase()} för ${client.name}.`
+      ),
+      navigation: {
+        ...navigation,
+        destination,
+        entityType: 'athlete',
+        entityId: client.id,
+        entityName: client.name,
+        autoNavigate: true,
+      },
+    }
+  }
+
+  if (teamNavigationDestinations.has(destination)) {
+    if (!input.teamId && !input.teamName) {
+      return {
+        success: false,
+        needsClarification: true,
+        error: t(ctx.locale, 'Ask which team to open.', 'Fråga vilket lag som ska öppnas.'),
+      }
+    }
+
+    const teamFilter = await resolveTeamFilter(ctx, input)
+    if (!teamFilter.ok) return teamFilter.response
+    if (!teamFilter.teamId || !teamFilter.teamLabel) {
+      return {
+        success: false,
+        needsClarification: true,
+        error: t(ctx.locale, 'Ask which team to open.', 'Fråga vilket lag som ska öppnas.'),
+      }
+    }
+
+    const teamId = teamFilter.teamId
+    const teamName = teamFilter.teamLabel
+    const navigation = getCoachTeamNavigation(destination, { id: teamId, name: teamName }, ctx.locale)
+    if (!navigation) {
+      return {
+        success: false,
+        error: t(ctx.locale, 'That destination is not supported yet.', 'Den destinationen stöds inte ännu.'),
+      }
+    }
+
+    return {
+      success: true,
+      message: t(
+        ctx.locale,
+        `Opening ${navigation.description.toLowerCase()} for ${teamName}.`,
+        `Öppnar ${navigation.description.toLowerCase()} för ${teamName}.`
+      ),
+      navigation: {
+        ...navigation,
+        destination,
+        entityType: 'team',
+        entityId: teamId,
+        entityName: teamName,
+        autoNavigate: true,
+      },
+    }
+  }
+
+  const navigation = getStaticCoachNavigation(destination, ctx.locale)
+  if (!navigation) {
+    return {
+      success: false,
+      error: t(ctx.locale, 'That destination is not supported yet.', 'Den destinationen stöds inte ännu.'),
+    }
+  }
+
+  return {
+    success: true,
+    message: t(ctx.locale, `Opening ${navigation.label.toLowerCase()}.`, `Öppnar ${navigation.label.toLowerCase()}.`),
+    navigation: {
+      ...navigation,
+      destination,
+      entityType: 'page',
+      entityId: null,
+      entityName: null,
+      autoNavigate: true,
+    },
+  }
+}
+
 async function executeDirectTool(
   toolName: CoachLiveVoiceDirectToolName,
   ctx: CoachRealtimeToolContext,
@@ -457,6 +594,8 @@ async function executeDirectTool(
       return getCoachReadinessOverview(ctx, input as CoachReadinessOverviewInput)
     case GET_COACH_ATHLETE_CARDIO_SUMMARY_TOOL_NAME:
       return getCoachAthleteCardioSummary(ctx, input as CoachAthleteCardioSummaryInput)
+    case SUGGEST_COACH_NAVIGATION_TOOL_NAME:
+      return suggestCoachNavigation(ctx, input as CoachNavigationInput)
   }
 }
 

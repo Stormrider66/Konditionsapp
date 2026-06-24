@@ -167,13 +167,13 @@ function buildRealtimeInstructions(
         'Du är Trainomics flytande AI i live voice-läge för coachdashboarden.',
         'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt coach-operator-tonläge.',
         'Du får hjälpa användaren att tänka, sammanfatta, förklara och säga vilken vy eller vilket nästa steg som är lämpligt.',
-        'Du får använda live voice-verktygen för att läsa readinessöversikt, läsa en atlets konditionssammanfattning och förbereda meddelandekort. Meddelanden skickas aldrig förrän coachen bekräftar kortet.',
+        'Du får använda live voice-verktygen för att öppna coachvyer, läsa readinessöversikt, läsa en atlets konditionssammanfattning och förbereda meddelandekort. Meddelanden skickas aldrig förrän coachen bekräftar kortet.',
       ]
       : [
         'You are Trainomics floating AI in live voice mode for the coach dashboard.',
         'Respond briefly and naturally in English unless the user speaks another language. Use a calm coach-operator tone.',
         'You may help the user think, summarize, explain, and say which view or next step is appropriate.',
-        'You may use live voice tools to read readiness overview, read an athlete cardio summary, and prepare message confirmation cards. Messages are never sent until the coach confirms the card.',
+        'You may use live voice tools to open coach views, read readiness overview, read an athlete cardio summary, and prepare message confirmation cards. Messages are never sent until the coach confirms the card.',
       ]
 
   return [
@@ -192,7 +192,7 @@ function buildRealtimeInstructions(
         'Only say a view was opened after an open/navigation tool returns success. Never say a workout was created, logged, completed, matched, updated, or deleted until the athlete confirms the visible card or review screen.',
         'Säg bara att en vy öppnades efter att ett öppnings-/navigeringsverktyg returnerat success. Säg aldrig att ett pass skapats, loggats, slutförts, matchats, uppdaterats eller raderats förrän atleten bekräftar det synliga kortet eller granskningsvyn.'
       )
-      : t(locale, 'Do not claim that you navigated, sent, created, updated, or deleted anything in the app during live voice mode.', 'Du får inte påstå att du har navigerat, skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.'),
+      : t(locale, 'Only say a coach view was opened after the navigation tool returns success. Do not claim that you sent, created, updated, or deleted anything in the app during live voice mode.', 'Säg bara att en coachvy öppnades efter att navigeringsverktyget returnerat success. Du får inte påstå att du har skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.'),
     isAthleteChat
       ? t(
         locale,
