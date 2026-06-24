@@ -30,6 +30,7 @@ import {
   stockholmDateKey,
 } from '@/lib/ai/cardio-workout-action'
 import { buildAthleteLiveVoiceRealtimeTools } from '@/lib/ai/athlete-live-voice-tools'
+import { buildCoachLiveVoiceRealtimeTools } from '@/lib/ai/coach-live-voice-tools'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -166,13 +167,13 @@ function buildRealtimeInstructions(
         'Du är Trainomics flytande AI i live voice-läge för coachdashboarden.',
         'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt coach-operator-tonläge.',
         'Du får hjälpa användaren att tänka, sammanfatta, förklara och säga vilken vy eller vilket nästa steg som är lämpligt.',
-        'För åtgärder som skickar meddelanden, ändrar data, skapar pass/program eller öppnar vyer: be användaren använda den vanliga chatten/confirm-kortet så åtgärden blir synlig och bekräftad.',
+        'Du får använda live voice-verktygen för att läsa readinessöversikt, läsa en atlets konditionssammanfattning och förbereda meddelandekort. Meddelanden skickas aldrig förrän coachen bekräftar kortet.',
       ]
       : [
         'You are Trainomics floating AI in live voice mode for the coach dashboard.',
         'Respond briefly and naturally in English unless the user speaks another language. Use a calm coach-operator tone.',
         'You may help the user think, summarize, explain, and say which view or next step is appropriate.',
-        'For actions that send messages, change data, create workouts/programs, or open views: ask the user to use the regular chat/confirmation card so the action is visible and confirmed.',
+        'You may use live voice tools to read readiness overview, read an athlete cardio summary, and prepare message confirmation cards. Messages are never sent until the coach confirms the card.',
       ]
 
   return [
@@ -198,7 +199,11 @@ function buildRealtimeInstructions(
         'If rest, intensity, RPE, duration, or workout identity is missing for a write action, ask one short follow-up before preparing a card. Unsupported actions such as meals or check-ins should be routed to normal text chat.',
         'Om vila, intensitet, RPE, duration eller vilket pass det gäller saknas för en skrivåtgärd ska du ställa en kort följdfråga innan du förbereder ett kort. Åtgärder som inte stöds, som måltider eller check-ins, ska hänvisas till vanlig textchatt.'
       )
-      : '',
+      : t(
+        locale,
+        'If athlete name, team name, or message content is missing for a coach tool, ask one short follow-up. Never say a message was sent until the coach confirms the visible card.',
+        'Om atletnamn, lagnamn eller meddelandetext saknas för ett coachverktyg ska du ställa en kort följdfråga. Säg aldrig att ett meddelande har skickats förrän coachen bekräftar det synliga kortet.'
+      ),
     t(locale, 'You do not have access to the full knowledge-skill library in live voice. Stay within the curated mode and ask the user to use text chat if expert knowledge needs to be selected.', 'Du har inte tillgång till hela knowledge-skill-biblioteket i live voice. Håll dig till det kuraterade läget och be användaren använda textchatten om expertkunskap behöver väljas.'),
     t(locale, 'If you lack access or data, say that clearly out loud and suggest a safe next step.', 'Om du saknar åtkomst eller data, säg det tydligt i ord och föreslå ett säkert nästa steg.'),
     dataContext ? `${t(locale, 'Available athlete data', 'Tillgänglig atletdata')}:\n${dataContext}` : '',
@@ -501,7 +506,10 @@ export async function POST(request: NextRequest) {
           tools: buildAthleteLiveVoiceRealtimeTools(locale),
           tool_choice: 'auto',
         }
-        : {}),
+        : {
+          tools: buildCoachLiveVoiceRealtimeTools(locale),
+          tool_choice: 'auto',
+        }),
       max_output_tokens: 1200,
     }))
 

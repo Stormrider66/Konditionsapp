@@ -69,6 +69,12 @@ import {
   hasRealtimeUsageTokens,
 } from '@/lib/ai/realtime-voice-client'
 import {
+  buildRealtimeFunctionOutputEvents,
+  claimRealtimeFunctionCall,
+  extractRealtimeFunctionCalls,
+  type RealtimeFunctionCall,
+} from '@/lib/ai/realtime-function-calls'
+import {
   buildAiCapabilityDiscoveryPrompt,
   type AiCapabilityDiscoveryItem,
   type AiCapabilityDiscoverySummary,
@@ -85,6 +91,13 @@ import {
 export type { PageContext } from './floating-chat-tool-status'
 
 const COACH_VOICE_GUIDE_DISMISSED_KEY = 'floating-ai-voice-guide-dismissed'
+const COACH_REALTIME_ACTION_DRAFT_TOOL_NAMES = new Set([
+  'prepareCoachMessageDraft',
+])
+const COACH_REALTIME_DIRECT_TOOL_NAMES = new Set([
+  'getCoachReadinessOverview',
+  'getCoachAthleteCardioSummary',
+])
 
 interface FloatingAIChatProps {
   /** Optional athlete context to pre-fill */
@@ -161,6 +174,7 @@ export function FloatingAIChat({
   const realtimeStartedAtRef = useRef<number | null>(null)
   const realtimeUsageRef = useRef(createRealtimeVoiceUsageAccumulator())
   const realtimeUsageReportedRef = useRef(true)
+  const processedRealtimeFunctionCallIdsRef = useRef<Set<string>>(new Set())
 
   const [isOpen, setIsOpen] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
@@ -209,6 +223,10 @@ export function FloatingAIChat({
   const [isRealtimeVoiceActive, setIsRealtimeVoiceActive] = useState(false)
   const [realtimeVoiceStatus, setRealtimeVoiceStatus] = useState<string | null>(null)
   const [showVoiceGuideCard, setShowVoiceGuideCard] = useState(false)
+  const [realtimeActionResults, setRealtimeActionResults] = useState<Array<{
+    id: string
+    result: ChatActionResult
+  }>>([])
   const voiceRecordingPromiseRef = useRef<Promise<Blob> | null>(null)
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
@@ -912,6 +930,98 @@ export function FloatingAIChat({
     contextStringRef.current = buildPageContextString()
   }, [buildPageContextString])
 
+  const addRealtimeActionResult = useCallback((result: ChatActionResult) => {
+    setRealtimeActionResults((current) => [
+      ...current,
+      {
+        id: `coach-realtime-action-${Date.now()}-${current.length}`,
+        result,
+      },
+    ].slice(-4))
+  }, [])
+
+  const sendRealtimeFunctionOutput = useCallback((callId: string, output: unknown): boolean => {
+    const dataChannel = realtimeDataChannelRef.current
+    if (!dataChannel || dataChannel.readyState !== 'open') return false
+
+    for (const event of buildRealtimeFunctionOutputEvents(callId, output)) {
+      dataChannel.send(JSON.stringify(event))
+    }
+    return true
+  }, [])
+
+  const handleRealtimeFunctionCall = useCallback(async (call: RealtimeFunctionCall) => {
+    if (!claimRealtimeFunctionCall(processedRealtimeFunctionCallIdsRef.current, call.callId)) return
+
+    const isActionDraftTool = COACH_REALTIME_ACTION_DRAFT_TOOL_NAMES.has(call.name)
+    const isDirectTool = COACH_REALTIME_DIRECT_TOOL_NAMES.has(call.name)
+    if (!isActionDraftTool && !isDirectTool) {
+      const output = {
+        success: false,
+        error: locale === 'sv'
+          ? 'Det här coachverktyget stöds inte i live voice ännu.'
+          : 'This coach live voice tool is not supported yet.',
+      }
+      sendRealtimeFunctionOutput(call.callId, output)
+      return
+    }
+
+    try {
+      setRealtimeVoiceStatus(isActionDraftTool
+        ? (locale === 'sv' ? 'Förbereder bekräftelsekort...' : 'Preparing confirmation card...')
+        : (locale === 'sv' ? 'Hämtar coachöversikt...' : 'Checking coach data...'))
+
+      const response = await fetch(
+        isActionDraftTool ? '/api/ai/chat/realtime-coach-action-drafts' : '/api/ai/chat/realtime-coach-tools',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            toolName: call.name,
+            arguments: call.arguments,
+            callId: call.callId,
+            businessSlug: pathBusinessSlug,
+          }),
+        }
+      )
+      const payload = await response.json().catch(() => ({})) as ChatActionResult & {
+        message?: string
+        needsClarification?: boolean
+        error?: string
+      }
+
+      if (payload.success && payload.action?.type === 'aiCapabilityAction') {
+        addRealtimeActionResult(payload)
+        setRealtimeVoiceStatus(locale === 'sv' ? 'Bekräftelsekort klart.' : 'Confirmation card ready.')
+      } else if (payload.success && payload.message) {
+        addAssistantNotice(payload.message)
+        setRealtimeVoiceStatus(payload.message)
+      } else if (!payload.needsClarification) {
+        const message = payload.error || (locale === 'sv'
+          ? 'Kunde inte köra coachens live voice-verktyg.'
+          : 'Could not run the coach live voice tool.')
+        addAssistantNotice(message)
+        setRealtimeVoiceStatus(message)
+      }
+
+      sendRealtimeFunctionOutput(call.callId, payload)
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : (locale === 'sv' ? 'Kunde inte köra coachens live voice-verktyg.' : 'Could not run the coach live voice tool.')
+      const output = { success: false, error: message }
+      addAssistantNotice(message)
+      setRealtimeVoiceStatus(message)
+      sendRealtimeFunctionOutput(call.callId, output)
+    }
+  }, [
+    addAssistantNotice,
+    addRealtimeActionResult,
+    locale,
+    pathBusinessSlug,
+    sendRealtimeFunctionOutput,
+  ])
+
   const startRealtimeVoice = useCallback(async () => {
     if (isRealtimeVoiceConnecting || isRealtimeVoiceActive) return
     if (typeof window === 'undefined' || !window.RTCPeerConnection) {
@@ -937,6 +1047,7 @@ export function FloatingAIChat({
 
     stopAssistantSpeech()
     cancelVoiceAutoSend()
+    processedRealtimeFunctionCallIdsRef.current.clear()
     setIsRealtimeVoiceConnecting(true)
     setRealtimeVoiceStatus(copy.startingLiveVoice)
 
@@ -985,6 +1096,10 @@ export function FloatingAIChat({
         try {
           const data = JSON.parse(event.data) as { type?: string; error?: { message?: string } }
           addRealtimeUsageFromEvent(realtimeUsageRef.current, data)
+          const functionCalls = extractRealtimeFunctionCalls(data)
+          for (const call of functionCalls) {
+            void handleRealtimeFunctionCall(call)
+          }
           if (data.type === 'error') {
             const message = data.error?.message || copy.liveVoiceUnknownError
             setRealtimeVoiceStatus(message)
@@ -1050,6 +1165,7 @@ export function FloatingAIChat({
     isRealtimeVoiceActive,
     isRealtimeVoiceConnecting,
     pathBusinessSlug,
+    handleRealtimeFunctionCall,
     stopAssistantSpeech,
     stopRealtimeVoice,
     toast,
@@ -1159,6 +1275,7 @@ export function FloatingAIChat({
     // The athlete context changes the system prompt — start a fresh conversation
     setMessages([])
     setAssistantNotices([])
+    setRealtimeActionResults([])
     setConversationId(null)
     setDetectedProgram(null)
     spokenAssistantMessageIdsRef.current.clear()
@@ -1193,6 +1310,7 @@ export function FloatingAIChat({
       setMessages(chatMessages)
       setConversationId(loadConversationId)
       setAssistantNotices([])
+      setRealtimeActionResults([])
       setDetectedProgram(null)
 
       // Restore the conversation's athlete context
@@ -1536,6 +1654,7 @@ export function FloatingAIChat({
     setIsOpen(false)
     setMessages([])
     setAssistantNotices([])
+    setRealtimeActionResults([])
     setConversationId(null)
     setInput('')
     setSelectedSkillIds([])
@@ -1549,6 +1668,7 @@ export function FloatingAIChat({
     stopRealtimeVoice(undefined, 'new_chat')
     setMessages([])
     setAssistantNotices([])
+    setRealtimeActionResults([])
     setConversationId(null)
     setInput('')
     setSelectedSkillIds([])
@@ -2127,7 +2247,7 @@ export function FloatingAIChat({
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
-        {messages.length === 0 && assistantNotices.length === 0 ? (
+        {messages.length === 0 && assistantNotices.length === 0 && realtimeActionResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
             <h3 className="font-medium mb-1">{copy.howCanIHelp}</h3>
@@ -2274,6 +2394,14 @@ export function FloatingAIChat({
                 </div>
               )
             })}
+            {realtimeActionResults.map((item) => (
+              <ChatActionCard
+                key={item.id}
+                result={item.result}
+                businessSlug={pathBusinessSlug}
+                basePath={basePath}
+              />
+            ))}
             {assistantNotices.map((notice) => (
               <ChatMessage
                 key={notice.id}
