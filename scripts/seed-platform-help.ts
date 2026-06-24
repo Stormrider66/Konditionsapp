@@ -165,6 +165,21 @@ const PLATFORM_SKILL_DEFINITIONS: PlatformSkillDef[] = [
     maxChunks: 3,
   },
   {
+    name: 'Måltidsguide för prestation',
+    nameEn: 'Performance Meal Guide',
+    keywords: [
+      'performance meal guide', 'måltidsguide', 'meal guide', 'planned meals', 'planerade måltider',
+      'meal plan', 'måltidsplan', 'recipe', 'recept', 'how much should i eat', 'hur mycket ska jag äta',
+      'portion', 'portioner', 'planned vs eaten', 'planerat vs ätet', 'day type', 'dagtyp',
+      'rest day', 'vilodag', 'game day', 'matchdag',
+    ],
+    description:
+      'Måltidsguiden för prestation: dagsklassad måltidsplan (vilodag/matchdag/träningsdag) med kcal- och makromål per måltid, roterande recept med variation, portionsberäknaren "hur mycket ska jag äta" som storlekar dina egna livsmedel mot målet, och planerat-vs-ätet-uppföljning.',
+    docFiles: ['performance-meal-guide.md'],
+    priority: 8,
+    maxChunks: 4,
+  },
+  {
     name: 'Integrationer (Strava/Garmin/Concept2)',
     nameEn: 'Integrations (Strava/Garmin/Concept2)',
     keywords: [
