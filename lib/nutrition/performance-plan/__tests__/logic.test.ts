@@ -161,4 +161,30 @@ describe('performance meal guide logic', () => {
     expect(recipe.steps.length).toBeGreaterThan(1)
     expect(recipe.source).toBe('TEMPLATE')
   })
+
+  it('varies lunch and dinner defaults and keeps snacks snack-sized', () => {
+    const base = {
+      timingRole: 'REGULAR' as const,
+      dayType: 'REST' as const,
+      locale: 'sv' as const,
+      macros: { caloriesKcal: 540, proteinG: 38, carbsG: 61, fatG: 13 },
+    }
+
+    const lunch = buildConcreteRecipeForMeal({ ...base, mealType: 'LUNCH' })
+    const dinner = buildConcreteRecipeForMeal({ ...base, mealType: 'DINNER' })
+
+    // Lunch and dinner must not be identical recipes.
+    expect(lunch.title).not.toBe(dinner.title)
+    expect(lunch.title).toContain('Kyckling')
+    expect(dinner.title).toContain('Lax')
+
+    // A light snack must get a snack-sized recipe, never a full salmon meal.
+    const snack = buildConcreteRecipeForMeal({
+      ...base,
+      mealType: 'MORNING_SNACK',
+      macros: { caloriesKcal: 208, proteinG: 16, carbsG: 20, fatG: 5 },
+    })
+    expect(snack.title).toContain('Kvarg')
+    expect(snack.title).not.toContain('Lax')
+  })
 })

@@ -161,6 +161,11 @@ function buildRecipeFromPreference(input: {
   const isPre = input.slot.timingRole === 'PRE_WORKOUT' || input.slot.timingRole === 'GAME_FUEL'
   const isPost = input.slot.timingRole === 'POST_WORKOUT' || input.slot.timingRole === 'RECOVERY'
   const isSnack = input.slot.mealType.includes('SNACK') || input.slot.mealType === 'PRE_WORKOUT' || input.slot.mealType === 'POST_WORKOUT'
+  // Every slot is exactly one of: breakfast, a full main meal (lunch/dinner),
+  // or a snack. Routing below is exhaustive on that split so a slot can never
+  // fall through to an unintended recipe (which is how a light snack once got
+  // a full salmon dinner).
+  const isMain = !isBreakfast && !isSnack
 
   if (isBreakfast) {
     const title = sv ? 'Kvargbowl med havre, banan och bär' : 'Quark bowl with oats, banana, and berries'
@@ -186,24 +191,81 @@ function buildRecipeFromPreference(input: {
     }
   }
 
-  if (wantsChicken || (!isSnack && !wantsSurprise)) {
+  if (isMain) {
+    // Full lunch/dinner. Vary the default so lunch and dinner aren't identical:
+    // honor an explicit chicken request, keep pre-game mains lean and familiar,
+    // rotate to a third option on "surprise me", and otherwise default lunch to
+    // chicken and dinner to salmon.
+    const mainChoice =
+      wantsChicken ? 'CHICKEN'
+        : isPre ? 'CHICKEN'
+          : wantsSurprise ? 'BEEF'
+            : input.slot.mealType === 'DINNER' ? 'SALMON'
+              : 'CHICKEN'
+
+    if (mainChoice === 'CHICKEN') {
+      return {
+        title: sv ? 'Kyckling, ris och grönsaker' : 'Chicken, rice, and vegetables',
+        summary: sv ? 'En rak prestationsmåltid som är enkel att skala upp eller ned efter makromålet.' : 'A direct performance meal that is easy to scale up or down to the macro target.',
+        servings: 1,
+        prepMinutes: 10,
+        cookMinutes: 20,
+        ingredients: [
+          { name: sv ? 'kycklingfilé' : 'chicken breast', amount: macroAmount(input.macros.proteinG * 5, 'g') },
+          { name: sv ? 'kokt ris' : 'cooked rice', amount: macroAmount(input.macros.carbsG * 3, 'g') },
+          { name: sv ? 'grönsaker' : 'vegetables', amount: '150 g' },
+          { name: sv ? 'olivolja' : 'olive oil', amount: macroAmount(input.macros.fatG * 1.2, 'g') },
+          { name: sv ? 'salt, peppar och citron' : 'salt, pepper, and lemon', amount: sv ? 'efter smak' : 'to taste' },
+        ],
+        steps: sv
+          ? ['Koka riset eller värm färdigkokt ris.', 'Stek kycklingen i lite olja tills den är genomstekt.', 'Lägg upp ris, kyckling och grönsaker. Ringla över resterande olja.', 'Smaka av med salt, peppar och citron.']
+          : ['Cook rice or heat pre-cooked rice.', 'Pan-fry the chicken in a little oil until cooked through.', 'Plate rice, chicken, and vegetables. Drizzle remaining oil on top.', 'Season with salt, pepper, and lemon.'],
+        tips: [isPre ? (sv ? 'Håll grönsakerna milda och undvik mycket stark kryddning nära match/pass.' : 'Keep vegetables mild and avoid heavy spice close to game/practice.') : (sv ? 'Laga två portioner och spara en till nästa dag.' : 'Cook two portions and save one for tomorrow.')],
+        source: input.source ?? 'TEMPLATE',
+        prompt: input.preference ?? undefined,
+      }
+    }
+
+    if (mainChoice === 'SALMON') {
+      return {
+        title: sv ? 'Lax, potatis och yoghurtsås' : 'Salmon, potatoes, and yoghurt sauce',
+        summary: sv ? 'Näringstät huvudmåltid med bra fett och lugna kolhydrater.' : 'Nutrient-dense main meal with quality fats and steady carbohydrates.',
+        servings: 1,
+        prepMinutes: 10,
+        cookMinutes: 25,
+        ingredients: [
+          { name: sv ? 'laxfilé' : 'salmon fillet', amount: macroAmount(input.macros.proteinG * 5, 'g') },
+          { name: sv ? 'potatis' : 'potatoes', amount: macroAmount(input.macros.carbsG * 4, 'g') },
+          { name: sv ? 'grekisk yoghurt' : 'Greek yoghurt', amount: '100 g' },
+          { name: sv ? 'grönsaker' : 'vegetables', amount: '150 g' },
+          { name: sv ? 'citron, dill, salt' : 'lemon, dill, salt', amount: sv ? 'efter smak' : 'to taste' },
+        ],
+        steps: sv
+          ? ['Koka potatisen mjuk.', 'Tillaga laxen i panna eller ugn.', 'Rör ihop yoghurt med citron, dill och salt.', 'Servera med grönsaker.']
+          : ['Boil potatoes until tender.', 'Cook salmon in a pan or oven.', 'Mix yoghurt with lemon, dill, and salt.', 'Serve with vegetables.'],
+        tips: [sv ? 'Bra val när målet är återhämtning utan att jaga snabba kolhydrater.' : 'Good choice when the goal is recovery without chasing fast carbs.'],
+        source: input.source ?? 'TEMPLATE',
+        prompt: input.preference ?? undefined,
+      }
+    }
+
     return {
-      title: sv ? 'Kyckling, ris och grönsaker' : 'Chicken, rice, and vegetables',
-      summary: sv ? 'En rak prestationsmåltid som är enkel att skala upp eller ned efter makromålet.' : 'A direct performance meal that is easy to scale up or down to the macro target.',
+      title: sv ? 'Magert nötkött, pasta och tomatsås' : 'Lean beef, pasta, and tomato sauce',
+      summary: sv ? 'Mättande huvudmål med pasta och magert nötkött — enkelt att skala efter makromålet.' : 'Filling main meal with pasta and lean beef — easy to scale to the macro target.',
       servings: 1,
       prepMinutes: 10,
       cookMinutes: 20,
       ingredients: [
-        { name: sv ? 'kycklingfilé' : 'chicken breast', amount: macroAmount(input.macros.proteinG * 5, 'g') },
-        { name: sv ? 'kokt ris' : 'cooked rice', amount: macroAmount(input.macros.carbsG * 3, 'g') },
-        { name: sv ? 'grönsaker' : 'vegetables', amount: '150 g' },
-        { name: sv ? 'olivolja' : 'olive oil', amount: macroAmount(input.macros.fatG * 1.2, 'g') },
-        { name: sv ? 'salt, peppar och citron' : 'salt, pepper, and lemon', amount: sv ? 'efter smak' : 'to taste' },
+        { name: sv ? 'magert nötfärs' : 'lean ground beef', amount: macroAmount(input.macros.proteinG * 4.5, 'g') },
+        { name: sv ? 'kokt pasta' : 'cooked pasta', amount: macroAmount(input.macros.carbsG * 3, 'g') },
+        { name: sv ? 'krossade tomater' : 'crushed tomatoes', amount: '150 g' },
+        { name: sv ? 'olivolja' : 'olive oil', amount: macroAmount(input.macros.fatG, 'g') },
+        { name: sv ? 'lök, vitlök, salt, peppar' : 'onion, garlic, salt, pepper', amount: sv ? 'efter smak' : 'to taste' },
       ],
       steps: sv
-        ? ['Koka riset eller värm färdigkokt ris.', 'Stek kycklingen i lite olja tills den är genomstekt.', 'Lägg upp ris, kyckling och grönsaker. Ringla över resterande olja.', 'Smaka av med salt, peppar och citron.']
-        : ['Cook rice or heat pre-cooked rice.', 'Pan-fry the chicken in a little oil until cooked through.', 'Plate rice, chicken, and vegetables. Drizzle remaining oil on top.', 'Season with salt, pepper, and lemon.'],
-      tips: [isPre ? (sv ? 'Håll grönsakerna milda och undvik mycket stark kryddning nära match/pass.' : 'Keep vegetables mild and avoid heavy spice close to game/practice.') : (sv ? 'Laga två portioner och spara en till nästa dag.' : 'Cook two portions and save one for tomorrow.')],
+        ? ['Koka pastan.', 'Bryn färsen med lök och vitlök.', 'Rör i krossade tomater och låt sjuda några minuter.', 'Blanda med pastan och smaka av.']
+        : ['Cook the pasta.', 'Brown the beef with onion and garlic.', 'Stir in crushed tomatoes and simmer a few minutes.', 'Mix with the pasta and season.'],
+      tips: [sv ? 'Laga dubbel sats och spara en portion till nästa dag.' : 'Cook a double batch and save a portion for tomorrow.'],
       source: input.source ?? 'TEMPLATE',
       prompt: input.preference ?? undefined,
     }
@@ -253,51 +315,29 @@ function buildRecipeFromPreference(input: {
     }
   }
 
-  // Light, between-meal snacks (e.g. morning/afternoon snack that isn't a
-  // pre/post-workout slot) — keep it genuinely snack-sized instead of falling
-  // through to the full salmon-and-potato meal below.
-  if (isSnack) {
-    return {
-      title: sv ? 'Kvargbowl med bär och nötter' : 'Quark bowl with berries and nuts',
-      summary: sv
-        ? 'Litet, proteinrikt mellanmål som tar hungern utan att bli en hel måltid.'
-        : 'Small, protein-rich snack that takes the edge off hunger without becoming a full meal.',
-      servings: 1,
-      prepMinutes: 5,
-      cookMinutes: 0,
-      ingredients: [
-        { name: sv ? 'kvarg eller grekisk yoghurt' : 'quark or Greek yoghurt', amount: macroAmount(input.macros.proteinG * 7, 'g') },
-        { name: sv ? 'bär' : 'berries', amount: '100 g' },
-        { name: sv ? 'frukt' : 'fruit', amount: sv ? '1 st' : '1 piece' },
-        { name: sv ? 'nötter eller frön' : 'nuts or seeds', amount: macroAmount(Math.max(input.macros.fatG, 3) * 1.5, 'g') },
-        { name: sv ? 'honung (valfritt)' : 'honey (optional)', amount: '10 g' },
-      ],
-      steps: sv
-        ? ['Lägg kvarg eller yoghurt i en skål.', 'Toppa med bär, frukt och nötter.', 'Ringla över honung om du vill ha lite sötma.']
-        : ['Add quark or yoghurt to a bowl.', 'Top with berries, fruit, and nuts.', 'Drizzle honey if you want a little sweetness.'],
-      tips: [sv ? 'Byt nötter mot frön om du vill hålla fettet lägre.' : 'Swap nuts for seeds to keep the fat lower.'],
-      source: input.source ?? 'TEMPLATE',
-      prompt: input.preference ?? undefined,
-    }
-  }
-
+  // Exhaustive terminal: anything reaching here is a between-meal snack with
+  // normal timing (morning/afternoon/evening snack that isn't pre- or
+  // post-workout). Breakfast, main meals, and pre/post snacks have all returned
+  // above, so nothing can fall through to a mismatched full meal.
   return {
-    title: sv ? 'Lax, potatis och yoghurtsås' : 'Salmon, potatoes, and yoghurt sauce',
-    summary: sv ? 'Näringstät vilodagsmåltid med bra fett och lugna kolhydrater.' : 'Nutrient-dense rest-day meal with quality fats and steady carbohydrates.',
+    title: sv ? 'Kvargbowl med bär och nötter' : 'Quark bowl with berries and nuts',
+    summary: sv
+      ? 'Litet, proteinrikt mellanmål som tar hungern utan att bli en hel måltid.'
+      : 'Small, protein-rich snack that takes the edge off hunger without becoming a full meal.',
     servings: 1,
-    prepMinutes: 10,
-    cookMinutes: 25,
+    prepMinutes: 5,
+    cookMinutes: 0,
     ingredients: [
-      { name: sv ? 'laxfilé' : 'salmon fillet', amount: macroAmount(input.macros.proteinG * 5, 'g') },
-      { name: sv ? 'potatis' : 'potatoes', amount: macroAmount(input.macros.carbsG * 4, 'g') },
-      { name: sv ? 'grekisk yoghurt' : 'Greek yoghurt', amount: '100 g' },
-      { name: sv ? 'grönsaker' : 'vegetables', amount: '150 g' },
-      { name: sv ? 'citron, dill, salt' : 'lemon, dill, salt', amount: sv ? 'efter smak' : 'to taste' },
+      { name: sv ? 'kvarg eller grekisk yoghurt' : 'quark or Greek yoghurt', amount: macroAmount(input.macros.proteinG * 7, 'g') },
+      { name: sv ? 'bär' : 'berries', amount: '100 g' },
+      { name: sv ? 'frukt' : 'fruit', amount: sv ? '1 st' : '1 piece' },
+      { name: sv ? 'nötter eller frön' : 'nuts or seeds', amount: macroAmount(Math.max(input.macros.fatG, 3) * 1.5, 'g') },
+      { name: sv ? 'honung (valfritt)' : 'honey (optional)', amount: '10 g' },
     ],
     steps: sv
-      ? ['Koka potatisen mjuk.', 'Tillaga laxen i panna eller ugn.', 'Rör ihop yoghurt med citron, dill och salt.', 'Servera med grönsaker.']
-      : ['Boil potatoes until tender.', 'Cook salmon in a pan or oven.', 'Mix yoghurt with lemon, dill, and salt.', 'Serve with vegetables.'],
-    tips: [sv ? 'Bra val när målet är återhämtning utan att jaga snabba kolhydrater.' : 'Good choice when the goal is recovery without chasing fast carbs.'],
+      ? ['Lägg kvarg eller yoghurt i en skål.', 'Toppa med bär, frukt och nötter.', 'Ringla över honung om du vill ha lite sötma.']
+      : ['Add quark or yoghurt to a bowl.', 'Top with berries, fruit, and nuts.', 'Drizzle honey if you want a little sweetness.'],
+    tips: [sv ? 'Byt nötter mot frön om du vill hålla fettet lägre.' : 'Swap nuts for seeds to keep the fat lower.'],
     source: input.source ?? 'TEMPLATE',
     prompt: input.preference ?? undefined,
   }
