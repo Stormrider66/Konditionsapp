@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -31,6 +32,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
+import { ChatActionCard, type ChatActionResult } from '@/components/ai-studio/ChatActionCard'
 import { EQUIPMENT_OPTIONS, equipmentLabel } from '@/components/coach/cardio/cardio-session-model'
 import type {
   CardioSessionSummaryData,
@@ -90,8 +92,14 @@ export function CardioSessionSummaryView({
 }: CardioSessionSummaryViewProps) {
   const locale = useLocale() as 'en' | 'sv'
   const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
+  const pathname = usePathname()
   const [data, setData] = useState<SummaryResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [adjustmentResult, setAdjustmentResult] = useState<ChatActionResult | null>(null)
+  const [adjustmentError, setAdjustmentError] = useState<string | null>(null)
+  const [preparingAdjustment, setPreparingAdjustment] = useState(false)
+  const pathParts = pathname.split('/').filter(Boolean)
+  const basePath = pathParts[1] === 'athlete' || pathParts[1] === 'coach' ? `/${pathParts[0]}` : ''
 
   useEffect(() => {
     let cancelled = false
@@ -113,6 +121,28 @@ export function CardioSessionSummaryView({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignmentId])
+
+  async function prepareAdjustmentDraft() {
+    if (preparingAdjustment) return
+    setPreparingAdjustment(true)
+    setAdjustmentError(null)
+    try {
+      const res = await fetch(`/api/cardio-sessions/${assignmentId}/adjustment-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || tw('Kunde inte förbereda justeringen', 'Could not prepare the adjustment'))
+      }
+      setAdjustmentResult(json as ChatActionResult)
+    } catch (err) {
+      setAdjustmentError(err instanceof Error ? err.message : tw('Försök igen', 'Try again'))
+    } finally {
+      setPreparingAdjustment(false)
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-background">
@@ -162,6 +192,16 @@ export function CardioSessionSummaryView({
             {data.plannedVsActual && <PlannedVsActualCard data={data} locale={locale} tw={tw} />}
             {showAthleteName && <CoachReviewCard data={data} tw={tw} />}
             {data.log.debrief && <DebriefCard data={data} tw={tw} />}
+            {!showAthleteName && data.log.status === 'COMPLETED' && (
+              <AdjustmentDraftCard
+                result={adjustmentResult}
+                error={adjustmentError}
+                preparing={preparingAdjustment}
+                basePath={basePath}
+                onPrepare={prepareAdjustmentDraft}
+                tw={tw}
+              />
+            )}
             {data.liveData.segmentsWithSamples > 0 && <LiveDataCard data={data} tw={tw} />}
             {data.calorieAdherence && <AdherenceCard data={data} tw={tw} />}
             {data.roundFade && <FadeCard data={data} tw={tw} />}
@@ -253,6 +293,47 @@ function DebriefCard({ data, tw }: { data: SummaryResponse; tw: Tw }) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+function AdjustmentDraftCard({
+  result,
+  error,
+  preparing,
+  basePath,
+  onPrepare,
+  tw,
+}: {
+  result: ChatActionResult | null
+  error: string | null
+  preparing: boolean
+  basePath: string
+  onPrepare: () => void
+  tw: Tw
+}) {
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {tw('Nästa pass', 'Next workout')}
+          </p>
+        </div>
+        <Button type="button" size="sm" onClick={onPrepare} disabled={preparing}>
+          {preparing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {tw('Förbered justering', 'Prepare adjustment')}
+        </Button>
+      </div>
+
+      {error && (
+        <p className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          {error}
+        </p>
+      )}
+
+      {result && <ChatActionCard result={result} basePath={basePath} embedded />}
     </div>
   )
 }

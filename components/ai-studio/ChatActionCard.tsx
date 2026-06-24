@@ -64,13 +64,14 @@ interface ChatActionCardProps {
   result: ChatActionResult
   businessSlug?: string | null
   basePath?: string
+  embedded?: boolean
 }
 
 function resolveHref(href: string, basePath = '') {
   return resolveAppHref(href, basePath)
 }
 
-export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActionCardProps) {
+export function ChatActionCard({ result, businessSlug, basePath = '', embedded = false }: ChatActionCardProps) {
   const { toast } = useToast()
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'cancelled' | 'error'>('idle')
   const [sentCount, setSentCount] = useState<number | null>(null)
@@ -161,7 +162,10 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
     }
 
     return (
-      <div className="ml-11 mt-2 max-w-[88%] rounded-lg border bg-background shadow-sm overflow-hidden">
+      <div className={cn(
+        embedded ? 'mt-2 w-full' : 'ml-11 mt-2 max-w-[88%]',
+        'rounded-lg border bg-background shadow-sm overflow-hidden',
+      )}>
         <div className="flex items-start gap-3 border-b bg-primary/5 px-3 py-3">
           <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
             <AlertTriangle className="h-4 w-4" />
@@ -393,7 +397,10 @@ export function ChatActionCard({ result, businessSlug, basePath = '' }: ChatActi
   }
 
   return (
-    <div className="ml-11 mt-2 max-w-[88%] rounded-lg border bg-background shadow-sm overflow-hidden">
+    <div className={cn(
+      embedded ? 'mt-2 w-full' : 'ml-11 mt-2 max-w-[88%]',
+      'rounded-lg border bg-background shadow-sm overflow-hidden',
+    )}>
       <div className="flex items-start gap-3 border-b bg-primary/5 px-3 py-3">
         <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
           {coachAction.recipientType === 'TEAM' ? (
