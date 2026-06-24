@@ -8,6 +8,7 @@ import {
   Beef,
   Camera,
   ChefHat,
+  ChevronDown,
   Droplet,
   Dumbbell,
   Flame,
@@ -303,6 +304,7 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
   const [recipePrompts, setRecipePrompts] = useState<Record<string, string>>({})
   const [generatingRecipeId, setGeneratingRecipeId] = useState<string | null>(null)
   const [skipToggleId, setSkipToggleId] = useState<string | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
   const guideUrl = selectedDate
     ? `/api/nutrition/performance-plan/current?date=${selectedDate}&uiLocale=${locale}`
@@ -450,19 +452,37 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                 </div>
               )}
             </div>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={generateGuide}
-              disabled={isGenerating}
-              className="gap-2"
-            >
-              <RefreshCw className={cn('h-4 w-4', isGenerating && 'animate-spin')} />
-              {guide ? text(locale, 'Refresh', 'Uppdatera') : text(locale, 'Generate', 'Skapa')}
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={generateGuide}
+                disabled={isGenerating}
+                className="gap-2"
+              >
+                <RefreshCw className={cn('h-4 w-4', isGenerating && 'animate-spin')} />
+                {guide ? text(locale, 'Refresh', 'Uppdatera') : text(locale, 'Generate', 'Skapa')}
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                onClick={() => setIsCollapsed((prev) => !prev)}
+                aria-expanded={!isCollapsed}
+                aria-label={
+                  isCollapsed
+                    ? text(locale, 'Expand meal guide', 'Visa måltidsguide')
+                    : text(locale, 'Collapse meal guide', 'Minimera måltidsguide')
+                }
+                className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              >
+                <ChevronDown className={cn('h-5 w-5 transition-transform', isCollapsed && '-rotate-90')} />
+              </Button>
+            </div>
           </div>
         </GlassCardHeader>
+        {!isCollapsed && (
         <GlassCardContent className="space-y-5">
           {error && (
             <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-500/20 dark:bg-red-500/10 dark:text-red-200">
@@ -755,6 +775,7 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
             </>
           )}
         </GlassCardContent>
+        )}
       </GlassCard>
 
       {quickLog && (
