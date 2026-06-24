@@ -16,6 +16,7 @@ import { estimateCalories } from '@/lib/adhoc-workout/calorie-estimator'
 import { normalizeParsedWorkoutDistance } from '@/lib/adhoc-workout/distance'
 import { logger } from '@/lib/logger'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { refreshActivePerformanceMealGuideForClient } from '@/lib/nutrition/performance-plan'
 
 // ============================================
 // VALIDATION SCHEMAS
@@ -218,6 +219,11 @@ export async function POST(
     } catch (err) {
       logger.warn('Failed to auto-link ad-hoc to Garmin', { error: err })
     }
+
+    // A logged workout changes the day's training-aware targets — refresh the
+    // athlete's active Performance Meal Guide (cheap, useAi:false; no-ops if
+    // there is no active guide). Best-effort.
+    void refreshActivePerformanceMealGuideForClient({ clientId, reason: 'workout_logged' }).catch(() => {})
 
     return NextResponse.json({
       success: true,

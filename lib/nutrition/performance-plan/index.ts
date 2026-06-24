@@ -838,7 +838,7 @@ export async function generateAndSavePerformanceMealGuide(input: GeneratePerform
 
 export async function refreshActivePerformanceMealGuideForClient(input: {
   clientId: string
-  reason: 'bia_saved' | 'garmin_sync' | 'manual_refresh'
+  reason: 'bia_saved' | 'garmin_sync' | 'manual_refresh' | 'workout_logged'
 }) {
   const activePlan = await prisma.nutritionPerformancePlan.findFirst({
     where: {

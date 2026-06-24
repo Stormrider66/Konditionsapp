@@ -26,11 +26,22 @@ import {
   executeUpdateLiveWorkoutFeedback,
   updateLiveWorkoutFeedbackInputSchema,
 } from '@/lib/ai/athlete-live-workout-feedback'
+import { refreshActivePerformanceMealGuideForClient } from '@/lib/nutrition/performance-plan'
 
 type ChatLocale = 'en' | 'sv'
 
 function chatText(locale: ChatLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+/**
+ * Fire-and-forget: when a workout is logged, the day's training-aware targets
+ * change, so refresh the athlete's active Performance Meal Guide (cheap,
+ * useAi:false; no-ops if there is no active guide). Best-effort — never block
+ * or fail the workout log on it.
+ */
+function refreshMealGuideAfterWorkout(clientId: string): void {
+  void refreshActivePerformanceMealGuideForClient({ clientId, reason: 'workout_logged' }).catch(() => {})
 }
 
 function startOfToday(): Date {
@@ -276,6 +287,8 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
             tss,
           })
 
+          refreshMealGuideAfterWorkout(clientId)
+
           return {
             success: true,
             workoutId: result.adHoc.id,
@@ -394,6 +407,7 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
               })
             }
 
+            refreshMealGuideAfterWorkout(clientId)
             return {
               success: true,
               kind,
@@ -499,6 +513,7 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
               })
             }
 
+            refreshMealGuideAfterWorkout(clientId)
             return {
               success: true,
               kind,
@@ -576,6 +591,7 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
             logger.warn('Error saving training load for chat WOD completion', { wodId: wod.id }, loadError)
           }
 
+          refreshMealGuideAfterWorkout(clientId)
           return {
             success: true,
             kind,
