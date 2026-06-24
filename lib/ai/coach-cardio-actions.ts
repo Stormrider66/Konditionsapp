@@ -739,6 +739,63 @@ function warningDetails(warnings: string[], locale: AppLocale): string[] {
   return warnings.map((warning) => `${toolText(locale, 'Warning', 'Varning')}: ${warning}`)
 }
 
+function addDaysKey(value: string, days: number): string {
+  const date = dateFromKey(value)
+  date.setUTCDate(date.getUTCDate() + days)
+  return dateKey(date)
+}
+
+function selectedContext(
+  recipients: ResolvedRecipient[] | PublicRecipient[],
+  targetLabel: string,
+  hints: string[]
+) {
+  return {
+    selectedClientIds: recipients.map((recipient) => recipient.clientId),
+    selectedNames: recipients.map((recipient) => recipient.name),
+    targetLabel,
+    hints,
+  }
+}
+
+function saferCardioFollowUps(params: {
+  locale: AppLocale
+  warnings: string[]
+  date: string
+  scope: 'single' | 'group'
+  includeMessage?: boolean
+}): string[] {
+  if (params.warnings.length === 0) return []
+  const tomorrow = addDaysKey(params.date, 1)
+  const subject = params.scope === 'single'
+    ? toolText(params.locale, 'this athlete', 'den här atleten')
+    : toolText(params.locale, 'these athletes', 'de här atleterna')
+  return [
+    toolText(
+      params.locale,
+      `Make this a 30 min easy recovery ride for ${subject}.`,
+      `Gör detta till 30 min lätt återhämtningscykel för ${subject}.`
+    ),
+    toolText(
+      params.locale,
+      `Move this cardio workout to ${tomorrow} for ${subject}.`,
+      `Flytta detta konditionspass till ${tomorrow} för ${subject}.`
+    ),
+    toolText(
+      params.locale,
+      `Reduce this workout volume by 30% and keep intensity easy for ${subject}.`,
+      `Minska volymen med 30% och håll intensiteten lätt för ${subject}.`
+    ),
+    ...(params.includeMessage !== false
+      ? [toolText(
+          params.locale,
+          `Draft a short check-in message to ${subject} before changing the workout.`,
+          `Drafta ett kort check-in-meddelande till ${subject} innan passet ändras.`
+        )]
+      : []),
+  ]
+}
+
 function buildWorkoutDetails(
   input: CreateAndAssignCardioWorkoutInput | ModifyCardioAssignmentInput | ModifyTeamCardioAssignmentsInput,
   workout: BuiltCardioWorkout,
@@ -788,6 +845,15 @@ export async function buildCreateAndAssignCardioWorkoutPreview(
       ],
       recipients: toPublicRecipients(target.recipients),
       recipientCount: target.recipients.length,
+      suggestedFollowUps: saferCardioFollowUps({
+        locale,
+        warnings,
+        date: input.date,
+        scope: target.recipients.length === 1 ? 'single' : 'group',
+      }),
+      followUpContext: selectedContext(target.recipients, target.targetLabel, [
+        toolText(locale, 'Use clientIds with teamTarget SELECTED for follow-up messages or workout changes.', 'Använd clientIds med teamTarget SELECTED för följdmeddelanden eller passändringar.'),
+      ]),
       confirmLabel: toolText(locale, 'Create and assign', 'Skapa och tilldela'),
       reviewHref: '/coach/cardio',
     },
@@ -1248,12 +1314,13 @@ export async function buildModifyCardioAssignmentPreview(
   if (input.reason) details.push(`${toolText(locale, 'Reason', 'Orsak')}: ${input.reason}`)
   if (workout) details.push(...buildWorkoutDetails(input, workout, locale))
   if (input.notes) details.push(`${toolText(locale, 'Notes', 'Noteringar')}: ${input.notes}`)
-  const warnings = await buildCardioLoadWarnings(ctx, [{
+  const assignmentRecipient = [{
     clientId: assignment.athlete.id,
     name: assignment.athlete.name,
     teamId: assignment.athlete.team?.id ?? null,
     teamName: assignment.athlete.team?.name ?? null,
-  }], input.newDate || dateKey(assignment.assignedDate))
+  }]
+  const warnings = await buildCardioLoadWarnings(ctx, assignmentRecipient, input.newDate || dateKey(assignment.assignedDate))
   details.push(...warningDetails(warnings, locale))
 
   return {
@@ -1270,6 +1337,15 @@ export async function buildModifyCardioAssignmentPreview(
       details,
       recipients: [{ clientId: assignment.athlete.id, name: assignment.athlete.name, teamName: assignment.athlete.team?.name ?? null }],
       recipientCount: 1,
+      suggestedFollowUps: saferCardioFollowUps({
+        locale,
+        warnings,
+        date: input.newDate || dateKey(assignment.assignedDate),
+        scope: 'single',
+      }),
+      followUpContext: selectedContext(assignmentRecipient, assignment.athlete.name, [
+        toolText(locale, 'Use this athlete for follow-up messages or another planned-cardio change.', 'Använd den här atleten för följdmeddelanden eller en ny planerad konditionsändring.'),
+      ]),
       confirmLabel: toolText(locale, 'Modify assignment', 'Anpassa tilldelning'),
       reviewHref: '/coach/cardio',
     },
@@ -1423,6 +1499,15 @@ export async function buildRepeatPreviousCardioWorkoutPreview(
       ].filter((detail): detail is string => Boolean(detail)),
       recipients: toPublicRecipients(target.recipients),
       recipientCount: target.recipients.length,
+      suggestedFollowUps: saferCardioFollowUps({
+        locale,
+        warnings,
+        date: input.date,
+        scope: target.recipients.length === 1 ? 'single' : 'group',
+      }),
+      followUpContext: selectedContext(target.recipients, target.targetLabel, [
+        toolText(locale, 'Use clientIds with teamTarget SELECTED for follow-up messages or workout changes.', 'Använd clientIds med teamTarget SELECTED för följdmeddelanden eller passändringar.'),
+      ]),
       confirmLabel: toolText(locale, 'Repeat and assign', 'Upprepa och tilldela'),
       reviewHref: '/coach/cardio',
     },
@@ -1598,6 +1683,20 @@ export async function buildModifyTeamCardioAssignmentsPreview(
         teamName: assignment.athlete.team?.name ?? null,
       }))),
       recipientCount: resolved.assignments.length,
+      suggestedFollowUps: saferCardioFollowUps({
+        locale,
+        warnings,
+        date: input.newDate || input.currentDate,
+        scope: resolved.assignments.length === 1 ? 'single' : 'group',
+      }),
+      followUpContext: selectedContext(resolved.assignments.map((assignment) => ({
+        clientId: assignment.athlete.id,
+        name: assignment.athlete.name,
+        teamId: assignment.athlete.team?.id ?? null,
+        teamName: assignment.athlete.team?.name ?? null,
+      })), resolved.target.targetLabel, [
+        toolText(locale, 'Use clientIds with teamTarget SELECTED for follow-up messages or batch workout changes.', 'Använd clientIds med teamTarget SELECTED för följdmeddelanden eller batchändringar.'),
+      ]),
       confirmLabel: toolText(locale, 'Modify assignments', 'Anpassa tilldelningar'),
       reviewHref: '/coach/cardio',
     },

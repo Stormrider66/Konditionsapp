@@ -154,6 +154,9 @@ describe('coach cardio AI actions', () => {
     expect(details).toContain('Calendar conflict')
     expect(details).toContain('ACWR flag')
     expect(details).toContain('Injury flag')
+    expect(result.preview.suggestedFollowUps?.join(' | ')).toContain('recovery ride')
+    expect(result.preview.suggestedFollowUps?.join(' | ')).toContain('2026-06-25')
+    expect(result.preview.followUpContext?.selectedClientIds).toEqual(['11111111-1111-4111-8111-111111111111'])
   })
 
   it('validates and previews repeating a previous workout', async () => {

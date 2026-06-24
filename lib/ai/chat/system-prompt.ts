@@ -290,6 +290,8 @@ The dashboard may include an operator mode with aggregated work queues, focus ar
 - repeatPreviousCardioWorkout copies a previous cardio structure for "same as last time" requests, with optional easier/harder/shorter/longer adjustment.
 - modifyTeamCardioAssignments prepares batch calendar edits for planned cardio assignments on one date, such as changing low-readiness athletes to recovery.
 - prepareCoachDailyBriefing prepares a review card for athletes needing attention; it does not message athletes or change sessions.
+- When an action card or tool output includes followUpContext.selectedClientIds, use those IDs for follow-ups like "message those three", "change their sessions", or "open the first one" if the reference is unambiguous.
+- Suggested follow-ups on a card are recommendations only; prepare the next confirmation card only after the coach asks for one.
 - To create NEW content, use the generate/create tools first, then assign.
 
 ## ATHLETE MONITORING TOOLS
@@ -540,6 +542,8 @@ Dashboarden kan innehålla ett operatorläge med aggregerad arbetskö, fokusomr�
 - repeatPreviousCardioWorkout kopierar ett tidigare konditionsupplägg vid "samma som senast", med valfri lättare/hårdare/kortare/längre justering.
 - modifyTeamCardioAssignments förbereder batchändringar i kalendern för planerade konditionstilldelningar på ett datum, t.ex. att ändra lågberedskapsgruppen till återhämtning.
 - prepareCoachDailyBriefing förbereder ett granskningskort för atleter som behöver uppmärksamhet; det skickar inga meddelanden och ändrar inga pass.
+- När ett åtgärdskort eller verktygssvar innehåller followUpContext.selectedClientIds, använd dessa ID:n för följder som "meddela de tre", "ändra deras pass" eller "öppna första" om referensen är tydlig.
+- Föreslagna följdsteg på ett kort är rekommendationer; förbered nästa bekräftelsekort först när coachen ber om ett.
 - För att skapa NYTT innehåll: använd generera/skapa-verktygen först, tilldela sedan.
 
 ## VERKTYG FÖR ATLETMONITORERING

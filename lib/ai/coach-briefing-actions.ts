@@ -45,6 +45,39 @@ function secondsToMinutes(value: number | null | undefined): number | null {
   return Math.round(value / 60)
 }
 
+function briefingFollowUps(
+  locale: AppLocale,
+  count: number,
+  firstName?: string | null
+): string[] {
+  if (count <= 0) return []
+  const subject = count === 1
+    ? (firstName || toolText(locale, 'this athlete', 'den här atleten'))
+    : toolText(locale, 'these athletes', 'de här atleterna')
+  return [
+    toolText(
+      locale,
+      `Draft a short check-in message to ${subject}.`,
+      `Drafta ett kort check-in-meddelande till ${subject}.`
+    ),
+    toolText(
+      locale,
+      `Change today's planned cardio for ${subject} to an easy recovery ride.`,
+      `Ändra dagens planerade kondition för ${subject} till en lätt återhämtningscykel.`
+    ),
+    toolText(
+      locale,
+      count === 1 ? `Open ${subject}'s athlete profile.` : `Open the first athlete in this briefing.`,
+      count === 1 ? `Öppna profilen för ${subject}.` : `Öppna första atleten i den här briefingen.`
+    ),
+    toolText(
+      locale,
+      `Show recent cardio summary for ${subject}.`,
+      `Visa senaste konditionssammanfattning för ${subject}.`
+    ),
+  ]
+}
+
 async function resolveBriefingTeam(ctx: CoachToolContext, input: PrepareCoachDailyBriefingInput) {
   if (!input.teamId && !input.teamName) return { ok: true as const, teamId: null, teamName: null }
 
@@ -235,6 +268,16 @@ export async function buildCoachDailyBriefingPreview(
       ],
       recipients: filtered.map((row) => ({ clientId: row.clientId, name: row.name, teamName: row.teamName })),
       recipientCount: filtered.length,
+      suggestedFollowUps: briefingFollowUps(locale, filtered.length, filtered[0]?.name),
+      followUpContext: {
+        selectedClientIds: filtered.map((row) => row.clientId),
+        selectedNames: filtered.map((row) => row.name),
+        targetLabel,
+        hints: [
+          toolText(locale, 'For messages, use recipientType TEAM with teamTarget SELECTED and these clientIds.', 'För meddelanden, använd recipientType TEAM med teamTarget SELECTED och dessa clientIds.'),
+          toolText(locale, 'For group workout changes, use modifyTeamCardioAssignments with targetType SELECTED and these clientIds.', 'För gruppändringar av pass, använd modifyTeamCardioAssignments med targetType SELECTED och dessa clientIds.'),
+        ],
+      },
       confirmLabel: toolText(locale, 'Mark reviewed', 'Markera granskad'),
       reviewHref: '/coach/dashboard',
     },

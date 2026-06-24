@@ -38,6 +38,13 @@ export interface AiActionPreviewInput {
   details?: string[]
   recipients?: Array<{ clientId: string; name: string; teamName: string | null }>
   recipientCount?: number
+  suggestedFollowUps?: string[]
+  followUpContext?: {
+    selectedClientIds?: string[]
+    selectedNames?: string[]
+    targetLabel?: string
+    hints?: string[]
+  }
   reviewHref?: string
   confirmLabel?: string
 }
@@ -54,6 +61,14 @@ export interface AiCapabilityAction {
   details: string[]
   recipients?: Array<{ clientId: string; name: string; teamName: string | null }>
   recipientCount?: number
+  suggestedFollowUps?: string[]
+  followUpContext?: {
+    selectedClientIds?: string[]
+    selectedNames?: string[]
+    targetLabel?: string
+    capabilityId?: string
+    hints?: string[]
+  }
   requiresConfirmation: true
   confirmLabel: string
   cancelLabel: string
@@ -157,6 +172,11 @@ function toClientAction(
   preview: AiActionPreviewInput,
   locale: AppLocale
 ): AiCapabilityAction {
+  const selectedClientIds = preview.followUpContext?.selectedClientIds ||
+    preview.recipients?.map((recipient) => recipient.clientId)
+  const selectedNames = preview.followUpContext?.selectedNames ||
+    preview.recipients?.map((recipient) => recipient.name)
+
   return {
     type: 'aiCapabilityAction',
     id,
@@ -169,6 +189,21 @@ function toClientAction(
     details: preview.details || [],
     recipients: preview.recipients,
     recipientCount: preview.recipientCount,
+    suggestedFollowUps: preview.suggestedFollowUps,
+    followUpContext: selectedClientIds?.length
+      ? {
+          selectedClientIds,
+          selectedNames,
+          targetLabel: preview.followUpContext?.targetLabel || preview.targetLabel,
+          capabilityId: capability.id,
+          hints: preview.followUpContext?.hints,
+        }
+      : preview.followUpContext
+        ? {
+            ...preview.followUpContext,
+            capabilityId: capability.id,
+          }
+        : undefined,
     requiresConfirmation: true,
     confirmLabel: preview.confirmLabel || capability.confirmLabel || t(locale, 'Confirm', 'Bekräfta'),
     cancelLabel: t(locale, 'Cancel', 'Avbryt'),
@@ -295,7 +330,12 @@ export async function createAiActionDraftForTool(
   }
 }
 
-export function wrapToolsWithAiActionDrafts<T extends Record<string, any>>(
+type DraftableAiTool = {
+  description?: string
+  inputSchema?: unknown
+}
+
+export function wrapToolsWithAiActionDrafts<T extends Record<string, DraftableAiTool | undefined>>(
   tools: T,
   context: AiActionDraftContext,
   capabilityIds: string[]
@@ -309,7 +349,7 @@ export function wrapToolsWithAiActionDrafts<T extends Record<string, any>>(
 
     wrapped[capabilityId] = tool({
       description: current.description,
-      inputSchema: current.inputSchema,
+      inputSchema: current.inputSchema as never,
       execute: async (input: unknown) => createAiActionDraftForTool(capabilityId, input, context),
     })
   }

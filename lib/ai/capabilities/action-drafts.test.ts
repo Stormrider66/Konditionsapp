@@ -20,7 +20,7 @@ vi.mock('@/lib/agent/gdpr/audit-logger', () => ({
   logAgentAudit: mocks.logAgentAudit,
 }))
 
-import { wrapToolsWithAiActionDrafts } from './action-drafts'
+import { createAiActionDraftForTool, wrapToolsWithAiActionDrafts } from './action-drafts'
 
 describe('AI action drafts', () => {
   beforeEach(() => {
@@ -102,5 +102,56 @@ describe('AI action drafts', () => {
     )
 
     expect(wrapped).toBe(tools)
+  })
+
+  it('preserves suggested follow-ups and selected recipient context', async () => {
+    const result = await createAiActionDraftForTool(
+      'prepareCoachDailyBriefing',
+      { date: '2026-06-24' },
+      {
+        enabled: true,
+        actorUserId: 'coach-user-1',
+        actorRole: 'COACH',
+        surface: 'coach_chat',
+        businessId: 'business-1',
+        businessSlug: 'skelleftea',
+        locale: 'en',
+      },
+      {
+        title: 'Coach briefing',
+        description: 'Review athletes.',
+        targetLabel: 'A Team',
+        details: ['Attention list: 2'],
+        recipients: [
+          { clientId: 'client-1', name: 'Henrik', teamName: 'A Team' },
+          { clientId: 'client-2', name: 'Anna', teamName: 'A Team' },
+        ],
+        recipientCount: 2,
+        suggestedFollowUps: ['Draft a short check-in message to these athletes.'],
+        followUpContext: {
+          hints: ['Use teamTarget SELECTED.'],
+        },
+      }
+    )
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.action.suggestedFollowUps).toEqual(['Draft a short check-in message to these athletes.'])
+    expect(result.action.followUpContext).toMatchObject({
+      selectedClientIds: ['client-1', 'client-2'],
+      selectedNames: ['Henrik', 'Anna'],
+      targetLabel: 'A Team',
+      capabilityId: 'prepareCoachDailyBriefing',
+      hints: ['Use teamTarget SELECTED.'],
+    })
+    expect(mocks.prisma.aIActionDraft.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          preview: expect.objectContaining({
+            suggestedFollowUps: ['Draft a short check-in message to these athletes.'],
+          }),
+        }),
+      })
+    )
   })
 })

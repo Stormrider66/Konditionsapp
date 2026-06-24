@@ -43,6 +43,14 @@ type AiCapabilityAction = {
   details: string[]
   recipients?: Array<{ clientId: string; name: string; teamName: string | null }>
   recipientCount?: number
+  suggestedFollowUps?: string[]
+  followUpContext?: {
+    selectedClientIds?: string[]
+    selectedNames?: string[]
+    targetLabel?: string
+    capabilityId?: string
+    hints?: string[]
+  }
   requiresConfirmation: true
   confirmLabel: string
   cancelLabel: string
@@ -93,6 +101,7 @@ export function ChatActionCard({ result, businessSlug, basePath = '', embedded =
       genericAction.subject,
       genericAction.body,
       ...(genericAction.details || []),
+      ...(genericAction.suggestedFollowUps || []),
     ].filter(Boolean).join('\n')
     const resultLink: ActionResultLink | null = isSent
       ? getAiCapabilityActionResultLink(genericAction, genericExecutionResponse, basePath)
@@ -104,6 +113,22 @@ export function ChatActionCard({ result, businessSlug, basePath = '', embedded =
         toast({
           title: t('toastCopiedTitle'),
           description: t('toastCopiedDescription'),
+        })
+      } catch {
+        toast({
+          title: t('toastCopyFailedTitle'),
+          description: t('toastCopyFailedDescription'),
+          variant: 'destructive',
+        })
+      }
+    }
+
+    async function handleCopyFollowUp(prompt: string) {
+      try {
+        await navigator.clipboard.writeText(prompt)
+        toast({
+          title: t('toastCopiedTitle'),
+          description: locale === 'sv' ? 'Följdfrågan kopierades.' : 'Follow-up copied.',
         })
       } catch {
         toast({
@@ -244,6 +269,30 @@ export function ChatActionCard({ result, businessSlug, basePath = '', embedded =
                   <li key={detail}>{detail}</li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {genericAction.suggestedFollowUps && genericAction.suggestedFollowUps.length > 0 && (
+            <div>
+              <p className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {locale === 'sv' ? 'Föreslagna följdsteg' : 'Suggested follow-ups'}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {genericAction.suggestedFollowUps.slice(0, 5).map((prompt) => (
+                  <Button
+                    key={prompt}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleCopyFollowUp(prompt)}
+                    className="h-8 max-w-full justify-start truncate px-2 text-xs"
+                    title={prompt}
+                  >
+                    <Copy className="mr-1.5 h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{prompt}</span>
+                  </Button>
+                ))}
+              </div>
             </div>
           )}
 
