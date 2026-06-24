@@ -771,6 +771,17 @@ export async function savePerformanceMealGuideDraft(clientId: string, draft: Per
                 fatG: meal.fatG,
                 fiberG: meal.fiberG,
                 sortOrder: meal.sortOrder,
+                recipeTitle: meal.recipe.title,
+                recipeSummary: meal.recipe.summary,
+                recipeServings: meal.recipe.servings,
+                recipePrepMinutes: meal.recipe.prepMinutes,
+                recipeCookMinutes: meal.recipe.cookMinutes,
+                recipeIngredients: toJson(meal.recipe.ingredients),
+                recipeSteps: toJson(meal.recipe.steps),
+                recipeTips: toOptionalJson(meal.recipe.tips),
+                recipeSource: meal.recipe.source,
+                recipePrompt: meal.recipe.prompt,
+                recipeUpdatedAt: new Date(),
                 options: {
                   create: meal.options.map((option) => ({
                     title: option.title,

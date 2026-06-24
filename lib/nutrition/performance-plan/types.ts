@@ -79,6 +79,25 @@ export interface PlannedMealOptionDraft {
   sortOrder: number
 }
 
+export interface PlannedMealRecipeIngredient {
+  name: string
+  amount: string
+  note?: string
+}
+
+export interface PlannedMealRecipe {
+  title: string
+  summary?: string
+  servings: number
+  prepMinutes?: number
+  cookMinutes?: number
+  ingredients: PlannedMealRecipeIngredient[]
+  steps: string[]
+  tips?: string[]
+  source: 'TEMPLATE' | 'AI'
+  prompt?: string
+}
+
 export interface PlannedMealDraft {
   mealType: MealType
   time?: string
@@ -94,6 +113,7 @@ export interface PlannedMealDraft {
   fiberG?: number
   sortOrder: number
   options: PlannedMealOptionDraft[]
+  recipe: PlannedMealRecipe
 }
 
 export interface PlanDayDraft {

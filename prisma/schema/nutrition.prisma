@@ -355,6 +355,18 @@ model NutritionPlannedMeal {
 
   portionSummary Json
 
+  recipeTitle       String?
+  recipeSummary     String?
+  recipeServings    Float   @default(1)
+  recipePrepMinutes Int?
+  recipeCookMinutes Int?
+  recipeIngredients Json?
+  recipeSteps       Json?
+  recipeTips        Json?
+  recipeSource      String  @default("TEMPLATE") // TEMPLATE | AI
+  recipePrompt      String?
+  recipeUpdatedAt   DateTime?
+
   caloriesKcal Int
   proteinG     Float
   carbsG       Float

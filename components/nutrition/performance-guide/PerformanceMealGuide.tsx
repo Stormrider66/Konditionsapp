@@ -3,12 +3,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { parseISO } from 'date-fns'
-import { Camera, Keyboard, ListChecks, Mic, RefreshCw, Sparkles, Utensils } from 'lucide-react'
+import { Camera, ChefHat, Keyboard, ListChecks, Mic, RefreshCw, Send, Shuffle, Sparkles, Utensils } from 'lucide-react'
 import type { MealType } from '@prisma/client'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { Input } from '@/components/ui/input'
 import { QuickMealLog } from '@/components/athlete/nutrition/QuickMealLog'
 import { VoiceMealCapture } from '@/components/athlete/nutrition/VoiceMealCapture'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
@@ -33,6 +34,16 @@ type PlannedMeal = {
   proteinG: number
   carbsG: number
   fatG: number
+  recipeTitle: string | null
+  recipeSummary: string | null
+  recipeServings: number
+  recipePrepMinutes: number | null
+  recipeCookMinutes: number | null
+  recipeIngredients: Array<{ name: string; amount: string; note?: string }> | null
+  recipeSteps: string[] | null
+  recipeTips: string[] | null
+  recipeSource: string
+  recipePrompt: string | null
   options: Array<{
     id: string
     title: string
@@ -209,6 +220,8 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
   const [generationError, setGenerationError] = useState<string | null>(null)
   const [quickLog, setQuickLog] = useState<{ mealType: MealType; tab: 'text' | 'ingredients' } | null>(null)
   const [voiceOpen, setVoiceOpen] = useState(false)
+  const [recipePrompts, setRecipePrompts] = useState<Record<string, string>>({})
+  const [generatingRecipeId, setGeneratingRecipeId] = useState<string | null>(null)
 
   const guideUrl = selectedDate
     ? `/api/nutrition/performance-plan/current?date=${selectedDate}&uiLocale=${locale}`
@@ -265,6 +278,31 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
     window.dispatchEvent(new CustomEvent('meal-logged'))
     void mutate()
   }
+
+  const generateRecipe = useCallback(async (mealId: string, mode: 'SURPRISE' | 'PREFERENCE') => {
+    const preference = recipePrompts[mealId]?.trim()
+    setGeneratingRecipeId(mealId)
+    setGenerationError(null)
+    try {
+      const res = await fetch(`/api/nutrition/planned-meals/${mealId}/recipe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mode,
+          preference: mode === 'PREFERENCE' ? preference : undefined,
+        }),
+      })
+      if (!res.ok) throw new Error(text(locale, 'Could not create recipe', 'Kunde inte skapa recept'))
+      await mutate()
+      if (mode === 'PREFERENCE') {
+        setRecipePrompts((prev) => ({ ...prev, [mealId]: '' }))
+      }
+    } catch (err) {
+      setGenerationError(err instanceof Error ? err.message : text(locale, 'Could not create recipe', 'Kunde inte skapa recept'))
+    } finally {
+      setGeneratingRecipeId(null)
+    }
+  }, [locale, mutate, recipePrompts])
 
   if (isLoading) {
     return (
@@ -399,6 +437,101 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                     </div>
                     <div className="mt-3">
                       <PortionList portionSummary={meal.portionSummary} locale={locale} />
+                    </div>
+                    <div className="mt-4 space-y-3 rounded-md bg-slate-50 p-3 dark:bg-white/5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+                            <ChefHat className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                            <span className="truncate">
+                              {meal.recipeTitle
+                                ? localizeSavedText(locale, meal.recipeTitle)
+                                : text(locale, 'Recipe suggestion', 'Receptförslag')}
+                            </span>
+                          </div>
+                          {(meal.recipePrepMinutes != null || meal.recipeCookMinutes != null || meal.recipeServings) && (
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                              {meal.recipeServings ? `${meal.recipeServings} ${text(locale, 'serving', 'portion')}` : ''}
+                              {meal.recipePrepMinutes != null ? ` · ${text(locale, 'prep', 'prep')} ${meal.recipePrepMinutes} min` : ''}
+                              {meal.recipeCookMinutes != null ? ` · ${text(locale, 'cook', 'tillagning')} ${meal.recipeCookMinutes} min` : ''}
+                            </p>
+                          )}
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5"
+                          disabled={generatingRecipeId === meal.id}
+                          onClick={() => void generateRecipe(meal.id, 'SURPRISE')}
+                        >
+                          <Shuffle className={cn('h-3.5 w-3.5', generatingRecipeId === meal.id && 'animate-spin')} />
+                          {text(locale, 'Surprise me', 'Överraska mig')}
+                        </Button>
+                      </div>
+
+                      {meal.recipeSummary && (
+                        <p className="text-sm text-slate-600 dark:text-slate-300">{localizeSavedText(locale, meal.recipeSummary)}</p>
+                      )}
+
+                      {meal.recipeIngredients && meal.recipeIngredients.length > 0 && (
+                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                              {text(locale, 'Ingredients', 'Ingredienser')}
+                            </p>
+                            <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                              {meal.recipeIngredients.map((ingredient, index) => (
+                                <li key={`${ingredient.name}-${index}`} className="flex justify-between gap-3">
+                                  <span>{localizeSavedText(locale, ingredient.name)}</span>
+                                  <span className="shrink-0 font-medium">{localizeSavedText(locale, ingredient.amount)}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          {meal.recipeSteps && meal.recipeSteps.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                {text(locale, 'Steps', 'Gör så här')}
+                              </p>
+                              <ol className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                                {meal.recipeSteps.map((step, index) => (
+                                  <li key={`${step}-${index}`} className="flex gap-2">
+                                    <span className="shrink-0 text-slate-400">{index + 1}.</span>
+                                    <span>{localizeSavedText(locale, step)}</span>
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {meal.recipeTips && meal.recipeTips.length > 0 && (
+                        <div className="text-xs text-emerald-700 dark:text-emerald-200">
+                          {meal.recipeTips.map((tip) => localizeSavedText(locale, tip)).join(' ')}
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          value={recipePrompts[meal.id] ?? ''}
+                          onChange={(event) => setRecipePrompts((prev) => ({ ...prev, [meal.id]: event.target.value }))}
+                          placeholder={text(locale, 'I want chicken today', 'Jag vill äta kyckling idag')}
+                          className="h-9"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          className="gap-1.5"
+                          disabled={generatingRecipeId === meal.id || !(recipePrompts[meal.id]?.trim())}
+                          onClick={() => void generateRecipe(meal.id, 'PREFERENCE')}
+                        >
+                          <Send className="h-3.5 w-3.5" />
+                          {text(locale, 'Create', 'Skapa')}
+                        </Button>
+                      </div>
                     </div>
                     {meal.options.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">

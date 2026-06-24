@@ -6,7 +6,7 @@ import {
   resolveNutritionBodyMetrics,
   scorePlannedMealMatch,
 } from '../logic'
-import { buildPlannedMealsForDay } from '../templates'
+import { buildConcreteRecipeForMeal, buildPlannedMealsForDay } from '../templates'
 import type { DayPlanningContext } from '../types'
 
 function context(overrides: Partial<DayPlanningContext>): DayPlanningContext {
@@ -139,5 +139,26 @@ describe('performance meal guide logic', () => {
     expect(meals[0].description).toContain('kolhydrater')
     expect(meals[0].portionSummary.items?.[1].amount).toContain('kolhydrater')
     expect(meals[0].options[0].description).toBe('Likvärdigt makrobyte för den här måltiden.')
+  })
+
+  it('adds concrete recipes to planned meals and honors chicken preference', () => {
+    const recipe = buildConcreteRecipeForMeal({
+      mealType: 'LUNCH',
+      timingRole: 'REGULAR',
+      dayType: 'PRACTICE',
+      locale: 'sv',
+      preference: 'Jag vill äta kyckling idag',
+      macros: {
+        caloriesKcal: 650,
+        proteinG: 45,
+        carbsG: 80,
+        fatG: 18,
+      },
+    })
+
+    expect(recipe.title).toContain('Kyckling')
+    expect(recipe.ingredients.length).toBeGreaterThan(2)
+    expect(recipe.steps.length).toBeGreaterThan(1)
+    expect(recipe.source).toBe('TEMPLATE')
   })
 })
