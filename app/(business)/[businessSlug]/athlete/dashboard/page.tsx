@@ -837,12 +837,18 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
         )}
       </div>
 
+      {/* AI insights — always visible on the main overview */}
+      {isVisible('morning-briefing') && (
+        <div className="mb-8">
+          <MorningBriefingCard />
+        </div>
+      )}
+
       {showTrainingDetails && (
         <div id="training-details">
           {/* Contextual Cards — rendered in user-defined order */}
           {sortByOrder([
             { key: 'milestone-celebration', node: <MilestoneCelebrationCard /> },
-            { key: 'morning-briefing', node: <MorningBriefingCard /> },
             { key: 'pre-workout-nudge', node: <PreWorkoutNudgeCard /> },
             { key: 'pattern-alert', node: <PatternAlertCard /> },
             { key: 'mental-prep', node: <MentalPrepCard /> },

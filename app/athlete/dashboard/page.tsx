@@ -309,14 +309,16 @@ export default async function AthleteDashboardPage({ searchParams }: AthleteDash
         />
       </div>
 
+      {/* AI insights — always visible on the main overview */}
+      <div className="mb-8">
+        <MorningBriefingCard />
+      </div>
+
       {showTrainingDetails && (
         <div id="training-details">
           {/* Contextual Cards */}
           <div className="mb-6">
             <MilestoneCelebrationCard />
-          </div>
-          <div className="mb-6">
-            <MorningBriefingCard />
           </div>
           <div className="mb-6">
             <PreWorkoutNudgeCard />
