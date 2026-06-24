@@ -144,6 +144,65 @@ export const BREAKFAST_RECIPES: RecipeBuilder[] = [
       tips: [sv ? 'Håll den tjock så granolan stannar på toppen.' : 'Keep it thick so the granola stays on top.'],
     })
   },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Omelett med ost, skinka och grönsaker' : 'Omelette with cheese, ham, and vegetables',
+      summary: sv ? 'Mättande, proteinrik frukost som håller länge.' : 'Filling, high-protein breakfast that keeps you full.',
+      prepMinutes: 6,
+      cookMinutes: 8,
+      ingredients: [
+        { name: 'ägg', amount: sv ? `${Math.max(2, Math.round(ctx.macros.proteinG / 9))} st` : `${Math.max(2, Math.round(ctx.macros.proteinG / 9))}` },
+        { name: sv ? 'riven ost' : 'grated cheese', amount: amt(ctx.macros.fatG * 0.7) },
+        { name: sv ? 'skinka eller kalkon' : 'ham or turkey', amount: amt(ctx.macros.proteinG * 2) },
+        { name: sv ? 'fullkornsbröd' : 'wholegrain bread', amount: sv ? `${Math.max(1, Math.round(ctx.macros.carbsG / 18))} skivor` : `${Math.max(1, Math.round(ctx.macros.carbsG / 18))} slices` },
+        { name: sv ? 'paprika och spenat' : 'pepper and spinach', amount: '80 g' },
+      ],
+      steps: sv
+        ? ['Vispa äggen lätt.', 'Stek omeletten med skinka och grönsaker.', 'Strö över ost och vik ihop.', 'Servera med bröd.']
+        : ['Whisk the eggs.', 'Cook the omelette with ham and vegetables.', 'Sprinkle cheese and fold.', 'Serve with bread.'],
+      tips: [sv ? 'Krydda med örter eller chili för mer smak.' : 'Season with herbs or chilli for more flavour.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Fullkornsmacka med ägg och avokado' : 'Wholegrain toast with egg and avocado',
+      summary: sv ? 'Snabb frukost med bra fett och protein.' : 'Quick breakfast with quality fat and protein.',
+      prepMinutes: 8,
+      cookMinutes: 0,
+      ingredients: [
+        { name: sv ? 'fullkornsbröd' : 'wholegrain bread', amount: sv ? `${Math.max(1, Math.round(ctx.macros.carbsG / 18))} skivor` : `${Math.max(1, Math.round(ctx.macros.carbsG / 18))} slices` },
+        { name: sv ? 'kokt ägg' : 'boiled egg', amount: sv ? '2 st' : '2' },
+        { name: 'avokado', amount: amt(ctx.macros.fatG * 2) },
+        { name: sv ? 'tomat, salt, peppar' : 'tomato, salt, pepper', amount: sv ? 'efter smak' : 'to taste' },
+      ],
+      steps: sv
+        ? ['Rosta brödet.', 'Mosa avokadon och bred på.', 'Toppa med skivat ägg och tomat.', 'Salta och peppra.']
+        : ['Toast the bread.', 'Mash the avocado and spread it on.', 'Top with sliced egg and tomato.', 'Salt and pepper.'],
+      tips: [sv ? 'Pressa lite citron på avokadon.' : 'Squeeze a little lemon on the avocado.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Chiapudding med bär och nötter' : 'Chia pudding with berries and nuts',
+      summary: sv ? 'Förberedd kvällen före – rik på fiber och bra fett.' : 'Prepped the night before — rich in fibre and good fats.',
+      prepMinutes: 5,
+      cookMinutes: 0,
+      ingredients: [
+        { name: sv ? 'chiafrön' : 'chia seeds', amount: amt(ctx.macros.fatG * 1.2) },
+        { name: sv ? 'mjölk eller växtdryck' : 'milk or plant drink', amount: '200 ml' },
+        { name: sv ? 'kvarg eller yoghurt' : 'quark or yoghurt', amount: amt(ctx.macros.proteinG * 5) },
+        { name: sv ? 'bär' : 'berries', amount: '100 g' },
+        { name: sv ? 'nötter' : 'nuts', amount: amt(Math.max(ctx.macros.fatG, 3)) },
+      ],
+      steps: sv
+        ? ['Blanda chiafrön och mjölk.', 'Ställ i kylen över natten (rör om efter 10 min).', 'Toppa med kvarg, bär och nötter på morgonen.']
+        : ['Mix chia seeds and milk.', 'Refrigerate overnight (stir after 10 min).', 'Top with quark, berries, and nuts in the morning.'],
+      tips: [sv ? 'Rör om tidigt så det inte klumpar sig.' : 'Stir early so it does not clump.'],
+    })
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -271,6 +330,86 @@ export const MAIN_RECIPES: RecipeBuilder[] = [
       tips: [sv ? 'Använd fast tofu så den håller ihop.' : 'Use firm tofu so it holds together.'],
     })
   },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Fläskfilé med potatis och grönsaker' : 'Pork tenderloin with potatoes and vegetables',
+      summary: sv ? 'Mager styckdetalj med klassiska tillbehör.' : 'A lean cut with classic sides.',
+      prepMinutes: 10,
+      cookMinutes: 25,
+      ingredients: [
+        { name: sv ? 'fläskfilé' : 'pork tenderloin', amount: amt(ctx.macros.proteinG * 5) },
+        { name: sv ? 'potatis' : 'potatoes', amount: amt(ctx.macros.carbsG * 4) },
+        { name: sv ? 'grönsaker' : 'vegetables', amount: '150 g' },
+        { name: sv ? 'olja' : 'oil', amount: amt(ctx.macros.fatG) },
+        { name: sv ? 'salt, peppar, timjan' : 'salt, pepper, thyme', amount: sv ? 'efter smak' : 'to taste' },
+      ],
+      steps: sv
+        ? ['Koka potatisen.', 'Stek eller ugnsbaka fläskfilén tills den är genomstekt.', 'Stek grönsakerna.', 'Låt köttet vila några minuter och skiva.']
+        : ['Boil the potatoes.', 'Pan-fry or roast the pork until cooked through.', 'Cook the vegetables.', 'Rest the meat a few minutes and slice.'],
+      tips: [sv ? 'Fläskfilé blir torr om den överkokas – ta den vid 65-68 °C.' : 'Pork tenderloin dries out if overcooked — pull it at 65-68 °C.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Tonfiskpasta med tomatsås' : 'Tuna pasta with tomato sauce',
+      summary: sv ? 'Snabb och billig proteinmåltid.' : 'Fast, affordable protein meal.',
+      prepMinutes: 5,
+      cookMinutes: 15,
+      ingredients: [
+        { name: sv ? 'tonfisk i vatten' : 'tuna in water', amount: amt(ctx.macros.proteinG * 4) },
+        { name: sv ? 'kokt pasta' : 'cooked pasta', amount: amt(ctx.macros.carbsG * 3) },
+        { name: sv ? 'krossade tomater' : 'crushed tomatoes', amount: '150 g' },
+        { name: sv ? 'olivolja' : 'olive oil', amount: amt(ctx.macros.fatG) },
+        { name: sv ? 'vitlök och salt' : 'garlic and salt', amount: sv ? 'efter smak' : 'to taste' },
+      ],
+      steps: sv
+        ? ['Koka pastan.', 'Värm tomatsås med vitlök.', 'Rör i tonfisken.', 'Blanda med pastan och smaka av.']
+        : ['Cook the pasta.', 'Warm the tomato sauce with garlic.', 'Stir in the tuna.', 'Mix with the pasta and season.'],
+      tips: [sv ? 'Toppa med riven ost om makrona tillåter.' : 'Top with grated cheese if the macros allow.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Linsdahl med ris' : 'Lentil dahl with rice',
+      summary: sv ? 'Växtbaserad, fiberrik måltid med mycket smak.' : 'Plant-based, fibre-rich meal with plenty of flavour.',
+      prepMinutes: 10,
+      cookMinutes: 25,
+      ingredients: [
+        { name: sv ? 'röda linser (torra)' : 'red lentils (dry)', amount: amt(ctx.macros.proteinG * 4) },
+        { name: sv ? 'kokt ris' : 'cooked rice', amount: amt(ctx.macros.carbsG * 2) },
+        { name: sv ? 'kokosmjölk' : 'coconut milk', amount: amt(ctx.macros.fatG * 3) },
+        { name: sv ? 'spenat eller grönsaker' : 'spinach or vegetables', amount: '100 g' },
+        { name: sv ? 'curry, lök, vitlök' : 'curry, onion, garlic', amount: sv ? 'efter smak' : 'to taste' },
+      ],
+      steps: sv
+        ? ['Fräs lök, vitlök och curry.', 'Tillsätt linser, vatten och kokosmjölk och sjud tills mjuka.', 'Rör i spenaten.', 'Servera med ris.']
+        : ['Sauté onion, garlic, and curry.', 'Add lentils, water, and coconut milk; simmer until soft.', 'Stir in the spinach.', 'Serve with rice.'],
+      tips: [sv ? 'Pressa lime över för fräschör.' : 'Squeeze lime over for freshness.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Halloumi- och quinoabowl med grönsaker' : 'Halloumi and quinoa bowl with vegetables',
+      summary: sv ? 'Vegetarisk bowl med stekt halloumi och fullkorn.' : 'Vegetarian bowl with fried halloumi and whole grains.',
+      prepMinutes: 10,
+      cookMinutes: 15,
+      ingredients: [
+        { name: 'halloumi', amount: amt(ctx.macros.proteinG * 4) },
+        { name: sv ? 'kokt quinoa' : 'cooked quinoa', amount: amt(ctx.macros.carbsG * 3) },
+        { name: sv ? 'tomat, gurka, paprika' : 'tomato, cucumber, pepper', amount: '150 g' },
+        { name: sv ? 'olivolja' : 'olive oil', amount: amt(ctx.macros.fatG * 0.7) },
+        { name: sv ? 'citron och örter' : 'lemon and herbs', amount: sv ? 'efter smak' : 'to taste' },
+      ],
+      steps: sv
+        ? ['Stek halloumin gyllene.', 'Koka quinoan.', 'Blanda quinoa med grönsaker.', 'Toppa med halloumi och ringla över olja.']
+        : ['Fry the halloumi golden.', 'Cook the quinoa.', 'Mix quinoa with vegetables.', 'Top with halloumi and drizzle oil.'],
+      tips: [sv ? 'Halloumi är salt – salta inte extra.' : 'Halloumi is salty — do not add extra salt.'],
+    })
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -349,6 +488,43 @@ export const PRE_RECIPES: RecipeBuilder[] = [
         ? ['Dela och rosta bageln lätt.', 'Bre på sylt.', 'Drick juicen vid sidan.']
         : ['Halve and lightly toast the bagel.', 'Spread with jam.', 'Drink the juice alongside.'],
       tips: [sv ? 'Välj ljus bagel för snabbare kolhydrater.' : 'Choose a light bagel for faster carbohydrates.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Banansmoothie med juice och havre' : 'Banana smoothie with juice and oats',
+      summary: sv ? 'Drickbar, lättsmält energi när magen är känslig.' : 'Drinkable, easy-digesting energy when the stomach is sensitive.',
+      prepMinutes: 4,
+      cookMinutes: 0,
+      ingredients: [
+        { name: 'banan', amount: sv ? '1 st' : '1' },
+        { name: 'juice', amount: '200 ml' },
+        { name: sv ? 'havregryn' : 'oats', amount: amt(ctx.macros.carbsG * 0.4) },
+        { name: sv ? 'honung' : 'honey', amount: '10 g' },
+      ],
+      steps: sv
+        ? ['Mixa allt slätt.', 'Drick 45-60 minuter före start.']
+        : ['Blend everything smooth.', 'Drink 45-60 minutes before start.'],
+      tips: [sv ? 'Håll den tunn så den är lätt att dricka.' : 'Keep it thin so it is easy to drink.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Liten pastaportion med tomatsås' : 'Small pasta portion with tomato sauce',
+      summary: sv ? 'Klassisk kolhydratladdning före match utan tungt fett.' : 'Classic pre-game carb load without heavy fat.',
+      prepMinutes: 5,
+      cookMinutes: 12,
+      ingredients: [
+        { name: sv ? 'kokt pasta' : 'cooked pasta', amount: amt(ctx.macros.carbsG * 3.5) },
+        { name: sv ? 'passerade tomater' : 'tomato passata', amount: '120 g' },
+        { name: sv ? 'salt och basilika' : 'salt and basil', amount: sv ? 'efter smak' : 'to taste' },
+      ],
+      steps: sv
+        ? ['Koka pastan.', 'Värm tomatsåsen och blanda.', 'Ät 2-3 timmar före match.']
+        : ['Cook the pasta.', 'Warm the tomato sauce and combine.', 'Eat 2-3 hours before the game.'],
+      tips: [sv ? 'Undvik gräddiga eller feta såser nära start.' : 'Avoid creamy or fatty sauces close to start.'],
     })
   },
 ]
@@ -432,6 +608,44 @@ export const POST_RECIPES: RecipeBuilder[] = [
       tips: [sv ? 'Hoppa över vasslet om proteinbehovet redan är täckt.' : 'Skip the whey if protein is already covered.'],
     })
   },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Tonfisk- eller äggmacka med mjölk' : 'Tuna or egg sandwich with milk',
+      summary: sv ? 'Enkel återhämtning med protein och kolhydrater.' : 'Simple recovery with protein and carbohydrates.',
+      prepMinutes: 6,
+      cookMinutes: 0,
+      ingredients: [
+        { name: sv ? 'fullkornsbröd' : 'wholegrain bread', amount: sv ? '2 skivor' : '2 slices' },
+        { name: sv ? 'tonfisk eller ägg' : 'tuna or egg', amount: amt(ctx.macros.proteinG * 3) },
+        { name: sv ? 'mjölk' : 'milk', amount: '250 ml' },
+        { name: sv ? 'grönsaker' : 'vegetables', amount: sv ? 'efter smak' : 'to taste' },
+      ],
+      steps: sv
+        ? ['Bygg mackan med tonfisk eller ägg och grönsaker.', 'Drick mjölken vid sidan.']
+        : ['Build the sandwich with tuna or egg and vegetables.', 'Drink the milk alongside.'],
+      tips: [sv ? 'Ät inom en timme efter passet.' : 'Eat within an hour of the session.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Kvarg med müsli, banan och honung' : 'Quark with muesli, banana, and honey',
+      summary: sv ? 'Krämig återhämtning med snabba kolhydrater.' : 'Creamy recovery with fast carbohydrates.',
+      prepMinutes: 4,
+      cookMinutes: 0,
+      ingredients: [
+        { name: 'kvarg', amount: amt(ctx.macros.proteinG * 5) },
+        { name: sv ? 'müsli' : 'muesli', amount: amt(ctx.macros.carbsG * 0.6) },
+        { name: 'banan', amount: sv ? '1 st' : '1' },
+        { name: sv ? 'honung' : 'honey', amount: '10 g' },
+      ],
+      steps: sv
+        ? ['Rör ihop kvarg och müsli.', 'Toppa med skivad banan och honung.']
+        : ['Mix quark and muesli.', 'Top with sliced banana and honey.'],
+      tips: [sv ? 'Byt müsli mot granola för mer energi.' : 'Swap muesli for granola for more energy.'],
+    })
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -509,6 +723,58 @@ export const SNACK_RECIPES: RecipeBuilder[] = [
         ? ['Lägg yoghurt i en skål.', 'Toppa med nötter och honung.']
         : ['Add yoghurt to a bowl.', 'Top with nuts and honey.'],
       tips: [sv ? 'Mät upp nötterna – de är energität.' : 'Measure the nuts — they are energy-dense.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Proteinbar och en frukt' : 'Protein bar and a piece of fruit',
+      summary: sv ? 'Snabbt mellanmål på språng.' : 'Quick snack on the go.',
+      prepMinutes: 1,
+      cookMinutes: 0,
+      ingredients: [
+        { name: sv ? 'proteinbar' : 'protein bar', amount: sv ? '1 st' : '1' },
+        { name: sv ? 'frukt' : 'fruit', amount: sv ? '1 st' : '1 piece' },
+      ],
+      steps: sv
+        ? ['Ät proteinbaren och frukten.']
+        : ['Eat the protein bar and the fruit.'],
+      tips: [sv ? 'Välj en bar med 15-20 g protein.' : 'Choose a bar with 15-20 g protein.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Äpple eller banan med nötsmör' : 'Apple or banana with nut butter',
+      summary: sv ? 'Enkelt mellanmål med bra fett och fibrer.' : 'Simple snack with quality fat and fibre.',
+      prepMinutes: 2,
+      cookMinutes: 0,
+      ingredients: [
+        { name: sv ? 'äpple eller banan' : 'apple or banana', amount: sv ? '1 st' : '1' },
+        { name: sv ? 'jordnöts- eller mandelsmör' : 'peanut or almond butter', amount: amt(Math.max(ctx.macros.fatG, 4) * 1.3) },
+      ],
+      steps: sv
+        ? ['Skiva frukten.', 'Bred eller doppa i nötsmör.']
+        : ['Slice the fruit.', 'Spread or dip in nut butter.'],
+      tips: [sv ? 'Mät nötsmöret – det är energität.' : 'Measure the nut butter — it is energy-dense.'],
+    })
+  },
+  (ctx) => {
+    const sv = svOf(ctx)
+    return make(ctx, {
+      title: sv ? 'Knäckebröd med keso och ägg' : 'Crispbread with cottage cheese and egg',
+      summary: sv ? 'Mättande mellanmål med komplett protein.' : 'Filling snack with complete protein.',
+      prepMinutes: 4,
+      cookMinutes: 0,
+      ingredients: [
+        { name: sv ? 'knäckebröd' : 'crispbread', amount: sv ? '2 st' : '2' },
+        { name: 'keso', amount: amt(ctx.macros.proteinG * 4) },
+        { name: sv ? 'kokt ägg' : 'boiled egg', amount: sv ? '1-2 st' : '1-2' },
+      ],
+      steps: sv
+        ? ['Bred keso på knäckebrödet.', 'Toppa med skivat ägg.', 'Salta och peppra lätt.']
+        : ['Spread cottage cheese on the crispbread.', 'Top with sliced egg.', 'Salt and pepper lightly.'],
+      tips: [sv ? 'Välj fullkornsknäcke för mer fiber.' : 'Choose wholegrain crispbread for more fibre.'],
     })
   },
 ]
