@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isValid, parseISO } from 'date-fns'
 import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
-import { getPerformanceMealGuideForDate } from '@/lib/nutrition/performance-plan'
+import { getPerformanceMealGuideForDate, refreshPerformanceMealGuideIfStale } from '@/lib/nutrition/performance-plan'
 import { dayKeyInTimeZone } from '@/lib/nutrition/day-key'
 import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
 import { logger } from '@/lib/logger'
@@ -29,6 +29,9 @@ export async function GET(request: NextRequest) {
 
     const timezone = await getAthleteTimezone(resolved.clientId)
     const key = dateParam || dayKeyInTimeZone(new Date(), timezone)
+    // Self-heal: if a workout was logged after the guide was built, rebuild it
+    // once so the training-aware targets are current — no manual "Uppdatera".
+    await refreshPerformanceMealGuideIfStale(resolved.clientId)
     const guide = await getPerformanceMealGuideForDate(resolved.clientId, key)
 
     if (!guide) {

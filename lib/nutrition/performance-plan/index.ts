@@ -877,6 +877,43 @@ export async function refreshActivePerformanceMealGuideForClient(input: {
   }
 }
 
+/**
+ * Catch-all auto-refresh: if any workout in the active plan's week was logged
+ * AFTER the plan was last built, the day's training-aware targets are stale, so
+ * rebuild the guide once (cheap, useAi:false). Covers every workout-logging
+ * path (focus mode, program logs, quick-erg, etc.) via the TrainingLoad row
+ * each one writes — a timestamp comparison, so no false positives. Best-effort.
+ */
+export async function refreshPerformanceMealGuideIfStale(clientId: string): Promise<boolean> {
+  try {
+    const plan = await prisma.nutritionPerformancePlan.findFirst({
+      where: { clientId, status: 'ACTIVE' },
+      select: { createdAt: true, startDate: true, endDate: true },
+      orderBy: { createdAt: 'desc' },
+    })
+    if (!plan) return false
+
+    const newerWorkout = await prisma.trainingLoad.findFirst({
+      where: {
+        clientId,
+        source: 'WORKOUT',
+        date: { gte: plan.startDate, lte: plan.endDate },
+        createdAt: { gt: plan.createdAt },
+      },
+      select: { id: true },
+    })
+    if (!newerWorkout) return false
+
+    return await refreshActivePerformanceMealGuideForClient({ clientId, reason: 'workout_logged' })
+  } catch (error) {
+    logger.warn('refreshPerformanceMealGuideIfStale failed', {
+      clientId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return false
+  }
+}
+
 export async function getPerformanceMealGuideForDate(clientId: string, dateKey: string) {
   const date = utcDateFromKey(dateKey)
   const plan = await prisma.nutritionPerformancePlan.findFirst({
