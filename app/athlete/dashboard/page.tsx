@@ -35,6 +35,7 @@ import {
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { NutritionFocusDashboard } from '@/components/athlete/NutritionFocusDashboard'
 import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid } from '@/components/athlete/dashboard'
+import { AthleteDashboardFocusSplit } from '@/components/athlete/dashboard/AthleteDashboardFocusSplit'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
 import { WODHistorySummary } from '@/components/athlete/wod'
@@ -56,12 +57,18 @@ import { getLocale, getTranslations } from '@/i18n/server'
 import { getAssignmentRoute, getWODRoute } from '@/types/dashboard-items'
 import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
 
-export default async function AthleteDashboardPage() {
+interface AthleteDashboardPageProps {
+  searchParams?: Promise<{ details?: string }>
+}
+
+export default async function AthleteDashboardPage({ searchParams }: AthleteDashboardPageProps) {
   const { user, clientId, isCoachInAthleteMode } = await requireAthleteOrCoachInAthleteMode()
   // Same namespace as the business-scoped dashboard — `pages.athlete.dashboard`
   // does not exist in the message files and rendered raw keys.
   const t = await getTranslations('athletePages.dashboard')
   const locale = (await getLocale()) === 'sv' ? 'sv' : 'en'
+  const resolvedSearchParams = await searchParams
+  const showTrainingDetails = resolvedSearchParams?.details === 'training'
 
   // Ensure widgets that build URLs can route correctly in business-scoped setups
   const businessSlug = await getUserPrimaryBusinessSlug(user.id)
@@ -262,6 +269,12 @@ export default async function AthleteDashboardPage() {
         <AICreditStatusCard basePath={basePath} compact />
       </div>
 
+      <AthleteDashboardFocusSplit
+        basePath={basePath}
+        locale={locale}
+        showTrainingDetails={showTrainingDetails}
+      />
+
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* HERO CARD(S) (Left 2/3) */}
@@ -296,86 +309,90 @@ export default async function AthleteDashboardPage() {
         />
       </div>
 
-      {/* Contextual Cards */}
-      <div className="mb-6">
-        <MilestoneCelebrationCard />
-      </div>
-      <div className="mb-6">
-        <MorningBriefingCard />
-      </div>
-      <div className="mb-6">
-        <PreWorkoutNudgeCard />
-      </div>
-      <div className="mb-6">
-        <PatternAlertCard />
-      </div>
-      <div className="mb-6">
-        <MentalPrepCard />
-      </div>
-      <div className="mb-6">
-        <NutritionTimingCard />
-      </div>
-      <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RaceFuelingCard clientId={clientId} variant="glass" basePath={basePath} />
-        <FuelingTrainingProgressCard clientId={clientId} variant="glass" plansHref={`${basePath}/athlete/fueling`} />
-      </div>
-      <div className="mb-6">
-        <PostWorkoutCheckCard />
-      </div>
-      <div className="mb-8">
-        <AISuggestionsBanner />
-      </div>
+      {showTrainingDetails && (
+        <div id="training-details">
+          {/* Contextual Cards */}
+          <div className="mb-6">
+            <MilestoneCelebrationCard />
+          </div>
+          <div className="mb-6">
+            <MorningBriefingCard />
+          </div>
+          <div className="mb-6">
+            <PreWorkoutNudgeCard />
+          </div>
+          <div className="mb-6">
+            <PatternAlertCard />
+          </div>
+          <div className="mb-6">
+            <MentalPrepCard />
+          </div>
+          <div className="mb-6">
+            <NutritionTimingCard />
+          </div>
+          <div className="mb-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <RaceFuelingCard clientId={clientId} variant="glass" basePath={basePath} />
+            <FuelingTrainingProgressCard clientId={clientId} variant="glass" plansHref={`${basePath}/athlete/fueling`} />
+          </div>
+          <div className="mb-6">
+            <PostWorkoutCheckCard />
+          </div>
+          <div className="mb-8">
+            <AISuggestionsBanner />
+          </div>
 
-      {/* Sport-Specific Dashboard */}
-      {renderSportDashboard() && (
-        <div className="mb-8">
-          {renderSportDashboard()}
+          {/* Sport-Specific Dashboard */}
+          {renderSportDashboard() && (
+            <div className="mb-8">
+              {renderSportDashboard()}
+            </div>
+          )}
+
+          {/* Secondary Grid (Widget Layout) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            {/* Left Column (2/3) */}
+            <div className="lg:col-span-2 space-y-6">
+              <UpcomingTeamEvents />
+
+              <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
+
+              <WeeklyTrainingSummaryCard
+                clientId={clientId}
+                variant="glass"
+                activeSport={primarySport || 'RUNNING'}
+                intensityTargets={intensityTargets}
+              />
+
+              <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
+
+              <ZoneDistributionChart clientId={clientId} variant="glass" />
+
+              <NutritionDashboard clientId={clientId} mode="summary" />
+
+              <IntegratedRecentActivity clientId={clientId} variant="glass" />
+
+              <IntervalResultsHistory maxAgeHours={24} hideWhenEmpty />
+
+              <AthleteDrillList athletePosition={client.position ?? undefined} />
+            </div>
+
+            {/* Right Column (1/3) */}
+            <div className="space-y-6">
+              <AccountabilityStreakWidget basePath={basePath} />
+
+              <AgentRecommendationsPanel basePath={basePath} />
+
+              <ActiveRestrictionsCard clientId={clientId} />
+
+              <ActivePrograms programs={activePrograms} variant="glass" />
+
+              <WODHistorySummary recentWods={wodHistory} stats={wodStats} />
+            </div>
+
+          </div>
         </div>
       )}
-
-      {/* Secondary Grid (Widget Layout) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Left Column (2/3) */}
-        <div className="lg:col-span-2 space-y-6">
-          <UpcomingTeamEvents />
-
-          <UpcomingWorkouts items={upcomingItems} variant="glass" basePath={basePath} />
-
-          <WeeklyTrainingSummaryCard
-            clientId={clientId}
-            variant="glass"
-            activeSport={primarySport || 'RUNNING'}
-            intensityTargets={intensityTargets}
-          />
-
-          <TrainingTrendChart clientId={clientId} variant="glass" weeks={12} />
-
-          <ZoneDistributionChart clientId={clientId} variant="glass" />
-
-          <NutritionDashboard clientId={clientId} mode="summary" />
-
-          <IntegratedRecentActivity clientId={clientId} variant="glass" />
-
-          <IntervalResultsHistory maxAgeHours={24} hideWhenEmpty />
-
-          <AthleteDrillList athletePosition={client.position ?? undefined} />
-        </div>
-
-        {/* Right Column (1/3) */}
-        <div className="space-y-6">
-          <AccountabilityStreakWidget basePath={basePath} />
-
-          <AgentRecommendationsPanel basePath={basePath} />
-
-          <ActiveRestrictionsCard clientId={clientId} />
-
-          <ActivePrograms programs={activePrograms} variant="glass" />
-
-          <WODHistorySummary recentWods={wodHistory} stats={wodStats} />
-        </div>
-
-      </div>
 
     </div>
   )
