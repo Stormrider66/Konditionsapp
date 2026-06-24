@@ -42,7 +42,7 @@ export default async function NutritionPage() {
         <div className="space-y-10">
           <NutritionDashboard clientId={clientId} />
 
-          <section>
+          <section id="nutrition-stats" className="scroll-mt-24">
             <div className="mb-4">
               <h2 className="text-xl font-bold text-slate-950 dark:text-white">
                 {t('statsTitle')}

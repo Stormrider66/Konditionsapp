@@ -413,7 +413,7 @@ export function NutritionDashboard({ clientId, mode = 'full' }: NutritionDashboa
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all" title={t('actions.nutritionStats')}>
-            <Link href={`${basePath}/athlete/nutrition`}>
+            <Link href={`${basePath}/athlete/nutrition#nutrition-stats`}>
               <TrendingUp className="h-4 w-4" />
             </Link>
           </Button>
