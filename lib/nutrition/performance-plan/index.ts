@@ -681,7 +681,14 @@ export async function buildPerformanceMealGuideDraft({
       garminSnapshot: context.garminSnapshot,
       biaSnapshot: bodyMetrics.biaSnapshot,
       adaptationNotes,
-      meals: buildPlannedMealsForDay({ dayType, targets, scheduleSignals: context.scheduleSignals, locale }),
+      // Epoch-day seed so each calendar day rotates to different recipes.
+      meals: buildPlannedMealsForDay({
+        dayType,
+        targets,
+        scheduleSignals: context.scheduleSignals,
+        locale,
+        variantSeed: Math.floor(date.getTime() / 86_400_000),
+      }),
     })
     previousDayType = dayType
   }

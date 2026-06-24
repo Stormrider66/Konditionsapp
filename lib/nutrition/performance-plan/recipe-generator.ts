@@ -71,6 +71,8 @@ function fallbackRecipe(input: GeneratePlannedMealRecipeInput): PlannedMealRecip
     locale: input.locale,
     preference,
     source: 'TEMPLATE',
+    // "Surprise me" without AI should still rotate to a different recipe.
+    variant: input.mode === 'SURPRISE' ? Math.floor(Math.random() * 997) : 0,
   })
 }
 
