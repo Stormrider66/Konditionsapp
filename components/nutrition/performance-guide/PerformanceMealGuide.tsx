@@ -3,7 +3,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { parseISO } from 'date-fns'
-import { Camera, ChefHat, Keyboard, ListChecks, Mic, RefreshCw, Send, Shuffle, Sparkles, Utensils } from 'lucide-react'
+import {
+  Apple,
+  Beef,
+  Camera,
+  ChefHat,
+  Droplet,
+  Dumbbell,
+  Flame,
+  Keyboard,
+  ListChecks,
+  Mic,
+  Moon,
+  RefreshCw,
+  Send,
+  Shuffle,
+  Sparkles,
+  Sunrise,
+  TrendingDown,
+  Utensils,
+  UtensilsCrossed,
+  Wheat,
+} from 'lucide-react'
 import type { MealType } from '@prisma/client'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
@@ -104,6 +125,36 @@ const DAY_TYPE_LABELS: Record<string, { en: string; sv: string }> = {
   TRAVEL: { en: 'Travel day', sv: 'Resdag' },
 }
 
+// Colored pill treatment per day type so the guide reads its intent at a glance.
+const DAY_TYPE_ACCENT: Record<string, string> = {
+  GAME: 'border-red-400/40 bg-red-500/10 text-red-600 dark:text-red-300',
+  PRACTICE: 'border-emerald-400/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300',
+  HARD_PRACTICE: 'border-orange-400/40 bg-orange-500/10 text-orange-600 dark:text-orange-300',
+  DOUBLE: 'border-purple-400/40 bg-purple-500/10 text-purple-600 dark:text-purple-300',
+  REST: 'border-sky-400/40 bg-sky-500/10 text-sky-600 dark:text-sky-300',
+  RECOVERY: 'border-teal-400/40 bg-teal-500/10 text-teal-600 dark:text-teal-300',
+  TRAVEL: 'border-slate-400/40 bg-slate-500/10 text-slate-600 dark:text-slate-300',
+}
+
+// Icon + accent per meal slot to give each row a recognizable identity.
+const MEAL_TYPE_META: Record<MealType, { icon: typeof Flame; accent: string; bg: string }> = {
+  BREAKFAST: { icon: Sunrise, accent: 'text-amber-500', bg: 'bg-amber-500/10' },
+  MORNING_SNACK: { icon: Apple, accent: 'text-lime-500', bg: 'bg-lime-500/10' },
+  LUNCH: { icon: UtensilsCrossed, accent: 'text-orange-500', bg: 'bg-orange-500/10' },
+  AFTERNOON_SNACK: { icon: Apple, accent: 'text-lime-500', bg: 'bg-lime-500/10' },
+  PRE_WORKOUT: { icon: Dumbbell, accent: 'text-sky-500', bg: 'bg-sky-500/10' },
+  POST_WORKOUT: { icon: Dumbbell, accent: 'text-emerald-500', bg: 'bg-emerald-500/10' },
+  DINNER: { icon: UtensilsCrossed, accent: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+  EVENING_SNACK: { icon: Moon, accent: 'text-violet-400', bg: 'bg-violet-500/10' },
+}
+
+const MACRO_GRADIENTS = {
+  kcal: 'from-orange-400 to-orange-600',
+  protein: 'from-red-400 to-rose-600',
+  carbs: 'from-amber-300 to-amber-500',
+  fat: 'from-cyan-400 to-cyan-600',
+} as const
+
 const SAVED_TEXT_SV: Record<string, string> = {
   'Performance Meal Guide': 'Måltidsguide för prestation',
   'Performance breakfast': 'Prestationsfrukost',
@@ -181,19 +232,43 @@ function metricValue(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }
 
-function MacroBar({ label, eaten, planned, color }: { label: string; eaten: number; planned: number; color: string }) {
+function MacroBar({ label, eaten, planned, gradient }: { label: string; eaten: number; planned: number; gradient: string }) {
+  const filled = pct(eaten, planned)
   return (
     <div className="min-w-0 space-y-1">
       <div className="flex items-center justify-between gap-2 text-[11px]">
         <span className="truncate text-slate-500 dark:text-slate-400">{label}</span>
-        <span className="shrink-0 font-medium text-slate-700 dark:text-slate-300">
+        <span className="shrink-0 font-medium tabular-nums text-slate-700 dark:text-slate-300">
           {metricValue(eaten)} / {metricValue(planned)}
         </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
-        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${pct(eaten, planned)}%` }} />
+      <div className="h-2 overflow-hidden rounded-full bg-slate-200/70 dark:bg-white/10">
+        <div
+          className={cn('h-full rounded-full bg-gradient-to-r transition-all duration-500 ease-out', gradient)}
+          style={{ width: `${filled}%` }}
+        />
       </div>
     </div>
+  )
+}
+
+function MacroChip({
+  icon: Icon,
+  value,
+  label,
+  accent,
+}: {
+  icon: typeof Flame
+  value: string
+  label: string
+  accent: string
+}) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-xs font-medium shadow-sm ring-1 ring-slate-200/70 dark:bg-white/5 dark:ring-white/10">
+      <Icon className={cn('h-3.5 w-3.5', accent)} />
+      <span className="tabular-nums text-slate-800 dark:text-slate-100">{value}</span>
+      <span className="text-slate-400 dark:text-slate-500">{label}</span>
+    </span>
   )
 }
 
@@ -316,18 +391,39 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
 
   return (
     <>
-      <GlassCard>
-        <GlassCardHeader className="pb-3">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <GlassCardTitle className="flex items-center gap-2 text-base text-emerald-700 dark:text-emerald-300">
-                <Sparkles className="h-4 w-4" />
-                {text(locale, 'Performance Meal Guide', 'Måltidsguide för prestation')}
-              </GlassCardTitle>
+      <GlassCard gradient glow="emerald" className="group">
+        {/* Accent ribbon to lift the header out of the flat dark surface */}
+        <div className="h-1 w-full bg-gradient-to-r from-emerald-400 via-teal-400 to-cyan-400" />
+        <GlassCardHeader className="pb-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-lg shadow-emerald-500/20">
+                  <Sparkles className="h-5 w-5" />
+                </span>
+                <div className="min-w-0">
+                  <GlassCardTitle className="text-base text-slate-900 dark:text-white">
+                    {text(locale, 'Performance Meal Guide', 'Måltidsguide för prestation')}
+                  </GlassCardTitle>
+                  {guide && dayLabel && (
+                    <span
+                      className={cn(
+                        'mt-1 inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold',
+                        DAY_TYPE_ACCENT[guide.day.dayType] ?? 'border-slate-400/40 bg-slate-500/10 text-slate-600 dark:text-slate-300'
+                      )}
+                    >
+                      {dayLabel}
+                    </span>
+                  )}
+                </div>
+              </div>
               {guide && (
-                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                  {dayLabel} · {guide.day.caloriesKcal} kcal · {guide.day.proteinG}P / {guide.day.carbsG}C / {guide.day.fatG}F
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <MacroChip icon={Flame} value={`${guide.day.caloriesKcal}`} label="kcal" accent="text-orange-500" />
+                  <MacroChip icon={Beef} value={`${guide.day.proteinG}g`} label={text(locale, 'protein', 'protein')} accent="text-red-500" />
+                  <MacroChip icon={Wheat} value={`${guide.day.carbsG}g`} label={text(locale, 'carbs', 'kolh.')} accent="text-amber-500" />
+                  <MacroChip icon={Droplet} value={`${guide.day.fatG}g`} label={text(locale, 'fat', 'fett')} accent="text-cyan-500" />
+                </div>
               )}
             </div>
             <Button
@@ -351,12 +447,14 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
           )}
 
           {!guide ? (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-slate-300 px-4 py-8 text-center dark:border-white/10">
-              <Utensils className="h-8 w-8 text-slate-400" />
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300 bg-gradient-to-b from-slate-50/50 to-transparent px-4 py-10 text-center dark:border-white/10 dark:from-white/[0.03]">
+              <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400/20 to-teal-500/10 text-emerald-500">
+                <Utensils className="h-7 w-7" />
+              </span>
               <p className="max-w-md text-sm text-slate-600 dark:text-slate-400">
                 {text(locale, 'No performance meal guide is ready for this week yet.', 'Ingen Performance Meal Guide är klar för den här veckan ännu.')}
               </p>
-              <Button type="button" onClick={generateGuide} disabled={isGenerating} className="gap-2">
+              <Button type="button" onClick={generateGuide} disabled={isGenerating} className="gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:from-emerald-600 hover:to-teal-700">
                 <Sparkles className="h-4 w-4" />
                 {isGenerating ? text(locale, 'Generating', 'Skapar') : text(locale, 'Generate guide', 'Skapa guide')}
               </Button>
@@ -364,51 +462,80 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
           ) : (
             <>
               {guide.day.adaptationNotes && (
-                <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-100">
-                  {localizeSavedText(locale, guide.day.adaptationNotes)}
+                <div className="flex items-start gap-2.5 rounded-xl border border-amber-300/50 bg-gradient-to-r from-amber-50 to-orange-50/40 px-3.5 py-2.5 text-sm text-amber-900 dark:border-amber-500/20 dark:from-amber-500/10 dark:to-orange-500/5 dark:text-amber-100">
+                  <TrendingDown className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                  <span>{localizeSavedText(locale, guide.day.adaptationNotes)}</span>
                 </div>
               )}
 
               <div className="space-y-3">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
-                  <ListChecks className="h-4 w-4" />
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <ListChecks className="h-4 w-4 text-emerald-500" />
                   {text(locale, 'Planned vs eaten', 'Planerat vs ätet')}
                 </div>
                 <div className="space-y-3">
-                  {guide.chart.map((row) => (
-                    <div key={row.plannedMealId} className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
-                      <div className="mb-3 flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{row.time ? `${row.time} · ` : ''}{localizeSavedText(locale, row.title)}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{row.logCount} {text(locale, 'logged', 'registrerade')}</p>
+                  {guide.chart.map((row) => {
+                    const meta = MEAL_TYPE_META[row.mealType] ?? { icon: Utensils, accent: 'text-slate-400', bg: 'bg-slate-400/10' }
+                    const MealIcon = meta.icon
+                    return (
+                      <div
+                        key={row.plannedMealId}
+                        className="rounded-xl border border-slate-200/80 bg-white/50 p-3.5 transition-all duration-200 hover:border-emerald-300/60 hover:shadow-md hover:shadow-emerald-500/5 dark:border-white/10 dark:bg-white/[0.03] dark:hover:border-emerald-400/30 dark:hover:bg-white/[0.06]"
+                      >
+                        <div className="mb-3 flex items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', meta.bg)}>
+                              <MealIcon className={cn('h-4 w-4', meta.accent)} />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{row.time ? `${row.time} · ` : ''}{localizeSavedText(locale, row.title)}</p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">{row.logCount} {text(locale, 'logged', 'registrerade')}</p>
+                            </div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <span className="text-sm font-semibold tabular-nums text-slate-900 dark:text-white">
+                              {row.eaten.caloriesKcal}
+                              <span className="text-slate-400 dark:text-slate-500"> / {row.planned.caloriesKcal}</span>
+                            </span>
+                            <span className="block text-[10px] font-medium uppercase tracking-wide text-slate-400">kcal</span>
+                          </div>
                         </div>
-                        <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
-                          {row.eaten.caloriesKcal} / {row.planned.caloriesKcal} kcal
-                        </span>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-2.5 sm:grid-cols-4">
+                          <MacroBar label="kcal" eaten={row.eaten.caloriesKcal} planned={row.planned.caloriesKcal} gradient={MACRO_GRADIENTS.kcal} />
+                          <MacroBar label={text(locale, 'protein', 'protein')} eaten={row.eaten.proteinG} planned={row.planned.proteinG} gradient={MACRO_GRADIENTS.protein} />
+                          <MacroBar label={text(locale, 'carbs', 'kolh.')} eaten={row.eaten.carbsG} planned={row.planned.carbsG} gradient={MACRO_GRADIENTS.carbs} />
+                          <MacroBar label={text(locale, 'fat', 'fett')} eaten={row.eaten.fatG} planned={row.planned.fatG} gradient={MACRO_GRADIENTS.fat} />
+                        </div>
                       </div>
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
-                        <MacroBar label="kcal" eaten={row.eaten.caloriesKcal} planned={row.planned.caloriesKcal} color="bg-orange-500" />
-                        <MacroBar label={text(locale, 'protein', 'protein')} eaten={row.eaten.proteinG} planned={row.planned.proteinG} color="bg-red-500" />
-                        <MacroBar label={text(locale, 'carbs', 'kolh.')} eaten={row.eaten.carbsG} planned={row.planned.carbsG} color="bg-amber-500" />
-                        <MacroBar label={text(locale, 'fat', 'fett')} eaten={row.eaten.fatG} planned={row.planned.fatG} color="bg-cyan-500" />
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
               <div className="space-y-3">
-                {guide.day.meals.map((meal) => (
-                  <div key={meal.id} className="rounded-lg border border-slate-200 p-4 dark:border-white/10">
+                <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  <ChefHat className="h-4 w-4 text-emerald-500" />
+                  {text(locale, 'Meals & recipes', 'Måltider & recept')}
+                </div>
+                {guide.day.meals.map((meal) => {
+                  const meta = MEAL_TYPE_META[meal.mealType] ?? { icon: Utensils, accent: 'text-slate-400', bg: 'bg-slate-400/10' }
+                  const MealIcon = meta.icon
+                  return (
+                  <div key={meal.id} className="rounded-xl border border-slate-200/80 bg-white/40 p-4 transition-colors hover:border-emerald-300/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-emerald-400/20">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                       <div className="min-w-0 space-y-2">
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                            {meal.time ? `${meal.time} · ` : ''}{localizeSavedText(locale, meal.title)}
-                          </p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">
-                            {meal.caloriesKcal} kcal · {Math.round(meal.proteinG)}P / {Math.round(meal.carbsG)}C / {Math.round(meal.fatG)}F
-                          </p>
+                        <div className="flex items-start gap-3">
+                          <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', meta.bg)}>
+                            <MealIcon className={cn('h-4 w-4', meta.accent)} />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                              {meal.time ? `${meal.time} · ` : ''}{localizeSavedText(locale, meal.title)}
+                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                              {meal.caloriesKcal} kcal · {Math.round(meal.proteinG)}P / {Math.round(meal.carbsG)}C / {Math.round(meal.fatG)}F
+                            </p>
+                          </div>
                         </div>
                         {meal.explanation && <p className="text-sm text-slate-600 dark:text-slate-400">{localizeSavedText(locale, meal.explanation)}</p>}
                       </div>
@@ -543,7 +670,8 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                       </div>
                     )}
                   </div>
-                ))}
+                  )
+                })}
               </div>
             </>
           )}
