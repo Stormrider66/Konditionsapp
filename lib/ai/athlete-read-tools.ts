@@ -15,6 +15,9 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
 import { usableTestQualityReviewWhere } from '@/lib/testing/test-quality-review'
+import { getPerformanceMealGuideForDate } from '@/lib/nutrition/performance-plan'
+import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
+import { dayKeyInTimeZone } from '@/lib/nutrition/day-key'
 
 type ChatLocale = 'en' | 'sv'
 
@@ -561,6 +564,135 @@ export function createAthleteReadTools(clientId: string, locale: ChatLocale = 'e
         } catch (error) {
           logger.error('getMyActiveInjuries tool failed', { clientId }, error)
           return { success: false, error: chatText(locale, 'Could not fetch injuries.', 'Kunde inte hämta skador.') }
+        }
+      },
+    }),
+
+    // ── Performance Meal Guide: today's plan ──────────────────────────
+    getMealGuideToday: tool({
+      description: chatText(
+        locale,
+        "Fetch the athlete's Performance Meal Guide for a day (default today): day type, calorie/macro targets, the adaptation note, and each planned meal (time, title, kcal, protein/carbs/fat, recipe title). Use when the athlete asks what to eat today, what's on their meal plan, or about a planned meal.",
+        "Hämta atletens Måltidsguide för prestation för en dag (standard idag): dagtyp, kcal-/makromål, anpassningsnoten och varje planerad måltid (tid, titel, kcal, protein/kolhydrater/fett, recepttitel). Använd när atleten frågar vad de ska äta idag, vad som står på måltidsplanen eller om en planerad måltid."
+      ),
+      inputSchema: z.object({
+        date: z.string().optional().describe('Date (YYYY-MM-DD). Default: today in the athlete timezone.'),
+      }),
+      execute: async ({ date }) => {
+        try {
+          const tz = await getAthleteTimezone(clientId)
+          const dateKey = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : dayKeyInTimeZone(new Date(), tz)
+          const guide = await getPerformanceMealGuideForDate(clientId, dateKey)
+          if (!guide) {
+            return {
+              success: true,
+              hasGuide: false,
+              date: dateKey,
+              message: chatText(locale, 'No active Performance Meal Guide for this day. The athlete can generate one from the dashboard.', 'Ingen aktiv Måltidsguide för prestation för den här dagen. Atleten kan skapa en från dashboarden.'),
+            }
+          }
+          return {
+            success: true,
+            hasGuide: true,
+            date: dateKey,
+            dayType: guide.day.dayType,
+            target: {
+              caloriesKcal: guide.day.caloriesKcal,
+              proteinG: Math.round(guide.day.proteinG),
+              carbsG: Math.round(guide.day.carbsG),
+              fatG: Math.round(guide.day.fatG),
+            },
+            adaptationNote: guide.day.adaptationNotes ?? null,
+            meals: guide.day.meals.map((m) => ({
+              mealType: m.mealType,
+              time: m.time,
+              title: m.title,
+              caloriesKcal: m.caloriesKcal,
+              proteinG: Math.round(m.proteinG),
+              carbsG: Math.round(m.carbsG),
+              fatG: Math.round(m.fatG),
+              recipeTitle: m.recipeTitle ?? null,
+            })),
+          }
+        } catch (error) {
+          logger.error('getMealGuideToday tool failed', { clientId }, error)
+          return { success: false, error: chatText(locale, 'Could not fetch the meal guide.', 'Kunde inte hämta måltidsguiden.') }
+        }
+      },
+    }),
+
+    // ── Performance Meal Guide: fueling summary (planned vs eaten) ─────
+    getFuelingSummary: tool({
+      description: chatText(
+        locale,
+        "Summarize how the athlete is fueling on a day versus the Performance Meal Guide: planned vs eaten calories and macros for the day, % of the calorie target reached, what's left to hit the target, and which planned meals are still un-logged. Use when the athlete asks how their nutrition/fueling is going, what's left to eat, or whether they're on target.",
+        "Sammanfatta hur atleten fyller på en dag jämfört med Måltidsguiden: planerat vs ätet i kalorier och makros för dagen, andel av kalorimålet som nåtts, vad som återstår för att nå målet och vilka planerade måltider som ännu inte loggats. Använd när atleten frågar hur näringen/fyllningen går, vad som är kvar att äta eller om de ligger i fas med målet."
+      ),
+      inputSchema: z.object({
+        date: z.string().optional().describe('Date (YYYY-MM-DD). Default: today in the athlete timezone.'),
+      }),
+      execute: async ({ date }) => {
+        try {
+          const tz = await getAthleteTimezone(clientId)
+          const dateKey = date && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : dayKeyInTimeZone(new Date(), tz)
+          const guide = await getPerformanceMealGuideForDate(clientId, dateKey)
+          if (!guide) {
+            return {
+              success: true,
+              hasGuide: false,
+              date: dateKey,
+              message: chatText(locale, 'No active Performance Meal Guide for this day, so there is no plan to compare against.', 'Ingen aktiv Måltidsguide för prestation för den här dagen, så det finns ingen plan att jämföra mot.'),
+            }
+          }
+          const eaten = guide.chart.reduce(
+            (acc, row) => ({
+              caloriesKcal: acc.caloriesKcal + row.eaten.caloriesKcal,
+              proteinG: acc.proteinG + row.eaten.proteinG,
+              carbsG: acc.carbsG + row.eaten.carbsG,
+              fatG: acc.fatG + row.eaten.fatG,
+            }),
+            { caloriesKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 }
+          )
+          const target = {
+            caloriesKcal: guide.day.caloriesKcal,
+            proteinG: guide.day.proteinG,
+            carbsG: guide.day.carbsG,
+            fatG: guide.day.fatG,
+          }
+          const round = (n: number) => Math.round(n)
+          return {
+            success: true,
+            hasGuide: true,
+            date: dateKey,
+            dayType: guide.day.dayType,
+            target: {
+              caloriesKcal: round(target.caloriesKcal),
+              proteinG: round(target.proteinG),
+              carbsG: round(target.carbsG),
+              fatG: round(target.fatG),
+            },
+            eaten: {
+              caloriesKcal: round(eaten.caloriesKcal),
+              proteinG: round(eaten.proteinG),
+              carbsG: round(eaten.carbsG),
+              fatG: round(eaten.fatG),
+            },
+            remaining: {
+              caloriesKcal: round(target.caloriesKcal - eaten.caloriesKcal),
+              proteinG: round(target.proteinG - eaten.proteinG),
+              carbsG: round(target.carbsG - eaten.carbsG),
+              fatG: round(target.fatG - eaten.fatG),
+            },
+            caloriePctOfTarget: target.caloriesKcal > 0 ? Math.round((eaten.caloriesKcal / target.caloriesKcal) * 100) : 0,
+            mealsLogged: guide.chart.filter((r) => r.logCount > 0).length,
+            totalMeals: guide.chart.length,
+            openMeals: guide.chart
+              .filter((r) => r.logCount === 0)
+              .map((r) => ({ time: r.time, title: r.title, plannedKcal: r.planned.caloriesKcal })),
+          }
+        } catch (error) {
+          logger.error('getFuelingSummary tool failed', { clientId }, error)
+          return { success: false, error: chatText(locale, 'Could not summarize fueling.', 'Kunde inte sammanfatta fyllningen.') }
         }
       },
     }),
