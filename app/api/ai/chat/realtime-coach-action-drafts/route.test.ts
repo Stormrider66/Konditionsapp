@@ -9,6 +9,8 @@ const mockRateLimitJsonResponse = vi.hoisted(() => vi.fn())
 const mockIsAiAssistantOperationsEnabled = vi.hoisted(() => vi.fn())
 const mockCreateAiActionDraftForTool = vi.hoisted(() => vi.fn())
 const mockBuildCoachMessageAction = vi.hoisted(() => vi.fn())
+const mockBuildCreateAndAssignCardioWorkoutPreview = vi.hoisted(() => vi.fn())
+const mockBuildModifyCardioAssignmentPreview = vi.hoisted(() => vi.fn())
 
 const mockPrisma = vi.hoisted(() => ({
   business: { findUnique: vi.fn() },
@@ -47,6 +49,15 @@ vi.mock('@/lib/ai/coach-message-actions', async (importOriginal) => {
   }
 })
 
+vi.mock('@/lib/ai/coach-cardio-actions', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/ai/coach-cardio-actions')>()
+  return {
+    ...actual,
+    buildCreateAndAssignCardioWorkoutPreview: mockBuildCreateAndAssignCardioWorkoutPreview,
+    buildModifyCardioAssignmentPreview: mockBuildModifyCardioAssignmentPreview,
+  }
+})
+
 vi.mock('@/lib/prisma', () => ({
   prisma: mockPrisma,
 }))
@@ -73,6 +84,8 @@ describe('realtime coach action draft route', () => {
     mockCanAccessCoachPlatform.mockResolvedValue(true)
     mockGetStaffPermissions.mockResolvedValue({
       canViewAthletes: true,
+      canCreateEvents: true,
+      canAccessStudios: true,
       isTeamScoped: false,
       assignedTeamIds: [],
     })
@@ -93,6 +106,38 @@ describe('realtime coach action draft route', () => {
         recipientCount: 1,
         confirmLabel: 'Send message',
         reviewHref: '/coach/messages',
+      },
+    })
+    mockBuildCreateAndAssignCardioWorkoutPreview.mockResolvedValue({
+      success: true,
+      preview: {
+        title: 'Assign 10 x 3 min Wattbike',
+        description: 'Creates a cardio session and assigns it to Henrik.',
+        targetLabel: 'Henrik',
+        details: [
+          'Workout: 10 x 3 min Wattbike',
+          'Date: 2026-06-24',
+          'Structure: 10 x 3 min / 1 min rest',
+          'Intensity: RPE 8',
+          'Estimated total: 55 min',
+        ],
+        recipients: [{ clientId: 'client-1', name: 'Henrik', teamName: 'A Team' }],
+        recipientCount: 1,
+        confirmLabel: 'Create and assign',
+        reviewHref: '/coach/cardio',
+      },
+    })
+    mockBuildModifyCardioAssignmentPreview.mockResolvedValue({
+      success: true,
+      preview: {
+        title: 'Modify Wattbike intervals',
+        description: 'Prepares changes for Henrik.',
+        targetLabel: 'Henrik',
+        details: ['Athlete: Henrik', 'New date: 2026-06-26', 'Reason: Low readiness'],
+        recipients: [{ clientId: 'client-1', name: 'Henrik', teamName: 'A Team' }],
+        recipientCount: 1,
+        confirmLabel: 'Modify assignment',
+        reviewHref: '/coach/cardio',
       },
     })
     mockCreateAiActionDraftForTool.mockImplementation(async (capabilityId, _input, _context, preview) => ({
@@ -167,6 +212,101 @@ describe('realtime coach action draft route', () => {
         recipientType: 'ATHLETE',
         athleteName: 'Henrik',
         content: 'Great bike session today.',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(403)
+    expect(body.success).toBe(false)
+    expect(mockCreateAiActionDraftForTool).not.toHaveBeenCalled()
+  })
+
+  it('creates a confirmation-card draft for a cardio workout assignment', async () => {
+    const response = await POST(request({
+      toolName: 'createAndAssignCardioWorkout',
+      callId: 'call-cardio-1',
+      arguments: {
+        targetType: 'ATHLETE',
+        athleteName: 'Henrik',
+        date: '2026-06-24',
+        name: '10 x 3 min Wattbike',
+        workoutType: 'INTERVAL',
+        sport: 'CYCLING',
+        equipment: 'WATTBIKE',
+        rounds: 10,
+        workDurationSeconds: 180,
+        restDurationSeconds: 60,
+        intensity: 'RPE 8',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.callId).toBe('call-cardio-1')
+    expect(body.action.capabilityId).toBe('createAndAssignCardioWorkout')
+    expect(body.action.details).toContain('Estimated total: 55 min')
+    expect(mockBuildCreateAndAssignCardioWorkoutPreview).toHaveBeenCalled()
+    expect(mockCreateAiActionDraftForTool).toHaveBeenCalledWith(
+      'createAndAssignCardioWorkout',
+      expect.objectContaining({
+        targetType: 'ATHLETE',
+        athleteName: 'Henrik',
+      }),
+      expect.objectContaining({
+        actorUserId: 'coach-1',
+        actorRole: 'COACH',
+      }),
+      expect.objectContaining({
+        title: 'Assign 10 x 3 min Wattbike',
+        recipientCount: 1,
+      })
+    )
+  })
+
+  it('creates a confirmation-card draft for a cardio assignment modification', async () => {
+    const response = await POST(request({
+      toolName: 'modifyCardioAssignment',
+      arguments: {
+        athleteName: 'Henrik',
+        currentDate: '2026-06-24',
+        sessionName: 'Wattbike intervals',
+        newDate: '2026-06-26',
+        reason: 'Low readiness',
+      },
+    }))
+    const body = await response.json()
+
+    expect(response.status).toBe(200)
+    expect(body.success).toBe(true)
+    expect(body.action.capabilityId).toBe('modifyCardioAssignment')
+    expect(body.action.confirmLabel).toBe('Modify assignment')
+    expect(mockBuildModifyCardioAssignmentPreview).toHaveBeenCalled()
+  })
+
+  it('blocks cardio action drafts without workout assignment permissions', async () => {
+    mockGetStaffPermissions.mockResolvedValue({
+      canViewAthletes: true,
+      canCreateEvents: false,
+      canAccessStudios: true,
+      isTeamScoped: false,
+      assignedTeamIds: [],
+    })
+
+    const response = await POST(request({
+      toolName: 'createAndAssignCardioWorkout',
+      arguments: {
+        targetType: 'ATHLETE',
+        athleteName: 'Henrik',
+        date: '2026-06-24',
+        name: '10 x 3 min Wattbike',
+        workoutType: 'INTERVAL',
+        sport: 'CYCLING',
+        equipment: 'WATTBIKE',
+        rounds: 10,
+        workDurationSeconds: 180,
+        restDurationSeconds: 60,
+        intensity: 'RPE 8',
       },
     }))
     const body = await response.json()

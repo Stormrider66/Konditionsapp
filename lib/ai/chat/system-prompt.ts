@@ -285,6 +285,8 @@ The dashboard may include an operator mode with aggregated work queues, focus ar
 
 ## ASSIGNING SESSIONS
 - assignSessionToAthlete assigns an EXISTING library session (strength/cardio/hybrid/agility) to one athlete on a date, with a calendar event. Resolve the athlete (findAthleteByName) and confirm session, athlete, and date before calling. Active injury restrictions can block the assignment — relay the block instead of overriding.
+- createAndAssignCardioWorkout creates NEW cardio content and assigns it to one athlete, a team, a filtered team group, or selected athletes in one confirmation card. Ask for interval rest and intensity if missing.
+- modifyCardioAssignment prepares one planned cardio assignment change (move date, shorten, easier intensity, swap sport/equipment, or replace with a modified cardio session). Use it when the coach asks to change an already planned cardio workout.
 - To create NEW content, use the generate/create tools first, then assign.
 
 ## ATHLETE MONITORING TOOLS
@@ -448,6 +450,9 @@ Use tools proactively:
 - "Write to David that he should report back after the session" -> prepareCoachMessageDraft with recipientType ATHLETE + athleteName.
 - "Send a message to everyone in Pitea Hockey A-team with low readiness" -> prepareCoachMessageDraft with recipientType TEAM + teamName + teamTarget LOW_READINESS.
 - "Create an interval session" -> createCardioSession.
+- "Plan 10 x 3 min Wattbike for Henrik today" -> createAndAssignCardioWorkout after date, rest, and intensity are known.
+- "Give low-readiness players in Pitea an easy bike ride tomorrow" -> createAndAssignCardioWorkout with targetType TEAM + teamTarget LOW_READINESS.
+- "Move Anna's hard ride to Friday and make today easy" -> modifyCardioAssignment after the planned assignment is identified.
 - "Build a strength session" -> generateStrengthSession.
 - "Give me an AMRAP" -> createHybridWorkout.
 - "How does Team cardio work with Garmin and Concept2?" -> getTrainingCaptureGuide.
@@ -524,6 +529,8 @@ Dashboarden kan innehålla ett operatorläge med aggregerad arbetskö, fokusomr�
 
 ## TILLDELA SESSIONER
 - assignSessionToAthlete tilldelar en BEFINTLIG session från biblioteket (styrka/kondition/hybrid/agility) till en atlet på ett datum, med kalenderhändelse. Lös atleten (findAthleteByName) och bekräfta session, atlet och datum innan du anropar. Aktiva skaderestriktioner kan blockera tilldelningen — förmedla blockeringen istället för att gå runt den.
+- createAndAssignCardioWorkout skapar NYTT konditionsinnehåll och tilldelar det till en atlet, ett lag, en filtrerad laggrupp eller valda atleter i ett bekräftelsekort. Fråga efter intervallvila och intensitet om det saknas.
+- modifyCardioAssignment förbereder en ändring av en planerad konditionstilldelning (flytta datum, korta ner, lättare intensitet, byt sport/utrustning eller ersätt med ett anpassat konditionspass). Använd när coachen vill ändra ett redan planerat konditionspass.
 - För att skapa NYTT innehåll: använd generera/skapa-verktygen först, tilldela sedan.
 
 ## VERKTYG FÖR ATLETMONITORERING
@@ -792,6 +799,9 @@ Förbered ett meddelande till en atlet, ett lag eller en filtrerad grupp i ett l
 - "Skicka ett meddelande till alla i Piteå Hockey A-lag med låg beredskap" → prepareCoachMessageDraft med recipientType TEAM + teamName + teamTarget LOW_READINESS
 - "Drafta ett meddelande till alla som missat pass" → prepareCoachMessageDraft med recipientType TEAM + teamTarget MISSED_WORKOUTS
 - "Skapa ett intervallpass" → createCardioSession
+- "Planera 10 x 3 min Wattbike för Henrik idag" → createAndAssignCardioWorkout när datum, vila och intensitet är tydliga
+- "Ge lågberedskapsgruppen i Piteå ett lätt cykelpass imorgon" → createAndAssignCardioWorkout med targetType TEAM + teamTarget LOW_READINESS
+- "Flytta Annas hårda cykelpass till fredag och gör dagens pass lätt" → modifyCardioAssignment när planerad tilldelning är identifierad
 - "Bygg ett styrkepass" → generateStrengthSession
 - "Ge mig ett AMRAP" → createHybridWorkout
 - "Hur fungerar Lagkondition med Garmin och Concept2?" → getTrainingCaptureGuide

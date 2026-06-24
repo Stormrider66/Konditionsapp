@@ -43,6 +43,9 @@ const EXPECTED_TOOL_KEYS = [
   'getTrainingCaptureGuide',
   // assignment-tools
   'assignSessionToAthlete',
+  // cardio-action-tools
+  'createAndAssignCardioWorkout',
+  'modifyCardioAssignment',
 ] as const
 
 describe('createCoachChatTools', () => {

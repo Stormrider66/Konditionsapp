@@ -3,11 +3,19 @@ import {
   prepareCoachMessageDraftInputSchema,
   type PrepareCoachMessageDraftInput,
 } from '@/lib/ai/coach-message-actions'
+import {
+  createAndAssignCardioWorkoutInputSchema,
+  modifyCardioAssignmentInputSchema,
+  type CreateAndAssignCardioWorkoutInput,
+  type ModifyCardioAssignmentInput,
+} from '@/lib/ai/coach-cardio-actions'
 
 export const GET_COACH_READINESS_OVERVIEW_TOOL_NAME = 'getCoachReadinessOverview'
 export const GET_COACH_ATHLETE_CARDIO_SUMMARY_TOOL_NAME = 'getCoachAthleteCardioSummary'
 export const SUGGEST_COACH_NAVIGATION_TOOL_NAME = 'suggestCoachNavigation'
 export const PREPARE_COACH_MESSAGE_DRAFT_TOOL_NAME = 'prepareCoachMessageDraft'
+export const CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME = 'createAndAssignCardioWorkout'
+export const MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME = 'modifyCardioAssignment'
 
 export const COACH_LIVE_VOICE_DIRECT_TOOL_NAMES = [
   GET_COACH_READINESS_OVERVIEW_TOOL_NAME,
@@ -17,6 +25,8 @@ export const COACH_LIVE_VOICE_DIRECT_TOOL_NAMES = [
 
 export const COACH_LIVE_VOICE_ACTION_DRAFT_TOOL_NAMES = [
   PREPARE_COACH_MESSAGE_DRAFT_TOOL_NAME,
+  CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME,
+  MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME,
 ] as const
 
 export type CoachLiveVoiceDirectToolName = typeof COACH_LIVE_VOICE_DIRECT_TOOL_NAMES[number]
@@ -97,6 +107,8 @@ export const coachNavigationInputSchema = z.object({
 export type CoachReadinessOverviewInput = z.infer<typeof coachReadinessOverviewInputSchema>
 export type CoachAthleteCardioSummaryInput = z.infer<typeof coachAthleteCardioSummaryInputSchema>
 export type CoachNavigationInput = z.infer<typeof coachNavigationInputSchema>
+export type CoachLiveVoiceCreateAndAssignCardioInput = CreateAndAssignCardioWorkoutInput
+export type CoachLiveVoiceModifyCardioInput = ModifyCardioAssignmentInput
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -125,6 +137,10 @@ export function getCoachLiveVoiceActionDraftSchema(toolName: CoachLiveVoiceActio
   switch (toolName) {
     case PREPARE_COACH_MESSAGE_DRAFT_TOOL_NAME:
       return prepareCoachMessageDraftInputSchema
+    case CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME:
+      return createAndAssignCardioWorkoutInputSchema
+    case MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME:
+      return modifyCardioAssignmentInputSchema
   }
 }
 
@@ -202,6 +218,88 @@ function prepareCoachMessageDraftRealtimeTool(locale: AppLocale): RealtimeFuncti
   }
 }
 
+function createAndAssignCardioWorkoutRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME,
+    description: t(
+      locale,
+      'Prepare a confirmation card that creates a cardio workout and assigns it to one athlete, a team, a filtered group, or selected athletes. Never saves directly.',
+      'Förbered ett bekräftelsekort som skapar ett konditionspass och tilldelar det till en atlet, ett lag, en filtrerad grupp eller valda atleter. Sparar aldrig direkt.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: {
+        targetType: { type: 'string', enum: ['ATHLETE', 'TEAM', 'SELECTED'] },
+        clientId: { type: 'string' },
+        athleteName: { type: 'string' },
+        teamId: { type: 'string' },
+        teamName: { type: 'string' },
+        teamTarget: { type: 'string', enum: ['ALL', 'LOW_READINESS', 'MISSED_WORKOUTS', 'INJURED', 'SELECTED'] },
+        clientIds: { type: 'array', items: { type: 'string' } },
+        date: { type: 'string', description: 'YYYY-MM-DD in Stockholm.' },
+        name: { type: 'string' },
+        description: { type: 'string' },
+        workoutType: { type: 'string', enum: ['INTERVAL', 'STEADY'] },
+        sport: { type: 'string', enum: ['RUNNING', 'CYCLING', 'SWIMMING', 'SKIING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'TEAM_ICE_HOCKEY', 'TEAM_FOOTBALL', 'TEAM_HANDBALL', 'TEAM_FLOORBALL', 'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL'] },
+        equipment: { type: 'string', enum: ['RUN', 'BIKE', 'WATTBIKE', 'BIKE_ERG', 'ROW', 'SKI_ERG', 'ECHO_BIKE', 'ASSAULT_BIKE', 'AIR_BIKE', 'TREADMILL', 'OTHER'] },
+        rounds: { type: 'integer', minimum: 1, maximum: 80 },
+        workDurationSeconds: { type: 'integer', minimum: 10, maximum: 7200 },
+        restDurationSeconds: { type: 'integer', minimum: 0, maximum: 3600 },
+        durationSeconds: { type: 'integer', minimum: 60, maximum: 21600 },
+        intensity: { type: 'string', description: 'Required coach-facing intensity, e.g. Z4, RPE 8, 90% FTP, easy Z2.' },
+        zone: { type: 'number', minimum: 1, maximum: 5 },
+        targetPower: { type: 'string' },
+        targetCadence: { type: 'string' },
+        warmupSeconds: { type: 'integer', minimum: 0, maximum: 3600 },
+        cooldownSeconds: { type: 'integer', minimum: 0, maximum: 3600 },
+        notes: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['targetType', 'date', 'name', 'workoutType', 'intensity'],
+    },
+  }
+}
+
+function modifyCardioAssignmentRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME,
+    description: t(
+      locale,
+      'Prepare a confirmation card that modifies one planned cardio assignment: move date, shorten, change intensity, swap sport/equipment, or replace with an easier session. Never changes directly.',
+      'Förbered ett bekräftelsekort som anpassar en planerad konditionstilldelning: flytta datum, korta ner, ändra intensitet, byta sport/utrustning eller ersätta med ett lättare pass. Ändrar aldrig direkt.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: {
+        assignmentId: { type: 'string' },
+        clientId: { type: 'string' },
+        athleteName: { type: 'string' },
+        currentDate: { type: 'string', description: 'YYYY-MM-DD of the planned assignment if assignmentId is unknown.' },
+        sessionName: { type: 'string' },
+        newDate: { type: 'string', description: 'YYYY-MM-DD if moving the assignment.' },
+        name: { type: 'string' },
+        workoutType: { type: 'string', enum: ['INTERVAL', 'STEADY'] },
+        sport: { type: 'string', enum: ['RUNNING', 'CYCLING', 'SWIMMING', 'SKIING', 'TRIATHLON', 'HYROX', 'GENERAL_FITNESS', 'FUNCTIONAL_FITNESS', 'TEAM_ICE_HOCKEY', 'TEAM_FOOTBALL', 'TEAM_HANDBALL', 'TEAM_FLOORBALL', 'TEAM_BASKETBALL', 'TEAM_VOLLEYBALL', 'TENNIS', 'PADEL'] },
+        equipment: { type: 'string', enum: ['RUN', 'BIKE', 'WATTBIKE', 'BIKE_ERG', 'ROW', 'SKI_ERG', 'ECHO_BIKE', 'ASSAULT_BIKE', 'AIR_BIKE', 'TREADMILL', 'OTHER'] },
+        rounds: { type: 'integer', minimum: 1, maximum: 80 },
+        workDurationSeconds: { type: 'integer', minimum: 10, maximum: 7200 },
+        restDurationSeconds: { type: 'integer', minimum: 0, maximum: 3600 },
+        durationSeconds: { type: 'integer', minimum: 60, maximum: 21600 },
+        intensity: { type: 'string' },
+        zone: { type: 'number', minimum: 1, maximum: 5 },
+        targetPower: { type: 'string' },
+        targetCadence: { type: 'string' },
+        warmupSeconds: { type: 'integer', minimum: 0, maximum: 3600 },
+        cooldownSeconds: { type: 'integer', minimum: 0, maximum: 3600 },
+        notes: { type: 'string' },
+        reason: { type: 'string' },
+      },
+    },
+  }
+}
+
 function suggestCoachNavigationRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
   return {
     type: 'function',
@@ -234,6 +332,8 @@ export function buildCoachLiveVoiceRealtimeTools(locale: AppLocale): RealtimeFun
     coachReadinessOverviewRealtimeTool(locale),
     coachAthleteCardioSummaryRealtimeTool(locale),
     suggestCoachNavigationRealtimeTool(locale),
+    createAndAssignCardioWorkoutRealtimeTool(locale),
+    modifyCardioAssignmentRealtimeTool(locale),
     prepareCoachMessageDraftRealtimeTool(locale),
   ]
 }

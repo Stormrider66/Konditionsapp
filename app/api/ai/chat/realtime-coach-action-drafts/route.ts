@@ -9,11 +9,19 @@ import { isAiAssistantOperationsEnabled } from '@/lib/ai/capabilities/feature-ga
 import { createAiActionDraftForTool } from '@/lib/ai/capabilities/action-drafts'
 import { buildCoachMessageAction } from '@/lib/ai/coach-message-actions'
 import {
+  buildCreateAndAssignCardioWorkoutPreview,
+  buildModifyCardioAssignmentPreview,
+} from '@/lib/ai/coach-cardio-actions'
+import {
   buildPrepareCoachMessageDraftPreview,
+  CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME,
   getCoachLiveVoiceActionDraftSchema,
   isCoachLiveVoiceActionDraftToolName,
+  MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME,
   PREPARE_COACH_MESSAGE_DRAFT_TOOL_NAME,
   type CoachLiveVoiceActionDraftToolName,
+  type CoachLiveVoiceCreateAndAssignCardioInput,
+  type CoachLiveVoiceModifyCardioInput,
 } from '@/lib/ai/coach-live-voice-tools'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { logger } from '@/lib/logger'
@@ -80,6 +88,52 @@ async function createCoachActionDraft(
         buildPrepareCoachMessageDraftPreview(messageResult.action, input as Parameters<typeof buildCoachMessageAction>[1])
       )
     }
+    case CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME: {
+      const preview = await buildCreateAndAssignCardioWorkoutPreview(
+        params.coachUserId,
+        input as CoachLiveVoiceCreateAndAssignCardioInput,
+        params.businessSlug,
+        params.locale,
+      )
+      if (!preview.success) return preview
+      return createAiActionDraftForTool(
+        CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME,
+        input,
+        {
+          enabled: true,
+          actorUserId: params.coachUserId,
+          actorRole: 'COACH',
+          surface: 'coach_chat',
+          businessId: params.businessId,
+          businessSlug: params.businessSlug ?? null,
+          locale: params.locale,
+        },
+        preview.preview,
+      )
+    }
+    case MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME: {
+      const preview = await buildModifyCardioAssignmentPreview(
+        params.coachUserId,
+        input as CoachLiveVoiceModifyCardioInput,
+        params.businessSlug,
+        params.locale,
+      )
+      if (!preview.success) return preview
+      return createAiActionDraftForTool(
+        MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME,
+        input,
+        {
+          enabled: true,
+          actorUserId: params.coachUserId,
+          actorRole: 'COACH',
+          surface: 'coach_chat',
+          businessId: params.businessId,
+          businessSlug: params.businessSlug ?? null,
+          locale: params.locale,
+        },
+        preview.preview,
+      )
+    }
   }
 }
 
@@ -127,6 +181,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const toolName = parsedRequest.data.toolName
+    if (
+      (toolName === CREATE_AND_ASSIGN_CARDIO_WORKOUT_TOOL_NAME || toolName === MODIFY_CARDIO_ASSIGNMENT_TOOL_NAME) &&
+      (!staffPermissions.canCreateEvents || !staffPermissions.canAccessStudios)
+    ) {
+      return NextResponse.json(
+        { success: false, error: t(locale, 'You do not have permission to prepare workout assignment actions.', 'Du har inte behörighet att förbereda tilldelning av pass.') },
+        { status: 403 }
+      )
+    }
+
     const operationsEnabled = await isAiAssistantOperationsEnabled(business?.id ?? null)
     if (!operationsEnabled) {
       return NextResponse.json(
@@ -148,7 +213,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const toolName = parsedRequest.data.toolName
     const parsedInput = getCoachLiveVoiceActionDraftSchema(toolName).safeParse(rawArguments)
     if (!parsedInput.success) {
       return NextResponse.json(

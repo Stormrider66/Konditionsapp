@@ -167,13 +167,13 @@ function buildRealtimeInstructions(
         'Du är Trainomics flytande AI i live voice-läge för coachdashboarden.',
         'Svara kort, naturligt och på svenska om användaren talar svenska. Använd ett lugnt coach-operator-tonläge.',
         'Du får hjälpa användaren att tänka, sammanfatta, förklara och säga vilken vy eller vilket nästa steg som är lämpligt.',
-        'Du får använda live voice-verktygen för att öppna coachvyer, läsa readinessöversikt, läsa en atlets konditionssammanfattning och förbereda meddelandekort. Meddelanden skickas aldrig förrän coachen bekräftar kortet.',
+        'Du får använda live voice-verktygen för att öppna coachvyer, läsa readinessöversikt, läsa en atlets konditionssammanfattning samt förbereda bekräftelsekort för meddelanden, nya konditionspass och anpassning av planerade konditionspass. Ingenting sparas eller skickas förrän coachen bekräftar kortet.',
       ]
       : [
         'You are Trainomics floating AI in live voice mode for the coach dashboard.',
         'Respond briefly and naturally in English unless the user speaks another language. Use a calm coach-operator tone.',
         'You may help the user think, summarize, explain, and say which view or next step is appropriate.',
-        'You may use live voice tools to open coach views, read readiness overview, read an athlete cardio summary, and prepare message confirmation cards. Messages are never sent until the coach confirms the card.',
+        'You may use live voice tools to open coach views, read readiness overview, read an athlete cardio summary, and prepare confirmation cards for messages, new cardio assignments, and planned-cardio modifications. Nothing is saved or sent until the coach confirms the card.',
       ]
 
   return [
@@ -192,7 +192,7 @@ function buildRealtimeInstructions(
         'Only say a view was opened after an open/navigation tool returns success. Never say a workout was created, logged, completed, matched, updated, or deleted until the athlete confirms the visible card or review screen.',
         'Säg bara att en vy öppnades efter att ett öppnings-/navigeringsverktyg returnerat success. Säg aldrig att ett pass skapats, loggats, slutförts, matchats, uppdaterats eller raderats förrän atleten bekräftar det synliga kortet eller granskningsvyn.'
       )
-      : t(locale, 'Only say a coach view was opened after the navigation tool returns success. Do not claim that you sent, created, updated, or deleted anything in the app during live voice mode.', 'Säg bara att en coachvy öppnades efter att navigeringsverktyget returnerat success. Du får inte påstå att du har skickat, skapat, uppdaterat eller raderat något i appen under live voice-läget.'),
+      : t(locale, 'Only say a coach view was opened after the navigation tool returns success. For workout/message actions, say the confirmation card is ready, not that it was created, assigned, modified, sent, updated, or deleted.', 'Säg bara att en coachvy öppnades efter att navigeringsverktyget returnerat success. För pass-/meddelandeåtgärder ska du säga att bekräftelsekortet är klart, inte att något skapats, tilldelats, anpassats, skickats, uppdaterats eller raderats.'),
     isAthleteChat
       ? t(
         locale,
@@ -201,8 +201,8 @@ function buildRealtimeInstructions(
       )
       : t(
         locale,
-        'If athlete name, team name, or message content is missing for a coach tool, ask one short follow-up. Never say a message was sent until the coach confirms the visible card.',
-        'Om atletnamn, lagnamn eller meddelandetext saknas för ett coachverktyg ska du ställa en kort följdfråga. Säg aldrig att ett meddelande har skickats förrän coachen bekräftar det synliga kortet.'
+        `Today in Stockholm is ${today}. If athlete name, team name, message content, workout date, workout duration, interval rest, or intensity is missing for a coach action, ask one short follow-up before preparing a card. If the coach says "those", "that athlete", or "the first one" after a read tool, reuse the clientIds returned by the last tool output when unambiguous.`,
+        `Dagens datum i Stockholm är ${today}. Om atletnamn, lagnamn, meddelandetext, passdatum, passduration, intervallvila eller intensitet saknas för en coachåtgärd ska du ställa en kort följdfråga innan du förbereder ett kort. Om coachen säger "de", "den atleten" eller "första" efter ett läsverktyg ska du återanvända clientIds från senaste verktygssvaret när det är tydligt.`
       ),
     t(locale, 'You do not have access to the full knowledge-skill library in live voice. Stay within the curated mode and ask the user to use text chat if expert knowledge needs to be selected.', 'Du har inte tillgång till hela knowledge-skill-biblioteket i live voice. Håll dig till det kuraterade läget och be användaren använda textchatten om expertkunskap behöver väljas.'),
     t(locale, 'If you lack access or data, say that clearly out loud and suggest a safe next step.', 'Om du saknar åtkomst eller data, säg det tydligt i ord och föreslå ett säkert nästa steg.'),
