@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Prisma } from '@prisma/client'
 import { buildCardioSessionSummary } from './session-summary'
+import { attachCardioDebriefToNotes, buildCardioPostWorkoutDebrief } from './post-workout-debrief'
 
 // EMOM-style triple-erg session: 10 rounds of [BikeErg 60s/16cal,
 // Row 60s/16cal, SkiErg 60s/16cal] with 60s rest between rounds.
@@ -67,7 +68,7 @@ function emomLogs() {
   return logs
 }
 
-function buildSummary(segments: unknown, segmentLogs: ReturnType<typeof emomLogs>) {
+function buildSummary(segments: unknown, segmentLogs: ReturnType<typeof emomLogs>, notes: string | null = null) {
   return buildCardioSessionSummary({
     session: {
       id: 'session-1',
@@ -83,7 +84,7 @@ function buildSummary(segments: unknown, segmentLogs: ReturnType<typeof emomLogs
       status: 'COMPLETED',
       actualDuration: 39 * 60,
       sessionRPE: 8,
-      notes: null,
+      notes,
       avgHeartRate: null,
       maxHeartRate: null,
       segmentLogs,
@@ -152,6 +153,35 @@ describe('buildCardioSessionSummary', () => {
       scoredWindows: 30,
       hitWindows: 4 + 6 + 3,
     })
+  })
+
+  it('separates visible notes from structured post-workout debrief answers', () => {
+    const debrief = buildCardioPostWorkoutDebrief({
+      questions: [
+        {
+          id: 'target_fit',
+          type: 'choice',
+          label: 'How did the watt target feel?',
+          options: [{ value: 'too_hard', label: 'Too hard' }],
+        },
+      ],
+      answersByQuestionId: { target_fit: 'too_hard' },
+      capturedAt: '2026-06-24T12:00:00.000Z',
+      source: 'manual',
+    })
+    const notes = attachCardioDebriefToNotes('Needed a longer warm-up.', debrief)
+
+    const summary = buildSummary(TRIPLE_ERG_SEGMENTS, emomLogs(), notes ?? null)
+
+    expect(summary.log.notes).toBe('Needed a longer warm-up.')
+    expect(summary.log.debrief?.answers).toEqual([
+      {
+        questionId: 'target_fit',
+        question: 'How did the watt target feel?',
+        answer: 'Too hard',
+        value: 'too_hard',
+      },
+    ])
   })
 
   it('scores calorie-target windows without a duration by time and flips fade semantics', () => {

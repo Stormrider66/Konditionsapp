@@ -17,6 +17,11 @@ import {
   type FocusModeSegment,
 } from './focus-mode-segments'
 import { summarizeCardioSensorSamples, type CardioSensorSeriesStats } from './sensor-samples'
+import {
+  parseCardioDebriefFromNotes,
+  stripCardioDebriefFromNotes,
+  type CardioPostWorkoutDebrief,
+} from './post-workout-debrief'
 
 const WORK_TYPES = new Set(['INTERVAL', 'STEADY', 'HILL', 'DRILLS'])
 
@@ -205,6 +210,7 @@ export interface CardioSessionSummaryData {
     actualDuration: number | null
     sessionRPE: number | null
     notes: string | null
+    debrief: CardioPostWorkoutDebrief | null
     avgHeartRate: number | null
     maxHeartRate: number | null
   }
@@ -1130,6 +1136,8 @@ export function buildCardioSessionSummary({
     recoveryStats,
     locale,
   })
+  const debrief = parseCardioDebriefFromNotes(log.notes)
+  const visibleNotes = stripCardioDebriefFromNotes(log.notes)
   const coachReview = buildCoachReview({
     windows,
     roundFade,
@@ -1153,7 +1161,8 @@ export function buildCardioSessionSummary({
       status: log.status,
       actualDuration: log.actualDuration,
       sessionRPE: log.sessionRPE,
-      notes: log.notes,
+      notes: visibleNotes,
+      debrief,
       avgHeartRate: log.avgHeartRate,
       maxHeartRate: log.maxHeartRate,
     },

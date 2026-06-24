@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Prisma } from '@prisma/client'
 import { buildCardioSessionSummary } from '@/lib/cardio/session-summary'
+import { attachCardioDebriefToNotes, buildCardioPostWorkoutDebrief } from '@/lib/cardio/post-workout-debrief'
 import { buildCoachCardioReviewInboxItem } from './cardio-review-inbox'
 
 const BIKE_INTERVALS = [
@@ -154,5 +155,43 @@ describe('coach cardio review inbox', () => {
     expect(item.executionScore).toBeGreaterThanOrEqual(85)
     expect(item.onTargetWindows).toBe(2)
     expect(item.analyzedWindows).toBe(2)
+  })
+
+  it('surfaces athlete debrief answers as coach review cues', () => {
+    const debrief = buildCardioPostWorkoutDebrief({
+      questions: [
+        {
+          id: 'target_fit',
+          type: 'choice',
+          label: 'How did the watt target feel?',
+          options: [{ value: 'too_hard', label: 'Too hard' }],
+        },
+      ],
+      answersByQuestionId: { target_fit: 'too_hard' },
+      capturedAt: '2026-06-24T12:00:00.000Z',
+      source: 'manual',
+    })
+    const notes = attachCardioDebriefToNotes(null, debrief) ?? null
+
+    const item = buildCoachCardioReviewInboxItem({
+      summary: summary(notes, [
+        workLog({ id: 'work-1', segmentIndex: 0, duration: 180, power: 252, cadence: 90 }),
+        restLog('rest-1', 1, [168, 145]) as ReturnType<typeof workLog>,
+        workLog({ id: 'work-2', segmentIndex: 2, duration: 180, power: 248, cadence: 91 }),
+      ]),
+      athlete: { id: 'athlete-1', name: 'Athlete One' },
+      assignment: { id: 'assignment-1', assignedDate: new Date('2026-06-13T00:00:00Z') },
+      log: {
+        id: 'log-1',
+        startedAt: new Date('2026-06-13T10:00:00Z'),
+        completedAt: new Date('2026-06-13T10:12:00Z'),
+        sessionRPE: 6,
+      },
+      locale: 'en',
+    })
+
+    expect(item.priority).toBe('review')
+    expect(item.flags.map((flag) => flag.id)).toContain('debrief-load-too-hard')
+    expect(item.keyFindings.join(' ')).toContain('Debrief: How did the watt target feel? Too hard')
   })
 })

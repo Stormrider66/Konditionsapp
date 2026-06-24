@@ -161,6 +161,7 @@ export function CardioSessionSummaryView({
             <HeroStats data={data} tw={tw} />
             {data.plannedVsActual && <PlannedVsActualCard data={data} locale={locale} tw={tw} />}
             {showAthleteName && <CoachReviewCard data={data} tw={tw} />}
+            {data.log.debrief && <DebriefCard data={data} tw={tw} />}
             {data.liveData.segmentsWithSamples > 0 && <LiveDataCard data={data} tw={tw} />}
             {data.calorieAdherence && <AdherenceCard data={data} tw={tw} />}
             {data.roundFade && <FadeCard data={data} tw={tw} />}
@@ -223,6 +224,35 @@ function HeroStats({ data, tw }: { data: SummaryResponse; tw: Tw }) {
           <p className="text-xl font-black tabular-nums">{stat.value}</p>
         </div>
       ))}
+    </div>
+  )
+}
+
+function DebriefCard({ data, tw }: { data: SummaryResponse; tw: Tw }) {
+  const debrief = data.log.debrief
+  if (!debrief || debrief.answers.length === 0) return null
+
+  return (
+    <div className="rounded-xl border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-emerald-500" />
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            {tw('Debrief', 'Debrief')}
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[10px] uppercase">
+          {debrief.source === 'voice' ? tw('Röst', 'Voice') : debrief.source === 'mixed' ? tw('Röst + knapp', 'Voice + tap') : tw('Manuell', 'Manual')}
+        </Badge>
+      </div>
+      <div className="space-y-3">
+        {debrief.answers.map((answer) => (
+          <div key={`${answer.questionId}-${answer.answer}`} className="rounded-lg bg-muted/40 p-3">
+            <p className="text-xs font-semibold text-muted-foreground">{answer.question}</p>
+            <p className="mt-1 text-sm font-medium">{answer.answer}</p>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

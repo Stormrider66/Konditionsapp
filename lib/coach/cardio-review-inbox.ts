@@ -79,6 +79,24 @@ function hasLowRhythm(summary: CardioSessionSummaryData): boolean {
   })
 }
 
+function debriefFinding(summary: CardioSessionSummaryData, locale: AppLocale): string | null {
+  const answers = summary.log.debrief?.answers ?? []
+  const priorityAnswer =
+    answers.find((answer) => answer.questionId === 'target_fit') ??
+    answers.find((answer) => answer.questionId === 'recovery_feel') ??
+    answers.find((answer) => answer.questionId === 'pain_detail') ??
+    answers.find((answer) => answer.questionId === 'missed_work_reason') ??
+    answers.find((answer) => answer.questionId === 'main_limiter')
+
+  if (!priorityAnswer) return null
+
+  return text(
+    locale,
+    `Debrief: ${priorityAnswer.question} ${priorityAnswer.answer}`,
+    `Debrief: ${priorityAnswer.question} ${priorityAnswer.answer}`,
+  )
+}
+
 function addFlag(
   flags: CoachCardioReviewFlag[],
   flag: CoachCardioReviewFlag,
@@ -177,6 +195,15 @@ export function buildCoachCardioReviewInboxItem(input: {
     })
   }
 
+  const debriefAnswers = summary.log.debrief?.answers ?? []
+  if (debriefAnswers.some((answer) => answer.value === 'too_hard' || answer.value === 'not_enough')) {
+    addFlag(flags, {
+      id: 'debrief-load-too-hard',
+      label: text(locale, 'Debrief says load was high', 'Debrief: hög belastning'),
+      severity: 'warning',
+    })
+  }
+
   const priority: CoachCardioReviewPriority = flags.some((flag) => flag.severity === 'urgent')
     ? 'urgent'
     : flags.some((flag) => flag.severity === 'warning') ||
@@ -234,6 +261,7 @@ export function buildCoachCardioReviewInboxItem(input: {
     flags,
     keyFindings: [
       summary.coachReview.painFlag ?? null,
+      debriefFinding(summary, locale),
       ...(planned?.keyFindings ?? []),
     ].filter((finding): finding is string => Boolean(finding)).slice(0, 4),
   }

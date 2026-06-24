@@ -39,6 +39,7 @@ import {
   Heart,
   ShieldCheck,
   MessageSquareText,
+  ClipboardCheck,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
@@ -79,6 +80,11 @@ import { ZONE_COLORS, type LiveHRMachineType } from '@/lib/live-hr/types'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { LiveVoiceCoachButton } from './LiveVoiceCoachButton'
 import { useTranslations, useLocale } from '@/i18n/client'
+import {
+  attachCardioDebriefToNotes,
+  buildCardioDebriefQuestions,
+  buildCardioPostWorkoutDebrief,
+} from '@/lib/cardio/post-workout-debrief'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -262,6 +268,7 @@ export function CardioFocusModeWorkout({
   const [sessionNotes, setSessionNotes] = useState('')
   const [painMentioned, setPainMentioned] = useState(false)
   const [painDetails, setPainDetails] = useState('')
+  const [debriefAnswers, setDebriefAnswers] = useState<Record<string, string>>({})
   const [debriefCapturedAt, setDebriefCapturedAt] = useState<string | null>(null)
   const debriefPromptSentRef = useRef(false)
   const liveInsightStateRef = useRef(createCardioLiveInsightState())
@@ -709,6 +716,43 @@ export function CardioFocusModeWorkout({
     painDetails: painMentioned ? painDetails.trim() || null : null,
     capturedAt: debriefCapturedAt ?? undefined,
   }), [sessionRPE, sessionNotes, painMentioned, painDetails, debriefCapturedAt])
+  const smartDebriefQuestions = useMemo(() => {
+    const workSegments = segments.filter((segment) => isWorkType(segment.type))
+    let plannedPowerLowWindows = 0
+    let plannedPowerHighWindows = 0
+
+    for (const segment of workSegments) {
+      if (!segment.completed || segment.skipped || typeof segment.actualAvgPower !== 'number') continue
+      const targetPower = resolveSegmentPower(segment, openerPower).watts ?? segment.plannedPower
+      if (typeof targetPower !== 'number' || targetPower <= 0) continue
+      const tolerance = Math.max(10, Math.abs(targetPower) * 0.05)
+      if (segment.actualAvgPower < targetPower - tolerance) plannedPowerLowWindows += 1
+      if (segment.actualAvgPower > targetPower + tolerance) plannedPowerHighWindows += 1
+    }
+
+    return buildCardioDebriefQuestions({
+      locale: locale as 'en' | 'sv',
+      totalSegments: segments.length,
+      completedSegments: segments.filter((segment) => segment.completed).length,
+      skippedSegments: segments.filter((segment) => segment.skipped).length,
+      plannedPowerLowWindows,
+      plannedPowerHighWindows,
+      painMentioned,
+    })
+  }, [locale, openerPower, painMentioned, segments])
+
+  useEffect(() => {
+    setDebriefAnswers((prev) => {
+      const allowed = new Set(smartDebriefQuestions.map((question) => question.id))
+      const nextEntries = Object.entries(prev).filter(([id]) => allowed.has(id))
+      const next = Object.fromEntries(nextEntries)
+      const unchanged =
+        nextEntries.length === Object.keys(prev).length &&
+        nextEntries.every(([id, value]) => prev[id] === value)
+      return unchanged ? prev : next
+    })
+  }, [smartDebriefQuestions])
+
   const performanceSnapshot = useMemo<LivePerformanceSnapshot>(() => {
     const completedSegments = segments.filter((s) => s.completed).length
     const skippedSegments = segments.filter((s) => s.skipped).length
@@ -1159,11 +1203,18 @@ export function CardioFocusModeWorkout({
         ? `Pain/injury mentioned${painDetails.trim() ? `: ${painDetails.trim()}` : ''}`
         : null,
     ].filter(Boolean).join('\n\n')
+    const smartDebrief = buildCardioPostWorkoutDebrief({
+      questions: smartDebriefQuestions,
+      answersByQuestionId: debriefAnswers,
+      capturedAt: debriefCapturedAt ?? undefined,
+      source: debriefCapturedAt ? 'mixed' : 'manual',
+    })
+    const notesWithDebrief = attachCardioDebriefToNotes(finalNotes, smartDebrief)
 
     liveCoach.disconnect('completed')
     onComplete({
       sessionRPE,
-      notes: finalNotes || undefined,
+      notes: notesWithDebrief,
     })
   }
 
@@ -1603,7 +1654,7 @@ export function CardioFocusModeWorkout({
 
       {/* Completion dialog */}
       <AlertDialog open={showCompleteDialog} onOpenChange={setShowCompleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
@@ -1679,6 +1730,61 @@ export function CardioFocusModeWorkout({
                 />
               )}
             </div>
+
+            {smartDebriefQuestions.length > 0 && (
+              <div className="space-y-3 rounded-md border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-400/20 dark:bg-emerald-500/5">
+                <Label className="flex items-center gap-2 text-sm font-semibold">
+                  <ClipboardCheck className="h-4 w-4" />
+                  {tw('Snabb debrief', 'Quick debrief')}
+                </Label>
+
+                {smartDebriefQuestions.map((question) => (
+                  <div key={question.id} className="space-y-2">
+                    <Label className="text-xs font-semibold text-muted-foreground">
+                      {question.label}
+                    </Label>
+                    {question.type === 'choice' ? (
+                      <div className="flex flex-wrap gap-2">
+                        {question.options?.map((option) => {
+                          const selected = debriefAnswers[question.id] === option.value
+                          return (
+                            <Button
+                              key={option.value}
+                              type="button"
+                              size="sm"
+                              variant={selected ? 'default' : 'outline'}
+                              className={cn(
+                                'h-8 rounded-full px-3 text-xs',
+                                selected && 'bg-emerald-600 text-white hover:bg-emerald-700',
+                              )}
+                              onClick={() =>
+                                setDebriefAnswers((prev) => ({
+                                  ...prev,
+                                  [question.id]: selected ? '' : option.value,
+                                }))
+                              }
+                            >
+                              {option.label}
+                            </Button>
+                          )
+                        })}
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={debriefAnswers[question.id] ?? ''}
+                        onChange={(event) =>
+                          setDebriefAnswers((prev) => ({
+                            ...prev,
+                            [question.id]: event.target.value,
+                          }))
+                        }
+                        className="min-h-[58px]"
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <AlertDialogFooter>
