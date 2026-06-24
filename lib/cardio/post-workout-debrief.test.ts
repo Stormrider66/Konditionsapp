@@ -3,6 +3,7 @@ import {
   attachCardioDebriefToNotes,
   buildCardioDebriefQuestions,
   buildCardioPostWorkoutDebrief,
+  normalizeCardioDebriefAnswersForQuestions,
   parseCardioDebriefFromNotes,
   stripCardioDebriefFromNotes,
 } from './post-workout-debrief'
@@ -68,6 +69,43 @@ describe('cardio post-workout debrief', () => {
           value: 'legs',
         },
       ],
+    })
+  })
+
+  it('normalizes spoken smart debrief answers into stored form values', () => {
+    const questions = buildCardioDebriefQuestions({
+      locale: 'en',
+      totalSegments: 8,
+      completedSegments: 7,
+      skippedSegments: 1,
+      plannedPowerLowWindows: 2,
+    })
+
+    expect(normalizeCardioDebriefAnswersForQuestions(questions, [
+      { questionId: 'missed_work_reason', answer: 'I backed off after rep seven' },
+      { questionId: 'target_fit', answer: 'too hard' },
+      { questionId: 'main_limiter', value: 'Legs' },
+      { questionId: 'unknown', answer: 'ignored' },
+    ])).toEqual({
+      missed_work_reason: 'I backed off after rep seven',
+      target_fit: 'too_hard',
+      main_limiter: 'legs',
+    })
+
+    const swedishQuestions = buildCardioDebriefQuestions({
+      locale: 'sv',
+      totalSegments: 8,
+      completedSegments: 8,
+      skippedSegments: 0,
+      plannedPowerLowWindows: 2,
+    })
+
+    expect(normalizeCardioDebriefAnswersForQuestions(swedishQuestions, [
+      { questionId: 'target_fit', answer: 'Lagom' },
+      { questionId: 'main_limiter', answer: 'Ben' },
+    ])).toEqual({
+      target_fit: 'about_right',
+      main_limiter: 'legs',
     })
   })
 

@@ -21,6 +21,12 @@ export interface CardioDebriefAnswer {
   value?: string | null
 }
 
+export interface CardioDebriefAnswerInput {
+  questionId?: string | null
+  value?: string | null
+  answer?: string | null
+}
+
 export interface CardioPostWorkoutDebrief {
   version: 1
   capturedAt: string
@@ -178,6 +184,70 @@ export function buildCardioPostWorkoutDebrief(input: {
     source: input.source ?? 'manual',
     answers,
   }
+}
+
+function normalizeAnswerToken(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function matchChoiceOption(
+  question: CardioDebriefQuestion,
+  input: CardioDebriefAnswerInput,
+): CardioDebriefOption | null {
+  if (!question.options || question.options.length === 0) return null
+
+  const candidates = [input.value, input.answer]
+    .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+
+  for (const candidate of candidates) {
+    const trimmed = candidate.trim()
+    const exactValue = question.options.find((option) => option.value === trimmed)
+    if (exactValue) return exactValue
+
+    const normalized = normalizeAnswerToken(trimmed)
+    const normalizedMatch = question.options.find((option) =>
+      normalizeAnswerToken(option.value) === normalized ||
+      normalizeAnswerToken(option.label) === normalized
+    )
+    if (normalizedMatch) return normalizedMatch
+  }
+
+  return null
+}
+
+export function normalizeCardioDebriefAnswersForQuestions(
+  questions: CardioDebriefQuestion[],
+  answers: CardioDebriefAnswerInput[],
+): Record<string, string> {
+  const questionById = new Map(questions.map((question) => [question.id, question]))
+  const normalizedAnswers: Record<string, string> = {}
+
+  for (const answer of answers) {
+    const questionId = typeof answer.questionId === 'string' ? answer.questionId.trim() : ''
+    const question = questionById.get(questionId)
+    if (!question) continue
+
+    if (question.type === 'choice') {
+      const option = matchChoiceOption(question, answer)
+      if (option) normalizedAnswers[question.id] = option.value
+      continue
+    }
+
+    const freeTextAnswer = typeof answer.answer === 'string' && answer.answer.trim().length > 0
+      ? answer.answer.trim()
+      : typeof answer.value === 'string' && answer.value.trim().length > 0
+        ? answer.value.trim()
+        : null
+    if (freeTextAnswer) normalizedAnswers[question.id] = freeTextAnswer
+  }
+
+  return normalizedAnswers
 }
 
 function normalizeDebrief(value: unknown): CardioPostWorkoutDebrief | null {

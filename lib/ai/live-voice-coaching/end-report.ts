@@ -20,6 +20,11 @@ export function buildPostWorkoutDebriefLine(debrief: LivePostWorkoutDebrief): st
   parts.push(`pain ${debrief.painMentioned ? 'yes' : 'no'}`)
   if (debrief.painDetails) parts.push(`pain details: ${debrief.painDetails}`)
   if (debrief.notes) parts.push(`notes: ${debrief.notes}`)
+  for (const answer of debrief.smartAnswers ?? []) {
+    const value = answer.value ?? answer.answer
+    if (!value) continue
+    parts.push(`smart ${answer.questionId}: ${value}`)
+  }
   return `[POST WORKOUT DEBRIEF] ${parts.join(' | ')}`
 }
 

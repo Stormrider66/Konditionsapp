@@ -64,12 +64,19 @@ export interface LiveMachineMetrics {
 }
 
 /** Structured athlete debrief captured at workout end. */
+export interface LiveSmartDebriefAnswer {
+  questionId: string
+  value?: string | null
+  answer?: string | null
+}
+
 export interface LivePostWorkoutDebrief {
   sessionRpe?: number | null
   notes?: string | null
   painMentioned?: boolean
   painDetails?: string | null
   mood?: 'positive' | 'neutral' | 'struggling' | 'frustrated' | null
+  smartAnswers?: LiveSmartDebriefAnswer[]
   capturedAt?: string
 }
 

@@ -68,6 +68,7 @@ import type {
   LiveMachineMetrics,
   LivePerformanceSnapshot,
   LivePostWorkoutDebrief,
+  LiveSmartDebriefAnswer,
 } from '@/lib/ai/live-voice-coaching/types'
 import { useAthleteHR } from '@/hooks/use-athlete-hr'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
@@ -84,6 +85,7 @@ import {
   attachCardioDebriefToNotes,
   buildCardioDebriefQuestions,
   buildCardioPostWorkoutDebrief,
+  normalizeCardioDebriefAnswersForQuestions,
 } from '@/lib/cardio/post-workout-debrief'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
@@ -709,13 +711,6 @@ export function CardioFocusModeWorkout({
     timerState.seconds,
     timerState.isRunning,
   ])
-  const postWorkoutDebrief = useMemo<LivePostWorkoutDebrief>(() => ({
-    sessionRpe: sessionRPE,
-    notes: sessionNotes.trim() || null,
-    painMentioned,
-    painDetails: painMentioned ? painDetails.trim() || null : null,
-    capturedAt: debriefCapturedAt ?? undefined,
-  }), [sessionRPE, sessionNotes, painMentioned, painDetails, debriefCapturedAt])
   const smartDebriefQuestions = useMemo(() => {
     const workSegments = segments.filter((segment) => isWorkType(segment.type))
     let plannedPowerLowWindows = 0
@@ -752,6 +747,37 @@ export function CardioFocusModeWorkout({
       return unchanged ? prev : next
     })
   }, [smartDebriefQuestions])
+
+  const postWorkoutDebrief = useMemo<LivePostWorkoutDebrief>(() => {
+    const smartAnswers = smartDebriefQuestions.reduce<LiveSmartDebriefAnswer[]>((answers, question) => {
+      const rawAnswer = debriefAnswers[question.id]?.trim()
+      if (!rawAnswer) return answers
+      const option = question.options?.find((candidate) => candidate.value === rawAnswer)
+      answers.push({
+        questionId: question.id,
+        value: option ? option.value : null,
+        answer: option ? option.label : rawAnswer,
+      })
+      return answers
+    }, [])
+
+    return {
+      sessionRpe: sessionRPE,
+      notes: sessionNotes.trim() || null,
+      painMentioned,
+      painDetails: painMentioned ? painDetails.trim() || null : null,
+      smartAnswers,
+      capturedAt: debriefCapturedAt ?? undefined,
+    }
+  }, [
+    sessionRPE,
+    sessionNotes,
+    painMentioned,
+    painDetails,
+    smartDebriefQuestions,
+    debriefAnswers,
+    debriefCapturedAt,
+  ])
 
   const performanceSnapshot = useMemo<LivePerformanceSnapshot>(() => {
     const completedSegments = segments.filter((s) => s.completed).length
@@ -857,6 +883,18 @@ export function CardioFocusModeWorkout({
         if (debrief.notes) setSessionNotes(debrief.notes)
         setPainMentioned(debrief.painMentioned === true)
         setPainDetails(debrief.painDetails ?? '')
+        if (debrief.smartAnswers?.length) {
+          const normalizedAnswers = normalizeCardioDebriefAnswersForQuestions(
+            smartDebriefQuestions,
+            debrief.smartAnswers,
+          )
+          if (Object.keys(normalizedAnswers).length > 0) {
+            setDebriefAnswers((prev) => ({
+              ...prev,
+              ...normalizedAnswers,
+            }))
+          }
+        }
         setDebriefCapturedAt(debrief.capturedAt ?? new Date().toISOString())
       },
       onPainConcernDetected: (transcript) => {
@@ -896,11 +934,19 @@ export function CardioFocusModeWorkout({
     const hrText = performanceSnapshot.avgHeartRate
       ? `avg HR ${performanceSnapshot.avgHeartRate}${performanceSnapshot.maxHeartRate ? `, max HR ${performanceSnapshot.maxHeartRate}` : ''}`
       : 'no heart-rate summary saved yet'
+    const smartQuestionText = smartDebriefQuestions.length > 0
+      ? smartDebriefQuestions
+          .map((question) => {
+            const options = question.options?.map((option) => `${option.value}=${option.label}`).join(', ')
+            return `${question.id}: ${question.label}${options ? ` (options: ${options})` : ' (free text)'}`
+          })
+          .join(' | ')
+      : 'none'
 
     liveCoach.sendContextMessage(
-      `[POST WORKOUT DEBRIEF] The workout is complete. Ask one short debrief: session RPE 1-10, any pain/injury, and any notes for the coach. After the athlete answers, call record_post_workout_debrief. Do not claim the workout is saved; the athlete still taps Finish. Snapshot: ${performanceSnapshot.completedSegments}/${performanceSnapshot.totalSegments} segments completed, ${powerText}, ${hrText}.`
+      `[POST WORKOUT DEBRIEF] The workout is complete. Ask one short debrief: session RPE 1-10, any pain/injury, any notes for the coach, and the smart questions if listed. Smart questions: ${smartQuestionText}. For smart questions, return smartAnswers using exact questionId and option value when available. After the athlete answers, call record_post_workout_debrief. Do not claim the workout is saved; the athlete still taps Finish. Snapshot: ${performanceSnapshot.completedSegments}/${performanceSnapshot.totalSegments} segments completed, ${powerText}, ${hrText}.`
     )
-  }, [showCompleteDialog, liveCoachActive, liveCoach, performanceSnapshot])
+  }, [showCompleteDialog, liveCoachActive, liveCoach, performanceSnapshot, smartDebriefQuestions])
 
   useEffect(() => {
     if (!liveCoachActive || showCompleteDialog) return

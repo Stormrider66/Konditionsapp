@@ -374,6 +374,23 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
           break
         }
         case 'record_post_workout_debrief': {
+          const rawSmartAnswers = Array.isArray(args?.smartAnswers) ? (args.smartAnswers as unknown[]) : []
+          const smartAnswers = rawSmartAnswers
+            .map((item: unknown) => {
+              if (!item || typeof item !== 'object') return null
+              const candidate = item as Record<string, unknown>
+              const questionId = typeof candidate.questionId === 'string' ? candidate.questionId.trim() : ''
+              if (!questionId) return null
+              const value = typeof candidate.value === 'string' && candidate.value.trim()
+                ? candidate.value.trim()
+                : null
+              const answer = typeof candidate.answer === 'string' && candidate.answer.trim()
+                ? candidate.answer.trim()
+                : null
+              if (!value && !answer) return null
+              return { questionId, value, answer }
+            })
+            .filter((item): item is { questionId: string; value: string | null; answer: string | null } => item != null)
           const debrief: LivePostWorkoutDebrief = {
             sessionRpe: typeof args?.sessionRpe === 'number'
               ? Math.max(1, Math.min(10, Math.round(args.sessionRpe)))
@@ -384,6 +401,7 @@ export function useLiveVoiceCoach(options: UseLiveVoiceCoachOptions): UseLiveVoi
             mood: ['positive', 'neutral', 'struggling', 'frustrated'].includes(args?.mood)
               ? args.mood
               : null,
+            smartAnswers,
             capturedAt: new Date().toISOString(),
           }
           cbs.onRecordPostWorkoutDebrief?.(debrief)

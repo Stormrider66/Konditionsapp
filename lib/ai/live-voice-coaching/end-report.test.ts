@@ -13,6 +13,7 @@ describe('live voice end report helpers', () => {
       painDetails: 'left calf tightness',
       notes: 'Faded on the last two reps',
       mood: 'struggling',
+      smartAnswers: [{ questionId: 'target_fit', value: 'too_hard' }],
     })).toContain('RPE 8/10')
     expect(buildPostWorkoutDebriefLine({
       sessionRpe: 8,
@@ -20,7 +21,16 @@ describe('live voice end report helpers', () => {
       painDetails: 'left calf tightness',
       notes: 'Faded on the last two reps',
       mood: 'struggling',
+      smartAnswers: [{ questionId: 'target_fit', value: 'too_hard' }],
     })).toContain('pain details: left calf tightness')
+    expect(buildPostWorkoutDebriefLine({
+      sessionRpe: 8,
+      painMentioned: true,
+      painDetails: 'left calf tightness',
+      notes: 'Faded on the last two reps',
+      mood: 'struggling',
+      smartAnswers: [{ questionId: 'target_fit', value: 'too_hard' }],
+    })).toContain('smart target_fit: too_hard')
   })
 
   it('formats performance snapshot aggregates and segments', () => {

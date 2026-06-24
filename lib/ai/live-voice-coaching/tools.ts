@@ -45,7 +45,7 @@ const SHARED_TOOLS: FunctionDeclaration[] = [
   {
     name: 'record_post_workout_debrief',
     description:
-      'Record the athlete post-workout debrief after asking for RPE, pain/injury, and any notes. This only fills the confirmation form; it does not save the workout.',
+      'Record the athlete post-workout debrief after asking for RPE, pain/injury, notes, and any smart debrief questions from context. This only fills the confirmation form; it does not save the workout.',
     parameters: {
       type: Type.OBJECT,
       properties: {
@@ -69,6 +69,28 @@ const SHARED_TOOLS: FunctionDeclaration[] = [
           type: Type.STRING,
           enum: ['positive', 'neutral', 'struggling', 'frustrated'],
           description: 'Observed athlete mood from the debrief.',
+        },
+        smartAnswers: {
+          type: Type.ARRAY,
+          description:
+            'Answers to smart debrief questions from the [POST WORKOUT DEBRIEF] context. For choice questions, use the option value when available; for free-text questions, use answer.',
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              questionId: {
+                type: Type.STRING,
+                description: 'The exact smart debrief question id from context.',
+              },
+              value: {
+                type: Type.STRING,
+                description: 'The selected choice option value, if the question had options.',
+              },
+              answer: {
+                type: Type.STRING,
+                description: 'The spoken answer or option label.',
+              },
+            },
+          },
         },
       },
     },
