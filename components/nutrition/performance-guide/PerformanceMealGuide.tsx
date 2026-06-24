@@ -121,6 +121,8 @@ interface PerformanceMealGuideProps {
   isToday: boolean
 }
 
+const COLLAPSED_STORAGE_KEY = 'perf-meal-guide-collapsed'
+
 const DAY_TYPE_LABELS: Record<string, { en: string; sv: string }> = {
   GAME: { en: 'Game day', sv: 'Matchdag' },
   PRACTICE: { en: 'Practice day', sv: 'Träningsdag' },
@@ -306,6 +308,25 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
   const [skipToggleId, setSkipToggleId] = useState<string | null>(null)
   const [isCollapsed, setIsCollapsed] = useState(false)
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.localStorage.getItem(COLLAPSED_STORAGE_KEY) === 'true') {
+      setIsCollapsed(true)
+    }
+  }, [])
+
+  const toggleCollapsed = useCallback(() => {
+    setIsCollapsed((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem(COLLAPSED_STORAGE_KEY, String(next))
+      } catch {
+        // ignore storage errors (private mode / quota)
+      }
+      return next
+    })
+  }, [])
+
   const guideUrl = selectedDate
     ? `/api/nutrition/performance-plan/current?date=${selectedDate}&uiLocale=${locale}`
     : null
@@ -468,7 +489,7 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                 type="button"
                 size="icon"
                 variant="ghost"
-                onClick={() => setIsCollapsed((prev) => !prev)}
+                onClick={toggleCollapsed}
                 aria-expanded={!isCollapsed}
                 aria-label={
                   isCollapsed
