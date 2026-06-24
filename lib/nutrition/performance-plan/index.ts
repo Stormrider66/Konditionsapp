@@ -23,6 +23,7 @@ import {
   scorePlannedMealMatch,
 } from './logic'
 import { buildPlannedMealsForDay } from './templates'
+import { redistributeSkippedMeals } from './skip-redistribute'
 import type {
   DayPlanningContext,
   PerformancePlanDraft,
@@ -937,11 +938,34 @@ export async function getPerformanceMealGuideForDate(clientId: string, dateKey: 
     orderBy: [{ time: 'asc' }, { createdAt: 'asc' }],
   })
 
+  // Apply skip & redistribute: skipped meals push their macros onto the
+  // remaining un-logged meals so per-meal targets reflect what to actually eat.
+  const loggedMealIds = new Set(loggedMeals.map((m) => m.plannedMealId).filter((id): id is string => Boolean(id)))
+  const adjustments = redistributeSkippedMeals(
+    day.meals.map((m) => ({
+      id: m.id,
+      caloriesKcal: m.caloriesKcal,
+      proteinG: m.proteinG,
+      carbsG: m.carbsG,
+      fatG: m.fatG,
+      skipped: m.skipped,
+      logged: loggedMealIds.has(m.id),
+    }))
+  )
+  const adjustedMeals = day.meals.map((m) => {
+    const adj = adjustments.get(m.id)
+    return adj
+      ? { ...m, caloriesKcal: adj.caloriesKcal, proteinG: adj.proteinG, carbsG: adj.carbsG, fatG: adj.fatG, redistributed: adj.redistributed }
+      : { ...m, redistributed: false }
+  })
+
   return {
     plan,
-    day,
+    day: { ...day, meals: adjustedMeals },
     loggedMeals,
-    chart: buildPlannedVsEatenChart(day.meals, loggedMeals),
+    // Skipped meals are excluded from the planned-vs-eaten chart — they are no
+    // longer part of the plan for the day.
+    chart: buildPlannedVsEatenChart(adjustedMeals.filter((m) => !m.skipped), loggedMeals),
   }
 }
 

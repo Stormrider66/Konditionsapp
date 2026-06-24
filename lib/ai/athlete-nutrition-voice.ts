@@ -47,12 +47,13 @@ export async function getFuelingBriefingForVoice(
     if (!guide) {
       return { success: true, hasGuide: false, message: t(locale, 'No active meal guide for today.', 'Ingen aktiv måltidsguide för idag.') }
     }
-    const eaten = guide.chart.reduce(
-      (acc, row) => ({
-        caloriesKcal: acc.caloriesKcal + row.eaten.caloriesKcal,
-        proteinG: acc.proteinG + row.eaten.proteinG,
-        carbsG: acc.carbsG + row.eaten.carbsG,
-        fatG: acc.fatG + row.eaten.fatG,
+    // Sum ALL logged meals (not just plan-matched) for an accurate day total.
+    const eaten = guide.loggedMeals.reduce(
+      (acc, meal) => ({
+        caloriesKcal: acc.caloriesKcal + (meal.calories ?? 0),
+        proteinG: acc.proteinG + (meal.proteinGrams ?? 0),
+        carbsG: acc.carbsG + (meal.carbsGrams ?? 0),
+        fatG: acc.fatG + (meal.fatGrams ?? 0),
       }),
       { caloriesKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 }
     )

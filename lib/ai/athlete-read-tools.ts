@@ -644,12 +644,14 @@ export function createAthleteReadTools(clientId: string, locale: ChatLocale = 'e
               message: chatText(locale, 'No active Performance Meal Guide for this day, so there is no plan to compare against.', 'Ingen aktiv Måltidsguide för prestation för den här dagen, så det finns ingen plan att jämföra mot.'),
             }
           }
-          const eaten = guide.chart.reduce(
-            (acc, row) => ({
-              caloriesKcal: acc.caloriesKcal + row.eaten.caloriesKcal,
-              proteinG: acc.proteinG + row.eaten.proteinG,
-              carbsG: acc.carbsG + row.eaten.carbsG,
-              fatG: acc.fatG + row.eaten.fatG,
+          // Sum ALL logged meals for the day (not just plan-matched ones) so
+          // extra/unplanned meals are reflected in the day's intake total.
+          const eaten = guide.loggedMeals.reduce(
+            (acc, meal) => ({
+              caloriesKcal: acc.caloriesKcal + (meal.calories ?? 0),
+              proteinG: acc.proteinG + (meal.proteinGrams ?? 0),
+              carbsG: acc.carbsG + (meal.carbsGrams ?? 0),
+              fatG: acc.fatG + (meal.fatGrams ?? 0),
             }),
             { caloriesKcal: 0, proteinG: 0, carbsG: 0, fatG: 0 }
           )

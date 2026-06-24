@@ -375,6 +375,10 @@ model NutritionPlannedMeal {
 
   sortOrder Int @default(0)
 
+  // Athlete skipped this meal; its macros are redistributed across the
+  // remaining un-logged meals so the day's target is still covered.
+  skipped Boolean @default(false)
+
   options NutritionPlannedMealOption[]
   mealLogs MealLog[]
 

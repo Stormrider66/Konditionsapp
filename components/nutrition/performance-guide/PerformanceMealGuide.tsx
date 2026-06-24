@@ -18,9 +18,11 @@ import {
   RefreshCw,
   Send,
   Shuffle,
+  SkipForward,
   Sparkles,
   Sunrise,
   TrendingDown,
+  Undo2,
   Utensils,
   UtensilsCrossed,
   Wheat,
@@ -66,6 +68,8 @@ type PlannedMeal = {
   recipeTips: string[] | null
   recipeSource: string
   recipePrompt: string | null
+  skipped: boolean
+  redistributed?: boolean
   options: Array<{
     id: string
     title: string
@@ -298,6 +302,7 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
   const [voiceOpen, setVoiceOpen] = useState(false)
   const [recipePrompts, setRecipePrompts] = useState<Record<string, string>>({})
   const [generatingRecipeId, setGeneratingRecipeId] = useState<string | null>(null)
+  const [skipToggleId, setSkipToggleId] = useState<string | null>(null)
 
   const guideUrl = selectedDate
     ? `/api/nutrition/performance-plan/current?date=${selectedDate}&uiLocale=${locale}`
@@ -379,6 +384,24 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
       setGeneratingRecipeId(null)
     }
   }, [locale, mutate, recipePrompts])
+
+  const toggleSkip = useCallback(async (mealId: string, skipped: boolean) => {
+    setSkipToggleId(mealId)
+    setGenerationError(null)
+    try {
+      const res = await fetch(`/api/nutrition/planned-meals/${mealId}/skip`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ skipped }),
+      })
+      if (!res.ok) throw new Error(text(locale, 'Could not update the meal', 'Kunde inte uppdatera måltiden'))
+      await mutate()
+    } catch (err) {
+      setGenerationError(err instanceof Error ? err.message : text(locale, 'Could not update the meal', 'Kunde inte uppdatera måltiden'))
+    } finally {
+      setSkipToggleId(null)
+    }
+  }, [locale, mutate])
 
   if (isLoading) {
     return (
@@ -521,6 +544,36 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                 {guide.day.meals.map((meal) => {
                   const meta = MEAL_TYPE_META[meal.mealType] ?? { icon: Utensils, accent: 'text-slate-400', bg: 'bg-slate-400/10' }
                   const MealIcon = meta.icon
+                  if (meal.skipped) {
+                    return (
+                      <div key={meal.id} className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-slate-300/70 bg-slate-50/40 p-4 opacity-70 dark:border-white/10 dark:bg-white/[0.02]">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-400/10">
+                            <MealIcon className="h-4 w-4 text-slate-400" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-500 line-through dark:text-slate-400">
+                              {meal.time ? `${meal.time} · ` : ''}{localizeSavedText(locale, meal.title)}
+                            </p>
+                            <p className="text-xs text-slate-400">
+                              {text(locale, 'Skipped — macros moved to your other meals', 'Överhoppad — makros flyttade till dina andra måltider')}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="shrink-0 gap-1.5"
+                          disabled={skipToggleId === meal.id}
+                          onClick={() => void toggleSkip(meal.id, false)}
+                        >
+                          <Undo2 className="h-3.5 w-3.5" />
+                          {text(locale, 'Undo', 'Ångra')}
+                        </Button>
+                      </div>
+                    )
+                  }
                   return (
                   <div key={meal.id} className="rounded-xl border border-slate-200/80 bg-white/40 p-4 transition-colors hover:border-emerald-300/50 dark:border-white/10 dark:bg-white/[0.02] dark:hover:border-emerald-400/20">
                     <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -536,32 +589,50 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                             <p className="text-xs text-slate-500 dark:text-slate-400">
                               {meal.caloriesKcal} kcal · {Math.round(meal.proteinG)}P / {Math.round(meal.carbsG)}C / {Math.round(meal.fatG)}F
                             </p>
+                            {meal.redistributed && (
+                              <span className="mt-0.5 inline-block text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                                {text(locale, 'Boosted to cover a skipped meal', 'Utökad för att täcka en överhoppad måltid')}
+                              </span>
+                            )}
                           </div>
                         </div>
                         {meal.explanation && <p className="text-sm text-slate-600 dark:text-slate-400">{localizeSavedText(locale, meal.explanation)}</p>}
                       </div>
-                      {isToday && (
-                        <div className="flex flex-wrap gap-2">
-                          <Button asChild size="sm" variant="outline" className="gap-1.5">
-                            <Link href={`${basePath}/athlete/nutrition/scan?returnTo=nutrition`}>
-                              <Camera className="h-3.5 w-3.5" />
-                              {text(locale, 'Photo', 'Foto')}
-                            </Link>
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setQuickLog({ mealType: meal.mealType, tab: 'text' })}>
-                            <Keyboard className="h-3.5 w-3.5" />
-                            {text(locale, 'Text', 'Text')}
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setQuickLog({ mealType: meal.mealType, tab: 'ingredients' })}>
-                            <Utensils className="h-3.5 w-3.5" />
-                            {text(locale, 'Food', 'Mat')}
-                          </Button>
-                          <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setVoiceOpen(true)}>
-                            <Mic className="h-3.5 w-3.5" />
-                            {text(locale, 'Voice', 'Röst')}
-                          </Button>
-                        </div>
-                      )}
+                      <div className="flex flex-wrap gap-2">
+                        {isToday && (
+                          <>
+                            <Button asChild size="sm" variant="outline" className="gap-1.5">
+                              <Link href={`${basePath}/athlete/nutrition/scan?returnTo=nutrition`}>
+                                <Camera className="h-3.5 w-3.5" />
+                                {text(locale, 'Photo', 'Foto')}
+                              </Link>
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setQuickLog({ mealType: meal.mealType, tab: 'text' })}>
+                              <Keyboard className="h-3.5 w-3.5" />
+                              {text(locale, 'Text', 'Text')}
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setQuickLog({ mealType: meal.mealType, tab: 'ingredients' })}>
+                              <Utensils className="h-3.5 w-3.5" />
+                              {text(locale, 'Food', 'Mat')}
+                            </Button>
+                            <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setVoiceOpen(true)}>
+                              <Mic className="h-3.5 w-3.5" />
+                              {text(locale, 'Voice', 'Röst')}
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="gap-1.5 text-slate-500 dark:text-slate-400"
+                          disabled={skipToggleId === meal.id}
+                          onClick={() => void toggleSkip(meal.id, true)}
+                        >
+                          <SkipForward className="h-3.5 w-3.5" />
+                          {text(locale, 'Skip', 'Hoppa över')}
+                        </Button>
+                      </div>
                     </div>
                     <div className="mt-3">
                       <PortionList portionSummary={meal.portionSummary} locale={locale} />
