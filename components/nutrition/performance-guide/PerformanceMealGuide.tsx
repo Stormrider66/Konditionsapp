@@ -93,8 +93,72 @@ const DAY_TYPE_LABELS: Record<string, { en: string; sv: string }> = {
   TRAVEL: { en: 'Travel day', sv: 'Resdag' },
 }
 
+const SAVED_TEXT_SV: Record<string, string> = {
+  'Performance Meal Guide': 'Måltidsguide för prestation',
+  'Performance breakfast': 'Prestationsfrukost',
+  'Morning protein snack': 'Proteinsnack på förmiddagen',
+  'Balanced lunch': 'Balanserad lunch',
+  'Training snack': 'Träningsmellanmål',
+  'Recovery dinner': 'Återhämtningsmiddag',
+  'Evening recovery snack': 'Kvällsmål för återhämtning',
+  'Game-day breakfast': 'Matchdagsfrukost',
+  'Light top-up': 'Lätt påfyllning',
+  'Pre-game main meal': 'Huvudmål före match',
+  'Pre-game snack': 'Mellanmål före match',
+  'Post-game recovery': 'Återhämtning efter match',
+  'Late recovery meal': 'Sent återhämtningsmål',
+  'Protein breakfast': 'Proteinfrukost',
+  'Light snack': 'Lätt mellanmål',
+  'Lean lunch': 'Lättare lunch',
+  'Recovery snack': 'Återhämtningsmellanmål',
+  'Rest-day dinner': 'Vilodagsmiddag',
+  'Evening protein': 'Kvällsprotein',
+  'Oats, banana, yoghurt, whey': 'Havregryn, banan, yoghurt, vassle',
+  'Eggs, bread, fruit, yoghurt': 'Ägg, bröd, frukt, yoghurt',
+  'Banana, toast with honey, sports drink': 'Banan, toast med honung, sportdryck',
+  'Rice cakes, jam, diluted sports drink': 'Riskakor, sylt, utspädd sportdryck',
+  'Recovery shake, yoghurt, cereal, fruit': 'Återhämtningsshake, yoghurt, flingor, frukt',
+  'Chocolate milk, quark, banana': 'Chokladmjölk, kvarg, banan',
+  'Chicken, rice, vegetables': 'Kyckling, ris, grönsaker',
+  'Salmon, potatoes, vegetables': 'Lax, potatis, grönsaker',
+  'Lean beef, pasta, tomato sauce': 'Magert nötkött, pasta, tomatsås',
+  'Rest-day breakfast keeps protein high while carbohydrates are calmer.': 'Vilodagsfrukosten håller proteinet högt medan kolhydraterna är lugnare.',
+  'Small protein dose for satiety.': 'En liten proteindos för mättnad.',
+  'A lean, nutrient-dense lunch is where the gentle deficit can live.': 'En lättare och näringstät lunch är där det milda underskottet kan ligga.',
+  'Keep hunger stable without over-fueling a low-demand afternoon.': 'Håll hungern stabil utan att överfylla en lågintensiv eftermiddag.',
+  'Dinner still includes carbohydrate so tomorrow starts well fueled.': 'Middagen innehåller fortfarande kolhydrater så att morgondagen börjar välfylld.',
+  'Optional if the day is short on protein or hunger is high.': 'Valfritt om dagen saknar protein eller hungern är hög.',
+  'vegetables / fruit': 'grönsaker / frukt',
+  'quark / Greek yoghurt': 'kvarg / grekisk yoghurt',
+  'kvarg / Greek yoghurt': 'kvarg / grekisk yoghurt',
+  'whey or recovery yoghurt': 'vassle eller återhämtningsyoghurt',
+  'chicken, fish, eggs, or lean beef': 'kyckling, fisk, ägg eller magert nötkött',
+  'rice, pasta, potatoes, bread, banana, or sports drink': 'ris, pasta, potatis, bröd, banan eller sportdryck',
+  'potatoes, oats, fruit, berries, or whole-grain bread': 'potatis, havregryn, frukt, bär eller fullkornsbröd',
+  'rice, pasta, potatoes, oats, or bread': 'ris, pasta, potatis, havregryn eller bröd',
+  'small amount of olive oil or avocado': 'liten mängd olivolja eller avokado',
+  'olive oil, avocado, nuts, eggs, or salmon': 'olivolja, avokado, nötter, ägg eller lax',
+}
+
 function text(locale: string, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
+}
+
+function localizeSavedText(locale: string, value: string): string {
+  if (locale !== 'sv') return value
+  const exact = SAVED_TEXT_SV[value]
+  if (exact) return exact
+
+  const weightTrend = /^Weight is trending down ([\d.]+) kg\/week, so the deficit is softened\.$/.exec(value)
+  if (weightTrend) return `Vikten går ned ${weightTrend[1]} kg/vecka, så underskottet mildras.`
+
+  return value
+    .replace(/\bg carbohydrates\b/g, 'g kolhydrater')
+    .replace(/\bg fat\b/g, 'g fett')
+    .replace('small, low-fiber portion', 'liten portion med låg fiberhalt')
+    .replace('1-2 fists', '1-2 nävar')
+    .replace('kcal target', 'kcal mål')
+    .replace('macro target', 'makromål')
 }
 
 function pct(current: number, target: number): number {
@@ -122,7 +186,7 @@ function MacroBar({ label, eaten, planned, color }: { label: string; eaten: numb
   )
 }
 
-function PortionList({ portionSummary }: { portionSummary: MealPortionSummary }) {
+function PortionList({ portionSummary, locale }: { portionSummary: MealPortionSummary; locale: string }) {
   const items = portionSummary?.items ?? []
   if (items.length === 0) return null
 
@@ -130,8 +194,8 @@ function PortionList({ portionSummary }: { portionSummary: MealPortionSummary })
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {items.map((item, index) => (
         <div key={`${item.name}-${index}`} className="rounded-md bg-slate-100 px-3 py-2 text-xs dark:bg-white/5">
-          <span className="font-medium text-slate-800 dark:text-slate-200">{item.name}</span>
-          <span className="ml-1 text-slate-500 dark:text-slate-400">{item.amount}</span>
+          <span className="font-medium text-slate-800 dark:text-slate-200">{localizeSavedText(locale, item.name)}</span>
+          <span className="ml-1 text-slate-500 dark:text-slate-400">{localizeSavedText(locale, item.amount)}</span>
         </div>
       ))}
     </div>
@@ -220,7 +284,7 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
             <div className="min-w-0">
               <GlassCardTitle className="flex items-center gap-2 text-base text-emerald-700 dark:text-emerald-300">
                 <Sparkles className="h-4 w-4" />
-                Performance Meal Guide
+                {text(locale, 'Performance Meal Guide', 'Måltidsguide för prestation')}
               </GlassCardTitle>
               {guide && (
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
@@ -263,7 +327,7 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
             <>
               {guide.day.adaptationNotes && (
                 <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:bg-amber-500/10 dark:text-amber-100">
-                  {guide.day.adaptationNotes}
+                  {localizeSavedText(locale, guide.day.adaptationNotes)}
                 </div>
               )}
 
@@ -277,8 +341,8 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                     <div key={row.plannedMealId} className="rounded-lg border border-slate-200 p-3 dark:border-white/10">
                       <div className="mb-3 flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{row.time ? `${row.time} · ` : ''}{row.title}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{row.logCount} {text(locale, 'logged', 'loggad')}</p>
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{row.time ? `${row.time} · ` : ''}{localizeSavedText(locale, row.title)}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{row.logCount} {text(locale, 'logged', 'registrerade')}</p>
                         </div>
                         <span className="shrink-0 text-xs font-medium text-slate-500 dark:text-slate-400">
                           {row.eaten.caloriesKcal} / {row.planned.caloriesKcal} kcal
@@ -286,9 +350,9 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                       </div>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-4">
                         <MacroBar label="kcal" eaten={row.eaten.caloriesKcal} planned={row.planned.caloriesKcal} color="bg-orange-500" />
-                        <MacroBar label="protein" eaten={row.eaten.proteinG} planned={row.planned.proteinG} color="bg-red-500" />
-                        <MacroBar label="carbs" eaten={row.eaten.carbsG} planned={row.planned.carbsG} color="bg-amber-500" />
-                        <MacroBar label="fat" eaten={row.eaten.fatG} planned={row.planned.fatG} color="bg-cyan-500" />
+                        <MacroBar label={text(locale, 'protein', 'protein')} eaten={row.eaten.proteinG} planned={row.planned.proteinG} color="bg-red-500" />
+                        <MacroBar label={text(locale, 'carbs', 'kolh.')} eaten={row.eaten.carbsG} planned={row.planned.carbsG} color="bg-amber-500" />
+                        <MacroBar label={text(locale, 'fat', 'fett')} eaten={row.eaten.fatG} planned={row.planned.fatG} color="bg-cyan-500" />
                       </div>
                     </div>
                   ))}
@@ -302,45 +366,45 @@ export function PerformanceMealGuide({ selectedDate, isToday }: PerformanceMealG
                       <div className="min-w-0 space-y-2">
                         <div>
                           <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                            {meal.time ? `${meal.time} · ` : ''}{meal.title}
+                            {meal.time ? `${meal.time} · ` : ''}{localizeSavedText(locale, meal.title)}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">
                             {meal.caloriesKcal} kcal · {Math.round(meal.proteinG)}P / {Math.round(meal.carbsG)}C / {Math.round(meal.fatG)}F
                           </p>
                         </div>
-                        {meal.explanation && <p className="text-sm text-slate-600 dark:text-slate-400">{meal.explanation}</p>}
+                        {meal.explanation && <p className="text-sm text-slate-600 dark:text-slate-400">{localizeSavedText(locale, meal.explanation)}</p>}
                       </div>
                       {isToday && (
                         <div className="flex flex-wrap gap-2">
                           <Button asChild size="sm" variant="outline" className="gap-1.5">
                             <Link href={`${basePath}/athlete/nutrition/scan?returnTo=nutrition`}>
                               <Camera className="h-3.5 w-3.5" />
-                              Photo
+                              {text(locale, 'Photo', 'Foto')}
                             </Link>
                           </Button>
                           <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setQuickLog({ mealType: meal.mealType, tab: 'text' })}>
                             <Keyboard className="h-3.5 w-3.5" />
-                            Text
+                            {text(locale, 'Text', 'Text')}
                           </Button>
                           <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setQuickLog({ mealType: meal.mealType, tab: 'ingredients' })}>
                             <Utensils className="h-3.5 w-3.5" />
-                            Food
+                            {text(locale, 'Food', 'Mat')}
                           </Button>
                           <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => setVoiceOpen(true)}>
                             <Mic className="h-3.5 w-3.5" />
-                            Voice
+                            {text(locale, 'Voice', 'Röst')}
                           </Button>
                         </div>
                       )}
                     </div>
                     <div className="mt-3">
-                      <PortionList portionSummary={meal.portionSummary} />
+                      <PortionList portionSummary={meal.portionSummary} locale={locale} />
                     </div>
                     {meal.options.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-2">
                         {meal.options.slice(0, 2).map((option) => (
                           <span key={option.id} className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-200">
-                            {option.title}
+                            {localizeSavedText(locale, option.title)}
                           </span>
                         ))}
                       </div>

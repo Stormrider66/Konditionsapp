@@ -460,12 +460,19 @@ function buildAdaptationNotes(input: {
   fastWeightLossRisk: boolean
   lowRecoveryRisk: boolean
   weeklyWeightChangeKg: number | null
+  locale: AppLocale
 }): string | undefined {
+  const sv = input.locale === 'sv'
   const notes: string[] = []
-  if (input.dayType === 'GAME') notes.push('Game day: deficit is disabled to protect performance.')
-  if (input.dayType === 'DOUBLE' || input.dayType === 'HARD_PRACTICE') notes.push('High-demand day: calories are held near maintenance.')
-  if (input.fastWeightLossRisk && input.weeklyWeightChangeKg != null) notes.push(`Weight is trending down ${Math.abs(input.weeklyWeightChangeKg)} kg/week, so the deficit is softened.`)
-  if (input.lowRecoveryRisk) notes.push('Recovery signal is low, so hard-day fueling is protected.')
+  if (input.dayType === 'GAME') notes.push(sv ? 'Matchdag: underskottet stängs av för att skydda prestationen.' : 'Game day: deficit is disabled to protect performance.')
+  if (input.dayType === 'DOUBLE' || input.dayType === 'HARD_PRACTICE') notes.push(sv ? 'Hög belastning: kalorierna hålls nära underhållsnivå.' : 'High-demand day: calories are held near maintenance.')
+  if (input.fastWeightLossRisk && input.weeklyWeightChangeKg != null) {
+    notes.push(sv
+      ? `Vikten går ned ${Math.abs(input.weeklyWeightChangeKg)} kg/vecka, så underskottet mildras.`
+      : `Weight is trending down ${Math.abs(input.weeklyWeightChangeKg)} kg/week, so the deficit is softened.`
+    )
+  }
+  if (input.lowRecoveryRisk) notes.push(sv ? 'Återhämtningssignalen är låg, så energin skyddas på belastande dagar.' : 'Recovery signal is low, so hard-day fueling is protected.')
   return notes.length ? notes.join(' ') : undefined
 }
 
@@ -661,6 +668,7 @@ export async function buildPerformanceMealGuideDraft({
       fastWeightLossRisk,
       lowRecoveryRisk,
       weeklyWeightChangeKg,
+      locale,
     })
     days.push({
       date: utcDateFromKey(key),
@@ -673,13 +681,13 @@ export async function buildPerformanceMealGuideDraft({
       garminSnapshot: context.garminSnapshot,
       biaSnapshot: bodyMetrics.biaSnapshot,
       adaptationNotes,
-      meals: buildPlannedMealsForDay({ dayType, targets, scheduleSignals: context.scheduleSignals }),
+      meals: buildPlannedMealsForDay({ dayType, targets, scheduleSignals: context.scheduleSignals, locale }),
     })
     previousDayType = dayType
   }
 
   const draft: PerformancePlanDraft = {
-    title: locale === 'sv' ? 'Performance Meal Guide' : 'Performance Meal Guide',
+    title: locale === 'sv' ? 'Måltidsguide för prestation' : 'Performance Meal Guide',
     startDate: utcDateFromKey(dayKey(start)),
     endDate: utcDateFromKey(dayKey(end)),
     goalSnapshot: {

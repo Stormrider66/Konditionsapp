@@ -9,43 +9,50 @@ import type {
   ScheduleSignal,
 } from './types'
 
+type PlanLocale = 'en' | 'sv'
+type LocalizedText = { en: string; sv: string }
+
 type MealSlot = {
   mealType: MealType
   time: string
-  title: string
+  title: LocalizedText
   timingRole: PerformanceMealTimingRole
   kcalShare: number
   proteinShare: number
   carbsShare: number
   fatShare: number
-  explanation: string
+  explanation: LocalizedText
+}
+
+function pickText(locale: PlanLocale, text: LocalizedText): string {
+  return locale === 'sv' ? text.sv : text.en
 }
 
 const DEFAULT_SLOTS: MealSlot[] = [
-  { mealType: 'BREAKFAST', time: '08:00', title: 'Performance breakfast', timingRole: 'REGULAR', kcalShare: 0.22, proteinShare: 0.22, carbsShare: 0.23, fatShare: 0.22, explanation: 'Start the day with protein and enough carbohydrates to protect training quality.' },
-  { mealType: 'MORNING_SNACK', time: '10:30', title: 'Morning protein snack', timingRole: 'REGULAR', kcalShare: 0.1, proteinShare: 0.12, carbsShare: 0.1, fatShare: 0.08, explanation: 'A small snack keeps protein distribution even without making lunch too heavy.' },
-  { mealType: 'LUNCH', time: '12:30', title: 'Balanced lunch', timingRole: 'REGULAR', kcalShare: 0.24, proteinShare: 0.25, carbsShare: 0.24, fatShare: 0.24, explanation: 'Main daytime meal with lean protein, starch, and vegetables.' },
-  { mealType: 'AFTERNOON_SNACK', time: '15:30', title: 'Training snack', timingRole: 'PRE_WORKOUT', kcalShare: 0.12, proteinShare: 0.08, carbsShare: 0.16, fatShare: 0.04, explanation: 'Easy carbohydrates before training without much fat or fiber.' },
-  { mealType: 'DINNER', time: '19:00', title: 'Recovery dinner', timingRole: 'POST_WORKOUT', kcalShare: 0.24, proteinShare: 0.25, carbsShare: 0.22, fatShare: 0.3, explanation: 'Dinner restores glycogen and gives a high-quality protein dose.' },
-  { mealType: 'EVENING_SNACK', time: '21:30', title: 'Evening recovery snack', timingRole: 'RECOVERY', kcalShare: 0.08, proteinShare: 0.08, carbsShare: 0.05, fatShare: 0.12, explanation: 'Optional evening protein to support overnight recovery.' },
+  { mealType: 'BREAKFAST', time: '08:00', title: { en: 'Performance breakfast', sv: 'Prestationsfrukost' }, timingRole: 'REGULAR', kcalShare: 0.22, proteinShare: 0.22, carbsShare: 0.23, fatShare: 0.22, explanation: { en: 'Start the day with protein and enough carbohydrates to protect training quality.', sv: 'Starta dagen med protein och tillräckligt med kolhydrater för att skydda träningskvaliteten.' } },
+  { mealType: 'MORNING_SNACK', time: '10:30', title: { en: 'Morning protein snack', sv: 'Proteinsnack på förmiddagen' }, timingRole: 'REGULAR', kcalShare: 0.1, proteinShare: 0.12, carbsShare: 0.1, fatShare: 0.08, explanation: { en: 'A small snack keeps protein distribution even without making lunch too heavy.', sv: 'Ett mindre mellanmål håller proteinintaget jämnt utan att lunchen blir för tung.' } },
+  { mealType: 'LUNCH', time: '12:30', title: { en: 'Balanced lunch', sv: 'Balanserad lunch' }, timingRole: 'REGULAR', kcalShare: 0.24, proteinShare: 0.25, carbsShare: 0.24, fatShare: 0.24, explanation: { en: 'Main daytime meal with lean protein, starch, and vegetables.', sv: 'Dagens huvudmål med magert protein, stärkelse och grönsaker.' } },
+  { mealType: 'AFTERNOON_SNACK', time: '15:30', title: { en: 'Training snack', sv: 'Träningsmellanmål' }, timingRole: 'PRE_WORKOUT', kcalShare: 0.12, proteinShare: 0.08, carbsShare: 0.16, fatShare: 0.04, explanation: { en: 'Easy carbohydrates before training without much fat or fiber.', sv: 'Lättsmälta kolhydrater före träning med lite fett och fiber.' } },
+  { mealType: 'DINNER', time: '19:00', title: { en: 'Recovery dinner', sv: 'Återhämtningsmiddag' }, timingRole: 'POST_WORKOUT', kcalShare: 0.24, proteinShare: 0.25, carbsShare: 0.22, fatShare: 0.3, explanation: { en: 'Dinner restores glycogen and gives a high-quality protein dose.', sv: 'Middagen fyller på glykogen och ger en högkvalitativ proteindos.' } },
+  { mealType: 'EVENING_SNACK', time: '21:30', title: { en: 'Evening recovery snack', sv: 'Kvällsmål för återhämtning' }, timingRole: 'RECOVERY', kcalShare: 0.08, proteinShare: 0.08, carbsShare: 0.05, fatShare: 0.12, explanation: { en: 'Optional evening protein to support overnight recovery.', sv: 'Kvällsprotein vid behov för att stödja återhämtning över natten.' } },
 ]
 
 const GAME_SLOTS: MealSlot[] = [
-  { mealType: 'BREAKFAST', time: '08:00', title: 'Game-day breakfast', timingRole: 'GAME_FUEL', kcalShare: 0.2, proteinShare: 0.2, carbsShare: 0.22, fatShare: 0.16, explanation: 'A calm, familiar breakfast that begins glycogen top-up.' },
-  { mealType: 'MORNING_SNACK', time: '10:30', title: 'Light top-up', timingRole: 'GAME_FUEL', kcalShare: 0.09, proteinShare: 0.08, carbsShare: 0.12, fatShare: 0.04, explanation: 'Keep the stomach light while adding easy carbohydrates.' },
-  { mealType: 'LUNCH', time: '12:30', title: 'Pre-game main meal', timingRole: 'GAME_FUEL', kcalShare: 0.26, proteinShare: 0.25, carbsShare: 0.29, fatShare: 0.18, explanation: 'Main pre-game meal: high carbohydrate, moderate protein, low-to-moderate fat.' },
-  { mealType: 'PRE_WORKOUT', time: '16:30', title: 'Pre-game snack', timingRole: 'PRE_WORKOUT', kcalShare: 0.12, proteinShare: 0.05, carbsShare: 0.18, fatShare: 0.02, explanation: 'Fast fuel in the final window before warm-up.' },
-  { mealType: 'POST_WORKOUT', time: '21:15', title: 'Post-game recovery', timingRole: 'POST_WORKOUT', kcalShare: 0.13, proteinShare: 0.17, carbsShare: 0.13, fatShare: 0.06, explanation: 'Start recovery quickly after the game with protein and carbohydrates.' },
-  { mealType: 'DINNER', time: '22:15', title: 'Late recovery meal', timingRole: 'RECOVERY', kcalShare: 0.2, proteinShare: 0.25, carbsShare: 0.06, fatShare: 0.54, explanation: 'A controlled late meal finishes protein and energy needs without forcing more bulky carbs.' },
+  { mealType: 'BREAKFAST', time: '08:00', title: { en: 'Game-day breakfast', sv: 'Matchdagsfrukost' }, timingRole: 'GAME_FUEL', kcalShare: 0.2, proteinShare: 0.2, carbsShare: 0.22, fatShare: 0.16, explanation: { en: 'A calm, familiar breakfast that begins glycogen top-up.', sv: 'En lugn och välbekant frukost som startar påfyllnaden av glykogen.' } },
+  { mealType: 'MORNING_SNACK', time: '10:30', title: { en: 'Light top-up', sv: 'Lätt påfyllning' }, timingRole: 'GAME_FUEL', kcalShare: 0.09, proteinShare: 0.08, carbsShare: 0.12, fatShare: 0.04, explanation: { en: 'Keep the stomach light while adding easy carbohydrates.', sv: 'Håll magen lätt samtidigt som du fyller på med lättsmälta kolhydrater.' } },
+  { mealType: 'LUNCH', time: '12:30', title: { en: 'Pre-game main meal', sv: 'Huvudmål före match' }, timingRole: 'GAME_FUEL', kcalShare: 0.26, proteinShare: 0.25, carbsShare: 0.29, fatShare: 0.18, explanation: { en: 'Main pre-game meal: high carbohydrate, moderate protein, low-to-moderate fat.', sv: 'Huvudmål inför match: mycket kolhydrater, måttligt med protein och låg till måttlig fettmängd.' } },
+  { mealType: 'PRE_WORKOUT', time: '16:30', title: { en: 'Pre-game snack', sv: 'Mellanmål före match' }, timingRole: 'PRE_WORKOUT', kcalShare: 0.12, proteinShare: 0.05, carbsShare: 0.18, fatShare: 0.02, explanation: { en: 'Fast fuel in the final window before warm-up.', sv: 'Snabb energi i sista fönstret före uppvärmning.' } },
+  { mealType: 'POST_WORKOUT', time: '21:15', title: { en: 'Post-game recovery', sv: 'Återhämtning efter match' }, timingRole: 'POST_WORKOUT', kcalShare: 0.13, proteinShare: 0.17, carbsShare: 0.13, fatShare: 0.06, explanation: { en: 'Start recovery quickly after the game with protein and carbohydrates.', sv: 'Starta återhämtningen snabbt efter matchen med protein och kolhydrater.' } },
+  { mealType: 'DINNER', time: '22:15', title: { en: 'Late recovery meal', sv: 'Sent återhämtningsmål' }, timingRole: 'RECOVERY', kcalShare: 0.2, proteinShare: 0.25, carbsShare: 0.06, fatShare: 0.54, explanation: { en: 'A controlled late meal finishes protein and energy needs without forcing more bulky carbs.', sv: 'Ett kontrollerat sent mål fyller protein- och energibehov utan att pressa in för mycket tung mat.' } },
 ]
 
 const REST_SLOTS: MealSlot[] = [
-  { mealType: 'BREAKFAST', time: '08:30', title: 'Protein breakfast', timingRole: 'REGULAR', kcalShare: 0.24, proteinShare: 0.25, carbsShare: 0.2, fatShare: 0.25, explanation: 'Rest-day breakfast keeps protein high while carbohydrates are calmer.' },
-  { mealType: 'MORNING_SNACK', time: '11:00', title: 'Light snack', timingRole: 'REGULAR', kcalShare: 0.1, proteinShare: 0.12, carbsShare: 0.08, fatShare: 0.08, explanation: 'Small protein dose for satiety.' },
-  { mealType: 'LUNCH', time: '13:00', title: 'Lean lunch', timingRole: 'REGULAR', kcalShare: 0.26, proteinShare: 0.28, carbsShare: 0.24, fatShare: 0.22, explanation: 'A lean, nutrient-dense lunch is where the gentle deficit can live.' },
-  { mealType: 'AFTERNOON_SNACK', time: '16:00', title: 'Recovery snack', timingRole: 'RECOVERY', kcalShare: 0.1, proteinShare: 0.1, carbsShare: 0.09, fatShare: 0.1, explanation: 'Keep hunger stable without over-fueling a low-demand afternoon.' },
-  { mealType: 'DINNER', time: '19:00', title: 'Rest-day dinner', timingRole: 'REGULAR', kcalShare: 0.22, proteinShare: 0.2, carbsShare: 0.25, fatShare: 0.22, explanation: 'Dinner still includes carbohydrate so tomorrow starts well fueled.' },
-  { mealType: 'EVENING_SNACK', time: '21:30', title: 'Evening protein', timingRole: 'RECOVERY', kcalShare: 0.08, proteinShare: 0.05, carbsShare: 0.14, fatShare: 0.13, explanation: 'Optional if the day is short on protein or hunger is high.' },
+  { mealType: 'BREAKFAST', time: '08:30', title: { en: 'Protein breakfast', sv: 'Proteinfrukost' }, timingRole: 'REGULAR', kcalShare: 0.24, proteinShare: 0.25, carbsShare: 0.2, fatShare: 0.25, explanation: { en: 'Rest-day breakfast keeps protein high while carbohydrates are calmer.', sv: 'Vilodagsfrukosten håller proteinet högt medan kolhydraterna är lugnare.' } },
+  { mealType: 'MORNING_SNACK', time: '11:00', title: { en: 'Light snack', sv: 'Lätt mellanmål' }, timingRole: 'REGULAR', kcalShare: 0.1, proteinShare: 0.12, carbsShare: 0.08, fatShare: 0.08, explanation: { en: 'Small protein dose for satiety.', sv: 'En liten proteindos för mättnad.' } },
+  { mealType: 'LUNCH', time: '13:00', title: { en: 'Lean lunch', sv: 'Lättare lunch' }, timingRole: 'REGULAR', kcalShare: 0.26, proteinShare: 0.28, carbsShare: 0.24, fatShare: 0.22, explanation: { en: 'A lean, nutrient-dense lunch is where the gentle deficit can live.', sv: 'En lättare och näringstät lunch är där det milda underskottet kan ligga.' } },
+  { mealType: 'AFTERNOON_SNACK', time: '16:00', title: { en: 'Recovery snack', sv: 'Återhämtningsmellanmål' }, timingRole: 'RECOVERY', kcalShare: 0.1, proteinShare: 0.1, carbsShare: 0.09, fatShare: 0.1, explanation: { en: 'Keep hunger stable without over-fueling a low-demand afternoon.', sv: 'Håll hungern stabil utan att överfylla en lågintensiv eftermiddag.' } },
+  { mealType: 'DINNER', time: '19:00', title: { en: 'Rest-day dinner', sv: 'Vilodagsmiddag' }, timingRole: 'REGULAR', kcalShare: 0.22, proteinShare: 0.2, carbsShare: 0.25, fatShare: 0.22, explanation: { en: 'Dinner still includes carbohydrate so tomorrow starts well fueled.', sv: 'Middagen innehåller fortfarande kolhydrater så att morgondagen börjar välfylld.' } },
+  { mealType: 'EVENING_SNACK', time: '21:30', title: { en: 'Evening protein', sv: 'Kvällsprotein' }, timingRole: 'RECOVERY', kcalShare: 0.08, proteinShare: 0.05, carbsShare: 0.14, fatShare: 0.13, explanation: { en: 'Optional if the day is short on protein or hunger is high.', sv: 'Valfritt om dagen saknar protein eller hungern är hög.' } },
 ]
 
 function slotsForDay(dayType: PerformancePlanDayType): MealSlot[] {
@@ -58,41 +65,43 @@ function roundMacro(value: number): number {
   return Math.round(value * 10) / 10
 }
 
-function makePortions(slot: MealSlot, macros: { proteinG: number; carbsG: number; fatG: number }, dayType: PerformancePlanDayType): MealPortionSummary {
+function makePortions(slot: MealSlot, macros: { proteinG: number; carbsG: number; fatG: number }, dayType: PerformancePlanDayType, locale: PlanLocale): MealPortionSummary {
+  const sv = locale === 'sv'
   const proteinSource =
     slot.mealType === 'BREAKFAST' || slot.mealType === 'EVENING_SNACK'
-      ? 'kvarg / Greek yoghurt'
+      ? (sv ? 'kvarg / grekisk yoghurt' : 'quark / Greek yoghurt')
       : slot.mealType === 'POST_WORKOUT'
-        ? 'whey or recovery yoghurt'
-        : 'chicken, fish, eggs, or lean beef'
+        ? (sv ? 'vassle eller återhämtningsyoghurt' : 'whey or recovery yoghurt')
+        : (sv ? 'kyckling, fisk, ägg eller magert nötkött' : 'chicken, fish, eggs, or lean beef')
   const carbSource =
     slot.timingRole === 'PRE_WORKOUT' || slot.timingRole === 'GAME_FUEL'
-      ? 'rice, pasta, potatoes, bread, banana, or sports drink'
+      ? (sv ? 'ris, pasta, potatis, bröd, banan eller sportdryck' : 'rice, pasta, potatoes, bread, banana, or sports drink')
       : dayType === 'REST' || dayType === 'RECOVERY'
-        ? 'potatoes, oats, fruit, berries, or whole-grain bread'
-        : 'rice, pasta, potatoes, oats, or bread'
+        ? (sv ? 'potatis, havregryn, frukt, bär eller fullkornsbröd' : 'potatoes, oats, fruit, berries, or whole-grain bread')
+        : (sv ? 'ris, pasta, potatis, havregryn eller bröd' : 'rice, pasta, potatoes, oats, or bread')
   const fatSource =
     slot.timingRole === 'PRE_WORKOUT' || slot.timingRole === 'GAME_FUEL'
-      ? 'small amount of olive oil or avocado'
-      : 'olive oil, avocado, nuts, eggs, or salmon'
+      ? (sv ? 'liten mängd olivolja eller avokado' : 'small amount of olive oil or avocado')
+      : (sv ? 'olivolja, avokado, nötter, ägg eller lax' : 'olive oil, avocado, nuts, eggs, or salmon')
 
   return {
     items: [
       { name: proteinSource, amount: `${Math.max(15, Math.round(macros.proteinG))} g protein` },
-      { name: carbSource, amount: `${Math.max(10, Math.round(macros.carbsG))} g carbohydrates` },
-      { name: fatSource, amount: `${Math.max(2, Math.round(macros.fatG))} g fat` },
-      { name: 'vegetables / fruit', amount: slot.timingRole === 'PRE_WORKOUT' ? 'small, low-fiber portion' : '1-2 fists' },
+      { name: carbSource, amount: `${Math.max(10, Math.round(macros.carbsG))} g ${sv ? 'kolhydrater' : 'carbohydrates'}` },
+      { name: fatSource, amount: `${Math.max(2, Math.round(macros.fatG))} g ${sv ? 'fett' : 'fat'}` },
+      { name: sv ? 'grönsaker / frukt' : 'vegetables / fruit', amount: slot.timingRole === 'PRE_WORKOUT' ? (sv ? 'liten portion med låg fiberhalt' : 'small, low-fiber portion') : (sv ? '1-2 nävar' : '1-2 fists') },
     ],
     note:
       slot.timingRole === 'PRE_WORKOUT'
-        ? 'Keep this easy to digest: low fat, low fiber, familiar foods.'
+        ? (sv ? 'Håll detta lättsmält: lite fett, lite fiber och välbekanta livsmedel.' : 'Keep this easy to digest: low fat, low fiber, familiar foods.')
         : slot.timingRole === 'GAME_FUEL'
-          ? 'Prioritize familiar carbohydrates and avoid experimenting on game day.'
-          : 'Use the listed macros as the target; food choices can be swapped.',
+          ? (sv ? 'Prioritera välbekanta kolhydrater och undvik att experimentera på matchdag.' : 'Prioritize familiar carbohydrates and avoid experimenting on game day.')
+          : (sv ? 'Använd makrona som målet; livsmedlen kan bytas.' : 'Use the listed macros as the target; food choices can be swapped.'),
   }
 }
 
-function makeOptions(slot: MealSlot, macros: { caloriesKcal: number; proteinG: number; carbsG: number; fatG: number }, dayType: PerformancePlanDayType): PlannedMealOptionDraft[] {
+function makeOptions(slot: MealSlot, macros: { caloriesKcal: number; proteinG: number; carbsG: number; fatG: number }, dayType: PerformancePlanDayType, locale: PlanLocale): PlannedMealOptionDraft[] {
+  const sv = locale === 'sv'
   const base = {
     caloriesKcal: macros.caloriesKcal,
     proteinG: macros.proteinG,
@@ -101,29 +110,29 @@ function makeOptions(slot: MealSlot, macros: { caloriesKcal: number; proteinG: n
   }
 
   const optionA = slot.mealType === 'BREAKFAST'
-    ? 'Oats, banana, yoghurt, whey'
+    ? (sv ? 'Havregryn, banan, yoghurt, vassle' : 'Oats, banana, yoghurt, whey')
     : slot.timingRole === 'PRE_WORKOUT'
-      ? 'Banana, toast with honey, sports drink'
+      ? (sv ? 'Banan, toast med honung, sportdryck' : 'Banana, toast with honey, sports drink')
       : slot.timingRole === 'POST_WORKOUT'
-        ? 'Recovery shake, yoghurt, cereal, fruit'
-        : 'Chicken, rice, vegetables'
+        ? (sv ? 'Återhämtningsshake, yoghurt, flingor, frukt' : 'Recovery shake, yoghurt, cereal, fruit')
+        : (sv ? 'Kyckling, ris, grönsaker' : 'Chicken, rice, vegetables')
   const optionB = slot.mealType === 'BREAKFAST'
-    ? 'Eggs, bread, fruit, yoghurt'
+    ? (sv ? 'Ägg, bröd, frukt, yoghurt' : 'Eggs, bread, fruit, yoghurt')
     : slot.timingRole === 'PRE_WORKOUT'
-      ? 'Rice cakes, jam, diluted sports drink'
+      ? (sv ? 'Riskakor, sylt, utspädd sportdryck' : 'Rice cakes, jam, diluted sports drink')
       : slot.timingRole === 'POST_WORKOUT'
-        ? 'Chocolate milk, quark, banana'
+        ? (sv ? 'Chokladmjölk, kvarg, banan' : 'Chocolate milk, quark, banana')
         : dayType === 'REST'
-          ? 'Salmon, potatoes, vegetables'
-          : 'Lean beef, pasta, tomato sauce'
+          ? (sv ? 'Lax, potatis, grönsaker' : 'Salmon, potatoes, vegetables')
+          : (sv ? 'Magert nötkött, pasta, tomatsås' : 'Lean beef, pasta, tomato sauce')
 
   return [optionA, optionB].map((title, index) => ({
     title,
-    description: 'Equivalent macro swap for this meal slot.',
+    description: sv ? 'Likvärdigt makrobyte för den här måltiden.' : 'Equivalent macro swap for this meal slot.',
     portionSummary: {
       items: [
-        { name: title, amount: `${base.caloriesKcal} kcal target` },
-        { name: 'macro target', amount: `${Math.round(base.proteinG)}P / ${Math.round(base.carbsG)}C / ${Math.round(base.fatG)}F` },
+        { name: title, amount: `${base.caloriesKcal} kcal ${sv ? 'mål' : 'target'}` },
+        { name: sv ? 'makromål' : 'macro target', amount: `${Math.round(base.proteinG)}P / ${Math.round(base.carbsG)}${sv ? 'K' : 'C'} / ${Math.round(base.fatG)}F` },
       ],
     },
     ...base,
@@ -135,7 +144,9 @@ export function buildPlannedMealsForDay(input: {
   dayType: PerformancePlanDayType
   targets: DailyMacroTargets
   scheduleSignals: ScheduleSignal[]
+  locale?: PlanLocale
 }): PlannedMealDraft[] {
+  const locale = input.locale ?? 'en'
   const slots = slotsForDay(input.dayType)
   let remainingCalories = input.targets.caloriesKcal
   let remainingProtein = input.targets.proteinG
@@ -155,22 +166,24 @@ export function buildPlannedMealsForDay(input: {
     remainingFat = roundMacro(remainingFat - fatG)
 
     const macros = { caloriesKcal, proteinG, carbsG, fatG }
-    const portionSummary = makePortions(slot, macros, input.dayType)
+    const portionSummary = makePortions(slot, macros, input.dayType, locale)
 
     return {
       mealType: slot.mealType,
       time: slot.time,
-      title: slot.title,
-      description: `${caloriesKcal} kcal: ${Math.round(proteinG)}g protein, ${Math.round(carbsG)}g carbs, ${Math.round(fatG)}g fat.`,
+      title: pickText(locale, slot.title),
+      description: locale === 'sv'
+        ? `${caloriesKcal} kcal: ${Math.round(proteinG)} g protein, ${Math.round(carbsG)} g kolhydrater, ${Math.round(fatG)} g fett.`
+        : `${caloriesKcal} kcal: ${Math.round(proteinG)}g protein, ${Math.round(carbsG)}g carbs, ${Math.round(fatG)}g fat.`,
       timingRole: slot.timingRole,
-      explanation: slot.explanation,
+      explanation: pickText(locale, slot.explanation),
       portionSummary,
       caloriesKcal,
       proteinG,
       carbsG,
       fatG,
       sortOrder: index,
-      options: makeOptions(slot, macros, input.dayType),
+      options: makeOptions(slot, macros, input.dayType, locale),
     }
   })
 }
