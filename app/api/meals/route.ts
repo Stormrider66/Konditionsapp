@@ -13,6 +13,7 @@ import {
 } from '@/lib/nutrition/protein-quality'
 import { dayKeyFromInput, dayKeyInTimeZone, utcDateFromDayKey } from '@/lib/nutrition/day-key'
 import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
+import { findPlannedMealMatch } from '@/lib/nutrition/performance-plan'
 
 // Validation schema for creating a meal log
 const createMealSchema = z.object({
@@ -281,6 +282,12 @@ export async function POST(request: NextRequest) {
         })
       : null
     let merged = false
+    const plannedMealMatch = await findPlannedMealMatch({
+      clientId,
+      date: mealDate,
+      mealType: data.mealType,
+      time: data.time,
+    })
 
     const meal = await prisma.$transaction(async (tx) => {
       if (mergeTarget) {
@@ -309,6 +316,9 @@ export async function POST(request: NextRequest) {
             notes: mergeTarget.notes && data.notes
               ? `${mergeTarget.notes}\n${data.notes}`
               : (data.notes ?? mergeTarget.notes),
+            plannedMealId: mergeTarget.plannedMealId ?? plannedMealMatch?.id,
+            plannedMealMatchSource: mergeTarget.plannedMealMatchSource ?? (plannedMealMatch ? 'AUTO' : null),
+            plannedMealMatchConfidence: mergeTarget.plannedMealMatchConfidence ?? plannedMealMatch?.confidence,
           },
         })
 
@@ -368,6 +378,9 @@ export async function POST(request: NextRequest) {
           isPostWorkout: data.isPostWorkout || false,
           photoUrl: data.photoUrl,
           notes: data.notes,
+          plannedMealId: plannedMealMatch?.id,
+          plannedMealMatchSource: plannedMealMatch ? 'AUTO' : undefined,
+          plannedMealMatchConfidence: plannedMealMatch?.confidence,
         },
       })
 

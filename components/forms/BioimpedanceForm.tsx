@@ -31,7 +31,7 @@ const bioimpedanceSchema = z.object({
   boneMass: z.number().min(1).max(10).optional(),
   waterPercent: z.number().min(30).max(80).optional(),
   bmr: z.number().min(500).max(5000).optional(),
-  visceralFat: z.number().min(1).max(30).optional(),
+  visceralFat: z.number().min(1).max(59).optional(),
   deviceBrand: z.string().optional(),
   measurementTime: z.string().optional(),
   notes: z.string().optional(),
@@ -278,6 +278,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
         title: isEditing ? copy.updatedTitle : copy.savedTitle,
         description: copy.savedDescription,
       })
+      window.dispatchEvent(new CustomEvent('body-composition-saved'))
       onSuccess?.()
     } catch (error) {
       console.error('Error saving measurement:', error)

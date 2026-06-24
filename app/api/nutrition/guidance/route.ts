@@ -19,6 +19,7 @@ import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { resolveNutritionBodyMetrics } from '@/lib/nutrition/performance-plan/logic'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -281,11 +282,16 @@ export async function GET(request: NextRequest) {
     // Merge AI WODs with program workouts
     const allTodaysWorkouts = [...todaysWorkouts, ...aiWodContexts, ...adHocContexts, ...todaysCompletedWorkouts]
 
+    const bodyMetrics = resolveNutritionBodyMetrics({
+      profileWeightKg: client.weight,
+      latestBia: bodyComposition,
+    })
+
     // Build generator input
     const input: GuidanceGeneratorInput = {
       client: {
         id: client.id,
-        weightKg: client.weight || 70, // Default if not set
+        weightKg: bodyMetrics.weightKg,
         heightCm: client.height || 175,
         gender: client.gender,
         birthDate: client.birthDate,
@@ -351,7 +357,7 @@ export async function GET(request: NextRequest) {
       locale,
       bodyComposition: bodyComposition || client.nutritionGoal?.customBmrKcal
         ? {
-            bmrKcal: client.nutritionGoal?.customBmrKcal ?? bodyComposition?.bmrKcal ?? undefined,
+            bmrKcal: client.nutritionGoal?.customBmrKcal ?? bodyMetrics.bmrKcal ?? undefined,
             bodyFatPercent: bodyComposition?.bodyFatPercent ?? undefined,
             muscleMassKg: bodyComposition?.muscleMassKg ?? undefined,
           }

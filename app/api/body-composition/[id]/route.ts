@@ -12,6 +12,7 @@ import {
   calculateBMRKatchMcArdle,
 } from '@/lib/ai/nutrition-calculator'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { refreshActivePerformanceMealGuideForClient } from '@/lib/nutrition/performance-plan'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -173,7 +174,7 @@ export async function PUT(
       }
     }
 
-    const measurement = await prisma.bodyComposition.update({
+	    const measurement = await prisma.bodyComposition.update({
       where: { id },
       data: {
         measurementDate: measurementDate ? new Date(measurementDate) : undefined,
@@ -201,6 +202,11 @@ export async function PUT(
           },
         },
       },
+    })
+
+    await refreshActivePerformanceMealGuideForClient({
+      clientId: existing.clientId,
+      reason: 'bia_saved',
     })
 
     return NextResponse.json(measurement)

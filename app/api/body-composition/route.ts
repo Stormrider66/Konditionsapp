@@ -12,6 +12,7 @@ import {
   categorizeBodyFat,
 } from '@/lib/ai/nutrition-calculator'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { refreshActivePerformanceMealGuideForClient } from '@/lib/nutrition/performance-plan'
 
 /**
  * POST /api/body-composition
@@ -138,6 +139,11 @@ export async function POST(req: NextRequest) {
 
     // Calculate additional analysis
     const analysis = analyzeBodyComposition(measurement, client, locale)
+
+    await refreshActivePerformanceMealGuideForClient({
+      clientId,
+      reason: 'bia_saved',
+    })
 
     return NextResponse.json({ measurement, analysis }, { status: 201 })
   } catch (error) {

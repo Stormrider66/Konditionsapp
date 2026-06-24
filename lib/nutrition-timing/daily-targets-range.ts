@@ -19,6 +19,7 @@ import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { logger } from '@/lib/logger'
 import type { AppLocale } from '@/lib/i18n/request-locale'
+import { resolveNutritionBodyMetrics } from '@/lib/nutrition/performance-plan/logic'
 
 export interface DailyTargetsForDay {
   /** Calendar day key, 'yyyy-MM-dd'. */
@@ -83,7 +84,6 @@ export async function getDailyTargetsForDays({
   if (!client?.athleteAccount?.userId) return null
 
   const athleteUserId = client.athleteAccount.userId
-  const weightKg = client.weight ?? 70
   const nutritionGoal: Pick<
     NutritionGoalInput,
     | 'goalType'
@@ -108,9 +108,22 @@ export async function getDailyTargetsForDays({
   const bodyComposition = await prisma.bodyComposition.findFirst({
     where: { clientId: client.id },
     orderBy: { measurementDate: 'desc' },
-    select: { bmrKcal: true },
+    select: {
+      id: true,
+      measurementDate: true,
+      weightKg: true,
+      bodyFatPercent: true,
+      muscleMassKg: true,
+      bmrKcal: true,
+      deviceBrand: true,
+    },
   })
-  const bmrKcal = client.nutritionGoal?.customBmrKcal ?? bodyComposition?.bmrKcal ?? undefined
+  const bodyMetrics = resolveNutritionBodyMetrics({
+    profileWeightKg: client.weight,
+    latestBia: bodyComposition,
+  })
+  const weightKg = bodyMetrics.weightKg
+  const bmrKcal = client.nutritionGoal?.customBmrKcal ?? bodyMetrics.bmrKcal ?? undefined
 
   const rangeStart = startOfDay(days[0])
   const rangeEnd = endOfDay(days[days.length - 1])

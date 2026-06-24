@@ -38,6 +38,7 @@ import { WorkoutNutritionCard } from './WorkoutNutritionCard'
 import { NutritionTipCard } from './NutritionTipCard'
 import { NutritionScore } from '@/components/athlete/nutrition/NutritionScore'
 import { DeficitSurplusTracker } from '@/components/athlete/nutrition/DeficitSurplusTracker'
+import { PerformanceMealGuide } from '@/components/nutrition/performance-guide/PerformanceMealGuide'
 import type { DailyNutritionGuidance } from '@/lib/nutrition-timing'
 import { useLocale, useTranslations } from '@/i18n/client'
 
@@ -389,36 +390,7 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           </div>
         )}
 
-        {/* Meal structure — only relevant for today (references pre/post-workout timing). */}
-        {isToday && guidance.mealSuggestions && (
-          <GlassCard>
-            <GlassCardHeader className="pb-2">
-              <GlassCardTitle className="text-base text-cyan-600 dark:text-cyan-400 transition-colors">{t('mealStructure.title')}</GlassCardTitle>
-            </GlassCardHeader>
-            <GlassCardContent>
-              <div className="space-y-2">
-                {guidance.mealSuggestions.breakfast && (
-                  <MealRow label={t('mealStructure.meals.breakfast')} suggestion={guidance.mealSuggestions.breakfast} />
-                )}
-                {guidance.mealSuggestions.morningSnack && (
-                  <MealRow label={t('mealStructure.meals.morningSnack')} suggestion={guidance.mealSuggestions.morningSnack} />
-                )}
-                {guidance.mealSuggestions.lunch && (
-                  <MealRow label={t('mealStructure.meals.lunch')} suggestion={guidance.mealSuggestions.lunch} />
-                )}
-                {guidance.mealSuggestions.afternoonSnack && (
-                  <MealRow label={t('mealStructure.meals.afternoonSnack')} suggestion={guidance.mealSuggestions.afternoonSnack} />
-                )}
-                {guidance.mealSuggestions.dinner && (
-                  <MealRow label={t('mealStructure.meals.dinner')} suggestion={guidance.mealSuggestions.dinner} />
-                )}
-                {guidance.mealSuggestions.eveningSnack && (
-                  <MealRow label={t('mealStructure.meals.eveningSnack')} suggestion={guidance.mealSuggestions.eveningSnack} />
-                )}
-              </div>
-            </GlassCardContent>
-          </GlassCard>
-        )}
+        <PerformanceMealGuide selectedDate={selectedDate} isToday={isToday} />
 
         {/* Workout-specific guidance — pre/during cards only make sense on today. */}
         {guidance.todaysWorkouts.length > 0 ? (
@@ -498,17 +470,6 @@ export function NutritionDashboard({ clientId }: NutritionDashboardProps) {
           </div>
         )}
       </div>
-    </div>
-  )
-}
-
-function MealRow({ label, suggestion }: { label: string; suggestion: string }) {
-  return (
-    <div className="flex items-start gap-3 py-2 border-b border-slate-200 dark:border-white/5 last:border-0 transition-colors">
-      <span className="text-xs font-medium text-slate-500 dark:text-slate-400 w-32 flex-shrink-0 transition-colors">
-        {label}
-      </span>
-      <span className="text-sm text-slate-700 dark:text-slate-300 transition-colors">{suggestion}</span>
     </div>
   )
 }

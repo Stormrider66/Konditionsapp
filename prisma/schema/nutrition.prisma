@@ -135,11 +135,20 @@ model MealLog {
   // Individual food items (from AI photo/voice analysis)
   items MealFoodItem[]
 
+  // Optional link to a generated performance meal guide slot. All capture
+  // flows (photo, voice, text, ingredient builder) can attach here so planned
+  // vs eaten charts stay unified.
+  plannedMealId              String?
+  plannedMeal                NutritionPlannedMeal? @relation(fields: [plannedMealId], references: [id], onDelete: SetNull)
+  plannedMealMatchSource     String? // AUTO | MANUAL
+  plannedMealMatchConfidence Float?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([clientId, date])
   @@index([date])
+  @@index([plannedMealId])
 }
 
 /// Captures the delta between what the food-scan AI first produced and what the
@@ -267,6 +276,124 @@ model NutritionRecipeIngredient {
   @@index([recipeId])
   @@index([foodId])
   @@index([normalizedName])
+}
+
+/// Athlete-facing 7-day performance meal guide. Generated from deterministic
+/// macro targets, schedule/BIA/Garmin context, and optional AI meal wording.
+model NutritionPerformancePlan {
+  id       String @id @default(cuid())
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  title     String
+  status    String   @default("ACTIVE") // ACTIVE | ARCHIVED
+  source    String   @default("PERFORMANCE_MEAL_GUIDE")
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+
+  goalSnapshot      Json
+  contextSnapshot   Json?
+  generatedSnapshot Json?
+
+  days NutritionPlanDay[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clientId, status, startDate, endDate])
+  @@index([status])
+}
+
+/// One generated nutrition day within a performance meal guide.
+model NutritionPlanDay {
+  id       String @id @default(cuid())
+  planId   String
+  plan     NutritionPerformancePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  clientId String
+  client   Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  date    DateTime @db.Date
+  dayType String // GAME | PRACTICE | HARD_PRACTICE | DOUBLE | REST | RECOVERY | TRAVEL
+
+  caloriesKcal Int
+  proteinG     Int
+  carbsG       Int
+  fatG         Int
+  hydrationMl  Int
+
+  weightKg Float?
+  bmrKcal  Int?
+
+  scheduleSnapshot Json?
+  garminSnapshot   Json?
+  biaSnapshot      Json?
+  adaptationNotes  String?
+
+  meals NutritionPlannedMeal[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planId, date])
+  @@index([clientId, date])
+  @@index([dayType])
+}
+
+/// A concrete planned meal slot with portions, macros, timing intent, and swaps.
+model NutritionPlannedMeal {
+  id    String           @id @default(cuid())
+  dayId String
+  day   NutritionPlanDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+
+  mealType MealType
+  time     String?
+  title    String
+  description String?
+
+  timingRole String @default("REGULAR") // REGULAR | PRE_WORKOUT | POST_WORKOUT | GAME_FUEL | RECOVERY
+  explanation String?
+
+  portionSummary Json
+
+  caloriesKcal Int
+  proteinG     Float
+  carbsG       Float
+  fatG         Float
+  fiberG       Float?
+
+  sortOrder Int @default(0)
+
+  options NutritionPlannedMealOption[]
+  mealLogs MealLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dayId, sortOrder])
+  @@index([mealType])
+}
+
+/// Equivalent swaps for a planned meal slot.
+model NutritionPlannedMealOption {
+  id            String               @id @default(cuid())
+  plannedMealId String
+  plannedMeal   NutritionPlannedMeal @relation(fields: [plannedMealId], references: [id], onDelete: Cascade)
+
+  title String
+  description String?
+  portionSummary Json
+
+  caloriesKcal Int
+  proteinG     Float
+  carbsG       Float
+  fatG         Float
+  fiberG       Float?
+
+  sortOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([plannedMealId, sortOrder])
 }
 
 /// Reference food database — primarily Livsmedelsverket (Swedish food agency),

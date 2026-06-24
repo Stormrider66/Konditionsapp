@@ -619,6 +619,8 @@ model Client {
   dietaryPreferences  DietaryPreferences?
   nutritionGoal       NutritionGoal?
   foodScanCorrections FoodScanCorrection[]
+  nutritionPerformancePlans NutritionPerformancePlan[]
+  nutritionPlanDays         NutritionPlanDay[]
 
   // Athlete Subscription & Integrations
   athleteSubscription AthleteSubscription?

@@ -179,6 +179,55 @@ export function logGarminWebhookReceipt(payload: GarminWebhookPayload) {
   })
 }
 
+function collectNutritionRelevantGarminUserIds(payload: GarminWebhookPayload): string[] {
+  const userIds = new Set<string>()
+  const addUserId = (userId?: string) => {
+    if (userId) userIds.add(userId)
+  }
+
+  payload.dailies?.forEach(item => addUserId(item.userId))
+  payload.activities?.forEach(item => addUserId(item.userId))
+  payload.activityDetails?.forEach(item => addUserId(item.userId))
+  payload.sleeps?.forEach(item => addUserId(item.userId))
+  payload.bodyComps?.forEach(item => addUserId(item.userId))
+  payload.hrv?.forEach(item => addUserId(item.userId))
+
+  return Array.from(userIds)
+}
+
+async function refreshNutritionGuidesAfterGarminSync(
+  payload: GarminWebhookPayload,
+  results: GarminWebhookResults
+): Promise<void> {
+  const processedCount =
+    results.dailies +
+    results.activities +
+    results.activityDetails +
+    results.sleeps +
+    results.bodyComps +
+    results.hrv
+
+  if (processedCount === 0) return
+
+  const clientIds = new Set<string>()
+  for (const userId of collectNutritionRelevantGarminUserIds(payload)) {
+    const clientId = await findClientId(userId)
+    if (clientId) clientIds.add(clientId)
+  }
+
+  if (clientIds.size === 0) return
+
+  const { refreshActivePerformanceMealGuideForClient } = await import('@/lib/nutrition/performance-plan')
+  await Promise.all(
+    Array.from(clientIds).map(clientId =>
+      refreshActivePerformanceMealGuideForClient({
+        clientId,
+        reason: 'garmin_sync',
+      })
+    )
+  )
+}
+
 export async function processGarminWebhookPayload(payload: GarminWebhookPayload): Promise<GarminWebhookResults> {
   const results: GarminWebhookResults = {
     dailies: 0,
@@ -286,6 +335,12 @@ export async function processGarminWebhookPayload(payload: GarminWebhookPayload)
     deregistrations: results.deregistrations,
     permissionChanges: results.permissionChanges,
     errorCount: results.errors.length,
+  })
+
+  void refreshNutritionGuidesAfterGarminSync(payload, results).catch(error => {
+    logger.warn('Failed to refresh nutrition guides after Garmin sync', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
   })
 
   // Dispatch events to Managed Agents (non-blocking, respects mode)

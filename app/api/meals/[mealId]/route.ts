@@ -11,6 +11,7 @@ import {
   normalizeProteinSource,
   PROTEIN_SOURCE_VALUES,
 } from '@/lib/nutrition/protein-quality'
+import { findPlannedMealMatch } from '@/lib/nutrition/performance-plan'
 
 // Validation schema for updating a meal log
 const updateMealSchema = z.object({
@@ -176,6 +177,17 @@ export async function PATCH(
     }
 
     const { items, ...mealUpdate } = data
+    if (existingMeal.plannedMealMatchSource !== 'MANUAL') {
+      const plannedMealMatch = await findPlannedMealMatch({
+        clientId,
+        date: existingMeal.date,
+        mealType: data.mealType ?? existingMeal.mealType,
+        time: data.time === undefined ? existingMeal.time : data.time,
+      })
+      ;(mealUpdate as Record<string, unknown>).plannedMealId = plannedMealMatch?.id ?? null
+      ;(mealUpdate as Record<string, unknown>).plannedMealMatchSource = plannedMealMatch ? 'AUTO' : null
+      ;(mealUpdate as Record<string, unknown>).plannedMealMatchConfidence = plannedMealMatch?.confidence ?? null
+    }
 
     // Keep the denormalized MealLog totals in sync with a replaced item
     // breakdown: any total field NOT explicitly sent in the payload is
