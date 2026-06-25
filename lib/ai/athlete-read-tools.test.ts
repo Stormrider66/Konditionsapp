@@ -25,6 +25,8 @@ const EXPECTED_TOOL_KEYS = [
   'getMyReadinessHistory',
   'getMyPersonalRecords',
   'getMyActiveInjuries',
+  'getMealGuideToday',
+  'getFuelingSummary',
 ] as const
 
 const EXPECTED_WRITE_TOOL_KEYS = [
