@@ -266,6 +266,21 @@ interface BodyCompositionData {
   metabolicAge: number | null
   bmi: number | null
   ffmi: number | null
+  intracellularWaterPercent: number | null
+  extracellularWaterPercent: number | null
+  // Clinical / professional BIA fields (Akern BodyGram etc.)
+  resistanceOhm: number | null
+  reactanceOhm: number | null
+  phaseAngle: number | null
+  fatFreeMassKg: number | null
+  fatMassKg: number | null
+  bodyCellMassKg: number | null
+  extracellularMassKg: number | null
+  bcmIndex: number | null
+  totalBodyWaterL: number | null
+  intracellularWaterL: number | null
+  extracellularWaterL: number | null
+  sodiumPotassiumRatio: number | null
   deviceBrand: string | null
   measurementTime: string | null
 }

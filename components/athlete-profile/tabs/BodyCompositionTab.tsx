@@ -286,6 +286,24 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-4">
+                {latestMeasurement.phaseAngle != null && (
+                  <DetailItem label={t('Fasvinkel', 'Phase angle')} value={latestMeasurement.phaseAngle} unit="°" isGlass={isGlass} />
+                )}
+                {latestMeasurement.fatFreeMassKg != null && (
+                  <DetailItem label={t('Fettfri massa', 'Fat-free mass')} value={latestMeasurement.fatFreeMassKg} unit="kg" isGlass={isGlass} />
+                )}
+                {latestMeasurement.bodyCellMassKg != null && (
+                  <DetailItem label={t('Kroppscellmassa', 'Body cell mass')} value={latestMeasurement.bodyCellMassKg} unit="kg" isGlass={isGlass} />
+                )}
+                {latestMeasurement.extracellularMassKg != null && (
+                  <DetailItem label={t('Extracellulär massa', 'Extracellular mass')} value={latestMeasurement.extracellularMassKg} unit="kg" isGlass={isGlass} />
+                )}
+                {latestMeasurement.totalBodyWaterL != null && (
+                  <DetailItem label={t('Totalt vatten', 'Total water')} value={latestMeasurement.totalBodyWaterL} unit="L" isGlass={isGlass} />
+                )}
+                {latestMeasurement.sodiumPotassiumRatio != null && (
+                  <DetailItem label="Na/K" value={latestMeasurement.sodiumPotassiumRatio} isGlass={isGlass} />
+                )}
                 <DetailItem label={t('Visceralt fett', 'Visceral fat')} value={latestMeasurement.visceralFat} isGlass={isGlass} />
                 <DetailItem label={t('Benmassa', 'Bone mass')} value={latestMeasurement.boneMassKg} unit="kg" isGlass={isGlass} />
                 <DetailItem label="BMR" value={latestMeasurement.bmrKcal} unit="kcal" isGlass={isGlass} />
@@ -332,6 +350,11 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
                     {m.bodyFatPercent && (
                       <span className={cn(isGlass ? "text-purple-400" : "text-purple-600")}>
                         {m.bodyFatPercent.toFixed(1)}%
+                      </span>
+                    )}
+                    {m.phaseAngle != null && (
+                      <span className={cn(isGlass ? "text-violet-400" : "text-violet-600")}>
+                        {m.phaseAngle.toFixed(1)}°
                       </span>
                     )}
                   </div>

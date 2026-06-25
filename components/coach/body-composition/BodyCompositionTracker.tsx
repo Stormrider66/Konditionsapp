@@ -84,6 +84,15 @@ const copy = {
       fat: 'Body fat (%)',
       muscle: 'Muscle mass (kg)',
     },
+    clinical: {
+      title: 'Clinical (BIA device)',
+      phaseAngle: 'Phase angle',
+      ffm: 'Fat-free mass',
+      bcm: 'Body cell mass',
+      naK: 'Na/K ratio',
+      phaseAngleTrend: 'Phase angle trend',
+      phaseAngleDesc: 'Cellular health & muscle quality — higher is generally better',
+    },
     history: 'Measurement history',
     noMeasurements: 'No measurements registered yet.',
     addFirst: 'Add first measurement',
@@ -92,6 +101,8 @@ const copy = {
       fat: 'Fat',
       muscle: 'Muscle',
       visceral: 'Visc',
+      pa: 'PA',
+      ffm: 'FFM',
     },
     recommendations: 'Recommendations',
     editMeasurement: 'Edit measurement',
@@ -132,6 +143,15 @@ const copy = {
       fat: 'Kroppsfett (%)',
       muscle: 'Muskelmassa (kg)',
     },
+    clinical: {
+      title: 'Kliniskt (BIA-utrustning)',
+      phaseAngle: 'Fasvinkel',
+      ffm: 'Fettfri massa',
+      bcm: 'Kroppscellmassa',
+      naK: 'Na/K-kvot',
+      phaseAngleTrend: 'Fasvinkeltrend',
+      phaseAngleDesc: 'Cellhälsa & muskelkvalitet — högre är generellt bättre',
+    },
     history: 'Mäthistorik',
     noMeasurements: 'Inga mätningar registrerade ännu.',
     addFirst: 'Lägg till första mätningen',
@@ -140,6 +160,8 @@ const copy = {
       fat: 'Fett',
       muscle: 'Muskel',
       visceral: 'Visc',
+      pa: 'PA',
+      ffm: 'FFM',
     },
     recommendations: 'Rekommendationer',
     editMeasurement: 'Redigera mätning',
@@ -191,6 +213,21 @@ interface BodyComposition {
   metabolicAge: number | null
   bmi: number | null
   ffmi: number | null
+  intracellularWaterPercent: number | null
+  extracellularWaterPercent: number | null
+  // Clinical / professional BIA fields (Akern BodyGram etc.)
+  resistanceOhm: number | null
+  reactanceOhm: number | null
+  phaseAngle: number | null
+  fatFreeMassKg: number | null
+  fatMassKg: number | null
+  bodyCellMassKg: number | null
+  extracellularMassKg: number | null
+  bcmIndex: number | null
+  totalBodyWaterL: number | null
+  intracellularWaterL: number | null
+  extracellularWaterL: number | null
+  sodiumPotassiumRatio: number | null
   deviceBrand: string | null
   measurementTime: string | null
   notes: string | null
@@ -301,9 +338,17 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
       vikt: m.weightKg,
       fett: m.bodyFatPercent,
       muskel: m.muscleMassKg,
+      pa: m.phaseAngle,
     }))
 
   const latestMeasurement = measurements[0]
+  const previousMeasurement = measurements[1]
+  const hasClinical = latestMeasurement?.phaseAngle != null
+  const phaseAngleChange =
+    latestMeasurement?.phaseAngle != null && previousMeasurement?.phaseAngle != null
+      ? Math.round((latestMeasurement.phaseAngle - previousMeasurement.phaseAngle) * 100) / 100
+      : null
+  const phaseAnglePoints = chartData.filter((d) => d.pa != null).length
 
   if (isLoading) {
     return (
@@ -446,6 +491,83 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
         </div>
       )}
 
+      {/* Clinical (BIA device) summary cards */}
+      {hasClinical && (
+        <div>
+          <p className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+            <Activity className="h-4 w-4" />
+            {t.clinical.title}
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t.clinical.phaseAngle}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">
+                    {latestMeasurement.phaseAngle?.toFixed(1) ?? '-'}
+                  </span>
+                  <span className="text-muted-foreground">°</span>
+                  {phaseAngleChange != null && phaseAngleChange !== 0 && (
+                    <ChangeIndicator value={phaseAngleChange} unit="°" />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t.clinical.ffm}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">
+                    {latestMeasurement.fatFreeMassKg?.toFixed(1) ?? '-'}
+                  </span>
+                  <span className="text-muted-foreground">kg</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t.clinical.bcm}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">
+                    {latestMeasurement.bodyCellMassKg?.toFixed(1) ?? '-'}
+                  </span>
+                  <span className="text-muted-foreground">kg</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {t.clinical.naK}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold">
+                    {latestMeasurement.sodiumPotassiumRatio?.toFixed(2) ?? '-'}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Trends summary */}
       {trends && (
         <Card>
@@ -537,6 +659,37 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
         </Card>
       )}
 
+      {/* Phase angle trend */}
+      {phaseAnglePoints > 1 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t.clinical.phaseAngleTrend}</CardTitle>
+            <CardDescription>{t.clinical.phaseAngleDesc}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis domain={['auto', 'auto']} tickFormatter={(v) => `${v}°`} />
+                  <Tooltip formatter={(v) => [`${v}°`, t.clinical.phaseAngle]} />
+                  <Line
+                    type="monotone"
+                    dataKey="pa"
+                    stroke="#7c3aed"
+                    strokeWidth={2}
+                    name={t.clinical.phaseAngle}
+                    dot={{ r: 4 }}
+                    connectNulls
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Measurement history */}
       <Card>
         <CardHeader>
@@ -582,6 +735,8 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                       {m.bodyFatPercent && <span>{t.historyLabels.fat}: {m.bodyFatPercent}%</span>}
                       {m.muscleMassKg && <span>{t.historyLabels.muscle}: {m.muscleMassKg} kg</span>}
                       {m.visceralFat && <span>{t.historyLabels.visceral}: {m.visceralFat}</span>}
+                      {m.phaseAngle != null && <span>{t.historyLabels.pa}: {m.phaseAngle}°</span>}
+                      {m.fatFreeMassKg != null && <span>{t.historyLabels.ffm}: {m.fatFreeMassKg} kg</span>}
                     </div>
                     {m.notes && (
                       <p className="text-xs text-muted-foreground mt-1 italic">
@@ -663,7 +818,21 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                     visceralFat: editingMeasurement.visceralFat ?? undefined,
                     boneMass: editingMeasurement.boneMassKg ?? undefined,
                     waterPercent: editingMeasurement.waterPercent ?? undefined,
+                    intracellularWaterPercent: editingMeasurement.intracellularWaterPercent ?? undefined,
+                    extracellularWaterPercent: editingMeasurement.extracellularWaterPercent ?? undefined,
                     bmr: editingMeasurement.bmrKcal ?? undefined,
+                    resistanceOhm: editingMeasurement.resistanceOhm ?? undefined,
+                    reactanceOhm: editingMeasurement.reactanceOhm ?? undefined,
+                    phaseAngle: editingMeasurement.phaseAngle ?? undefined,
+                    fatFreeMassKg: editingMeasurement.fatFreeMassKg ?? undefined,
+                    fatMassKg: editingMeasurement.fatMassKg ?? undefined,
+                    bodyCellMassKg: editingMeasurement.bodyCellMassKg ?? undefined,
+                    extracellularMassKg: editingMeasurement.extracellularMassKg ?? undefined,
+                    bcmIndex: editingMeasurement.bcmIndex ?? undefined,
+                    totalBodyWaterL: editingMeasurement.totalBodyWaterL ?? undefined,
+                    intracellularWaterL: editingMeasurement.intracellularWaterL ?? undefined,
+                    extracellularWaterL: editingMeasurement.extracellularWaterL ?? undefined,
+                    sodiumPotassiumRatio: editingMeasurement.sodiumPotassiumRatio ?? undefined,
                     deviceBrand: editingMeasurement.deviceBrand ?? undefined,
                     measurementTime: editingMeasurement.measurementTime ?? undefined,
                     notes: editingMeasurement.notes ?? undefined,

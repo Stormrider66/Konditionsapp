@@ -933,7 +933,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   isGlass
                     ? "text-[10px] text-red-500 font-bold uppercase tracking-tight"
                     : "text-sm text-red-600",
-                )}>{(errors as any)[field.id]?.message}</p>
+                )}>{errors[field.id]?.message}</p>
               )}
             </div>
           ))}
