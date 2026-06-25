@@ -1788,9 +1788,27 @@ model BodyComposition {
   // Additional bioimpedance data
   visceralFat               Int? // Scale typically 1-59
   boneMassKg                Float?
-  waterPercent              Float? // Total body water
-  intracellularWaterPercent Float? // ICW - water inside cells
-  extracellularWaterPercent Float? // ECW - water outside cells
+  waterPercent              Float? // Total body water (% of weight)
+  intracellularWaterPercent Float? // ICW - water inside cells (% of TBW)
+  extracellularWaterPercent Float? // ECW - water outside cells (% of TBW)
+
+  // Clinical / professional BIA fields (e.g. Akern BodyGram, InBody clinical)
+  // Raw bioelectrical values — the measured impedance everything else derives from
+  resistanceOhm Float? // Rz — resistance (Ohm)
+  reactanceOhm  Float? // Xc — reactance (Ohm)
+  phaseAngle    Float? // PA° — phase angle (degrees). Key marker of cell health / muscle quality
+  // Tissue masses in kg (device-reported, not derived from body-fat %)
+  fatFreeMassKg       Float? // FFM
+  fatMassKg           Float? // FM (kg) — complement to bodyFatPercent
+  bodyCellMassKg      Float? // BCM — metabolically active mass
+  extracellularMassKg Float? // ECM
+  bcmIndex            Float? // BCM / height² (kg/m²)
+  // Body water in absolute litres (clinical devices report litres, not just %)
+  totalBodyWaterL     Float? // TBW (L)
+  intracellularWaterL Float? // ICW (L)
+  extracellularWaterL Float? // ECW (L)
+  // Metabolism
+  sodiumPotassiumRatio Float? // Na/K exchangeable ratio (NAK)
 
   // Metabolic data
   bmrKcal      Int? // Basal Metabolic Rate
@@ -1801,7 +1819,7 @@ model BodyComposition {
   ffmi Float? // Fat-Free Mass Index
 
   // Source and quality
-  deviceBrand     String? // "Tanita", "InBody", "Omron", etc.
+  deviceBrand     String? // "Akern", "Tanita", "InBody", "Omron", etc.
   measurementTime String? // "MORNING_FASTED", "POST_WORKOUT", etc.
 
   notes String? @db.Text

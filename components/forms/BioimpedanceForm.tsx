@@ -22,6 +22,16 @@ import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
 
+// Number inputs registered with the default `valueAsNumber` yield NaN when
+// left blank, which makes optional numeric fields fail validation. Register
+// numeric fields with `setValueAs: emptyToUndefined` instead so blanks become
+// undefined (and the Zod schema can stay plain `z.number()`).
+const emptyToUndefined = (val: unknown): number | undefined => {
+  if (val === '' || val === null || val === undefined) return undefined
+  const num = Number(val)
+  return Number.isNaN(num) ? undefined : num
+}
+
 // Schema for form validation
 const bioimpedanceSchema = z.object({
   date: z.string(),
@@ -30,8 +40,23 @@ const bioimpedanceSchema = z.object({
   muscleMass: z.number().min(10).max(150).optional(),
   boneMass: z.number().min(1).max(10).optional(),
   waterPercent: z.number().min(30).max(80).optional(),
+  intracellularWaterPercent: z.number().min(0).max(100).optional(),
+  extracellularWaterPercent: z.number().min(0).max(100).optional(),
   bmr: z.number().min(500).max(5000).optional(),
   visceralFat: z.number().min(1).max(59).optional(),
+  // Clinical / professional BIA device fields (Akern BodyGram etc.)
+  resistanceOhm: z.number().min(100).max(1200).optional(),
+  reactanceOhm: z.number().min(5).max(250).optional(),
+  phaseAngle: z.number().min(1).max(15).optional(),
+  fatFreeMassKg: z.number().min(10).max(150).optional(),
+  fatMassKg: z.number().min(1).max(150).optional(),
+  bodyCellMassKg: z.number().min(5).max(100).optional(),
+  extracellularMassKg: z.number().min(5).max(100).optional(),
+  bcmIndex: z.number().min(3).max(30).optional(),
+  totalBodyWaterL: z.number().min(10).max(100).optional(),
+  intracellularWaterL: z.number().min(5).max(80).optional(),
+  extracellularWaterL: z.number().min(5).max(60).optional(),
+  sodiumPotassiumRatio: z.number().min(0.3).max(3).optional(),
   deviceBrand: z.string().optional(),
   measurementTime: z.string().optional(),
   notes: z.string().optional(),
@@ -47,8 +72,22 @@ interface InitialDataType {
   muscleMass?: number
   boneMass?: number
   waterPercent?: number
+  intracellularWaterPercent?: number
+  extracellularWaterPercent?: number
   bmr?: number
   visceralFat?: number
+  resistanceOhm?: number
+  reactanceOhm?: number
+  phaseAngle?: number
+  fatFreeMassKg?: number
+  fatMassKg?: number
+  bodyCellMassKg?: number
+  extracellularMassKg?: number
+  bcmIndex?: number
+  totalBodyWaterL?: number
+  intracellularWaterL?: number
+  extracellularWaterL?: number
+  sodiumPotassiumRatio?: number
   deviceBrand?: string
   measurementTime?: string
   notes?: string
@@ -85,6 +124,30 @@ const MEASUREMENT_TIMES = [
   { value: 'POST_WORKOUT', label: { en: 'After training', sv: 'Efter träning' } },
 ]
 
+// Clinical / professional BIA device fields (e.g. Akern BodyGram).
+// `id` matches both the form field and the API/Prisma field name.
+const CLINICAL_FIELDS: {
+  id: 'resistanceOhm' | 'reactanceOhm' | 'phaseAngle' | 'fatFreeMassKg' | 'fatMassKg'
+    | 'bodyCellMassKg' | 'extracellularMassKg' | 'bcmIndex' | 'totalBodyWaterL'
+    | 'intracellularWaterL' | 'extracellularWaterL' | 'sodiumPotassiumRatio'
+  label: { en: string; sv: string }
+  step: string
+  placeholder: string
+}[] = [
+  { id: 'resistanceOhm', label: { en: 'Resistance (Rz, Ω)', sv: 'Resistans (Rz, Ω)' }, step: '1', placeholder: '441' },
+  { id: 'reactanceOhm', label: { en: 'Reactance (Xc, Ω)', sv: 'Reaktans (Xc, Ω)' }, step: '1', placeholder: '57' },
+  { id: 'phaseAngle', label: { en: 'Phase angle (PA°)', sv: 'Fasvinkel (PA°)' }, step: '0.1', placeholder: '7.4' },
+  { id: 'fatFreeMassKg', label: { en: 'Fat-free mass (FFM, kg)', sv: 'Fettfri massa (FFM, kg)' }, step: '0.1', placeholder: '69.2' },
+  { id: 'fatMassKg', label: { en: 'Fat mass (FM, kg)', sv: 'Fettmassa (FM, kg)' }, step: '0.1', placeholder: '16.0' },
+  { id: 'bodyCellMassKg', label: { en: 'Body cell mass (BCM, kg)', sv: 'Kroppscellmassa (BCM, kg)' }, step: '0.1', placeholder: '41.4' },
+  { id: 'extracellularMassKg', label: { en: 'Extracellular mass (ECM, kg)', sv: 'Extracellulär massa (ECM, kg)' }, step: '0.1', placeholder: '27.7' },
+  { id: 'bcmIndex', label: { en: 'BCM index (kg/m²)', sv: 'BCM-index (kg/m²)' }, step: '0.1', placeholder: '12.7' },
+  { id: 'totalBodyWaterL', label: { en: 'Total body water (TBW, L)', sv: 'Totalt kroppsvatten (TBW, L)' }, step: '0.1', placeholder: '50.6' },
+  { id: 'intracellularWaterL', label: { en: 'Intracellular water (ICW, L)', sv: 'Intracellulärt vatten (ICW, L)' }, step: '0.1', placeholder: '30.3' },
+  { id: 'extracellularWaterL', label: { en: 'Extracellular water (ECW, L)', sv: 'Extracellulärt vatten (ECW, L)' }, step: '0.1', placeholder: '20.3' },
+  { id: 'sodiumPotassiumRatio', label: { en: 'Na/K ratio', sv: 'Na/K-kvot' }, step: '0.01', placeholder: '0.9' },
+]
+
 const COPY: Record<AppLocale, {
   saveError: string;
   updatedTitle: string;
@@ -103,6 +166,8 @@ const COPY: Record<AppLocale, {
   basicMeasurements: string;
   detailedMeasurements: string;
   waterMeasurements: string;
+  clinicalMeasurements: string;
+  clinicalHelper: string;
   weight: string;
   bodyFat: string;
   muscleMass: string;
@@ -147,6 +212,8 @@ const COPY: Record<AppLocale, {
     basicMeasurements: 'Basic measurements',
     detailedMeasurements: 'Detailed measurements',
     waterMeasurements: 'Water measurements',
+    clinicalMeasurements: 'Clinical measurements (BIA device)',
+    clinicalHelper: 'For professional analysers (Akern, InBody clinical, etc.). Leave blank for consumer scales.',
     weight: 'Weight',
     bodyFat: 'Body fat',
     muscleMass: 'Muscle mass',
@@ -191,6 +258,8 @@ const COPY: Record<AppLocale, {
     basicMeasurements: 'Grundmätningar',
     detailedMeasurements: 'Detaljerade mätningar',
     waterMeasurements: 'Vattenmätningar',
+    clinicalMeasurements: 'Kliniska mätningar (BIA-utrustning)',
+    clinicalHelper: 'För professionella analysatorer (Akern, InBody clinical m.fl.). Lämna tomt för vanliga vågar.',
     weight: 'Vikt',
     bodyFat: 'Kroppsfett',
     muscleMass: 'Muskelmassa',
@@ -242,7 +311,21 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
       visceralFat: initialData?.visceralFat,
       boneMass: initialData?.boneMass,
       waterPercent: initialData?.waterPercent,
+      intracellularWaterPercent: initialData?.intracellularWaterPercent,
+      extracellularWaterPercent: initialData?.extracellularWaterPercent,
       bmr: initialData?.bmr,
+      resistanceOhm: initialData?.resistanceOhm,
+      reactanceOhm: initialData?.reactanceOhm,
+      phaseAngle: initialData?.phaseAngle,
+      fatFreeMassKg: initialData?.fatFreeMassKg,
+      fatMassKg: initialData?.fatMassKg,
+      bodyCellMassKg: initialData?.bodyCellMassKg,
+      extracellularMassKg: initialData?.extracellularMassKg,
+      bcmIndex: initialData?.bcmIndex,
+      totalBodyWaterL: initialData?.totalBodyWaterL,
+      intracellularWaterL: initialData?.intracellularWaterL,
+      extracellularWaterL: initialData?.extracellularWaterL,
+      sodiumPotassiumRatio: initialData?.sodiumPotassiumRatio,
       deviceBrand: initialData?.deviceBrand,
       notes: initialData?.notes,
     },
@@ -256,15 +339,44 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
         : '/api/body-composition'
       const method = isEditing ? 'PUT' : 'POST'
 
+      // Map form field names to the API/Prisma field names. (The form uses
+      // short names like `weight`/`date`; the API expects `weightKg`/
+      // `measurementDate`.) undefined values are simply ignored by the API.
+      const payload = {
+        clientId,
+        measurementDate: data.date,
+        measurementTime: data.measurementTime,
+        weightKg: data.weight,
+        bodyFatPercent: data.bodyFatPercent,
+        muscleMassKg: data.muscleMass,
+        visceralFat: data.visceralFat,
+        boneMassKg: data.boneMass,
+        waterPercent: data.waterPercent,
+        intracellularWaterPercent: data.intracellularWaterPercent,
+        extracellularWaterPercent: data.extracellularWaterPercent,
+        resistanceOhm: data.resistanceOhm,
+        reactanceOhm: data.reactanceOhm,
+        phaseAngle: data.phaseAngle,
+        fatFreeMassKg: data.fatFreeMassKg,
+        fatMassKg: data.fatMassKg,
+        bodyCellMassKg: data.bodyCellMassKg,
+        extracellularMassKg: data.extracellularMassKg,
+        bcmIndex: data.bcmIndex,
+        totalBodyWaterL: data.totalBodyWaterL,
+        intracellularWaterL: data.intracellularWaterL,
+        extracellularWaterL: data.extracellularWaterL,
+        sodiumPotassiumRatio: data.sodiumPotassiumRatio,
+        bmrKcal: data.bmr,
+        deviceBrand: data.deviceBrand,
+        notes: data.notes,
+      }
+
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          clientId,
-          ...data,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const result = await response.json()
@@ -328,6 +440,11 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     { label: copy.extracellularWater, value: result.measurement.extracellularWaterPercent, unit: '%' },
                     { label: 'BMR', value: result.measurement.bmrKcal, unit: 'kcal' },
                     { label: 'FFMI', value: result.measurement.ffmi, unit: '', category: result.analysis?.ffmiCategory },
+                    { label: 'PA°', value: result.measurement.phaseAngle, unit: '°' },
+                    { label: 'FFM', value: result.measurement.fatFreeMassKg, unit: 'kg' },
+                    { label: 'FM', value: result.measurement.fatMassKg, unit: 'kg' },
+                    { label: 'BCM', value: result.measurement.bodyCellMassKg, unit: 'kg' },
+                    { label: 'Na/K', value: result.measurement.sodiumPotassiumRatio, unit: '' },
                   ].map((item, idx) => item.value ? (
                     <div key={idx} className="bg-slate-100 border border-slate-200 p-4 rounded-xl dark:bg-white/5 dark:border-white/5">
                       <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-1">{item.label}</p>
@@ -531,7 +648,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     type="number"
                     step={field.step}
                     placeholder={field.placeholder}
-                    {...register(field.id as any, { valueAsNumber: true })}
+                    {...register(field.id as any, { setValueAs: emptyToUndefined })}
                     className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                   />
                   {errors[field.id as keyof BioimpedanceFormData] && (
@@ -551,7 +668,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   id="visceralFat"
                   type="number"
                   placeholder="8"
-                  {...register('visceralFat', { valueAsNumber: true })}
+                  {...register('visceralFat', { setValueAs: emptyToUndefined })}
                   className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                 />
               </div>
@@ -562,7 +679,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   type="number"
                   step="0.1"
                   placeholder="3.2"
-                  {...register('boneMass', { valueAsNumber: true })}
+                  {...register('boneMass', { setValueAs: emptyToUndefined })}
                   className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                 />
               </div>
@@ -572,7 +689,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                   id="bmr"
                   type="number"
                   placeholder="1800"
-                  {...register('bmr', { valueAsNumber: true })}
+                  {...register('bmr', { setValueAs: emptyToUndefined })}
                   className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                 />
               </div>
@@ -622,7 +739,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     type="number"
                     step="0.1"
                     placeholder="55.0"
-                    {...register(field.id as any, { valueAsNumber: true })}
+                    {...register(field.id as any, { setValueAs: emptyToUndefined })}
                     className="bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white"
                   />
                   {field.helper && <p className="text-[10px] text-slate-600 font-bold uppercase tracking-tight">{field.helper}</p>}
@@ -646,7 +763,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     type="number"
                     step="0.1"
                     placeholder="72.5"
-                    {...register('weight', { valueAsNumber: true })}
+                    {...register('weight', { setValueAs: emptyToUndefined })}
                   />
                   {errors.weight && (
                     <p className="text-sm text-red-600">{errors.weight.message}</p>
@@ -660,7 +777,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     type="number"
                     step="0.1"
                     placeholder="18.5"
-                    {...register('bodyFatPercent', { valueAsNumber: true })}
+                    {...register('bodyFatPercent', { setValueAs: emptyToUndefined })}
                   />
                   {errors.bodyFatPercent && (
                     <p className="text-sm text-red-600">{errors.bodyFatPercent.message}</p>
@@ -674,7 +791,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     type="number"
                     step="0.1"
                     placeholder="55.0"
-                    {...register('muscleMass', { valueAsNumber: true })}
+                    {...register('muscleMass', { setValueAs: emptyToUndefined })}
                   />
                   {errors.muscleMass && (
                     <p className="text-sm text-red-600">{errors.muscleMass.message}</p>
@@ -696,7 +813,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     id="visceralFat"
                     type="number"
                     placeholder="8"
-                    {...register('visceralFat', { valueAsNumber: true })}
+                    {...register('visceralFat', { setValueAs: emptyToUndefined })}
                   />
                   {errors.visceralFat && (
                     <p className="text-sm text-red-600">{errors.visceralFat.message}</p>
@@ -710,7 +827,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     type="number"
                     step="0.1"
                     placeholder="3.2"
-                    {...register('boneMass', { valueAsNumber: true })}
+                    {...register('boneMass', { setValueAs: emptyToUndefined })}
                   />
                   {errors.boneMass && (
                     <p className="text-sm text-red-600">{errors.boneMass.message}</p>
@@ -723,7 +840,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     id="bmr"
                     type="number"
                     placeholder="1800"
-                    {...register('bmr', { valueAsNumber: true })}
+                    {...register('bmr', { setValueAs: emptyToUndefined })}
                   />
                   <p className="text-xs text-muted-foreground">{copy.bmrAutoHint}</p>
                   {errors.bmr && (
@@ -766,7 +883,7 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     type="number"
                     step="0.1"
                     placeholder="55.0"
-                    {...register('waterPercent', { valueAsNumber: true })}
+                    {...register('waterPercent', { setValueAs: emptyToUndefined })}
                   />
                   {errors.waterPercent && (
                     <p className="text-sm text-red-600">{errors.waterPercent.message}</p>
@@ -778,6 +895,50 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
           </Card>
         </>
       )}
+
+      <div className={cn(
+        "rounded-2xl border p-6",
+        isGlass
+          ? "bg-slate-50 border-slate-200 dark:bg-white/[0.02] dark:border-white/5"
+          : "bg-muted/30 border-border",
+      )}>
+        <h3 className={cn(
+          isGlass
+            ? "text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-400"
+            : "text-base font-semibold",
+        )}>{copy.clinicalMeasurements}</h3>
+        <p className={cn(
+          "mt-1 mb-6 text-xs",
+          isGlass ? "text-slate-500 dark:text-slate-500" : "text-muted-foreground",
+        )}>{copy.clinicalHelper}</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+          {CLINICAL_FIELDS.map((field) => (
+            <div key={field.id} className="space-y-2">
+              <Label
+                htmlFor={field.id}
+                className={cn(isGlass && "text-[10px] font-black uppercase tracking-widest text-slate-500")}
+              >
+                {field.label[locale]}
+              </Label>
+              <Input
+                id={field.id}
+                type="number"
+                step={field.step}
+                placeholder={field.placeholder}
+                {...register(field.id, { setValueAs: emptyToUndefined })}
+                className={cn(isGlass && "bg-white border-slate-200 text-slate-900 rounded-xl focus:ring-orange-500/20 dark:bg-black/40 dark:border-white/10 dark:text-white")}
+              />
+              {errors[field.id] && (
+                <p className={cn(
+                  isGlass
+                    ? "text-[10px] text-red-500 font-bold uppercase tracking-tight"
+                    : "text-sm text-red-600",
+                )}>{(errors as any)[field.id]?.message}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="space-y-2">
         <Label htmlFor="notes" className={cn(isGlass && "text-[10px] font-black uppercase tracking-widest text-slate-500")}>{copy.notes}</Label>

@@ -42,6 +42,19 @@ export async function POST(req: NextRequest) {
       waterPercent,
       intracellularWaterPercent,
       extracellularWaterPercent,
+      // Clinical / professional BIA fields (Akern BodyGram etc.)
+      resistanceOhm,
+      reactanceOhm,
+      phaseAngle,
+      fatFreeMassKg,
+      fatMassKg,
+      bodyCellMassKg,
+      extracellularMassKg,
+      bcmIndex,
+      totalBodyWaterL,
+      intracellularWaterL,
+      extracellularWaterL,
+      sodiumPotassiumRatio,
       bmrKcal,
       metabolicAge,
       deviceBrand,
@@ -73,12 +86,20 @@ export async function POST(req: NextRequest) {
       bmi = bmiResult.bmi
     }
 
-    // Calculate FFMI (Fat-Free Mass Index) if we have body fat %
+    // Calculate FFMI (Fat-Free Mass Index). Prefer a device-reported fat-free
+    // mass (kg) when available; otherwise derive lean mass from body-fat %.
     let ffmi: number | null = null
-    if (weightKg && bodyFatPercent && client.height) {
-      const leanMass = weightKg * (1 - bodyFatPercent / 100)
+    if (client.height) {
       const heightM = client.height / 100
-      ffmi = Math.round((leanMass / (heightM * heightM)) * 10) / 10
+      const leanMass =
+        typeof fatFreeMassKg === 'number'
+          ? fatFreeMassKg
+          : weightKg && bodyFatPercent
+            ? weightKg * (1 - bodyFatPercent / 100)
+            : null
+      if (leanMass) {
+        ffmi = Math.round((leanMass / (heightM * heightM)) * 10) / 10
+      }
     }
 
     // Calculate BMR if not provided but we have the data
@@ -117,6 +138,18 @@ export async function POST(req: NextRequest) {
         waterPercent,
         intracellularWaterPercent,
         extracellularWaterPercent,
+        resistanceOhm,
+        reactanceOhm,
+        phaseAngle,
+        fatFreeMassKg,
+        fatMassKg,
+        bodyCellMassKg,
+        extracellularMassKg,
+        bcmIndex,
+        totalBodyWaterL,
+        intracellularWaterL,
+        extracellularWaterL,
+        sodiumPotassiumRatio,
         bmrKcal: calculatedBmr,
         metabolicAge,
         bmi,

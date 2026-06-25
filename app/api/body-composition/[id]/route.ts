@@ -129,6 +129,20 @@ export async function PUT(
       visceralFat,
       boneMassKg,
       waterPercent,
+      intracellularWaterPercent,
+      extracellularWaterPercent,
+      resistanceOhm,
+      reactanceOhm,
+      phaseAngle,
+      fatFreeMassKg,
+      fatMassKg,
+      bodyCellMassKg,
+      extracellularMassKg,
+      bcmIndex,
+      totalBodyWaterL,
+      intracellularWaterL,
+      extracellularWaterL,
+      sodiumPotassiumRatio,
       bmrKcal,
       metabolicAge,
       deviceBrand,
@@ -144,13 +158,22 @@ export async function PUT(
       bmi = bmiResult.bmi
     }
 
-    // Recalculate FFMI if body fat or weight changed
+    // Recalculate FFMI if body fat, weight, or fat-free mass changed.
+    // Prefer a device-reported fat-free mass (kg) when available.
     let ffmi = existing.ffmi
     const newBodyFat = bodyFatPercent ?? existing.bodyFatPercent
-    if (newWeight && newBodyFat && existing.client.height) {
-      const leanMass = newWeight * (1 - newBodyFat / 100)
+    const newFatFreeMass = fatFreeMassKg ?? existing.fatFreeMassKg
+    if (existing.client.height) {
       const heightM = existing.client.height / 100
-      ffmi = Math.round((leanMass / (heightM * heightM)) * 10) / 10
+      const leanMass =
+        typeof newFatFreeMass === 'number'
+          ? newFatFreeMass
+          : newWeight && newBodyFat
+            ? newWeight * (1 - newBodyFat / 100)
+            : null
+      if (leanMass) {
+        ffmi = Math.round((leanMass / (heightM * heightM)) * 10) / 10
+      }
     }
 
     // Recalculate BMR if needed
@@ -184,6 +207,20 @@ export async function PUT(
         visceralFat,
         boneMassKg,
         waterPercent,
+        intracellularWaterPercent,
+        extracellularWaterPercent,
+        resistanceOhm,
+        reactanceOhm,
+        phaseAngle,
+        fatFreeMassKg,
+        fatMassKg,
+        bodyCellMassKg,
+        extracellularMassKg,
+        bcmIndex,
+        totalBodyWaterL,
+        intracellularWaterL,
+        extracellularWaterL,
+        sodiumPotassiumRatio,
         bmrKcal: calculatedBmr,
         metabolicAge,
         bmi,
