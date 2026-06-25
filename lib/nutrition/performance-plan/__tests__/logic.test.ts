@@ -39,6 +39,45 @@ describe('performance meal guide logic', () => {
     expect(metrics.source).toBe('BIA')
   })
 
+  it('rejects an implausible scan weight and falls back to profile weight', () => {
+    // 64.93 kg reading on a 77 kg athlete (a real junk Garmin scale value).
+    const metrics = resolveNutritionBodyMetrics({
+      profileWeightKg: 77,
+      latestBia: {
+        id: 'bia-junk',
+        measurementDate: new Date('2026-06-02T00:00:00.000Z'),
+        weightKg: 64.93,
+        bodyFatPercent: 43,
+        muscleMassKg: 21.7,
+        bmrKcal: null,
+        deviceBrand: 'Garmin',
+      },
+    })
+
+    expect(metrics.weightKg).toBe(77)
+    expect(metrics.source).toBe('PROFILE')
+    // The snapshot is still surfaced for display, but it did not drive the weight.
+    expect(metrics.biaSnapshot?.weightKg).toBe(64.93)
+  })
+
+  it('still trusts a scan that is a plausible distance from profile weight', () => {
+    const metrics = resolveNutritionBodyMetrics({
+      profileWeightKg: 77,
+      latestBia: {
+        id: 'bia-ok',
+        measurementDate: new Date('2026-06-02T00:00:00.000Z'),
+        weightKg: 74.5,
+        bodyFatPercent: 12,
+        muscleMassKg: 36,
+        bmrKcal: 1900,
+        deviceBrand: 'inbody',
+      },
+    })
+
+    expect(metrics.weightKg).toBe(74.5)
+    expect(metrics.source).toBe('BIA')
+  })
+
   it('classifies games before travel and practice', () => {
     const dayType = classifyPerformanceDay(context({
       scheduleSignals: [
@@ -100,6 +139,44 @@ describe('performance meal guide logic', () => {
     ])
 
     expect(trend).toBe(-0.5)
+  })
+
+  it('ignores stale points outside the recent window when an asOf date is given', () => {
+    // Henrik's real data: three sparse Garmin scans spanning 76 days. As of the
+    // planning day, only the most recent falls inside the 28-day window, so there
+    // is no usable two-point trend — the safeguard must NOT fire on a stale slope.
+    const trend = estimateWeeklyWeightChangeKg(
+      [
+        { measurementDate: new Date('2026-03-18T00:00:00.000Z'), weightKg: 91.82 },
+        { measurementDate: new Date('2026-04-19T00:00:00.000Z'), weightKg: 77 },
+        { measurementDate: new Date('2026-06-02T00:00:00.000Z'), weightKg: 64.93 },
+      ],
+      { asOf: new Date('2026-06-25T00:00:00.000Z') }
+    )
+
+    expect(trend).toBeNull()
+  })
+
+  it('returns null when the weigh-ins span too few days to extrapolate', () => {
+    const trend = estimateWeeklyWeightChangeKg([
+      { measurementDate: new Date('2026-06-14T00:00:00.000Z'), weightKg: 78 },
+      { measurementDate: new Date('2026-06-15T00:00:00.000Z'), weightKg: 77 },
+    ])
+
+    expect(trend).toBeNull()
+  })
+
+  it('resists a single outlier weigh-in via the regression slope', () => {
+    // A steady ~77 kg with one bad 70 kg reading in the middle. First-vs-last
+    // would over/under-shoot; the least-squares slope stays near flat.
+    const trend = estimateWeeklyWeightChangeKg([
+      { measurementDate: new Date('2026-06-01T00:00:00.000Z'), weightKg: 77 },
+      { measurementDate: new Date('2026-06-08T00:00:00.000Z'), weightKg: 70 },
+      { measurementDate: new Date('2026-06-15T00:00:00.000Z'), weightKg: 77 },
+    ])
+
+    expect(trend).not.toBeNull()
+    expect(Math.abs(trend as number)).toBeLessThan(0.6)
   })
 
   it('builds Swedish deterministic meal text when locale is Swedish', () => {

@@ -626,7 +626,7 @@ export async function buildPerformanceMealGuideDraft({
     locale,
   })
 
-  const weeklyWeightChangeKg = estimateWeeklyWeightChangeKg(client.bodyCompositions)
+  const weeklyWeightChangeKg = estimateWeeklyWeightChangeKg(client.bodyCompositions, { asOf: start })
   const fastWeightLossRisk =
     weeklyWeightChangeKg != null &&
     weeklyWeightChangeKg < -Math.max(0.35, bodyMetrics.weightKg * 0.005)

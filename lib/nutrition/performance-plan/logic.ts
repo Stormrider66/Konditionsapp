@@ -11,6 +11,14 @@ const HARD_INTENSITIES = new Set<WorkoutIntensity>(['THRESHOLD', 'INTERVAL', 'MA
 const PRACTICE_EVENT_TYPES = new Set(['PRACTICE', 'ICE_PRACTICE', 'STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY', 'INTERVAL_SESSION'])
 const GAME_EVENT_TYPES = new Set(['GAME'])
 
+// A bio-impedance/scale reading further than this fraction from the athlete's
+// confirmed profile weight is treated as a bad measurement and is NOT allowed
+// to override the bodyweight that every nutrition target is built on. Junk
+// readings (a Garmin scale mis-measure, someone else on a shared scale) would
+// otherwise silently rewrite an athlete's targets — e.g. a 64.9 kg reading on a
+// 77 kg athlete tanked their calories and tripped the fast-weight-loss guard.
+const MAX_SCAN_WEIGHT_DEVIATION = 0.15
+
 export function resolveNutritionBodyMetrics(input: {
   profileWeightKg?: number | null
   latestBia?: {
@@ -23,12 +31,13 @@ export function resolveNutritionBodyMetrics(input: {
     deviceBrand?: string | null
   } | null
 }): BodyMetricSource {
-  if (input.latestBia?.weightKg && input.latestBia.weightKg > 0) {
-    return {
-      weightKg: input.latestBia.weightKg,
-      bmrKcal: input.latestBia.bmrKcal ?? undefined,
-      source: 'BIA',
-      biaSnapshot: {
+  const profileWeightKg =
+    input.profileWeightKg && input.profileWeightKg > 0 ? input.profileWeightKg : null
+  const scanWeightKg =
+    input.latestBia?.weightKg && input.latestBia.weightKg > 0 ? input.latestBia.weightKg : null
+
+  const biaSnapshot = input.latestBia
+    ? {
         id: input.latestBia.id,
         measurementDate: input.latestBia.measurementDate.toISOString().slice(0, 10),
         weightKg: input.latestBia.weightKg,
@@ -36,25 +45,31 @@ export function resolveNutritionBodyMetrics(input: {
         muscleMassKg: input.latestBia.muscleMassKg,
         bmrKcal: input.latestBia.bmrKcal,
         deviceBrand: input.latestBia.deviceBrand,
-      },
+      }
+    : undefined
+
+  // Prefer the latest scan weight only when it's physiologically plausible next
+  // to the confirmed profile weight. With no profile weight to compare against,
+  // we have to trust the scan (current behaviour for those clients).
+  const scanIsPlausible =
+    scanWeightKg != null &&
+    (profileWeightKg == null ||
+      Math.abs(scanWeightKg - profileWeightKg) / profileWeightKg <= MAX_SCAN_WEIGHT_DEVIATION)
+
+  if (scanWeightKg != null && scanIsPlausible) {
+    return {
+      weightKg: scanWeightKg,
+      bmrKcal: input.latestBia?.bmrKcal ?? undefined,
+      source: 'BIA',
+      biaSnapshot,
     }
   }
 
   return {
-    weightKg: input.profileWeightKg && input.profileWeightKg > 0 ? input.profileWeightKg : 70,
+    weightKg: profileWeightKg ?? 70,
     bmrKcal: input.latestBia?.bmrKcal ?? undefined,
     source: 'PROFILE',
-    biaSnapshot: input.latestBia
-      ? {
-          id: input.latestBia.id,
-          measurementDate: input.latestBia.measurementDate.toISOString().slice(0, 10),
-          weightKg: input.latestBia.weightKg,
-          bodyFatPercent: input.latestBia.bodyFatPercent,
-          muscleMassKg: input.latestBia.muscleMassKg,
-          bmrKcal: input.latestBia.bmrKcal,
-          deviceBrand: input.latestBia.deviceBrand,
-        }
-      : undefined,
+    biaSnapshot,
   }
 }
 
@@ -178,14 +193,67 @@ export function scorePlannedMealMatch(input: {
   return Math.round(Math.min(1, score) * 100) / 100
 }
 
-export function estimateWeeklyWeightChangeKg(measurements: Array<{ measurementDate: Date; weightKg: number | null }>): number | null {
+// How current and dense the weigh-in data must be before we'll claim to know an
+// athlete's weekly weight trend. Without these bounds a single stale measurement
+// (e.g. a reading from three months ago) slopes against a recent one and reports
+// a wild rate, which then trips the fast-weight-loss safeguard on noise.
+const WEIGHT_TREND_WINDOW_DAYS = 28
+const WEIGHT_TREND_MIN_SPAN_DAYS = 7
+
+/**
+ * Estimate weekly weight change (kg/week, negative = losing) from weigh-ins.
+ *
+ * Only considers measurements within `windowDays` of `asOf` (defaults to the
+ * most recent measurement so callers without a clock stay deterministic; the
+ * production caller passes the planning date so stale data yields `null`).
+ * Requires at least two points spanning `minSpanDays`, and fits a least-squares
+ * slope so one outlier weigh-in can't dominate the result.
+ */
+export function estimateWeeklyWeightChangeKg(
+  measurements: Array<{ measurementDate: Date; weightKg: number | null }>,
+  options?: { asOf?: Date; windowDays?: number; minSpanDays?: number }
+): number | null {
+  const windowDays = options?.windowDays ?? WEIGHT_TREND_WINDOW_DAYS
+  const minSpanDays = options?.minSpanDays ?? WEIGHT_TREND_MIN_SPAN_DAYS
+
   const valid = measurements
     .filter((measurement): measurement is { measurementDate: Date; weightKg: number } => measurement.weightKg != null)
     .sort((a, b) => a.measurementDate.getTime() - b.measurementDate.getTime())
   if (valid.length < 2) return null
 
-  const first = valid[0]
-  const last = valid[valid.length - 1]
-  const days = Math.max(1, (last.measurementDate.getTime() - first.measurementDate.getTime()) / 86_400_000)
-  return Math.round(((last.weightKg - first.weightKg) / days) * 7 * 100) / 100
+  const latestMs = valid[valid.length - 1].measurementDate.getTime()
+  const anchorMs = options?.asOf?.getTime() ?? latestMs
+  const windowStartMs = anchorMs - windowDays * 86_400_000
+
+  // No usable signal if the most recent weigh-in predates the window — we can't
+  // claim to know the *current* trend from stale data.
+  if (latestMs < windowStartMs) return null
+
+  const recent = valid.filter((m) => m.measurementDate.getTime() >= windowStartMs)
+  if (recent.length < 2) return null
+
+  const spanDays =
+    (recent[recent.length - 1].measurementDate.getTime() - recent[0].measurementDate.getTime()) / 86_400_000
+  // Too short a span over-extrapolates day-to-day fluctuation into a wild weekly rate.
+  if (spanDays < minSpanDays) return null
+
+  // Least-squares slope (kg/day) over the recent window, in days since the first
+  // point. A regression resists a single bad reading far better than first-vs-last.
+  const x0 = recent[0].measurementDate.getTime()
+  const n = recent.length
+  let sumX = 0
+  let sumY = 0
+  let sumXX = 0
+  let sumXY = 0
+  for (const m of recent) {
+    const x = (m.measurementDate.getTime() - x0) / 86_400_000
+    sumX += x
+    sumY += m.weightKg
+    sumXX += x * x
+    sumXY += x * m.weightKg
+  }
+  const denom = n * sumXX - sumX * sumX
+  if (denom === 0) return null
+  const slopePerDay = (n * sumXY - sumX * sumY) / denom
+  return Math.round(slopePerDay * 7 * 100) / 100
 }
