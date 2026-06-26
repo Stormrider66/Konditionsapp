@@ -98,6 +98,11 @@ const copy = {
       paLow: 'Low',
       paNormal: 'Typical',
       paAthletic: 'Athletic',
+      naKNormal: 'Normal',
+      naKElevated: 'Elevated',
+      naKReference: 'Reference: 0.9–1.0',
+      bcmiLabel: 'BCM index',
+      bcmiReference: 'Reference: 8–15',
     },
     history: 'Measurement history',
     noMeasurements: 'No measurements registered yet.',
@@ -161,6 +166,11 @@ const copy = {
       paLow: 'Låg',
       paNormal: 'Normal',
       paAthletic: 'Atletisk',
+      naKNormal: 'Normal',
+      naKElevated: 'Förhöjd',
+      naKReference: 'Referens: 0.9–1.0',
+      bcmiLabel: 'BCM-index',
+      bcmiReference: 'Referens: 8–15',
     },
     history: 'Mäthistorik',
     noMeasurements: 'Inga mätningar registrerade ännu.',
@@ -387,6 +397,10 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
     ? phaseAngleZone(latestMeasurement.phaseAngle, clientGender)
     : null
   const phaseAngleAthleticFloor = phaseAngleAthleticMin(clientGender)
+  // Na/K exchangeable ratio: Akern's printed band is 0.9–1.0; above 1.0
+  // signals catabolism / impaired cell-membrane integrity.
+  const naKElevated =
+    latestMeasurement?.sodiumPotassiumRatio != null && latestMeasurement.sodiumPotassiumRatio > 1
 
   if (isLoading) {
     return (
@@ -601,6 +615,11 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                   </span>
                   <span className="text-muted-foreground">kg</span>
                 </div>
+                {latestMeasurement.bcmIndex != null && (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {t.clinical.bcmiLabel} {latestMeasurement.bcmIndex.toFixed(1)} · {t.clinical.bcmiReference}
+                  </p>
+                )}
               </CardContent>
             </Card>
 
@@ -616,6 +635,18 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                     {latestMeasurement.sodiumPotassiumRatio?.toFixed(2) ?? '-'}
                   </span>
                 </div>
+                {latestMeasurement.sodiumPotassiumRatio != null && (
+                  <Badge
+                    variant={naKElevated ? 'destructive' : 'secondary'}
+                    className={cn(
+                      'mt-1',
+                      !naKElevated && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+                    )}
+                  >
+                    {naKElevated ? t.clinical.naKElevated : t.clinical.naKNormal}
+                  </Badge>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-1">{t.clinical.naKReference}</p>
               </CardContent>
             </Card>
           </div>
