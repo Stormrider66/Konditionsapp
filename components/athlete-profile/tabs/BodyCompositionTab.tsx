@@ -65,11 +65,17 @@ export function BodyCompositionTab({ data, viewMode, variant = 'default', basePa
     )
   }
 
+  // When measurements span more than one calendar year, include the year in the
+  // axis label so yearly tests don't collapse to an ambiguous "May".
+  const spansMultipleYears =
+    new Set(measurements.map((m) => new Date(m.measurementDate).getFullYear())).size > 1
+  const axisDateFormat = spansMultipleYears ? 'MMM yyyy' : 'd MMM'
+
   // Prepare chart data (reverse for chronological order)
   const chartData = [...measurements]
     .reverse()
     .map((m) => ({
-      date: format(new Date(m.measurementDate), 'd MMM', { locale: dateLocale }),
+      date: format(new Date(m.measurementDate), axisDateFormat, { locale: dateLocale }),
       weight: m.weightKg,
       bodyFat: m.bodyFatPercent,
       muscle: m.muscleMassKg,

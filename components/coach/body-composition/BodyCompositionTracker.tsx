@@ -330,11 +330,20 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
     }
   }
 
+  // When measurements span more than one calendar year, label the axis with
+  // month + year (e.g. "maj 2024") instead of day + month, so yearly tests
+  // don't all collapse to an ambiguous "maj".
+  const spansMultipleYears =
+    new Set(measurements.map((m) => new Date(m.measurementDate).getFullYear())).size > 1
+  const axisDateOptions: Intl.DateTimeFormatOptions = spansMultipleYears
+    ? { month: 'short', year: 'numeric' }
+    : { month: 'short', day: 'numeric' }
+
   const chartData = measurements
     .slice()
     .reverse()
     .map((m) => ({
-      date: formatDate(m.measurementDate, locale, { month: 'short', day: 'numeric' }),
+      date: formatDate(m.measurementDate, locale, axisDateOptions),
       vikt: m.weightKg,
       fett: m.bodyFatPercent,
       muskel: m.muscleMassKg,
