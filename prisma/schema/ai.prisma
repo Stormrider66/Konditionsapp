@@ -338,6 +338,10 @@ model AIGeneratedWOD {
   source             String? // "generator" | "chat" | "cron"
   chatConversationId String? // Link back to AI conversation
 
+  // Garmin push (Training API v2). Set when the WOD is sent to the athlete's watch.
+  garminWorkoutId String?
+  garminPushedAt  DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

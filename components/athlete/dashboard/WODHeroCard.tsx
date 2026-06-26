@@ -12,6 +12,7 @@ import { Sparkles, Timer, Activity, Play, TrendingUp, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { DashboardVisualLayer } from './DashboardVisualLayer'
+import { PushWodToGarminButton } from './PushWodToGarminButton'
 import { getWorkoutVisual } from './dashboard-visuals'
 import { DashboardWOD, getWODRoute } from '@/types/dashboard-items'
 import { useTranslations } from '@/i18n/client'
@@ -146,9 +147,9 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
         </div>
 
         {/* Action Button */}
-        <div className="mt-6">
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
           {isCompleted ? (
-            <Link href={route}>
+            <Link href={route} className="w-full sm:w-auto">
               <Button
                 variant="outline"
                 className="w-full sm:w-auto min-h-[48px] border-slate-300 bg-white/70 text-slate-900 hover:bg-white hover:border-slate-400 dark:border-white/20 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 dark:hover:border-white/30 transition-all"
@@ -158,12 +159,15 @@ export function WODHeroCard({ wod, basePath = '', onRemove }: WODHeroCardProps) 
               </Button>
             </Link>
           ) : (
-            <Link href={route}>
-              <Button className="w-full sm:w-auto min-h-[48px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 border-0 transition-all">
-                <Play className="w-4 h-4 mr-2" />
-                {isStarted ? t('actions.continueWorkout') : t('actions.startWorkout')}
-              </Button>
-            </Link>
+            <>
+              <Link href={route} className="w-full sm:w-auto">
+                <Button className="w-full sm:w-auto min-h-[48px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 border-0 transition-all">
+                  <Play className="w-4 h-4 mr-2" />
+                  {isStarted ? t('actions.continueWorkout') : t('actions.startWorkout')}
+                </Button>
+              </Link>
+              <PushWodToGarminButton wodId={wod.id} />
+            </>
           )}
         </div>
       </div>
