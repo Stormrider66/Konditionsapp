@@ -20,6 +20,10 @@ import {
   sendCoachMessageAction,
   type PrepareCoachMessageDraftInput,
 } from '@/lib/ai/coach-message-actions'
+import {
+  executeImportedWorkoutDraft,
+  mergeImportedWorkoutDraftInput,
+} from '@/lib/ai/athlete-workout-import'
 
 type AppLocale = 'en' | 'sv'
 
@@ -158,6 +162,10 @@ async function executeStoredDraft(draft: AIActionDraft, locale: AppLocale): Prom
     throw new Error('Athlete action is missing client scope')
   }
 
+  if (draft.capabilityId === 'createImportedWorkout') {
+    return executeImportedWorkoutDraft(draft, locale)
+  }
+
   const tools = createChatTools(
     draft.clientId,
     draft.conversationId || undefined,
@@ -174,7 +182,8 @@ async function executeStoredDraft(draft: AIActionDraft, locale: AppLocale): Prom
 export async function confirmAiActionDraft(
   draftId: string,
   actorUserId: string,
-  locale: AppLocale = 'en'
+  locale: AppLocale = 'en',
+  options?: { inputOverride?: unknown }
 ): Promise<
   | { success: true; result: unknown; message: string }
   | { success: false; status: number; error: string; result?: unknown }
@@ -187,11 +196,30 @@ export async function confirmAiActionDraft(
   const validation = await validateDraftCanExecute(draft, actorUserId, locale)
   if (!validation.ok) return { success: false, status: validation.status, error: validation.error }
 
+  let executableDraft = draft
+  let mergedInput: unknown | undefined
+  if (options?.inputOverride !== undefined) {
+    if (draft.capabilityId !== 'createImportedWorkout') {
+      return { success: false, status: 400, error: t(locale, 'This action does not accept edits.', 'Denna åtgärd tar inte emot ändringar.') }
+    }
+
+    const merged = mergeImportedWorkoutDraftInput(draft.input, options.inputOverride, locale)
+    if (!merged.success) {
+      return { success: false, status: 400, error: merged.error }
+    }
+    mergedInput = merged.input
+    executableDraft = {
+      ...draft,
+      input: toJson(merged.input) as Prisma.JsonValue,
+    }
+  }
+
   const claimed = await prisma.aIActionDraft.updateMany({
     where: { id: draft.id, status: 'PENDING' },
     data: {
       status: 'CONFIRMED',
       confirmedAt: new Date(),
+      ...(mergedInput !== undefined ? { input: toJson(mergedInput) } : {}),
     },
   })
   if (claimed.count !== 1) {
@@ -199,7 +227,7 @@ export async function confirmAiActionDraft(
   }
 
   try {
-    const result = await executeStoredDraft(draft, locale)
+    const result = await executeStoredDraft(executableDraft, locale)
     const success = typeof result === 'object' && result !== null && 'success' in result
       ? Boolean((result as { success?: unknown }).success)
       : true

@@ -32,6 +32,9 @@ import {
   Headphones,
   Radio,
   PhoneOff,
+  Paperclip,
+  ClipboardList,
+  FileText,
 } from 'lucide-react'
 import { ChatMessage } from '@/components/ai-studio/ChatMessage'
 import { ChatHistoryPanel } from '@/components/ai-studio/ChatHistoryPanel'
@@ -56,6 +59,7 @@ import { ChatWorkoutCard } from './ChatWorkoutCard'
 import { ChatCardioWorkoutCard } from './ChatCardioWorkoutCard'
 import { ChatProgramProgressCard } from './ChatProgramProgressCard'
 import { ChatProgramPreviewCard } from './ChatProgramPreviewCard'
+import { ImportedWorkoutDraftCard } from './ImportedWorkoutDraftCard'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import type { MergedProgram } from '@/lib/ai/program-generator'
 import { AIChatUsageCompact } from '@/components/athlete/AIChatUsageMeter'
@@ -82,6 +86,7 @@ import {
   type AiCapabilityDiscoveryItem,
   type AiCapabilityDiscoverySummary,
 } from '@/lib/ai/capabilities/discovery'
+import type { ImportedWorkoutParsedPreview } from '@/lib/ai/imported-workout-types'
 
 interface AthleteFloatingChatProps {
   clientId: string
@@ -105,6 +110,23 @@ interface AiCapabilitiesResponse {
   capabilities?: AiCapabilityDiscoveryItem[]
 }
 
+const WORKOUT_IMPORT_MAX_FILE_BYTES = 15 * 1024 * 1024
+const WORKOUT_IMPORT_ACCEPT = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  '.xlsx',
+  '.xls',
+  '.csv',
+  '.pdf',
+  '.txt',
+].join(',')
 
 function normalizeSkillName(value: string): string {
   return value
@@ -139,6 +161,7 @@ export function AthleteFloatingChat({
   } = useFloatingChatDrag()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const workoutImportFileInputRef = useRef<HTMLInputElement>(null)
   const pageCtx = usePageContextOptional()
   const pendingSkillSyncRequestRef = useRef(false)
 
@@ -193,6 +216,11 @@ export function AthleteFloatingChat({
     id: string
     result: ChatActionResult
   }>>([])
+  const [importActionResults, setImportActionResults] = useState<Array<{
+    id: string
+    result: ChatActionResult
+    preview: ImportedWorkoutParsedPreview
+  }>>([])
   const addAssistantNotice = useCallback((content: string) => {
     setAssistantNotices((current) => [
       ...current,
@@ -209,6 +237,16 @@ export function AthleteFloatingChat({
       {
         id: `athlete-realtime-action-${Date.now()}-${current.length}`,
         result,
+      },
+    ].slice(-3))
+  }, [])
+  const addImportActionResult = useCallback((result: ChatActionResult, preview: ImportedWorkoutParsedPreview) => {
+    setImportActionResults((current) => [
+      ...current,
+      {
+        id: `athlete-import-action-${Date.now()}-${current.length}`,
+        result,
+        preview,
       },
     ].slice(-3))
   }, [])
@@ -394,6 +432,9 @@ export function AthleteFloatingChat({
 
   // Manual input state
   const [input, setInput] = useState('')
+  const [workoutImportFile, setWorkoutImportFile] = useState<File | null>(null)
+  const [isImportingWorkout, setIsImportingWorkout] = useState(false)
+  const [isWorkoutImportDragActive, setIsWorkoutImportDragActive] = useState(false)
 
   // Track auto-retrieved knowledge skills
   const [knowledgeSkills, setKnowledgeSkills] = useState<string[]>([])
@@ -615,7 +656,7 @@ export function AthleteFloatingChat({
   // Scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages, importActionResults, realtimeActionResults, assistantNotices])
 
   // Detect programs in assistant messages
   useEffect(() => {
@@ -757,6 +798,7 @@ export function AthleteFloatingChat({
     selectedIntent,
     selectedSkillIds,
     sendMessage,
+    setInput,
     t,
   ])
 
@@ -800,6 +842,146 @@ export function AthleteFloatingChat({
     onRealtimeNavigation: handleRealtimeNavigation,
   })
 
+  const attachWorkoutImportFile = useCallback((file: File | null) => {
+    if (!file) return
+    if (file.size > WORKOUT_IMPORT_MAX_FILE_BYTES) {
+      toast({
+        title: locale === 'sv' ? 'Filen är för stor' : 'File too large',
+        description: locale === 'sv' ? 'Max 15 MB per import.' : 'Max 15 MB per import.',
+        variant: 'destructive',
+      })
+      return
+    }
+    setWorkoutImportFile(file)
+  }, [locale, setWorkoutImportFile, toast])
+
+  const handleWorkoutImportFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null
+    attachWorkoutImportFile(file)
+    event.target.value = ''
+  }, [attachWorkoutImportFile])
+
+  const handleWorkoutImportPaste = useCallback((event: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(event.clipboardData.files || [])
+    if (files.length === 0) return
+    event.preventDefault()
+    if (files.length > 1) {
+      toast({
+        title: locale === 'sv' ? 'En källa åt gången' : 'One source at a time',
+        description: locale === 'sv' ? 'Jag använder den första filen.' : 'I will use the first file.',
+      })
+    }
+    attachWorkoutImportFile(files[0])
+  }, [attachWorkoutImportFile, locale, toast])
+
+  const handleWorkoutImportDrop = useCallback((event: React.DragEvent) => {
+    const files = Array.from(event.dataTransfer.files || [])
+    if (files.length === 0) return
+    event.preventDefault()
+    setIsWorkoutImportDragActive(false)
+    if (files.length > 1) {
+      toast({
+        title: locale === 'sv' ? 'En källa åt gången' : 'One source at a time',
+        description: locale === 'sv' ? 'Jag använder den första filen.' : 'I will use the first file.',
+      })
+    }
+    attachWorkoutImportFile(files[0])
+  }, [attachWorkoutImportFile, locale, toast])
+
+  const handleWorkoutImportDragOver = useCallback((event: React.DragEvent) => {
+    if (!Array.from(event.dataTransfer.types || []).includes('Files')) return
+    event.preventDefault()
+    setIsWorkoutImportDragActive(true)
+  }, [])
+
+  const handleWorkoutImportDragLeave = useCallback(() => {
+    setIsWorkoutImportDragActive(false)
+  }, [])
+
+  const prepareWorkoutImportDraft = useCallback(async () => {
+    const sourceText = input.trim()
+    if (isImportingWorkout || isLoading) return
+    if (!workoutImportFile && !sourceText) return
+    if (!configReady) {
+      addAssistantNotice(t('send.configNotReady'))
+      return
+    }
+
+    cancelVoiceAutoSend()
+    setIsImportingWorkout(true)
+    try {
+      const form = new FormData()
+      if (workoutImportFile) {
+        form.append('file', workoutImportFile)
+        if (sourceText) form.append('note', sourceText)
+      } else {
+        form.append('text', sourceText)
+      }
+      if (conversationId) form.append('conversationId', conversationId)
+
+      const response = await fetch('/api/ai/chat/workout-import-drafts', {
+        method: 'POST',
+        body: form,
+      })
+      const data = await response.json().catch(() => ({}))
+
+      if (!response.ok || !data.success) {
+        const allowanceError = parseAiAllowanceError(data)
+        if (allowanceError) {
+          setSubscriptionError({
+            code: allowanceError.code,
+            message: `${allowanceError.message} ${getAiAllowanceUpgradeMessage(allowanceError)}`,
+            upgradeUrl: allowanceError.actionUrl,
+            actionLabel: allowanceError.actionLabel,
+          })
+          return
+        }
+        throw new Error(data.error || (locale === 'sv' ? 'Kunde inte förbereda importen.' : 'Could not prepare the import.'))
+      }
+
+      if (typeof data.conversationId === 'string') {
+        setConversationId(data.conversationId)
+      }
+      addImportActionResult(
+        {
+          success: true,
+          action: data.action,
+          message: data.message,
+        },
+        data.parsedPreview as ImportedWorkoutParsedPreview
+      )
+      setInput('')
+      setWorkoutImportFile(null)
+      toast({
+        title: locale === 'sv' ? 'Pass hittat' : 'Workout found',
+        description: locale === 'sv' ? 'Granska kortet innan du skapar det.' : 'Review the card before creating it.',
+      })
+    } catch (error) {
+      toast({
+        title: locale === 'sv' ? 'Importen misslyckades' : 'Import failed',
+        description: error instanceof Error ? error.message : (locale === 'sv' ? 'Försök igen.' : 'Try again.'),
+        variant: 'destructive',
+      })
+    } finally {
+      setIsImportingWorkout(false)
+    }
+  }, [
+    addAssistantNotice,
+    addImportActionResult,
+    cancelVoiceAutoSend,
+    configReady,
+    conversationId,
+    input,
+    isImportingWorkout,
+    isLoading,
+    locale,
+    setInput,
+    setWorkoutImportFile,
+    t,
+    toast,
+    workoutImportFile,
+  ])
+
   // Speak new assistant replies and notices aloud (at most once each)
   useEffect(() => {
     if (isLoading || !messages.length) return
@@ -829,6 +1011,10 @@ export function AthleteFloatingChat({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     cancelVoiceAutoSend()
+    if (workoutImportFile) {
+      await prepareWorkoutImportDraft()
+      return
+    }
     await sendAthleteChatMessage(input)
   }
 
@@ -847,9 +1033,11 @@ export function AthleteFloatingChat({
     setMessages([])
     setAssistantNotices([])
     setRealtimeActionResults([])
+    setImportActionResults([])
     setConversationId(null)
     setSelectedSkillIds([])
     setInput('')
+    setWorkoutImportFile(null)
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
     historyMessageIdsRef.current.clear()
@@ -863,9 +1051,11 @@ export function AthleteFloatingChat({
     setMessages([])
     setAssistantNotices([])
     setRealtimeActionResults([])
+    setImportActionResults([])
     setConversationId(null)
     setSelectedSkillIds([])
     setInput('')
+    setWorkoutImportFile(null)
     setMentalPrepContext(null)
     mentalPrepContextRef.current = null
     historyMessageIdsRef.current.clear()
@@ -903,6 +1093,7 @@ export function AthleteFloatingChat({
       setConversationId(loadConversationId)
       setAssistantNotices([])
       setRealtimeActionResults([])
+      setImportActionResults([])
       setDetectedProgram(null)
       setMentalPrepContext(null)
       mentalPrepContextRef.current = null
@@ -1275,7 +1466,7 @@ export function AthleteFloatingChat({
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4">
-        {messages.length === 0 && assistantNotices.length === 0 && realtimeActionResults.length === 0 ? (
+        {messages.length === 0 && assistantNotices.length === 0 && realtimeActionResults.length === 0 && importActionResults.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center py-8">
             <Sparkles className="h-10 w-10 text-emerald-500 mb-3" />
             <h3 className="font-medium mb-1">
@@ -1452,6 +1643,14 @@ export function AthleteFloatingChat({
                 </div>
               )
             })}
+            {importActionResults.map((item) => (
+              <ImportedWorkoutDraftCard
+                key={item.id}
+                result={item.result}
+                preview={item.preview}
+                basePath={basePath}
+              />
+            ))}
             {realtimeActionResults.map((item) => (
               <ChatActionCard key={item.id} result={item.result} basePath={basePath} />
             ))}
@@ -1514,18 +1713,65 @@ export function AthleteFloatingChat({
       )}
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-3 border-t">
+      <form
+        onSubmit={handleSubmit}
+        onDragOver={handleWorkoutImportDragOver}
+        onDragLeave={handleWorkoutImportDragLeave}
+        onDrop={handleWorkoutImportDrop}
+        className={cn(
+          'border-t p-3 transition-colors',
+          isWorkoutImportDragActive && 'bg-emerald-500/10'
+        )}
+      >
         <div className="space-y-2">
           <AISkillPicker
             selectedSkillIds={selectedSkillIds}
             onSelectedSkillIdsChange={setSelectedSkillIds}
-            disabled={isLoading || isLoadingConfig}
+            disabled={isLoading || isImportingWorkout || isLoadingConfig}
             side="top"
             align="start"
             triggerClassName="h-8 text-xs"
             chipsClassName="max-w-full"
           />
+          <input
+            ref={workoutImportFileInputRef}
+            type="file"
+            accept={WORKOUT_IMPORT_ACCEPT}
+            className="hidden"
+            onChange={handleWorkoutImportFileChange}
+          />
+          {workoutImportFile && (
+            <div className="flex items-center gap-2 rounded-md border bg-muted/60 px-2 py-1.5 text-xs">
+              <FileText className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+              <span className="min-w-0 flex-1 truncate">{workoutImportFile.name}</span>
+              <Badge variant="secondary" className="h-5 shrink-0 px-1.5 text-[10px]">
+                {Math.max(1, Math.round(workoutImportFile.size / 1024))} KB
+              </Badge>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => setWorkoutImportFile(null)}
+                className="h-6 w-6 shrink-0"
+                title={locale === 'sv' ? 'Ta bort fil' : 'Remove file'}
+                aria-label={locale === 'sv' ? 'Ta bort fil' : 'Remove file'}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
           <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => workoutImportFileInputRef.current?.click()}
+              disabled={isLoading || isImportingWorkout || isVoiceRecording || isTranscribingVoice}
+              className="h-auto px-3"
+              title={locale === 'sv' ? 'Lägg till fil eller bild' : 'Attach file or image'}
+              aria-label={locale === 'sv' ? 'Lägg till fil eller bild' : 'Attach file or image'}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
             <Textarea
               ref={textareaRef}
               value={input}
@@ -1534,14 +1780,36 @@ export function AthleteFloatingChat({
                 setInput(e.target.value)
               }}
               onKeyDown={handleKeyDown}
+              onPaste={handleWorkoutImportPaste}
               placeholder={t('input.placeholder')}
-              className="min-h-[44px] max-h-[120px] resize-none"
-              disabled={isLoading}
+              className="min-h-[44px] max-h-[120px] min-w-0 flex-1 resize-none"
+              disabled={isLoading || isImportingWorkout}
             />
             <Button
               type="button"
+              variant="outline"
+              disabled={
+                isLoading ||
+                isImportingWorkout ||
+                isVoiceRecording ||
+                isTranscribingVoice ||
+                (!workoutImportFile && !input.trim())
+              }
+              onClick={() => { void prepareWorkoutImportDraft() }}
+              className="h-auto px-3"
+              title={locale === 'sv' ? 'Importera som pass' : 'Import as workout'}
+              aria-label={locale === 'sv' ? 'Importera som pass' : 'Import as workout'}
+            >
+              {isImportingWorkout ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ClipboardList className="h-4 w-4" />
+              )}
+            </Button>
+            <Button
+              type="button"
               variant={isVoiceRecording ? 'destructive' : 'outline'}
-              disabled={isTranscribingVoice}
+              disabled={isTranscribingVoice || isImportingWorkout}
               onClick={() => { void handleVoiceButtonClick() }}
               className="h-auto px-3"
               title={voiceButtonLabel}
@@ -1559,9 +1827,10 @@ export function AthleteFloatingChat({
               type="submit"
               size="icon"
               className="h-auto px-3 bg-emerald-600 hover:bg-emerald-700"
-              disabled={!input.trim() || isLoading || isVoiceRecording || isTranscribingVoice}
+              disabled={(!input.trim() && !workoutImportFile) || isLoading || isImportingWorkout || isVoiceRecording || isTranscribingVoice}
+              title={workoutImportFile ? (locale === 'sv' ? 'Förbered import' : 'Prepare import') : undefined}
             >
-              {isLoading ? (
+              {isLoading || isImportingWorkout ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />

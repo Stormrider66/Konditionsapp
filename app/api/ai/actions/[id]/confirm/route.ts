@@ -21,7 +21,10 @@ export async function POST(
     locale = resolveRequestLocale(request, user.language)
 
     const { id } = await params
-    const result = await confirmAiActionDraft(id, user.id, locale)
+    const body = await request.json().catch(() => null) as { inputOverride?: unknown } | null
+    const result = await confirmAiActionDraft(id, user.id, locale, {
+      inputOverride: body?.inputOverride,
+    })
     if (!result.success) {
       return NextResponse.json(result, { status: result.status })
     }

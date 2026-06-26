@@ -20,6 +20,7 @@ export interface AiCapabilityDefinition {
   requiresAthleteProgramGeneration?: boolean
   confirmLabel?: string
   reviewHref?: string
+  internal?: boolean
 }
 
 export interface AiCapabilityFilterContext {
@@ -486,6 +487,19 @@ export const AI_CAPABILITY_REGISTRY: AiCapabilityDefinition[] = [
     confirmLabel: 'Create cardio workout',
   },
   {
+    id: 'createImportedWorkout',
+    label: 'Create imported workout',
+    description: 'Create a planned strength, cardio, or hybrid workout from a pasted or uploaded source.',
+    role: 'ATHLETE',
+    surface: 'athlete_chat',
+    actionType: 'write',
+    riskLevel: 'medium',
+    requiresConfirmation: true,
+    requiresAthleteConsent: true,
+    confirmLabel: 'Create workout',
+    internal: true,
+  },
+  {
     id: 'logMeal',
     label: 'Log meal',
     description: 'Create a meal log entry.',
@@ -621,6 +635,7 @@ export function getAvailableAiCapabilities(
   context: AiCapabilityFilterContext
 ): AiCapabilityDefinition[] {
   return AI_CAPABILITY_REGISTRY.filter((capability) => {
+    if (capability.internal) return false
     if (capability.role !== context.role) return false
 
     if (capability.requiresConfirmation && !context.operationsEnabled) return false
@@ -649,7 +664,7 @@ export function getAvailableAiCapabilities(
 
 export function getConfirmedAiCapabilityIds(role: AiCapabilityRole): string[] {
   return AI_CAPABILITY_REGISTRY
-    .filter((capability) => capability.role === role && capability.requiresConfirmation)
+    .filter((capability) => capability.role === role && capability.requiresConfirmation && !capability.internal)
     .map((capability) => capability.id)
 }
 
