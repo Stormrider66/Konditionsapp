@@ -30,6 +30,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
 } from 'recharts'
 import {
@@ -48,6 +49,7 @@ import {
 import { BioimpedanceForm } from '@/components/forms/BioimpedanceForm'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { useLocale } from '@/i18n/client'
+import { cn } from '@/lib/utils'
 
 type AppLocale = 'en' | 'sv'
 
@@ -92,6 +94,10 @@ const copy = {
       naK: 'Na/K ratio',
       phaseAngleTrend: 'Phase angle trend',
       phaseAngleDesc: 'Cellular health & muscle quality — higher is generally better',
+      phaseAngleReference: 'Reference: adults ~5–7°, athletes often 7–9°',
+      paLow: 'Low',
+      paNormal: 'Typical',
+      paAthletic: 'Athletic',
     },
     history: 'Measurement history',
     noMeasurements: 'No measurements registered yet.',
@@ -151,6 +157,10 @@ const copy = {
       naK: 'Na/K-kvot',
       phaseAngleTrend: 'Fasvinkeltrend',
       phaseAngleDesc: 'Cellhälsa & muskelkvalitet — högre är generellt bättre',
+      phaseAngleReference: 'Referens: vuxna ~5–7°, atleter ofta 7–9°',
+      paLow: 'Låg',
+      paNormal: 'Normal',
+      paAthletic: 'Atletisk',
     },
     history: 'Mäthistorik',
     noMeasurements: 'Inga mätningar registrerade ännu.',
@@ -198,6 +208,19 @@ function formatCategory(category: string | undefined, locale: AppLocale) {
 
 function isElevatedVisceralFatCategory(category: string | undefined) {
   return category === 'Förhöjd' || category === 'Elevated'
+}
+
+// Phase-angle interpretation. Thresholds are a general guide (population/device
+// dependent) shifted ~0.5° lower for women. Athletes typically sit above the
+// athletic floor; below the low cutoff warrants attention.
+function phaseAngleAthleticMin(gender: string | null): number {
+  return gender === 'FEMALE' ? 6.5 : 7.0
+}
+function phaseAngleZone(pa: number, gender: string | null): 'low' | 'normal' | 'athletic' {
+  const lowMax = gender === 'FEMALE' ? 4.5 : 5.0
+  if (pa < lowMax) return 'low'
+  if (pa >= phaseAngleAthleticMin(gender)) return 'athletic'
+  return 'normal'
 }
 
 interface BodyComposition {
@@ -266,6 +289,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
   const t = copy[locale] ?? copy.en
   const [measurements, setMeasurements] = useState<BodyComposition[]>([])
   const [trends, setTrends] = useState<Trends | null>(null)
+  const [clientGender, setClientGender] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [editingMeasurement, setEditingMeasurement] = useState<BodyComposition | null>(null)
@@ -282,6 +306,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
 
       setMeasurements(data.measurements)
       setTrends(data.trends)
+      setClientGender(data.client?.gender ?? null)
     } catch (error) {
       toast({
         title: t.errors.title,
@@ -358,6 +383,10 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
       ? Math.round((latestMeasurement.phaseAngle - previousMeasurement.phaseAngle) * 100) / 100
       : null
   const phaseAnglePoints = chartData.filter((d) => d.pa != null).length
+  const phaseAngleZoneKey = latestMeasurement?.phaseAngle != null
+    ? phaseAngleZone(latestMeasurement.phaseAngle, clientGender)
+    : null
+  const phaseAngleAthleticFloor = phaseAngleAthleticMin(clientGender)
 
   if (isLoading) {
     return (
@@ -524,6 +553,22 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                     <ChangeIndicator value={phaseAngleChange} unit="°" />
                   )}
                 </div>
+                {phaseAngleZoneKey && (
+                  <Badge
+                    variant={phaseAngleZoneKey === 'low' ? 'destructive' : 'secondary'}
+                    className={cn(
+                      'mt-1',
+                      phaseAngleZoneKey === 'athletic' && 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300',
+                    )}
+                  >
+                    {phaseAngleZoneKey === 'athletic'
+                      ? t.clinical.paAthletic
+                      : phaseAngleZoneKey === 'low'
+                        ? t.clinical.paLow
+                        : t.clinical.paNormal}
+                  </Badge>
+                )}
+                <p className="text-[11px] text-muted-foreground mt-1">{t.clinical.phaseAngleReference}</p>
               </CardContent>
             </Card>
 
@@ -673,7 +718,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
         <Card>
           <CardHeader>
             <CardTitle>{t.clinical.phaseAngleTrend}</CardTitle>
-            <CardDescription>{t.clinical.phaseAngleDesc}</CardDescription>
+            <CardDescription>{t.clinical.phaseAngleDesc} · {t.clinical.phaseAngleReference}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-72">
@@ -681,8 +726,20 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
-                  <YAxis domain={['auto', 'auto']} tickFormatter={(v) => `${v}°`} />
+                  <YAxis
+                    domain={[
+                      (min: number) => Math.round((Math.min(min, phaseAngleAthleticFloor) - 0.4) * 10) / 10,
+                      (max: number) => Math.round((Math.max(max, phaseAngleAthleticFloor) + 0.3) * 10) / 10,
+                    ]}
+                    tickFormatter={(v) => `${v}°`}
+                  />
                   <Tooltip formatter={(v) => [`${v}°`, t.clinical.phaseAngle]} />
+                  <ReferenceLine
+                    y={phaseAngleAthleticFloor}
+                    stroke="#16a34a"
+                    strokeDasharray="4 4"
+                    label={{ value: t.clinical.paAthletic, position: 'insideTopRight', fontSize: 10, fill: '#16a34a' }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="pa"
