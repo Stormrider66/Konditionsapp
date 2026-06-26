@@ -2,11 +2,11 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { Activity, LayoutGrid, CalendarDays, TrendingUp, UserCircle } from 'lucide-react'
+import { Activity, LayoutGrid, CalendarDays, TrendingUp, UserCircle, Scale } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
 
-export type ClientDetailTab = 'overview' | 'planning' | 'monitoring' | 'development' | 'profile'
+export type ClientDetailTab = 'overview' | 'planning' | 'monitoring' | 'development' | 'body' | 'profile'
 
 interface ClientDetailTabsProps {
   clientId: string
@@ -15,6 +15,7 @@ interface ClientDetailTabsProps {
     planning: React.ReactNode
     monitoring: React.ReactNode
     development: React.ReactNode
+    body: React.ReactNode
     profile: React.ReactNode
   }
   defaultTab?: ClientDetailTab
@@ -25,6 +26,7 @@ const TAB_CONFIG: { value: ClientDetailTab; labelKey: string; descriptionKey: st
   { value: 'planning', labelKey: 'planning', descriptionKey: 'planningDescription', icon: CalendarDays },
   { value: 'monitoring', labelKey: 'monitoring', descriptionKey: 'monitoringDescription', icon: Activity },
   { value: 'development', labelKey: 'development', descriptionKey: 'developmentDescription', icon: TrendingUp },
+  { value: 'body', labelKey: 'body', descriptionKey: 'bodyDescription', icon: Scale },
   { value: 'profile', labelKey: 'profile', descriptionKey: 'profileDescription', icon: UserCircle },
 ]
 
@@ -53,7 +55,8 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
     health: 'profile',
     technique: 'development',
     goals: 'profile',
-    body: 'profile',
+    composition: 'body',
+    bioimpedance: 'body',
   }
   const normalizedTab = rawTab ? (tabAliases[rawTab] ?? rawTab) : defaultTab
   const activeTab: ClientDetailTab = TAB_CONFIG.some((tab) => tab.value === normalizedTab)
@@ -79,7 +82,7 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
     <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
       {/* Tab Navigation */}
       <div className="sticky top-0 z-10 bg-gray-50 pb-3 sm:pb-4">
-        <TabsList className="w-full h-auto p-1 bg-white dark:bg-slate-900 shadow-sm rounded-lg border border-gray-200 dark:border-white/10 grid grid-cols-5 gap-0.5 sm:gap-1">
+        <TabsList className="w-full h-auto p-1 bg-white dark:bg-slate-900 shadow-sm rounded-lg border border-gray-200 dark:border-white/10 grid grid-cols-3 sm:grid-cols-6 gap-0.5 sm:gap-1">
           {TAB_CONFIG.map(({ value, labelKey, descriptionKey, icon: Icon }) => (
             <TabsTrigger
               key={value}
@@ -116,6 +119,10 @@ export function ClientDetailTabs({ clientId: _clientId, content, defaultTab = 'o
 
       <TabsContent value="development" className="mt-0">
         {content.development}
+      </TabsContent>
+
+      <TabsContent value="body" className="mt-0">
+        {content.body}
       </TabsContent>
 
       <TabsContent value="profile" className="mt-0">

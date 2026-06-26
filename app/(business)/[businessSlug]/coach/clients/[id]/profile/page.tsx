@@ -17,7 +17,8 @@ const PROFILE_TAB_ALIASES: Record<string, string> = {
   training: 'planning',
   readiness: 'overview',
   health: 'profile',
-  body: 'profile',
+  body: 'body',
+  composition: 'body',
   goals: 'profile',
 }
 

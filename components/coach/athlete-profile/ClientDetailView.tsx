@@ -34,6 +34,7 @@ import { PlanningTab } from '@/components/coach/athlete-profile/PlanningTab'
 import { MonitoringTab } from '@/components/coach/athlete-profile/MonitoringTab'
 import { DevelopmentTab } from '@/components/coach/athlete-profile/DevelopmentTab'
 import { ProfileTab } from '@/components/coach/athlete-profile/ProfileTab'
+import { BodyCompositionTracker } from '@/components/coach/body-composition/BodyCompositionTracker'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
@@ -525,6 +526,9 @@ export function ClientDetailView({ id, businessSlug, initial }: ClientDetailView
                 basePath={basePath}
                 businessSlug={businessSlug}
               />
+            ),
+            body: (
+              <BodyCompositionTracker clientId={id} clientName={client.name} />
             ),
             development: (
               <DevelopmentTab

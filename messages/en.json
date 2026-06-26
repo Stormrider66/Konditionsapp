@@ -5346,6 +5346,8 @@
       "monitoringDescription": "Load & recovery",
       "development": "Development",
       "developmentDescription": "Tests & trends",
+      "body": "Body",
+      "bodyDescription": "Composition & BIA",
       "profile": "Profile",
       "profileDescription": "Account & setup"
     },

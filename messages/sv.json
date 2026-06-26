@@ -5346,6 +5346,8 @@
       "monitoringDescription": "Belastning & återhämtning",
       "development": "Utveckling",
       "developmentDescription": "Tester & trend",
+      "body": "Kropp",
+      "bodyDescription": "Sammansättning & BIA",
       "profile": "Profil",
       "profileDescription": "Konto & setup"
     },
