@@ -31,6 +31,7 @@ const ATHLETE_VOICE_OPERATOR_KEY = 'athlete-floating-ai-voice-operator-mode'
 const ATHLETE_VOICE_GUIDE_DISMISSED_KEY = 'athlete-floating-ai-voice-guide-dismissed'
 const REALTIME_ACTION_DRAFT_TOOL_NAMES = new Set([
   'createCardioWorkout',
+  'createTodayWorkout',
   'logCompletedWorkout',
   'completeAssignedWorkout',
   'updateLiveWorkoutFeedback',

@@ -17,6 +17,7 @@ import {
 export { stockholmDateKey } from '@/lib/ai/cardio-workout-action'
 
 export const OPEN_TODAY_WORKOUT_TOOL_NAME = 'openTodayWorkout'
+export const CREATE_TODAY_WORKOUT_TOOL_NAME = 'createTodayWorkout'
 export const GET_READINESS_BRIEFING_TOOL_NAME = 'getReadinessBriefing'
 export const PROPOSE_WORKOUT_MODIFICATION_TOOL_NAME = 'proposeWorkoutModification'
 export const GET_QUICK_ERG_MATCH_SUGGESTIONS_TOOL_NAME = 'getQuickErgMatchSuggestions'
@@ -37,6 +38,7 @@ const VOICE_MEAL_TYPES = [
 
 export const ATHLETE_LIVE_VOICE_ACTION_DRAFT_TOOL_NAMES = [
   CREATE_CARDIO_WORKOUT_TOOL_NAME,
+  CREATE_TODAY_WORKOUT_TOOL_NAME,
   LOG_COMPLETED_WORKOUT_TOOL_NAME,
   COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME,
   UPDATE_LIVE_WORKOUT_FEEDBACK_TOOL_NAME,
@@ -111,6 +113,34 @@ export const logCompletedWorkoutInputSchema = z.object({
   notes: z.string().optional(),
 })
 
+// Mirrors the `createTodayWorkout` inputSchema in lib/ai/chat-tools.ts so the
+// confirmed draft can run createChatTools['createTodayWorkout'].execute as-is.
+export const createTodayWorkoutVoiceInputSchema = z.object({
+  title: z.string().min(1),
+  subtitle: z.string().optional(),
+  description: z.string().min(1),
+  workoutType: z.enum(['strength', 'cardio', 'mixed', 'core']),
+  duration: z.number().min(10).max(180),
+  intensity: z.enum(['recovery', 'easy', 'moderate', 'threshold']).optional(),
+  sections: z.array(z.object({
+    type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']),
+    name: z.string(),
+    duration: z.number(),
+    exercises: z.array(z.object({
+      name: z.string(),
+      nameSv: z.string(),
+      sets: z.number().optional(),
+      reps: z.string().optional(),
+      weight: z.string().optional(),
+      restSeconds: z.number().optional(),
+      duration: z.number().optional(),
+      distance: z.number().optional(),
+      zone: z.number().min(1).max(5).optional(),
+      notes: z.string().optional(),
+    })),
+  })).min(1),
+})
+
 export const completeAssignedWorkoutInputSchema = z.object({
   kind: z.enum(['STRENGTH', 'CARDIO', 'WOD']),
   assignmentId: z.string().optional(),
@@ -162,6 +192,7 @@ export const regeneratePerformanceGuideInputSchema = z.object({
   startDate: z.string().optional(),
 })
 
+export type CreateTodayWorkoutVoiceInput = z.infer<typeof createTodayWorkoutVoiceInputSchema>
 export type LogCompletedWorkoutInput = z.infer<typeof logCompletedWorkoutInputSchema>
 export type CompleteAssignedWorkoutInput = z.infer<typeof completeAssignedWorkoutInputSchema>
 export type AthleteLiveWorkoutFeedbackInput = UpdateLiveWorkoutFeedbackInput
@@ -186,6 +217,8 @@ export function getAthleteLiveVoiceActionDraftSchema(toolName: AthleteLiveVoiceA
   switch (toolName) {
     case CREATE_CARDIO_WORKOUT_TOOL_NAME:
       return createCardioWorkoutInputSchema
+    case CREATE_TODAY_WORKOUT_TOOL_NAME:
+      return createTodayWorkoutVoiceInputSchema
     case LOG_COMPLETED_WORKOUT_TOOL_NAME:
       return logCompletedWorkoutInputSchema
     case COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME:
@@ -225,6 +258,19 @@ export function getAthleteLiveVoiceActionClarification(
     return getCreateCardioWorkoutClarification(input as CreateCardioWorkoutInput, locale)
   }
 
+  if (toolName === CREATE_TODAY_WORKOUT_TOOL_NAME) {
+    const workout = input as CreateTodayWorkoutVoiceInput
+    const totalExercises = workout.sections?.reduce((sum, section) => sum + (section.exercises?.length ?? 0), 0) ?? 0
+    if (totalExercises === 0) {
+      return t(
+        locale,
+        'Ask the athlete what exercises to include before preparing the workout card.',
+        'Fråga atleten vilka övningar som ska ingå innan du förbereder passkortet.'
+      )
+    }
+    return null
+  }
+
   if (toolName === LOG_COMPLETED_WORKOUT_TOOL_NAME) {
     const workout = input as LogCompletedWorkoutInput
     if (!workout.durationMinutes) {
@@ -258,6 +304,28 @@ export function getAthleteLiveVoiceActionClarification(
   }
 
   return null
+}
+
+export function buildCreateTodayWorkoutPreview(input: CreateTodayWorkoutVoiceInput, locale: AppLocale): ActionPreview {
+  const totalExercises = input.sections.reduce((sum, section) => sum + section.exercises.length, 0)
+  return {
+    title: input.title,
+    description: t(
+      locale,
+      "Review this workout before it is saved to today's dashboard and calendar.",
+      'Granska passet innan det sparas på dagens dashboard och i kalendern.'
+    ),
+    targetLabel: detailsFrom([input.workoutType, formatMinutes(input.duration)]).join(' · '),
+    body: input.description || null,
+    details: detailsFrom([
+      `${t(locale, 'Type', 'Typ')}: ${input.workoutType}`,
+      `${t(locale, 'Duration', 'Duration')}: ${input.duration} min`,
+      input.intensity ? `${t(locale, 'Intensity', 'Intensitet')}: ${input.intensity}` : null,
+      `${t(locale, 'Sections', 'Sektioner')}: ${input.sections.map((section) => section.name).join(', ')}`,
+      `${t(locale, 'Exercises', 'Övningar')}: ${totalExercises}`,
+    ]),
+    confirmLabel: t(locale, 'Create workout', 'Skapa pass'),
+  }
 }
 
 export function buildLogCompletedWorkoutPreview(input: LogCompletedWorkoutInput, locale: AppLocale): ActionPreview {
@@ -356,6 +424,8 @@ export function buildAthleteLiveVoiceActionPreview(
   switch (toolName) {
     case CREATE_CARDIO_WORKOUT_TOOL_NAME:
       return buildCreateCardioWorkoutPreview(input as CreateCardioWorkoutInput, locale)
+    case CREATE_TODAY_WORKOUT_TOOL_NAME:
+      return buildCreateTodayWorkoutPreview(input as CreateTodayWorkoutVoiceInput, locale)
     case LOG_COMPLETED_WORKOUT_TOOL_NAME:
       return buildLogCompletedWorkoutPreview(input as LogCompletedWorkoutInput, locale)
     case COMPLETE_ASSIGNED_WORKOUT_TOOL_NAME:
@@ -402,6 +472,62 @@ function logCompletedWorkoutRealtimeTool(locale: AppLocale): RealtimeFunctionToo
         notes: { type: 'string' },
       },
       required: ['workoutType', 'durationMinutes'],
+    },
+  }
+}
+
+function createTodayWorkoutRealtimeTool(locale: AppLocale): RealtimeFunctionTool {
+  return {
+    type: 'function',
+    name: CREATE_TODAY_WORKOUT_TOOL_NAME,
+    description: t(
+      locale,
+      'Prepare a confirmation card to create a NEW structured workout for today (strength, mixed, or core) and save it to the athlete dashboard and calendar. Use when the athlete asks you to create, build, design, or give them a new workout. Build full sections (for example warm-up and main) with exercises; give each exercise both an English name and a Swedish nameSv. For pure cardio/erg interval sessions use createCardioWorkout instead. The athlete must confirm the card before anything is saved.',
+      'Förbered ett bekräftelsekort för att skapa ett NYTT strukturerat pass för idag (styrka, blandat eller core) och spara det på atletens dashboard och i kalendern. Använd när atleten ber dig skapa, bygga, designa eller ge dem ett nytt pass. Bygg fullständiga sektioner (t.ex. uppvärmning och huvuddel) med övningar; ge varje övning både ett engelskt name och ett svenskt nameSv. För rena konditions-/ergometerintervaller använd createCardioWorkout istället. Atleten måste bekräfta kortet innan något sparas.'
+    ),
+    parameters: {
+      type: 'object',
+      properties: {
+        title: { type: 'string', description: t(locale, 'Short, motivating workout title.', 'Kort, motiverande passtitel.') },
+        subtitle: { type: 'string' },
+        description: { type: 'string', description: t(locale, 'Short description of what the workout focuses on.', 'Kort beskrivning av vad passet fokuserar på.') },
+        workoutType: { type: 'string', enum: ['strength', 'cardio', 'mixed', 'core'] },
+        duration: { type: 'integer', minimum: 10, maximum: 180, description: t(locale, 'Total duration in minutes.', 'Total duration i minuter.') },
+        intensity: { type: 'string', enum: ['recovery', 'easy', 'moderate', 'threshold'] },
+        sections: {
+          type: 'array',
+          description: t(locale, 'Workout sections in order, each with its exercises.', 'Passets sektioner i ordning, var och en med sina övningar.'),
+          items: {
+            type: 'object',
+            properties: {
+              type: { type: 'string', enum: ['WARMUP', 'MAIN', 'CORE', 'COOLDOWN'] },
+              name: { type: 'string', description: t(locale, 'Section name, for example "Warm-up".', 'Sektionsnamn, t.ex. "Uppvärmning".') },
+              duration: { type: 'integer', description: t(locale, 'Section length in minutes.', 'Sektionens längd i minuter.') },
+              exercises: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    name: { type: 'string', description: t(locale, 'Exercise name in English.', 'Övningsnamn på engelska.') },
+                    nameSv: { type: 'string', description: t(locale, 'Exercise name in Swedish.', 'Övningsnamn på svenska.') },
+                    sets: { type: 'integer' },
+                    reps: { type: 'string', description: '"10", "10-12", or "AMRAP".' },
+                    weight: { type: 'string', description: '"Bodyweight", "Light", "60% 1RM".' },
+                    restSeconds: { type: 'integer' },
+                    duration: { type: 'integer', description: t(locale, 'Time in seconds (for cardio).', 'Tid i sekunder (för cardio).') },
+                    distance: { type: 'integer', description: t(locale, 'Distance in meters.', 'Distans i meter.') },
+                    zone: { type: 'integer', minimum: 1, maximum: 5, description: t(locale, 'Heart-rate zone 1-5.', 'Pulszon 1-5.') },
+                    notes: { type: 'string' },
+                  },
+                  required: ['name', 'nameSv'],
+                },
+              },
+            },
+            required: ['type', 'name', 'duration', 'exercises'],
+          },
+        },
+      },
+      required: ['title', 'description', 'workoutType', 'duration', 'sections'],
     },
   }
 }
@@ -614,6 +740,7 @@ export function buildAthleteLiveVoiceRealtimeTools(locale: AppLocale): RealtimeF
     workoutModificationRealtimeTool(locale),
     quickErgMatchRealtimeTool(locale),
     buildCreateCardioWorkoutRealtimeTool(locale),
+    createTodayWorkoutRealtimeTool(locale),
     logCompletedWorkoutRealtimeTool(locale),
     completeAssignedWorkoutRealtimeTool(locale),
     updateLiveWorkoutFeedbackRealtimeTool(locale),
