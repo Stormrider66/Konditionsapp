@@ -13,6 +13,7 @@ import {
   getAvailableClients,
 } from '@/lib/interval-session/session-service'
 import { IntervalSessionDashboard } from '@/components/coach/interval-session/IntervalSessionDashboard'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{
@@ -44,13 +45,13 @@ export default async function IntervalSessionPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto py-4 px-2 sm:px-4 max-w-5xl">
+    <RolePageFrame contentClassName="max-w-5xl">
       <IntervalSessionDashboard
         sessionId={id}
         businessSlug={businessSlug}
         initialData={streamData}
         initialAvailableClients={availableClients}
       />
-    </div>
+    </RolePageFrame>
   )
 }

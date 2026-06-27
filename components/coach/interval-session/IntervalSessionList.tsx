@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  GlassCard,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -14,6 +11,7 @@ import { Timer, Users, Trash2, Calendar, BarChart3 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { IntervalSessionListItem } from '@/lib/interval-session/types'
 import { useLocale } from '@/i18n/client'
+import { cn } from '@/lib/utils'
 
 interface IntervalSessionListProps {
   businessSlug?: string
@@ -124,9 +122,9 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />
+          <div key={i} className="h-32 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950/60" />
         ))}
       </div>
     )
@@ -138,43 +136,44 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
         <Switch
           id="show-ended"
           checked={includeEnded}
-        onCheckedChange={setIncludeEnded}
-      />
-      <Label htmlFor="show-ended" className="text-sm font-medium text-slate-600 dark:text-slate-400 cursor-pointer">
-        {text.showEnded}
-      </Label>
-    </div>
+          onCheckedChange={setIncludeEnded}
+        />
+        <Label htmlFor="show-ended" className="cursor-pointer text-sm font-medium text-zinc-600 dark:text-zinc-400">
+          {text.showEnded}
+        </Label>
+      </div>
 
-    {sessions.length === 0 ? (
-      <GlassCard glow="blue" className="border border-slate-200 dark:border-white/5 text-center py-12">
-        <GlassCardContent className="text-slate-600 dark:text-slate-400">
+      {sessions.length === 0 ? (
+        <RolePanel className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
           {text.empty}
-        </GlassCardContent>
-      </GlassCard>
-    ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {sessions.map((session) => {
-          const statusInfo = STATUS_LABELS[session.status] || STATUS_LABELS.SETUP
-          const glowColor = session.status === 'ACTIVE' ? 'red' : (session.status === 'LACTATE_ENTRY' ? 'emerald' : 'blue')
-          return (
-            <GlassCard
-              key={session.id}
-              glow={glowColor}
-              className="cursor-pointer hover:shadow-lg transition-all border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/10"
-              onClick={() =>
-                router.push(
-                  `${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${session.id}`
-                )
-              }
-            >
-              <GlassCardContent className="p-4">
+        </RolePanel>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {sessions.map((session) => {
+            const statusInfo = STATUS_LABELS[session.status] || STATUS_LABELS.SETUP
+            const panelTone = session.status === 'ACTIVE'
+              ? 'border-red-200 dark:border-red-900/50'
+              : session.status === 'LACTATE_ENTRY'
+                ? 'border-emerald-200 dark:border-emerald-900/50'
+                : 'border-zinc-200 dark:border-white/10'
+
+            return (
+              <RolePanel
+                key={session.id}
+                className={cn('cursor-pointer p-4 transition-shadow hover:shadow-md', panelTone)}
+                onClick={() =>
+                  router.push(
+                    `${businessSlug ? `/${businessSlug}` : ''}/coach/interval-sessions/${session.id}`
+                  )
+                }
+              >
                 <div className="flex items-start justify-between gap-3">
-                  <div className="space-y-1 min-w-0">
-                    <h3 className="font-semibold text-slate-900 dark:text-white truncate">
+                  <div className="min-w-0 space-y-1">
+                    <h3 className="truncate font-semibold text-zinc-950 dark:text-zinc-50">
                       {session.name || text.fallbackName}
                     </h3>
                     {session.teamName && (
-                      <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                      <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">
                         {session.teamName}
                       </p>
                     )}
@@ -182,7 +181,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                   <Badge variant={statusInfo.variant} className="shrink-0">{statusInfo[locale]}</Badge>
                 </div>
 
-                <div className="flex items-center gap-4 mt-3 text-sm text-slate-500 dark:text-slate-400">
+                <div className="mt-3 flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
                   <span className="flex items-center gap-1">
                     <Timer className="h-3.5 w-3.5 text-blue-500" />
                     {text.interval(session.currentInterval)}
@@ -194,15 +193,15 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                 </div>
 
                 {session.scheduledDate && session.status === 'SETUP' && (
-                  <div className="flex items-center gap-1 mt-2 text-xs text-blue-650 dark:text-blue-400 font-medium">
+                  <div className="mt-2 flex items-center gap-1 text-xs font-medium text-blue-650 dark:text-blue-400">
                     <Calendar className="h-3 w-3" />
                     {formatDate(session.scheduledDate, locale)}
                     {session.scheduledTime && text.atTime(session.scheduledTime)}
                   </div>
                 )}
 
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
                     {formatDate(session.startedAt, locale)}
                   </span>
                   {session.status === 'ENDED' && (
@@ -210,7 +209,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 px-2 text-xs border-slate-350 dark:border-white/10 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5"
+                        className="h-7 px-2 text-xs dark:border-white/10"
                         onClick={(e) => {
                           e.stopPropagation()
                           router.push(
@@ -218,7 +217,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                           )
                         }}
                       >
-                        <BarChart3 className="h-3.5 w-3.5 mr-1" />
+                        <BarChart3 className="h-3.5 w-3.5" />
                         {text.analysis}
                       </Button>
                       <Button
@@ -232,12 +231,11 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                     </div>
                   )}
                 </div>
-              </GlassCardContent>
-            </GlassCard>
-          )
-        })}
-      </div>
-    )}
-  </div>
-)
+              </RolePanel>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }
