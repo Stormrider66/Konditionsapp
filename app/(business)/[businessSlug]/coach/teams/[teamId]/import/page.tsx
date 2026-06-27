@@ -4,6 +4,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getWritableTeam } from '@/lib/coach/team-access'
 import { ImportRosterClient } from '@/components/coach/teams/ImportRosterClient'
 import { getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{ businessSlug: string; teamId: string }>
@@ -23,11 +24,12 @@ export default async function ImportRosterPage({ params }: PageProps) {
   const teamPath = `/${businessSlug}/coach/teams/${teamId}`
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      <h1 className="text-3xl font-bold mb-2 dark:text-white">{t('title')}</h1>
-      <p className="text-muted-foreground mb-8">
-        {t('description', { teamName: team.name })}
-      </p>
+    <RolePageFrame contentClassName="max-w-5xl">
+      <RolePageHeader
+        eyebrow={team.name}
+        title={t('title')}
+        description={t('description', { teamName: team.name })}
+      />
 
       <ImportRosterClient
         teamId={team.id}
@@ -35,6 +37,6 @@ export default async function ImportRosterPage({ params }: PageProps) {
         teamPath={teamPath}
         businessSlug={businessSlug}
       />
-    </div>
+    </RolePageFrame>
   )
 }

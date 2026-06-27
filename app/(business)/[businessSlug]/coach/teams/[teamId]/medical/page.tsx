@@ -17,7 +17,7 @@ import { prisma } from '@/lib/prisma'
 import { getLocale, getTranslations } from '@/i18n/server'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RolePageFrame, RolePageHeader, RolePanel, RoleStatCard } from '@/components/layouts/role-shell/RolePage'
 import {
   Table,
   TableBody,
@@ -176,83 +176,44 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
   )
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <ShieldAlert className="h-8 w-8 text-orange-500" />
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-              {t('title')}
-            </h1>
-          </div>
-          <p className="mt-2 max-w-3xl text-muted-foreground">
-            {t('description', { teamName: team.name })}
-          </p>
-        </div>
-        <Button asChild>
-          <Link href={`/${businessSlug}/coach/teams/${teamId}/calendar`}>
-            <ClipboardList className="mr-2 h-4 w-4" />
-            {t('openTeamCalendar')}
-          </Link>
-        </Button>
-      </div>
+    <RolePageFrame>
+      <RolePageHeader
+        eyebrow={team.name}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+              <ShieldAlert className="h-5 w-5" />
+            </span>
+            {t('title')}
+          </span>
+        )}
+        description={t('description', { teamName: team.name })}
+        actions={(
+          <Button asChild>
+            <Link href={`/${businessSlug}/coach/teams/${teamId}/calendar`}>
+              <ClipboardList className="mr-2 h-4 w-4" />
+              {t('openTeamCalendar')}
+            </Link>
+          </Button>
+        )}
+      />
 
       <div className="mb-8 grid gap-4 md:grid-cols-5">
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('stats.injured')}</p>
-              <p className="text-3xl font-bold">{injuredCount}</p>
-            </div>
-            <HeartPulse className="h-7 w-7 text-red-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('stats.restrictions')}</p>
-              <p className="text-3xl font-bold">{restrictedCount}</p>
-            </div>
-            <Ban className="h-7 w-7 text-orange-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('stats.needsProgram')}</p>
-              <p className="text-3xl font-bold">{needsProgramCount}</p>
-            </div>
-            <AlertTriangle className="h-7 w-7 text-amber-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('stats.inRehab')}</p>
-              <p className="text-3xl font-bold">{rehabCount}</p>
-            </div>
-            <Stethoscope className="h-7 w-7 text-blue-500" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="flex items-center justify-between p-5">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('stats.newReports')}</p>
-              <p className="text-3xl font-bold">{pendingReportsCount}</p>
-            </div>
-            <ClipboardList className="h-7 w-7 text-purple-500" />
-          </CardContent>
-        </Card>
+        <RoleStatCard label={t('stats.injured')} value={injuredCount} icon={HeartPulse} tone="red" />
+        <RoleStatCard label={t('stats.restrictions')} value={restrictedCount} icon={Ban} tone="amber" />
+        <RoleStatCard label={t('stats.needsProgram')} value={needsProgramCount} icon={AlertTriangle} tone="amber" />
+        <RoleStatCard label={t('stats.inRehab')} value={rehabCount} icon={Stethoscope} tone="blue" />
+        <RoleStatCard label={t('stats.newReports')} value={pendingReportsCount} icon={ClipboardList} tone="violet" />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('table.title')}</CardTitle>
-          <CardDescription>
+      <RolePanel className="overflow-hidden">
+        <div className="border-b border-zinc-200 p-5 dark:border-white/10 sm:p-6">
+          <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('table.title')}</h2>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             {t('table.description')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -392,8 +353,8 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
               })}
             </TableBody>
           </Table>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </RolePanel>
+    </RolePageFrame>
   )
 }
