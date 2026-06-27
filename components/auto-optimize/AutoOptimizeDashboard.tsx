@@ -16,7 +16,7 @@ import {
   Tooltip,
   Legend,
 } from 'recharts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -92,6 +92,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 const copy = {
   en: {
+    eyebrow: 'AI optimization',
+    title: 'AutoOptimize',
     subtitle: 'Autonomous quality improvement for AI-generated training programs',
     run: 'Run iteration',
     running: 'Running...',
@@ -130,6 +132,8 @@ const copy = {
     noVariants: 'No variants created yet for this slot.',
   },
   sv: {
+    eyebrow: 'AI-optimering',
+    title: 'AutoOptimize',
     subtitle: 'Autonom kvalitetsförbättring av AI-genererade träningsprogram',
     run: 'Kör iteration',
     running: 'Kör...',
@@ -297,104 +301,86 @@ export function AutoOptimizeDashboard({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">AutoOptimize</h1>
-          <p className="text-muted-foreground">
-            {text.subtitle}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={selectedSlot} onValueChange={v => setSelectedSlot(v as PromptSlot)}>
-            <SelectTrigger className="w-[180px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(SLOT_LABELS).map(([key, label]) => (
-                <SelectItem key={key} value={key}>{label[locale]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button
-            onClick={handleRunEvaluation}
-            disabled={isRunning}
-          >
-            {isRunning ? text.running : text.run}
-          </Button>
-        </div>
-      </div>
+      <RolePageHeader
+        eyebrow={text.eyebrow}
+        title={text.title}
+        description={text.subtitle}
+        actions={
+          <>
+            <Select value={selectedSlot} onValueChange={v => setSelectedSlot(v as PromptSlot)}>
+              <SelectTrigger className="w-[180px] border-zinc-200 bg-white text-zinc-950 shadow-sm dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(SLOT_LABELS).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>{label[locale]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={handleRunEvaluation}
+              disabled={isRunning}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+            >
+              {isRunning ? text.running : text.run}
+            </Button>
+          </>
+        }
+      />
 
       {runResult && (
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-sm">{runResult}</p>
-          </CardContent>
-        </Card>
+        <RolePanel className="border-blue-100 bg-blue-50/80 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+          <p className="text-sm text-blue-900 dark:text-blue-200">{runResult}</p>
+        </RolePanel>
       )}
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{text.activeVariant}</CardDescription>
-            <CardTitle className="text-lg">
-              {activeVariant?.versionName ?? text.none}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {activeVariant && (
-              <Badge className={STATUS_COLORS[activeVariant.status]}>
-                {activeVariant.status}
-              </Badge>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{text.totalScore}</CardDescription>
-            <CardTitle className="text-2xl">
-              {activeVariant?.overallAccuracy != null
-                ? activeVariant.overallAccuracy.toFixed(1)
-                : '—'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">{text.outOf100}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{text.totalVariants}</CardDescription>
-            <CardTitle className="text-2xl">
-              {allVariants.filter(v => v.modelType === `program_generation_${selectedSlot}`).length}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">{text.forSlot} {SLOT_LABELS[selectedSlot][locale]}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>{text.iterations}</CardDescription>
-            <CardTitle className="text-2xl">
-              {recentRuns.filter(r => r.slot === selectedSlot).length}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">{text.latest20}</p>
-          </CardContent>
-        </Card>
+        <RolePanel className="p-5">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{text.activeVariant}</p>
+          <div className="mt-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+            {activeVariant?.versionName ?? text.none}
+          </div>
+          {activeVariant && (
+            <Badge className={`mt-4 ${STATUS_COLORS[activeVariant.status]}`}>
+              {activeVariant.status}
+            </Badge>
+          )}
+        </RolePanel>
+        <RolePanel className="p-5">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{text.totalScore}</p>
+          <div className="mt-2 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
+            {activeVariant?.overallAccuracy != null
+              ? activeVariant.overallAccuracy.toFixed(1)
+              : '—'}
+          </div>
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{text.outOf100}</p>
+        </RolePanel>
+        <RolePanel className="p-5">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{text.totalVariants}</p>
+          <div className="mt-2 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
+            {allVariants.filter(v => v.modelType === `program_generation_${selectedSlot}`).length}
+          </div>
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{text.forSlot} {SLOT_LABELS[selectedSlot][locale]}</p>
+        </RolePanel>
+        <RolePanel className="p-5">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{text.iterations}</p>
+          <div className="mt-2 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">
+            {recentRuns.filter(r => r.slot === selectedSlot).length}
+          </div>
+          <p className="mt-4 text-xs text-zinc-500 dark:text-zinc-400">{text.latest20}</p>
+        </RolePanel>
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Radar Chart — Criteria Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{text.criteriaBreakdown}</CardTitle>
-            <CardDescription>{text.criteriaDescription}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{text.criteriaBreakdown}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{text.criteriaDescription}</p>
+          </div>
+          <div>
             {radarData ? (
               <ResponsiveContainer width="100%" height={350}>
                 <RadarChart data={radarData}>
@@ -411,20 +397,20 @@ export function AutoOptimizeDashboard({
                 </RadarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+              <div className="flex h-[350px] items-center justify-center text-zinc-500 dark:text-zinc-400">
                 {text.noEvaluationData}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </RolePanel>
 
         {/* Line Chart — Score Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{text.scoreTrend}</CardTitle>
-            <CardDescription>{text.scoreTrendDescription}</CardDescription>
-          </CardHeader>
-          <CardContent>
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{text.scoreTrend}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{text.scoreTrendDescription}</p>
+          </div>
+          <div>
             {filteredTrend.length > 0 ? (
               <ResponsiveContainer width="100%" height={350}>
                 <LineChart data={filteredTrend}>
@@ -449,26 +435,26 @@ export function AutoOptimizeDashboard({
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-[350px] text-muted-foreground">
+              <div className="flex h-[350px] items-center justify-center text-zinc-500 dark:text-zinc-400">
                 {text.noTrendData}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </RolePanel>
       </div>
 
       {/* Recent Iteration Runs */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{text.recentIterations}</CardTitle>
-          <CardDescription>{text.decisionDescription}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+          <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{text.recentIterations}</h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{text.decisionDescription}</p>
+        </div>
+        <div>
           {recentRuns.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b">
+                  <tr className="border-b border-zinc-200 dark:border-white/10">
                     <th className="text-left py-2 pr-4">{text.date}</th>
                     <th className="text-left py-2 pr-4">{text.slot}</th>
                     <th className="text-right py-2 pr-4">{text.candidate}</th>
@@ -479,7 +465,7 @@ export function AutoOptimizeDashboard({
                 </thead>
                 <tbody>
                   {recentRuns.map((run) => (
-                    <tr key={run.id} className="border-b last:border-0">
+                    <tr key={run.id} className="border-b border-zinc-100 last:border-0 dark:border-white/10">
                       <td className="py-2 pr-4">
                         {run.date} {run.time}
                       </td>
@@ -514,32 +500,32 @@ export function AutoOptimizeDashboard({
               </table>
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">{text.noIterations}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{text.noIterations}</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </RolePanel>
 
       {/* Variant List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{text.variants} ({SLOT_LABELS[selectedSlot][locale]})</CardTitle>
-          <CardDescription>{text.variantDescription}</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+          <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{text.variants} ({SLOT_LABELS[selectedSlot][locale]})</h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{text.variantDescription}</p>
+        </div>
+        <div>
           <div className="space-y-2">
             {allVariants
               .filter(v => v.modelType === `program_generation_${selectedSlot}`)
               .map(variant => (
                 <div
                   key={variant.id}
-                  className="flex items-center justify-between p-3 rounded-lg border"
+                  className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-white/10 dark:bg-white/[0.03]"
                 >
                   <div className="flex items-center gap-3">
                     <Badge className={STATUS_COLORS[variant.status] || ''}>
                       {variant.status}
                     </Badge>
-                    <span className="font-medium">{variant.versionName}</span>
-                    <span className="text-muted-foreground text-sm">
+                    <span className="font-medium text-zinc-950 dark:text-zinc-50">{variant.versionName}</span>
+                    <span className="text-sm text-zinc-500 dark:text-zinc-400">
                       v{variant.versionNumber}
                     </span>
                   </div>
@@ -549,20 +535,20 @@ export function AutoOptimizeDashboard({
                         {variant.overallAccuracy.toFixed(1)}/100
                       </span>
                     )}
-                    <span className="text-muted-foreground text-xs">
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
                       {formatDate(variant.createdAt, locale)}
                     </span>
                   </div>
                 </div>
               ))}
             {allVariants.filter(v => v.modelType === `program_generation_${selectedSlot}`).length === 0 && (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">
                 {text.noVariants}
               </p>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </RolePanel>
     </div>
   )
 }

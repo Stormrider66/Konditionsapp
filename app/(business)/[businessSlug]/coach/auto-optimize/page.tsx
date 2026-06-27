@@ -4,6 +4,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { prisma } from '@/lib/prisma'
 import { AutoOptimizeDashboard } from '@/components/auto-optimize/AutoOptimizeDashboard'
 import type { PromptSlot } from '@/lib/auto-optimize/types'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -63,13 +64,13 @@ export default async function AutoOptimizePage({ params }: PageProps) {
   })
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <RolePageFrame maxWidth="wide">
       <AutoOptimizeDashboard
         basePath={basePath}
         activeVariants={JSON.parse(JSON.stringify(activeVariants))}
         recentSnapshots={JSON.parse(JSON.stringify(recentSnapshots))}
         allVariants={JSON.parse(JSON.stringify(allVariants))}
       />
-    </div>
+    </RolePageFrame>
   )
 }
