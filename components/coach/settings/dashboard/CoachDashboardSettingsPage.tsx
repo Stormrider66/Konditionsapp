@@ -3,10 +3,10 @@
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import {
   Select,
   SelectContent,
@@ -209,11 +209,11 @@ export default function CoachDashboardSettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="container max-w-3xl py-8">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
+      <RolePageFrame contentClassName="max-w-4xl">
+        <RolePanel className="flex min-h-64 items-center justify-center p-12">
+          <Loader2 className="h-8 w-8 animate-spin text-zinc-500 dark:text-zinc-400" />
+        </RolePanel>
+      </RolePageFrame>
     )
   }
 
@@ -221,36 +221,36 @@ export default function CoachDashboardSettingsPage() {
   const totalCount = widgets.length
 
   return (
-    <div className="container max-w-3xl py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`${basePath}/coach/settings`}>
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <LayoutDashboard className="h-6 w-6" />
+    <RolePageFrame contentClassName="max-w-4xl">
+      <RolePageHeader
+        eyebrow={copy(locale, 'Settings', 'Inställningar')}
+        title={
+          <span className="flex items-center gap-2">
+            <LayoutDashboard className="h-6 w-6 text-zinc-500" />
             {copy(locale, 'Customize dashboard', 'Anpassa dashboard')}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {copy(locale, `${visibleCount} of ${totalCount} widgets visible`, `${visibleCount} av ${totalCount} widgets synliga`)}
-          </p>
-        </div>
-      </div>
+          </span>
+        }
+        description={copy(locale, `${visibleCount} of ${totalCount} widgets visible`, `${visibleCount} av ${totalCount} widgets synliga`)}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`${basePath}/coach/settings`}>
+              <ArrowLeft className="h-4 w-4" />
+              {copy(locale, 'Settings', 'Inställningar')}
+            </Link>
+          </Button>
+        }
+      />
 
-      {/* Mode selector */}
-      <GlassCard glow="blue">
-        <GlassCardHeader>
-          <GlassCardTitle className="text-base">{copy(locale, 'Dashboard mode', 'Dashboard-läge')}</GlassCardTitle>
-          <GlassCardDescription>
+      <div className="space-y-6">
+        <RolePanel className="p-5">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Dashboard mode', 'Dashboard-läge')}</h2>
+            <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
             {copy(locale, 'You have separate settings for each mode. Switch here to customize another mode.', 'Du har separata inställningar för varje läge. Byt här för att anpassa ett annat läge.')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
+            </p>
+          </div>
           <Select value={mode} onValueChange={v => setMode(v as CoachMode)}>
-            <SelectTrigger className="w-full max-w-xs bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
+            <SelectTrigger className="w-full max-w-xs border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -259,119 +259,120 @@ export default function CoachDashboardSettingsPage() {
               <SelectItem value="GYM">Gym</SelectItem>
             </SelectContent>
           </Select>
-        </GlassCardContent>
-      </GlassCard>
+        </RolePanel>
 
-      {/* Widget groups */}
-      {(Object.keys(grouped) as WidgetCategory[]).map(category => {
-        const items = grouped[category]
-        if (!items || items.length === 0) return null
-        return (
-          <GlassCard key={category} glow="purple">
-            <GlassCardHeader>
-              <GlassCardTitle>{categoryLabel(category, locale)}</GlassCardTitle>
-              <GlassCardDescription>
-                {copy(locale, `${items.length} widget${items.length === 1 ? '' : 's'} - reorder with the arrows`, `${items.length} widget${items.length === 1 ? '' : 's'} - ändra ordning med pilarna`)}
-              </GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-3">
-              {items.map((w, idx) => (
-                <div key={w.key} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md">
-                  <div className="flex flex-col gap-0.5">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
-                      disabled={idx === 0}
-                      onClick={() => move(w, 'up')}
-                      aria-label={copy(locale, 'Move up', 'Flytta upp')}
-                    >
-                      <ChevronUp className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
-                      disabled={idx === items.length - 1}
-                      onClick={() => move(w, 'down')}
-                      aria-label={copy(locale, 'Move down', 'Flytta ner')}
-                    >
-                      <ChevronDown className="h-4 w-4" />
-                    </Button>
+        {(Object.keys(grouped) as WidgetCategory[]).map(category => {
+          const items = grouped[category]
+          if (!items || items.length === 0) return null
+          return (
+            <RolePanel key={category} className="p-5">
+              <div className="mb-4">
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{categoryLabel(category, locale)}</h2>
+                <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                  {copy(locale, `${items.length} widget${items.length === 1 ? '' : 's'} - reorder with the arrows`, `${items.length} widget${items.length === 1 ? '' : 's'} - ändra ordning med pilarna`)}
+                </p>
+              </div>
+              <div className="space-y-3">
+                {items.map((w, idx) => (
+                  <div key={w.key} className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 transition-colors dark:border-white/10 dark:bg-zinc-950/60">
+                    <div className="flex flex-col gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                        disabled={idx === 0}
+                        onClick={() => move(w, 'up')}
+                        aria-label={copy(locale, 'Move up', 'Flytta upp')}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 hover:bg-zinc-100 dark:hover:bg-zinc-900"
+                        disabled={idx === items.length - 1}
+                        onClick={() => move(w, 'down')}
+                        aria-label={copy(locale, 'Move down', 'Flytta ner')}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Label className="flex items-center gap-2 text-base font-medium text-zinc-950 dark:text-zinc-50">
+                        {widgetDisplayName(w.definition, locale)}
+                        {w.definition.required && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-500 dark:bg-zinc-900 dark:text-zinc-400">
+                            <Lock className="h-3 w-3" /> {copy(locale, 'required', 'krävs')}
+                          </span>
+                        )}
+                      </Label>
+                      <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                        {widgetDescription(w.definition, locale)}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={w.definition.required ? true : w.visible}
+                      onCheckedChange={v => toggle(w, v)}
+                      disabled={w.definition.required}
+                    />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <Label className="text-base font-medium flex items-center gap-2 text-slate-900 dark:text-white">
-                      {widgetDisplayName(w.definition, locale)}
-                      {w.definition.required && (
-                        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                          <Lock className="h-3 w-3" /> {copy(locale, 'required', 'krävs')}
-                        </span>
-                      )}
-                    </Label>
-                    <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {widgetDescription(w.definition, locale)}
-                    </p>
-                  </div>
-                  <Switch
-                    checked={w.definition.required ? true : w.visible}
-                    onCheckedChange={v => toggle(w, v)}
-                    disabled={w.definition.required}
-                  />
-                </div>
-              ))}
-            </GlassCardContent>
-          </GlassCard>
-        )
-      })}
+                ))}
+              </div>
+            </RolePanel>
+          )
+        })}
 
-      {/* Sticky save bar */}
-      <div className={cn(
-        "flex items-center justify-between sticky bottom-4 p-4 rounded-2xl border transition-all backdrop-blur-md z-35",
-        hasChanges 
-          ? "bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]" 
-          : "bg-white/80 dark:bg-black/50 border-slate-200/50 dark:border-white/10"
-      )}>
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={reset} disabled={isSaving} className="border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5">
-            <RotateCcw className="h-4 w-4 mr-2" />
-            {copy(locale, 'Reset', 'Återställ')}
+        <div className={cn(
+          'sticky bottom-4 z-35 flex flex-col gap-3 rounded-lg border p-4 shadow-lg transition-colors sm:flex-row sm:items-center sm:justify-between',
+          hasChanges
+            ? 'border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/30'
+            : 'border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950'
+        )}>
+          <div className="flex flex-wrap items-center gap-3">
+            <Button variant="outline" size="sm" onClick={reset} disabled={isSaving}>
+              <RotateCcw className="h-4 w-4" />
+              {copy(locale, 'Reset', 'Återställ')}
+            </Button>
+            {saveMessage && (
+              <p
+                className={cn(
+                  'text-sm font-semibold',
+                  saveMessageType === 'success'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : 'text-red-600 dark:text-red-400'
+                )}
+              >
+                {saveMessage}
+              </p>
+            )}
+            {hasChanges && !saveMessage && (
+              <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">
+                {copy(locale, 'Unsaved changes', 'Osparade ändringar')}
+              </p>
+            )}
+          </div>
+          <Button
+            onClick={save}
+            disabled={isSaving || !hasChanges}
+            className={cn(
+              'transition-colors',
+              hasChanges && 'bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700'
+            )}
+          >
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {copy(locale, 'Saving...', 'Sparar...')}
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                {copy(locale, 'Save', 'Spara')}
+              </>
+            )}
           </Button>
-          {saveMessage && (
-            <p
-              className={`text-sm font-semibold ${
-                saveMessageType === 'success'
-                  ? 'text-green-600 dark:text-green-400'
-                  : 'text-red-600 dark:text-red-400'
-              }`}
-            >
-              {saveMessage}
-            </p>
-          )}
-          {hasChanges && !saveMessage && (
-            <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{copy(locale, 'Unsaved changes', 'Osparade ändringar')}</p>
-          )}
         </div>
-        <Button 
-          onClick={save} 
-          disabled={isSaving || !hasChanges}
-          className={cn(
-            "transition-all",
-            hasChanges && "bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-650 dark:hover:bg-amber-700"
-          )}
-        >
-          {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              {copy(locale, 'Saving...', 'Sparar...')}
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              {copy(locale, 'Save', 'Spara')}
-            </>
-          )}
-        </Button>
       </div>
-    </div>
+    </RolePageFrame>
   )
 }
