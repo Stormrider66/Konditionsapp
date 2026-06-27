@@ -83,6 +83,12 @@ const urgencyColors: Record<string, string> = {
 
 const actionTileClass = 'h-20 flex-col gap-2 rounded-lg border-zinc-200 bg-white text-zinc-700 hover:scale-100 hover:bg-zinc-50 hover:text-zinc-950 dark:border-white/10 dark:bg-zinc-950/40 dark:text-zinc-200 dark:hover:bg-white/5'
 
+const painBarColor = (pain: number) => {
+  if (pain >= 7) return 'bg-red-500 dark:bg-red-400'
+  if (pain >= 4) return 'bg-amber-500 dark:bg-amber-400'
+  return 'bg-emerald-500 dark:bg-emerald-400'
+}
+
 export default function BusinessPhysioDashboardPage() {
   const params = useParams()
   const businessSlug = params.businessSlug as string
@@ -342,7 +348,7 @@ export default function BusinessPhysioDashboardPage() {
                         <span className="text-xs text-zinc-500 dark:text-zinc-500">Pain Level:</span>
                         <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
                           <div
-                            className="h-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500"
+                            className={`h-full rounded-full ${painBarColor(athlete.currentInjury.painLevel)}`}
                             style={{ width: `${athlete.currentInjury.painLevel * 10}%` }}
                           />
                         </div>

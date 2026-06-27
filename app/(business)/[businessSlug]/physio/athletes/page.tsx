@@ -83,6 +83,12 @@ const phaseColors: Record<string, string> = {
   RETURN_TO_SPORT: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
 }
 
+const painBarColor = (pain: number) => {
+  if (pain >= 7) return 'bg-red-500 dark:bg-red-400'
+  if (pain >= 4) return 'bg-amber-500 dark:bg-amber-400'
+  return 'bg-emerald-500 dark:bg-emerald-400'
+}
+
 export default function BusinessPhysioAthletesPage() {
   const params = useParams()
   const businessSlug = params.businessSlug as string
@@ -229,7 +235,7 @@ export default function BusinessPhysioAthletesPage() {
                       <span className="text-xs text-zinc-500 dark:text-zinc-500">{t('labels.pain')}:</span>
                       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                         <div
-                          className="h-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500"
+                          className={`h-full rounded-full ${painBarColor(athlete.currentInjury.painLevel)}`}
                           style={{ width: `${athlete.currentInjury.painLevel * 10}%` }}
                         />
                       </div>

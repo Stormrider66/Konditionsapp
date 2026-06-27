@@ -141,6 +141,12 @@ const actionButtonClass =
 const listItemClass =
   'rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50'
 
+const painBarColor = (pain: number) => {
+  if (pain >= 7) return 'bg-red-500 dark:bg-red-400'
+  if (pain >= 4) return 'bg-amber-500 dark:bg-amber-400'
+  return 'bg-emerald-500 dark:bg-emerald-400'
+}
+
 const formatFallbackLabel = (value: string) =>
   value
     .toLowerCase()
@@ -484,7 +490,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                           <span className="text-xs text-zinc-500 dark:text-zinc-500">{t('labels.pain')}:</span>
                           <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                             <div
-                              className="h-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500"
+                              className={cn('h-full rounded-full', painBarColor(injury.painLevel))}
                               style={{ width: `${injury.painLevel * 10}%` }}
                             />
                           </div>
