@@ -8,6 +8,7 @@ import { canAccessProgram } from '@/lib/auth-utils'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 import { ArrowLeft } from 'lucide-react'
 import { ProgramOverview } from '@/components/programs/ProgramOverview'
 import { ProgramCalendar } from '@/components/programs/ProgramCalendar'
@@ -131,13 +132,13 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
   const bundledAssignments = await getBundledAssignments(program.id, program.clientId)
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Link href={`${basePath}/programs`}>
-        <Button variant="ghost" className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
-          <ArrowLeft className="mr-2 h-4 w-4" />
+    <RolePageFrame maxWidth="wide">
+      <Button asChild variant="outline" size="sm" className="mb-6">
+        <Link href={`${basePath}/programs`}>
+          <ArrowLeft className="h-4 w-4" />
           {locale === 'sv' ? 'Tillbaka till program' : 'Back to programs'}
-        </Button>
-      </Link>
+        </Link>
+      </Button>
 
       <ProgramOverview program={program} basePath={basePath} />
 
@@ -148,6 +149,6 @@ export default async function BusinessProgramPage({ params }: ProgramPageProps) 
       <div className="mt-8">
         <ProgramCalendar program={program} basePath={basePath} bundledAssignments={bundledAssignments} />
       </div>
-    </div>
+    </RolePageFrame>
   )
 }

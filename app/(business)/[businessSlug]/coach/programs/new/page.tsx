@@ -9,6 +9,7 @@ import { Prisma } from '@prisma/client'
 import { ProgramWizard } from '@/components/programs/wizard/ProgramWizard'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { ArrowLeft } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
 import {
@@ -234,45 +235,52 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
   // No clients at all
   if (clients.length === 0) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-2xl">
-        <Link href={`${basePath}/programs`}>
-          <Button variant="ghost" className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t('back')}
-          </Button>
-        </Link>
+      <RolePageFrame contentClassName="max-w-2xl">
+        <RolePageHeader
+          eyebrow="Coach"
+          title={t('title')}
+          description={t('description')}
+          actions={
+            <Button asChild variant="outline" size="sm">
+              <Link href={`${basePath}/programs`}>
+                <ArrowLeft className="h-4 w-4" />
+                {t('back')}
+              </Link>
+            </Button>
+          }
+        />
 
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-2 text-yellow-800 dark:text-yellow-200">{t('noClientsTitle')}</h2>
-          <p className="text-yellow-700 dark:text-yellow-200/80 mb-4">
+        <RolePanel className="border-amber-200 bg-amber-50 p-6 dark:border-amber-900/60 dark:bg-amber-950/20">
+          <h2 className="mb-2 text-xl font-semibold text-amber-800 dark:text-amber-200">{t('noClientsTitle')}</h2>
+          <p className="mb-4 text-amber-700 dark:text-amber-200/80">
             {t('noClientsDescription')}
           </p>
-          <Link href={`${basePath}/clients/new`}>
-            <Button>{t('createClient')}</Button>
-          </Link>
-        </div>
-      </div>
+          <Button asChild>
+            <Link href={`${basePath}/clients/new`}>{t('createClient')}</Link>
+          </Button>
+        </RolePanel>
+      </RolePageFrame>
     )
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <Link href={`${basePath}/programs`}>
-        <Button variant="ghost" className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('backToPrograms')}
-        </Button>
-      </Link>
-
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">{t('title')}</h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          {t('description')}
-        </p>
-      </div>
+    <RolePageFrame maxWidth="wide">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`${basePath}/programs`}>
+              <ArrowLeft className="h-4 w-4" />
+              {t('backToPrograms')}
+            </Link>
+          </Button>
+        }
+      />
 
       {query?.source === 'AI Canvas' && (
-        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-950">
+        <RolePanel className="mb-6 border-blue-200 bg-blue-50 p-4 text-blue-950 dark:border-blue-900/60 dark:bg-blue-950/20 dark:text-blue-100">
           <p className="text-sm font-semibold">{t('aiCanvas.title')}</p>
           <p className="mt-1 text-sm leading-6">
             {t('aiCanvas.description')}
@@ -282,7 +290,7 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
               {query.prompt}
             </p>
           )}
-        </div>
+        </RolePanel>
       )}
 
       <ProgramWizard
@@ -292,6 +300,6 @@ export default async function BusinessNewProgramPage({ params, searchParams }: P
         initialClientId={query?.clientId}
         initialTeamId={query?.teamId}
       />
-    </div>
+    </RolePageFrame>
   )
 }

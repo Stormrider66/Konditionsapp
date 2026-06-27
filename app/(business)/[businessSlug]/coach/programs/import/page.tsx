@@ -6,6 +6,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 import { ArrowLeft } from 'lucide-react'
 import { ImportProgramClient } from '@/components/programs/import/ImportProgramClient'
 import { getTranslations } from '@/i18n/server'
@@ -35,27 +36,22 @@ export default async function ImportProgramPage({ params }: PageProps) {
   })
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-5xl">
-      <Link href={`${basePath}/programs`}>
-        <Button
-          variant="ghost"
-          className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('backToPrograms')}
-        </Button>
-      </Link>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
-          {t('title')}
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          {t('description')}
-        </p>
-      </div>
+    <RolePageFrame contentClassName="max-w-5xl">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`${basePath}/programs`}>
+              <ArrowLeft className="h-4 w-4" />
+              {t('backToPrograms')}
+            </Link>
+          </Button>
+        }
+      />
 
       <ImportProgramClient clients={clients} basePath={basePath} />
-    </div>
+    </RolePageFrame>
   )
 }
