@@ -10777,10 +10777,13 @@
       "fallbackName": "Physio",
       "portal": "Portal",
       "groups": {
+        "workspace": "Workspace",
+        "care": "Care",
         "tools": "Tools",
         "more": "More"
       },
       "nav": {
+        "today": "Today",
         "dashboard": "Dashboard",
         "athletes": "Athletes",
         "treatments": "Treatments",
@@ -10799,6 +10802,12 @@
         "navigationMenu": "Navigation menu",
         "settings": "Settings",
         "logOut": "Log out"
+      },
+      "shell": {
+        "collapseSidebar": "Collapse sidebar",
+        "expandSidebar": "Expand sidebar",
+        "closeMenu": "Close menu",
+        "signedInAs": "Signed in as"
       }
     },
     "physioRehabExerciseBrowser": {

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
-import { PhysioGlassHeader } from '@/components/physio/PhysioGlassHeader'
+import { PhysioAppShell } from '@/components/layouts/PhysioAppShell'
 import { canAccessPhysioPlatform } from '@/lib/user-capabilities'
 import { BetaFeedbackWidget } from '@/components/feedback/BetaFeedbackWidget'
 
@@ -29,7 +29,7 @@ export default async function BusinessPhysioLayout({
     // Verify business exists and user has access
     const business = await prisma.business.findUnique({
         where: { slug: businessSlug },
-        select: { id: true, name: true },
+        select: { id: true, name: true, logoUrl: true, primaryColor: true },
     })
 
     if (!business) {
@@ -50,12 +50,15 @@ export default async function BusinessPhysioLayout({
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
-            <PhysioGlassHeader user={user} businessSlug={businessSlug} />
-            <main className="pt-16">
-                {children}
-            </main>
+        <PhysioAppShell
+            user={user}
+            businessSlug={businessSlug}
+            businessName={business.name}
+            businessLogo={business.logoUrl}
+            businessColor={business.primaryColor}
+        >
+            {children}
             <BetaFeedbackWidget userRole="PHYSIO" businessSlug={businessSlug} />
-        </div>
+        </PhysioAppShell>
     )
 }

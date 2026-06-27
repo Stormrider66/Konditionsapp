@@ -28,6 +28,7 @@ import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/s
 import { cn } from '@/lib/utils'
 
 export interface RoleShellUser {
+  name?: string | null
   email?: string | null
   user_metadata?: {
     avatar_url?: string | null
@@ -121,7 +122,7 @@ export function RoleAppShell({
     return null
   }, [navSections, pathname])
 
-  const displayName = user?.user_metadata?.name || user?.email || roleLabel
+  const displayName = user?.user_metadata?.name || user?.name || user?.email || roleLabel
   const avatarUrl = user?.user_metadata?.avatar_url || undefined
   const contentOffsetClass = sidebarCollapsed ? 'lg:pl-[76px]' : 'lg:pl-64'
   const sidebarWidthClass = sidebarCollapsed ? 'lg:w-[76px]' : 'lg:w-64'

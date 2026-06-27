@@ -11144,10 +11144,13 @@
       "fallbackName": "Fysio",
       "portal": "Portal",
       "groups": {
+        "workspace": "Arbetsyta",
+        "care": "Vård",
         "tools": "Verktyg",
         "more": "Mer"
       },
       "nav": {
+        "today": "Idag",
         "dashboard": "Dashboard",
         "athletes": "Atleter",
         "treatments": "Behandlingar",
@@ -11166,6 +11169,12 @@
         "navigationMenu": "Navigationsmeny",
         "settings": "Inställningar",
         "logOut": "Logga ut"
+      },
+      "shell": {
+        "collapseSidebar": "Fäll ihop sidomeny",
+        "expandSidebar": "Fäll ut sidomeny",
+        "closeMenu": "Stäng meny",
+        "signedInAs": "Inloggad som"
       }
     },
     "physioRehabExerciseBrowser": {
