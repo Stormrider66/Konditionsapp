@@ -17,6 +17,7 @@ import { GymDashboardLayout } from '@/components/coach/dashboard/GymDashboardLay
 import { CoachCommandCenter } from '@/components/coach/dashboard/CoachCommandCenter'
 import { CoachOperatorBrief } from '@/components/coach/dashboard/CoachOperatorBrief'
 import { CoachDashboardAIContext, type CoachDashboardAIContextData } from '@/components/coach/dashboard/CoachDashboardAIContext'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 import { getCoachCommandCenterData } from '@/lib/coach/command-center'
 import { buildCoachOperatorBriefData } from '@/lib/coach/proactive-operator'
 import type { SportType } from '@/types'
@@ -771,89 +772,82 @@ export default async function BusinessDashboardPage({ params }: BusinessDashboar
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="container mx-auto py-6 px-4 max-w-7xl">
-        <CoachDashboardAIContext data={dashboardAIContext} />
+    <RolePageFrame maxWidth="default">
+      <CoachDashboardAIContext data={dashboardAIContext} />
 
-        {/* Header */}
-        <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{tNav('dashboard')}</h1>
-            <p className="text-muted-foreground text-sm">
-              {t('welcomeBack', { name: user.name })}
-              <span className="text-blue-500"> - {membership.business.name}</span>
-            </p>
-          </div>
-          <DashboardModeIndicator mode={mode} basePath={basePath} />
+      <RolePageHeader
+        eyebrow={membership.business.name}
+        title={tNav('dashboard')}
+        description={t('welcomeBack', { name: user.name })}
+        actions={<DashboardModeIndicator mode={mode} basePath={basePath} />}
+      />
+
+      {/* Key Stats - 4 cards */}
+      {visible.has('dashboard-stat-cards') && (
+        <DashboardStatCards
+          basePath={basePath}
+          clientsCount={clientsCount}
+          activeProgramsCount={activeProgramsCount}
+          completedLogsThisWeek={completedLogsThisWeek}
+          totalActivitiesThisWeek={totalActivitiesThisWeek}
+          logsNeedingFeedbackCount={logsNeedingFeedback.length}
+          mode={mode}
+          readinessDistribution={
+            mode === 'TEAM'
+              ? { high: highReadiness, medium: mediumReadiness, low: lowReadiness }
+              : undefined
+          }
+          gymStats={gymStats}
+          t={t}
+        />
+      )}
+
+      {mode !== 'TEAM' && operatorBriefData && (
+        <div className="mt-6">
+          <CoachOperatorBrief data={operatorBriefData} />
         </div>
+      )}
 
-        {/* Key Stats - 4 cards */}
-        {visible.has('dashboard-stat-cards') && (
-          <DashboardStatCards
-            basePath={basePath}
-            clientsCount={clientsCount}
-            activeProgramsCount={activeProgramsCount}
-            completedLogsThisWeek={completedLogsThisWeek}
-            totalActivitiesThisWeek={totalActivitiesThisWeek}
-            logsNeedingFeedbackCount={logsNeedingFeedback.length}
-            mode={mode}
-            readinessDistribution={
-              mode === 'TEAM'
-                ? { high: highReadiness, medium: mediumReadiness, low: lowReadiness }
-                : undefined
-            }
-            gymStats={gymStats}
-            t={t}
-          />
-        )}
+      {/* Conditional layout based on mode */}
+      {mode === 'TEAM' ? (
+        <TeamDashboardLayout
+          basePath={basePath}
+          pendingFeedbackCount={logsNeedingFeedback.length}
+          readinessDistribution={{
+            high: highReadiness,
+            medium: mediumReadiness,
+            low: lowReadiness,
+            total: readinessScores.length,
+          }}
+          teamDashboardData={teamDashboardData}
+          operatorBriefData={operatorBriefData ?? undefined}
+          visible={visible}
+          orderMap={orderMap}
+        />
+      ) : mode === 'GYM' ? (
+        <GymDashboardLayout
+          basePath={basePath}
+          pendingFeedbackCount={logsNeedingFeedback.length}
+          recentPRs={recentPRs}
+          visible={visible}
+          orderMap={orderMap}
+        />
+      ) : (
+        <PTDashboardLayout
+          basePath={basePath}
+          dateLocale={dateLocale}
+          recentTests={recentTests}
+          upcomingEvents={upcomingEvents}
+          pendingFeedbackCount={logsNeedingFeedback.length}
+          visible={visible}
+          orderMap={orderMap}
+          t={t}
+        />
+      )}
 
-        {mode !== 'TEAM' && operatorBriefData && (
-          <div className="mt-6">
-            <CoachOperatorBrief data={operatorBriefData} />
-          </div>
-        )}
-
-        {/* Conditional layout based on mode */}
-        {mode === 'TEAM' ? (
-          <TeamDashboardLayout
-            basePath={basePath}
-            pendingFeedbackCount={logsNeedingFeedback.length}
-            readinessDistribution={{
-              high: highReadiness,
-              medium: mediumReadiness,
-              low: lowReadiness,
-              total: readinessScores.length,
-            }}
-            teamDashboardData={teamDashboardData}
-            operatorBriefData={operatorBriefData ?? undefined}
-            visible={visible}
-            orderMap={orderMap}
-          />
-        ) : mode === 'GYM' ? (
-          <GymDashboardLayout
-            basePath={basePath}
-            pendingFeedbackCount={logsNeedingFeedback.length}
-            recentPRs={recentPRs}
-            visible={visible}
-            orderMap={orderMap}
-          />
-        ) : (
-          <PTDashboardLayout
-            basePath={basePath}
-            dateLocale={dateLocale}
-            recentTests={recentTests}
-            upcomingEvents={upcomingEvents}
-            pendingFeedbackCount={logsNeedingFeedback.length}
-            visible={visible}
-            orderMap={orderMap}
-            t={t}
-          />
-        )}
-
-        {commandCenterData && (
-          <CoachCommandCenter data={commandCenterData} />
-        )}
-      </div>
-    </div>
+      {commandCenterData && (
+        <CoachCommandCenter data={commandCenterData} />
+      )}
+    </RolePageFrame>
   )
 }

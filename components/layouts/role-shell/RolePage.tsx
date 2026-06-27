@@ -1,0 +1,142 @@
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import type { LucideIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+const maxWidthClasses = {
+  default: 'max-w-7xl',
+  wide: 'max-w-[1500px]',
+  full: 'max-w-none',
+}
+
+const statToneClasses = {
+  blue: 'border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
+  emerald: 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+  red: 'border-red-100 bg-red-50 text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+  amber: 'border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300',
+  violet: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
+  zinc: 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300',
+}
+
+export interface RolePageFrameProps {
+  children: ReactNode
+  className?: string
+  contentClassName?: string
+  maxWidth?: keyof typeof maxWidthClasses
+}
+
+export function RolePageFrame({
+  children,
+  className,
+  contentClassName,
+  maxWidth = 'default',
+}: RolePageFrameProps) {
+  return (
+    <div className={cn('min-h-[calc(100vh-4rem)] bg-zinc-50/80 dark:bg-zinc-950', className)}>
+      <div className={cn('mx-auto w-full px-4 py-6 sm:px-6 lg:px-8', maxWidthClasses[maxWidth], contentClassName)}>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+export interface RolePageHeaderProps {
+  title: ReactNode
+  description?: ReactNode
+  eyebrow?: ReactNode
+  actions?: ReactNode
+  className?: string
+}
+
+export function RolePageHeader({
+  title,
+  description,
+  eyebrow,
+  actions,
+  className,
+}: RolePageHeaderProps) {
+  return (
+    <header
+      className={cn(
+        'mb-6 flex flex-col gap-4 border-b border-zinc-200 pb-5 dark:border-white/10 lg:flex-row lg:items-end lg:justify-between',
+        className
+      )}
+    >
+      <div className="min-w-0">
+        {eyebrow && (
+          <div className="mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500 dark:text-zinc-500">
+            {eyebrow}
+          </div>
+        )}
+        <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50 md:text-3xl">
+          {title}
+        </h1>
+        {description && (
+          <div className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+            {description}
+          </div>
+        )}
+      </div>
+      {actions && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {actions}
+        </div>
+      )}
+    </header>
+  )
+}
+
+export interface RoleStatCardProps {
+  label: ReactNode
+  value: ReactNode
+  icon: LucideIcon
+  tone?: keyof typeof statToneClasses
+  description?: ReactNode
+  className?: string
+}
+
+export function RoleStatCard({
+  label,
+  value,
+  icon: Icon,
+  tone = 'zinc',
+  description,
+  className,
+}: RoleStatCardProps) {
+  return (
+    <section
+      className={cn(
+        'rounded-lg border border-zinc-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-zinc-950/60',
+        className
+      )}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400">{label}</p>
+          <div className="mt-2 text-3xl font-semibold leading-none text-zinc-950 dark:text-zinc-50">
+            {value}
+          </div>
+        </div>
+        <div className={cn('flex h-11 w-11 shrink-0 items-center justify-center rounded-md border', statToneClasses[tone])}>
+          <Icon className="h-5 w-5" />
+        </div>
+      </div>
+      {description && (
+        <p className="mt-4 text-sm text-zinc-500 dark:text-zinc-400">
+          {description}
+        </p>
+      )}
+    </section>
+  )
+}
+
+export function RolePanel({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
+  return (
+    <section
+      className={cn(
+        'rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950/60',
+        className
+      )}
+      {...props}
+    />
+  )
+}
