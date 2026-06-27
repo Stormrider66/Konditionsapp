@@ -23,7 +23,7 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Progress } from '@/components/ui/progress'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -352,17 +352,19 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
   const total = data?.totals
 
   return (
-    <GlassCard glow="emerald" className="mb-8">
-      <GlassCardHeader>
+    <RolePanel className="mb-8 p-5 sm:p-6">
+      <div className="mb-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
-              <BarChart3 className="h-5 w-5" />
+            <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              <span className="flex h-9 w-9 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <BarChart3 className="h-4 w-4" />
+              </span>
               {text('Passuppföljning', 'Workout monitor')}
-            </GlassCardTitle>
-            <GlassCardDescription>
+            </h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
               {text('Följ upp lagpass, spelare och loggade resultat på ett ställe.', 'Review team sessions, players, and logged results in one place.')}
-            </GlassCardDescription>
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-wrap gap-2">
@@ -394,8 +396,8 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
             </Button>
           </div>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </div>
+      <div>
         {loading ? (
           <div className="flex items-center gap-2 py-12 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -531,7 +533,7 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
             )}
           </div>
         )}
-      </GlassCardContent>
+      </div>
 
       <Sheet open={!!selectedSession} onOpenChange={(open) => {
         if (!open) {
@@ -574,7 +576,7 @@ export function TeamWorkoutMonitor({ teamId, businessSlug }: TeamWorkoutMonitorP
           void loadSummary()
         }}
       />
-    </GlassCard>
+    </RolePanel>
   )
 }
 

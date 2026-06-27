@@ -4,6 +4,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { TeamWorkoutMonitor } from '@/components/coach/teams/TeamWorkoutMonitor'
 import { TeamLeaderboard } from '@/components/coach/leaderboards'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 interface TeamFollowUpPageProps {
   params: Promise<{
@@ -34,12 +35,12 @@ export default async function TeamFollowUpPage({ params }: TeamFollowUpPageProps
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <RolePageFrame>
       <TeamWorkoutMonitor teamId={teamId} businessSlug={businessSlug} />
 
       <div className="mt-8">
         <TeamLeaderboard teamId={teamId} />
       </div>
-    </div>
+    </RolePageFrame>
   )
 }
