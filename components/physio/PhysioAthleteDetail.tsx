@@ -1,661 +1,749 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-    ArrowLeft,
-    User,
-    AlertTriangle,
-    Activity,
-    Ban,
-    Stethoscope,
-    Calendar,
-    TrendingUp,
-    MessageSquare,
-    ChevronRight,
-    Plus,
-    CheckCircle2,
-    Loader2,
+  Activity,
+  AlertTriangle,
+  ArrowLeft,
+  Ban,
+  Calendar,
+  CheckCircle2,
+  ChevronRight,
+  Loader2,
+  MessageSquare,
+  Plus,
+  Stethoscope,
+  TrendingUp,
+  User,
 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { RolePageFrame, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { useTranslations } from '@/i18n/client'
+import { cn } from '@/lib/utils'
+
+interface UserSummary {
+  id: string
+  name: string
+  role?: string
+}
+
+interface InjuryAssessment {
+  id: string
+  injuryType: string
+  bodyPart: string
+  painLevel: number
+  phase: string
+  date: string
+  assessedBy?: UserSummary | null
+}
+
+interface TrainingRestriction {
+  id: string
+  type: string
+  severity: string
+  bodyParts?: unknown
+  reason: string | null
+  endDate: string | null
+  createdBy?: UserSummary | null
+}
+
+interface RehabProgram {
+  id: string
+  name: string
+  currentPhase: string
+  injury: {
+    id: string
+    injuryType: string
+    bodyPart: string
+  } | null
+  exercises?: unknown[]
+  milestones?: unknown[]
+  _count?: {
+    progressLogs?: number
+  }
+}
+
+interface TreatmentSession {
+  id: string
+  treatmentType: string
+  sessionDate: string
+  painBefore: number | null
+  painAfter: number | null
+}
+
+interface DailyMetric {
+  date: string
+  injuryPain: number | null
+  muscleSoreness: number | null
+  readinessLevel: number | null
+  sleepQuality: number | null
+  stress: number | null
+}
 
 interface AthleteDetail {
+  id: string
+  name: string
+  email: string
+  gender: string | null
+  birthDate: string | null
+  height: number | null
+  weight: number | null
+  team: { id: string; name: string } | null
+  sportProfile: {
     id: string
-    name: string
-    email: string
-    gender: string | null
-    birthDate: string | null
-    height: number | null
-    weight: number | null
-    team: { id: string; name: string } | null
-    sport: {
-        sport: string
-        discipline: string | null
-        trainingAge: number | null
-    } | null
-    injuryAssessments: any[]
-    trainingRestrictions: any[]
-    rehabPrograms: any[]
-    treatmentSessions: any[]
-    dailyMetrics: any[]
-    movementScreens: any[]
-    acuteInjuryReports: any[]
-    summary: {
-        activeInjuries: number
-        activeRestrictions: number
-        activeRehabPrograms: number
-        recentTreatments: number
-        avgRecentPain: number | null
-    }
+    primarySport: string | null
+    onboardingCompleted: boolean
+  } | null
+  injuryAssessments: InjuryAssessment[]
+  trainingRestrictions: TrainingRestriction[]
+  rehabPrograms: RehabProgram[]
+  treatmentSessions: TreatmentSession[]
+  dailyMetrics: DailyMetric[]
+  movementScreens: unknown[]
+  acuteInjuryReports: unknown[]
+  summary: {
+    activeInjuries: number
+    activeRestrictions: number
+    activeRehabPrograms: number
+    recentTreatments: number
+    avgRecentPain: number | null
+  }
 }
 
 interface PhysioAthleteDetailProps {
-    athleteId: string
-    basePath: string
+  athleteId: string
+  basePath: string
+}
+
+const severityColors: Record<string, string> = {
+  MILD: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+  MODERATE: 'border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/30 dark:text-yellow-300',
+  SEVERE: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300',
+  COMPLETE: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+}
+
+const phaseColors: Record<string, string> = {
+  ACUTE: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+  SUBACUTE: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300',
+  REMODELING: 'border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/30 dark:text-yellow-300',
+  FUNCTIONAL: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
+  RETURN_TO_SPORT: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+}
+
+const actionButtonClass =
+  'w-full justify-start border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50'
+
+const listItemClass =
+  'rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50'
+
+const formatFallbackLabel = (value: string) =>
+  value
+    .toLowerCase()
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+
+const calculateAge = (birthDate: string | null) => {
+  if (!birthDate) return null
+
+  const birth = new Date(birthDate)
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const monthDiff = today.getMonth() - birth.getMonth()
+
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age--
+  }
+
+  return age
 }
 
 export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetailProps) {
-    const router = useRouter()
-    const t = useTranslations('components.physioAthleteDetail')
-    const [athlete, setAthlete] = useState<AthleteDetail | null>(null)
-    const [loading, setLoading] = useState(true)
-    const [clearingInjuryId, setClearingInjuryId] = useState<string | null>(null)
+  const router = useRouter()
+  const t = useTranslations('components.physioAthleteDetail')
+  const [athlete, setAthlete] = useState<AthleteDetail | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [clearingInjuryId, setClearingInjuryId] = useState<string | null>(null)
 
-    const fetchAthlete = async () => {
-        try {
-            const res = await fetch(`/api/physio/athletes/${athleteId}`)
-            if (res.ok) {
-                const data = await res.json()
-                setAthlete(data)
-            } else if (res.status === 403 || res.status === 404) {
-                router.push(`${basePath}/athletes`)
-            }
-        } catch (error) {
-            console.error('Error fetching athlete:', error)
-        } finally {
-            setLoading(false)
-        }
+  const fetchAthlete = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/physio/athletes/${athleteId}`)
+      if (res.ok) {
+        const data = (await res.json()) as AthleteDetail
+        setAthlete(data)
+      } else if (res.status === 403 || res.status === 404) {
+        router.push(`${basePath}/athletes`)
+      }
+    } catch (error) {
+      console.error('Error fetching athlete:', error)
+    } finally {
+      setLoading(false)
     }
+  }, [athleteId, basePath, router])
 
-    useEffect(() => {
-        fetchAthlete()
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [athleteId, basePath, router])
+  useEffect(() => {
+    void fetchAthlete()
+  }, [fetchAthlete])
 
-    const clearInjury = async (injuryId: string) => {
-        setClearingInjuryId(injuryId)
-        try {
-            const res = await fetch(`/api/physio/injuries/${injuryId}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    status: 'RESOLVED',
-                    resolved: true,
-                    clearRestrictions: true,
-                }),
-            })
+  const clearInjury = async (injuryId: string) => {
+    setClearingInjuryId(injuryId)
+    try {
+      const res = await fetch(`/api/physio/injuries/${injuryId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'RESOLVED',
+          resolved: true,
+          clearRestrictions: true,
+        }),
+      })
 
-            if (res.ok) {
-                await fetchAthlete()
-            }
-        } catch (error) {
-            console.error('Error clearing injury:', error)
-        } finally {
-            setClearingInjuryId(null)
-        }
+      if (res.ok) {
+        await fetchAthlete()
+      }
+    } catch (error) {
+      console.error('Error clearing injury:', error)
+    } finally {
+      setClearingInjuryId(null)
     }
+  }
 
-    const severityColors: Record<string, string> = {
-        MILD: 'bg-green-500/20 text-green-400 border-green-500/30',
-        MODERATE: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-        SEVERE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-        COMPLETE: 'bg-red-500/20 text-red-400 border-red-500/30',
+  const phaseLabels: Record<string, string> = {
+    ACUTE: t('phases.ACUTE'),
+    SUBACUTE: t('phases.SUBACUTE'),
+    REMODELING: t('phases.REMODELING'),
+    FUNCTIONAL: t('phases.FUNCTIONAL'),
+    RETURN_TO_SPORT: t('phases.RETURN_TO_SPORT'),
+  }
+
+  const severityLabels: Record<string, string> = {
+    MILD: t('severity.MILD'),
+    MODERATE: t('severity.MODERATE'),
+    SEVERE: t('severity.SEVERE'),
+    COMPLETE: t('severity.COMPLETE'),
+  }
+
+  const formatPhase = (phase: string) => phaseLabels[phase] ?? formatFallbackLabel(phase)
+  const formatSeverity = (severity: string) => severityLabels[severity] ?? formatFallbackLabel(severity)
+  const formatRestrictionType = (value: string) => formatFallbackLabel(value)
+
+  const formatTreatmentType = (value: string) => {
+    switch (value) {
+      case 'INITIAL_ASSESSMENT':
+        return t('treatmentTypes.initialAssessment')
+      case 'FOLLOW_UP':
+        return t('treatmentTypes.followUp')
+      case 'MANUAL_THERAPY':
+        return t('treatmentTypes.manualTherapy')
+      case 'DRY_NEEDLING':
+        return t('treatmentTypes.dryNeedling')
+      case 'EXERCISE_THERAPY':
+        return t('treatmentTypes.exerciseTherapy')
+      case 'ELECTROTHERAPY':
+        return t('treatmentTypes.electrotherapy')
+      case 'ULTRASOUND':
+        return t('treatmentTypes.ultrasound')
+      case 'TAPING':
+        return t('treatmentTypes.taping')
+      case 'MASSAGE':
+        return t('treatmentTypes.massage')
+      case 'STRETCHING':
+        return t('treatmentTypes.stretching')
+      case 'MOBILIZATION':
+        return t('treatmentTypes.mobilization')
+      case 'DISCHARGE':
+        return t('treatmentTypes.discharge')
+      case 'OTHER':
+        return t('treatmentTypes.other')
+      default:
+        return formatFallbackLabel(value)
     }
+  }
 
-    const phaseColors: Record<string, string> = {
-        ACUTE: 'bg-red-500/20 text-red-400',
-        SUBACUTE: 'bg-orange-500/20 text-orange-400',
-        REMODELING: 'bg-yellow-500/20 text-yellow-400',
-        FUNCTIONAL: 'bg-blue-500/20 text-blue-400',
-        RETURN_TO_SPORT: 'bg-green-500/20 text-green-400',
-    }
-
-    const formatPhase = (phase: string) => {
-        return t(`phases.${phase}` as any)
-    }
-
-    const formatRestrictionType = (value: string) => {
-        return value.replace(/_/g, ' ')
-    }
-
-    const formatSeverity = (severity: string) => {
-        return t(`severity.${severity}` as any)
-    }
-
-    const formatTreatmentType = (value: string) => {
-        switch (value) {
-            case 'INITIAL_ASSESSMENT':
-                return t('treatmentTypes.initialAssessment')
-            case 'FOLLOW_UP':
-                return t('treatmentTypes.followUp')
-            case 'MANUAL_THERAPY':
-                return t('treatmentTypes.manualTherapy')
-            case 'DRY_NEEDLING':
-                return t('treatmentTypes.dryNeedling')
-            case 'EXERCISE_THERAPY':
-                return t('treatmentTypes.exerciseTherapy')
-            case 'ELECTROTHERAPY':
-                return t('treatmentTypes.electrotherapy')
-            case 'ULTRASOUND':
-                return t('treatmentTypes.ultrasound')
-            case 'TAPING':
-                return t('treatmentTypes.taping')
-            case 'MASSAGE':
-                return t('treatmentTypes.massage')
-            case 'STRETCHING':
-                return t('treatmentTypes.stretching')
-            case 'MOBILIZATION':
-                return t('treatmentTypes.mobilization')
-            case 'DISCHARGE':
-                return t('treatmentTypes.discharge')
-            case 'OTHER':
-                return t('treatmentTypes.other')
-            default:
-                return value.replace(/_/g, ' ')
-        }
-    }
-
-    if (loading) {
-        return (
-            <div className="container mx-auto px-4 py-8">
-                <Skeleton className="h-8 w-32 mb-8 bg-slate-800/50" />
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Skeleton className="h-64 bg-slate-800/50" />
-                    <Skeleton className="h-64 lg:col-span-2 bg-slate-800/50" />
-                </div>
-            </div>
-        )
-    }
-
-    if (!athlete) {
-        return (
-            <div className="container mx-auto px-4 py-8 text-center">
-                <p className="text-slate-400">{t('errors.notFound')}</p>
-            </div>
-        )
-    }
-
-    const calculateAge = (birthDate: string | null) => {
-        if (!birthDate) return null
-        const birth = new Date(birthDate)
-        const today = new Date()
-        let age = today.getFullYear() - birth.getFullYear()
-        const monthDiff = today.getMonth() - birth.getMonth()
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-            age--
-        }
-        return age
-    }
-
+  if (loading) {
     return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Back Button */}
-            <Button
-                variant="ghost"
-                className="mb-6 text-slate-400 hover:text-white"
-                onClick={() => router.back()}
-            >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {t('actions.backToAthletes')}
-            </Button>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Athlete Info */}
-                <div className="space-y-6">
-                    {/* Profile Card */}
-                    <Card className="bg-slate-900/50 border-white/10">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-4 mb-6">
-                                <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                                    <User className="w-8 h-8 text-emerald-500" />
-                                </div>
-                                <div>
-                                    <h1 className="text-2xl font-bold text-white">{athlete.name}</h1>
-                                    <p className="text-slate-400">{athlete.email}</p>
-                                </div>
-                            </div>
-
-                            <div className="space-y-3 text-sm">
-                                {athlete.birthDate && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">{t('profile.age.label')}</span>
-                                        <span className="text-white">{calculateAge(athlete.birthDate)} {t('profile.age.unit')}</span>
-                                    </div>
-                                )}
-                                {athlete.gender && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">{t('profile.gender')}</span>
-                                        <span className="text-white capitalize">{athlete.gender.toLowerCase()}</span>
-                                    </div>
-                                )}
-                                {athlete.height && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">{t('profile.height.label')}</span>
-                                        <span className="text-white">{athlete.height} {t('profile.height.unit')}</span>
-                                    </div>
-                                )}
-                                {athlete.weight && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">{t('profile.weight.label')}</span>
-                                        <span className="text-white">{athlete.weight} {t('profile.weight.unit')}</span>
-                                    </div>
-                                )}
-                                {athlete.team && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">{t('profile.team')}</span>
-                                        <span className="text-white">{athlete.team.name}</span>
-                                    </div>
-                                )}
-                                {athlete.sport && (
-                                    <div className="flex justify-between">
-                                        <span className="text-slate-400">{t('profile.sport')}</span>
-                                        <span className="text-white">
-                                            {athlete.sport.sport}
-                                            {athlete.sport.discipline && ` - ${athlete.sport.discipline}`}
-                                        </span>
-                                    </div>
-                                )}
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Stats Card */}
-                    <Card className="bg-slate-900/50 border-white/10">
-                        <CardHeader>
-                            <CardTitle className="text-white text-lg">{t('stats.title')}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="grid grid-cols-2 gap-4">
-                            <div className="text-center p-3 rounded-lg bg-red-500/10">
-                                <p className="text-2xl font-bold text-red-400">{athlete.summary.activeInjuries}</p>
-                                <p className="text-xs text-slate-400">{t('stats.activeInjuries')}</p>
-                            </div>
-                            <div className="text-center p-3 rounded-lg bg-orange-500/10">
-                                <p className="text-2xl font-bold text-orange-400">{athlete.summary.activeRestrictions}</p>
-                                <p className="text-xs text-slate-400">{t('stats.activeRestrictions')}</p>
-                            </div>
-                            <div className="text-center p-3 rounded-lg bg-blue-500/10">
-                                <p className="text-2xl font-bold text-blue-400">{athlete.summary.activeRehabPrograms}</p>
-                                <p className="text-xs text-slate-400">{t('stats.activeRehabPrograms')}</p>
-                            </div>
-                            <div className="text-center p-3 rounded-lg bg-emerald-500/10">
-                                <p className="text-2xl font-bold text-emerald-400">{athlete.summary.recentTreatments}</p>
-                                <p className="text-xs text-slate-400">{t('stats.recentTreatments')}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Quick Actions */}
-                    <Card className="bg-slate-900/50 border-white/10">
-                        <CardHeader>
-                            <CardTitle className="text-white text-lg">{t('quickActions.title')}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                            <Button asChild className="w-full justify-start bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400">
-                                <Link href={`${basePath}/treatments/new?clientId=${athlete.id}`}>
-                                    <Stethoscope className="w-4 h-4 mr-2" />
-                                    {t('quickActions.newTreatmentSession')}
-                                </Link>
-                            </Button>
-                            <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
-                                <Link href={`${basePath}/rehab-programs/new?clientId=${athlete.id}`}>
-                                    <Activity className="w-4 h-4 mr-2" />
-                                    {t('quickActions.createRehabProgram')}
-                                </Link>
-                            </Button>
-                            <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
-                                <Link href={`${basePath}/restrictions/new?clientId=${athlete.id}`}>
-                                    <Ban className="w-4 h-4 mr-2" />
-                                    {t('quickActions.addRestriction')}
-                                </Link>
-                            </Button>
-                            <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
-                                <Link href={`${basePath}/screenings/new?clientId=${athlete.id}`}>
-                                    <TrendingUp className="w-4 h-4 mr-2" />
-                                    {t('quickActions.movementScreen')}
-                                </Link>
-                            </Button>
-                            <Button asChild variant="outline" className="w-full justify-start border-white/10 text-slate-300 hover:text-white">
-                                <Link href={`${basePath}/messages?clientId=${athlete.id}`}>
-                                    <MessageSquare className="w-4 h-4 mr-2" />
-                                    {t('quickActions.careTeamChat')}
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Right Column - Tabs */}
-                <div className="lg:col-span-2">
-                    <Tabs defaultValue="injuries" className="w-full">
-                        <TabsList className="bg-slate-900/50 border border-white/10 w-full justify-start mb-4">
-                            <TabsTrigger value="injuries" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                {t('tabs.injuries')}
-                            </TabsTrigger>
-                            <TabsTrigger value="restrictions" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                {t('tabs.restrictions')}
-                            </TabsTrigger>
-                            <TabsTrigger value="rehab" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                {t('tabs.rehab')}
-                            </TabsTrigger>
-                            <TabsTrigger value="treatments" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                {t('tabs.treatments')}
-                            </TabsTrigger>
-                            <TabsTrigger value="metrics" className="data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-400">
-                                {t('tabs.checkIns')}
-                            </TabsTrigger>
-                        </TabsList>
-
-                        {/* Injuries Tab */}
-                        <TabsContent value="injuries">
-                            <Card className="bg-slate-900/50 border-white/10">
-                                <CardHeader>
-                                    <CardTitle className="text-white flex items-center gap-2">
-                                        <AlertTriangle className="w-5 h-5 text-red-500" />
-                                        {t('sections.activeInjuries')}
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    {athlete.injuryAssessments.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">{t('empty.noActiveInjuries')}</p>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {athlete.injuryAssessments.map((injury: any) => (
-                                                <div
-                                                    key={injury.id}
-                                                    className="p-4 rounded-lg bg-slate-800/50 border border-white/5"
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div>
-                                                            <p className="font-medium text-white">{injury.injuryType}</p>
-                                                            <p className="text-sm text-slate-400">{injury.bodyPart}</p>
-                                                        </div>
-                                                        <Badge className={phaseColors[injury.phase] || ''}>
-                                                            {formatPhase(injury.phase)}
-                                                        </Badge>
-                                                    </div>
-                                                    <div className="flex items-center gap-2 mt-3">
-                                                        <span className="text-xs text-slate-500">{t('labels.pain')}:</span>
-                                                        <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
-                                                            <div
-                                                                className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500"
-                                                                style={{ width: `${injury.painLevel * 10}%` }}
-                                                            />
-                                                        </div>
-                                                        <span className="text-sm text-slate-400">{injury.painLevel}/10</span>
-                                                    </div>
-                                                    <div className="mt-3 flex items-center justify-between gap-3">
-                                                        <p className="text-xs text-slate-500">
-                                                            {t('labels.assessed')}: {new Date(injury.date).toLocaleDateString()}
-                                                        </p>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="outline"
-                                                            className="border-emerald-500/30 text-emerald-400 hover:text-emerald-300"
-                                                            disabled={clearingInjuryId === injury.id}
-                                                            onClick={() => clearInjury(injury.id)}
-                                                        >
-                                                            {clearingInjuryId === injury.id ? (
-                                                                <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                                            ) : (
-                                                                <CheckCircle2 className="w-3 h-3 mr-1" />
-                                                            )}
-                                                            Klarmarkera
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        {/* Restrictions Tab */}
-                        <TabsContent value="restrictions">
-                            <Card className="bg-slate-900/50 border-white/10">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-white flex items-center gap-2">
-                                        <Ban className="w-5 h-5 text-orange-500" />
-                                        {t('sections.activeRestrictions')}
-                                    </CardTitle>
-                                    <Button asChild size="sm" className="bg-orange-500/20 hover:bg-orange-500/30 text-orange-400">
-                                        <Link href={`${basePath}/restrictions/new?clientId=${athlete.id}`}>
-                                            <Plus className="w-4 h-4 mr-1" />
-                                            {t('actions.add')}
-                                        </Link>
-                                    </Button>
-                                </CardHeader>
-                                <CardContent>
-                                    {athlete.trainingRestrictions.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">{t('empty.noActiveRestrictions')}</p>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {athlete.trainingRestrictions.map((restriction: any) => (
-                                                <Link
-                                                    key={restriction.id}
-                                                    href={`${basePath}/restrictions/${restriction.id}`}
-                                                    className="p-4 rounded-lg bg-slate-800/50 border border-white/5"
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div>
-                                                            <p className="font-medium text-white">
-                                                                {formatRestrictionType(restriction.type)}
-                                                            </p>
-                                                            {restriction.bodyParts?.length > 0 && (
-                                                                <p className="text-sm text-slate-400">
-                                                                    {restriction.bodyParts.join(', ')}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <Badge className={severityColors[restriction.severity] || ''}>
-                                                            {formatSeverity(restriction.severity)}
-                                                        </Badge>
-                                                    </div>
-                                                    {restriction.reason && (
-                                                        <p className="text-sm text-slate-400 mt-2">{restriction.reason}</p>
-                                                    )}
-                                                    <div className="flex items-center justify-between mt-3 text-xs text-slate-500">
-                                                        <span>{t('labels.createdBy')}: {restriction.createdBy?.name || t('labels.unknown')}</span>
-                                                        {restriction.endDate && (
-                                                            <span>{t('labels.until')}: {new Date(restriction.endDate).toLocaleDateString()}</span>
-                                                        )}
-                                                    </div>
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        {/* Rehab Tab */}
-                        <TabsContent value="rehab">
-                            <Card className="bg-slate-900/50 border-white/10">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-white flex items-center gap-2">
-                                        <Activity className="w-5 h-5 text-blue-500" />
-                                        {t('sections.rehabPrograms')}
-                                    </CardTitle>
-                                    <Button asChild size="sm" className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-400">
-                                        <Link href={`${basePath}/rehab-programs/new?clientId=${athlete.id}`}>
-                                            <Plus className="w-4 h-4 mr-1" />
-                                            {t('actions.create')}
-                                        </Link>
-                                    </Button>
-                                </CardHeader>
-                                <CardContent>
-                                    {athlete.rehabPrograms.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">{t('empty.noActiveRehabPrograms')}</p>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {athlete.rehabPrograms.map((program: any) => (
-                                                <Link
-                                                    key={program.id}
-                                                    href={`${basePath}/rehab-programs/${program.id}`}
-                                                    className="block p-4 rounded-lg bg-slate-800/50 border border-white/5 hover:border-blue-500/30 transition-colors"
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div>
-                                                            <p className="font-medium text-white">{program.name}</p>
-                                                            {program.injury && (
-                                                                <p className="text-sm text-slate-400">
-                                                                    {program.injury.injuryType} - {program.injury.bodyPart}
-                                                                </p>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <Badge className={phaseColors[program.currentPhase] || ''}>
-                                                                {formatPhase(program.currentPhase)}
-                                                            </Badge>
-                                                            <ChevronRight className="w-4 h-4 text-slate-600" />
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                                                        <span>{program.exercises?.length || 0} {t('labels.exercises')}</span>
-                                                        <span>{program.milestones?.length || 0} {t('labels.milestones')}</span>
-                                                        <span>{program._count?.progressLogs || 0} {t('labels.logs')}</span>
-                                                    </div>
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        {/* Treatments Tab */}
-                        <TabsContent value="treatments">
-                            <Card className="bg-slate-900/50 border-white/10">
-                                <CardHeader className="flex flex-row items-center justify-between">
-                                    <CardTitle className="text-white flex items-center gap-2">
-                                        <Stethoscope className="w-5 h-5 text-emerald-500" />
-                                        {t('sections.recentTreatments')}
-                                    </CardTitle>
-                                    <Button asChild size="sm" className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400">
-                                        <Link href={`${basePath}/treatments/new?clientId=${athlete.id}`}>
-                                            <Plus className="w-4 h-4 mr-1" />
-                                            {t('actions.new')}
-                                        </Link>
-                                    </Button>
-                                </CardHeader>
-                                <CardContent>
-                                    {athlete.treatmentSessions.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">{t('empty.noTreatmentSessions')}</p>
-                                    ) : (
-                                        <div className="space-y-3">
-                                            {athlete.treatmentSessions.map((session: any) => (
-                                                <Link
-                                                    key={session.id}
-                                                    href={`${basePath}/treatments/${session.id}`}
-                                                    className="block p-4 rounded-lg bg-slate-800/50 border border-white/5 hover:border-emerald-500/30 transition-colors"
-                                                >
-                                                    <div className="flex items-start justify-between mb-2">
-                                                        <div>
-                                                            <p className="font-medium text-white">
-                                                                {formatTreatmentType(session.treatmentType)}
-                                                            </p>
-                                                            <p className="text-sm text-slate-400">
-                                                                {new Date(session.sessionDate).toLocaleDateString()}
-                                                            </p>
-                                                        </div>
-                                                        <ChevronRight className="w-4 h-4 text-slate-600" />
-                                                    </div>
-                                                    {(session.painBefore !== null || session.painAfter !== null) && (
-                                                        <div className="flex items-center gap-4 text-sm">
-                                                            {session.painBefore !== null && (
-                                                                <span className="text-slate-400">
-                                                                    {t('labels.painBefore')}: <span className="text-white">{session.painBefore}/10</span>
-                                                                </span>
-                                                            )}
-                                                            {session.painAfter !== null && (
-                                                                <span className="text-slate-400">
-                                                                    {t('labels.after')}: <span className="text-white">{session.painAfter}/10</span>
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </Link>
-                                            ))}
-                                        </div>
-                                    )}
-                                    <Button asChild variant="ghost" className="w-full mt-4 text-slate-400 hover:text-white">
-                                        <Link href={`${basePath}/athletes/${athlete.id}/history`}>
-                                            {t('actions.viewFullHistory')}
-                                            <ChevronRight className="w-4 h-4 ml-1" />
-                                        </Link>
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-
-                        {/* Check-ins Tab */}
-                        <TabsContent value="metrics">
-                            <Card className="bg-slate-900/50 border-white/10">
-                                <CardHeader>
-                                    <CardTitle className="text-white flex items-center gap-2">
-                                        <Calendar className="w-5 h-5 text-purple-500" />
-                                        {t('sections.recentCheckIns')}
-                                    </CardTitle>
-                                    <CardDescription className="text-slate-400">
-                                        {t('descriptions.recentCheckIns')}
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {athlete.dailyMetrics.length === 0 ? (
-                                        <p className="text-slate-400 text-center py-8">{t('empty.noRecentCheckIns')}</p>
-                                    ) : (
-                                        <div className="space-y-2">
-                                            {athlete.dailyMetrics.map((metric: any, idx: number) => (
-                                                <div
-                                                    key={idx}
-                                                    className="flex items-center justify-between p-3 rounded-lg bg-slate-800/50"
-                                                >
-                                                    <span className="text-slate-300">
-                                                        {new Date(metric.date).toLocaleDateString()}
-                                                    </span>
-                                                    <div className="flex items-center gap-4 text-sm">
-                                                        {metric.injuryPain !== null && (
-                                                            <span className="text-slate-400">
-                                                                {t('labels.pain')}: <span className="text-white">{metric.injuryPain}/10</span>
-                                                            </span>
-                                                        )}
-                                                        {metric.soreness !== null && (
-                                                            <span className="text-slate-400">
-                                                                {t('labels.soreness')}: <span className="text-white">{metric.soreness}/10</span>
-                                                            </span>
-                                                        )}
-                                                        {metric.readinessLevel !== null && (
-                                                            <span className="text-slate-400">
-                                                                {t('labels.readiness')}: <span className="text-white">{metric.readinessLevel}/10</span>
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
-                </div>
-            </div>
+      <RolePageFrame maxWidth="wide">
+        <Skeleton className="mb-6 h-9 w-40 bg-zinc-200/80 dark:bg-white/10" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Skeleton className="h-64 bg-zinc-200/80 dark:bg-white/10" />
+          <Skeleton className="h-64 bg-zinc-200/80 dark:bg-white/10 lg:col-span-2" />
         </div>
+      </RolePageFrame>
     )
+  }
+
+  if (!athlete) {
+    return (
+      <RolePageFrame maxWidth="wide">
+        <RolePanel className="p-12 text-center">
+          <p className="text-zinc-500 dark:text-zinc-400">{t('errors.notFound')}</p>
+        </RolePanel>
+      </RolePageFrame>
+    )
+  }
+
+  const profileRows = [
+    athlete.birthDate
+      ? {
+          label: t('profile.age.label'),
+          value: `${calculateAge(athlete.birthDate)} ${t('profile.age.unit')}`,
+        }
+      : null,
+    athlete.gender
+      ? {
+          label: t('profile.gender'),
+          value: formatFallbackLabel(athlete.gender),
+        }
+      : null,
+    athlete.height
+      ? {
+          label: t('profile.height.label'),
+          value: `${athlete.height} ${t('profile.height.unit')}`,
+        }
+      : null,
+    athlete.weight
+      ? {
+          label: t('profile.weight.label'),
+          value: `${athlete.weight} ${t('profile.weight.unit')}`,
+        }
+      : null,
+    athlete.team
+      ? {
+          label: t('profile.team'),
+          value: athlete.team.name,
+        }
+      : null,
+    athlete.sportProfile?.primarySport
+      ? {
+          label: t('profile.sport'),
+          value: formatFallbackLabel(athlete.sportProfile.primarySport),
+        }
+      : null,
+  ].filter(Boolean) as Array<{ label: string; value: string }>
+
+  const summaryTiles = [
+    {
+      label: t('stats.activeInjuries'),
+      value: athlete.summary.activeInjuries,
+      className: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+    },
+    {
+      label: t('stats.activeRestrictions'),
+      value: athlete.summary.activeRestrictions,
+      className: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300',
+    },
+    {
+      label: t('stats.activeRehabPrograms'),
+      value: athlete.summary.activeRehabPrograms,
+      className: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
+    },
+    {
+      label: t('stats.recentTreatments'),
+      value: athlete.summary.recentTreatments,
+      className: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+    },
+  ]
+
+  return (
+    <RolePageFrame maxWidth="wide">
+      <Button
+        variant="ghost"
+        className="mb-6 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
+        onClick={() => router.back()}
+      >
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        {t('actions.backToAthletes')}
+      </Button>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="space-y-6">
+          <RolePanel className="p-6">
+            <div className="mb-6 flex items-center gap-4">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <User className="h-7 w-7" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="truncate text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+                  {athlete.name}
+                </h1>
+                <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">{athlete.email}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              {profileRows.map((row) => (
+                <div key={row.label} className="flex justify-between gap-4">
+                  <span className="text-zinc-500 dark:text-zinc-400">{row.label}</span>
+                  <span className="min-w-0 truncate text-right font-medium text-zinc-800 dark:text-zinc-100">
+                    {row.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </RolePanel>
+
+          <RolePanel className="p-5">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t('stats.title')}</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {summaryTiles.map((tile) => (
+                <div key={tile.label} className={cn('rounded-lg border p-3 text-center', tile.className)}>
+                  <p className="text-2xl font-semibold">{tile.value}</p>
+                  <p className="mt-1 text-xs">{tile.label}</p>
+                </div>
+              ))}
+            </div>
+          </RolePanel>
+
+          <RolePanel className="p-5">
+            <h2 className="mb-4 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+              {t('quickActions.title')}
+            </h2>
+            <div className="space-y-2">
+              <Button asChild variant="outline" className={actionButtonClass}>
+                <Link href={`${basePath}/treatments/new?clientId=${athlete.id}`}>
+                  <Stethoscope className="mr-2 h-4 w-4" />
+                  {t('quickActions.newTreatmentSession')}
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className={actionButtonClass}>
+                <Link href={`${basePath}/rehab-programs/new?clientId=${athlete.id}`}>
+                  <Activity className="mr-2 h-4 w-4" />
+                  {t('quickActions.createRehabProgram')}
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className={actionButtonClass}>
+                <Link href={`${basePath}/restrictions/new?clientId=${athlete.id}`}>
+                  <Ban className="mr-2 h-4 w-4" />
+                  {t('quickActions.addRestriction')}
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className={actionButtonClass}>
+                <Link href={`${basePath}/screenings/new?clientId=${athlete.id}`}>
+                  <TrendingUp className="mr-2 h-4 w-4" />
+                  {t('quickActions.movementScreen')}
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className={actionButtonClass}>
+                <Link href={`${basePath}/messages?clientId=${athlete.id}`}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  {t('quickActions.careTeamChat')}
+                </Link>
+              </Button>
+            </div>
+          </RolePanel>
+        </div>
+
+        <div className="lg:col-span-2">
+          <Tabs defaultValue="injuries" className="w-full">
+            <TabsList className="mb-4 grid h-auto w-full grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60 sm:grid-cols-3 xl:flex xl:justify-start">
+              {[
+                ['injuries', t('tabs.injuries')],
+                ['restrictions', t('tabs.restrictions')],
+                ['rehab', t('tabs.rehab')],
+                ['treatments', t('tabs.treatments')],
+                ['metrics', t('tabs.checkIns')],
+              ].map(([value, label]) => (
+                <TabsTrigger
+                  key={value}
+                  value={value}
+                  className="data-[state=active]:bg-emerald-50 data-[state=active]:text-emerald-700 dark:data-[state=active]:bg-emerald-950/30 dark:data-[state=active]:text-emerald-300"
+                >
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <TabsContent value="injuries">
+              <RolePanel className="p-5">
+                <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                  <AlertTriangle className="h-5 w-5 text-red-500" />
+                  {t('sections.activeInjuries')}
+                </h2>
+                {athlete.injuryAssessments.length === 0 ? (
+                  <p className="py-8 text-center text-zinc-500 dark:text-zinc-400">{t('empty.noActiveInjuries')}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {athlete.injuryAssessments.map((injury) => (
+                      <div key={injury.id} className={listItemClass}>
+                        <div className="mb-2 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-zinc-950 dark:text-zinc-50">{injury.injuryType}</p>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">{injury.bodyPart}</p>
+                          </div>
+                          <Badge variant="outline" className={phaseColors[injury.phase] ?? phaseColors.FUNCTIONAL}>
+                            {formatPhase(injury.phase)}
+                          </Badge>
+                        </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-xs text-zinc-500 dark:text-zinc-500">{t('labels.pain')}:</span>
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                            <div
+                              className="h-full bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500"
+                              style={{ width: `${injury.painLevel * 10}%` }}
+                            />
+                          </div>
+                          <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">{injury.painLevel}/10</span>
+                        </div>
+                        <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <p className="text-xs text-zinc-500 dark:text-zinc-500">
+                            {t('labels.assessed')}: {new Date(injury.date).toLocaleDateString()}
+                          </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-emerald-200 text-emerald-700 hover:text-emerald-800 dark:border-emerald-900/60 dark:text-emerald-300 dark:hover:text-emerald-200"
+                            disabled={clearingInjuryId === injury.id}
+                            onClick={() => void clearInjury(injury.id)}
+                          >
+                            {clearingInjuryId === injury.id ? (
+                              <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="mr-1 h-3 w-3" />
+                            )}
+                            {t('actions.clearInjury')}
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </RolePanel>
+            </TabsContent>
+
+            <TabsContent value="restrictions">
+              <RolePanel className="p-5">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                    <Ban className="h-5 w-5 text-orange-500" />
+                    {t('sections.activeRestrictions')}
+                  </h2>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`${basePath}/restrictions/new?clientId=${athlete.id}`}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      {t('actions.add')}
+                    </Link>
+                  </Button>
+                </div>
+                {athlete.trainingRestrictions.length === 0 ? (
+                  <p className="py-8 text-center text-zinc-500 dark:text-zinc-400">{t('empty.noActiveRestrictions')}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {athlete.trainingRestrictions.map((restriction) => {
+                      const bodyParts = Array.isArray(restriction.bodyParts)
+                        ? restriction.bodyParts.filter((part): part is string => typeof part === 'string')
+                        : []
+
+                      return (
+                        <Link
+                          key={restriction.id}
+                          href={`${basePath}/restrictions/${restriction.id}`}
+                          className={cn('block transition-colors hover:border-orange-200 dark:hover:border-orange-900/60', listItemClass)}
+                        >
+                          <div className="mb-2 flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-zinc-950 dark:text-zinc-50">
+                                {formatRestrictionType(restriction.type)}
+                              </p>
+                              {bodyParts.length > 0 && (
+                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                  {bodyParts.join(', ')}
+                                </p>
+                              )}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className={severityColors[restriction.severity] ?? severityColors.MODERATE}
+                            >
+                              {formatSeverity(restriction.severity)}
+                            </Badge>
+                          </div>
+                          {restriction.reason && (
+                            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">{restriction.reason}</p>
+                          )}
+                          <div className="mt-3 flex flex-col gap-1 text-xs text-zinc-500 dark:text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+                            <span>{t('labels.createdBy')}: {restriction.createdBy?.name ?? t('labels.unknown')}</span>
+                            {restriction.endDate && (
+                              <span>{t('labels.until')}: {new Date(restriction.endDate).toLocaleDateString()}</span>
+                            )}
+                          </div>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </RolePanel>
+            </TabsContent>
+
+            <TabsContent value="rehab">
+              <RolePanel className="p-5">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                    <Activity className="h-5 w-5 text-blue-500" />
+                    {t('sections.rehabPrograms')}
+                  </h2>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`${basePath}/rehab-programs/new?clientId=${athlete.id}`}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      {t('actions.create')}
+                    </Link>
+                  </Button>
+                </div>
+                {athlete.rehabPrograms.length === 0 ? (
+                  <p className="py-8 text-center text-zinc-500 dark:text-zinc-400">{t('empty.noActiveRehabPrograms')}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {athlete.rehabPrograms.map((program) => (
+                      <Link
+                        key={program.id}
+                        href={`${basePath}/rehab-programs/${program.id}`}
+                        className={cn('block transition-colors hover:border-blue-200 dark:hover:border-blue-900/60', listItemClass)}
+                      >
+                        <div className="mb-2 flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-zinc-950 dark:text-zinc-50">{program.name}</p>
+                            {program.injury && (
+                              <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                {program.injury.injuryType} - {program.injury.bodyPart}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex shrink-0 items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className={phaseColors[program.currentPhase] ?? phaseColors.FUNCTIONAL}
+                            >
+                              {formatPhase(program.currentPhase)}
+                            </Badge>
+                            <ChevronRight className="h-4 w-4 text-zinc-400" />
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-4 text-xs text-zinc-500 dark:text-zinc-500">
+                          <span>{program.exercises?.length ?? 0} {t('labels.exercises')}</span>
+                          <span>{program.milestones?.length ?? 0} {t('labels.milestones')}</span>
+                          <span>{program._count?.progressLogs ?? 0} {t('labels.logs')}</span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </RolePanel>
+            </TabsContent>
+
+            <TabsContent value="treatments">
+              <RolePanel className="p-5">
+                <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                    <Stethoscope className="h-5 w-5 text-emerald-500" />
+                    {t('sections.recentTreatments')}
+                  </h2>
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`${basePath}/treatments/new?clientId=${athlete.id}`}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      {t('actions.new')}
+                    </Link>
+                  </Button>
+                </div>
+                {athlete.treatmentSessions.length === 0 ? (
+                  <p className="py-8 text-center text-zinc-500 dark:text-zinc-400">{t('empty.noTreatmentSessions')}</p>
+                ) : (
+                  <div className="space-y-3">
+                    {athlete.treatmentSessions.map((session) => (
+                      <Link
+                        key={session.id}
+                        href={`${basePath}/treatments/${session.id}`}
+                        className={cn('block transition-colors hover:border-emerald-200 dark:hover:border-emerald-900/60', listItemClass)}
+                      >
+                        <div className="mb-2 flex items-start justify-between gap-3">
+                          <div>
+                            <p className="font-medium text-zinc-950 dark:text-zinc-50">
+                              {formatTreatmentType(session.treatmentType)}
+                            </p>
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                              {new Date(session.sessionDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-zinc-400" />
+                        </div>
+                        {(session.painBefore !== null || session.painAfter !== null) && (
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+                            {session.painBefore !== null && (
+                              <span>
+                                {t('labels.painBefore')}: <span className="font-medium text-zinc-800 dark:text-zinc-100">{session.painBefore}/10</span>
+                              </span>
+                            )}
+                            {session.painAfter !== null && (
+                              <span>
+                                {t('labels.after')}: <span className="font-medium text-zinc-800 dark:text-zinc-100">{session.painAfter}/10</span>
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                <Button asChild variant="ghost" className="mt-4 w-full text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50">
+                  <Link href={`${basePath}/athletes/${athlete.id}/history`}>
+                    {t('actions.viewFullHistory')}
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </Link>
+                </Button>
+              </RolePanel>
+            </TabsContent>
+
+            <TabsContent value="metrics">
+              <RolePanel className="p-5">
+                <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                  <Calendar className="h-5 w-5 text-violet-500" />
+                  {t('sections.recentCheckIns')}
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                  {t('descriptions.recentCheckIns')}
+                </p>
+                {athlete.dailyMetrics.length === 0 ? (
+                  <p className="py-8 text-center text-zinc-500 dark:text-zinc-400">{t('empty.noRecentCheckIns')}</p>
+                ) : (
+                  <div className="mt-4 space-y-2">
+                    {athlete.dailyMetrics.map((metric, index) => (
+                      <div
+                        key={`${metric.date}-${index}`}
+                        className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50 sm:flex-row sm:items-center sm:justify-between"
+                      >
+                        <span className="font-medium text-zinc-700 dark:text-zinc-200">
+                          {new Date(metric.date).toLocaleDateString()}
+                        </span>
+                        <div className="flex flex-wrap items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+                          {metric.injuryPain !== null && (
+                            <span>
+                              {t('labels.pain')}: <span className="font-medium text-zinc-800 dark:text-zinc-100">{metric.injuryPain}/10</span>
+                            </span>
+                          )}
+                          {metric.muscleSoreness !== null && (
+                            <span>
+                              {t('labels.soreness')}: <span className="font-medium text-zinc-800 dark:text-zinc-100">{metric.muscleSoreness}/10</span>
+                            </span>
+                          )}
+                          {metric.readinessLevel !== null && (
+                            <span>
+                              {t('labels.readiness')}: <span className="font-medium text-zinc-800 dark:text-zinc-100">{metric.readinessLevel}/10</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </RolePanel>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </RolePageFrame>
+  )
 }
