@@ -40,6 +40,12 @@ function getProgressionColor(status: string | null): string {
   }
 }
 
+const clientRowClass =
+  'flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition-colors hover:border-orange-200 hover:bg-orange-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-orange-900/60 dark:hover:bg-orange-950/20'
+
+const quietStateClass =
+  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
+
 type GymClientListTranslator = ReturnType<typeof useTranslations>
 
 function formatLastActivity(days: number | null, t: GymClientListTranslator): string {
@@ -95,11 +101,11 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
       </GlassCardHeader>
       <GlassCardContent>
         {loading ? (
-          <div className="flex justify-center py-4">
+          <div className={quietStateClass}>
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : clients.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
+          <div className={quietStateClass}>
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('empty')}</p>
           </div>
@@ -109,13 +115,13 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
               <Link
                 key={client.id}
                 href={`${basePath}/coach/clients/${client.id}`}
-                className="flex items-center gap-2 py-1.5 px-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition"
+                className={clientRowClass}
               >
-                <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-[10px] font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10">
                   {getInitials(client.name)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate dark:text-slate-200">{client.name}</p>
+                  <p className="truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">{client.name}</p>
                 </div>
                 {/* Key metrics */}
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -130,10 +136,10 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
                       {client.injuryCount}
                     </Badge>
                   )}
-                  <span className="text-[10px] text-muted-foreground w-8 text-right">
+                  <span className="w-10 rounded-md bg-zinc-50 px-1.5 py-1 text-right text-[10px] text-muted-foreground dark:bg-zinc-900/70">
                     {client.completedSessionsThisWeek}/{client.totalSessionsThisWeek}
                   </span>
-                  <span className={cn('text-[10px] w-6 text-right', getProgressionColor(client.worstProgressionStatus))}>
+                  <span className={cn('w-8 text-right text-[10px]', getProgressionColor(client.worstProgressionStatus))}>
                     {formatLastActivity(client.daysSinceLastActivity, t)}
                   </span>
                 </div>

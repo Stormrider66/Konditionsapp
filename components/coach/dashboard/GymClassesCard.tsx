@@ -45,6 +45,12 @@ const classTypeColors: Record<string, string> = {
   OTHER: 'bg-slate-500',
 }
 
+const classRowClass =
+  'rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-violet-200 hover:bg-violet-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-violet-900/60 dark:hover:bg-violet-950/20'
+
+const quietStateClass =
+  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
+
 interface GymClassesCardProps {
   basePath: string
 }
@@ -126,13 +132,13 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
       </GlassCardHeader>
       <GlassCardContent>
         {loading ? (
-          <div className="flex justify-center py-4">
+          <div className={quietStateClass}>
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : loadFailed ? (
           <CardLoadError onRetry={() => void fetchClasses()} />
         ) : classes.length === 0 ? (
-          <div className="text-center py-6 text-muted-foreground">
+          <div className={quietStateClass}>
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('empty.title')}</p>
             <p className="text-xs mt-1">{t('empty.description')}</p>
@@ -140,14 +146,14 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
         ) : (
           <div className="space-y-2">
             {classes.slice(0, 5).map(cls => (
-              <div key={cls.id} className="flex items-center gap-3 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+              <div key={cls.id} className={`flex items-center gap-3 ${classRowClass}`}>
                 <div className={cn(
-                  'w-1 h-10 rounded-full flex-shrink-0',
+                  'h-11 w-1 flex-shrink-0 rounded-full',
                   cls.color || classTypeColors[cls.classType] || 'bg-slate-400'
                 )} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate dark:text-slate-200">{cls.className}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <p className="truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">{cls.className}</p>
+                  <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-0.5">
                       <Clock className="h-3 w-3" />
                       {new Date(cls.startTime).toLocaleTimeString(timeLocale, { hour: '2-digit', minute: '2-digit' })}
@@ -160,12 +166,12 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
                     )}
                   </div>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <div className="flex items-center gap-1">
+                <div className="flex-shrink-0 rounded-lg border border-zinc-200 bg-zinc-50 px-2.5 py-1.5 text-right dark:border-white/10 dark:bg-zinc-900/60">
+                  <div className="flex items-center justify-end gap-1">
                     <Users className="h-3 w-3 text-muted-foreground" />
                     <span className={cn(
                       'text-sm font-medium',
-                      cls.bookedCount >= cls.maxCapacity ? 'text-red-500' : 'dark:text-slate-200'
+                      cls.bookedCount >= cls.maxCapacity ? 'text-red-500' : 'text-zinc-800 dark:text-zinc-200'
                     )}>
                       {cls.bookedCount}/{cls.maxCapacity}
                     </span>

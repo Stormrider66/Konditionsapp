@@ -72,11 +72,11 @@ const TYPE_ICONS: Record<string, typeof Dumbbell> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  strength: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  cardio: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
-  agility: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
-  hybrid: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  external: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  strength: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800/40 dark:bg-orange-950/25 dark:text-orange-300',
+  cardio: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/40 dark:bg-blue-950/25 dark:text-blue-300',
+  agility: 'border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800/40 dark:bg-purple-950/25 dark:text-purple-300',
+  hybrid: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/40 dark:bg-red-950/25 dark:text-red-300',
+  external: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/40 dark:bg-emerald-950/25 dark:text-emerald-300',
 };
 
 const SOURCE_LABELS: Record<string, string> = {
@@ -87,6 +87,12 @@ const SOURCE_LABELS: Record<string, string> = {
   OUTLOOK: 'Outlook',
   ICAL_URL: 'Kalender',
 };
+
+const appointmentRowClass =
+  'rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-emerald-200 hover:bg-emerald-50/40 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/20';
+
+const quietStateClass =
+  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40';
 
 function getDateLabel(date: Date, locale: Locale, today: string, tomorrow: string, yesterday: string): string {
   if (isToday(date)) return today;
@@ -145,18 +151,18 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
               {t('title')}
             </GlassCardTitle>
             {/* Date Navigation */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 dark:border-white/10 dark:bg-zinc-950/40">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 rounded-md"
                 onClick={goToPreviousDay}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <button
                 onClick={showTodayButton ? goToToday : undefined}
-                className={`text-xs font-medium min-w-[60px] text-center ${
+                className={`min-w-[60px] rounded-md px-1 text-center text-xs font-medium ${
                   showTodayButton
                     ? 'text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer'
                     : 'text-slate-700 dark:text-slate-300'
@@ -167,7 +173,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6"
+                className="h-6 w-6 rounded-md"
                 onClick={goToNextDay}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -199,7 +205,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                 return (
                   <div
                     key={`${appointment.type}-${appointment.id}`}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition"
+                    className={`flex items-center justify-between gap-3 ${appointmentRowClass}`}
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate dark:text-slate-200">
@@ -210,7 +216,8 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                       </p>
                     </div>
                     <Badge
-                      className={`text-xs ${TYPE_COLORS[appointment.type] || TYPE_COLORS.external}`}
+                      variant="outline"
+                      className={`h-7 shrink-0 gap-1 text-xs ${TYPE_COLORS[appointment.type] || TYPE_COLORS.external}`}
                       style={appointment.color ? { backgroundColor: appointment.color + '20', color: appointment.color } : undefined}
                     >
                       <Icon className="h-3 w-3" />
@@ -235,18 +242,18 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
   const showTodayButton = !isToday(selectedDate);
 
   const renderDateNavigation = () => (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 dark:border-white/10 dark:bg-zinc-950/40">
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7"
+        className="h-7 w-7 rounded-md"
         onClick={goToPreviousDay}
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <button
         onClick={showTodayButton ? goToToday : undefined}
-        className={`text-sm font-medium min-w-[70px] text-center ${
+        className={`min-w-[70px] rounded-md px-1 text-center text-sm font-medium ${
           showTodayButton
             ? 'text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer'
             : 'text-slate-700 dark:text-slate-300'
@@ -257,7 +264,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
       <Button
         variant="ghost"
         size="icon"
-        className="h-7 w-7"
+        className="h-7 w-7 rounded-md"
         onClick={goToNextDay}
       >
         <ChevronRight className="h-4 w-4" />
@@ -278,7 +285,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           </div>
         </GlassCardHeader>
         <GlassCardContent>
-          <div className="flex items-center justify-center py-8">
+          <div className={quietStateClass}>
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         </GlassCardContent>
@@ -299,7 +306,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           </div>
         </GlassCardHeader>
         <GlassCardContent>
-          <div className="text-center py-6 text-muted-foreground">
+          <div className={quietStateClass}>
             <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{isToday(selectedDate) ? t('empty.noneToday') : t('empty.none')}</p>
             <p className="text-xs mt-1">
@@ -335,11 +342,11 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           return (
             <div
               key={`${appointment.type}-${appointment.id}`}
-              className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+              className={`flex items-start gap-3 ${appointmentRowClass}`}
             >
               {/* Time */}
-              <div className="flex-shrink-0 w-12 text-center">
-                <span className="text-lg font-bold dark:text-slate-200">
+              <div className="flex w-14 flex-shrink-0 justify-center rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-center dark:border-white/10 dark:bg-zinc-900/60">
+                <span className="text-sm font-semibold text-zinc-950 dark:text-zinc-100">
                   {appointment.startTime}
                 </span>
               </div>
@@ -347,7 +354,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <Badge className={`text-xs ${TYPE_COLORS[appointment.type]}`}>
+                  <Badge variant="outline" className={`gap-1 text-xs ${TYPE_COLORS[appointment.type]}`}>
                     <Icon className="h-3 w-3 mr-1" />
                     {t(`types.${appointment.type}`)}
                   </Badge>

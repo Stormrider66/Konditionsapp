@@ -27,6 +27,12 @@ interface StrengthPRFeedProps {
   recentPRs: PRRecord[]
 }
 
+const prRowClass =
+  'flex items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-amber-200 hover:bg-amber-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-amber-900/60 dark:hover:bg-amber-950/20'
+
+const quietStateClass =
+  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
+
 export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
   const t = useTranslations('components.strengthPRFeed')
   const dateLocale = useLocale() === 'sv' ? sv : enUS
@@ -41,23 +47,23 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
       </GlassCardHeader>
       <GlassCardContent>
         {recentPRs.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
+          <div className={quietStateClass}>
             <Trophy className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('empty.thisWeek')}</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-64 overflow-y-auto">
+          <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
             {recentPRs.slice(0, 10).map(pr => {
               const delta = pr.previousMax ? pr.oneRepMax - pr.previousMax : null
               const dateStr = format(new Date(pr.date), 'd MMM HH:mm', { locale: dateLocale })
 
               return (
-                <div key={pr.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition">
-                  <div className="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
-                    <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <div key={pr.id} className={prRowClass}>
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/25">
+                    <Trophy className="h-4 w-4 text-amber-600 dark:text-amber-300" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium dark:text-slate-200">
+                    <p className="truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">
                       {pr.clientName}
                     </p>
                     <p className="text-xs text-muted-foreground">

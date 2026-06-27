@@ -53,6 +53,9 @@ const priorityDots: Record<string, string> = {
   LOW: 'bg-slate-300',
 }
 
+const quietStateClass =
+  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
+
 export function CoachTaskCard() {
   const t = useTranslations('components.coachTaskCard')
   const locale = useLocale()
@@ -157,7 +160,7 @@ export function CoachTaskCard() {
       </GlassCardHeader>
       <GlassCardContent>
         {/* Add task */}
-        <div className="flex gap-2 mb-3">
+        <div className="mb-4 flex gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 dark:border-white/10 dark:bg-zinc-950/40">
           <Input
             placeholder={t('newTaskPlaceholder')}
             value={newTitle}
@@ -165,26 +168,26 @@ export function CoachTaskCard() {
             onKeyDown={e => {
               if (e.key === 'Enter') void addTask()
             }}
-            className="h-8 text-sm"
+            className="h-9 bg-white text-sm dark:bg-zinc-950/60"
           />
-          <Button size="sm" className="h-8 px-2" onClick={() => void addTask()} disabled={adding || !newTitle.trim()}>
+          <Button size="sm" className="h-9 px-3" onClick={() => void addTask()} disabled={adding || !newTitle.trim()}>
             {adding ? <Loader2 className="h-3 w-3 animate-spin" /> : <Plus className="h-3 w-3" />}
           </Button>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-4">
+          <div className={quietStateClass}>
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : loadFailed ? (
           <CardLoadError onRetry={() => void fetchTasks()} />
         ) : pendingTasks.length === 0 && completedTasks.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
+          <div className={quietStateClass}>
             <ListTodo className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('empty')}</p>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-2">
             {/* Pending tasks */}
             {pendingTasks.slice(0, 8).map(task => (
               <TaskRow key={task.id} task={task} onToggle={toggleTask} onDelete={deleteTask} dateLocale={dateLocale} />
@@ -200,7 +203,7 @@ export function CoachTaskCard() {
               <>
                 <button
                   onClick={() => setShowCompleted(!showCompleted)}
-                  className="text-xs text-muted-foreground hover:text-foreground transition-colors pt-2 w-full text-left"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground dark:border-white/10 dark:bg-zinc-950/40"
                 >
                   {showCompleted ? t('hideCompleted', { count: completedTasks.length }) : t('showCompleted', { count: completedTasks.length })}
                 </button>
@@ -225,8 +228,8 @@ function TaskRow({ task, onToggle, onDelete, dateLocale }: {
   const isCompleted = task.status === 'COMPLETED'
 
   return (
-    <div className="flex items-center gap-2 py-1.5 group">
-      <button onClick={() => void onToggle(task)} className="flex-shrink-0">
+    <div className="group flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-blue-900/60 dark:hover:bg-blue-950/20">
+      <button type="button" onClick={() => void onToggle(task)} className="flex-shrink-0 rounded-full">
         {isCompleted ? (
           <CheckCircle2 className="h-4 w-4 text-green-500" />
         ) : (
@@ -235,7 +238,7 @@ function TaskRow({ task, onToggle, onDelete, dateLocale }: {
       </button>
       <div className="flex-1 min-w-0">
         <p className={cn(
-          'text-sm truncate',
+          'truncate text-sm font-medium text-zinc-950 dark:text-zinc-100',
           isCompleted && 'line-through text-muted-foreground'
         )}>
           {task.title}
@@ -258,10 +261,12 @@ function TaskRow({ task, onToggle, onDelete, dateLocale }: {
         <div className={cn('w-1.5 h-1.5 rounded-full flex-shrink-0', priorityDots[task.priority])} />
       )}
       <button
+        type="button"
+        aria-label="Delete task"
         onClick={() => void onDelete(task.id)}
-        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+        className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100 focus:opacity-100 dark:hover:bg-red-950/20 dark:hover:text-red-300"
       >
-        <Trash2 className="h-3 w-3 text-muted-foreground hover:text-red-500" />
+        <Trash2 className="h-3 w-3" />
       </button>
     </div>
   )

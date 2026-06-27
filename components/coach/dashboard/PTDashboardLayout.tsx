@@ -25,6 +25,12 @@ import { getTranslations } from '@/i18n/server'
 
 type CoachTranslator = Awaited<ReturnType<typeof getTranslations>>
 
+const listRowClass =
+  'rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-blue-900/60 dark:hover:bg-blue-950/20'
+
+const quietStateClass =
+  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
+
 interface PTDashboardLayoutProps {
   basePath: string
   dateLocale: Locale
@@ -100,7 +106,7 @@ export function PTDashboardLayout({
           </GlassCardHeader>
           <GlassCardContent>
             {recentTests.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
+              <p className={quietStateClass}>
                 {t('ptDashboard.recentTests.empty')}
               </p>
             ) : (
@@ -109,10 +115,10 @@ export function PTDashboardLayout({
                   <Link
                     key={test.id}
                     href={`${basePath}/coach/tests/${test.id}`}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition"
+                    className={`flex items-center justify-between gap-3 ${listRowClass}`}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate dark:text-slate-200">
+                      <p className="truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">
                         {test.client.name}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -149,7 +155,7 @@ export function PTDashboardLayout({
           </GlassCardHeader>
           <GlassCardContent>
             {upcomingEvents.length === 0 ? (
-              <div className="text-center py-4 text-muted-foreground">
+              <div className={quietStateClass}>
                 <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">{t('ptDashboard.upcomingEvents.empty')}</p>
               </div>
@@ -161,7 +167,7 @@ export function PTDashboardLayout({
                     <Link
                       key={event.id}
                       href={`${basePath}/coach/athletes/${event.client.id}/calendar`}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition"
+                      className={`flex items-center gap-3 ${listRowClass}`}
                     >
                       <div className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center',
@@ -172,7 +178,7 @@ export function PTDashboardLayout({
                         {isRace ? <Trophy className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium truncate dark:text-slate-200">{event.title}</p>
+                        <p className="truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">{event.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {event.client.name} {'\u2022'} {format(new Date(event.startDate), 'd MMM', { locale: dateLocale })}
                         </p>
