@@ -2,10 +2,11 @@
 
 import React, { Suspense } from 'react'
 import { useSearchParams, useParams } from 'next/navigation'
-import { ArrowLeft, Stethoscope } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { TreatmentSessionForm } from '@/components/physio/TreatmentSessionForm'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 
 function NewTreatmentContent() {
     const params = useParams()
@@ -17,46 +18,39 @@ function NewTreatmentContent() {
     const injuryId = searchParams.get('injuryId') || undefined
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl">
-            {/* Back Button */}
+        <RolePageFrame contentClassName="max-w-4xl">
             <Button
                 variant="ghost"
-                className="mb-6 text-slate-400 hover:text-white"
+                className="mb-6 text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
                 asChild
             >
                 <Link href={`${basePath}/treatments`}>
-                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    <ArrowLeft className="mr-2 h-4 w-4" />
                     Back to Treatments
                 </Link>
             </Button>
 
-            {/* Page Header */}
-            <div className="mb-8">
-                <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center">
-                        <Stethoscope className="w-5 h-5 text-emerald-500" />
-                    </div>
-                    <h1 className="text-3xl font-bold text-white">New Treatment Session</h1>
-                </div>
-                <p className="text-slate-400">Document a new treatment session with SOAP notes</p>
-            </div>
+            <RolePageHeader
+                eyebrow="Clinical log"
+                title="New Treatment Session"
+                description="Document a new treatment session with SOAP notes."
+            />
 
-            {/* Form */}
             <TreatmentSessionForm
                 preselectedClientId={clientId}
                 preselectedInjuryId={injuryId}
                 basePath={basePath}
             />
-        </div>
+        </RolePageFrame>
     )
 }
 
 export default function BusinessNewTreatmentPage() {
     return (
         <Suspense fallback={
-            <div className="container mx-auto px-4 py-8 text-center">
-                <p className="text-slate-400">Loading...</p>
-            </div>
+            <RolePageFrame contentClassName="max-w-4xl">
+                <p className="text-center text-zinc-500 dark:text-zinc-400">Loading...</p>
+            </RolePageFrame>
         }>
             <NewTreatmentContent />
         </Suspense>
