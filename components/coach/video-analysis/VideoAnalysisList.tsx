@@ -11,10 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  GlassCard,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { VideoUploader } from './VideoUploader'
 import { VideoAnalysisCard } from './VideoAnalysisCard'
 import {
@@ -196,37 +193,38 @@ export function VideoAnalysisList() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-            <Video className="h-6 w-6 text-blue-500" />
+      <RolePageHeader
+        eyebrow="Coach"
+        title={
+          <span className="flex items-center gap-2">
+            <Video className="h-6 w-6 text-blue-600 dark:text-blue-300" />
             {copy(locale, 'Video analysis', 'Videoanalys')}
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">
-            {copy(locale, 'Upload videos for AI-driven technique analysis', 'Ladda upp videos för AI-driven teknikanalys')}
-          </p>
-        </div>
-        <Button onClick={() => setShowUploader(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-          <Upload className="h-4 w-4 mr-2" />
-          {copy(locale, 'Upload video', 'Ladda upp video')}
-        </Button>
-      </div>
+          </span>
+        }
+        description={copy(locale, 'Upload videos for AI-driven technique analysis', 'Ladda upp videos för AI-driven teknikanalys')}
+        actions={
+          <Button onClick={() => setShowUploader(true)} className="bg-blue-600 text-white hover:bg-blue-700">
+            <Upload className="h-4 w-4" />
+            {copy(locale, 'Upload video', 'Ladda upp video')}
+          </Button>
+        }
+      />
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-white/5 p-3 rounded-xl backdrop-blur-sm shadow-md">
+      <RolePanel className="flex flex-col gap-4 p-3 md:flex-row">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
           <Input
             placeholder={copy(locale, 'Search by athlete or exercise...', 'Sök på atlet eller övning...')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white"
+            className="border-zinc-200 bg-white pl-10 text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50"
           />
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
-              <Filter className="h-4 w-4 mr-2 text-slate-400" />
+            <SelectTrigger className="w-[140px] border-zinc-200 bg-white text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50">
+              <Filter className="h-4 w-4 text-zinc-400" />
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -239,7 +237,7 @@ export function VideoAnalysisList() {
           </Select>
 
           <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-[160px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
+            <SelectTrigger className="w-[160px] border-zinc-200 bg-white text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50">
               <SelectValue placeholder={copy(locale, 'Type', 'Typ')} />
             </SelectTrigger>
             <SelectContent>
@@ -255,7 +253,7 @@ export function VideoAnalysisList() {
           </Select>
 
           <Select value={athleteFilter} onValueChange={setAthleteFilter}>
-            <SelectTrigger className="w-[160px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
+            <SelectTrigger className="w-[160px] border-zinc-200 bg-white text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50">
               <SelectValue placeholder={copy(locale, 'Athlete', 'Atlet')} />
             </SelectTrigger>
             <SelectContent>
@@ -268,34 +266,32 @@ export function VideoAnalysisList() {
             </SelectContent>
           </Select>
         </div>
-      </div>
+      </RolePanel>
 
       {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+          <Loader2 className="h-8 w-8 animate-spin text-zinc-400" />
         </div>
       )}
 
       {/* Empty state */}
       {!isLoading && filteredAnalyses.length === 0 && (
-        <GlassCard glow="blue" className="text-center py-12 border border-slate-200 dark:border-white/5">
-          <GlassCardContent>
-            <VideoOff className="h-12 w-12 mx-auto text-slate-450 mb-4" />
-            <h3 className="font-semibold text-lg mb-2 text-slate-900 dark:text-white">{copy(locale, 'No video analyses', 'Inga videoanalyser')}</h3>
-            <p className="text-slate-600 dark:text-slate-400 mb-4">
-              {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || athleteFilter !== 'all'
-                ? copy(locale, 'No analyses match your filters', 'Inga analyser matchar dina filter')
-                : copy(locale, 'Upload your first video for AI analysis', 'Ladda upp din första video för AI-analys')}
-            </p>
-            {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && athleteFilter === 'all' && (
-              <Button onClick={() => setShowUploader(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Upload className="h-4 w-4 mr-2" />
-                {copy(locale, 'Upload video', 'Ladda upp video')}
-              </Button>
-            )}
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-8 text-center sm:p-12">
+          <VideoOff className="mx-auto mb-4 h-12 w-12 text-zinc-300 dark:text-zinc-700" />
+          <h3 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'No video analyses', 'Inga videoanalyser')}</h3>
+          <p className="mb-4 text-zinc-600 dark:text-zinc-400">
+            {searchQuery || statusFilter !== 'all' || typeFilter !== 'all' || athleteFilter !== 'all'
+              ? copy(locale, 'No analyses match your filters', 'Inga analyser matchar dina filter')
+              : copy(locale, 'Upload your first video for AI analysis', 'Ladda upp din första video för AI-analys')}
+          </p>
+          {!searchQuery && statusFilter === 'all' && typeFilter === 'all' && athleteFilter === 'all' && (
+            <Button onClick={() => setShowUploader(true)} className="bg-blue-600 text-white hover:bg-blue-700">
+              <Upload className="h-4 w-4" />
+              {copy(locale, 'Upload video', 'Ladda upp video')}
+            </Button>
+          )}
+        </RolePanel>
       )}
 
       {/* Analysis grid */}

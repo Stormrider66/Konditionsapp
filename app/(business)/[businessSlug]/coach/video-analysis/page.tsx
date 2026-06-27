@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { VideoAnalysisList } from '@/components/coach/video-analysis/VideoAnalysisList'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{
@@ -21,8 +22,8 @@ export default async function BusinessVideoAnalysisPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container max-w-7xl mx-auto py-6 px-4 sm:px-6">
+    <RolePageFrame maxWidth="wide">
       <VideoAnalysisList />
-    </div>
+    </RolePageFrame>
   )
 }
