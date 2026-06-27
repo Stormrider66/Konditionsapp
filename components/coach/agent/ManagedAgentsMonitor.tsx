@@ -14,13 +14,7 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -144,12 +138,10 @@ export function ManagedAgentsMonitor() {
 
   if (error || !data) {
     return (
-      <GlassCard>
-        <GlassCardContent className="py-12 text-center">
-          <AlertTriangle className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
-          <p className="text-muted-foreground">{copy(locale, 'Could not load agent data', 'Kunde inte ladda agentdata')}</p>
-        </GlassCardContent>
-      </GlassCard>
+      <RolePanel className="p-8 text-center sm:p-12">
+        <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-yellow-500" />
+        <p className="text-sm text-zinc-600 dark:text-zinc-400">{copy(locale, 'Could not load agent data', 'Kunde inte ladda agentdata')}</p>
+      </RolePanel>
     )
   }
 
@@ -158,10 +150,15 @@ export function ManagedAgentsMonitor() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Managed Agents</h2>
-          <p className="text-muted-foreground">AI agent monitoring</p>
+          <h2 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <Bot className="h-5 w-5" />
+            </span>
+            Managed Agents
+          </h2>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">AI agent monitoring</p>
         </div>
         <div className="flex items-center gap-3">
           <Badge className={modeConfig.color}>{modeConfig.label}</Badge>
@@ -185,247 +182,229 @@ export function ManagedAgentsMonitor() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard>
-          <GlassCardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-indigo-400" />
-              <span className="text-sm text-muted-foreground">{copy(locale, 'Sessions', 'Sessioner')}</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{data.summary.totalSessions}</p>
-            <p className="text-xs text-muted-foreground">
-              {copy(locale, `${data.summary.activeSessions} active`, `${data.summary.activeSessions} aktiva`)}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-4">
+          <div className="flex items-center gap-2">
+            <Bot className="h-4 w-4 text-violet-500" />
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">{copy(locale, 'Sessions', 'Sessioner')}</span>
+          </div>
+          <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.summary.totalSessions}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {copy(locale, `${data.summary.activeSessions} active`, `${data.summary.activeSessions} aktiva`)}
+          </p>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-400" />
-              <span className="text-sm text-muted-foreground">Tokens</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{formatTokens(data.summary.totalTokens)}</p>
-            <p className="text-xs text-muted-foreground">{data.summary.totalEvents} events</p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-4">
+          <div className="flex items-center gap-2">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">Tokens</span>
+          </div>
+          <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{formatTokens(data.summary.totalTokens)}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{data.summary.totalEvents} events</p>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-green-400" />
-              <span className="text-sm text-muted-foreground">{copy(locale, 'Cost', 'Kostnad')}</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">${data.summary.totalCostUsd.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground">{copy(locale, `last ${days} days`, `senaste ${days} dagar`)}</p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-4">
+          <div className="flex items-center gap-2">
+            <DollarSign className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">{copy(locale, 'Cost', 'Kostnad')}</span>
+          </div>
+          <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">${data.summary.totalCostUsd.toFixed(2)}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">{copy(locale, `last ${days} days`, `senaste ${days} dagar`)}</p>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-400" />
-              <span className="text-sm text-muted-foreground">{copy(locale, 'Response time', 'Svarstid')}</span>
-            </div>
-            <p className="text-2xl font-bold mt-1">{formatMs(data.summary.avgProcessingTimeMs)}</p>
-            <p className="text-xs text-muted-foreground">
-              {data.summary.erroredSessions > 0 && (
-                <span className="text-red-400">{copy(locale, `${data.summary.erroredSessions} errors`, `${data.summary.erroredSessions} fel`)}</span>
-              )}
-              {data.summary.erroredSessions === 0 && copy(locale, 'average', 'genomsnitt')}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-4">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-blue-500" />
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">{copy(locale, 'Response time', 'Svarstid')}</span>
+          </div>
+          <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{formatMs(data.summary.avgProcessingTimeMs)}</p>
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {data.summary.erroredSessions > 0 && (
+              <span className="text-red-500">{copy(locale, `${data.summary.erroredSessions} errors`, `${data.summary.erroredSessions} fel`)}</span>
+            )}
+            {data.summary.erroredSessions === 0 && copy(locale, 'average', 'genomsnitt')}
+          </p>
+        </RolePanel>
       </div>
 
       {/* Agent Type Breakdown */}
-      <GlassCard>
-        <GlassCardHeader>
-          <GlassCardTitle>{copy(locale, 'By agent type', 'Per agenttyp')}</GlassCardTitle>
-          <GlassCardDescription>{copy(locale, 'Sessions, tokens, and cost by agent', 'Sessioner, tokens och kostnad per agent')}</GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <div className="space-y-3">
-            {Object.entries(data.byAgentType).map(([type, stats]) => {
-              const config = AGENT_TYPE_CONFIG[type] || { label: type, icon: Bot, color: '#666' }
-              const Icon = config.icon
-              return (
-                <div key={type} className="flex items-center gap-4 p-3 rounded-lg bg-muted/30">
-                  <div className="flex items-center gap-2 w-40">
-                    <Icon className="h-4 w-4" style={{ color: config.color }} />
-                    <span className="text-sm font-medium">{config.label}</span>
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'By agent type', 'Per agenttyp')}</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{copy(locale, 'Sessions, tokens, and cost by agent', 'Sessioner, tokens och kostnad per agent')}</p>
+        </div>
+        <div className="space-y-3">
+          {Object.entries(data.byAgentType).map(([type, stats]) => {
+            const config = AGENT_TYPE_CONFIG[type] || { label: type, icon: Bot, color: '#666' }
+            const Icon = config.icon
+            return (
+              <div key={type} className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/60 lg:flex-row lg:items-center lg:gap-4">
+                <div className="flex items-center gap-2 lg:w-40">
+                  <Icon className="h-4 w-4" style={{ color: config.color }} />
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">{config.label}</span>
+                </div>
+                <div className="grid flex-1 grid-cols-2 gap-3 text-sm lg:grid-cols-4">
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400">{copy(locale, 'Sessions: ', 'Sessioner: ')}</span>
+                    <span className="font-medium text-zinc-950 dark:text-zinc-50">{stats.sessions}</span>
+                    {stats.activeSessions > 0 && (
+                      <Badge variant="outline" className="ml-1 text-xs">
+                        {copy(locale, `${stats.activeSessions} active`, `${stats.activeSessions} aktiva`)}
+                      </Badge>
+                    )}
                   </div>
-                  <div className="flex-1 grid grid-cols-4 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">{copy(locale, 'Sessions: ', 'Sessioner: ')}</span>
-                      <span className="font-medium">{stats.sessions}</span>
-                      {stats.activeSessions > 0 && (
-                        <Badge variant="outline" className="ml-1 text-xs">
-                          {copy(locale, `${stats.activeSessions} active`, `${stats.activeSessions} aktiva`)}
-                        </Badge>
-                      )}
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Tokens: </span>
-                      <span className="font-medium">{formatTokens(stats.totalTokens)}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">{copy(locale, 'Avg/session: ', 'Snitt/session: ')}</span>
-                      <span className="font-medium">{formatTokens(stats.avgTokensPerSession)}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">{copy(locale, 'Cost: ', 'Kostnad: ')}</span>
-                      <span className="font-medium">${stats.totalCostUsd.toFixed(3)}</span>
-                    </div>
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400">Tokens: </span>
+                    <span className="font-medium text-zinc-950 dark:text-zinc-50">{formatTokens(stats.totalTokens)}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400">{copy(locale, 'Avg/session: ', 'Snitt/session: ')}</span>
+                    <span className="font-medium text-zinc-950 dark:text-zinc-50">{formatTokens(stats.avgTokensPerSession)}</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500 dark:text-zinc-400">{copy(locale, 'Cost: ', 'Kostnad: ')}</span>
+                    <span className="font-medium text-zinc-950 dark:text-zinc-50">${stats.totalCostUsd.toFixed(3)}</span>
                   </div>
                 </div>
-              )
-            })}
-            {Object.keys(data.byAgentType).length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No agent sessions yet</p>
-            )}
-          </div>
-        </GlassCardContent>
-      </GlassCard>
+              </div>
+            )
+          })}
+          {Object.keys(data.byAgentType).length === 0 && (
+            <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">No agent sessions yet</p>
+          )}
+        </div>
+      </RolePanel>
 
       {/* Cost Trend Chart */}
       {data.dailyCosts.length > 0 && (
-        <GlassCard>
-          <GlassCardHeader>
-            <GlassCardTitle>{copy(locale, 'Cost trend', 'Kostnadstrend')}</GlassCardTitle>
-            <GlassCardDescription>{copy(locale, 'Daily cost and token usage', 'Daglig kostnad och tokenanvändning')}</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart data={data.dailyCosts}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(v) => v.slice(5)}
-                />
-                <YAxis
-                  tick={{ fontSize: 11 }}
-                  tickFormatter={(v) => `$${v}`}
-                />
-                <Tooltip
-                  contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: 8 }}
-                  formatter={(value: number, name: string) => {
-                    if (name === 'cost') return [`$${value.toFixed(3)}`, copy(locale, 'Cost', 'Kostnad')]
-                    return [value, name]
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="cost"
-                  stroke="#6366f1"
-                  fill="#6366f1"
-                  fillOpacity={0.2}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Cost trend', 'Kostnadstrend')}</h3>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{copy(locale, 'Daily cost and token usage', 'Daglig kostnad och tokenanvändning')}</p>
+          </div>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart data={data.dailyCosts}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => v.slice(5)}
+              />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) => `$${v}`}
+              />
+              <Tooltip
+                contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: 8 }}
+                formatter={(value: number, name: string) => {
+                  if (name === 'cost') return [`$${value.toFixed(3)}`, copy(locale, 'Cost', 'Kostnad')]
+                  return [value, name]
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="cost"
+                stroke="#6366f1"
+                fill="#6366f1"
+                fillOpacity={0.2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </RolePanel>
       )}
 
       {/* Event Distribution */}
       {Object.keys(data.eventDistribution).length > 0 && (
-        <GlassCard>
-          <GlassCardHeader>
-            <GlassCardTitle>Event Distribution</GlassCardTitle>
-            <GlassCardDescription>Which events trigger agents</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={Object.entries(data.eventDistribution).map(([type, count]) => ({
-                type: type.replace('GARMIN_', '').replace('_', ' '),
-                count,
-              }))}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                <XAxis dataKey="type" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: 8 }} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-                  {Object.entries(data.eventDistribution).map(([, ], i) => (
-                    <Cell key={i} fill={['#6366f1', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6'][i % 7]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Event Distribution</h3>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Which events trigger agents</p>
+          </div>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={Object.entries(data.eventDistribution).map(([type, count]) => ({
+              type: type.replace('GARMIN_', '').replace('_', ' '),
+              count,
+            }))}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+              <XAxis dataKey="type" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #333', borderRadius: 8 }} />
+              <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                {Object.entries(data.eventDistribution).map(([, ], i) => (
+                  <Cell key={i} fill={['#6366f1', '#22c55e', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6'][i % 7]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </RolePanel>
       )}
 
       {/* Recent Events Feed */}
-      <GlassCard>
-        <GlassCardHeader>
-          <GlassCardTitle>Recent Events</GlassCardTitle>
-          <GlassCardDescription>The 20 latest agent events</GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <div className="space-y-2">
-            {data.recentEvents.map(event => {
-              const agentConfig = event.agentType
-                ? AGENT_TYPE_CONFIG[event.agentType]
-                : null
-              return (
-                <div key={event.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/20 text-sm">
-                  <div className={`w-2 h-2 rounded-full ${event.processed ? 'bg-green-500' : 'bg-yellow-500'}`} />
-                  <span className="text-muted-foreground w-16 text-xs">
-                    {new Date(event.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {event.eventType.replace('GARMIN_', '').replace('_', ' ')}
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Recent Events</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">The 20 latest agent events</p>
+        </div>
+        <div className="space-y-2">
+          {data.recentEvents.map(event => {
+            const agentConfig = event.agentType
+              ? AGENT_TYPE_CONFIG[event.agentType]
+              : null
+            return (
+              <div key={event.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-2 text-sm dark:border-white/10 dark:bg-zinc-900/60">
+                <div className={`h-2 w-2 rounded-full ${event.processed ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span className="w-16 text-xs text-zinc-500 dark:text-zinc-400">
+                  {new Date(event.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+                <Badge variant="outline" className="text-xs">
+                  {event.eventType.replace('GARMIN_', '').replace('_', ' ')}
+                </Badge>
+                {agentConfig && (
+                  <Badge className="text-xs" style={{ backgroundColor: `${agentConfig.color}20`, color: agentConfig.color }}>
+                    {agentConfig.label}
                   </Badge>
-                  {agentConfig && (
-                    <Badge className="text-xs" style={{ backgroundColor: `${agentConfig.color}20`, color: agentConfig.color }}>
-                      {agentConfig.label}
-                    </Badge>
-                  )}
-                  {event.modelIntent && (
-                    <span className="text-xs text-muted-foreground">{event.modelIntent}</span>
-                  )}
-                  <span className="text-xs text-muted-foreground ml-auto font-mono">
-                    {event.entityId.slice(0, 8)}...
-                  </span>
-                </div>
-              )
-            })}
-            {data.recentEvents.length === 0 && (
-              <p className="text-center text-muted-foreground py-4">No events yet</p>
-            )}
-          </div>
-        </GlassCardContent>
-      </GlassCard>
+                )}
+                {event.modelIntent && (
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">{event.modelIntent}</span>
+                )}
+                <span className="ml-auto font-mono text-xs text-zinc-500 dark:text-zinc-400">
+                  {event.entityId.slice(0, 8)}...
+                </span>
+              </div>
+            )
+          })}
+          {data.recentEvents.length === 0 && (
+            <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">No events yet</p>
+          )}
+        </div>
+      </RolePanel>
 
       {/* Shadow Comparison */}
       {data.shadowComparison && (
-        <GlassCard>
-          <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-yellow-400" />
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              <Shield className="h-5 w-5 text-amber-500" />
               Shadow Mode Comparison
-            </GlassCardTitle>
-            <GlassCardDescription>Agent vs. cron decisions in shadow mode</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium mb-2">{copy(locale, 'Agent decisions', 'Agentbeslut')}</p>
-                <p className="text-2xl font-bold">{data.shadowComparison.agentDecisions.length}</p>
-              </div>
-              <div>
-                <p className="text-sm font-medium mb-2">{copy(locale, 'Cron decisions', 'Cron-beslut')}</p>
-                <p className="text-2xl font-bold">{data.shadowComparison.cronDecisions.length}</p>
-              </div>
+            </h3>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Agent vs. cron decisions in shadow mode</p>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">{copy(locale, 'Agent decisions', 'Agentbeslut')}</p>
+              <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.shadowComparison.agentDecisions.length}</p>
             </div>
-            {data.shadowComparison.matchRate !== null && (
-              <div className="mt-4 p-3 rounded-lg bg-muted/30">
-                <p className="text-sm text-muted-foreground">{copy(locale, 'Match rate', 'Matchningsgrad')}</p>
-                <p className="text-xl font-bold">{(data.shadowComparison.matchRate * 100).toFixed(1)}%</p>
-              </div>
-            )}
-          </GlassCardContent>
-        </GlassCard>
+            <div>
+              <p className="mb-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">{copy(locale, 'Cron decisions', 'Cron-beslut')}</p>
+              <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.shadowComparison.cronDecisions.length}</p>
+            </div>
+          </div>
+          {data.shadowComparison.matchRate !== null && (
+            <div className="mt-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/60">
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{copy(locale, 'Match rate', 'Matchningsgrad')}</p>
+              <p className="text-xl font-semibold text-zinc-950 dark:text-zinc-50">{(data.shadowComparison.matchRate * 100).toFixed(1)}%</p>
+            </div>
+          )}
+        </RolePanel>
       )}
     </div>
   )

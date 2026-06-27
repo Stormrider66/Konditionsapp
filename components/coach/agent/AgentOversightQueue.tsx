@@ -9,13 +9,7 @@
 
 import { useState, useCallback } from 'react'
 import useSWR from 'swr'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -26,8 +20,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Bot,
   Search,
@@ -208,12 +200,14 @@ export function AgentOversightQueue({
   if (compact) {
     // Compact mode for dashboard widget
     return (
-      <GlassCard>
-        <GlassCardHeader className="pb-2">
+      <RolePanel className="p-5">
+        <div className="mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Bot className="h-5 w-5 text-indigo-500" />
-              <GlassCardTitle className="text-base">Agent Oversight</GlassCardTitle>
+              <span className="flex h-9 w-9 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+                <Bot className="h-4 w-4" />
+              </span>
+              <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Agent Oversight</h3>
             </div>
             {data?.counts.proposed ? (
               <Badge variant="destructive">{data.counts.proposed} pending</Badge>
@@ -223,8 +217,8 @@ export function AgentOversightQueue({
               </Badge>
             )}
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+        </div>
+        <div>
           {isLoading ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -279,8 +273,8 @@ export function AgentOversightQueue({
               )}
             </div>
           )}
-        </GlassCardContent>
-      </GlassCard>
+        </div>
+      </RolePanel>
     )
   }
 
@@ -290,11 +284,13 @@ export function AgentOversightQueue({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bot className="h-6 w-6 text-indigo-500" />
+          <h1 className="flex items-center gap-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <Bot className="h-5 w-5" />
+            </span>
             Agent Oversight Queue
           </h1>
-          <p className="text-muted-foreground">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             Review and approve AI agent actions for your athletes
           </p>
         </div>
@@ -309,53 +305,45 @@ export function AgentOversightQueue({
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Pending Review</p>
-                <p className="text-2xl font-bold">{data?.counts.proposed || 0}</p>
-              </div>
-              <Clock className="h-8 w-8 text-amber-500 opacity-50" />
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Pending Review</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data?.counts.proposed || 0}</p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+            <Clock className="h-8 w-8 text-amber-500 opacity-50" />
+          </div>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Auto-Applied</p>
-                <p className="text-2xl font-bold">{data?.counts.autoApplied || 0}</p>
-              </div>
-              <Bot className="h-8 w-8 text-indigo-500 opacity-50" />
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Auto-Applied</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data?.counts.autoApplied || 0}</p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+            <Bot className="h-8 w-8 text-violet-500 opacity-50" />
+          </div>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold">{data?.counts.accepted || 0}</p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-green-500 opacity-50" />
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Approved</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data?.counts.accepted || 0}</p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+            <CheckCircle2 className="h-8 w-8 text-emerald-500 opacity-50" />
+          </div>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Rejected</p>
-                <p className="text-2xl font-bold">{data?.counts.rejected || 0}</p>
-              </div>
-              <XCircle className="h-8 w-8 text-red-500 opacity-50" />
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Rejected</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data?.counts.rejected || 0}</p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+            <XCircle className="h-8 w-8 text-red-500 opacity-50" />
+          </div>
+        </RolePanel>
       </div>
 
       {/* Filters */}
@@ -405,26 +393,24 @@ export function AgentOversightQueue({
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : error ? (
-        <GlassCard>
-          <GlassCardContent className="py-8 text-center">
-            <p className="text-red-500">Failed to load oversight queue</p>
-            <Button variant="outline" size="sm" onClick={() => mutate()} className="mt-4">
-              Try Again
-            </Button>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-8 text-center">
+          <p className="text-red-500">Failed to load oversight queue</p>
+          <Button variant="outline" size="sm" onClick={() => mutate()} className="mt-4">
+            Try Again
+          </Button>
+        </RolePanel>
       ) : filteredActions.length === 0 ? (
-        <GlassCard>
-          <GlassCardContent className="py-12 text-center">
-            <Bot className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">No Actions Pending</h3>
-            <p className="text-muted-foreground">
-              {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all'
-                ? 'No actions match your filters'
-                : 'The AI agent has no actions that require your review'}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-8 text-center sm:p-12">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-400">
+            <Bot className="h-6 w-6" />
+          </div>
+          <h3 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">No Actions Pending</h3>
+          <p className="text-sm text-zinc-600 dark:text-zinc-400">
+            {searchQuery || priorityFilter !== 'all' || typeFilter !== 'all'
+              ? 'No actions match your filters'
+              : 'The AI agent has no actions that require your review'}
+          </p>
+        </RolePanel>
       ) : (
         <div className="grid gap-4">
           {filteredActions.map((action) => (

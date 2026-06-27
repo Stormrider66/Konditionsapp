@@ -7,6 +7,7 @@
 
 import { Metadata } from 'next'
 import { ManagedAgentsMonitor } from '@/components/coach/agent'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 export const metadata: Metadata = {
   title: 'Managed Agents | Coach Dashboard',
@@ -15,8 +16,8 @@ export const metadata: Metadata = {
 
 export default function ManagedAgentsPage() {
   return (
-    <div className="container max-w-6xl py-8">
+    <RolePageFrame contentClassName="max-w-6xl">
       <ManagedAgentsMonitor />
-    </div>
+    </RolePageFrame>
   )
 }

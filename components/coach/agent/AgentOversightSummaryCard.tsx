@@ -9,12 +9,7 @@
 
 import useSWR from 'swr'
 import Link from 'next/link'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Bot, ChevronRight, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react'
@@ -54,12 +49,14 @@ export function AgentOversightSummaryCard({ basePath = '' }: AgentOversightSumma
   const hasCritical = data?.recentActions?.some((a) => a.priority === 'CRITICAL')
 
   return (
-    <GlassCard>
-      <GlassCardHeader className="pb-2">
+    <RolePanel className="p-5">
+      <div className="mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-indigo-500" />
-            <GlassCardTitle className="text-base">AI Agent</GlassCardTitle>
+            <span className="flex h-9 w-9 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <Bot className="h-4 w-4" />
+            </span>
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">AI Agent</h3>
           </div>
           {isLoading ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -77,9 +74,9 @@ export function AgentOversightSummaryCard({ basePath = '' }: AgentOversightSumma
             </Badge>
           )}
         </div>
-      </GlassCardHeader>
+      </div>
 
-      <GlassCardContent className="space-y-3">
+      <div className="space-y-3">
         {isLoading ? (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -134,7 +131,7 @@ export function AgentOversightSummaryCard({ basePath = '' }: AgentOversightSumma
             </Button>
           </>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
