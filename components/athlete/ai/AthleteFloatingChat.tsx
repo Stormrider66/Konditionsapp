@@ -1724,15 +1724,72 @@ export function AthleteFloatingChat({
         )}
       >
         <div className="space-y-2">
-          <AISkillPicker
-            selectedSkillIds={selectedSkillIds}
-            onSelectedSkillIdsChange={setSelectedSkillIds}
-            disabled={isLoading || isImportingWorkout || isLoadingConfig}
-            side="top"
-            align="start"
-            triggerClassName="h-8 text-xs"
-            chipsClassName="max-w-full"
-          />
+          <div className="flex items-start gap-2">
+            <AISkillPicker
+              selectedSkillIds={selectedSkillIds}
+              onSelectedSkillIdsChange={setSelectedSkillIds}
+              disabled={isLoading || isImportingWorkout || isLoadingConfig}
+              side="top"
+              align="start"
+              className="min-w-0 flex-1"
+              triggerClassName="h-8 text-xs"
+              chipsClassName="max-w-full"
+            />
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={() => workoutImportFileInputRef.current?.click()}
+                disabled={isLoading || isImportingWorkout || isVoiceRecording || isTranscribingVoice}
+                className="h-8 w-8"
+                title={locale === 'sv' ? 'Lägg till fil eller bild' : 'Attach file or image'}
+                aria-label={locale === 'sv' ? 'Lägg till fil eller bild' : 'Attach file or image'}
+              >
+                <Paperclip className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                disabled={
+                  isLoading ||
+                  isImportingWorkout ||
+                  isVoiceRecording ||
+                  isTranscribingVoice ||
+                  (!workoutImportFile && !input.trim())
+                }
+                onClick={() => { void prepareWorkoutImportDraft() }}
+                className="h-8 w-8"
+                title={locale === 'sv' ? 'Importera som pass' : 'Import as workout'}
+                aria-label={locale === 'sv' ? 'Importera som pass' : 'Import as workout'}
+              >
+                {isImportingWorkout ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ClipboardList className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant={isVoiceRecording ? 'destructive' : 'outline'}
+                size="icon"
+                disabled={isTranscribingVoice || isImportingWorkout}
+                onClick={() => { void handleVoiceButtonClick() }}
+                className="h-8 w-8"
+                title={voiceButtonLabel}
+                aria-label={voiceButtonLabel}
+              >
+                {isTranscribingVoice ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : isVoiceRecording ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
           <input
             ref={workoutImportFileInputRef}
             type="file"
@@ -1761,17 +1818,6 @@ export function AthleteFloatingChat({
             </div>
           )}
           <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => workoutImportFileInputRef.current?.click()}
-              disabled={isLoading || isImportingWorkout || isVoiceRecording || isTranscribingVoice}
-              className="h-auto px-3"
-              title={locale === 'sv' ? 'Lägg till fil eller bild' : 'Attach file or image'}
-              aria-label={locale === 'sv' ? 'Lägg till fil eller bild' : 'Attach file or image'}
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
             <Textarea
               ref={textareaRef}
               value={input}
@@ -1786,47 +1832,9 @@ export function AthleteFloatingChat({
               disabled={isLoading || isImportingWorkout}
             />
             <Button
-              type="button"
-              variant="outline"
-              disabled={
-                isLoading ||
-                isImportingWorkout ||
-                isVoiceRecording ||
-                isTranscribingVoice ||
-                (!workoutImportFile && !input.trim())
-              }
-              onClick={() => { void prepareWorkoutImportDraft() }}
-              className="h-auto px-3"
-              title={locale === 'sv' ? 'Importera som pass' : 'Import as workout'}
-              aria-label={locale === 'sv' ? 'Importera som pass' : 'Import as workout'}
-            >
-              {isImportingWorkout ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ClipboardList className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant={isVoiceRecording ? 'destructive' : 'outline'}
-              disabled={isTranscribingVoice || isImportingWorkout}
-              onClick={() => { void handleVoiceButtonClick() }}
-              className="h-auto px-3"
-              title={voiceButtonLabel}
-              aria-label={voiceButtonLabel}
-            >
-              {isTranscribingVoice ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isVoiceRecording ? (
-                <Square className="h-4 w-4" />
-              ) : (
-                <Mic className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
               type="submit"
               size="icon"
-              className="h-auto px-3 bg-emerald-600 hover:bg-emerald-700"
+              className="h-auto min-h-[44px] w-12 shrink-0 bg-emerald-600 hover:bg-emerald-700"
               disabled={(!input.trim() && !workoutImportFile) || isLoading || isImportingWorkout || isVoiceRecording || isTranscribingVoice}
               title={workoutImportFile ? (locale === 'sv' ? 'Förbered import' : 'Prepare import') : undefined}
             >
