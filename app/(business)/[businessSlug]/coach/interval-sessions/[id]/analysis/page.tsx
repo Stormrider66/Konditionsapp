@@ -10,6 +10,7 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getSession } from '@/lib/interval-session/session-service'
 import { IntervalAnalysisView } from '@/components/coach/interval-session/IntervalAnalysisView'
 import { Button } from '@/components/ui/button'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 import { getLocale, type Locale } from '@/i18n/server'
 import { ArrowLeft, BarChart3 } from 'lucide-react'
 import Link from 'next/link'
@@ -39,28 +40,34 @@ export default async function IntervalSessionAnalysisPage({ params }: PageProps)
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-5xl">
-      <div className="flex items-center gap-3 mb-6">
-        <Link href={`/${businessSlug}/coach/interval-sessions/${id}`}>
-          <Button variant="ghost" size="sm">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 dark:text-white">
-            <BarChart3 className="h-6 w-6" />
+    <RolePageFrame contentClassName="max-w-5xl">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={
+          <span className="flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-300" />
             {session.name || (isSv ? 'Intervallsession' : 'Interval session')} - {isSv ? 'Analys' : 'Analysis'}
-          </h1>
-          <p className="text-sm text-muted-foreground">
+          </span>
+        }
+        description={
+          <>
             {session.teamName && `${session.teamName} | `}
             {new Date(session.startedAt).toLocaleDateString(isSv ? 'sv-SE' : 'en-US')}
             {session.participantCount > 0 &&
               ` | ${session.participantCount} ${isSv ? 'atleter' : session.participantCount === 1 ? 'athlete' : 'athletes'}`}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/${businessSlug}/coach/interval-sessions/${id}`}>
+              <ArrowLeft className="h-4 w-4" />
+              {isSv ? 'Till session' : 'Back to session'}
+            </Link>
+          </Button>
+        }
+      />
 
       <IntervalAnalysisView sessionId={id} />
-    </div>
+    </RolePageFrame>
   )
 }

@@ -9,6 +9,7 @@ import { DetailedLapTable } from './DetailedLapTable'
 import { AthleteSessionComparison } from './AthleteSessionComparison'
 import { GarminSyncPanel } from './GarminSyncPanel'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import type { AnalysisData } from '@/lib/interval-session/analysis-service'
 import { toast } from 'sonner'
 import { useLocale } from 'next-intl'
@@ -55,7 +56,7 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
+          <div key={i} className="h-48 animate-pulse rounded-lg border border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950/60" />
         ))}
       </div>
     )
@@ -63,9 +64,9 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
 
   if (!data || data.participants.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
+      <RolePanel className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">
         {copy(locale, 'No data to show', 'Ingen data att visa')}
-      </div>
+      </RolePanel>
     )
   }
 
@@ -102,7 +103,7 @@ export function IntervalAnalysisView({ sessionId }: IntervalAnalysisViewProps) {
           <div className="space-y-4">
             {data.participants.length > 1 && (
               <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
-                <SelectTrigger className="w-full sm:w-64">
+                <SelectTrigger className="w-full border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950/60 sm:w-64">
                   <SelectValue placeholder={copy(locale, 'Select athlete...', 'Välj atlet...')} />
                 </SelectTrigger>
                 <SelectContent>
