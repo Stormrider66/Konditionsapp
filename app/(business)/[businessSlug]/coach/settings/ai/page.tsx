@@ -13,8 +13,10 @@ import { ApiKeySettingsClient } from '@/components/coach/settings/ai/ApiKeySetti
 import { DefaultModelSelector } from '@/components/coach/settings/ai/DefaultModelSelector'
 import { AthleteModelSettings } from '@/components/coach/settings/AthleteModelSettings'
 import { getTranslations } from '@/i18n/server'
-
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { Button } from '@/components/ui/button'
+import { ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 interface PageProps {
   params: Promise<{
@@ -34,60 +36,62 @@ export default async function BusinessAISettingsPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none">{t('title')}</h1>
-        <p className="mt-2 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-          {t('description')}
-        </p>
-      </div>
+    <RolePageFrame contentClassName="max-w-4xl">
+      <RolePageHeader
+        eyebrow="Settings"
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/${businessSlug}/coach/settings`}>
+              <ArrowLeft className="h-4 w-4" />
+              Settings
+            </Link>
+          </Button>
+        }
+      />
 
-      {/* Default Model Selection - Most Important */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 px-1">{t('defaultModel')}</h2>
-        <DefaultModelSelector />
-      </div>
+      <div className="space-y-8">
+        <section className="space-y-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500">{t('defaultModel')}</h2>
+          <DefaultModelSelector />
+        </section>
 
-      {/* Athlete Model Restrictions */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 px-1">{t('athleteRestrictions')}</h2>
-        <AthleteModelSettings />
-      </div>
+        <section className="space-y-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500">{t('athleteRestrictions')}</h2>
+          <AthleteModelSettings />
+        </section>
 
-      {/* API Keys Section */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 px-1">{t('apiKeys')}</h2>
-        <ApiKeySettingsClient />
-      </div>
+        <section className="space-y-3">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500">{t('apiKeys')}</h2>
+          <ApiKeySettingsClient />
+        </section>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <GlassCard glow="blue">
-          <GlassCardContent className="p-5 space-y-3">
-            <h3 className="font-black italic uppercase tracking-tight text-sm text-blue-900 dark:text-blue-200">{t('byok.title')}</h3>
-            <p className="text-xs text-slate-600 dark:text-slate-400">
+        <div className="grid gap-4 md:grid-cols-2">
+          <RolePanel className="p-5">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('byok.title')}</h3>
+            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
               {t('byok.description')}
             </p>
-            <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-400 pt-1">
+            <div className="mt-3 space-y-1.5 text-sm text-zinc-600 dark:text-zinc-400">
               <p><strong>Anthropic (Claude):</strong> {t('byok.anthropic')}</p>
               <p><strong>Google (Gemini):</strong> {t('byok.google')}</p>
               <p><strong>OpenAI:</strong> {t('byok.openai')}</p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+          </RolePanel>
 
-        <GlassCard glow="amber">
-          <GlassCardContent className="p-5 space-y-3">
-            <h3 className="font-black italic uppercase tracking-tight text-sm text-amber-900 dark:text-amber-200">{t('costs.title')}</h3>
-            <div className="text-xs text-slate-600 dark:text-slate-400">
-              <ul className="space-y-1.5">
-                <li>• {t('costs.programGeneration')}</li>
-                <li>• {t('costs.documentEmbedding')}</li>
-                <li>• {t('costs.videoAnalysis')}</li>
+          <RolePanel className="p-5">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('costs.title')}</h3>
+            <div className="mt-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+              <ul className="list-disc space-y-1 pl-4">
+                <li>{t('costs.programGeneration')}</li>
+                <li>{t('costs.documentEmbedding')}</li>
+                <li>{t('costs.videoAnalysis')}</li>
               </ul>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+          </RolePanel>
+        </div>
       </div>
-    </div>
+    </RolePageFrame>
   )
 }

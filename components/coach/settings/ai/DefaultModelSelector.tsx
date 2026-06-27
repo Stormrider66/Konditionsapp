@@ -2,13 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -166,45 +160,42 @@ export function DefaultModelSelector() {
 
   if (loading) {
     return (
-      <GlassCard glow="blue">
-        <GlassCardContent className="py-8">
-          <div className="flex items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-          </div>
-        </GlassCardContent>
-      </GlassCard>
+      <RolePanel className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-zinc-500 dark:text-zinc-400" />
+      </RolePanel>
     );
   }
 
   return (
-    <GlassCard glow="blue">
-      <GlassCardHeader>
-        <div className="flex items-center justify-between">
+    <RolePanel className="p-5">
+      <div className="border-b border-zinc-200 pb-5 dark:border-white/10">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🤖</span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+              <Bot className="h-5 w-5" />
+            </div>
             <div>
-              <GlassCardTitle className="text-lg">{copy(locale, 'Default AI model', 'Standard AI-modell')}</GlassCardTitle>
-              <GlassCardDescription>
+              <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Default AI model', 'Standard AI-modell')}</h3>
+              <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
                 {copy(locale, 'Choose which AI model should be used as the default across all AI features', 'Välj vilken AI-modell som ska användas som standard i alla AI-funktioner')}
-              </GlassCardDescription>
+              </p>
             </div>
           </div>
           {defaultModel && (
-            <Badge variant="default" className="bg-blue-500">
-              <Check className="h-3 w-3 mr-1" />
+            <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+              <Check className="h-3 w-3" />
               {copy(locale, 'Configured', 'Konfigurerad')}
             </Badge>
           )}
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
-        <div className="space-y-4">
+      </div>
+      <div className="mt-5 space-y-4">
           <Select
             value={defaultModel?.id || ''}
             onValueChange={handleModelChange}
             disabled={saving}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900">
               <SelectValue placeholder={copy(locale, 'Choose default model', 'Välj standardmodell')}>
                 {defaultModel && (
                   <div className="flex items-center gap-2">
@@ -306,7 +297,7 @@ export function DefaultModelSelector() {
           )}
 
           {success && (
-            <p className="text-sm text-green-600 flex items-center gap-2">
+            <p className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
               <Check className="h-4 w-4" />
               {copy(locale, 'Default model saved!', 'Standardmodell sparad!')}
             </p>
@@ -316,7 +307,7 @@ export function DefaultModelSelector() {
 
           {/* Model details for selected model */}
           {defaultModel && (
-            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+            <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{copy(locale, 'Selected model', 'Vald modell')}: {defaultModel.displayName || defaultModel.name}</span>
                 {defaultModel.bestForLongOutput && (
@@ -325,7 +316,7 @@ export function DefaultModelSelector() {
                   </Badge>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid gap-4 text-sm sm:grid-cols-2">
                 <div>
                   <span className="text-muted-foreground">Max output:</span>{' '}
                   <span className="font-medium">{formatTokenCount(defaultModel.capabilities?.maxOutputTokens)} tokens</span>
@@ -347,25 +338,24 @@ export function DefaultModelSelector() {
           )}
 
           {/* Long program recommendation */}
-          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+          <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/60 dark:bg-blue-950/30">
+            <p className="mb-2 text-sm font-medium text-blue-900 dark:text-blue-100">
               {copy(locale, 'Tips for long training programs', 'Tips för långa träningsprogram')}
             </p>
-            <p className="text-xs text-blue-800 dark:text-blue-200 mb-2">
+            <p className="mb-2 text-xs text-blue-800 dark:text-blue-200">
               {copy(locale, 'To generate 6-9 month programs, choose a model with high output capacity:', 'För att generera 6-9 månaders program, välj en modell med hög output-kapacitet:')}
             </p>
-            <ul className="text-xs text-blue-750 dark:text-blue-350 space-y-1">
-              <li>• <strong>GPT-5.4</strong> - 128K output (~32 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Best for longer programs', 'Bäst för längre program')}</li>
-              <li>• <strong>Gemini 3.1 Pro / Claude Sonnet 4.6</strong> - 64K output (~16 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Good balance', 'Bra balans')}</li>
-              <li>• <strong>Haiku / Nano</strong> - 8-16K output (~2-4 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Fast for short programs', 'Snabbt för korta program')}</li>
+            <ul className="list-disc space-y-1 pl-4 text-xs text-blue-800 dark:text-blue-200">
+              <li><strong>GPT-5.4</strong> - 128K output (~32 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Best for longer programs', 'Bäst för längre program')}</li>
+              <li><strong>Gemini 3.1 Pro / Claude Sonnet 4.6</strong> - 64K output (~16 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Good balance', 'Bra balans')}</li>
+              <li><strong>Haiku / Nano</strong> - 8-16K output (~2-4 {copy(locale, 'weeks', 'veckor')}) - {copy(locale, 'Fast for short programs', 'Snabbt för korta program')}</li>
             </ul>
           </div>
 
           <p className="text-xs text-muted-foreground">
             {copy(locale, 'This model is used automatically in AI Studio, program generation, and other AI features unless you choose another model explicitly.', 'Denna modell används automatiskt i AI Studio, programgenerering, och andra AI-funktioner om du inte väljer en annan modell specifikt.')}
           </p>
-        </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   );
 }

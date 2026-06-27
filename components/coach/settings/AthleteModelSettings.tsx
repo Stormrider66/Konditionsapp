@@ -1,13 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -115,52 +109,49 @@ export function AthleteModelSettings() {
 
   if (loading) {
     return (
-      <GlassCard glow="purple">
-        <GlassCardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </GlassCardContent>
-      </GlassCard>
+      <RolePanel className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-zinc-500 dark:text-zinc-400" />
+      </RolePanel>
     )
   }
 
   if (!hasKeys) {
     return (
-      <GlassCard glow="purple">
-        <GlassCardHeader>
-          <GlassCardTitle className="flex items-center gap-2 text-lg">
+      <RolePanel className="p-5">
+        <div className="flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
             <Users className="h-5 w-5" />
-            {t('athleteModels.title')}
-          </GlassCardTitle>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <p className="text-sm text-muted-foreground">
-            {t('athleteModels.noKeys')}
-          </p>
-        </GlassCardContent>
-      </GlassCard>
+          </div>
+          <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t('athleteModels.title')}</h3>
+        </div>
+        <p className="mt-4 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{t('athleteModels.noKeys')}</p>
+      </RolePanel>
     )
   }
 
   return (
-    <GlassCard glow="purple">
-      <GlassCardHeader>
-        <GlassCardTitle className="flex items-center gap-2 text-lg">
-          <Users className="h-5 w-5" />
-          {t('athleteModels.title')}
-        </GlassCardTitle>
-        <GlassCardDescription>
-          {t('athleteModels.description')}
-        </GlassCardDescription>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-6">
-        {/* Tier checklist */}
+    <RolePanel className="p-5">
+      <div className="border-b border-zinc-200 pb-5 dark:border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <Users className="h-5 w-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t('athleteModels.title')}</h3>
+            <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+              {t('athleteModels.description')}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-5 space-y-6">
         <div className="space-y-3">
           {ALL_TIERS.map((tier) => {
             const tierInfo = INTENT_TIER_LABELS[tier]
             return (
               <label
                 key={tier}
-                className="flex items-start gap-3 p-3 rounded-xl border border-slate-200/50 dark:border-white/5 bg-slate-50/50 dark:bg-white/5 hover:bg-slate-100/50 dark:hover:bg-white/10 cursor-pointer transition-colors"
+                className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-950/60 dark:hover:border-white/20 dark:hover:bg-zinc-900/70"
               >
                 <Checkbox
                   className="mt-0.5"
@@ -169,17 +160,17 @@ export function AthleteModelSettings() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{tierInfo.label}</span>
+                    <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{tierInfo.label}</span>
                     {tier === 'balanced' && (
                       <Badge variant="outline" className="text-xs">
                         {t('athleteModels.tiers.recommendedBadge')}
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                     {tierInfo.description}
                   </p>
-                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                  <p className="mt-1 text-[10px] text-zinc-400 dark:text-zinc-500">
                     {t('athleteModels.tiers.availableModels')} {getTierModelNames(tier)}
                   </p>
                 </div>
@@ -189,19 +180,18 @@ export function AthleteModelSettings() {
         </div>
 
         {allowedTiers.length === 0 && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {t('athleteModels.noSelectionMessage')}
           </p>
         )}
 
-        {/* Default tier dropdown */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">{t('athleteModels.defaultLabel')}</label>
+          <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">{t('athleteModels.defaultLabel')}</label>
           <Select
             value={defaultTier ?? 'auto'}
             onValueChange={(v) => setDefaultTier(v === 'auto' ? null : v as ModelIntent)}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900">
               <SelectValue placeholder={t('athleteModels.autoPlaceholder')} />
             </SelectTrigger>
             <SelectContent>
@@ -215,16 +205,15 @@ export function AthleteModelSettings() {
           </Select>
         </div>
 
-        {/* Save */}
         <Button onClick={handleSave} disabled={saving}>
           {saving ? (
-            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
-            <Save className="h-4 w-4 mr-2" />
+            <Save className="h-4 w-4" />
           )}
           {t('athleteModels.save')}
         </Button>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
