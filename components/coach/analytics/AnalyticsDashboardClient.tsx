@@ -2,13 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from 'next-intl';
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard';
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -129,27 +123,25 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
 
   if (loading) {
     return (
-      <div className="container mx-auto py-6 px-4 max-w-7xl">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
+      <RolePageFrame maxWidth="wide">
+        <RolePanel className="flex min-h-[400px] items-center justify-center">
+          <RefreshCw className="h-6 w-6 animate-spin text-zinc-500 dark:text-zinc-400" />
+        </RolePanel>
+      </RolePageFrame>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="container mx-auto py-6 px-4 max-w-7xl">
-        <GlassCard glow="slate">
-          <GlassCardContent className="py-8 text-center">
-            <p className="text-muted-foreground">{error || 'No data available'}</p>
-            <Button onClick={fetchAnalytics} variant="outline" className="mt-4">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              {t('retry')}
-            </Button>
-          </GlassCardContent>
-        </GlassCard>
-      </div>
+      <RolePageFrame maxWidth="wide">
+        <RolePanel className="py-8 text-center">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">{error || 'No data available'}</p>
+          <Button onClick={fetchAnalytics} variant="outline" className="mt-4">
+            <RefreshCw className="h-4 w-4" />
+            {t('retry')}
+          </Button>
+        </RolePanel>
+      </RolePageFrame>
     );
   }
 
@@ -163,46 +155,49 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
+    <RolePageFrame maxWidth="wide">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={
+          <span className="flex items-center gap-2">
+            <BarChart3 className="h-6 w-6 text-blue-600 dark:text-blue-300" />
             {t('title')}
-          </h1>
-          <p className="text-muted-foreground text-sm">{t('subtitle')}</p>
-        </div>
+          </span>
+        }
+        description={t('subtitle')}
+        actions={
+          <>
+            <Tabs value={range} onValueChange={setRange}>
+              <TabsList className="rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60">
+                <TabsTrigger value="7">{t('7days')}</TabsTrigger>
+                <TabsTrigger value="30">{t('30days')}</TabsTrigger>
+                <TabsTrigger value="90">{t('90days')}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <Button variant="outline" size="icon" onClick={fetchAnalytics}>
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <Tabs value={range} onValueChange={setRange}>
-            <TabsList>
-              <TabsTrigger value="7">{t('7days')}</TabsTrigger>
-              <TabsTrigger value="30">{t('30days')}</TabsTrigger>
-              <TabsTrigger value="90">{t('90days')}</TabsTrigger>
-            </TabsList>
-          </Tabs>
-          <Button variant="outline" size="icon" onClick={fetchAnalytics}>
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Subscription & Usage */}
-      {data.subscription && (
-        <GlassCard className="mb-6" glow="amber">
-          <GlassCardContent className="py-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="space-y-6">
+        {/* Subscription & Usage */}
+        {data.subscription && (
+          <RolePanel className="border-amber-200 bg-amber-50 p-5 dark:border-amber-900/60 dark:bg-amber-950/30">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <Crown className="h-5 w-5 text-amber-500" />
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-amber-200 bg-white text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/40 dark:text-amber-300">
+                  <Crown className="h-5 w-5" />
+                </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{t('currentPlan')}</span>
+                    <span className="font-medium text-zinc-950 dark:text-zinc-50">{t('currentPlan')}</span>
                     <Badge className={getTierColor(data.subscription.tier)}>
                       {data.subscription.tier}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400">
                     {data.subscription.currentPeriodEnd && (
                       <>{t('renewsOn')} {format(parseISO(data.subscription.currentPeriodEnd), 'PPP', { locale: dateLocale })}</>
                     )}
@@ -211,7 +206,7 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
               </div>
 
               <div className="flex-1 max-w-xs">
-                <div className="flex items-center justify-between text-sm mb-1">
+                <div className="mb-1 flex items-center justify-between text-sm text-zinc-700 dark:text-zinc-300">
                   <span>{t('athleteSlots')}</span>
                   <span className="font-medium">
                     {data.subscription.athleteUsage.used} / {data.subscription.athleteUsage.max === -1 ? '∞' : data.subscription.athleteUsage.max}
@@ -223,193 +218,193 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
                 />
               </div>
             </div>
-          </GlassCardContent>
-        </GlassCard>
-      )}
+          </RolePanel>
+        )}
 
-      {/* Key Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <GlassCard glow="blue">
-          <GlassCardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="h-5 w-5 text-blue-500" />
+        {/* Key Stats Grid */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <RolePanel className="p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+                <Users className="h-5 w-5" />
+              </div>
               {data.overview.newClientsThisPeriod > 0 && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
-                  <ArrowUpRight className="h-3 w-3 mr-1" />
+                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                  <ArrowUpRight className="h-3 w-3" />
                   +{data.overview.newClientsThisPeriod}
                 </Badge>
               )}
             </div>
-            <p className="text-2xl font-bold">{data.overview.totalClients}</p>
-            <p className="text-xs text-muted-foreground">{t('totalAthletes')}</p>
-          </GlassCardContent>
-        </GlassCard>
+            <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.overview.totalClients}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('totalAthletes')}</p>
+          </RolePanel>
 
-        <GlassCard glow="emerald">
-          <GlassCardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <ClipboardList className="h-5 w-5 text-green-500" />
+          <RolePanel className="p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <ClipboardList className="h-5 w-5" />
+              </div>
               {data.overview.testsThisPeriod > 0 && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
                   +{data.overview.testsThisPeriod}
                 </Badge>
               )}
             </div>
-            <p className="text-2xl font-bold">{data.overview.totalTests}</p>
-            <p className="text-xs text-muted-foreground">{t('totalTests')}</p>
-          </GlassCardContent>
-        </GlassCard>
+            <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.overview.totalTests}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('totalTests')}</p>
+          </RolePanel>
 
-        <GlassCard glow="purple">
-          <GlassCardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Calendar className="h-5 w-5 text-purple-500" />
+          <RolePanel className="p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+                <Calendar className="h-5 w-5" />
+              </div>
               {data.overview.programsThisPeriod > 0 && (
-                <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-xs text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
                   +{data.overview.programsThisPeriod}
                 </Badge>
               )}
             </div>
-            <p className="text-2xl font-bold">{data.overview.activePrograms}</p>
-            <p className="text-xs text-muted-foreground">{t('activePrograms')}</p>
-          </GlassCardContent>
-        </GlassCard>
+            <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.overview.activePrograms}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('activePrograms')}</p>
+          </RolePanel>
 
-        <GlassCard glow="amber">
-          <GlassCardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Activity className="h-5 w-5 text-orange-500" />
-            </div>
-            <p className="text-2xl font-bold">{data.activity.completedWorkouts}</p>
-            <p className="text-xs text-muted-foreground">{t('completedWorkouts')}</p>
-          </GlassCardContent>
-        </GlassCard>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        {/* Activity Chart */}
-        <GlassCard glow="blue">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-base">{t('workoutActivity')}</GlassCardTitle>
-            <GlassCardDescription>{t('workoutActivityDescription')}</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.charts.dailyActivity}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={formatChartDate}
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 12 }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    labelFormatter={(label) => formatChartDate(label as string)}
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--background))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Bar
-                    dataKey="count"
-                    fill="hsl(var(--primary))"
-                    radius={[4, 4, 0, 0]}
-                    name={t('workouts')}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </GlassCardContent>
-        </GlassCard>
-
-        {/* Engagement Stats */}
-        <GlassCard glow="purple">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-base">{t('engagement')}</GlassCardTitle>
-            <GlassCardDescription>{t('engagementDescription')}</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <MessageSquare className="h-4 w-4 text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{t('feedbackRate')}</p>
-                  <p className="text-xs text-muted-foreground">{data.activity.feedbackGiven} / {data.activity.completedWorkouts}</p>
-                </div>
+          <RolePanel className="p-4">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                <Activity className="h-5 w-5" />
               </div>
-              <p className="text-2xl font-bold">{data.activity.feedbackRate}%</p>
             </div>
+            <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.activity.completedWorkouts}</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('completedWorkouts')}</p>
+          </RolePanel>
+        </div>
 
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-orange-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{t('averageRPE')}</p>
-                  <p className="text-xs text-muted-foreground">{t('perceivedEffort')}</p>
-                </div>
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          {/* Activity Chart */}
+          <RolePanel className="p-5">
+            <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('workoutActivity')}</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('workoutActivityDescription')}</p>
+            </div>
+            <div>
+              <div className="h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.charts.dailyActivity}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={formatChartDate}
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 12 }}
+                      tickLine={false}
+                      axisLine={false}
+                    />
+                    <Tooltip
+                      labelFormatter={(label) => formatChartDate(label as string)}
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="hsl(var(--primary))"
+                      radius={[4, 4, 0, 0]}
+                      name={t('workouts')}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-              <p className="text-2xl font-bold">{data.activity.averageRPE ?? '-'}</p>
             </div>
+          </RolePanel>
 
-            <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Gift className="h-4 w-4 text-green-600" />
+          {/* Engagement Stats */}
+          <RolePanel className="p-5">
+            <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('engagement')}</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('engagementDescription')}</p>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md border border-blue-100 bg-blue-50 p-2 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+                    <MessageSquare className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{t('feedbackRate')}</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{data.activity.feedbackGiven} / {data.activity.completedWorkouts}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-sm">{t('referrals')}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {data.referrals.completedReferrals} {t('completed')}, {data.referrals.pendingReferrals} {t('pending')}
-                  </p>
-                </div>
+                <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.activity.feedbackRate}%</p>
               </div>
-              <p className="text-2xl font-bold">{data.referrals.totalReferrals}</p>
-            </div>
-          </GlassCardContent>
-        </GlassCard>
-      </div>
 
-      {/* Summary Stats */}
-      <GlassCard glow="slate">
-        <GlassCardHeader className="pb-2">
-          <GlassCardTitle className="text-base">{t('periodSummary')}</GlassCardTitle>
-          <GlassCardDescription>
-            {format(parseISO(data.period.start), 'PPP', { locale: dateLocale })} - {format(parseISO(data.period.end), 'PPP', { locale: dateLocale })}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-600">{data.overview.newClientsThisPeriod}</p>
-              <p className="text-xs text-muted-foreground">{t('newAthletes')}</p>
+              <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md border border-amber-100 bg-amber-50 p-2 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{t('averageRPE')}</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('perceivedEffort')}</p>
+                  </div>
+                </div>
+                <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.activity.averageRPE ?? '-'}</p>
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-md border border-emerald-100 bg-emerald-50 p-2 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                    <Gift className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{t('referrals')}</p>
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                      {data.referrals.completedReferrals} {t('completed')}, {data.referrals.pendingReferrals} {t('pending')}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.referrals.totalReferrals}</p>
+              </div>
             </div>
-            <div className="text-center p-3 bg-green-50 rounded-lg">
-              <p className="text-2xl font-bold text-green-600">{data.overview.testsThisPeriod}</p>
-              <p className="text-xs text-muted-foreground">{t('testsCreated')}</p>
-            </div>
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
-              <p className="text-2xl font-bold text-purple-600">{data.overview.programsThisPeriod}</p>
-              <p className="text-xs text-muted-foreground">{t('programsCreated')}</p>
-            </div>
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
-              <p className="text-2xl font-bold text-orange-600">{data.activity.totalWorkouts}</p>
-              <p className="text-xs text-muted-foreground">{t('workoutsLogged')}</p>
+          </RolePanel>
+        </div>
+
+        {/* Summary Stats */}
+        <RolePanel className="p-5">
+          <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('periodSummary')}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {format(parseISO(data.period.start), 'PPP', { locale: dateLocale })} - {format(parseISO(data.period.end), 'PPP', { locale: dateLocale })}
+            </p>
+          </div>
+          <div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-center dark:border-blue-900/60 dark:bg-blue-950/30">
+                <p className="text-2xl font-semibold text-blue-600 dark:text-blue-300">{data.overview.newClientsThisPeriod}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('newAthletes')}</p>
+              </div>
+              <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-3 text-center dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-300">{data.overview.testsThisPeriod}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('testsCreated')}</p>
+              </div>
+              <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-center dark:border-violet-900/60 dark:bg-violet-950/30">
+                <p className="text-2xl font-semibold text-violet-600 dark:text-violet-300">{data.overview.programsThisPeriod}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('programsCreated')}</p>
+              </div>
+              <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-center dark:border-amber-900/60 dark:bg-amber-950/30">
+                <p className="text-2xl font-semibold text-amber-600 dark:text-amber-300">{data.activity.totalWorkouts}</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('workoutsLogged')}</p>
+              </div>
             </div>
           </div>
-        </GlassCardContent>
-      </GlassCard>
-    </div>
+        </RolePanel>
+      </div>
+    </RolePageFrame>
   );
 }
