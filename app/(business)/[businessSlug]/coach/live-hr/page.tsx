@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Radio } from 'lucide-react'
 import { LiveHRSessionList } from '@/components/coach/live-hr/SessionList'
 import { getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{
@@ -58,21 +59,24 @@ export default async function BusinessLiveHRPage({ params }: PageProps) {
   })
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold flex items-center gap-3 dark:text-white">
-          <Radio className="h-8 w-8" />
-          Live HR Streaming
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          {t('description')}
-        </p>
-      </div>
+    <RolePageFrame maxWidth="wide">
+      <RolePageHeader
+        eyebrow={t('eyebrow')}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-red-100 bg-red-50 text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+              <Radio className="h-5 w-5" />
+            </span>
+            {t('title')}
+          </span>
+        )}
+        description={t('description')}
+      />
 
       <Suspense fallback={<SessionListSkeleton />}>
         <LiveHRSessionList teams={teams} athletes={athletes} />
       </Suspense>
-    </div>
+    </RolePageFrame>
   )
 }
 
@@ -80,11 +84,11 @@ function SessionListSkeleton() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Skeleton className="h-10 w-40" />
+        <Skeleton className="h-10 w-40 bg-zinc-200/80 dark:bg-white/10" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-32" />
+          <Skeleton key={i} className="h-32 bg-zinc-200/80 dark:bg-white/10" />
         ))}
       </div>
     </div>

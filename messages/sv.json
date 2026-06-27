@@ -2502,6 +2502,8 @@
         "description": "Skapa utmaningar och tävlingar för att engagera dina medlemmar"
       },
       "liveHr": {
+        "eyebrow": "Livemonitorering",
+        "title": "Live HR Streaming",
         "description": "Övervaka atleters puls i realtid under träningspass"
       },
       "testProtocols": {

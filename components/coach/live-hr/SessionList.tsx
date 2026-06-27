@@ -8,13 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { CreateSessionDialog } from '@/components/coach/live-hr/CreateSessionDialog'
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Users, Clock, Radio, ChevronRight, Square, Bike, WifiOff } from 'lucide-react'
@@ -261,16 +255,14 @@ export function LiveHRSessionList({ teams, athletes }: LiveHRSessionListProps) {
 
       {/* Empty state */}
       {sessions.length === 0 && (
-        <GlassCard glow="red" className="border border-slate-200 dark:border-white/5">
-          <GlassCardContent className="flex flex-col items-center justify-center py-12">
-            <Radio className="h-12 w-12 text-rose-500 mb-4 animate-pulse" />
-            <p className="text-lg font-semibold text-slate-900 dark:text-white">{copy.noSessions}</p>
-            <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
-              {copy.emptyHint}
-            </p>
-            <CreateSessionDialog teams={teams} athletes={athletes} onCreate={handleCreate} />
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="flex flex-col items-center justify-center px-6 py-12 text-center">
+          <Radio className="h-12 w-12 text-rose-500 mb-4 animate-pulse" />
+          <p className="text-lg font-semibold text-slate-900 dark:text-white">{copy.noSessions}</p>
+          <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
+            {copy.emptyHint}
+          </p>
+          <CreateSessionDialog teams={teams} athletes={athletes} onCreate={handleCreate} />
+        </RolePanel>
       )}
     </div>
   )
@@ -293,9 +285,12 @@ function SessionCard({
   const isLive = session.status === 'ACTIVE'
   const timeLocale = locale === 'sv' ? 'sv-SE' : 'en-US'
   return (
-    <GlassCard
-      glow={isLive && !session.isStale ? 'red' : 'blue'}
-      className="hover:shadow-lg transition-all cursor-pointer border border-slate-200 dark:border-white/5 bg-white/50 dark:bg-slate-900/10"
+    <RolePanel
+      className={`cursor-pointer p-5 transition-all hover:shadow-lg ${
+        isLive && !session.isStale
+          ? 'border-red-100 bg-red-50/40 dark:border-red-900/50 dark:bg-red-950/10'
+          : 'border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950/60'
+      }`}
       role="button"
       tabIndex={0}
       onClick={() => router.push(`${basePath}/coach/live-hr/${session.id}`)}
@@ -306,11 +301,11 @@ function SessionCard({
         }
       }}
     >
-      <GlassCardHeader className="pb-2">
+      <div className="mb-4">
         <div className="flex items-center justify-between gap-3">
-          <GlassCardTitle className="text-lg truncate text-slate-900 dark:text-white">
+          <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-white">
             {session.name || copy.defaultSessionName}
-          </GlassCardTitle>
+          </h3>
           {session.status === 'ACTIVE' && session.isStale ? (
             <Badge variant="outline" className="border-slate-350 dark:border-white/10 text-slate-600 dark:text-slate-400">{copy.noSignal}</Badge>
           ) : session.status === 'ACTIVE' ? (
@@ -322,10 +317,10 @@ function SessionCard({
           )}
         </div>
         {session.teamName && (
-          <GlassCardDescription className="text-slate-500 dark:text-slate-400">{session.teamName}</GlassCardDescription>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{session.teamName}</p>
         )}
-      </GlassCardHeader>
-      <GlassCardContent>
+      </div>
+      <div>
         <div className="flex items-center justify-between text-sm text-slate-500 dark:text-slate-400">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             <div className="flex items-center gap-1">
@@ -364,7 +359,7 @@ function SessionCard({
             </Button>
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

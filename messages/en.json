@@ -2502,6 +2502,8 @@
         "description": "Create challenges and competitions to engage your members"
       },
       "liveHr": {
+        "eyebrow": "Live monitoring",
+        "title": "Live HR Streaming",
         "description": "Monitor athletes' heart rate in real time during training sessions"
       },
       "testProtocols": {
