@@ -3,17 +3,13 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-} from '@/components/ui/GlassCard'
 import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
 import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
 import { AthletePlanStaffNoteCard } from '@/components/coach/player-notes/AthletePlanStaffNoteCard'
 import { TeamNotesCard, type TeamNoteSummary, type TeamNoteTag } from '@/components/coach/teams/TeamNotesCard'
 import { getTranslations } from '@/i18n/server'
+import { ClipboardList } from 'lucide-react'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 interface TeamPlanPageProps {
   params: Promise<{
@@ -153,22 +149,26 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
   const canManageAllTeamNotes = ['OWNER', 'ADMIN', 'COACH'].includes(membership.role)
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight dark:text-white">
+    <RolePageFrame>
+      <RolePageHeader
+        eyebrow={team.name}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+              <ClipboardList className="h-5 w-5" />
+            </span>
             {t('teamPlan.title')}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {t('teamPlan.description')}
-          </p>
-        </div>
-        <CreateTeamPlanDialog
-          teamId={teamId}
-          teamName={team.name}
-          businessSlug={businessSlug}
-        />
-      </div>
+          </span>
+        )}
+        description={t('teamPlan.description')}
+        actions={(
+          <CreateTeamPlanDialog
+            teamId={teamId}
+            teamName={team.name}
+            businessSlug={businessSlug}
+          />
+        )}
+      />
 
       <div className="mb-8">
         {activeTeamPlan ? (
@@ -186,50 +186,46 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
             }
           />
         ) : (
-          <GlassCard glow="blue">
-            <GlassCardHeader>
-              <GlassCardTitle className="dark:text-white">{t('teamPlan.emptyTitle')}</GlassCardTitle>
-              <GlassCardDescription>
-                {t('teamPlan.emptyDescription')}
-              </GlassCardDescription>
-            </GlassCardHeader>
-          </GlassCard>
+          <RolePanel className="p-5 sm:p-6">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('teamPlan.emptyTitle')}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {t('teamPlan.emptyDescription')}
+            </p>
+          </RolePanel>
         )}
       </div>
 
       <div className="mb-8">
         <div className="mb-3">
-          <h3 className="text-lg font-semibold dark:text-white">
+          <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
             {locale === 'sv' ? 'Individuella plananteckningar' : 'Individual plan notes'}
           </h3>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {locale === 'sv'
               ? 'Delad personaltext för spelare som har en aktiv individuell plan.'
               : 'Shared staff text for players with an active individual plan.'}
           </p>
         </div>
         {activeIndividualPlans.length === 0 ? (
-          <GlassCard glow="blue">
-            <GlassCardHeader>
-              <GlassCardTitle className="dark:text-white">
-                {locale === 'sv' ? 'Inga aktiva individuella planer' : 'No active individual plans'}
-              </GlassCardTitle>
-              <GlassCardDescription>
-                {locale === 'sv'
-                  ? 'Skapa en individuell plan från spelarprofilen för att lägga till plananteckningar här.'
-                  : 'Create an individual plan from the player profile to add plan notes here.'}
-              </GlassCardDescription>
-            </GlassCardHeader>
-          </GlassCard>
+          <RolePanel className="p-5 sm:p-6">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              {locale === 'sv' ? 'Inga aktiva individuella planer' : 'No active individual plans'}
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {locale === 'sv'
+                ? 'Skapa en individuell plan från spelarprofilen för att lägga till plananteckningar här.'
+                : 'Create an individual plan from the player profile to add plan notes here.'}
+            </p>
+          </RolePanel>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             {activeIndividualPlans.map((plan) => (
               <div key={plan.id} className="space-y-2">
                 <div>
-                  <p className="text-sm font-semibold dark:text-white">
+                  <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
                     {plan.client.jerseyNumber != null ? `#${plan.client.jerseyNumber} ` : ''}{plan.client.name}
                   </p>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     {plan.client.position ? `${plan.client.position} · ` : ''}{plan.name}
                   </p>
                 </div>
@@ -254,6 +250,6 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
           initialNotes={initialTeamNotes}
         />
       </div>
-    </div>
+    </RolePageFrame>
   )
 }

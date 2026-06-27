@@ -8,6 +8,7 @@ import { TeamCalendarView } from '@/components/coach/team-calendar/TeamCalendarV
 import { ManageAssistantsDialog } from '@/components/coach/team-calendar/ManageAssistantsDialog'
 import { Calendar } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{
@@ -72,21 +73,22 @@ export default async function TeamCalendarPage({ params }: PageProps) {
   }))
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-7xl">
-      <div className="flex items-center justify-between gap-3 mb-6">
-        <div>
-          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
-            <Calendar className="h-5 w-5 sm:h-6 sm:w-6" />
+    <RolePageFrame>
+      <RolePageHeader
+        eyebrow={team.name}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+              <Calendar className="h-5 w-5" />
+            </span>
             {t('title', { teamName: team.name })}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            {t('description')}
-          </p>
-        </div>
-        {previewRole !== 'MEMBER' && (
-          <ManageAssistantsDialog teamId={team.id} teamName={team.name} />
+          </span>
         )}
-      </div>
+        description={t('description')}
+        actions={previewRole !== 'MEMBER' ? (
+          <ManageAssistantsDialog teamId={team.id} teamName={team.name} />
+        ) : undefined}
+      />
 
       <TeamCalendarView
         teamId={team.id}
@@ -94,6 +96,6 @@ export default async function TeamCalendarPage({ params }: PageProps) {
         businessSlug={businessSlug}
         initialTeamPlans={serializedTeamPlans}
       />
-    </div>
+    </RolePageFrame>
   )
 }
