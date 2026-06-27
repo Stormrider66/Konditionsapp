@@ -10,7 +10,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import {
   Dialog,
   DialogContent,
@@ -193,213 +193,218 @@ export function InvitationsClient({ invitations: initialInvitations, userId: _us
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href={`${basePath}/coach/dashboard`}>
-              <Button variant="ghost" size="icon">
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <div className="flex items-center gap-2">
-              <Mail className="h-5 w-5" />
-              <h1 className="text-lg font-semibold">{t('title')}</h1>
-            </div>
-          </div>
-
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                {t('newInvitation')}
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{t('dialog.title')}</DialogTitle>
-                <DialogDescription>
-                  {t('dialog.description')}
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('fields.type')}</label>
-                  <select
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                  >
-                    <option value="ATHLETE_SIGNUP">{t('types.athleteSignup')}</option>
-                    <option value="REFERRAL">Referral</option>
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('fields.recipientName')}</label>
-                  <input
-                    type="text"
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    placeholder="Anna Andersson"
-                    value={formData.recipientName}
-                    onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{t('fields.recipientEmail')}</label>
-                  <input
-                    type="email"
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    placeholder="anna@example.com"
-                    value={formData.recipientEmail}
-                    onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{t('fields.maxUses')}</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="100"
-                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={formData.maxUses}
-                      onChange={(e) => setFormData({ ...formData, maxUses: parseInt(e.target.value) || 1 })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{t('fields.expiresInDays')}</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="365"
-                      className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                      value={formData.expiresInDays}
-                      onChange={(e) => setFormData({ ...formData, expiresInDays: parseInt(e.target.value) || 30 })}
-                    />
-                  </div>
-                </div>
-
-                <Button onClick={createInvitation} disabled={isLoading} className="w-full">
-                  {isLoading ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Plus className="h-4 w-4 mr-2" />
-                  )}
-                  {t('dialog.create')}
+    <RolePageFrame contentClassName="max-w-4xl">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={
+          <span className="flex items-center gap-2">
+            <Mail className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+            {t('title')}
+          </span>
+        }
+        description={t('dialog.description')}
+        actions={
+          <>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`${basePath}/coach/dashboard`}>
+                <ChevronLeft className="h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4" />
+                  {t('newInvitation')}
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle>{t('dialog.title')}</DialogTitle>
+                  <DialogDescription>
+                    {t('dialog.description')}
+                  </DialogDescription>
+                </DialogHeader>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto p-4 space-y-4">
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{t('fields.type')}</label>
+                    <select
+                      className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50"
+                      value={formData.type}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    >
+                      <option value="ATHLETE_SIGNUP">{t('types.athleteSignup')}</option>
+                      <option value="REFERRAL">Referral</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{t('fields.recipientName')}</label>
+                    <input
+                      type="text"
+                      className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 placeholder:text-zinc-400 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50"
+                      placeholder="Anna Andersson"
+                      value={formData.recipientName}
+                      onChange={(e) => setFormData({ ...formData, recipientName: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{t('fields.recipientEmail')}</label>
+                    <input
+                      type="email"
+                      className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 placeholder:text-zinc-400 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50"
+                      placeholder="anna@example.com"
+                      value={formData.recipientEmail}
+                      onChange={(e) => setFormData({ ...formData, recipientEmail: e.target.value })}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{t('fields.maxUses')}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50"
+                        value={formData.maxUses}
+                        onChange={(e) => setFormData({ ...formData, maxUses: parseInt(e.target.value) || 1 })}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{t('fields.expiresInDays')}</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        className="h-10 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50"
+                        value={formData.expiresInDays}
+                        onChange={(e) => setFormData({ ...formData, expiresInDays: parseInt(e.target.value) || 30 })}
+                      />
+                    </div>
+                  </div>
+
+                  <Button onClick={createInvitation} disabled={isLoading} className="w-full">
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4" />
+                    )}
+                    {t('dialog.create')}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
+
+      <div className="space-y-4">
         {invitations.length === 0 ? (
-          <GlassCard glow="blue">
-            <GlassCardContent className="py-12 text-center">
-              <UserPlus className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-medium mb-2">{t('empty.title')}</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {t('empty.description')}
-              </p>
-              <Button onClick={() => setIsCreateOpen(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                {t('empty.createFirst')}
-              </Button>
-            </GlassCardContent>
-          </GlassCard>
+          <RolePanel className="p-8 text-center sm:p-12">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+              <UserPlus className="h-6 w-6" />
+            </div>
+            <h3 className="mb-2 font-semibold text-zinc-950 dark:text-zinc-50">{t('empty.title')}</h3>
+            <p className="mx-auto mb-5 max-w-md text-sm text-zinc-500 dark:text-zinc-400">
+              {t('empty.description')}
+            </p>
+            <Button onClick={() => setIsCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              {t('empty.createFirst')}
+            </Button>
+          </RolePanel>
         ) : (
           invitations.map((invitation) => {
             const expired = isExpired(invitation.expiresAt)
             const used = invitation.currentUses >= invitation.maxUses
 
             return (
-              <GlassCard key={invitation.id} glow={expired || used ? 'none' : 'blue'} className={expired || used ? 'opacity-60' : ''}>
-                <GlassCardContent className="py-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <code className="bg-gray-100 dark:bg-white/10 px-2 py-1 rounded text-sm font-mono dark:text-slate-200">
-                          {invitation.code}
-                        </code>
-                        <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 rounded">
-                          {getTypeLabel(invitation.type)}
+              <RolePanel
+                key={invitation.id}
+                className={expired || used ? 'p-4 opacity-70' : 'p-4'}
+              >
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <code className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 font-mono text-sm text-zinc-900 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100">
+                        {invitation.code}
+                      </code>
+                      <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+                        {getTypeLabel(invitation.type)}
+                      </span>
+                      {expired && (
+                        <span className="rounded-full border border-red-100 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+                          {t('status.expired')}
                         </span>
-                        {expired && (
-                          <span className="text-xs px-2 py-0.5 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 rounded">
-                            {t('status.expired')}
-                          </span>
-                        )}
-                        {used && !expired && (
-                          <span className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-950/50 text-green-700 dark:text-green-300 rounded">
-                            {t('status.used')}
-                          </span>
-                        )}
-                      </div>
-
-                      {invitation.recipientName && (
-                        <p className="text-sm dark:text-slate-200">
-                          <span className="text-muted-foreground">{t('recipientPrefix')}</span> {invitation.recipientName}
-                          {invitation.recipientEmail && ` (${invitation.recipientEmail})`}
-                        </p>
                       )}
+                      {used && !expired && (
+                        <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                          {t('status.used')}
+                        </span>
+                      )}
+                    </div>
 
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                    {invitation.recipientName && (
+                      <p className="text-sm text-zinc-700 dark:text-zinc-200">
+                        <span className="text-zinc-500 dark:text-zinc-400">{t('recipientPrefix')}</span> {invitation.recipientName}
+                        {invitation.recipientEmail && ` (${invitation.recipientEmail})`}
+                      </p>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3 w-3" />
+                        {t('uses', { current: invitation.currentUses, max: invitation.maxUses })}
+                      </span>
+                      {invitation.expiresAt && (
                         <span className="flex items-center gap-1">
-                          <Users className="h-3 w-3" />
-                          {t('uses', { current: invitation.currentUses, max: invitation.maxUses })}
+                          <Clock className="h-3 w-3" />
+                          {t('expires', { date: formatDate(invitation.expiresAt) })}
                         </span>
-                        {invitation.expiresAt && (
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {t('expires', { date: formatDate(invitation.expiresAt) })}
-                          </span>
-                        )}
-                      </div>
-
-                      {invitation.usedByClient && (
-                        <p className="text-xs text-green-600 dark:text-green-400">
-                          {t('usedBy', { name: invitation.usedByClient.name })}
-                        </p>
                       )}
                     </div>
 
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => copyInviteLink(invitation.code)}
-                        disabled={expired || used}
-                      >
-                        {copiedId === invitation.code ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => deleteInvitation(invitation.code)}
-                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {invitation.usedByClient && (
+                      <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        {t('usedBy', { name: invitation.usedByClient.name })}
+                      </p>
+                    )}
                   </div>
-                </GlassCardContent>
-              </GlassCard>
+
+                  <div className="flex shrink-0 gap-2 self-end sm:self-start">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => copyInviteLink(invitation.code)}
+                      disabled={expired || used}
+                      aria-label={t('toasts.copiedTitle')}
+                    >
+                      {copiedId === invitation.code ? (
+                        <Check className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => deleteInvitation(invitation.code)}
+                      className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      aria-label={t('toasts.deletedTitle')}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </RolePanel>
             )
           })
         )}
       </div>
-    </div>
+    </RolePageFrame>
   )
 }
