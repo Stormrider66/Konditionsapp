@@ -2,7 +2,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { BusinessCoachGlassHeader } from '@/components/coach/BusinessCoachGlassHeader'
+import { CoachAppShell } from '@/components/layouts/CoachAppShell'
 import { createClient } from '@/lib/supabase/client'
 import { FloatingAIChat } from '@/components/ai-studio/FloatingAIChat'
 import { PageContextProvider, usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
@@ -108,25 +108,27 @@ function ThemedContent({
       {branding?.fontFamily && branding.fontFamily !== 'Inter' && (
         <DynamicFontLoader fontFamily={branding.fontFamily} />
       )}
-      {user && (
-        <BusinessCoachGlassHeader user={user} businessSlug={businessSlug} />
-      )}
+      {user ? (
+        <CoachAppShell user={user} businessSlug={businessSlug} branding={branding}>
+          {children}
 
-      <div className="pt-16">
-        {children}
-      </div>
+          {branding?.hasWhiteLabel && !branding.hidePlatformBranding && (
+            <div className="text-center py-3 text-xs text-gray-400">
+              {tCommon('poweredBy', { appName: PLATFORM_NAME })}
+            </div>
+          )}
+        </CoachAppShell>
+      ) : (
+        <div>
+          {children}
+        </div>
+      )}
 
       {/* Floating AI Chat - available on all coach pages with page context. */}
       <FloatingAIChatWithContext />
 
       <BetaFeedbackWidget userRole="COACH" businessSlug={businessSlug} />
 
-      {/* Powered by footer for white-label businesses */}
-      {branding?.hasWhiteLabel && !branding.hidePlatformBranding && (
-        <div className="text-center py-3 text-xs text-gray-400">
-          {tCommon('poweredBy', { appName: PLATFORM_NAME })}
-        </div>
-      )}
     </div>
   )
 }

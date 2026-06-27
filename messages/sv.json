@@ -11650,10 +11650,12 @@
         "portalName": "Coachportal"
       },
       "groups": {
+        "workspace": "Arbetsyta",
         "tools": "Verktyg",
         "more": "Mer"
       },
       "nav": {
+        "today": "Idag",
         "dashboard": "Dashboard",
         "calendar": "Kalender",
         "athletes": "Atleter",
@@ -11701,6 +11703,12 @@
         "active": "Aktiv",
         "clear": "Rensa förhandsvisning",
         "note": "Super admin-läge. Ändrar inte roller i databasen."
+      },
+      "shell": {
+        "collapseSidebar": "Fäll ihop sidomeny",
+        "expandSidebar": "Fäll ut sidomeny",
+        "closeMenu": "Stäng meny",
+        "signedInAs": "Inloggad som"
       },
       "roles": {
         "owner": "Ägare",

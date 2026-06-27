@@ -26,7 +26,13 @@ interface BusinessEntry {
   type: string
 }
 
-export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
+export function OrgSwitcher({
+  currentSlug,
+  tone = 'dark',
+}: {
+  currentSlug: string
+  tone?: 'dark' | 'light'
+}) {
   const [businesses, setBusinesses] = useState<BusinessEntry[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const tRoles = useTranslations('components.businessCoachHeader')
@@ -81,12 +87,36 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
   const getOrgHref = (slug: string) => {
     return `/${slug}/coach/dashboard`
   }
+  const isDark = tone === 'dark'
+  const triggerClassName = cn(
+    'flex max-w-[220px] items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors',
+    isDark
+      ? 'text-slate-400 hover:bg-white/10 hover:text-white'
+      : 'text-zinc-600 hover:bg-zinc-100 hover:text-zinc-950'
+  )
+  const contentClassName = cn(
+    'w-72',
+    isDark
+      ? 'border-white/10 bg-slate-950 text-slate-200'
+      : 'border-zinc-200 bg-white text-zinc-950'
+  )
+  const labelClassName = cn(
+    'text-xs uppercase tracking-wider',
+    isDark ? 'text-slate-500' : 'text-zinc-500'
+  )
+  const itemClassName = (isActive: boolean) => cn(
+    'cursor-pointer',
+    isDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-zinc-100 focus:text-zinc-950',
+    isActive && (isDark ? 'bg-white/5' : 'bg-zinc-50')
+  )
+  const separatorClassName = isDark ? 'bg-white/10' : 'bg-zinc-200'
+  const subtitleClassName = isDark ? 'text-slate-500' : 'text-zinc-500'
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex items-center gap-2 text-sm font-medium transition-colors hover:text-white text-slate-400 max-w-[180px]"
+          className={triggerClassName}
           title={`${displayBiz.name} — ${currentRole}`}
           aria-label={tOrgSwitcher('a11y.switchOrganization', { org: displayBiz.name })}
         >
@@ -98,10 +128,10 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
-        className="w-72 bg-slate-950 border-white/10 text-slate-200"
+        className={contentClassName}
         align="start"
       >
-        <DropdownMenuLabel className="text-xs text-slate-500 uppercase tracking-wider">
+        <DropdownMenuLabel className={labelClassName}>
           {tOrgSwitcher('labels.title')}
         </DropdownMenuLabel>
         {businesses.map((biz) => {
@@ -111,10 +141,7 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
             <DropdownMenuItem
               key={biz.businessId}
               asChild
-              className={cn(
-                'focus:bg-white/10 focus:text-white cursor-pointer',
-                isActive && 'bg-white/5'
-              )}
+              className={itemClassName(isActive)}
             >
               <Link href={getOrgHref(biz.slug)} className="flex items-center gap-3 w-full">
                 <div
@@ -135,26 +162,26 @@ export function OrgSwitcher({ currentSlug }: { currentSlug: string }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={cn('text-sm font-medium truncate', isActive && 'text-white')}>
+                    <span className={cn('text-sm font-medium truncate', isActive && (isDark ? 'text-white' : 'text-zinc-950'))}>
                       {biz.name}
                     </span>
                     {isActive && <Check className="w-3.5 h-3.5 text-blue-400 shrink-0" />}
                   </div>
-                  <span className="text-xs text-slate-500">{roleLabel}</span>
+                  <span className={cn('text-xs', subtitleClassName)}>{roleLabel}</span>
                 </div>
               </Link>
             </DropdownMenuItem>
           )
         })}
-        <DropdownMenuSeparator className="bg-white/10" />
-        <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+        <DropdownMenuSeparator className={separatorClassName} />
+        <DropdownMenuItem asChild className={cn('cursor-pointer', isDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-zinc-100 focus:text-zinc-950')}>
           <Link href="/my/calendar" className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
               <CalendarDays className="w-4 h-4 text-white" />
             </div>
             <div>
               <span className="text-sm font-medium">{tOrgSwitcher('calendar.title')}</span>
-              <p className="text-xs text-slate-500">{tOrgSwitcher('calendar.subtitle')}</p>
+              <p className={cn('text-xs', subtitleClassName)}>{tOrgSwitcher('calendar.subtitle')}</p>
             </div>
           </Link>
         </DropdownMenuItem>

@@ -11283,10 +11283,12 @@
         "portalName": "Coach Portal"
       },
       "groups": {
+        "workspace": "Workspace",
         "tools": "Tools",
         "more": "More"
       },
       "nav": {
+        "today": "Today",
         "dashboard": "Dashboard",
         "calendar": "Calendar",
         "athletes": "Athletes",
@@ -11334,6 +11336,12 @@
         "active": "Active",
         "clear": "Clear role preview",
         "note": "Super admin mode. Does not change roles in the database."
+      },
+      "shell": {
+        "collapseSidebar": "Collapse sidebar",
+        "expandSidebar": "Expand sidebar",
+        "closeMenu": "Close menu",
+        "signedInAs": "Signed in as"
       },
       "roles": {
         "owner": "Owner",
