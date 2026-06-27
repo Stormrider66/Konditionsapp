@@ -2514,6 +2514,7 @@
         }
       },
       "social": {
+        "eyebrow": "Publicering",
         "title": "Sociala medier",
         "description": "Skapa, hantera och publicera inlägg till dina sociala medier"
       },

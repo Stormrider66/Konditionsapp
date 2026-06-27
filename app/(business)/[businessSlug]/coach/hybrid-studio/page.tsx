@@ -11,6 +11,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { HybridStudioClient } from '@/components/hybrid-studio/HybridStudioClient'
 import { Skeleton } from '@/components/ui/skeleton'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{
@@ -29,11 +30,11 @@ export default async function BusinessHybridStudioPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto py-6 px-4">
+    <RolePageFrame maxWidth="wide">
       <Suspense fallback={<HybridStudioSkeleton />}>
         <HybridStudioClient businessId={membership.businessId} />
       </Suspense>
-    </div>
+    </RolePageFrame>
   )
 }
 
@@ -46,7 +47,7 @@ function HybridStudioSkeleton() {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 w-full" />
+          <Skeleton key={i} className="h-48 w-full bg-zinc-200/80 dark:bg-white/10" />
         ))}
       </div>
     </div>

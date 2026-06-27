@@ -2514,6 +2514,7 @@
         }
       },
       "social": {
+        "eyebrow": "Publishing",
         "title": "Social media",
         "description": "Create, manage, and publish posts to your social media channels"
       },

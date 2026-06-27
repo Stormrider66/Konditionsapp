@@ -3,6 +3,7 @@
 
 import dynamic from 'next/dynamic'
 import { useTranslations } from '@/i18n/client'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 function ExerciseLibraryLoading() {
   const t = useTranslations('coach.pages.exerciseLibrary')
@@ -17,8 +18,8 @@ const ExerciseLibraryBrowser = dynamic(
 
 export default function ExerciseLibraryClient() {
   return (
-    <div className="container mx-auto py-6 px-4">
+    <RolePageFrame maxWidth="wide">
       <ExerciseLibraryBrowser mode="browse" />
-    </div>
+    </RolePageFrame>
   )
 }
