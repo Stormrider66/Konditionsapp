@@ -7,12 +7,7 @@ import { notFound } from 'next/navigation';
 import { MonitoringCharts } from '@/components/coach/dashboards/MonitoringCharts';
 import { MonitoringHeader } from '@/components/coach/monitoring/MonitoringHeader';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-} from '@/components/ui/GlassCard';
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { prisma } from '@/lib/prisma';
 import { ZoneDistributionChart } from '@/components/athlete/ZoneDistributionChart';
 import { WeeklyZoneSummary } from '@/components/athlete/WeeklyZoneSummary';
@@ -54,23 +49,20 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
     : (clients.length > 0 ? clients[0].id : null);
 
   return (
-    <div className="container mx-auto py-8">
+    <RolePageFrame maxWidth="wide">
       {clients.length === 0 ? (
         <>
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
-            <p className="text-slate-600 dark:text-slate-400">
-              {t('description')}
+          <RolePageHeader
+            eyebrow="Coach"
+            title={t('title')}
+            description={t('description')}
+          />
+          <RolePanel className="p-6">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('emptyTitle')}</h2>
+            <p className="mt-2 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+              {t('emptyDescription')}
             </p>
-          </div>
-          <GlassCard glow="blue">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-slate-900 dark:text-white">{t('emptyTitle')}</GlassCardTitle>
-              <GlassCardDescription className="text-slate-600 dark:text-slate-400">
-                {t('emptyDescription')}
-              </GlassCardDescription>
-            </GlassCardHeader>
-          </GlassCard>
+          </RolePanel>
         </>
       ) : (
         <>
@@ -86,8 +78,8 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
               </Suspense>
 
               <div className="mt-8">
-                <h2 className="text-2xl font-bold mb-4">{t('zoneDistribution')}</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <h2 className="mb-4 text-xl font-semibold text-zinc-950 dark:text-zinc-50">{t('zoneDistribution')}</h2>
+                <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
                   <div className="lg:col-span-1">
                     <WeeklyZoneSummary clientId={selectedAthleteId} />
                   </div>
@@ -101,7 +93,7 @@ export default async function BusinessMonitoringPage({ params, searchParams }: B
           )}
         </>
       )}
-    </div>
+    </RolePageFrame>
   );
 }
 
