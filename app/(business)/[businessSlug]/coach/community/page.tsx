@@ -2,7 +2,9 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { notFound } from 'next/navigation'
 import { CommunityFeed } from '@/components/coach/community/CommunityFeed'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 import { getTranslations } from '@/i18n/server'
+import { Users } from 'lucide-react'
 
 interface CommunityPageProps {
   params: Promise<{ businessSlug: string }>
@@ -17,16 +19,18 @@ export default async function CommunityPage({ params }: CommunityPageProps) {
   if (!membership) notFound()
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      <div className="container mx-auto py-6 px-4 max-w-3xl">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
-          <p className="text-muted-foreground text-sm">
-            {t('description')}
-          </p>
-        </div>
-        <CommunityFeed />
-      </div>
-    </div>
+    <RolePageFrame contentClassName="max-w-3xl">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={
+          <span className="flex items-center gap-2">
+            <Users className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+            {t('title')}
+          </span>
+        }
+        description={t('description')}
+      />
+      <CommunityFeed />
+    </RolePageFrame>
   )
 }

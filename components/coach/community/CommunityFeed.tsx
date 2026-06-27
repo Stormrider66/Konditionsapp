@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
@@ -46,7 +46,7 @@ const typeConfig: Record<string, { labelKey: string; icon: typeof Megaphone; col
   ANNOUNCEMENT: { labelKey: 'types.announcement', icon: Megaphone, color: 'text-blue-500' },
   MOTIVATION: { labelKey: 'types.motivation', icon: Zap, color: 'text-yellow-500' },
   ACHIEVEMENT: { labelKey: 'types.achievement', icon: Trophy, color: 'text-green-500' },
-  GENERAL: { labelKey: 'types.general', icon: Users, color: 'text-slate-500' },
+  GENERAL: { labelKey: 'types.general', icon: Users, color: 'text-zinc-500' },
 }
 
 function getInitials(name: string): string {
@@ -165,159 +165,156 @@ export function CommunityFeed() {
   return (
     <div className="space-y-6">
       {/* Create post */}
-      <Card>
-        <CardContent className="p-4 space-y-3">
-          <Textarea
-            placeholder={t('newPostPlaceholder')}
-            value={newContent}
-            onChange={e => setNewContent(e.target.value)}
-            rows={3}
-          />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex gap-1 overflow-x-auto">
-              {Object.entries(typeConfig).map(([key, config]) => {
-                const Icon = config.icon
-                return (
-                  <Button
-                    key={key}
-                    variant={newType === key ? 'default' : 'ghost'}
-                    size="sm"
-                    className="text-xs h-7 shrink-0"
-                    onClick={() => setNewType(key)}
-                  >
-                    <Icon className={cn('h-3 w-3 mr-1', newType !== key && config.color)} />
-                    {t(config.labelKey)}
-                  </Button>
-                )
-              })}
-            </div>
-            <Button onClick={createPost} disabled={posting || !newContent.trim()} size="sm" className="shrink-0 self-end">
-              {posting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Send className="h-3 w-3 mr-1" />}
-              {t('publish')}
-            </Button>
+      <RolePanel className="space-y-3 p-4">
+        <Textarea
+          placeholder={t('newPostPlaceholder')}
+          value={newContent}
+          onChange={e => setNewContent(e.target.value)}
+          rows={3}
+          className="border-zinc-200 bg-white text-zinc-950 placeholder:text-zinc-400 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50"
+        />
+        <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+          <div className="flex gap-1 overflow-x-auto">
+            {Object.entries(typeConfig).map(([key, config]) => {
+              const Icon = config.icon
+              return (
+                <Button
+                  key={key}
+                  variant={newType === key ? 'default' : 'ghost'}
+                  size="sm"
+                  className="h-7 shrink-0 text-xs"
+                  onClick={() => setNewType(key)}
+                >
+                  <Icon className={cn('h-3 w-3', newType !== key && config.color)} />
+                  {t(config.labelKey)}
+                </Button>
+              )
+            })}
           </div>
-          {/* Notification toggles */}
-          <div className="flex items-center gap-3 pt-1 border-t">
-            <span className="text-xs text-muted-foreground">{t('notify')}</span>
-            <button
-              type="button"
-              onClick={() => setNotifyInApp(!notifyInApp)}
-              className={cn(
-                'flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors',
-                notifyInApp
-                  ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                  : 'text-muted-foreground hover:bg-muted'
-              )}
-            >
-              <Bell className="h-3 w-3" />
-              {t('inApp')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setNotifyEmail(!notifyEmail)}
-              className={cn(
-                'flex items-center gap-1 text-xs px-2 py-1 rounded-md transition-colors',
-                notifyEmail
-                  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                  : 'text-muted-foreground hover:bg-muted'
-              )}
-            >
-              <Mail className="h-3 w-3" />
-              {t('email')}
-            </button>
-          </div>
-        </CardContent>
-      </Card>
+          <Button onClick={createPost} disabled={posting || !newContent.trim()} size="sm" className="shrink-0 self-end">
+            {posting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+            {t('publish')}
+          </Button>
+        </div>
+        {/* Notification toggles */}
+        <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-3 dark:border-white/10">
+          <span className="text-xs text-zinc-500 dark:text-zinc-400">{t('notify')}</span>
+          <button
+            type="button"
+            onClick={() => setNotifyInApp(!notifyInApp)}
+            className={cn(
+              'flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors',
+              notifyInApp
+                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
+                : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900'
+            )}
+          >
+            <Bell className="h-3 w-3" />
+            {t('inApp')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setNotifyEmail(!notifyEmail)}
+            className={cn(
+              'flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors',
+              notifyEmail
+                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900'
+            )}
+          >
+            <Mail className="h-3 w-3" />
+            {t('email')}
+          </button>
+        </div>
+      </RolePanel>
 
       {/* Feed */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
         </div>
       ) : posts.length === 0 ? (
-        <div className="text-center py-16 text-muted-foreground">
-          <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-          <p className="text-lg font-medium">{t('emptyTitle')}</p>
-          <p className="text-sm mt-1">{t('emptyDescription')}</p>
-        </div>
+        <RolePanel className="p-10 text-center">
+          <Users className="mx-auto mb-3 h-12 w-12 text-zinc-300 dark:text-zinc-700" />
+          <p className="text-lg font-medium text-zinc-950 dark:text-zinc-50">{t('emptyTitle')}</p>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('emptyDescription')}</p>
+        </RolePanel>
       ) : (
         posts.map(post => {
           const config = typeConfig[post.type] || typeConfig.GENERAL
           const TypeIcon = config.icon
           return (
-            <Card key={post.id} className={cn(post.isPinned && 'border-yellow-200 dark:border-yellow-800/30')}>
-              <CardContent className="p-4">
-                {/* Post header */}
-                <div className="flex items-start gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold flex-shrink-0">
-                    {getInitials(post.author.name)}
+            <RolePanel key={post.id} className={cn('p-4', post.isPinned && 'border-amber-200 dark:border-amber-800/40')}>
+              {/* Post header */}
+              <div className="mb-3 flex items-start gap-3">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-700 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-200">
+                  {getInitials(post.author.name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{post.author.name}</span>
+                    {post.type !== 'GENERAL' && (
+                      <Badge variant="secondary" className="text-[10px] h-4">
+                        <TypeIcon className={cn('h-2.5 w-2.5', config.color)} />
+                        {t(config.labelKey)}
+                      </Badge>
+                    )}
+                    {post.isPinned && <Pin className="h-3 w-3 text-amber-500" />}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{post.author.name}</span>
-                      {post.type !== 'GENERAL' && (
-                        <Badge variant="secondary" className="text-[10px] h-4">
-                          <TypeIcon className={cn('h-2.5 w-2.5 mr-0.5', config.color)} />
-                          {t(config.labelKey)}
-                        </Badge>
-                      )}
-                      {post.isPinned && <Pin className="h-3 w-3 text-yellow-500" />}
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">{formatTimeAgo(post.createdAt)}</p>
+                </div>
+              </div>
+
+              {/* Content */}
+              <p className="mb-3 whitespace-pre-wrap text-sm text-zinc-800 dark:text-zinc-200">{post.content}</p>
+
+              {/* Actions */}
+              <div className="flex items-center gap-4 border-t border-zinc-200 pt-3 dark:border-white/10">
+                <button
+                  onClick={() => toggleLike(post.id)}
+                  className="flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-red-500 dark:text-zinc-400"
+                >
+                  <Heart className={cn('h-4 w-4', post.likesCount > 0 && 'fill-red-500 text-red-500')} />
+                  {post.likesCount > 0 && post.likesCount}
+                </button>
+                <button
+                  onClick={() => setCommentingOn(commentingOn === post.id ? null : post.id)}
+                  className="flex items-center gap-1 text-xs text-zinc-500 transition-colors hover:text-blue-500 dark:text-zinc-400"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {post.commentsCount > 0 && post.commentsCount}
+                </button>
+              </div>
+
+              {/* Comments */}
+              {post.comments.length > 0 && (
+                <div className="mt-3 space-y-2 border-l-2 border-zinc-100 pl-4 dark:border-white/10">
+                  {post.comments.map(comment => (
+                    <div key={comment.id} className="text-sm">
+                      <span className="font-medium text-zinc-950 dark:text-zinc-50">{comment.author.name}</span>
+                      <span className="text-zinc-500 dark:text-zinc-400"> · {formatTimeAgo(comment.createdAt)}</span>
+                      <p className="mt-0.5 text-zinc-500 dark:text-zinc-400">{comment.content}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground">{formatTimeAgo(post.createdAt)}</p>
-                  </div>
+                  ))}
                 </div>
+              )}
 
-                {/* Content */}
-                <p className="text-sm whitespace-pre-wrap mb-3">{post.content}</p>
-
-                {/* Actions */}
-                <div className="flex items-center gap-4 pt-2 border-t">
-                  <button
-                    onClick={() => toggleLike(post.id)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-red-500 transition-colors"
-                  >
-                    <Heart className={cn('h-4 w-4', post.likesCount > 0 && 'fill-red-500 text-red-500')} />
-                    {post.likesCount > 0 && post.likesCount}
-                  </button>
-                  <button
-                    onClick={() => setCommentingOn(commentingOn === post.id ? null : post.id)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-blue-500 transition-colors"
-                  >
-                    <MessageCircle className="h-4 w-4" />
-                    {post.commentsCount > 0 && post.commentsCount}
-                  </button>
+              {/* Comment input */}
+              {commentingOn === post.id && (
+                <div className="mt-3 flex gap-2">
+                  <Input
+                    placeholder={t('commentPlaceholder')}
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addComment(post.id)}
+                    className="h-8 border-zinc-200 bg-white text-sm dark:border-white/10 dark:bg-zinc-950/60"
+                  />
+                  <Button size="sm" className="h-8" onClick={() => addComment(post.id)} disabled={!commentText.trim()}>
+                    <Send className="h-3 w-3" />
+                  </Button>
                 </div>
-
-                {/* Comments */}
-                {post.comments.length > 0 && (
-                  <div className="mt-3 space-y-2 pl-4 border-l-2 border-slate-100 dark:border-white/10">
-                    {post.comments.map(comment => (
-                      <div key={comment.id} className="text-sm">
-                        <span className="font-medium">{comment.author.name}</span>
-                        <span className="text-muted-foreground"> · {formatTimeAgo(comment.createdAt)}</span>
-                        <p className="text-muted-foreground mt-0.5">{comment.content}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Comment input */}
-                {commentingOn === post.id && (
-                  <div className="mt-3 flex gap-2">
-                    <Input
-                      placeholder={t('commentPlaceholder')}
-                      value={commentText}
-                      onChange={e => setCommentText(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && addComment(post.id)}
-                      className="h-8 text-sm"
-                    />
-                    <Button size="sm" className="h-8" onClick={() => addComment(post.id)} disabled={!commentText.trim()}>
-                      <Send className="h-3 w-3" />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+              )}
+            </RolePanel>
           )
         })
       )}
