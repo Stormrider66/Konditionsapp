@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Ban, CheckCircle2, Loader2, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -18,6 +17,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { getExerciseDisplayName } from '@/lib/exercises/display-name'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { MultiExercisePicker, type PickedExercise } from './MultiExercisePicker'
 
 type AthleteOption = {
@@ -56,6 +56,11 @@ const restrictionTypes = [
 ] as const
 
 const workoutTypes = ['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY', 'ICE', 'MATCH']
+
+const labelClass = 'text-zinc-700 dark:text-zinc-200'
+const inputClass = 'bg-white text-zinc-950 dark:bg-zinc-950/60 dark:text-zinc-100'
+const sectionClass = 'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-zinc-900/40'
+const hintClass = 'text-xs text-zinc-500 dark:text-zinc-400'
 
 function splitList(value: string) {
   return value
@@ -261,31 +266,31 @@ export function RestrictionForm({
 
   if (loading) {
     return (
-      <Card className="border-white/10 bg-slate-900/50">
-        <CardContent className="flex items-center justify-center p-12">
+      <RolePanel className="p-12">
+        <div className="flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-emerald-400" />
-        </CardContent>
-      </Card>
+        </div>
+      </RolePanel>
     )
   }
 
   return (
-    <Card className="border-white/10 bg-slate-900/50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
+    <RolePanel>
+      <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
           <Ban className="h-5 w-5 text-orange-400" />
           {restrictionId ? t('title.edit') : t('title.create')}
-        </CardTitle>
-        <CardDescription className="text-slate-400">
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
           {t('description')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
+        </p>
+      </div>
+      <div className="space-y-5 p-5">
+        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.athlete')}</Label>
+            <Label className={labelClass}>{t('fields.athlete')}</Label>
             <Select value={clientId} onValueChange={setClientId} disabled={Boolean(restrictionId)}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue placeholder={t('placeholders.selectAthlete')} />
               </SelectTrigger>
               <SelectContent>
@@ -299,9 +304,9 @@ export function RestrictionForm({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.linkedInjury')}</Label>
+            <Label className={labelClass}>{t('fields.linkedInjury')}</Label>
             <Select value={injuryId || 'none'} onValueChange={(value) => setInjuryId(value === 'none' ? '' : value)}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue placeholder={t('placeholders.optional')} />
               </SelectTrigger>
               <SelectContent>
@@ -319,11 +324,11 @@ export function RestrictionForm({
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className={`grid gap-4 md:grid-cols-3 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.type')}</Label>
+            <Label className={labelClass}>{t('fields.type')}</Label>
             <Select value={type} onValueChange={setType}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -336,9 +341,9 @@ export function RestrictionForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.severity')}</Label>
+            <Label className={labelClass}>{t('fields.severity')}</Label>
             <Select value={severity} onValueChange={setSeverity}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -350,29 +355,29 @@ export function RestrictionForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.endDate')}</Label>
+            <Label className={labelClass}>{t('fields.endDate')}</Label>
             <Input
               type="date"
               value={endDate}
               onChange={(event) => setEndDate(event.target.value)}
-              className="bg-slate-950/50 text-white"
+              className={inputClass}
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.bodyParts')}</Label>
+          <Label className={labelClass}>{t('fields.bodyParts')}</Label>
           <Input
             value={bodyParts}
             onChange={(event) => setBodyParts(event.target.value)}
             placeholder={t('placeholders.bodyParts')}
-            className="bg-slate-950/50 text-white"
+            className={inputClass}
           />
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.affectedWorkoutTypes')}</Label>
-          <div className="flex flex-wrap gap-2">
+        <div className={sectionClass}>
+          <Label className={labelClass}>{t('fields.affectedWorkoutTypes')}</Label>
+          <div className="mt-3 flex flex-wrap gap-2">
             {workoutTypes.map((workoutType) => {
               const selected = affectedTypes.includes(workoutType)
               return (
@@ -396,80 +401,82 @@ export function RestrictionForm({
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.blockedExercises')}</Label>
-          <p className="text-xs text-slate-400">{t('hints.blockedExercises')}</p>
-          <MultiExercisePicker
-            value={selectedExercises}
-            onChange={setSelectedExercises}
-            searchPlaceholder={t('placeholders.searchExercises')}
-            emptyText={t('hints.noExerciseMatches')}
-            noneSelectedText={t('hints.noExercisesBlocked')}
-          />
+        <div className={sectionClass}>
+          <Label className={labelClass}>{t('fields.blockedExercises')}</Label>
+          <p className={`mt-1 ${hintClass}`}>{t('hints.blockedExercises')}</p>
+          <div className="mt-3">
+            <MultiExercisePicker
+              value={selectedExercises}
+              onChange={setSelectedExercises}
+              searchPlaceholder={t('placeholders.searchExercises')}
+              emptyText={t('hints.noExerciseMatches')}
+              noneSelectedText={t('hints.noExercisesBlocked')}
+            />
+          </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.volumeReduction')}</Label>
+            <Label className={labelClass}>{t('fields.volumeReduction')}</Label>
             <Input
               type="number"
               min="0"
               max="100"
               value={volumeReductionPercent}
               onChange={(event) => setVolumeReductionPercent(event.target.value)}
-              className="bg-slate-950/50 text-white"
+              className={inputClass}
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.maxIntensityZone')}</Label>
+            <Label className={labelClass}>{t('fields.maxIntensityZone')}</Label>
             <Input
               type="number"
               min="1"
               max="5"
               value={maxIntensityZone}
               onChange={(event) => setMaxIntensityZone(event.target.value)}
-              className="bg-slate-950/50 text-white"
+              className={inputClass}
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.reason')}</Label>
+          <Label className={labelClass}>{t('fields.reason')}</Label>
           <Input
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder={t('placeholders.reason')}
-            className="bg-slate-950/50 text-white"
+            className={inputClass}
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.coachInstruction')}</Label>
+          <Label className={labelClass}>{t('fields.coachInstruction')}</Label>
           <Textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
             placeholder={t('placeholders.coachInstruction')}
-            className="min-h-24 bg-slate-950/50 text-white"
+            className={`min-h-24 ${inputClass}`}
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.internalNote')}</Label>
+          <Label className={labelClass}>{t('fields.internalNote')}</Label>
           <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="min-h-20 bg-slate-950/50 text-white"
+            className={`min-h-20 ${inputClass}`}
           />
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-between">
+        <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 dark:border-white/10 sm:flex-row sm:justify-between">
           {restrictionId ? (
             <Button
               type="button"
               variant="outline"
               onClick={clearRestriction}
               disabled={saving}
-              className="border-emerald-500/30 text-emerald-300"
+              className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800/50 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
             >
               <CheckCircle2 className="mr-2 h-4 w-4" />
               {t('actions.clear')}
@@ -482,7 +489,7 @@ export function RestrictionForm({
             {t('actions.save')}
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </RolePanel>
   )
 }

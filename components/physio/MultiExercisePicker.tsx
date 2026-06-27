@@ -95,18 +95,18 @@ export function MultiExercisePicker({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={searchPlaceholder}
-          className="bg-slate-950/50 pl-7 text-white"
+          className="bg-white pl-7 text-zinc-950 dark:bg-zinc-950/60 dark:text-zinc-100"
         />
       </div>
 
       {query.trim().length >= 2 && (
-        <div className="max-h-40 overflow-y-auto rounded-md border border-white/10 bg-slate-950/60">
+        <div className="max-h-48 overflow-y-auto rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950/80">
           {loading ? (
-            <div className="flex items-center justify-center py-4 text-sm text-slate-400">
+            <div className="flex items-center justify-center py-4 text-sm text-zinc-500 dark:text-zinc-400">
               <Loader2 className="h-4 w-4 animate-spin" />
             </div>
           ) : results.length === 0 ? (
-            <p className="py-4 text-center text-sm text-slate-400">{emptyText}</p>
+            <p className="py-4 text-center text-sm text-zinc-500 dark:text-zinc-400">{emptyText}</p>
           ) : (
             results.map((ex) => {
               const already = selectedIds.has(ex.id)
@@ -116,11 +116,11 @@ export function MultiExercisePicker({
                   type="button"
                   disabled={already}
                   onClick={() => add(ex)}
-                  className="flex w-full items-center justify-between px-3 py-1.5 text-left text-sm text-slate-200 hover:bg-white/5 disabled:opacity-40"
+                  className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm text-zinc-700 transition hover:bg-zinc-50 disabled:opacity-40 dark:text-zinc-200 dark:hover:bg-white/5"
                 >
                   <span className="truncate">
                     {getExerciseDisplayName(ex, locale)}
-                    {ex.muscleGroup && <span className="ml-2 text-xs text-slate-500">{ex.muscleGroup}</span>}
+                    {ex.muscleGroup && <span className="ml-2 text-xs text-zinc-500">{ex.muscleGroup}</span>}
                   </span>
                   {!already && <Plus className="h-3.5 w-3.5 shrink-0 text-emerald-400" />}
                 </button>
@@ -131,13 +131,22 @@ export function MultiExercisePicker({
       )}
 
       {value.length === 0 ? (
-        <p className="text-xs text-slate-500">{noneSelectedText}</p>
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">{noneSelectedText}</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {value.map((ex) => (
-            <Badge key={ex.id} variant="secondary" className="gap-1">
+            <Badge
+              key={ex.id}
+              variant="outline"
+              className="gap-1 border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-white/10 dark:bg-zinc-900/60 dark:text-zinc-200"
+            >
               {ex.name}
-              <button type="button" onClick={() => remove(ex.id)} className="ml-0.5 hover:text-red-400">
+              <button
+                type="button"
+                aria-label="Remove exercise"
+                onClick={() => remove(ex.id)}
+                className="ml-0.5 rounded-sm hover:text-red-500 focus:outline-none focus:ring-1 focus:ring-red-300"
+              >
                 <X className="h-3 w-3" />
               </button>
             </Badge>
