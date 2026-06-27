@@ -13,13 +13,7 @@
 import { useEffect, useState } from 'react';
 import { useLocale } from '@/i18n/client';
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Badge } from '@/components/ui/badge';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Activity, Heart, TrendingUp, AlertTriangle } from 'lucide-react';
@@ -111,17 +105,25 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
   }, [data, locale, timeRange]);
 
   if (loading) {
-    return <div>{copy(locale, 'Loading monitoring data...', 'Laddar monitoreringsdata...')}</div>;
+    return (
+      <RolePanel className="flex min-h-32 items-center justify-center p-6">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          {copy(locale, 'Loading monitoring data...', 'Laddar monitoreringsdata...')}
+        </p>
+      </RolePanel>
+    );
   }
 
   if (!data || !data.metrics || data.metrics.length === 0) {
     return (
-      <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
-        <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Monitoring Data', 'Monitoreringsdata')}</GlassCardTitle>
-          <GlassCardDescription className="text-slate-650 dark:text-slate-400">{copy(locale, 'No monitoring data available for this athlete', 'Ingen monitoreringsdata tillgänglig för den här atleten')}</GlassCardDescription>
-        </GlassCardHeader>
-      </GlassCard>
+      <RolePanel className="p-5 sm:p-6">
+        <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+          {copy(locale, 'Monitoring Data', 'Monitoreringsdata')}
+        </h3>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          {copy(locale, 'No monitoring data available for this athlete', 'Ingen monitoreringsdata tillgänglig för den här atleten')}
+        </p>
+      </RolePanel>
     );
   }
 
@@ -145,10 +147,17 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
   return (
     <div className="space-y-6">
       {/* Time Range Selector */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium text-slate-800 dark:text-slate-200">{copy(locale, 'Monitoring Trends', 'Monitoreringstrender')}</h3>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+            {copy(locale, 'Monitoring Trends', 'Monitoreringstrender')}
+          </h3>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            {data.metrics.length} {copy(locale, 'daily check-ins in view', 'dagliga avstämningar i vyn')}
+          </p>
+        </div>
         <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
-          <SelectTrigger className="w-32 bg-white/50 dark:bg-slate-950/50 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
+          <SelectTrigger className="w-full border-zinc-200 bg-white text-zinc-950 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-50 sm:w-32">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -160,194 +169,182 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <GlassCard glow="purple" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
-              <Activity className="h-4 w-4 text-purple-500" />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <RolePanel className="p-5">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <Activity className="h-4 w-4" />
+            </span>
+            <span className="inline-flex items-center gap-2">
               {copy(locale, 'Current HRV', 'Aktuell HRV')}
               <InfoTooltip conceptKey="hrv" />
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{latestMetrics.hrvRMSSD?.toFixed(1) || 'N/A'} ms</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {copy(locale, 'Avg:', 'Snitt:')} {avgHRV.toFixed(1)} ms
+            </span>
+          </div>
+          <p className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{latestMetrics.hrvRMSSD?.toFixed(1) || 'N/A'} ms</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            {copy(locale, 'Avg:', 'Snitt:')} {avgHRV.toFixed(1)} ms
               {latestMetrics.hrvRMSSD && (
                 <span className={latestMetrics.hrvRMSSD > avgHRV ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
                   {' '}({latestMetrics.hrvRMSSD > avgHRV ? '↑' : '↓'})
                 </span>
               )}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+          </p>
+        </RolePanel>
 
-        <GlassCard glow="red" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
-              <Heart className="h-4 w-4 text-red-500" />
-              {copy(locale, 'Resting HR', 'Vilopuls')}
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{latestMetrics.restingHR || 'N/A'} bpm</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+        <RolePanel className="p-5">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-red-100 bg-red-50 text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
+              <Heart className="h-4 w-4" />
+            </span>
+            {copy(locale, 'Resting HR', 'Vilopuls')}
+          </div>
+          <p className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{latestMetrics.restingHR || 'N/A'} bpm</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
               {copy(locale, 'Avg:', 'Snitt:')} {avgRHR.toFixed(0)} bpm
               {latestMetrics.restingHR && (
                 <span className={latestMetrics.restingHR < avgRHR ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
                   {' '}({latestMetrics.restingHR < avgRHR ? '↓' : '↑'})
                 </span>
               )}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+          </p>
+        </RolePanel>
 
-        <GlassCard glow="emerald" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
+        <RolePanel className="p-5">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+              <TrendingUp className="h-4 w-4" />
+            </span>
+            <span className="inline-flex items-center gap-2">
               {copy(locale, 'Readiness', 'Beredskap')}
               <InfoTooltip conceptKey="readiness" />
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{latestMetrics.readinessScore || 'N/A'}</p>
-            <Badge variant={getReadinessBadge(latestMetrics.readinessScore)}>
-              {getReadinessCategory(latestMetrics.readinessScore, locale)}
-            </Badge>
-          </GlassCardContent>
-        </GlassCard>
+            </span>
+          </div>
+          <p className="mb-2 text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{latestMetrics.readinessScore || 'N/A'}</p>
+          <Badge variant={getReadinessBadge(latestMetrics.readinessScore)}>
+            {getReadinessCategory(latestMetrics.readinessScore, locale)}
+          </Badge>
+        </RolePanel>
 
-        <GlassCard glow="amber" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm font-medium flex items-center gap-2 text-slate-900 dark:text-white">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-              {copy(locale, 'Red Flags', 'Varningsflaggor')}
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{data.criticalFlags || 0}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">{copy(locale, 'Requires attention', 'Kräver uppmärksamhet')}</p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="p-5">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
+            {copy(locale, 'Red Flags', 'Varningsflaggor')}
+          </div>
+          <p className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{data.criticalFlags || 0}</p>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">{copy(locale, 'Requires attention', 'Kräver uppmärksamhet')}</p>
+        </RolePanel>
       </div>
 
       {/* HRV Trend Chart */}
-      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-        <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'HRV Trend (rMSSD)', 'HRV-trend (rMSSD)')}</GlassCardTitle>
-          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'HRV Trend (rMSSD)', 'HRV-trend (rMSSD)')}</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             {copy(locale, 'Higher HRV indicates better recovery. Watch for declining trends.', 'Högre HRV indikerar bättre återhämtning. Håll koll på fallande trender.')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorHRV" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis label={{ value: 'HRV (ms)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="hrv"
-                stroke="#8884d8"
-                fillOpacity={1}
-                fill="url(#colorHRV)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </GlassCardContent>
-      </GlassCard>
+          </p>
+        </div>
+        <ResponsiveContainer width="100%" height={250}>
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorHRV" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+            <YAxis label={{ value: 'HRV (ms)', angle: -90, position: 'insideLeft' }} />
+            <Tooltip />
+            <Area
+              type="monotone"
+              dataKey="hrv"
+              stroke="#8884d8"
+              fillOpacity={1}
+              fill="url(#colorHRV)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </RolePanel>
 
       {/* Resting HR Trend Chart */}
-      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-        <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Resting Heart Rate Trend', 'Trend för vilopuls')}</GlassCardTitle>
-          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Resting Heart Rate Trend', 'Trend för vilopuls')}</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             {copy(locale, 'Lower RHR indicates better fitness. Elevated RHR may signal overtraining or illness.', 'Lägre vilopuls indikerar bättre kondition. Förhöjd vilopuls kan signalera överträning eller sjukdom.')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis label={{ value: 'HR (bpm)', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Line
-                type="monotone"
-                dataKey="rhr"
-                stroke="#ef4444"
-                strokeWidth={2}
-                dot={{ r: 4 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </GlassCardContent>
-      </GlassCard>
+          </p>
+        </div>
+        <ResponsiveContainer width="100%" height={250}>
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+            <YAxis label={{ value: 'HR (bpm)', angle: -90, position: 'insideLeft' }} />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="rhr"
+              stroke="#ef4444"
+              strokeWidth={2}
+              dot={{ r: 4 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </RolePanel>
 
       {/* Wellness Components */}
-      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-        <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Wellness Components', 'Välmåendekomponenter')}</GlassCardTitle>
-          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Wellness Components', 'Välmåendekomponenter')}</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             {copy(locale, 'Sleep quality, soreness, and stress levels (1-5 scale)', 'Sömnkvalitet, ömhet och stressnivåer (1-5-skala)')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis label={{ value: 'Score (1-5)', angle: -90, position: 'insideLeft' }} domain={[0, 5]} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="sleep" fill="#10b981" name={copy(locale, 'Sleep Quality', 'Sömnkvalitet')} />
-              <Bar dataKey="soreness" fill="#f59e0b" name={copy(locale, 'Soreness', 'Ömhet')} />
-              <Bar dataKey="stress" fill="#ef4444" name={copy(locale, 'Stress', 'Stress')} />
-            </BarChart>
-          </ResponsiveContainer>
-        </GlassCardContent>
-      </GlassCard>
+          </p>
+        </div>
+        <ResponsiveContainer width="100%" height={250}>
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+            <YAxis label={{ value: 'Score (1-5)', angle: -90, position: 'insideLeft' }} domain={[0, 5]} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="sleep" fill="#10b981" name={copy(locale, 'Sleep Quality', 'Sömnkvalitet')} />
+            <Bar dataKey="soreness" fill="#f59e0b" name={copy(locale, 'Soreness', 'Ömhet')} />
+            <Bar dataKey="stress" fill="#ef4444" name={copy(locale, 'Stress', 'Stress')} />
+          </BarChart>
+        </ResponsiveContainer>
+      </RolePanel>
 
       {/* Readiness Score Trend */}
-      <GlassCard glow="none" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-        <GlassCardHeader>
-          <GlassCardTitle className="text-slate-900 dark:text-white">{copy(locale, 'Readiness Score Trend', 'Beredskapstrend')}</GlassCardTitle>
-          <GlassCardDescription className="text-slate-600 dark:text-slate-400">
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Readiness Score Trend', 'Beredskapstrend')}</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             {copy(locale, 'Composite score (0-100) indicating training readiness', 'Sammanvägd poäng (0-100) som visar träningsberedskap')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id="colorReadiness" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis label={{ value: 'Readiness Score', angle: -90, position: 'insideLeft' }} domain={[0, 100]} />
-              <Tooltip />
-              <Area
-                type="monotone"
-                dataKey="readiness"
-                stroke="#10b981"
-                fillOpacity={1}
-                fill="url(#colorReadiness)"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </GlassCardContent>
-      </GlassCard>
+          </p>
+        </div>
+        <ResponsiveContainer width="100%" height={250}>
+          <AreaChart data={chartData}>
+            <defs>
+              <linearGradient id="colorReadiness" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+            <YAxis label={{ value: 'Readiness Score', angle: -90, position: 'insideLeft' }} domain={[0, 100]} />
+            <Tooltip />
+            <Area
+              type="monotone"
+              dataKey="readiness"
+              stroke="#10b981"
+              fillOpacity={1}
+              fill="url(#colorReadiness)"
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </RolePanel>
     </div>
   );
 }

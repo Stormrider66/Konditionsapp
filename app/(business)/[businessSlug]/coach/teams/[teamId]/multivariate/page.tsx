@@ -8,10 +8,10 @@ import { MVAAnalysisClient } from '@/components/mva/MVAAnalysisClient'
 import { TeamAnalysisSubNav } from '@/components/coach/teams/TeamAnalysisSubNav'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/badge'
-import { Lock } from 'lucide-react'
+import { BarChart3, Lock } from 'lucide-react'
 import { getLocale, getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 interface AnalysisPageProps {
   params: Promise<{
@@ -43,22 +43,24 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
 
   if (!hasPro) {
     return (
-      <div className="container mx-auto py-8 px-4">
-        <GlassCard glow="purple" className="max-w-lg mx-auto">
-          <GlassCardHeader className="text-center">
-            <Lock className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <GlassCardTitle className="dark:text-white">{t('title')}</GlassCardTitle>
-            <GlassCardDescription>
-              {t('upgradeDescription')}
-            </GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent className="text-center">
-            <Link href={`/${businessSlug}/coach/subscription`}>
-              <Button>{t('upgradeCta')}</Button>
-            </Link>
-          </GlassCardContent>
-        </GlassCard>
-      </div>
+      <RolePageFrame contentClassName="max-w-2xl">
+        <RolePanel className="p-8 text-center sm:p-10">
+          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <Lock className="h-6 w-6" />
+          </div>
+          <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{t('title')}</h1>
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+            {t('upgradeDescription')}
+          </p>
+          <div className="mt-6">
+            <Button asChild>
+              <Link href={`/${businessSlug}/coach/subscription`}>
+                {t('upgradeCta')}
+              </Link>
+            </Button>
+          </div>
+        </RolePanel>
+      </RolePageFrame>
     )
   }
 
@@ -69,11 +71,20 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
   ])
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center gap-3 mb-4">
-        <h1 className="text-3xl font-bold dark:text-white">{t('title')}</h1>
-        <Badge variant="secondary">{team.name}</Badge>
-      </div>
+    <RolePageFrame>
+      <RolePageHeader
+        eyebrow={team.name}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <BarChart3 className="h-5 w-5" />
+            </span>
+            {t('title')}
+          </span>
+        )}
+        description={t('upgradeDescription')}
+        actions={<Badge variant="secondary">{team.name}</Badge>}
+      />
 
       <TeamAnalysisSubNav base={`/${businessSlug}/coach/teams/${teamId}`} />
 
@@ -121,6 +132,6 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
           athleteNames: latestPLSModel.athleteNames,
         } : null}
       />
-    </div>
+    </RolePageFrame>
   )
 }
