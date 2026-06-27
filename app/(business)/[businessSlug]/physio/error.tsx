@@ -29,7 +29,7 @@ export default function PhysioError({
       <Card className="max-w-lg w-full">
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-2">
+            <div className="rounded-md border border-red-100 bg-red-50 p-2 dark:border-red-900/60 dark:bg-red-950/30">
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
             <div>
@@ -42,7 +42,7 @@ export default function PhysioError({
         </CardHeader>
         <CardContent className="space-y-4">
           {error.digest && (
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
               {t('errorIdLabel')}: {error.digest}
             </p>
           )}
