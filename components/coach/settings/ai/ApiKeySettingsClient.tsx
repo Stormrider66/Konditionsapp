@@ -5,15 +5,22 @@ import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Check, X, Eye, EyeOff, ExternalLink, Trash2, Info } from 'lucide-react';
+import {
+  type LucideIcon,
+  Bot,
+  Check,
+  Eye,
+  EyeOff,
+  ExternalLink,
+  FileSearch,
+  Info,
+  Loader2,
+  Trash2,
+  Video,
+  X,
+} from 'lucide-react';
 
 interface ApiKeyStatus {
   provider: string;
@@ -23,11 +30,12 @@ interface ApiKeyStatus {
 }
 
 interface ProviderConfig {
-  id: string;
+  id: ProviderId;
   name: string;
   placeholder: string;
   docsUrl: string;
-  icon: string;
+  icon: LucideIcon;
+  toneClassName: string;
 }
 
 type AppLocale = 'en' | 'sv';
@@ -97,21 +105,24 @@ const PROVIDERS: ProviderConfig[] = [
     name: 'Anthropic (Claude)',
     placeholder: 'sk-ant-api03-...',
     docsUrl: 'https://console.anthropic.com/settings/keys',
-    icon: '🤖',
+    icon: Bot,
+    toneClassName: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
   },
   {
     id: 'google',
     name: 'Google (Gemini)',
     placeholder: 'AIza...',
     docsUrl: 'https://aistudio.google.com/app/apikey',
-    icon: '🎥',
+    icon: Video,
+    toneClassName: 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
   },
   {
     id: 'openai',
     name: 'OpenAI',
     placeholder: 'sk-...',
     docsUrl: 'https://platform.openai.com/api-keys',
-    icon: '📚',
+    icon: FileSearch,
+    toneClassName: 'border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
   },
 ];
 
@@ -247,9 +258,9 @@ export function ApiKeySettingsClient() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-      </div>
+      <RolePanel className="flex items-center justify-center p-8">
+        <Loader2 className="h-6 w-6 animate-spin text-zinc-500 dark:text-zinc-400" />
+      </RolePanel>
     );
   }
 
@@ -257,83 +268,78 @@ export function ApiKeySettingsClient() {
     <div className="space-y-6">
       {/* Key source banner */}
       {keySource && keySource.source === 'business' && (
-        <GlassCard glow="blue">
-          <GlassCardContent className="p-4 flex items-start gap-3">
-            <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-            <p className="text-sm text-blue-800 dark:text-blue-300">
-              {copy.businessKeys(keySource.businessName)}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="flex items-start gap-3 border-blue-200 bg-blue-50 p-4 dark:border-blue-900/60 dark:bg-blue-950/30">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-600 dark:text-blue-300" />
+          <p className="text-sm leading-6 text-blue-800 dark:text-blue-200">
+            {copy.businessKeys(keySource.businessName)}
+          </p>
+        </RolePanel>
       )}
       {keySource && keySource.source === 'user' && (
-        <GlassCard glow="emerald">
-          <GlassCardContent className="p-4 flex items-start gap-3">
-            <Info className="h-5 w-5 text-green-600 dark:text-green-400 mt-0.5 shrink-0" />
-            <p className="text-sm text-green-800 dark:text-green-300">
-              {copy.userKeys}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="flex items-start gap-3 border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-300" />
+          <p className="text-sm leading-6 text-emerald-800 dark:text-emerald-200">
+            {copy.userKeys}
+          </p>
+        </RolePanel>
       )}
       {keySource && keySource.source === 'none' && (
-        <GlassCard glow="amber">
-          <GlassCardContent className="p-4 flex items-start gap-3">
-            <Info className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-            <p className="text-sm text-amber-800 dark:text-amber-300">
-              {copy.noKeys}
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+        <RolePanel className="flex items-start gap-3 border-amber-200 bg-amber-50 p-4 dark:border-amber-900/60 dark:bg-amber-950/30">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-300" />
+          <p className="text-sm leading-6 text-amber-800 dark:text-amber-200">
+            {copy.noKeys}
+          </p>
+        </RolePanel>
       )}
 
       {PROVIDERS.map((provider) => {
         const status = getStatusForProvider(provider.id);
         const isConfigured = status?.configured ?? false;
         const isValid = status?.valid ?? false;
-        const glowColor =
-          provider.id === 'anthropic' ? 'purple' :
-          provider.id === 'google' ? 'emerald' :
-          provider.id === 'openai' ? 'blue' : 'slate';
+        const ProviderIcon = provider.icon;
 
         return (
-          <GlassCard key={provider.id} glow={glowColor}>
-            <GlassCardHeader>
-              <div className="flex items-center justify-between">
+          <RolePanel key={provider.id} className="p-5">
+            <div className="border-b border-zinc-200 pb-5 dark:border-white/10">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">{provider.icon}</span>
+                  <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md border ${provider.toneClassName}`}>
+                    <ProviderIcon className="h-5 w-5" />
+                  </div>
                   <div>
-                    <GlassCardTitle className="text-lg">{provider.name}</GlassCardTitle>
-                    <GlassCardDescription>{copy.providers[provider.id as ProviderId]}</GlassCardDescription>
+                    <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{provider.name}</h3>
+                    <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{copy.providers[provider.id]}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {isConfigured ? (
                     isValid ? (
-                      <Badge variant="default" className="bg-green-500">
-                        <Check className="h-3 w-3 mr-1" />
+                      <Badge variant="outline" className="border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                        <Check className="h-3 w-3" />
                         {copy.active}
                       </Badge>
                     ) : (
                       <Badge variant="destructive">
-                        <X className="h-3 w-3 mr-1" />
+                        <X className="h-3 w-3" />
                         {copy.invalid}
                       </Badge>
                     )
                   ) : (
-                    <Badge variant="secondary">{copy.notConfigured}</Badge>
+                    <Badge variant="outline" className="border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-300">
+                      {copy.notConfigured}
+                    </Badge>
                   )}
                 </div>
               </div>
-            </GlassCardHeader>
-            <GlassCardContent>
-              <div className="space-y-4">
+            </div>
+            <div className="mt-5">
+              <div className="space-y-5">
                 {/* Input for new/update key */}
                 <div className="space-y-2">
-                  <Label htmlFor={`key-${provider.id}`}>
+                  <Label htmlFor={`key-${provider.id}`} className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     {isConfigured ? copy.updateApiKey : copy.apiKey}
                   </Label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 sm:flex-row">
                     <div className="relative flex-1">
                       <Input
                         id={`key-${provider.id}`}
@@ -343,14 +349,15 @@ export function ApiKeySettingsClient() {
                         onChange={(e) =>
                           setKeyValues({ ...keyValues, [provider.id]: e.target.value })
                         }
-                        className="pr-10"
+                        className="border-zinc-200 bg-white pr-10 dark:border-white/10 dark:bg-zinc-900"
                       />
                       <button
                         type="button"
                         onClick={() =>
                           setShowKey({ ...showKey, [provider.id]: !showKey[provider.id] })
                         }
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors hover:text-zinc-700 dark:hover:text-zinc-200"
+                        aria-label={showKey[provider.id] ? 'Hide API key' : 'Show API key'}
                       >
                         {showKey[provider.id] ? (
                           <EyeOff className="h-4 w-4" />
@@ -362,6 +369,7 @@ export function ApiKeySettingsClient() {
                     <Button
                       onClick={() => saveKey(provider.id)}
                       disabled={saving === provider.id || !keyValues[provider.id]}
+                      className="sm:w-auto"
                     >
                       {saving === provider.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
@@ -377,7 +385,8 @@ export function ApiKeySettingsClient() {
                         size="icon"
                         onClick={() => removeKey(provider.id)}
                         disabled={saving === provider.id}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:text-red-700 sm:shrink-0"
+                        aria-label={`Remove ${provider.name} API key`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -387,13 +396,13 @@ export function ApiKeySettingsClient() {
                     <p className="text-sm text-red-500">{errors[provider.id]}</p>
                   )}
                   {success[provider.id] && (
-                    <p className="text-sm text-green-500">{copy.keySaved}</p>
+                    <p className="text-sm text-emerald-600 dark:text-emerald-400">{copy.keySaved}</p>
                   )}
                 </div>
 
                 {/* Status info */}
                 {isConfigured && status?.lastValidated && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
                     {copy.lastValidated}:{' '}
                     {new Date(status.lastValidated).toLocaleString(dateLocale)}
                   </p>
@@ -404,14 +413,14 @@ export function ApiKeySettingsClient() {
                   href={provider.docsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 transition-colors hover:text-blue-800 dark:text-blue-300 dark:hover:text-blue-200"
                 >
                   {copy.getApiKey}
                   <ExternalLink className="h-3 w-3" />
                 </a>
               </div>
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
         );
       })}
     </div>
