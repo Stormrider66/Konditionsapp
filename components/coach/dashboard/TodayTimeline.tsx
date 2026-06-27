@@ -7,7 +7,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -165,7 +165,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
       <GlassCardContent className="space-y-4">
         {/* Morning Readiness Bar */}
         {readinessDistribution && readinessDistribution.total > 0 && isToday(selectedDate) && (
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30 dark:bg-white/5">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
             <div className="flex-1">
               <p className="text-xs font-medium text-muted-foreground mb-1.5">{t('readiness.title')}</p>
               <div className="flex h-2 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
@@ -254,7 +254,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
                     </div>
 
                     {/* Content card */}
-                    <div className="flex-1 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted/50 dark:hover:bg-white/10 transition">
+                    <div className="flex-1 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition">
                       <div className="flex items-center gap-2 mb-1">
                         <Badge className={`text-xs ${TYPE_COLORS[appointment.type] || TYPE_COLORS.external}`}>
                           <Icon className="h-3 w-3 mr-1" />

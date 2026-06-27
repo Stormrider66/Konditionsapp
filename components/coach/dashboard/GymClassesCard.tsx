@@ -6,7 +6,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
 import {
@@ -140,7 +140,7 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
         ) : (
           <div className="space-y-2">
             {classes.slice(0, 5).map(cls => (
-              <div key={cls.id} className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 dark:bg-white/5">
+              <div key={cls.id} className="flex items-center gap-3 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
                 <div className={cn(
                   'w-1 h-10 rounded-full flex-shrink-0',
                   cls.color || classTypeColors[cls.classType] || 'bg-slate-400'

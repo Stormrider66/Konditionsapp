@@ -151,7 +151,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
 
   return (
     <div className={cn(
-      'rounded-xl bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow',
+      'rounded-lg bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow',
       urgencyBorder,
     )}>
       <div className="p-4 space-y-3">

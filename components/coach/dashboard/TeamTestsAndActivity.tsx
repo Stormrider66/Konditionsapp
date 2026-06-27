@@ -12,7 +12,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
 import { useLocale, useTranslations } from '@/i18n/client'
 

@@ -5,7 +5,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { Trophy } from 'lucide-react'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
@@ -52,7 +52,7 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
               const dateStr = format(new Date(pr.date), 'd MMM HH:mm', { locale: dateLocale })
 
               return (
-                <div key={pr.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition">
+                <div key={pr.id} className="flex items-start gap-3 p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition">
                   <div className="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
                     <Trophy className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
                   </div>

@@ -742,7 +742,7 @@ function WellnessItem({ label, data, dataKey, color, emptyText, inverted }: {
   const latest = filtered.length > 0 ? filtered[filtered.length - 1]?.[dataKey] : null
 
   return (
-    <div className="p-2 rounded-lg bg-muted/30 dark:bg-white/5">
+    <div className="p-2 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-muted-foreground">{label}</span>
         <span className={cn('text-sm font-bold', inverted

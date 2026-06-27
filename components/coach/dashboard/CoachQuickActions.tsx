@@ -7,7 +7,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import {
   ClipboardList,
@@ -49,6 +49,9 @@ type TeamQuickActionItem =
       icon: typeof Timer
       className: string
     }
+
+const neutralActionTileClass = 'flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-center transition hover:bg-zinc-100 dark:border-white/10 dark:bg-zinc-900/50 dark:hover:bg-zinc-900'
+const actionLabelClass = 'text-xs font-medium text-zinc-700 dark:text-zinc-300'
 
 export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams = [] }: CoachQuickActionsProps) {
   const t = useTranslations('components.coachQuickActions')
@@ -163,45 +166,45 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
         </GlassCardHeader>
         <GlassCardContent className="grid grid-cols-2 gap-2">
           <Link href={`${basePath}/coach/clients/new`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition text-center">
+            <div className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border border-emerald-200/60 bg-emerald-50 p-3 text-center transition hover:bg-emerald-100 dark:border-emerald-800/30 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30">
               <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-xs text-emerald-700 dark:text-emerald-300">{t('gym.newMember')}</span>
+              <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{t('gym.newMember')}</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+            <div className={neutralActionTileClass}>
               <Dumbbell className="h-5 w-5 text-orange-500" />
-              <span className="text-xs dark:text-slate-300">{t('gym.strengthWorkout')}</span>
+              <span className={actionLabelClass}>{t('gym.strengthWorkout')}</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+            <div className={neutralActionTileClass}>
               <Target className="h-5 w-5 text-yellow-500" />
-              <span className="text-xs dark:text-slate-300">{t('gym.logPr')}</span>
+              <span className={actionLabelClass}>{t('gym.logPr')}</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+            <div className={neutralActionTileClass}>
               <ClipboardList className="h-5 w-5 text-cyan-500" />
-              <span className="text-xs dark:text-slate-300">{t('gym.exercises')}</span>
+              <span className={actionLabelClass}>{t('gym.exercises')}</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/clients`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+            <div className={neutralActionTileClass}>
               <Users className="h-5 w-5 text-blue-500" />
-              <span className="text-xs dark:text-slate-300">{t('gym.bodyMeasurement')}</span>
+              <span className={actionLabelClass}>{t('gym.bodyMeasurement')}</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/ai-studio`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+            <div className={neutralActionTileClass}>
               <Sparkles className="h-5 w-5 text-purple-500" />
-              <span className="text-xs dark:text-slate-300">AI Studio</span>
+              <span className={actionLabelClass}>AI Studio</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
-            <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+            <div className={neutralActionTileClass}>
               <Timer className="h-5 w-5 text-teal-500" />
-              <span className="text-xs dark:text-slate-300">{t('gym.assignWorkout')}</span>
+              <span className={actionLabelClass}>{t('gym.assignWorkout')}</span>
             </div>
           </Link>
         </GlassCardContent>
@@ -217,46 +220,46 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
       </GlassCardHeader>
       <GlassCardContent className="grid grid-cols-2 gap-2">
         <Link href={`${basePath}/coach/clients/new`} className="block">
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200/60 dark:border-emerald-800/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition text-center">
+          <div className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border border-emerald-200/60 bg-emerald-50 p-3 text-center transition hover:bg-emerald-100 dark:border-emerald-800/30 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30">
             <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            <span className="text-xs text-emerald-700 dark:text-emerald-300">{t('pt.newClient')}</span>
+            <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">{t('pt.newClient')}</span>
           </div>
         </Link>
         <VoiceWorkoutButton variant="card" basePath={basePath} />
         <Link href={`${basePath}/coach/test`} className="block">
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+          <div className={neutralActionTileClass}>
             <ClipboardList className="h-5 w-5 text-cyan-500" />
-            <span className="text-xs dark:text-slate-300">{t('pt.newTest')}</span>
+            <span className={actionLabelClass}>{t('pt.newTest')}</span>
           </div>
         </Link>
         <Link href={`${basePath}/coach/programs/new`} className="block">
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+          <div className={neutralActionTileClass}>
             <Target className="h-5 w-5 text-green-500" />
-            <span className="text-xs dark:text-slate-300">Program</span>
+            <span className={actionLabelClass}>Program</span>
           </div>
         </Link>
         <Link href={`${basePath}/coach/ai-studio`} className="block">
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+          <div className={neutralActionTileClass}>
             <Sparkles className="h-5 w-5 text-purple-500" />
-            <span className="text-xs dark:text-slate-300">AI Studio</span>
+            <span className={actionLabelClass}>AI Studio</span>
           </div>
         </Link>
         <Link href={`${basePath}/coach/video-analysis`} className="block">
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+          <div className={neutralActionTileClass}>
             <Video className="h-5 w-5 text-red-500" />
-            <span className="text-xs dark:text-slate-300">Video</span>
+            <span className={actionLabelClass}>Video</span>
           </div>
         </Link>
         <Link href={`${basePath}/coach/strength`} className="block">
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+          <div className={neutralActionTileClass}>
             <Dumbbell className="h-5 w-5 text-orange-500" />
-            <span className="text-xs dark:text-slate-300">{t('pt.strength')}</span>
+            <span className={actionLabelClass}>{t('pt.strength')}</span>
           </div>
         </Link>
         <Link href={`${basePath}/coach/interval-sessions`} className="block">
-          <div className="flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center">
+          <div className={neutralActionTileClass}>
             <Timer className="h-5 w-5 text-teal-500" />
-            <span className="text-xs dark:text-slate-300">{t('pt.intervals')}</span>
+            <span className={actionLabelClass}>{t('pt.intervals')}</span>
           </div>
         </Link>
       </GlassCardContent>

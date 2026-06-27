@@ -16,7 +16,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard';
+} from '@/components/coach/dashboard/DashboardCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -199,7 +199,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                 return (
                   <div
                     key={`${appointment.type}-${appointment.id}`}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 dark:hover:bg-white/5 transition"
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-900/50 transition"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate dark:text-slate-200">
@@ -335,7 +335,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           return (
             <div
               key={`${appointment.type}-${appointment.id}`}
-              className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted/50 dark:hover:bg-white/10 transition-colors"
+              className="flex items-start gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
             >
               {/* Time */}
               <div className="flex-shrink-0 w-12 text-center">

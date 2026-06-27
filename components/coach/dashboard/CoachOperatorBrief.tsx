@@ -19,7 +19,7 @@ import {
   GlassCardDescription,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { openCoachFloatingChat } from '@/lib/events/coach-floating-chat'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'

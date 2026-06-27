@@ -78,17 +78,17 @@ export function VoiceWorkoutButton({
 
   // Card variant for dashboard quick links
   if (variant === 'card') {
+    const cardClassName = cn(
+      'flex w-full flex-col items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-center transition hover:bg-zinc-100 dark:border-white/10 dark:bg-zinc-900/50 dark:hover:bg-zinc-900',
+      className
+    )
+
     // Render plain button during SSR/hydration to avoid Radix ID mismatch
     if (!mounted) {
       return (
-        <button
-          className={cn(
-            'flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center w-full',
-            className
-          )}
-        >
+        <button className={cardClassName}>
           <Mic className="h-5 w-5 text-pink-500" />
-          <span className="text-xs dark:text-slate-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
+          <span className="text-xs text-zinc-700 dark:text-zinc-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
         </button>
       )
     }
@@ -96,14 +96,9 @@ export function VoiceWorkoutButton({
     return (
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
-          <button
-            className={cn(
-              'flex flex-col items-center gap-2 p-3 rounded-lg bg-muted/30 dark:bg-white/5 hover:bg-muted dark:hover:bg-white/10 transition text-center w-full',
-              className
-            )}
-          >
+          <button className={cardClassName}>
             <Mic className="h-5 w-5 text-pink-500" />
-            <span className="text-xs dark:text-slate-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
+            <span className="text-xs text-zinc-700 dark:text-zinc-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
           </button>
         </SheetTrigger>
         <SheetContent side="right" className="w-full sm:max-w-lg p-0">

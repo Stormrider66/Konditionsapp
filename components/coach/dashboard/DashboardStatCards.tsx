@@ -2,7 +2,7 @@ import Link from 'next/link'
 import {
   GlassCard,
   GlassCardContent,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { Activity, Users, Calendar, AlertCircle, ArrowRight, Dumbbell, Trophy, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DashboardMode } from '@/lib/coach/dashboard-mode'
@@ -49,38 +49,36 @@ function DashboardStatCard({
   linkHref
 }: CardLayoutProps) {
   const accentClasses = {
-    blue: 'text-blue-500 dark:text-blue-400 bg-blue-500/10 border-blue-500/20 shadow-blue-500/5 hover:border-blue-500/30 hover:shadow-blue-500/15',
-    emerald: 'text-emerald-500 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20 shadow-emerald-500/5 hover:border-emerald-500/30 hover:shadow-emerald-500/15',
-    purple: 'text-purple-500 dark:text-purple-400 bg-purple-500/10 border-purple-500/20 shadow-purple-500/5 hover:border-purple-500/30 hover:shadow-purple-500/15',
-    amber: 'text-amber-500 dark:text-amber-400 bg-amber-500/10 border-amber-500/20 shadow-amber-500/5 hover:border-amber-500/30 hover:shadow-amber-500/15',
-    red: 'text-red-500 dark:text-red-400 bg-red-500/10 border-red-500/20 shadow-red-500/5 hover:border-red-500/30 hover:shadow-red-500/15',
-    teal: 'text-teal-500 dark:text-teal-400 bg-teal-500/10 border-teal-500/20 shadow-teal-500/5 hover:border-teal-500/30 hover:shadow-teal-500/15',
-    slate: 'text-slate-500 dark:text-slate-400 bg-slate-500/10 border-slate-500/20 shadow-slate-500/5 hover:border-slate-500/30 hover:shadow-slate-500/15',
+    blue: 'border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
+    emerald: 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+    purple: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
+    amber: 'border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300',
+    red: 'border-red-100 bg-red-50 text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+    teal: 'border-teal-100 bg-teal-50 text-teal-600 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-300',
+    slate: 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300',
   }
 
   const cardContent = (
     <GlassCard
       glow={accentColor}
-      className="group hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-2xl flex flex-col h-full min-h-[150px]"
+      className="group flex h-full min-h-[142px] flex-col"
     >
-      <div className="relative flex flex-col p-6 h-full w-full">
-        {/* Top row */}
-        <div className="flex items-center justify-between mb-4 w-full relative z-10">
-          <span className="text-[10px] font-black text-slate-450 dark:text-slate-500 uppercase tracking-widest transition-colors">
+      <GlassCardContent className="flex h-full w-full flex-col p-5">
+        <div className="flex w-full items-start justify-between gap-4">
+          <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
             {title}
           </span>
           <div className={cn(
-            "w-10 h-10 rounded-2xl flex items-center justify-center border transition-all duration-300 group-hover:scale-110 shadow-sm",
-            accentClasses[accentColor].split(' ').slice(0, 3).join(' ')
+            'flex h-10 w-10 shrink-0 items-center justify-center rounded-md border',
+            accentClasses[accentColor]
           )}>
             <Icon className="h-5 w-5" />
           </div>
         </div>
 
-        {/* Value */}
-        <div className="mb-4 relative z-10 flex items-baseline">
+        <div className="mt-3 flex items-baseline">
           {typeof value === 'string' || typeof value === 'number' ? (
-            <span className="text-4xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-none transition-colors">
+            <span className="text-3xl font-semibold leading-none text-zinc-950 dark:text-zinc-50">
               {value}
             </span>
           ) : (
@@ -88,12 +86,11 @@ function DashboardStatCard({
           )}
         </div>
 
-        {/* Bottom Subtext */}
-        <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider mt-auto pt-3 border-t border-slate-100/50 dark:border-white/5 w-full flex items-center justify-between">
+        <div className="mt-auto flex w-full items-center justify-between border-t border-zinc-100 pt-4 text-sm text-zinc-500 dark:border-white/10 dark:text-zinc-400">
           <span className="truncate pr-2">{subtext}</span>
           {linkHref && <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />}
         </div>
-      </div>
+      </GlassCardContent>
     </GlassCard>
   )
 

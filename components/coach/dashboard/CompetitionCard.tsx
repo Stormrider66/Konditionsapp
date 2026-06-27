@@ -7,7 +7,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
@@ -148,7 +148,7 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
 
                   {/* Leaderboard */}
                   {comp.entries.length > 0 ? (
-                    <div className="space-y-1 bg-muted/30 dark:bg-white/5 rounded-lg p-2">
+                    <div className="space-y-1 bg-zinc-50 dark:bg-zinc-900/50 rounded-lg p-2">
                       {comp.entries.slice(0, 5).map((entry, i) => (
                         <div key={entry.id} className="flex items-center gap-2 py-0.5">
                           <span className="text-xs w-5 text-center">

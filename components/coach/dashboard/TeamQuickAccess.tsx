@@ -10,7 +10,7 @@ import {
   GlassCardContent,
   GlassCardHeader,
   GlassCardTitle,
-} from '@/components/ui/GlassCard'
+} from '@/components/coach/dashboard/DashboardCard'
 import { cn } from '@/lib/utils'
 import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
 import {
