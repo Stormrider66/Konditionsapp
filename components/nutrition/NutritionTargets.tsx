@@ -113,6 +113,8 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
   const workoutEnergyKcal = targets.workoutEnergyKcal ?? targets.workoutAdjustmentKcal
   const fuelingAdjustmentKcal = targets.fuelingAdjustmentKcal ?? 0
   const macroWarnings = targets.macroWarnings ?? []
+  const garminTotalCaloriesKcal = targets.garminTotalCaloriesKcal
+  const usesGarminEnergy = targets.energySource === 'GARMIN' && typeof garminTotalCaloriesKcal === 'number'
 
   const targetMacroDistribution = calculateMacroDistributionPercentages({
     carbsGrams: targets.carbsG,
@@ -268,31 +270,37 @@ export function NutritionTargets({ targets, consumed, isRestDay = false, compact
             {targets.caloriesKcal.toLocaleString(locale)}
             <span className={`text-sm font-normal ml-1 ${isGlass ? 'text-orange-700 dark:text-orange-300' : ''}`}>kcal</span>
           </p>
-          {(workoutEnergyKcal > 0 || fuelingAdjustmentKcal !== 0 || targets.lifestyleAdjustmentKcal > 0) && (
+          {(usesGarminEnergy || workoutEnergyKcal > 0 || fuelingAdjustmentKcal !== 0 || targets.lifestyleAdjustmentKcal > 0) && (
             <p className={`text-xs mt-0.5 ${isGlass ? 'text-orange-700 dark:text-orange-300' : 'text-orange-700'}`}>
-              {t('calorie.sources.baseline', { kcal: targets.baselineKcal.toLocaleString(locale) })}
-              {targets.lifestyleAdjustmentKcal > 0 && (
+              {usesGarminEnergy ? (
+                <span className="font-medium">{t('calorie.sources.garmin', { kcal: garminTotalCaloriesKcal.toLocaleString(locale) })}</span>
+              ) : (
                 <>
-                  <span className="mx-1">+</span>
-                  <span className="font-medium">{t('calorie.sources.lifestyle', { kcal: targets.lifestyleAdjustmentKcal.toLocaleString(locale) })}</span>
-                </>
-              )}
-              {workoutEnergyKcal > 0 && (
-                <>
-                  <span className="mx-1">+</span>
-                  <span className="font-medium">{t('calorie.sources.training', { kcal: workoutEnergyKcal.toLocaleString(locale) })}</span>
-                </>
-              )}
-              {fuelingAdjustmentKcal > 0 && (
-                <>
-                  <span className="mx-1">+</span>
-                  <span className="font-medium">{t('calorie.sources.carbTarget', { kcal: fuelingAdjustmentKcal.toLocaleString(locale) })}</span>
-                </>
-              )}
-              {fuelingAdjustmentKcal < 0 && (
-                <>
-                  <span className="mx-1">-</span>
-                  <span className="font-medium">{t('calorie.sources.targetAdjustment', { kcal: Math.abs(fuelingAdjustmentKcal).toLocaleString(locale) })}</span>
+                  {t('calorie.sources.baseline', { kcal: targets.baselineKcal.toLocaleString(locale) })}
+                  {targets.lifestyleAdjustmentKcal > 0 && (
+                    <>
+                      <span className="mx-1">+</span>
+                      <span className="font-medium">{t('calorie.sources.lifestyle', { kcal: targets.lifestyleAdjustmentKcal.toLocaleString(locale) })}</span>
+                    </>
+                  )}
+                  {workoutEnergyKcal > 0 && (
+                    <>
+                      <span className="mx-1">+</span>
+                      <span className="font-medium">{t('calorie.sources.training', { kcal: workoutEnergyKcal.toLocaleString(locale) })}</span>
+                    </>
+                  )}
+                  {fuelingAdjustmentKcal > 0 && (
+                    <>
+                      <span className="mx-1">+</span>
+                      <span className="font-medium">{t('calorie.sources.carbTarget', { kcal: fuelingAdjustmentKcal.toLocaleString(locale) })}</span>
+                    </>
+                  )}
+                  {fuelingAdjustmentKcal < 0 && (
+                    <>
+                      <span className="mx-1">-</span>
+                      <span className="font-medium">{t('calorie.sources.targetAdjustment', { kcal: Math.abs(fuelingAdjustmentKcal).toLocaleString(locale) })}</span>
+                    </>
+                  )}
                 </>
               )}
             </p>

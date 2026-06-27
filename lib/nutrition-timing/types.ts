@@ -229,6 +229,11 @@ export interface DailyMacroTargets {
   // fueling adjustments so UI labels can match Garmin/Strava calorie numbers.
   workoutEnergyKcal: number
   fuelingAdjustmentKcal: number
+  energySource?: 'ESTIMATED' | 'GARMIN'
+  energyExpenditureKcal?: number
+  estimatedEnergyExpenditureKcal?: number
+  garminTotalCaloriesKcal?: number
+  energyAdjustmentKcal?: number
   workoutAdjustmentProteinG: number
   workoutAdjustmentCarbsG: number
   workoutAdjustmentFatG: number
@@ -346,6 +351,11 @@ export interface GuidanceGeneratorInput {
     bodyFatPercent?: number
     muscleMassKg?: number
     bmrKcal?: number
+  } | null
+  measuredEnergy?: {
+    source: 'GARMIN'
+    totalCaloriesKcal: number
+    allowReduction?: boolean
   } | null
   /** Races from the athlete's race calendar within the next ~7 days.
    * Drives isRaceWeek and the pre-race carb-load trigger. */

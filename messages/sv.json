@@ -13239,6 +13239,7 @@
         "sources": {
           "baseline": "Basbehov {kcal} kcal",
           "lifestyle": "{kcal} kcal från livsstil",
+          "garmin": "Garmin {kcal} kcal förbrukat",
           "training": "{kcal} kcal från träning",
           "carbTarget": "{kcal} kcal för kolhydratmål",
           "targetAdjustment": "{kcal} kcal måljustering"

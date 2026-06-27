@@ -227,6 +227,8 @@ async function syncDailySummary(
     steps: summary.steps,
     activeMinutes: Math.round(summary.activeTimeInSeconds / 60),
     calories: Math.round(summary.activeKilocalories + summary.bmrKilocalories),
+    activeCalories: Math.round(summary.activeKilocalories),
+    bmrCalories: Math.round(summary.bmrKilocalories),
     distance: summary.distanceInMeters,
     avgHR: summary.averageHeartRateInBeatsPerMinute,
     maxHR: summary.maxHeartRateInBeatsPerMinute,

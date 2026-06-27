@@ -18,6 +18,7 @@ import type { WorkoutIntensity, WorkoutType } from '@prisma/client'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
 import { getParsedWorkoutDistanceKm } from '@/lib/adhoc-workout/distance'
 import { getCompletedWorkoutContextsForDay } from '@/lib/nutrition-timing/completed-workouts'
+import { extractGarminDailyEnergy } from '@/lib/nutrition-timing/daily-targets-range'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 import { resolveNutritionBodyMetrics } from '@/lib/nutrition/performance-plan/logic'
 
@@ -85,7 +86,7 @@ export async function GET(request: NextRequest) {
     const tomorrowEnd = addDays(todayEnd, 1)
 
     // Fetch today's and tomorrow's workouts in parallel (including AI WODs)
-    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition, todaysAiWods, todaysAdHocWorkouts, todaysCompletedWorkouts] = await Promise.all([
+    const [todaysWorkoutsRaw, tomorrowsWorkoutsRaw, bodyComposition, todaysAiWods, todaysAdHocWorkouts, todaysCompletedWorkouts, dailyMetrics] = await Promise.all([
       prisma.workout.findMany({
         where: {
           day: {
@@ -165,7 +166,15 @@ export async function GET(request: NextRequest) {
         dayStart: todayStart,
         dayEnd: todayEnd,
       }),
+      prisma.dailyMetrics.findFirst({
+        where: {
+          clientId: client.id,
+          date: { gte: todayStart, lte: todayEnd },
+        },
+        select: { factorScores: true },
+      }),
     ])
+    const garminEnergy = extractGarminDailyEnergy(dailyMetrics?.factorScores)
 
     // Races within the next 7 days drive race-week messaging and the
     // pre-race carb-load trigger in the generator.
@@ -362,6 +371,13 @@ export async function GET(request: NextRequest) {
             muscleMassKg: bodyComposition?.muscleMassKg ?? undefined,
           }
         : undefined,
+      measuredEnergy: garminEnergy
+        ? {
+            source: 'GARMIN',
+            totalCaloriesKcal: garminEnergy.totalCaloriesKcal,
+            allowReduction: todayStart.getTime() < startOfDay(new Date()).getTime(),
+          }
+        : null,
       upcomingRaces,
     }
 

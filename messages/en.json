@@ -12879,6 +12879,7 @@
         "sources": {
           "baseline": "Baseline need {kcal} kcal",
           "lifestyle": "{kcal} kcal from lifestyle",
+          "garmin": "Garmin {kcal} kcal burned",
           "training": "{kcal} kcal from training",
           "carbTarget": "{kcal} kcal for carbohydrate target",
           "targetAdjustment": "{kcal} kcal target adjustment"

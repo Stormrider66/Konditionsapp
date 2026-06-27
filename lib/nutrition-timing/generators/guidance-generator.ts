@@ -132,6 +132,9 @@ export function generateDailyGuidance(input: GuidanceGeneratorInput): DailyNutri
       gender: client.gender,
       primarySport: sportProfile?.primarySport,
       carbLoadTrigger,
+      measuredTotalEnergyKcal: input.measuredEnergy?.totalCaloriesKcal,
+      measuredEnergySource: input.measuredEnergy?.source ?? null,
+      allowMeasuredEnergyReduction: input.measuredEnergy?.allowReduction,
     }
   )
 
@@ -303,6 +306,9 @@ interface DailyTargetOptions {
   gender?: 'MALE' | 'FEMALE' | null
   primarySport?: string | null
   carbLoadTrigger?: boolean
+  measuredTotalEnergyKcal?: number | null
+  measuredEnergySource?: 'GARMIN' | null
+  allowMeasuredEnergyReduction?: boolean
 }
 
 function getGoalType(goal?: DailyTargetGoalInput | string): NutritionGoalType | undefined {
@@ -357,6 +363,15 @@ function distributeCaloriesByMacros(caloriesKcal: number, ratios: { carbs: numbe
     proteinG: (caloriesKcal * ratios.protein) / 4,
     fatG: (caloriesKcal * ratios.fat) / 9,
   }
+}
+
+function positiveFiniteKcal(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value) || value <= 0) return null
+  return Math.round(value)
+}
+
+function caloriesFromMacros(carbsG: number, proteinG: number, fatG: number): number {
+  return Math.round(carbsG * 4 + proteinG * 4 + fatG * 9)
 }
 
 function classifyDailyCarbLoad(
@@ -607,7 +622,7 @@ export function calculateDailyTargets(
 
   const proteinG = proteinTarget.grams
   let carbsG = Math.round(effectiveBaselineCarbsG + adjCarbsG)
-  const fatG = Math.round(effectiveBaselineFatG + adjFatG)
+  let fatG = Math.round(effectiveBaselineFatG + adjFatG)
 
   const guardedCarbs = applyCarbGuardrails({
     carbsG,
@@ -623,13 +638,76 @@ export function calculateDailyTargets(
   carbsG = guardedCarbs.grams
   macroWarnings.push(...guardedCarbs.warnings)
 
-  let caloriesKcal = carbsG * 4 + proteinG * 4 + fatG * 9
+  let caloriesKcal = caloriesFromMacros(carbsG, proteinG, fatG)
+  let estimatedEnergyExpenditureKcal = caloriesKcal
+  let energySource: DailyMacroTargets['energySource'] = 'ESTIMATED'
+  let garminTotalCaloriesKcal: number | undefined
+
+  const measuredTotalEnergyKcal = positiveFiniteKcal(options?.measuredTotalEnergyKcal)
+  const hasReliableMeasuredEnergy =
+    options?.measuredEnergySource === 'GARMIN' &&
+    measuredTotalEnergyKcal != null &&
+    measuredTotalEnergyKcal >= Math.max(1000, Math.round(baselineKcalRaw * 0.65))
+
+  if (
+    hasReliableMeasuredEnergy &&
+    (options?.allowMeasuredEnergyReduction !== false || measuredTotalEnergyKcal > caloriesKcal)
+  ) {
+    energySource = 'GARMIN'
+    garminTotalCaloriesKcal = measuredTotalEnergyKcal
+
+    if (measuredTotalEnergyKcal > caloriesKcal) {
+      const deltaKcal = measuredTotalEnergyKcal - caloriesKcal
+      const carbShare = workouts.some(isFuelingRelevantWorkout) ? 0.6 : 0.45
+      carbsG += Math.round((deltaKcal * carbShare) / 4)
+      fatG += Math.round((deltaKcal * (1 - carbShare)) / 9)
+
+      const measuredCarbGuard = applyCarbGuardrails({
+        carbsG,
+        weightKg,
+        activityLevel,
+        macroProfile,
+        ageYears,
+        hasHighCarbTrigger: load.hasHighCarbTrigger,
+        hasVeryHighCarbTrigger: load.hasVeryHighCarbTrigger,
+        hasCarbLoadTrigger: load.hasCarbLoadTrigger,
+        reason: load.highCarbReason,
+      })
+      carbsG = measuredCarbGuard.grams
+      macroWarnings.push(...measuredCarbGuard.warnings)
+
+      caloriesKcal = caloriesFromMacros(carbsG, proteinG, fatG)
+      const remainingKcal = measuredTotalEnergyKcal - caloriesKcal
+      if (remainingKcal > 4) {
+        fatG += Math.round(remainingKcal / 9)
+      }
+    } else if (measuredTotalEnergyKcal < caloriesKcal) {
+      let kcalToRemove = caloriesKcal - measuredTotalEnergyKcal
+      const minCarbsG = Math.round(effectiveBaselineCarbsG)
+      const minFatG = Math.round(effectiveBaselineFatG)
+
+      const carbReductionG = Math.min(
+        Math.max(0, carbsG - minCarbsG),
+        Math.floor(kcalToRemove / 4)
+      )
+      carbsG -= carbReductionG
+      kcalToRemove -= carbReductionG * 4
+
+      const fatReductionG = Math.min(
+        Math.max(0, fatG - minFatG),
+        Math.floor(kcalToRemove / 9)
+      )
+      fatG -= fatReductionG
+    }
+
+    caloriesKcal = caloriesFromMacros(carbsG, proteinG, fatG)
+  }
 
   // 4. TDEE sanity cap (unchanged in spirit): for extreme cases, clip carbs first.
   // Scale the rest/active multipliers by neatFactor so users with active jobs
   // don't get clipped by a sedentary-default cap.
   const isRestDay = workouts.length === 0
-  if (bmrKcal) {
+  if (bmrKcal && energySource !== 'GARMIN') {
     const estimatedTDEE = Math.round(bmrKcal * neatFactor * (isRestDay ? 1.2 : 1.55))
     const maxCalories = Math.round(estimatedTDEE * 1.25) // allow 25% over for hard days
     if (caloriesKcal > maxCalories) {
@@ -641,6 +719,9 @@ export function calculateDailyTargets(
       macroWarnings.push(`Calorie sanity cap reduced carbohydrate target to ${carbsG} g.`)
     }
   }
+  if (energySource === 'ESTIMATED') {
+    estimatedEnergyExpenditureKcal = caloriesKcal
+  }
 
   adjCarbsG = carbsG - effectiveBaselineCarbsG
   const adjProteinG = proteinG - effectiveBaselineProteinG
@@ -651,7 +732,9 @@ export function calculateDailyTargets(
   // The carb floor / TDEE cap absorb their effect into the workout line
   // (it's the line that scales with training load).
   const adjKcalReconciled = caloriesKcal - Math.round(baselineKcalRaw) - Math.round(lifestyleKcalRaw)
-  const workoutAdjustmentKcal = workouts.length > 0 ? Math.max(0, adjKcalReconciled) : 0
+  const workoutAdjustmentKcal = workouts.length > 0 || energySource === 'GARMIN'
+    ? Math.max(0, adjKcalReconciled)
+    : 0
   const workoutEnergyKcal = Math.round(workoutEnergyKcalRaw)
   const fuelingAdjustmentKcal = workoutAdjustmentKcal - workoutEnergyKcal
   const finalCarbsPerKg = roundPerKg(carbsG / weightKg)
@@ -684,6 +767,13 @@ export function calculateDailyTargets(
     workoutAdjustmentKcal,
     workoutEnergyKcal,
     fuelingAdjustmentKcal,
+    energySource,
+    energyExpenditureKcal: energySource === 'GARMIN' ? garminTotalCaloriesKcal : estimatedEnergyExpenditureKcal,
+    estimatedEnergyExpenditureKcal,
+    garminTotalCaloriesKcal,
+    energyAdjustmentKcal: energySource === 'GARMIN'
+      ? Math.round(caloriesKcal - estimatedEnergyExpenditureKcal)
+      : 0,
     workoutAdjustmentProteinG: Math.round(adjProteinG),
     workoutAdjustmentCarbsG: Math.round(adjCarbsG),
     workoutAdjustmentFatG: Math.round(adjFatG),

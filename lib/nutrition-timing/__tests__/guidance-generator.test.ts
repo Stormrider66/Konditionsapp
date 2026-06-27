@@ -81,6 +81,57 @@ describe('generateDailyGuidance', () => {
     expect(t.fuelingAdjustmentKcal).toBe(t.workoutAdjustmentKcal - t.workoutEnergyKcal)
   })
 
+  it('adapts the daily calorie target to Garmin total burned calories', () => {
+    const estimated = calculateDailyTargets(
+      70,
+      [createWorkout({ type: 'RUNNING', intensity: 'MODERATE', duration: 60 })],
+      { goalType: 'MAINTAIN', macroProfile: 'BALANCED', activityLevel: 'ACTIVE' },
+      1600
+    )
+    const garmin = calculateDailyTargets(
+      70,
+      [createWorkout({ type: 'RUNNING', intensity: 'MODERATE', duration: 60 })],
+      { goalType: 'MAINTAIN', macroProfile: 'BALANCED', activityLevel: 'ACTIVE' },
+      1600,
+      'SEDENTARY',
+      {
+        measuredEnergySource: 'GARMIN',
+        measuredTotalEnergyKcal: 2604,
+        allowMeasuredEnergyReduction: true,
+      }
+    )
+
+    expect(garmin.energySource).toBe('GARMIN')
+    expect(garmin.garminTotalCaloriesKcal).toBe(2604)
+    expect(garmin.caloriesKcal).toBeGreaterThan(estimated.caloriesKcal)
+    expect(Math.abs(garmin.caloriesKcal - 2604)).toBeLessThanOrEqual(20)
+    expect(garmin.carbsG).toBeGreaterThan(estimated.carbsG)
+  })
+
+  it('does not let a partial current-day Garmin value reduce targets', () => {
+    const estimated = calculateDailyTargets(
+      70,
+      [createWorkout({ type: 'RUNNING', intensity: 'MODERATE', duration: 60 })],
+      { goalType: 'MAINTAIN', macroProfile: 'BALANCED', activityLevel: 'ACTIVE' },
+      1600
+    )
+    const partialGarmin = calculateDailyTargets(
+      70,
+      [createWorkout({ type: 'RUNNING', intensity: 'MODERATE', duration: 60 })],
+      { goalType: 'MAINTAIN', macroProfile: 'BALANCED', activityLevel: 'ACTIVE' },
+      1600,
+      'SEDENTARY',
+      {
+        measuredEnergySource: 'GARMIN',
+        measuredTotalEnergyKcal: 1200,
+        allowMeasuredEnergyReduction: false,
+      }
+    )
+
+    expect(partialGarmin.energySource).toBe('ESTIMATED')
+    expect(partialGarmin.caloriesKcal).toBe(estimated.caloriesKcal)
+  })
+
   it('distributes strength-workout adjustment toward protein more than endurance', () => {
     const strengthGuidance = generateDailyGuidance(
       createInput([createWorkout({ type: 'STRENGTH', intensity: 'MODERATE', duration: 60 })])

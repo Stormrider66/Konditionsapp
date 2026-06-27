@@ -77,6 +77,11 @@ export async function GET(request: NextRequest) {
       workoutAdjustmentKcal: daily.workoutAdjustmentKcal,
       workoutEnergyKcal: daily.workoutEnergyKcal,
       fuelingAdjustmentKcal: daily.fuelingAdjustmentKcal,
+      energySource: daily.energySource,
+      energyExpenditureKcal: daily.energyExpenditureKcal,
+      estimatedEnergyExpenditureKcal: daily.estimatedEnergyExpenditureKcal,
+      garminTotalCaloriesKcal: daily.garminTotalCaloriesKcal,
+      energyAdjustmentKcal: daily.energyAdjustmentKcal,
     }))
 
     return NextResponse.json({ targets })

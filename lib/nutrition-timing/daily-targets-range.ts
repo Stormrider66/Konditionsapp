@@ -39,6 +39,51 @@ export function targetDayKey(date: Date): string {
   return format(date, 'yyyy-MM-dd')
 }
 
+export interface GarminDailyEnergySnapshot {
+  totalCaloriesKcal: number
+  activeCaloriesKcal?: number
+  bmrCaloriesKcal?: number
+  syncedAt?: string
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null
+  return value as Record<string, unknown>
+}
+
+function numberField(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  return undefined
+}
+
+function stringField(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+export function extractGarminDailyEnergy(factorScores: unknown): GarminDailyEnergySnapshot | null {
+  const root = asRecord(factorScores)
+  const garminDaily = asRecord(root?.garminDaily)
+  if (!garminDaily) return null
+
+  const totalCalories = numberField(
+    garminDaily.calories ??
+    garminDaily.totalCaloriesKcal ??
+    garminDaily.totalKilocalories
+  )
+  if (!totalCalories) return null
+
+  return {
+    totalCaloriesKcal: Math.round(totalCalories),
+    activeCaloriesKcal: numberField(garminDaily.activeCalories ?? garminDaily.activeKilocalories),
+    bmrCaloriesKcal: numberField(garminDaily.bmrCalories ?? garminDaily.bmrKilocalories),
+    syncedAt: stringField(garminDaily.syncedAt),
+  }
+}
+
 function mapAdHocTypeToWorkoutType(parsed: ParsedWorkout | null): WorkoutType {
   if (!parsed) return 'OTHER'
   if (parsed.type === 'STRENGTH') return 'STRENGTH'
@@ -131,7 +176,7 @@ export async function getDailyTargetsForDays({
   const requestedKeys = new Set(days.map((d) => targetDayKey(d)))
 
   // Range-scoped fetches (one query each, bucketed by date in JS).
-  const [programWorkoutsRaw, aiWods, adHocWorkouts] = await Promise.all([
+  const [programWorkoutsRaw, aiWods, adHocWorkouts, dailyMetrics] = await Promise.all([
     prisma.workout.findMany({
       where: {
         day: {
@@ -172,7 +217,25 @@ export async function getDailyTargetsForDays({
         parsedStructure: true,
       },
     }),
+    prisma.dailyMetrics.findMany({
+      where: {
+        clientId: client.id,
+        date: { gte: rangeStart, lte: rangeEnd },
+      },
+      select: {
+        date: true,
+        factorScores: true,
+      },
+    }),
   ])
+
+  const garminEnergyByDay = new Map<string, GarminDailyEnergySnapshot>()
+  for (const metrics of dailyMetrics) {
+    const energy = extractGarminDailyEnergy(metrics.factorScores)
+    if (energy) {
+      garminEnergyByDay.set(targetDayKey(metrics.date), energy)
+    }
+  }
 
   // Bucket planned workouts into per-day maps (only consumed for today/future).
   const plannedByDay: Record<string, WorkoutContext[]> = {}
@@ -273,6 +336,7 @@ export async function getDailyTargetsForDays({
         workoutsForDay.push(...(plannedByDay[key] || []))
       }
       workoutsForDay.push(...(completedMap[key] || []))
+      const garminEnergy = garminEnergyByDay.get(key)
 
       const targets = calculateDailyTargets(
         weightKg,
@@ -285,6 +349,9 @@ export async function getDailyTargetsForDays({
           gender: client.gender,
           primarySport: client.sportProfile?.primarySport,
           currentDate: dayStart,
+          measuredTotalEnergyKcal: garminEnergy?.totalCaloriesKcal,
+          measuredEnergySource: garminEnergy ? 'GARMIN' : null,
+          allowMeasuredEnergyReduction: dayStart.getTime() < todayStart.getTime(),
         }
       )
       return { date: key, targets }
