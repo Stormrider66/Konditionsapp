@@ -1,10 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  GlassCard,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
 import { Users, User, Dumbbell, Sparkles, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
@@ -21,6 +17,7 @@ const MODE_OPTIONS: {
   descriptionKey: 'auto' | 'team' | 'pt' | 'gym'
   icon: typeof Users
   color: string
+  iconColor: string
   disabled?: boolean
 }[] = [
   {
@@ -28,28 +25,32 @@ const MODE_OPTIONS: {
     labelKey: 'auto',
     descriptionKey: 'auto',
     icon: Sparkles,
-    color: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20',
+    color: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/30',
+    iconColor: 'text-emerald-600 dark:text-emerald-300',
   },
   {
     key: 'TEAM',
     labelKey: 'team',
     descriptionKey: 'team',
     icon: Users,
-    color: 'border-blue-500 bg-blue-50 dark:bg-blue-900/20',
+    color: 'border-blue-200 bg-blue-50 dark:border-blue-900/60 dark:bg-blue-950/30',
+    iconColor: 'text-blue-600 dark:text-blue-300',
   },
   {
     key: 'PT',
     labelKey: 'pt',
     descriptionKey: 'pt',
     icon: User,
-    color: 'border-green-500 bg-green-50 dark:bg-green-900/20',
+    color: 'border-emerald-200 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/30',
+    iconColor: 'text-emerald-600 dark:text-emerald-300',
   },
   {
     key: 'GYM',
     labelKey: 'gym',
     descriptionKey: 'gym',
     icon: Dumbbell,
-    color: 'border-purple-500 bg-purple-50 dark:bg-purple-900/20',
+    color: 'border-violet-200 bg-violet-50 dark:border-violet-900/60 dark:bg-violet-950/30',
+    iconColor: 'text-violet-600 dark:text-violet-300',
   },
 ]
 
@@ -106,55 +107,42 @@ export function DashboardModeSelector({ initialMode }: DashboardModeSelectorProp
             onClick={() => !option.disabled && handleSelect(option.key)}
             disabled={option.disabled}
             className={cn(
-              'w-full text-left transition-all',
+              'flex w-full items-center gap-3 rounded-lg border p-4 text-left transition-colors',
+              isSelected
+                ? option.color
+                : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-950/60 dark:hover:border-white/20 dark:hover:bg-zinc-900/70',
               option.disabled && 'opacity-50 cursor-not-allowed',
             )}
           >
-            <GlassCard
-              className={cn(
-                'border-2 transition-all',
-                isSelected ? option.color : 'border-transparent hover:border-slate-300 dark:hover:border-slate-600',
-              )}
-            >
-              <GlassCardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    'w-10 h-10 rounded-xl flex items-center justify-center',
-                    isSelected
-                      ? 'bg-white dark:bg-slate-800'
-                      : 'bg-slate-100 dark:bg-slate-800',
-                  )}>
-                    <Icon className="h-5 w-5 text-slate-700 dark:text-slate-300" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold text-sm text-slate-900 dark:text-white">
-                        {t(`dashboardMode.options.${option.labelKey}.label`)}
-                      </p>
-                      {option.key === 'AUTO' && (
-                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                          {t('dashboardMode.badges.recommended')}
-                        </span>
-                      )}
-                      {option.disabled && (
-                        <span className="text-[10px] text-muted-foreground">
-                          {t('dashboardMode.badges.comingSoon')}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {t(`dashboardMode.options.${option.descriptionKey}.description`)}
-                    </p>
-                  </div>
-                  {isSelected && !saving && (
-                    <Check className="h-5 w-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                  )}
-                  {isSelected && saving && (
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground flex-shrink-0" />
-                  )}
-                </div>
-              </GlassCardContent>
-            </GlassCard>
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 dark:border-white/10 dark:bg-zinc-900">
+              <Icon className={cn('h-5 w-5', isSelected ? option.iconColor : 'text-zinc-500 dark:text-zinc-400')} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                  {t(`dashboardMode.options.${option.labelKey}.label`)}
+                </p>
+                {option.key === 'AUTO' && (
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                    {t('dashboardMode.badges.recommended')}
+                  </span>
+                )}
+                {option.disabled && (
+                  <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                    {t('dashboardMode.badges.comingSoon')}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                {t(`dashboardMode.options.${option.descriptionKey}.description`)}
+              </p>
+            </div>
+            {isSelected && !saving && (
+              <Check className="h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+            )}
+            {isSelected && saving && (
+              <Loader2 className="h-5 w-5 shrink-0 animate-spin text-zinc-500 dark:text-zinc-400" />
+            )}
           </button>
         )
       })}

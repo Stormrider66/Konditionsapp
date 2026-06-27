@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { Eye, EyeOff, Users, UserIcon, Shield } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 interface CalendarSettingsState {
   calendarVisibility: 'FULL_DETAILS' | 'BUSY_ONLY' | 'HIDDEN'
@@ -95,12 +95,12 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
   if (!loaded) return null
   if (!isOwner) {
     return (
-      <GlassCard glow="slate" className="p-4">
-        <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-          <Shield className="w-5 h-5" />
+      <RolePanel className="p-4">
+        <div className="flex items-center gap-3 text-zinc-500 dark:text-zinc-400">
+          <Shield className="h-5 w-5" />
           <p className="text-sm">{t('calendarSharing.permissionMessage')}</p>
         </div>
-      </GlassCard>
+      </RolePanel>
     )
   }
 
@@ -116,11 +116,12 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
 
   return (
     <div className="space-y-4">
-      {/* Visibility level */}
-      <GlassCard glow="blue">
-        <GlassCardContent className="p-4 space-y-3">
-          <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.visibility.title')}</h4>
-          <p className="text-xs text-slate-500">{t('calendarSharing.visibility.help')}</p>
+      <RolePanel className="p-4">
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{t('calendarSharing.visibility.title')}</h4>
+            <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{t('calendarSharing.visibility.help')}</p>
+          </div>
           <div className="space-y-2" role="radiogroup" aria-label={t('calendarSharing.visibility.accessibilityLabel')}>
             {visibilityOptions.map((opt) => (
               <button
@@ -129,46 +130,45 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
                 role="radio"
                 aria-checked={settings.calendarVisibility === opt.value}
                 className={cn(
-                  'flex items-center gap-3 w-full p-3 rounded-xl border text-left transition-all',
+                  'flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors',
                   settings.calendarVisibility === opt.value
-                    ? 'border-blue-500/30 bg-blue-500/5 dark:bg-blue-500/10'
-                    : 'border-slate-200/50 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5'
+                    ? 'border-blue-200 bg-blue-50 dark:border-blue-900/60 dark:bg-blue-950/30'
+                    : 'border-zinc-200 bg-white hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-950/60 dark:hover:border-white/20 dark:hover:bg-zinc-900/70'
                 )}
               >
                 <opt.icon className={cn(
-                  'w-5 h-5 shrink-0',
-                  settings.calendarVisibility === opt.value ? 'text-blue-500' : 'text-slate-400'
+                  'h-5 w-5 shrink-0',
+                  settings.calendarVisibility === opt.value ? 'text-blue-600 dark:text-blue-300' : 'text-zinc-400'
                 )} />
-                <div>
+                <div className="min-w-0">
                   <div className={cn(
                     'text-sm font-medium',
-                    settings.calendarVisibility === opt.value ? 'text-blue-600 dark:text-blue-400' : 'text-slate-700 dark:text-slate-300'
+                    settings.calendarVisibility === opt.value ? 'text-blue-700 dark:text-blue-300' : 'text-zinc-700 dark:text-zinc-300'
                   )}>
                     {t(`calendarSharing.visibility.options.${opt.key}.label`)}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
                     {t(`calendarSharing.visibility.options.${opt.key}.description`)}
                   </div>
                 </div>
               </button>
             ))}
           </div>
-        </GlassCardContent>
-      </GlassCard>
+        </div>
+      </RolePanel>
 
-      {/* What to share */}
       {settings.calendarVisibility !== 'HIDDEN' && (
-        <GlassCard glow="blue">
-          <GlassCardContent className="p-4 space-y-3">
-            <h4 className="text-sm font-semibold text-slate-900 dark:text-white">{t('calendarSharing.sharing.title')}</h4>
-            <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+        <RolePanel className="p-4">
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{t('calendarSharing.sharing.title')}</h4>
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-zinc-200 p-3 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:hover:border-white/20 dark:hover:bg-zinc-900/70">
               <div className="flex items-center gap-3">
-                <Users className="w-5 h-5 text-slate-400" />
-                <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <Users className="h-5 w-5 shrink-0 text-zinc-400" />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     {t('calendarSharing.eventGroups.team.title')}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
                     {t('calendarSharing.eventGroups.team.description')}
                   </div>
                 </div>
@@ -177,18 +177,18 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
                 type="checkbox"
                 checked={settings.shareTeamEvents}
                 onChange={(e) => updateSetting({ shareTeamEvents: e.target.checked })}
-                className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
+                className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-white/20"
                 aria-label={t('calendarSharing.eventGroups.team.label')}
               />
             </label>
-            <label className="flex items-center justify-between p-3 rounded-xl border border-slate-200/50 dark:border-white/10 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/5 transition-all">
+            <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-zinc-200 p-3 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:hover:border-white/20 dark:hover:bg-zinc-900/70">
               <div className="flex items-center gap-3">
-                <UserIcon className="w-5 h-5 text-slate-400" />
-                <div>
-                  <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <UserIcon className="h-5 w-5 shrink-0 text-zinc-400" />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     {t('calendarSharing.eventGroups.athlete.title')}
                   </div>
-                  <div className="text-xs text-slate-500">
+                  <div className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
                     {t('calendarSharing.eventGroups.athlete.description')}
                   </div>
                 </div>
@@ -197,17 +197,16 @@ export function CalendarSharingSettings({ businessId }: { businessId: string }) 
                 type="checkbox"
                 checked={settings.shareAthleteEvents}
                 onChange={(e) => updateSetting({ shareAthleteEvents: e.target.checked })}
-                className="w-5 h-5 rounded border-slate-300 text-blue-500 focus:ring-blue-500"
+                className="h-5 w-5 rounded border-zinc-300 text-blue-600 focus:ring-blue-500 dark:border-white/20"
                 aria-label={t('calendarSharing.eventGroups.athlete.label')}
               />
             </label>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
 
-      {/* Status feedback */}
-      {saving && <p className="text-xs text-slate-500 text-center">{t('calendarSharing.status.saving')}</p>}
-      {saveError && <p className="text-xs text-red-400 text-center">{t('calendarSharing.status.saveFailed')}</p>}
+      {saving && <p className="text-center text-xs text-zinc-500 dark:text-zinc-400">{t('calendarSharing.status.saving')}</p>}
+      {saveError && <p className="text-center text-xs text-red-500 dark:text-red-400">{t('calendarSharing.status.saveFailed')}</p>}
     </div>
   )
 }

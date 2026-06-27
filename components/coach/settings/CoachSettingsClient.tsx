@@ -1,260 +1,232 @@
 'use client'
 
-import React from 'react'
-import { Settings, ChevronLeft, Bot, ChevronRight, DollarSign, CreditCard, LayoutDashboard, CalendarDays, Plug, Users } from 'lucide-react'
+import type { ReactNode } from 'react'
+import {
+  Bot,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  DollarSign,
+  LayoutDashboard,
+  Plug,
+  Settings,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ThemeSelector } from '@/components/athlete/settings/ThemeSelector'
 import { ProfileSettings } from '@/components/settings/ProfileSettings'
 import { PasswordChangeForm } from '@/components/settings/PasswordChangeForm'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
 import { DashboardModeSelector } from '@/components/coach/settings/DashboardModeSelector'
 import { CalendarSharingSettings } from '@/components/coach/settings/CalendarSharingSettings'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { useTranslations } from '@/i18n/client'
+import { cn } from '@/lib/utils'
+
 interface CoachSettingsClientProps {
-    userEmail: string
-    businessSlug?: string
-    userName?: string
-    businessId?: string
+  userEmail: string
+  businessSlug?: string
+  userName?: string
+  businessId?: string
 }
 
-export function CoachSettingsClient({ userEmail, businessSlug, userName = '', businessId }: CoachSettingsClientProps) {
-    const t = useTranslations('components.settings.coach')
-    const displayName = userName || userEmail || 'Coach'
-    const coachHref = (path: string) => (
-        businessSlug ? `/${businessSlug}/coach${path}` : '/login'
-    )
+type LinkTone = 'blue' | 'emerald' | 'violet' | 'cyan' | 'teal'
 
-    return (
-        <div className="min-h-screen text-slate-900 dark:text-slate-200 pb-20 selection:bg-orange-500/30 transition-colors">
-            {/* Background elements are managed by the parent Layout/ThemedContent */}
+const linkToneClasses: Record<LinkTone, string> = {
+  blue: 'border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
+  emerald: 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+  violet: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
+  cyan: 'border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300',
+  teal: 'border-teal-100 bg-teal-50 text-teal-600 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-300',
+}
 
-            {/* Header - Sticky below the main nav bar */}
-            <div className="bg-white/70 dark:bg-black/40 backdrop-blur-md border-b border-slate-200 dark:border-white/5 sticky top-16 z-20 transition-colors">
-                <div className="container max-w-lg mx-auto px-4 py-4 flex items-center gap-4">
-                    <Link href={coachHref('/dashboard')}>
-                        <Button variant="ghost" size="icon" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-all">
-                            <ChevronLeft className="h-5 w-5" />
-                        </Button>
-                    </Link>
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/10 flex items-center justify-center border border-orange-200 dark:border-orange-500/20 transition-colors">
-                            <Settings className="h-5 w-5 text-orange-600 dark:text-orange-400 transition-colors" />
-                        </div>
-                        <div>
-                            <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">{t('header.title')}</h1>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">{t('header.subtitle')}</p>
-                        </div>
-                    </div>
-                </div>
+function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500">
+        {title}
+      </h2>
+      {children}
+    </section>
+  )
+}
+
+function SettingsLink({
+  href,
+  icon: Icon,
+  title,
+  description,
+  tone,
+}: {
+  href: string
+  icon: LucideIcon
+  title: string
+  description: string
+  tone: LinkTone
+}) {
+  return (
+    <Link href={href} className="group block">
+      <RolePanel className="p-4 transition-colors group-hover:border-zinc-300 group-hover:bg-zinc-50 dark:group-hover:border-white/20 dark:group-hover:bg-zinc-900/70">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-md border', linkToneClasses[tone])}>
+              <Icon className="h-5 w-5" />
             </div>
-
-            {/* Content */}
-            <div className="container max-w-lg mx-auto p-4 space-y-6 relative z-10">
-                {/* Coach Info */}
-                <GlassCard>
-                    <GlassCardContent className="p-6">
-                        <h2 className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500 mb-2 transition-colors">{t('sections.loggedInAs')}</h2>
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-white/10 flex items-center justify-center text-xl font-black italic text-slate-700 dark:text-white transition-all">
-                                {displayName.charAt(0).toUpperCase()}
-                            </div>
-                            <div>
-                                <p className="text-xl font-black italic tracking-tight text-slate-900 dark:text-white transition-colors">{displayName}</p>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 transition-colors">Coach</p>
-                            </div>
-                        </div>
-                    </GlassCardContent>
-                </GlassCard>
-
-                {/* Profile Settings */}
-                {userEmail && (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-2">
-                            <div className="w-1.5 h-4 bg-slate-500 rounded-full" />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.profile')}</h3>
-                        </div>
-                        <ProfileSettings userName={displayName} userEmail={userEmail} />
-                    </div>
-                )}
-
-                {/* Password Change */}
-                {userEmail && (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-2">
-                            <div className="w-1.5 h-4 bg-red-500 rounded-full" />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.password')}</h3>
-                        </div>
-                        <PasswordChangeForm userEmail={userEmail} />
-                    </div>
-                )}
-
-                {/* Subscription Link */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-2">
-                        <div className="w-1.5 h-4 bg-emerald-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.subscription')}</h3>
-                    </div>
-                    <Link href={coachHref('/subscription')} className="block group">
-                        <GlassCard glow="emerald" className="p-4 rounded-2xl cursor-pointer transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/10 flex items-center justify-center border border-emerald-200 dark:border-emerald-500/20">
-                                        <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">{t('subscription.title')}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('subscription.description')}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-650 dark:group-hover:text-white transition-colors" />
-                            </div>
-                        </GlassCard>
-                    </Link>
-                </div>
-
-                {/* Dashboard Mode */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-2">
-                        <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.dashboard')}</h3>
-                    </div>
-                    <DashboardModeSelector />
-                    <Link href={coachHref('/settings/dashboard')} className="block group">
-                        <GlassCard glow="blue" className="p-4 rounded-2xl cursor-pointer transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-500/10 flex items-center justify-center border border-indigo-200 dark:border-indigo-500/20">
-                                        <LayoutDashboard className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">{t('dashboard.title')}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('dashboard.description')}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-650 dark:group-hover:text-white transition-colors" />
-                            </div>
-                        </GlassCard>
-                    </Link>
-                    <Link href={coachHref('/settings/athlete-dashboards')} className="block group">
-                        <GlassCard glow="purple" className="p-4 rounded-2xl cursor-pointer transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-pink-100 dark:bg-pink-500/10 flex items-center justify-center border border-pink-200 dark:border-pink-500/20">
-                                        <Users className="h-5 w-5 text-pink-600 dark:text-pink-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">{t('athleteDashboards.title')}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('athleteDashboards.description')}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
-                            </div>
-                        </GlassCard>
-                    </Link>
-                </div>
-
-                {/* Theme Settings */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-2">
-                        <div className="w-1.5 h-4 bg-orange-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.appearance')}</h3>
-                    </div>
-                    <ThemeSelector variant="glass" />
-                </div>
-
-                {/* AI Settings Link */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-2">
-                        <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.ai')}</h3>
-                    </div>
-                    <Link href={coachHref('/settings/ai')} className="block group">
-                        <GlassCard glow="purple" className="p-4 rounded-2xl cursor-pointer transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-500/10 flex items-center justify-center border border-purple-200 dark:border-purple-500/20">
-                                        <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">{t('aiConfig.title')}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('aiConfig.description')}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
-                            </div>
-                        </GlassCard>
-                    </Link>
-                    <Link href={coachHref('/settings/ai-kostnader')} className="block group mt-3">
-                        <GlassCard glow="emerald" className="p-4 rounded-2xl cursor-pointer transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-500/10 flex items-center justify-center border border-green-200 dark:border-green-500/20">
-                                        <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">{t('aiCosts.title')}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('aiCosts.description')}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
-                            </div>
-                        </GlassCard>
-                    </Link>
-                </div>
-
-                {/* Integrations */}
-                <div className="space-y-4">
-                    <div className="flex items-center gap-2 px-2">
-                        <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.integrations')}</h3>
-                    </div>
-                    <Link href={coachHref('/settings/calendars')} className="block group">
-                        <GlassCard glow="blue" className="p-4 rounded-2xl cursor-pointer transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-cyan-100 dark:bg-cyan-500/10 flex items-center justify-center border border-cyan-200 dark:border-cyan-500/20">
-                                        <CalendarDays className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">{t('integrations.calendar.title')}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">Google, Outlook, Apple, iCal</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
-                            </div>
-                        </GlassCard>
-                    </Link>
-                    <Link href={coachHref('/settings/gym-platform')} className="block group mt-3">
-                        <GlassCard glow="teal" className="p-4 rounded-2xl cursor-pointer transition-all">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-teal-100 dark:bg-teal-500/10 flex items-center justify-center border border-teal-200 dark:border-teal-500/20">
-                                        <Plug className="h-5 w-5 text-teal-600 dark:text-teal-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-slate-900 dark:text-white">{t('integrations.platforms.title')}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400">{t('integrations.platforms.description')}</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-slate-400 group-hover:text-slate-655 dark:group-hover:text-white transition-colors" />
-                            </div>
-                        </GlassCard>
-                    </Link>
-                </div>
-
-                {/* Calendar Sharing (for multi-org coaches) */}
-                {businessId && (
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 px-2">
-                            <div className="w-1.5 h-4 bg-indigo-500 rounded-full" />
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">{t('sections.calendarSharing')}</h3>
-                        </div>
-                        <CalendarSharingSettings businessId={businessId} />
-                    </div>
-                )}
-
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{title}</p>
+              <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">{description}</p>
             </div>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-zinc-400 transition-colors group-hover:text-zinc-700 dark:group-hover:text-zinc-200" />
         </div>
-    )
+      </RolePanel>
+    </Link>
+  )
+}
+
+export function CoachSettingsClient({
+  userEmail,
+  businessSlug,
+  userName = '',
+  businessId,
+}: CoachSettingsClientProps) {
+  const t = useTranslations('components.settings.coach')
+  const displayName = userName || userEmail || 'Coach'
+  const coachHref = (path: string) => (
+    businessSlug ? `/${businessSlug}/coach${path}` : '/login'
+  )
+
+  return (
+    <RolePageFrame contentClassName="max-w-5xl">
+      <RolePageHeader
+        eyebrow={t('header.subtitle')}
+        title={t('header.title')}
+        description={t('sections.loggedInAs')}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={coachHref('/dashboard')}>
+              <ChevronLeft className="h-4 w-4" />
+              Dashboard
+            </Link>
+          </Button>
+        }
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
+          <RolePanel className="p-5">
+            <div className="flex items-center gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md border border-zinc-200 bg-zinc-100 text-lg font-semibold text-zinc-700 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <Settings className="h-4 w-4 text-zinc-400" />
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500">
+                    {t('sections.loggedInAs')}
+                  </p>
+                </div>
+                <p className="mt-2 truncate text-xl font-semibold text-zinc-950 dark:text-zinc-50">{displayName}</p>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Coach</p>
+              </div>
+            </div>
+          </RolePanel>
+
+          {userEmail && (
+            <SettingsSection title={t('sections.profile')}>
+              <ProfileSettings userName={displayName} userEmail={userEmail} />
+            </SettingsSection>
+          )}
+
+          {userEmail && (
+            <SettingsSection title={t('sections.password')}>
+              <PasswordChangeForm userEmail={userEmail} />
+            </SettingsSection>
+          )}
+
+          <SettingsSection title={t('sections.dashboard')}>
+            <DashboardModeSelector />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SettingsLink
+                href={coachHref('/settings/dashboard')}
+                icon={LayoutDashboard}
+                title={t('dashboard.title')}
+                description={t('dashboard.description')}
+                tone="blue"
+              />
+              <SettingsLink
+                href={coachHref('/settings/athlete-dashboards')}
+                icon={Users}
+                title={t('athleteDashboards.title')}
+                description={t('athleteDashboards.description')}
+                tone="violet"
+              />
+            </div>
+          </SettingsSection>
+
+          <SettingsSection title={t('sections.appearance')}>
+            <ThemeSelector />
+          </SettingsSection>
+
+          {businessId && (
+            <SettingsSection title={t('sections.calendarSharing')}>
+              <CalendarSharingSettings businessId={businessId} />
+            </SettingsSection>
+          )}
+        </div>
+
+        <aside className="space-y-6">
+          <SettingsSection title={t('sections.subscription')}>
+            <SettingsLink
+              href={coachHref('/subscription')}
+              icon={CreditCard}
+              title={t('subscription.title')}
+              description={t('subscription.description')}
+              tone="emerald"
+            />
+          </SettingsSection>
+
+          <SettingsSection title={t('sections.ai')}>
+            <div className="space-y-3">
+              <SettingsLink
+                href={coachHref('/settings/ai')}
+                icon={Bot}
+                title={t('aiConfig.title')}
+                description={t('aiConfig.description')}
+                tone="violet"
+              />
+              <SettingsLink
+                href={coachHref('/settings/ai-kostnader')}
+                icon={DollarSign}
+                title={t('aiCosts.title')}
+                description={t('aiCosts.description')}
+                tone="emerald"
+              />
+            </div>
+          </SettingsSection>
+
+          <SettingsSection title={t('sections.integrations')}>
+            <div className="space-y-3">
+              <SettingsLink
+                href={coachHref('/settings/calendars')}
+                icon={CalendarDays}
+                title={t('integrations.calendar.title')}
+                description="Google, Outlook, Apple, iCal"
+                tone="cyan"
+              />
+              <SettingsLink
+                href={coachHref('/settings/gym-platform')}
+                icon={Plug}
+                title={t('integrations.platforms.title')}
+                description={t('integrations.platforms.description')}
+                tone="teal"
+              />
+            </div>
+          </SettingsSection>
+        </aside>
+      </div>
+    </RolePageFrame>
+  )
 }
