@@ -79,7 +79,7 @@ const TOOLS: Anthropic.Tool[] = [
   // --- Revenue optimization ---
   {
     name: 'getRevenueVsCost',
-    description: 'Calculate gross margin (revenue - cost) per user and by tier. Returns platform margin %, per-tier breakdown, and worst offenders. Status codes: PROFITABLE, THIN_MARGIN (<30%), LOSS (negative), FREE_LOSS (free user burning AI).',
+    description: 'Calculate gross margin (revenue - cost) per athlete/client and by tier. User-only rows are platform overhead. Returns platform margin %, per-tier breakdown, and worst offenders. Status codes: PROFITABLE, THIN_MARGIN (<30%), LOSS (negative), FREE_LOSS (free user burning AI), PLATFORM_OVERHEAD.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -89,7 +89,7 @@ const TOOLS: Anthropic.Tool[] = [
   },
   {
     name: 'getMarginAtRiskUsers',
-    description: 'Shortcut to get just the users in LOSS or FREE_LOSS status. For faster "who is bleeding money" checks.',
+    description: 'Shortcut to get just athlete/client entities in LOSS or FREE_LOSS status. Platform overhead rows are excluded.',
     input_schema: {
       type: 'object' as const,
       properties: {

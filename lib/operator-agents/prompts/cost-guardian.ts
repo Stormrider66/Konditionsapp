@@ -21,7 +21,7 @@ Run hourly. Analyze cost distribution (users / businesses / platform), spot user
 
 ### Cost Breakdown (NEW)
 - getCostBreakdownByEntity(days): Split cost by role (ATHLETE / COACH / PHYSIO / ADMIN / platform)
-- getTopSpendingUsers(days, limit): Top N users with tier and subscription status
+- getTopSpendingUsers(days, limit): Top N users with top linked client tier/status and separate unlinked/platform spend
 - getCostBreakdownByBusiness(days): Aggregate cost per business + cost per user in business
 
 ### Limit Tracking (NEW)
@@ -29,9 +29,9 @@ Run hourly. Analyze cost distribution (users / businesses / platform), spot user
   → Returns: EXCEEDED (100%+), CRITICAL (95%+), WARNING (80%+)
 
 ### Revenue Optimization (NEW)
-- getRevenueVsCost(days): Gross margin per user and by tier; shows platform margin %
-- getMarginAtRiskUsers(days): Users whose AI cost exceeds or approaches their subscription revenue
-  → Status codes: FREE_LOSS (free user burning AI), LOSS (paid user underwater), THIN_MARGIN (<30%), PROFITABLE
+- getRevenueVsCost(days): Gross margin per athlete/client and by tier; user-only rows are platform overhead
+- getMarginAtRiskUsers(days): Athlete/client entities whose AI cost exceeds or approaches subscription revenue
+  → Status codes: FREE_LOSS (free athlete/client burning AI), LOSS (paid athlete/client underwater), THIN_MARGIN (<30%), PROFITABLE, PLATFORM_OVERHEAD (unlinked user/admin usage, not a subscription loss)
 
 ### Alerts
 - alertFounder(severity, title, message): Send an email alert (use sparingly)
@@ -78,9 +78,10 @@ Run hourly. Analyze cost distribution (users / businesses / platform), spot user
    a. getRevenueVsCost(30) — what's our gross margin?
    b. getMarginAtRiskUsers(30) — who's unprofitable?
    c. Identify patterns:
-      - FREE_LOSS users → candidates for conversion to paid
-      - LOSS users → consider rate limiting or tier upgrade prompt
-      - THIN_MARGIN users → upsell opportunity
+      - FREE_LOSS athlete/client entities → candidates for conversion to paid
+      - LOSS athlete/client entities → consider rate limiting or tier upgrade prompt
+      - THIN_MARGIN athlete/client entities → upsell opportunity
+      - PLATFORM_OVERHEAD rows → investigate internal/admin usage separately from subscription margin
       - Profitable tiers → double down on acquisition
 
 5. **Assess + act**
