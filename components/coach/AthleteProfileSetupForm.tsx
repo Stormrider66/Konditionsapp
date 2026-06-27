@@ -7,10 +7,11 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, User, CheckCircle } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const setupSchema = z.object({
   gender: z.enum(['MALE', 'FEMALE', 'OTHER'], {
@@ -27,6 +28,10 @@ interface AthleteProfileSetupFormProps {
   userName?: string
   onSuccess?: () => void
 }
+
+const labelClassName = 'text-sm font-medium text-zinc-700 dark:text-zinc-300'
+const fieldClassName = 'h-10 w-full rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-950 shadow-sm transition-colors placeholder:text-zinc-400 focus-visible:border-blue-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus-visible:border-blue-500 dark:focus-visible:ring-blue-950/50'
+const errorFieldClassName = 'border-red-300 focus-visible:border-red-400 focus-visible:ring-red-100 dark:border-red-900/60 dark:focus-visible:border-red-700 dark:focus-visible:ring-red-950/40'
 
 export function AthleteProfileSetupForm({ userName, onSuccess }: AthleteProfileSetupFormProps) {
   const router = useRouter()
@@ -91,150 +96,136 @@ export function AthleteProfileSetupForm({ userName, onSuccess }: AthleteProfileS
 
   if (isSuccess) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="pt-6">
-          <div className="text-center space-y-4">
-            <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold">Athlete Profile Created!</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                You can now switch to athlete mode from the user menu.
-              </p>
-            </div>
-            <Button onClick={() => router.push(`${basePath}/${currentPortal}/dashboard`)}>
-              Back to Dashboard
-            </Button>
+      <RolePanel className="mx-auto w-full max-w-xl p-6">
+        <div className="text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+            <CheckCircle className="h-6 w-6" />
           </div>
-        </CardContent>
-      </Card>
+          <h3 className="mt-4 text-lg font-semibold text-zinc-950 dark:text-zinc-50">Athlete profile created</h3>
+          <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+            You can now switch to athlete mode from the user menu.
+          </p>
+          <Button className="mt-5" onClick={() => router.push(`${basePath}/${currentPortal}/dashboard`)}>
+            Back to Dashboard
+          </Button>
+        </div>
+      </RolePanel>
     )
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
+    <RolePanel className="mx-auto w-full max-w-xl p-6">
+      <div className="border-b border-zinc-200 pb-5 dark:border-white/10">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-blue-100 rounded-lg">
-            <User className="h-5 w-5 text-blue-600" />
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+            <User className="h-5 w-5" />
           </div>
-          <div>
-            <CardTitle>Set Up Athlete Profile</CardTitle>
-            <CardDescription>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">Set up athlete profile</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               Create your personal athlete profile for self-coaching
-            </CardDescription>
+            </p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {userName && (
-            <div className="p-3 bg-slate-50 rounded-lg">
-              <p className="text-sm text-muted-foreground">Creating profile for</p>
-              <p className="font-medium">{userName}</p>
-            </div>
-          )}
+      </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Gender</label>
-            <Select
-              onValueChange={(value) => setValue('gender', value as 'MALE' | 'FEMALE' | 'OTHER')}
-              disabled={isLoading}
-            >
-              <SelectTrigger className={errors.gender ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Select gender" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="MALE">Male</SelectItem>
-                <SelectItem value="FEMALE">Female</SelectItem>
-                <SelectItem value="OTHER">Other</SelectItem>
-              </SelectContent>
-            </Select>
-            {errors.gender && (
-              <p className="text-sm text-red-500">{errors.gender.message}</p>
-            )}
+      <form onSubmit={handleSubmit(onSubmit)} className="mt-5 space-y-4">
+        {userName && (
+          <div className="rounded-md border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500">Creating profile for</p>
+            <p className="mt-2 text-sm font-medium text-zinc-950 dark:text-zinc-100">{userName}</p>
           </div>
+        )}
 
+        <div className="space-y-2">
+          <label className={labelClassName}>Gender</label>
+          <Select
+            onValueChange={(value) => setValue('gender', value as 'MALE' | 'FEMALE' | 'OTHER')}
+            disabled={isLoading}
+          >
+            <SelectTrigger className={cn(fieldClassName, errors.gender && errorFieldClassName)}>
+              <SelectValue placeholder="Select gender" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MALE">Male</SelectItem>
+              <SelectItem value="FEMALE">Female</SelectItem>
+              <SelectItem value="OTHER">Other</SelectItem>
+            </SelectContent>
+          </Select>
+          {errors.gender && (
+            <p className="text-sm text-red-600 dark:text-red-400">{errors.gender.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="birthDate" className={labelClassName}>
+            Birth Date
+          </label>
+          <input
+            id="birthDate"
+            type="date"
+            className={cn(fieldClassName, errors.birthDate && errorFieldClassName)}
+            {...register('birthDate')}
+            disabled={isLoading}
+          />
+          {errors.birthDate && (
+            <p className="text-sm text-red-600 dark:text-red-400">{errors.birthDate.message}</p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div className="space-y-2">
-            <label htmlFor="birthDate" className="text-sm font-medium">
-              Birth Date
+            <label htmlFor="height" className={labelClassName}>
+              Height (cm)
             </label>
             <input
-              id="birthDate"
-              type="date"
-              className={`flex h-10 w-full rounded-md border ${
-                errors.birthDate ? 'border-red-500' : 'border-input'
-              } bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
-              {...register('birthDate')}
+              id="height"
+              type="number"
+              step="0.1"
+              className={cn(fieldClassName, errors.height && errorFieldClassName)}
+              placeholder="175"
+              {...register('height', { valueAsNumber: true })}
               disabled={isLoading}
             />
-            {errors.birthDate && (
-              <p className="text-sm text-red-500">{errors.birthDate.message}</p>
+            {errors.height && (
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.height.message}</p>
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label htmlFor="height" className="text-sm font-medium">
-                Height (cm)
-              </label>
-              <input
-                id="height"
-                type="number"
-                step="0.1"
-                className={`flex h-10 w-full rounded-md border ${
-                  errors.height ? 'border-red-500' : 'border-input'
-                } bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
-                placeholder="175"
-                {...register('height', { valueAsNumber: true })}
-                disabled={isLoading}
-              />
-              {errors.height && (
-                <p className="text-sm text-red-500">{errors.height.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="weight" className="text-sm font-medium">
-                Weight (kg)
-              </label>
-              <input
-                id="weight"
-                type="number"
-                step="0.1"
-                className={`flex h-10 w-full rounded-md border ${
-                  errors.weight ? 'border-red-500' : 'border-input'
-                } bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2`}
-                placeholder="70"
-                {...register('weight', { valueAsNumber: true })}
-                disabled={isLoading}
-              />
-              {errors.weight && (
-                <p className="text-sm text-red-500">{errors.weight.message}</p>
-              )}
-            </div>
+          <div className="space-y-2">
+            <label htmlFor="weight" className={labelClassName}>
+              Weight (kg)
+            </label>
+            <input
+              id="weight"
+              type="number"
+              step="0.1"
+              className={cn(fieldClassName, errors.weight && errorFieldClassName)}
+              placeholder="70"
+              {...register('weight', { valueAsNumber: true })}
+              disabled={isLoading}
+            />
+            {errors.weight && (
+              <p className="text-sm text-red-600 dark:text-red-400">{errors.weight.message}</p>
+            )}
           </div>
+        </div>
 
-          <div className="pt-2">
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating Profile...
-                </>
-              ) : (
-                'Create Athlete Profile'
-              )}
-            </Button>
-          </div>
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Creating Profile...
+            </>
+          ) : (
+            'Create Athlete Profile'
+          )}
+        </Button>
 
-          <p className="text-xs text-muted-foreground text-center">
-            This creates a personal athlete profile linked to your coach account.
-            You can switch between coach and athlete mode at any time.
-          </p>
-        </form>
-      </CardContent>
-    </Card>
+        <p className="text-center text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+          This creates a personal athlete profile linked to your account. You can switch between role views at any time.
+        </p>
+      </form>
+    </RolePanel>
   )
 }
