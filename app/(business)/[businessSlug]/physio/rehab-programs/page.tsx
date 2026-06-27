@@ -1,290 +1,320 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import {
-    Activity,
-    Search,
-    Filter,
-    Plus,
-    ChevronRight,
-    User,
-    Target,
+  Activity,
+  ChevronRight,
+  Filter,
+  Plus,
+  Search,
+  Target,
+  User,
 } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { cn } from '@/lib/utils'
+
+interface RehabMilestone {
+  id: string
+  achieved: boolean
+}
 
 interface RehabProgram {
+  id: string
+  name: string
+  description: string | null
+  status: string
+  currentPhase: string
+  createdAt: string
+  client: {
     id: string
     name: string
-    description: string | null
-    status: string
-    currentPhase: string
-    createdAt: string
-    client: {
-        id: string
-        name: string
-        email: string
-    }
-    injury: {
-        id: string
-        injuryType: string
-        bodyPart: string
-        phase: string
-    } | null
-    exercises: any[]
-    milestones: any[]
-    _count: {
-        exercises: number
-        milestones: number
-        progressLogs: number
-    }
+    email: string
+  }
+  injury: {
+    id: string
+    injuryType: string
+    bodyPart: string
+    phase: string
+  } | null
+  exercises: unknown[]
+  milestones: RehabMilestone[]
+  _count: {
+    exercises: number
+    milestones: number
+    progressLogs: number
+  }
+}
+
+interface RehabProgramsResponse {
+  programs?: RehabProgram[]
+  total?: number
 }
 
 const phaseLabels: Record<string, string> = {
-    ACUTE: 'Acute',
-    SUBACUTE: 'Subacute',
-    REMODELING: 'Remodeling',
-    FUNCTIONAL: 'Functional',
-    RETURN_TO_SPORT: 'Return to Sport',
+  ACUTE: 'Acute',
+  SUBACUTE: 'Subacute',
+  REMODELING: 'Remodeling',
+  FUNCTIONAL: 'Functional',
+  RETURN_TO_SPORT: 'Return to sport',
 }
 
 const phaseColors: Record<string, string> = {
-    ACUTE: 'bg-red-500/20 text-red-400 border-red-500/30',
-    SUBACUTE: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-    REMODELING: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-    FUNCTIONAL: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-    RETURN_TO_SPORT: 'bg-green-500/20 text-green-400 border-green-500/30',
+  ACUTE: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+  SUBACUTE: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-900/60 dark:bg-orange-950/30 dark:text-orange-300',
+  REMODELING: 'border-yellow-200 bg-yellow-50 text-yellow-800 dark:border-yellow-900/60 dark:bg-yellow-950/30 dark:text-yellow-300',
+  FUNCTIONAL: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
+  RETURN_TO_SPORT: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+}
+
+const statusLabels: Record<string, string> = {
+  ACTIVE: 'Active',
+  DRAFT: 'Draft',
+  PAUSED: 'Paused',
+  COMPLETED: 'Completed',
+  CANCELLED: 'Cancelled',
 }
 
 const statusColors: Record<string, string> = {
-    DRAFT: 'bg-slate-500/20 text-slate-400',
-    ACTIVE: 'bg-emerald-500/20 text-emerald-400',
-    PAUSED: 'bg-yellow-500/20 text-yellow-400',
-    COMPLETED: 'bg-blue-500/20 text-blue-400',
-    CANCELLED: 'bg-red-500/20 text-red-400',
+  ACTIVE: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
+  DRAFT: 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900/60 dark:text-zinc-300',
+  PAUSED: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300',
+  COMPLETED: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
+  CANCELLED: 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
+}
+
+function getMilestoneProgress(milestones: RehabMilestone[]) {
+  const achieved = milestones.filter((milestone) => milestone.achieved).length
+  const total = milestones.length
+  const percentage = total > 0 ? Math.round((achieved / total) * 100) : 0
+
+  return { achieved, total, percentage }
 }
 
 export default function BusinessPhysioRehabProgramsPage() {
-    const params = useParams()
-    const businessSlug = params.businessSlug as string
-    const basePath = `/${businessSlug}/physio`
+  const params = useParams()
+  const businessSlug = params.businessSlug as string
+  const basePath = `/${businessSlug}/physio`
 
-    const [programs, setPrograms] = useState<RehabProgram[]>([])
-    const [loading, setLoading] = useState(true)
-    const [search, setSearch] = useState('')
-    const [statusFilter, setStatusFilter] = useState<string>('ACTIVE')
-    const [phaseFilter, setPhaseFilter] = useState<string>('all')
-    const [total, setTotal] = useState(0)
+  const [programs, setPrograms] = useState<RehabProgram[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('ACTIVE')
+  const [phaseFilter, setPhaseFilter] = useState('all')
+  const [total, setTotal] = useState(0)
 
-    useEffect(() => {
-        const fetchPrograms = async () => {
-            setLoading(true)
-            try {
-                const params = new URLSearchParams()
-                if (statusFilter && statusFilter !== 'all') {
-                    params.set('status', statusFilter)
-                }
-                if (phaseFilter && phaseFilter !== 'all') {
-                    params.set('phase', phaseFilter)
-                }
+  useEffect(() => {
+    const fetchPrograms = async () => {
+      setLoading(true)
+      try {
+        const query = new URLSearchParams()
+        if (statusFilter !== 'all') query.set('status', statusFilter)
+        if (phaseFilter !== 'all') query.set('phase', phaseFilter)
 
-                const res = await fetch(`/api/physio/rehab-programs?${params.toString()}`)
-                if (res.ok) {
-                    const data = await res.json()
-                    // Filter by search client-side
-                    let filtered = data.programs
-                    if (search) {
-                        const searchLower = search.toLowerCase()
-                        filtered = filtered.filter((p: RehabProgram) =>
-                            p.name.toLowerCase().includes(searchLower) ||
-                            p.client.name.toLowerCase().includes(searchLower)
-                        )
-                    }
-                    setPrograms(filtered)
-                    setTotal(data.total)
-                }
-            } catch (error) {
-                console.error('Error fetching rehab programs:', error)
-            } finally {
-                setLoading(false)
-            }
+        const res = await fetch(`/api/physio/rehab-programs?${query.toString()}`)
+        if (res.ok) {
+          const data = (await res.json()) as RehabProgramsResponse
+          const fetchedPrograms = data.programs ?? []
+          const searchLower = search.trim().toLowerCase()
+          const filteredPrograms = searchLower
+            ? fetchedPrograms.filter((program) =>
+                program.name.toLowerCase().includes(searchLower) ||
+                program.client.name.toLowerCase().includes(searchLower)
+              )
+            : fetchedPrograms
+
+          setPrograms(filteredPrograms)
+          setTotal(data.total ?? fetchedPrograms.length)
         }
+      } catch (error) {
+        console.error('Error fetching rehab programs:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-        const debounce = setTimeout(fetchPrograms, 300)
-        return () => clearTimeout(debounce)
-    }, [search, statusFilter, phaseFilter])
+    const debounce = window.setTimeout(() => {
+      void fetchPrograms()
+    }, 300)
+    return () => window.clearTimeout(debounce)
+  }, [search, statusFilter, phaseFilter])
 
-    return (
-        <div className="container mx-auto px-4 py-8">
-            {/* Page Header */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <h1 className="text-3xl font-bold text-white mb-2">Rehab Programs</h1>
-                    <p className="text-slate-400">Manage rehabilitation programs for your athletes</p>
-                </div>
-                <Button asChild className="bg-blue-500 hover:bg-blue-600">
-                    <Link href={`${basePath}/rehab-programs/new`}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Program
-                    </Link>
-                </Button>
-            </div>
+  return (
+    <RolePageFrame maxWidth="wide">
+      <RolePageHeader
+        eyebrow="Rehab plans"
+        title="Rehab Programs"
+        description="Create, monitor, and adjust active rehabilitation plans for assigned athletes."
+        actions={
+          <Button asChild>
+            <Link href={`${basePath}/rehab-programs/new`}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Program
+            </Link>
+          </Button>
+        }
+      />
 
-            {/* Search and Filters */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input
-                        placeholder="Search by program name or athlete..."
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="pl-10 bg-slate-900/50 border-white/10 text-white placeholder:text-slate-500"
-                    />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[150px] bg-slate-900/50 border-white/10 text-white">
-                        <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10">
-                        <SelectItem value="all" className="text-slate-200">All Status</SelectItem>
-                        <SelectItem value="ACTIVE" className="text-slate-200">Active</SelectItem>
-                        <SelectItem value="DRAFT" className="text-slate-200">Draft</SelectItem>
-                        <SelectItem value="PAUSED" className="text-slate-200">Paused</SelectItem>
-                        <SelectItem value="COMPLETED" className="text-slate-200">Completed</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Select value={phaseFilter} onValueChange={setPhaseFilter}>
-                    <SelectTrigger className="w-[180px] bg-slate-900/50 border-white/10 text-white">
-                        <Filter className="w-4 h-4 mr-2 text-slate-400" />
-                        <SelectValue placeholder="Phase" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-white/10">
-                        <SelectItem value="all" className="text-slate-200">All Phases</SelectItem>
-                        {Object.entries(phaseLabels).map(([value, label]) => (
-                            <SelectItem key={value} value={value} className="text-slate-200">
-                                {label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Results count */}
-            <p className="text-slate-400 text-sm mb-4">
-                Showing {programs.length} rehab programs
-            </p>
-
-            {/* Programs Grid */}
-            {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {[...Array(6)].map((_, i) => (
-                        <Skeleton key={i} className="h-48 bg-slate-800/50" />
-                    ))}
-                </div>
-            ) : programs.length === 0 ? (
-                <Card className="bg-slate-900/50 border-white/10">
-                    <CardContent className="p-12 text-center">
-                        <Activity className="w-16 h-16 mx-auto mb-4 text-slate-600" />
-                        <p className="text-slate-400 text-lg">No rehab programs found</p>
-                        <p className="text-slate-500 text-sm mt-2 mb-4">
-                            {search ? 'Try adjusting your search or filters' : 'Start by creating your first rehab program'}
-                        </p>
-                        <Button asChild className="bg-blue-500 hover:bg-blue-600">
-                            <Link href={`${basePath}/rehab-programs/new`}>
-                                <Plus className="w-4 h-4 mr-2" />
-                                New Program
-                            </Link>
-                        </Button>
-                    </CardContent>
-                </Card>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {programs.map((program) => (
-                        <Link
-                            key={program.id}
-                            href={`${basePath}/rehab-programs/${program.id}`}
-                            className="block"
-                        >
-                            <Card className="bg-slate-900/50 border-white/10 hover:border-blue-500/30 transition-all h-full">
-                                <CardContent className="p-5">
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1 min-w-0">
-                                            <h3 className="font-semibold text-white text-lg truncate">{program.name}</h3>
-                                            <div className="flex items-center gap-2 text-slate-400 text-sm mt-1">
-                                                <User className="w-4 h-4 flex-shrink-0" />
-                                                <span className="truncate">{program.client.name}</span>
-                                            </div>
-                                        </div>
-                                        <ChevronRight className="w-5 h-5 text-slate-600 flex-shrink-0" />
-                                    </div>
-
-                                    {/* Status and Phase Badges */}
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        <Badge className={statusColors[program.status] || 'bg-slate-500/20 text-slate-400'}>
-                                            {program.status}
-                                        </Badge>
-                                        <Badge className={phaseColors[program.currentPhase] || 'bg-slate-500/20 text-slate-400'}>
-                                            {phaseLabels[program.currentPhase] || program.currentPhase}
-                                        </Badge>
-                                    </div>
-
-                                    {/* Injury Info */}
-                                    {program.injury && (
-                                        <div className="bg-slate-800/50 rounded-lg p-3 mb-3">
-                                            <p className="text-sm text-slate-300">{program.injury.injuryType}</p>
-                                            <p className="text-xs text-slate-500">{program.injury.bodyPart}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Stats */}
-                                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                                        <div className="flex items-center gap-1">
-                                            <Activity className="w-3 h-3" />
-                                            <span>{program._count.exercises} exercises</span>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            <Target className="w-3 h-3" />
-                                            <span>{program._count.milestones} milestones</span>
-                                        </div>
-                                    </div>
-
-                                    {/* Milestone Progress */}
-                                    {program.milestones && program.milestones.length > 0 && (
-                                        <div className="mt-3">
-                                            <div className="flex items-center justify-between text-xs mb-1">
-                                                <span className="text-slate-500">Milestone Progress</span>
-                                                <span className="text-slate-400">
-                                                    {program.milestones.filter((m: any) => m.achieved).length}/{program.milestones.length}
-                                                </span>
-                                            </div>
-                                            <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-blue-500"
-                                                    style={{
-                                                        width: `${(program.milestones.filter((m: any) => m.achieved).length / program.milestones.length) * 100}%`
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </Link>
-                    ))}
-                </div>
-            )}
+      <RolePanel className="mb-5 p-4">
+        <div className="flex flex-col gap-3 lg:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <Input
+              placeholder="Search by program name or athlete..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full lg:w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="DRAFT">Draft</SelectItem>
+              <SelectItem value="PAUSED">Paused</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={phaseFilter} onValueChange={setPhaseFilter}>
+            <SelectTrigger className="w-full lg:w-[190px]">
+              <Filter className="mr-2 h-4 w-4 text-zinc-500" />
+              <SelectValue placeholder="Phase" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All phases</SelectItem>
+              {Object.entries(phaseLabels).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-    )
+      </RolePanel>
+
+      <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
+        Showing {programs.length} of {total} rehab programs
+      </p>
+
+      {loading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-52 bg-zinc-200/80 dark:bg-white/10" />
+          ))}
+        </div>
+      ) : programs.length === 0 ? (
+        <RolePanel className="p-12 text-center">
+          <Activity className="mx-auto mb-4 h-14 w-14 text-zinc-300 dark:text-zinc-700" />
+          <p className="text-lg font-medium text-zinc-950 dark:text-zinc-50">No rehab programs found</p>
+          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
+            {search ? 'Try adjusting your search or filters.' : 'Start by creating the first rehab program.'}
+          </p>
+          <Button asChild className="mt-5">
+            <Link href={`${basePath}/rehab-programs/new`}>
+              <Plus className="mr-2 h-4 w-4" />
+              New Program
+            </Link>
+          </Button>
+        </RolePanel>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {programs.map((program) => {
+            const progress = getMilestoneProgress(program.milestones ?? [])
+
+            return (
+              <Link
+                key={program.id}
+                href={`${basePath}/rehab-programs/${program.id}`}
+                className="block"
+              >
+                <RolePanel className="h-full p-5 transition-colors hover:border-blue-200 dark:hover:border-blue-900/60">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-lg font-semibold text-zinc-950 dark:text-zinc-50">
+                        {program.name}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
+                        <User className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{program.client.name}</span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 shrink-0 text-zinc-400" />
+                  </div>
+
+                  <div className="mb-4 flex flex-wrap gap-2">
+                    <Badge
+                      variant="outline"
+                      className={cn(statusColors[program.status] ?? statusColors.DRAFT)}
+                    >
+                      {statusLabels[program.status] ?? program.status}
+                    </Badge>
+                    <Badge
+                      variant="outline"
+                      className={cn(phaseColors[program.currentPhase] ?? phaseColors.FUNCTIONAL)}
+                    >
+                      {phaseLabels[program.currentPhase] ?? program.currentPhase}
+                    </Badge>
+                  </div>
+
+                  {program.injury && (
+                    <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50">
+                      <p className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-200">
+                        {program.injury.injuryType}
+                      </p>
+                      <p className="mt-1 truncate text-xs text-zinc-500 dark:text-zinc-500">
+                        {program.injury.bodyPart}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-4 text-xs text-zinc-500 dark:text-zinc-400">
+                    <div className="flex items-center gap-1">
+                      <Activity className="h-3.5 w-3.5" />
+                      <span>{program._count.exercises} exercises</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Target className="h-3.5 w-3.5" />
+                      <span>{program._count.milestones} milestones</span>
+                    </div>
+                  </div>
+
+                  {progress.total > 0 && (
+                    <div className="mt-4">
+                      <div className="mb-1.5 flex items-center justify-between text-xs">
+                        <span className="text-zinc-500 dark:text-zinc-500">Milestone progress</span>
+                        <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                          {progress.achieved}/{progress.total}
+                        </span>
+                      </div>
+                      <div className="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+                        <div
+                          className="h-full rounded-full bg-blue-500"
+                          style={{ width: `${progress.percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </RolePanel>
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </RolePageFrame>
+  )
 }
