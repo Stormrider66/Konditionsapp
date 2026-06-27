@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RolePageFrame, RolePageHeader, RolePanel, RoleStatCard } from '@/components/layouts/role-shell/RolePage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -18,7 +18,6 @@ import {
   Sparkles,
   TrendingUp,
   Mail,
-  ExternalLink,
 } from 'lucide-react';
 import { useTranslations, useLocale } from '@/i18n/client';
 import { format } from 'date-fns';
@@ -197,13 +196,13 @@ export function ReferralDashboardClient({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return <Badge className="bg-green-100 text-green-700"><CheckCircle2 className="w-3 h-3 mr-1" />{t('statusCompleted')}</Badge>;
+        return <Badge className="gap-1 border border-emerald-100 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300"><CheckCircle2 className="h-3 w-3" />{t('statusCompleted')}</Badge>;
       case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-700"><Clock className="w-3 h-3 mr-1" />{t('statusPending')}</Badge>;
+        return <Badge className="gap-1 border border-amber-100 bg-amber-50 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300"><Clock className="h-3 w-3" />{t('statusPending')}</Badge>;
       case 'EXPIRED':
-        return <Badge className="bg-gray-100 text-gray-700"><XCircle className="w-3 h-3 mr-1" />{t('statusExpired')}</Badge>;
+        return <Badge className="gap-1 border border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"><XCircle className="h-3 w-3" />{t('statusExpired')}</Badge>;
       case 'REVOKED':
-        return <Badge className="bg-red-100 text-red-700"><XCircle className="w-3 h-3 mr-1" />{t('statusRevoked')}</Badge>;
+        return <Badge className="gap-1 border border-red-100 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300"><XCircle className="h-3 w-3" />{t('statusRevoked')}</Badge>;
       default:
         return null;
     }
@@ -225,85 +224,44 @@ export function ReferralDashboardClient({
   };
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-5xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Gift className="h-6 w-6 text-primary" />
-          {t('title')}
-        </h1>
-        <p className="text-muted-foreground mt-1">{t('subtitle')}</p>
-      </div>
+    <RolePageFrame contentClassName="max-w-5xl">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={
+          <span className="flex items-center gap-2">
+            <Gift className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+            {t('title')}
+          </span>
+        }
+        description={t('subtitle')}
+      />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('totalReferrals')}</p>
-                <p className="text-2xl font-bold">{stats.totalReferrals}</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500 opacity-80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('completedReferrals')}</p>
-                <p className="text-2xl font-bold">{stats.completedReferrals}</p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-green-500 opacity-80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('pendingReferrals')}</p>
-                <p className="text-2xl font-bold">{stats.pendingReferrals}</p>
-              </div>
-              <Clock className="h-8 w-8 text-yellow-500 opacity-80" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">{t('rewardsAvailable')}</p>
-                <p className="text-2xl font-bold">{stats.availableRewards}</p>
-              </div>
-              <Sparkles className="h-8 w-8 text-purple-500 opacity-80" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <RoleStatCard label={t('totalReferrals')} value={stats.totalReferrals} icon={Users} tone="blue" />
+        <RoleStatCard label={t('completedReferrals')} value={stats.completedReferrals} icon={CheckCircle2} tone="emerald" />
+        <RoleStatCard label={t('pendingReferrals')} value={stats.pendingReferrals} icon={Clock} tone="amber" />
+        <RoleStatCard label={t('rewardsAvailable')} value={stats.availableRewards} icon={Sparkles} tone="violet" />
       </div>
 
       {/* Referral Code Card */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Share2 className="h-5 w-5" />
+      <RolePanel className="mb-8">
+        <div className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+            <Share2 className="h-5 w-5 text-blue-600 dark:text-blue-300" />
             {t('yourReferralCode')}
-          </CardTitle>
-          <CardDescription>{t('shareCodeDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('shareCodeDescription')}</p>
+        </div>
+        <div className="p-5">
           {referralCode ? (
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 <div className="flex-1">
                   <Input
                     value={shareUrl}
                     readOnly
-                    className="font-mono text-sm bg-muted"
+                    className="border-zinc-200 bg-zinc-50 font-mono text-sm dark:border-white/10 dark:bg-zinc-900/60"
                   />
                 </div>
                 <Button onClick={handleCopyLink} variant="outline" className="gap-2">
@@ -313,8 +271,8 @@ export function ReferralDashboardClient({
               </div>
 
               <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">{t('code')}:</span>
-                <code className="px-2 py-1 bg-muted rounded font-bold text-lg">
+                <span className="text-zinc-500 dark:text-zinc-400">{t('code')}:</span>
+                <code className="rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1 text-lg font-semibold text-zinc-950 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-50">
                   {referralCode.code}
                 </code>
               </div>
@@ -327,39 +285,41 @@ export function ReferralDashboardClient({
               </div>
             </div>
           ) : (
-            <div className="text-center py-8">
-              <Gift className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground mb-4">{t('noCodeYet')}</p>
+            <div className="py-8 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+                <Gift className="h-6 w-6" />
+              </div>
+              <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">{t('noCodeYet')}</p>
               <Button onClick={handleCreateCode} disabled={isCreating}>
                 {isCreating ? t('creating') : t('createCode')}
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </RolePanel>
 
       {/* Available Rewards */}
       {availableRewards.length > 0 && (
-        <Card className="mb-8 border-purple-200 bg-purple-50/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-700">
+        <RolePanel className="mb-8 border-violet-200 bg-violet-50/50 dark:border-violet-900/50 dark:bg-violet-950/20">
+          <div className="border-b border-violet-100 px-5 py-4 dark:border-violet-900/50">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-violet-700 dark:text-violet-300">
               <Sparkles className="h-5 w-5" />
               {t('availableRewards')}
-            </CardTitle>
-            <CardDescription>{t('claimRewardsDescription')}</CardDescription>
-          </CardHeader>
-          <CardContent>
+            </h2>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">{t('claimRewardsDescription')}</p>
+          </div>
+          <div className="p-5">
             <div className="space-y-3">
               {availableRewards.map((reward) => (
                 <div
                   key={reward.id}
-                  className="flex items-center justify-between p-4 bg-white rounded-lg border"
+                  className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-zinc-950/70 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="font-medium">
+                    <p className="font-medium text-zinc-950 dark:text-zinc-50">
                       {getRewardLabel(reward.rewardType, reward.value)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
                       {t('fromReferral', {
                         name: reward.referral.referredUser?.name || reward.referral.referredEmail,
                       })}
@@ -375,41 +335,41 @@ export function ReferralDashboardClient({
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </RolePanel>
       )}
 
       {/* Referrals List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="h-5 w-5" />
+      <RolePanel>
+        <div className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
+          <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+            <TrendingUp className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
             {t('referralHistory')}
-          </CardTitle>
-          <CardDescription>{t('referralHistoryDescription')}</CardDescription>
-        </CardHeader>
-        <CardContent>
+          </h2>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('referralHistoryDescription')}</p>
+        </div>
+        <div className="p-5">
           {referrals.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>{t('noReferralsYet')}</p>
-              <p className="text-sm mt-2">{t('shareYourCode')}</p>
+            <div className="py-8 text-center">
+              <Users className="mx-auto mb-4 h-12 w-12 text-zinc-300 dark:text-zinc-700" />
+              <p className="font-medium text-zinc-950 dark:text-zinc-50">{t('noReferralsYet')}</p>
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">{t('shareYourCode')}</p>
             </div>
           ) : (
             <div className="space-y-3">
               {referrals.map((referral) => (
                 <div
                   key={referral.id}
-                  className="flex items-center justify-between p-4 bg-muted/30 rounded-lg"
+                  className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium truncate">
+                      <p className="truncate font-medium text-zinc-950 dark:text-zinc-50">
                         {referral.referredUser?.name || referral.referredEmail}
                       </p>
                       {getStatusBadge(referral.status)}
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
                       {format(new Date(referral.createdAt), 'PPP', { locale: dateLocale })}
                       {referral.completedAt && (
                         <> • {t('completed')} {format(new Date(referral.completedAt), 'PPP', { locale: dateLocale })}</>
@@ -417,9 +377,9 @@ export function ReferralDashboardClient({
                     </p>
                   </div>
                   {referral.rewards.length > 0 && (
-                    <div className="text-right">
+                    <div className="flex flex-wrap justify-end gap-2">
                       {referral.rewards.map((reward) => (
-                        <Badge key={reward.id} variant="outline" className="ml-2">
+                        <Badge key={reward.id} variant="outline">
                           {reward.applied ? '✓' : ''} {getRewardLabel(reward.rewardType, reward.value)}
                         </Badge>
                       ))}
@@ -429,40 +389,40 @@ export function ReferralDashboardClient({
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </RolePanel>
 
       {/* How it works */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle>{t('howItWorks')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid md:grid-cols-3 gap-6">
+      <RolePanel className="mt-8">
+        <div className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
+          <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('howItWorks')}</h2>
+        </div>
+        <div className="p-5">
+          <div className="grid gap-6 md:grid-cols-3">
             <div className="text-center">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md border border-blue-100 bg-blue-50 dark:border-blue-900/60 dark:bg-blue-950/30">
                 <Share2 className="h-6 w-6 text-blue-600" />
               </div>
-              <h3 className="font-medium mb-1">{t('step1Title')}</h3>
-              <p className="text-sm text-muted-foreground">{t('step1Description')}</p>
+              <h3 className="mb-1 font-medium text-zinc-950 dark:text-zinc-50">{t('step1Title')}</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('step1Description')}</p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Users className="h-6 w-6 text-green-600" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                <Users className="h-6 w-6 text-emerald-600" />
               </div>
-              <h3 className="font-medium mb-1">{t('step2Title')}</h3>
-              <p className="text-sm text-muted-foreground">{t('step2Description')}</p>
+              <h3 className="mb-1 font-medium text-zinc-950 dark:text-zinc-50">{t('step2Title')}</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('step2Description')}</p>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                <Gift className="h-6 w-6 text-purple-600" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md border border-violet-100 bg-violet-50 dark:border-violet-900/60 dark:bg-violet-950/30">
+                <Gift className="h-6 w-6 text-violet-600" />
               </div>
-              <h3 className="font-medium mb-1">{t('step3Title')}</h3>
-              <p className="text-sm text-muted-foreground">{t('step3Description')}</p>
+              <h3 className="mb-1 font-medium text-zinc-950 dark:text-zinc-50">{t('step3Title')}</h3>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('step3Description')}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </RolePanel>
+    </RolePageFrame>
   );
 }
