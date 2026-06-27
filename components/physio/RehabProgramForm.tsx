@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Activity, CheckCircle2, Loader2, PauseCircle, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -19,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/components/ui/use-toast'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { getExerciseDisplayName } from '@/lib/exercises/display-name'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 type AthleteOption = {
   id: string
@@ -54,6 +54,10 @@ function dateInputToIso(value: string) {
   if (!value) return undefined
   return new Date(`${value}T12:00:00`).toISOString()
 }
+
+const labelClass = 'text-zinc-700 dark:text-zinc-200'
+const inputClass = 'bg-white text-zinc-950 dark:bg-zinc-950/60 dark:text-zinc-100'
+const sectionClass = 'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-zinc-900/40'
 
 export function RehabProgramForm({
   basePath,
@@ -200,31 +204,31 @@ export function RehabProgramForm({
 
   if (loading) {
     return (
-      <Card className="border-white/10 bg-slate-900/50">
-        <CardContent className="flex items-center justify-center p-12">
+      <RolePanel className="p-12">
+        <div className="flex items-center justify-center">
           <Loader2 className="h-6 w-6 animate-spin text-blue-400" />
-        </CardContent>
-      </Card>
+        </div>
+      </RolePanel>
     )
   }
 
   return (
-    <Card className="border-white/10 bg-slate-900/50">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-white">
+    <RolePanel>
+      <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
           <Activity className="h-5 w-5 text-blue-400" />
           {programId ? t('title.edit') : t('title.create')}
-        </CardTitle>
-        <CardDescription className="text-slate-400">
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm leading-6 text-zinc-600 dark:text-zinc-400">
           {t('description')}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
+        </p>
+      </div>
+      <div className="space-y-5 p-5">
+        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.athlete')}</Label>
+            <Label className={labelClass}>{t('fields.athlete')}</Label>
             <Select value={clientId} onValueChange={setClientId} disabled={Boolean(programId)}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue placeholder={t('placeholders.selectAthlete')} />
               </SelectTrigger>
               <SelectContent>
@@ -238,9 +242,9 @@ export function RehabProgramForm({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.linkedInjury')}</Label>
+            <Label className={labelClass}>{t('fields.linkedInjury')}</Label>
             <Select value={injuryId || 'none'} onValueChange={(value) => setInjuryId(value === 'none' ? '' : value)}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue placeholder={t('placeholders.optional')} />
               </SelectTrigger>
               <SelectContent>
@@ -259,20 +263,20 @@ export function RehabProgramForm({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.name')}</Label>
+          <Label className={labelClass}>{t('fields.name')}</Label>
           <Input
             value={name}
             onChange={(event) => setName(event.target.value)}
             placeholder={t('placeholders.name')}
-            className="bg-slate-950/50 text-white"
+            className={inputClass}
           />
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className={`grid gap-4 md:grid-cols-3 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.phase')}</Label>
+            <Label className={labelClass}>{t('fields.phase')}</Label>
             <Select value={currentPhase} onValueChange={setCurrentPhase}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -285,9 +289,9 @@ export function RehabProgramForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.status')}</Label>
+            <Label className={labelClass}>{t('fields.status')}</Label>
             <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger className="bg-slate-950/50 text-white">
+              <SelectTrigger className={inputClass}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -299,112 +303,116 @@ export function RehabProgramForm({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.estimatedEndDate')}</Label>
+            <Label className={labelClass}>{t('fields.estimatedEndDate')}</Label>
             <Input
               type="date"
               value={estimatedEndDate}
               onChange={(event) => setEstimatedEndDate(event.target.value)}
-              className="bg-slate-950/50 text-white"
+              className={inputClass}
             />
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.shortTermGoals')}</Label>
+            <Label className={labelClass}>{t('fields.shortTermGoals')}</Label>
             <Textarea
               value={shortTermGoals}
               onChange={(event) => setShortTermGoals(event.target.value)}
               placeholder={t('placeholders.oneGoalPerLine')}
-              className="min-h-28 bg-slate-950/50 text-white"
+              className={`min-h-28 ${inputClass}`}
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.longTermGoals')}</Label>
+            <Label className={labelClass}>{t('fields.longTermGoals')}</Label>
             <Textarea
               value={longTermGoals}
               onChange={(event) => setLongTermGoals(event.target.value)}
               placeholder={t('placeholders.oneGoalPerLine')}
-              className="min-h-28 bg-slate-950/50 text-white"
+              className={`min-h-28 ${inputClass}`}
             />
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.contraindications')}</Label>
+            <Label className={labelClass}>{t('fields.contraindications')}</Label>
             <Textarea
               value={contraindications}
               onChange={(event) => setContraindications(event.target.value)}
               placeholder={t('placeholders.contraindications')}
-              className="min-h-24 bg-slate-950/50 text-white"
+              className={`min-h-24 ${inputClass}`}
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.precautions')}</Label>
+            <Label className={labelClass}>{t('fields.precautions')}</Label>
             <Textarea
               value={precautions}
               onChange={(event) => setPrecautions(event.target.value)}
               placeholder={t('placeholders.precautions')}
-              className="min-h-24 bg-slate-950/50 text-white"
+              className={`min-h-24 ${inputClass}`}
             />
           </div>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.acceptablePainDuring')}</Label>
+            <Label className={labelClass}>{t('fields.acceptablePainDuring')}</Label>
             <Input
               type="number"
               min="0"
               max="10"
               value={acceptablePainDuring}
               onChange={(event) => setAcceptablePainDuring(event.target.value)}
-              className="bg-slate-950/50 text-white"
+              className={inputClass}
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-slate-200">{t('fields.acceptablePainAfter')}</Label>
+            <Label className={labelClass}>{t('fields.acceptablePainAfter')}</Label>
             <Input
               type="number"
               min="0"
               max="10"
               value={acceptablePainAfter}
               onChange={(event) => setAcceptablePainAfter(event.target.value)}
-              className="bg-slate-950/50 text-white"
+              className={inputClass}
             />
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.description')}</Label>
+          <Label className={labelClass}>{t('fields.description')}</Label>
           <Textarea
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            className="min-h-24 bg-slate-950/50 text-white"
+            className={`min-h-24 ${inputClass}`}
           />
         </div>
 
         <div className="space-y-2">
-          <Label className="text-slate-200">{t('fields.internalNote')}</Label>
+          <Label className={labelClass}>{t('fields.internalNote')}</Label>
           <Textarea
             value={notes}
             onChange={(event) => setNotes(event.target.value)}
-            className="min-h-20 bg-slate-950/50 text-white"
+            className={`min-h-20 ${inputClass}`}
           />
         </div>
 
         {programId && (
-          <div className="rounded-lg border border-white/10 bg-slate-950/40 p-4">
-            <p className="text-sm font-medium text-white">{t('exercises.title')}</p>
+          <div className={sectionClass}>
+            <p className="text-sm font-medium text-zinc-950 dark:text-zinc-100">{t('exercises.title')}</p>
             {exercises.length === 0 ? (
-              <p className="mt-2 text-sm text-slate-400">
+              <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
                 {t('exercises.empty')}
               </p>
             ) : (
               <div className="mt-3 flex flex-wrap gap-2">
                 {exercises.map((exercise) => (
-                  <Badge key={exercise.id} variant="outline" className="border-blue-500/30 text-blue-300">
+                  <Badge
+                    key={exercise.id}
+                    variant="outline"
+                    className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/20 dark:text-blue-300"
+                  >
                     {getExerciseDisplayName(exercise.exercise, locale, t('exercises.fallbackName'))}
                   </Badge>
                 ))}
@@ -413,7 +421,7 @@ export function RehabProgramForm({
           </div>
         )}
 
-        <div className="flex flex-col-reverse gap-3 border-t border-white/10 pt-5 sm:flex-row sm:justify-between">
+        <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 dark:border-white/10 sm:flex-row sm:justify-between">
           {programId ? (
             <div className="flex flex-wrap gap-2">
               <Button
@@ -421,7 +429,7 @@ export function RehabProgramForm({
                 variant="outline"
                 onClick={() => submit('PAUSED')}
                 disabled={saving}
-                className="border-amber-500/30 text-amber-300"
+                className="border-amber-200 text-amber-700 hover:bg-amber-50 dark:border-amber-800/50 dark:text-amber-300 dark:hover:bg-amber-950/20"
               >
                 <PauseCircle className="mr-2 h-4 w-4" />
                 {t('actions.pause')}
@@ -431,7 +439,7 @@ export function RehabProgramForm({
                 variant="outline"
                 onClick={() => submit('COMPLETED')}
                 disabled={saving}
-                className="border-emerald-500/30 text-emerald-300"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800/50 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
               >
                 <CheckCircle2 className="mr-2 h-4 w-4" />
                 {t('actions.markComplete')}
@@ -445,7 +453,7 @@ export function RehabProgramForm({
             {t('actions.save')}
           </Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </RolePanel>
   )
 }
