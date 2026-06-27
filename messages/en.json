@@ -2505,6 +2505,7 @@
         "description": "Monitor athletes' heart rate in real time during training sessions"
       },
       "testProtocols": {
+        "eyebrow": "Testing",
         "title": "Test protocols",
         "description": "Create and manage your own test batteries",
         "tabs": {

@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ClipboardList, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLocale } from 'next-intl'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 type Locale = 'en' | 'sv'
 
@@ -50,53 +50,57 @@ export function ProtocolList({ onSelect }: ProtocolListProps) {
   }, [locale])
 
   if (loading) {
-    return <div className="space-y-2">{[1, 2].map((i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}</div>
+    return (
+      <div className="space-y-2">
+        {[1, 2].map((i) => (
+          <div key={i} className="h-20 animate-pulse rounded-lg border border-zinc-200 bg-zinc-100 dark:border-white/10 dark:bg-white/10" />
+        ))}
+      </div>
+    )
   }
 
   if (protocols.length === 0) {
     return (
-      <div className="text-center py-12 text-muted-foreground">
-        <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-40" />
-        <p>{copy(locale, 'No test protocols created yet', 'Inga testprotokoll skapade ännu')}</p>
-        <p className="text-xs mt-1">{copy(locale, 'Create your first protocol under "Create protocol"', 'Skapa ditt första protokoll under "Skapa protokoll"')}</p>
-      </div>
+      <RolePanel className="px-6 py-12 text-center">
+        <ClipboardList className="mx-auto mb-3 h-8 w-8 text-zinc-400 dark:text-zinc-600" />
+        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">{copy(locale, 'No test protocols created yet', 'Inga testprotokoll skapade ännu')}</p>
+        <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{copy(locale, 'Create your first protocol under "Create protocol"', 'Skapa ditt första protokoll under "Skapa protokoll"')}</p>
+      </RolePanel>
     )
   }
 
   return (
     <div className="space-y-2">
       {protocols.map((p) => (
-        <Card
+        <RolePanel
           key={p.id}
-          className={`${onSelect ? 'cursor-pointer hover:shadow-md' : ''} transition-shadow`}
+          className={`p-4 transition-shadow ${onSelect ? 'cursor-pointer hover:shadow-md' : ''}`}
           onClick={() => onSelect?.(p)}
         >
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-sm">{p.name}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {p.metrics.length} {copy(locale, 'measurements', 'mätningar')} · {p._count.results} {copy(locale, 'results', 'resultat')}
-                  {p.sportType && ` · ${p.sportType}`}
-                  {' · '}{p.createdBy.name}
-                </p>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {p.isPublished && <Badge variant="outline" className="text-[10px]">{copy(locale, 'Shared', 'Delad')}</Badge>}
-                {onSelect && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-              </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{p.name}</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {p.metrics.length} {copy(locale, 'measurements', 'mätningar')} · {p._count.results} {copy(locale, 'results', 'resultat')}
+                {p.sportType && ` · ${p.sportType}`}
+                {' · '}{p.createdBy.name}
+              </p>
             </div>
-            {p.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{p.description}</p>}
-            <div className="flex flex-wrap gap-1 mt-2">
-              {p.metrics.slice(0, 5).map((m) => (
-                <Badge key={m.id} variant="secondary" className="text-[9px]">{m.name}</Badge>
-              ))}
-              {p.metrics.length > 5 && (
-                <Badge variant="secondary" className="text-[9px]">+{p.metrics.length - 5}</Badge>
-              )}
+            <div className="flex shrink-0 items-center gap-1.5">
+              {p.isPublished && <Badge variant="outline" className="text-[10px]">{copy(locale, 'Shared', 'Delad')}</Badge>}
+              {onSelect && <ChevronRight className="h-4 w-4 text-zinc-400 dark:text-zinc-500" />}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          {p.description && <p className="mt-1 line-clamp-1 text-xs text-zinc-500 dark:text-zinc-400">{p.description}</p>}
+          <div className="mt-2 flex flex-wrap gap-1">
+            {p.metrics.slice(0, 5).map((m) => (
+              <Badge key={m.id} variant="secondary" className="text-[9px]">{m.name}</Badge>
+            ))}
+            {p.metrics.length > 5 && (
+              <Badge variant="secondary" className="text-[9px]">+{p.metrics.length - 5}</Badge>
+            )}
+          </div>
+        </RolePanel>
       ))}
     </div>
   )

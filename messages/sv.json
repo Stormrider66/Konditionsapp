@@ -2505,6 +2505,7 @@
         "description": "Övervaka atleters puls i realtid under träningspass"
       },
       "testProtocols": {
+        "eyebrow": "Tester",
         "title": "Testprotokoll",
         "description": "Skapa och hantera egna testbatterier",
         "tabs": {
