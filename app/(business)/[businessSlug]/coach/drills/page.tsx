@@ -12,6 +12,7 @@ import { PracticePlanner } from '@/components/coach/drills/PracticePlanner'
 import { ClubDrillLibrary } from '@/components/coach/drills/ClubDrillLibrary'
 import { ClipboardList } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -33,25 +34,28 @@ export default async function DrillsPage({ params }: PageProps) {
   })
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-3xl">
-      <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
-          <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6" />
-          {t('title')}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {t('description')}
-        </p>
-      </div>
+    <RolePageFrame maxWidth="wide">
+      <RolePageHeader
+        eyebrow={t('eyebrow')}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+              <ClipboardList className="h-5 w-5" />
+            </span>
+            {t('title')}
+          </span>
+        )}
+        description={t('description')}
+      />
 
-      <Tabs defaultValue="create" className="space-y-4">
-        <TabsList className="flex-wrap h-auto gap-0.5">
-          <TabsTrigger value="create">{t('tabs.create')}</TabsTrigger>
-          <TabsTrigger value="draw">{t('tabs.draw')}</TabsTrigger>
-          <TabsTrigger value="templates">{t('tabs.templates')}</TabsTrigger>
-          <TabsTrigger value="plan">{t('tabs.plan')}</TabsTrigger>
-          <TabsTrigger value="club">{t('tabs.club')}</TabsTrigger>
-          <TabsTrigger value="library">{t('tabs.library')}</TabsTrigger>
+      <Tabs defaultValue="create" className="space-y-5">
+        <TabsList className="h-auto flex-wrap justify-start gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60">
+          <TabsTrigger value="create" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.create')}</TabsTrigger>
+          <TabsTrigger value="draw" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.draw')}</TabsTrigger>
+          <TabsTrigger value="templates" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.templates')}</TabsTrigger>
+          <TabsTrigger value="plan" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.plan')}</TabsTrigger>
+          <TabsTrigger value="club" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.club')}</TabsTrigger>
+          <TabsTrigger value="library" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.library')}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="create">
@@ -78,6 +82,6 @@ export default async function DrillsPage({ params }: PageProps) {
           <DrillList />
         </TabsContent>
       </Tabs>
-    </div>
+    </RolePageFrame>
   )
 }

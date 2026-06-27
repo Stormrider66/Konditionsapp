@@ -2547,6 +2547,7 @@
         }
       },
       "drills": {
+        "eyebrow": "Coachverktyg",
         "title": "Taktiktavla",
         "description": "Skapa och dela övningar med dina spelare",
         "tabs": {

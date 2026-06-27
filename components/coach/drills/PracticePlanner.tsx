@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useCallback, useMemo, useEffect } from 'react'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -36,6 +36,12 @@ import { useTranslations } from '@/i18n/client'
 import { estimatePracticeLoad } from '@/lib/drills/practice-load'
 
 // ─── Types ──────────────────────────────────────────────────────────────
+
+const labelClassName = 'text-xs font-medium text-zinc-600 dark:text-zinc-300'
+const smallLabelClassName = 'text-[10px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-500'
+const fieldClassName =
+  'border-zinc-200 bg-white text-zinc-950 shadow-sm placeholder:text-zinc-400 focus-visible:ring-blue-500/30 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50 dark:placeholder:text-zinc-600'
+const mutedTextClassName = 'text-zinc-500 dark:text-zinc-400'
 
 type PracticeBlockFocus =
   | 'warmup'
@@ -516,32 +522,36 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
   return (
     <div className="space-y-6">
       {/* Header settings */}
-      <GlassCard glow="blue">
-        <GlassCardHeader>
-          <GlassCardTitle className="flex items-center gap-2 text-lg">
-            <Calendar className="h-5 w-5 text-blue-500" />
-            {t('title')}
-          </GlassCardTitle>
-          <GlassCardDescription>
-            {t('description')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent className="space-y-4">
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-5 flex items-start gap-3 border-b border-zinc-200 pb-4 dark:border-white/10">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+            <Calendar className="h-5 w-5" />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              {t('title')}
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+              {t('description')}
+            </p>
+          </div>
+        </div>
+        <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('labels.title')}</Label>
+              <Label className={labelClassName}>{t('labels.title')}</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder={t('placeholders.title')}
-                className="h-8 text-sm"
+                className={`h-8 text-sm ${fieldClassName}`}
               />
             </div>
             {teams.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="text-xs">{t('labels.team')}</Label>
+                <Label className={labelClassName}>{t('labels.team')}</Label>
                 <Select value={teamId} onValueChange={setTeamId}>
-                  <SelectTrigger className="h-8 text-sm">
+                  <SelectTrigger className={`h-8 text-sm ${fieldClassName}`}>
                     <SelectValue placeholder={t('placeholders.selectTeam')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -557,29 +567,29 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">{tCommon('date')}</Label>
+              <Label className={labelClassName}>{tCommon('date')}</Label>
               <Input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="h-8 text-sm"
+                className={`h-8 text-sm ${fieldClassName}`}
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('labels.startTime')}</Label>
+              <Label className={labelClassName}>{t('labels.startTime')}</Label>
               <Input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="h-8 text-sm"
+                className={`h-8 text-sm ${fieldClassName}`}
               />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('labels.phase')}</Label>
+              <Label className={labelClassName}>{t('labels.phase')}</Label>
               <Select value={practicePhase} onValueChange={setPracticePhase}>
-                <SelectTrigger className="h-8 text-sm">
+                <SelectTrigger className={`h-8 text-sm ${fieldClassName}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -592,9 +602,9 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('labels.intensity')}</Label>
+              <Label className={labelClassName}>{t('labels.intensity')}</Label>
               <Select value={practiceIntensity} onValueChange={setPracticeIntensity}>
-                <SelectTrigger className="h-8 text-sm">
+                <SelectTrigger className={`h-8 text-sm ${fieldClassName}`}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -609,73 +619,75 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('labels.lineGroups')}</Label>
+              <Label className={labelClassName}>{t('labels.lineGroups')}</Label>
               <Textarea
                 value={lineGroups}
                 onChange={(e) => setLineGroups(e.target.value)}
                 placeholder={t('placeholders.lineGroups')}
                 rows={2}
-                className="text-sm"
+                className={`text-sm ${fieldClassName}`}
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('labels.goalieNotes')}</Label>
+              <Label className={labelClassName}>{t('labels.goalieNotes')}</Label>
               <Textarea
                 value={goalieNotes}
                 onChange={(e) => setGoalieNotes(e.target.value)}
                 placeholder={t('placeholders.goalieNotes')}
                 rows={2}
-                className="text-sm"
+                className={`text-sm ${fieldClassName}`}
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs">{t('labels.coachNotes')}</Label>
+              <Label className={labelClassName}>{t('labels.coachNotes')}</Label>
               <Textarea
                 value={coachNotes}
                 onChange={(e) => setCoachNotes(e.target.value)}
                 placeholder={t('placeholders.coachNotes')}
                 rows={2}
-                className="text-sm"
+                className={`text-sm ${fieldClassName}`}
               />
             </div>
           </div>
-        </GlassCardContent>
-      </GlassCard>
+        </div>
+      </RolePanel>
 
       {/* Timeline blocks */}
-      <GlassCard glow="purple">
-        <GlassCardHeader>
-          <div className="flex items-center justify-between">
-            <GlassCardTitle className="text-lg flex items-center gap-2">
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-5 flex flex-col gap-3 border-b border-zinc-200 pb-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
               <ClipboardList className="h-5 w-5" />
+            </span>
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
               {t('timeline.title')}
-            </GlassCardTitle>
-            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-              {loadEstimate.totalLoad > 0 && (
-                <Badge variant="outline" className="gap-1 font-normal" title={t('load.hint')}>
-                  <Activity className="h-3 w-3 text-amber-500" />
-                  {t('load.summary', { tss: loadEstimate.totalLoad, rpe: loadEstimate.averageRpe })}
-                </Badge>
-              )}
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                {t('timeline.totalMinutes', { count: totalMinutes })}
-                {startTime && (
-                  <span className="ml-1">
-                    ({formatTime(0)}–{formatTime(totalMinutes)})
-                  </span>
-                )}
-              </span>
-            </div>
+            </h2>
           </div>
-        </GlassCardHeader>
-        <GlassCardContent className="space-y-2">
+          <div className={`flex flex-wrap items-center gap-3 text-sm ${mutedTextClassName}`}>
+            {loadEstimate.totalLoad > 0 && (
+              <Badge variant="outline" className="gap-1 border-amber-200 bg-amber-50 font-normal text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300" title={t('load.hint')}>
+                <Activity className="h-3 w-3" />
+                {t('load.summary', { tss: loadEstimate.totalLoad, rpe: loadEstimate.averageRpe })}
+              </Badge>
+            )}
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-3.5 w-3.5" />
+              {t('timeline.totalMinutes', { count: totalMinutes })}
+              {startTime && (
+                <span className="ml-1">
+                  ({formatTime(0)}–{formatTime(totalMinutes)})
+                </span>
+              )}
+            </span>
+          </div>
+        </div>
+        <div className="space-y-2">
           {timeline.map((block, i) => (
-            <div key={block.id} className="border rounded-lg p-3 space-y-2">
+            <div key={block.id} className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50/70 p-3 dark:border-white/10 dark:bg-white/[0.03]">
               {/* Block header */}
               <div className="flex items-center gap-2">
                 {/* Time badge */}
-                <div className="text-[10px] text-muted-foreground font-mono w-14 flex-shrink-0">
+                <div className={`w-14 flex-shrink-0 font-mono text-[10px] ${mutedTextClassName}`}>
                   {startTime
                     ? formatTime(block.startMin)
                     : `+${block.startMin} ${t('minutesLabel')}`}
@@ -709,7 +721,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                     <Input
                       value={block.title}
                       onChange={(e) => updateBlock(block.id, { title: e.target.value })}
-                      className="h-7 text-sm font-medium flex-1"
+                      className={`h-7 flex-1 text-sm font-medium ${fieldClassName}`}
                     />
                     <Badge variant="outline" className="hidden shrink-0 text-[10px] sm:inline-flex">
                       {focusLabel(block.focus)}
@@ -729,16 +741,16 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                         durationMinutes: Math.max(1, parseInt(e.target.value) || 1),
                       })
                     }
-                    className="h-7 w-14 text-xs text-center"
+                    className={`h-7 w-14 text-center text-xs ${fieldClassName}`}
                   />
-                  <span className="text-xs text-muted-foreground">{t('minutesLabel')}</span>
+                  <span className={`text-xs ${mutedTextClassName}`}>{t('minutesLabel')}</span>
                 </div>
 
                 {/* Delete */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive flex-shrink-0"
+                  className={`h-7 w-7 flex-shrink-0 hover:text-red-600 dark:hover:text-red-400 ${mutedTextClassName}`}
                   onClick={() => removeBlock(block.id)}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
@@ -747,12 +759,12 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
 
               <div className="grid grid-cols-1 gap-2 md:grid-cols-[150px_110px_150px_1fr]">
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">{t('fields.focus')}</Label>
+                  <Label className={smallLabelClassName}>{t('fields.focus')}</Label>
                   <Select
                     value={block.focus}
                     onValueChange={(value) => updateBlock(block.id, { focus: value as PracticeBlockFocus })}
                   >
-                    <SelectTrigger className="h-7 text-xs">
+                    <SelectTrigger className={`h-7 text-xs ${fieldClassName}`}>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -765,30 +777,30 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">{t('fields.workRest')}</Label>
+                  <Label className={smallLabelClassName}>{t('fields.workRest')}</Label>
                   <Input
                     value={block.workRest || ''}
                     onChange={(e) => updateBlock(block.id, { workRest: e.target.value || undefined })}
                     placeholder={t('placeholders.workRest')}
-                    className="h-7 text-xs"
+                    className={`h-7 text-xs ${fieldClassName}`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">{t('fields.lines')}</Label>
+                  <Label className={smallLabelClassName}>{t('fields.lines')}</Label>
                   <Input
                     value={block.lineAssignment || ''}
                     onChange={(e) => updateBlock(block.id, { lineAssignment: e.target.value || undefined })}
                     placeholder={t('placeholders.lines')}
-                    className="h-7 text-xs"
+                    className={`h-7 text-xs ${fieldClassName}`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">{t('fields.coaching')}</Label>
+                  <Label className={smallLabelClassName}>{t('fields.coaching')}</Label>
                   <Input
                     value={block.coachingNotes || ''}
                     onChange={(e) => updateBlock(block.id, { coachingNotes: e.target.value || undefined })}
                     placeholder={t('placeholders.coaching')}
-                    className="h-7 text-xs"
+                    className={`h-7 text-xs ${fieldClassName}`}
                   />
                 </div>
               </div>
@@ -799,7 +811,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 text-xs text-muted-foreground px-1"
+                    className={`h-6 px-1 text-xs ${mutedTextClassName}`}
                     onClick={() =>
                       setExpandedBlockId(expandedBlockId === block.id ? null : block.id)
                     }
@@ -837,7 +849,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
                   if (drill) addSavedDrillBlock(drill)
                 }}
               >
-                <SelectTrigger className="h-8 w-auto text-xs">
+                <SelectTrigger className={`h-8 w-auto text-xs ${fieldClassName}`}>
                   <SelectValue placeholder={t('actions.addSavedDrill')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -853,9 +865,9 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
 
           {/* Template picker (modal-like inline) */}
           {showTemplatePickerFor !== null && (
-            <div className="border rounded-lg p-3 bg-muted/30 space-y-2">
+            <div className="space-y-2 rounded-lg border border-blue-100 bg-blue-50/70 p-3 dark:border-blue-900/50 dark:bg-blue-950/20">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">{t('templatePicker.title')}</span>
+                <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{t('templatePicker.title')}</span>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -869,63 +881,61 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
               />
             </div>
           )}
-        </GlassCardContent>
-      </GlassCard>
+        </div>
+      </RolePanel>
 
       {/* Share / print */}
-      <GlassCard glow="emerald">
-        <GlassCardContent className="p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Users className="h-4 w-4" />
-                {t('share.title')}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t('share.description')}
-              </p>
+      <RolePanel className="border-emerald-100 bg-emerald-50/70 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-sm font-medium text-emerald-900 dark:text-emerald-200">
+              <Users className="h-4 w-4" />
+              {t('share.title')}
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => copyPracticePlan('staff')}
-                disabled={blocks.length === 0}
-              >
-                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                {t('actions.copyStaffPlan')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => copyPracticePlan('players')}
-                disabled={blocks.length === 0}
-              >
-                <Copy className="h-3.5 w-3.5 mr-1.5" />
-                {t('actions.copyPlayerPlan')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => printPracticePlan('staff')}
-                disabled={blocks.length === 0}
-              >
-                <Printer className="h-3.5 w-3.5 mr-1.5" />
-                {t('actions.printStaffPlan')}
-              </Button>
-            </div>
+            <p className="text-xs text-emerald-800/80 dark:text-emerald-200/80">
+              {t('share.description')}
+            </p>
           </div>
-        </GlassCardContent>
-      </GlassCard>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => copyPracticePlan('staff')}
+              disabled={blocks.length === 0}
+            >
+              <Copy className="h-3.5 w-3.5 mr-1.5" />
+              {t('actions.copyStaffPlan')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => copyPracticePlan('players')}
+              disabled={blocks.length === 0}
+            >
+              <Copy className="h-3.5 w-3.5 mr-1.5" />
+              {t('actions.copyPlayerPlan')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => printPracticePlan('staff')}
+              disabled={blocks.length === 0}
+            >
+              <Printer className="h-3.5 w-3.5 mr-1.5" />
+              {t('actions.printStaffPlan')}
+            </Button>
+          </div>
+        </div>
+      </RolePanel>
 
       {/* Save */}
       <Button
         onClick={handleSave}
         disabled={saving || blocks.length === 0}
-        className="w-full"
+        className="w-full bg-blue-600 text-white hover:bg-blue-700"
       >
         <Save className="h-4 w-4 mr-1.5" />
         {saving ? t('actions.saving') : t('actions.saveToCalendar')}
