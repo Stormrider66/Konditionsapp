@@ -4,13 +4,7 @@ import { useCallback, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import {
   Dialog,
   DialogContent,
@@ -208,37 +202,37 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
   }
 
   return (
-    <div className="container mx-auto py-6 px-4 max-w-4xl">
-      <div className="mb-6">
-        <Link
-          href={`${basePath}/coach/settings`}
-          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-4"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          {t('backToSettings')}
-        </Link>
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <p className="text-muted-foreground">
-          {t('description')}
-        </p>
-      </div>
+    <RolePageFrame contentClassName="max-w-4xl">
+      <RolePageHeader
+        eyebrow="Settings"
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`${basePath}/coach/settings`}>
+              <ArrowLeft className="h-4 w-4" />
+              {t('backToSettings')}
+            </Link>
+          </Button>
+        }
+      />
 
-      <GlassCard className="mb-6" glow="blue">
-        <GlassCardHeader>
-          <div className="flex items-center justify-between">
+      <div className="space-y-6">
+        <RolePanel className="p-5">
+          <div className="flex flex-col gap-4 border-b border-zinc-200 pb-5 dark:border-white/10 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <GlassCardTitle className="flex items-center gap-2">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                 <Calendar className="h-5 w-5" />
                 {t('connectedCalendars')}
-              </GlassCardTitle>
-              <GlassCardDescription>
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
                 {t('connectedDescription')}
-              </GlassCardDescription>
+              </p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
                 <Button>
-                  <Plus className="h-4 w-4 mr-2" />
+                  <Plus className="h-4 w-4" />
                   {t('addCalendar')}
                 </Button>
               </DialogTrigger>
@@ -254,7 +248,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                   <div className="space-y-2">
                     <Label>{t('fields.calendarType')}</Label>
                     <Select value={provider} onValueChange={setProvider}>
-                      <SelectTrigger className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
+                      <SelectTrigger className="border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -276,7 +270,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                       placeholder={t('placeholders.name')}
                       value={calendarName}
                       onChange={e => setCalendarName(e.target.value)}
-                      className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
+                      className="border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900"
                     />
                   </div>
 
@@ -286,7 +280,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                       placeholder="https://..."
                       value={icalUrl}
                       onChange={e => setIcalUrl(e.target.value)}
-                      className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
+                      className="border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900"
                     />
                     <p className="text-xs text-muted-foreground">
                       {t('icalHelper')}
@@ -299,24 +293,26 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                     {t('actions.cancel')}
                   </Button>
                   <Button onClick={handleAddConnection} disabled={saving}>
-                    {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                    {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                     {t('actions.add')}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+
+          <div className="pt-5">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : connections.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>{t('empty.title')}</p>
-              <p className="text-sm mt-1">
+            <div className="py-8 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <p className="mt-4 font-medium text-zinc-950 dark:text-zinc-50">{t('empty.title')}</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 {t('empty.description')}
               </p>
             </div>
@@ -325,11 +321,11 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
               {connections.map(connection => (
                 <div
                   key={connection.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-slate-200/50 dark:border-white/10 bg-white/45 dark:bg-white/5 backdrop-blur-md transition-all"
+                  className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4 transition-colors dark:border-white/10 dark:bg-zinc-950/60 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex min-w-0 items-start gap-4">
                     <div
-                      className="w-10 h-10 rounded-lg flex items-center justify-center"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-zinc-200 dark:border-white/10"
                       style={{
                         backgroundColor: connection.color
                           ? connection.color + '20'
@@ -341,9 +337,9 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                         style={{ color: connection.color || undefined }}
                       />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{connection.calendarName}</p>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium text-zinc-950 dark:text-zinc-50">{connection.calendarName}</p>
                         <Badge variant="secondary" className="text-xs">
                           {PROVIDER_LABELS[connection.provider]?.startsWith('providerLabels.')
                             ? t(PROVIDER_LABELS[connection.provider])
@@ -372,7 +368,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2">
                       <Label htmlFor={`sync-${connection.id}`} className="text-xs text-muted-foreground">
                         {t('sync.active')}
@@ -394,7 +390,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="text-red-500 hover:text-red-650 hover:bg-red-500/10"
+                      className="text-red-500 hover:bg-red-500/10 hover:text-red-700"
                       onClick={() => handleDelete(connection.id, connection.calendarName)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -404,37 +400,35 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
               ))}
             </div>
           )}
-        </GlassCardContent>
-      </GlassCard>
+          </div>
+        </RolePanel>
 
-      {/* Help section */}
-      <GlassCard glow="purple">
-        <GlassCardHeader>
-          <GlassCardTitle className="text-base">{t('help.title')}</GlassCardTitle>
-        </GlassCardHeader>
-        <GlassCardContent className="space-y-4">
+        <RolePanel className="p-5">
+          <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t('help.title')}</h2>
+          <div className="mt-4 grid gap-5 sm:grid-cols-2">
           <div>
-            <h4 className="font-medium flex items-center gap-2">
+            <h3 className="flex items-center gap-2 font-medium text-zinc-950 dark:text-zinc-50">
               Bokadirekt
               <ExternalLink className="h-3 w-3" />
-            </h4>
-            <ol className="text-sm text-muted-foreground list-decimal list-inside mt-1 space-y-1">
+            </h3>
+            <ol className="mt-2 list-inside list-decimal space-y-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
               <li>{t('help.bokadirekt.step1')}</li>
               <li>{t('help.bokadirekt.step2')}</li>
               <li>{t('help.bokadirekt.step3')}</li>
             </ol>
           </div>
           <div>
-            <h4 className="font-medium flex items-center gap-2">
+            <h3 className="flex items-center gap-2 font-medium text-zinc-950 dark:text-zinc-50">
               Zoezi
               <ExternalLink className="h-3 w-3" />
-            </h4>
-            <p className="text-sm text-muted-foreground mt-1">
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
               {t('help.zoezi')}
             </p>
           </div>
-        </GlassCardContent>
-      </GlassCard>
-    </div>
+          </div>
+        </RolePanel>
+      </div>
+    </RolePageFrame>
   )
 }
