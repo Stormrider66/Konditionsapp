@@ -7,6 +7,7 @@ import { BarChart3 } from 'lucide-react'
 import { TeamAnalysisClient } from '@/components/coach/teams/TeamAnalysisClient'
 import { TeamAnalysisSubNav } from '@/components/coach/teams/TeamAnalysisSubNav'
 import { getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 
 interface AnalysisPageProps {
   params: Promise<{
@@ -35,19 +36,24 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
   const teamBase = `/${businessSlug}/coach/teams/${teamId}`
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-6xl">
-      <div className="flex items-center gap-3 mb-2">
-        <BarChart3 className="h-6 w-6 text-blue-500" />
-        <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">{t('title')}</h1>
-        <Badge variant="secondary">{team.name}</Badge>
-      </div>
-      <p className="text-sm text-muted-foreground mb-6">
-        {t('description')}
-      </p>
+    <RolePageFrame>
+      <RolePageHeader
+        eyebrow={team.name}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+              <BarChart3 className="h-5 w-5" />
+            </span>
+            {t('title')}
+          </span>
+        )}
+        description={t('description')}
+        actions={<Badge variant="secondary">{team.name}</Badge>}
+      />
 
       <TeamAnalysisSubNav base={teamBase} />
 
       <TeamAnalysisClient teamId={teamId} basePath={basePath} businessSlug={businessSlug} />
-    </div>
+    </RolePageFrame>
   )
 }

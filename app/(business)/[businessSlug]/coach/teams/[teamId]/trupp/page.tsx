@@ -3,17 +3,11 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { getTeamRosterStatus } from '@/lib/coach/team-roster-status'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-} from '@/components/ui/GlassCard'
 import { Users } from 'lucide-react'
 import { TeamRosterTable } from '@/components/coach/teams/TeamRosterTable'
 import { AddPlayersDialog } from '@/components/coach/teams/AddPlayersDialog'
 import { getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 interface TeamRosterPageProps {
   params: Promise<{
@@ -40,35 +34,35 @@ export default async function TeamRosterPage({ params }: TeamRosterPageProps) {
   const members = await getTeamRosterStatus(teamId)
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <GlassCard glow="purple">
-        <GlassCardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <GlassCardTitle className="flex items-center gap-2 dark:text-white">
-                <Users className="h-5 w-5" />
-                {t('roster.title', { count: members.length })}
-              </GlassCardTitle>
-              <GlassCardDescription>
-                {t('roster.description')}
-              </GlassCardDescription>
-            </div>
-            <AddPlayersDialog
-              teamId={teamId}
-              teamName={team.name}
-              basePath={`/${businessSlug}/coach`}
-              importPath={`/${businessSlug}/coach/teams/${teamId}/import`}
-            />
-          </div>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <TeamRosterTable
+    <RolePageFrame>
+      <RolePageHeader
+        eyebrow={team.name}
+        title={(
+          <span className="inline-flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <Users className="h-5 w-5" />
+            </span>
+            {t('roster.title', { count: members.length })}
+          </span>
+        )}
+        description={t('roster.description')}
+        actions={(
+          <AddPlayersDialog
             teamId={teamId}
-            businessSlug={businessSlug}
-            members={members}
+            teamName={team.name}
+            basePath={`/${businessSlug}/coach`}
+            importPath={`/${businessSlug}/coach/teams/${teamId}/import`}
           />
-        </GlassCardContent>
-      </GlassCard>
-    </div>
+        )}
+      />
+
+      <RolePanel className="p-4 sm:p-6">
+        <TeamRosterTable
+          teamId={teamId}
+          businessSlug={businessSlug}
+          members={members}
+        />
+      </RolePanel>
+    </RolePageFrame>
   )
 }
