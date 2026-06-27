@@ -5,7 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
@@ -258,36 +258,37 @@ export default function CoachMessagesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
       </div>
     )
   }
 
   return (
-    <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6">
-      <div className="mb-4 sm:mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-          <MessageSquare className="h-6 w-6 sm:h-8 sm:w-8 text-blue-600" />
-          {t('title')}
-        </h1>
-        <p className="text-sm sm:text-base text-muted-foreground mt-1">
-          {t('subtitle')}
-        </p>
-      </div>
+    <RolePageFrame maxWidth="wide">
+      <RolePageHeader
+        eyebrow="Coach"
+        title={
+          <span className="flex items-center gap-2">
+            <MessageSquare className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+            {t('title')}
+          </span>
+        }
+        description={t('subtitle')}
+      />
 
-      <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Conversation List */}
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+        <RolePanel className="overflow-hidden lg:col-span-1">
+          <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+            <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50 sm:text-lg">
                 <Users className="h-5 w-5 flex-shrink-0" />
                 {t('sidebar.title')}
-              </CardTitle>
+              </h2>
               <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
-                <SelectTrigger className="w-full sm:w-32 min-h-[44px]">
-                  <Filter className="h-4 w-4 mr-2" />
+                <SelectTrigger className="min-h-[44px] w-full border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950/60 sm:w-32">
+                  <Filter className="h-4 w-4 text-zinc-400" />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -296,11 +297,11 @@ export default function CoachMessagesPage() {
                 </SelectContent>
               </Select>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
+          </div>
+          <div className="p-0">
             {filteredConversations.length === 0 ? (
-              <div className="text-center py-8 px-4 text-muted-foreground">
-                <MessageSquare className="h-12 w-12 mx-auto mb-2 opacity-50" />
+              <div className="px-4 py-8 text-center text-zinc-500 dark:text-zinc-400">
+                <MessageSquare className="mx-auto mb-2 h-12 w-12 text-zinc-300 dark:text-zinc-700" />
                 <p className="text-sm sm:text-base">{t('empty.messages')}</p>
               </div>
             ) : (
@@ -309,24 +310,24 @@ export default function CoachMessagesPage() {
                   <button
                     key={conversation.athleteId}
                     onClick={() => setSelectedAthleteId(conversation.athleteId)}
-                    className={`w-full text-left p-3 sm:p-4 border-b hover:bg-muted/50 active:bg-muted transition min-h-[80px] ${
+                    className={`min-h-[80px] w-full border-b border-zinc-200 p-3 text-left transition hover:bg-zinc-50 active:bg-zinc-100 dark:border-white/10 dark:hover:bg-zinc-900/60 dark:active:bg-zinc-900 sm:p-4 ${
                       selectedAthleteId === conversation.athleteId
-                        ? 'bg-blue-50 border-l-4 border-l-blue-600'
+                        ? 'border-l-4 border-l-blue-600 bg-blue-50 dark:bg-blue-950/20'
                         : ''
                     }`}
                   >
-                    <div className="flex items-start justify-between mb-1 gap-2">
-                      <p className="font-semibold text-sm sm:text-base truncate flex-1">{conversation.athleteName}</p>
+                    <div className="mb-1 flex items-start justify-between gap-2">
+                      <p className="flex-1 truncate text-sm font-semibold text-zinc-950 dark:text-zinc-50 sm:text-base">{conversation.athleteName}</p>
                       {conversation.unreadCount > 0 && (
                         <Badge variant="destructive" className="text-xs flex-shrink-0 min-w-[24px]">
                           {conversation.unreadCount}
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
+                    <p className="line-clamp-2 text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">
                       {conversation.lastMessage.content}
                     </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                       {format(new Date(conversation.lastMessage.createdAt), 'PPp', {
                         locale: dateLocale,
                       })}
@@ -335,19 +336,19 @@ export default function CoachMessagesPage() {
                 ))}
               </ScrollArea>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </RolePanel>
 
         {/* Message Thread */}
-        <Card className="lg:col-span-2">
+        <RolePanel className="overflow-hidden lg:col-span-2">
           {selectedConversation ? (
             <>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base sm:text-lg truncate">{selectedConversation.athleteName}</CardTitle>
-                <CardDescription className="text-xs sm:text-sm truncate">{selectedConversation.athleteEmail}</CardDescription>
-              </CardHeader>
-              <CardContent className="px-3 sm:px-6">
-                <ScrollArea className="h-[300px] sm:h-[400px] lg:h-[450px] pr-2 sm:pr-4 mb-4">
+              <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10 sm:px-6">
+                <h2 className="truncate text-base font-semibold text-zinc-950 dark:text-zinc-50 sm:text-lg">{selectedConversation.athleteName}</h2>
+                <p className="truncate text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">{selectedConversation.athleteEmail}</p>
+              </div>
+              <div className="px-3 py-4 sm:px-6">
+                <ScrollArea className="mb-4 h-[300px] pr-2 sm:h-[400px] sm:pr-4 lg:h-[450px]">
                   <div className="space-y-3 sm:space-y-4">
                     {selectedConversation.messages
                       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -362,24 +363,24 @@ export default function CoachMessagesPage() {
                               className={`max-w-[85%] sm:max-w-[80%] rounded-lg p-3 sm:p-4 ${
                                 isCoach
                                   ? 'bg-blue-600 text-white'
-                                  : 'bg-muted'
+                                  : 'bg-zinc-100 text-zinc-900 dark:bg-zinc-900 dark:text-zinc-100'
                               }`}
                             >
-                              <div className="flex flex-wrap items-center gap-2 mb-1">
-                                <p className={`text-xs sm:text-sm font-semibold ${isCoach ? 'text-blue-100' : 'text-muted-foreground'}`}>
+                              <div className="mb-1 flex flex-wrap items-center gap-2">
+                                <p className={`text-xs font-semibold sm:text-sm ${isCoach ? 'text-blue-100' : 'text-zinc-500 dark:text-zinc-400'}`}>
                                   {msg.sender.name}
                                 </p>
                                 {msg.workout && (
                                   <Badge variant="outline" className={`text-xs ${isCoach ? 'border-blue-300 text-blue-100' : ''}`}>
-                                    <Dumbbell className="h-3 w-3 mr-1" />
+                                    <Dumbbell className="h-3 w-3" />
                                     <span className="truncate max-w-[120px]">{msg.workout.name}</span>
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-xs sm:text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                              <div className="flex flex-wrap items-center gap-2 mt-2">
-                                <Clock className={`h-3 w-3 flex-shrink-0 ${isCoach ? 'text-blue-200' : 'text-muted-foreground'}`} />
-                                <p className={`text-xs ${isCoach ? 'text-blue-200' : 'text-muted-foreground'}`}>
+                              <p className="whitespace-pre-wrap break-words text-xs sm:text-sm">{msg.content}</p>
+                              <div className="mt-2 flex flex-wrap items-center gap-2">
+                                <Clock className={`h-3 w-3 flex-shrink-0 ${isCoach ? 'text-blue-200' : 'text-zinc-500 dark:text-zinc-400'}`} />
+                                <p className={`text-xs ${isCoach ? 'text-blue-200' : 'text-zinc-500 dark:text-zinc-400'}`}>
                                   {format(new Date(msg.createdAt), 'PPp', { locale: dateLocale })}
                                 </p>
                                 {isCoach && msg.isRead && (
@@ -405,10 +406,10 @@ export default function CoachMessagesPage() {
                     rows={3}
                     maxLength={1000}
                     disabled={sending}
-                    className="text-sm sm:text-base min-h-[80px]"
+                    className="min-h-[80px] border-zinc-200 bg-white text-sm dark:border-white/10 dark:bg-zinc-950/60 sm:text-base"
                   />
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                    <p className="text-xs sm:text-sm text-muted-foreground">
+                  <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 sm:text-sm">
                       {replyText.length}/1000 {t('reply.characterCount')}
                     </p>
                     <Button
@@ -418,30 +419,30 @@ export default function CoachMessagesPage() {
                     >
                       {sending ? (
                         <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          <Loader2 className="h-4 w-4 animate-spin" />
                           {t('reply.sending')}
                         </>
                       ) : (
                         <>
-                          <Send className="h-4 w-4 mr-2" />
+                          <Send className="h-4 w-4" />
                           {t('reply.send')}
                         </>
                       )}
                     </Button>
                   </div>
                 </div>
-              </CardContent>
+              </div>
             </>
           ) : (
-            <CardContent className="flex items-center justify-center h-full py-20 px-4">
-              <div className="text-center text-muted-foreground">
-                <MessageSquare className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 opacity-50" />
+            <div className="flex h-full items-center justify-center px-4 py-20">
+              <div className="text-center text-zinc-500 dark:text-zinc-400">
+                <MessageSquare className="mx-auto mb-4 h-12 w-12 text-zinc-300 dark:text-zinc-700 sm:h-16 sm:w-16" />
                 <p className="text-sm sm:text-base">{t('empty.chooseAthlete')}</p>
               </div>
-            </CardContent>
+            </div>
           )}
-        </Card>
+        </RolePanel>
       </div>
-    </div>
+    </RolePageFrame>
   )
 }
