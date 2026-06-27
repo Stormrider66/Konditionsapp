@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -292,11 +292,11 @@ export default function AthleteDashboardTemplatesClient({
 
   if (isLoading) {
     return (
-      <div className="container max-w-3xl py-8">
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      </div>
+      <RolePageFrame contentClassName="max-w-4xl">
+        <RolePanel className="flex h-64 items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-zinc-500 dark:text-zinc-400" />
+        </RolePanel>
+      </RolePageFrame>
     )
   }
 
@@ -318,69 +318,76 @@ export default function AthleteDashboardTemplatesClient({
           : 0
 
   return (
-    <div className="container max-w-4xl py-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild>
-          <Link href={`${basePath}/coach/settings`}>
-            <ArrowLeft className="h-5 w-5" />
-          </Link>
-        </Button>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Users className="h-6 w-6" />
-            {copy(locale, 'Athlete dashboard templates', 'Atleternas dashboard-mallar')}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            {copy(
-              locale,
-              'Choose which widgets appear on your athletes dashboards. Athletes can always override your settings.',
-              'Bestäm vilka widgets som ska visas på dina atleters dashboards. Atleten kan alltid välja att åsidosätta dina inställningar.'
-            )}
-          </p>
-        </div>
-      </div>
+    <RolePageFrame contentClassName="max-w-4xl">
+      <RolePageHeader
+        eyebrow="Settings"
+        title={copy(locale, 'Athlete dashboard templates', 'Atleternas dashboard-mallar')}
+        description={copy(
+          locale,
+          'Choose which widgets appear on your athletes dashboards. Athletes can always override your settings.',
+          'Bestäm vilka widgets som ska visas på dina atleters dashboards. Atleten kan alltid välja att åsidosätta dina inställningar.'
+        )}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`${basePath}/coach/settings`}>
+              <ArrowLeft className="h-4 w-4" />
+              Settings
+            </Link>
+          </Button>
+        }
+      />
 
-      {/* Scope tabs */}
-      <Tabs value={scope} onValueChange={v => { setScope(v as Scope); setTargetId('') }}>
-        <TabsList className="grid grid-cols-3 w-full">
-          <TabsTrigger value="BUSINESS_DEFAULT" className="gap-2">
-            <Building2 className="h-4 w-4" /> {copy(locale, 'Default', 'Standard')}
-          </TabsTrigger>
-          <TabsTrigger value="TEAM" className="gap-2">
-            <Users className="h-4 w-4" /> {copy(locale, 'By team', 'Per lag')}
-          </TabsTrigger>
-          <TabsTrigger value="INDIVIDUAL" className="gap-2">
-            <User className="h-4 w-4" /> {copy(locale, 'By athlete', 'Per atlet')}
-          </TabsTrigger>
-        </TabsList>
+      <div className="space-y-6">
+        {/* Scope tabs */}
+        <Tabs value={scope} onValueChange={v => { setScope(v as Scope); setTargetId('') }}>
+          <TabsList className="grid w-full grid-cols-3 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60">
+            <TabsTrigger value="BUSINESS_DEFAULT" className="gap-2">
+              <Building2 className="h-4 w-4" /> {copy(locale, 'Default', 'Standard')}
+            </TabsTrigger>
+            <TabsTrigger value="TEAM" className="gap-2">
+              <Users className="h-4 w-4" /> {copy(locale, 'By team', 'Per lag')}
+            </TabsTrigger>
+            <TabsTrigger value="INDIVIDUAL" className="gap-2">
+              <User className="h-4 w-4" /> {copy(locale, 'By athlete', 'Per atlet')}
+            </TabsTrigger>
+          </TabsList>
 
         <TabsContent value="BUSINESS_DEFAULT" className="mt-4">
-          <GlassCard glow="blue">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-base">{copy(locale, 'Business default template', 'Standardmall för verksamheten')}</GlassCardTitle>
-              <GlassCardDescription>
-                {copy(
-                  locale,
-                  `Applies to all athletes in the business without a more specific template (team or individual). Affects ${affectedCount} athlete${affectedCount === 1 ? '' : 's'}.`,
-                  `Gäller alla atleter i verksamheten som inte har en mer specifik mall (lag eller individ). Påverkar ${affectedCount} atlet${affectedCount === 1 ? '' : 'er'}.`
-                )}
-              </GlassCardDescription>
-            </GlassCardHeader>
-          </GlassCard>
+          <RolePanel className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
+                <Building2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Business default template', 'Standardmall för verksamheten')}</h2>
+                <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                  {copy(
+                    locale,
+                    `Applies to all athletes in the business without a more specific template (team or individual). Affects ${affectedCount} athlete${affectedCount === 1 ? '' : 's'}.`,
+                    `Gäller alla atleter i verksamheten som inte har en mer specifik mall (lag eller individ). Påverkar ${affectedCount} atlet${affectedCount === 1 ? '' : 'er'}.`
+                  )}
+                </p>
+              </div>
+            </div>
+          </RolePanel>
         </TabsContent>
 
         <TabsContent value="TEAM" className="mt-4">
-          <GlassCard glow="purple">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-base">{copy(locale, 'By team', 'Per lag')}</GlassCardTitle>
-              <GlassCardDescription>
-                {copy(locale, 'Useful for team coaches: one template applies to all team members.', 'Bra för lagcoacher: en mall gäller alla lagets medlemmar.')}
-              </GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent>
+          <RolePanel className="p-5">
+            <div className="mb-5 flex items-start gap-3 border-b border-zinc-200 pb-5 dark:border-white/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+                <Users className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'By team', 'Per lag')}</h2>
+                <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                  {copy(locale, 'Useful for team coaches: one template applies to all team members.', 'Bra för lagcoacher: en mall gäller alla lagets medlemmar.')}
+                </p>
+              </div>
+            </div>
+            <div>
               <Select value={targetId} onValueChange={setTargetId}>
-                <SelectTrigger className="w-full bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
+                <SelectTrigger className="w-full border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900">
                   <SelectValue placeholder={teams.length === 0 ? copy(locale, 'No teams found', 'Inga lag funna') : copy(locale, 'Select team', 'Välj lag')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -392,25 +399,30 @@ export default function AthleteDashboardTemplatesClient({
                 </SelectContent>
               </Select>
               {targetId && (
-                <p className="text-xs text-slate-500 mt-2">
+                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                   {copy(locale, `Affects ${affectedCount} athlete${affectedCount === 1 ? '' : 's'}.`, `Påverkar ${affectedCount} atlet${affectedCount === 1 ? '' : 'er'}.`)}
                 </p>
               )}
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
         </TabsContent>
 
         <TabsContent value="INDIVIDUAL" className="mt-4">
-          <GlassCard glow="emerald">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-base">{copy(locale, 'By athlete', 'Per atlet')}</GlassCardTitle>
-              <GlassCardDescription>
-                {copy(locale, 'Useful for PT coaches: tailor one specific athlete dashboard.', 'Bra för PT-coacher: skräddarsy en specifik atlets dashboard.')}
-              </GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent>
+          <RolePanel className="p-5">
+            <div className="mb-5 flex items-start gap-3 border-b border-zinc-200 pb-5 dark:border-white/10">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                <User className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'By athlete', 'Per atlet')}</h2>
+                <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
+                  {copy(locale, 'Useful for PT coaches: tailor one specific athlete dashboard.', 'Bra för PT-coacher: skräddarsy en specifik atlets dashboard.')}
+                </p>
+              </div>
+            </div>
+            <div>
               <Select value={targetId} onValueChange={setTargetId}>
-                <SelectTrigger className="w-full bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10">
+                <SelectTrigger className="w-full border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900">
                   <SelectValue placeholder={athletes.length === 0 ? copy(locale, 'No athletes found', 'Inga atleter funna') : copy(locale, 'Select athlete', 'Välj atlet')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -421,31 +433,31 @@ export default function AthleteDashboardTemplatesClient({
                   ))}
                 </SelectContent>
               </Select>
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
         </TabsContent>
       </Tabs>
 
       {/* Template name */}
       {(scope === 'BUSINESS_DEFAULT' || targetId) && (
-        <GlassCard glow="blue">
-          <GlassCardHeader>
-            <GlassCardTitle className="text-base">{copy(locale, 'Template name', 'Mallnamn')}</GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
+        <RolePanel className="p-5">
+          <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Template name', 'Mallnamn')}</h2>
+          </div>
+          <div>
             <Input
               value={templateName}
               onChange={e => { setTemplateName(e.target.value); setHasChanges(true) }}
               placeholder={copy(locale, "e.g. 'Hockey U18 focus' or 'Default template'", "t.ex. 'Hockey U18 fokus' eller 'Standardmall'")}
-              className="bg-white/50 dark:bg-white/5 border-slate-200/50 dark:border-white/10 focus:ring-blue-500 focus:border-blue-500"
+              className="border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-900"
             />
             {currentTemplate && (
-              <p className="text-xs text-slate-500 mt-2">
+              <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                 {copy(locale, 'Editing existing template - changes apply after saving.', 'Redigerar befintlig mall — ändringar gäller från sparning.')}
               </p>
             )}
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
 
       {/* Widget editor — only shown when a target is selected (or business default) */}
@@ -455,24 +467,24 @@ export default function AthleteDashboardTemplatesClient({
             const items = grouped[category]
             if (!items || items.length === 0) return null
             return (
-              <GlassCard key={category} glow="purple">
-                <GlassCardHeader>
-                  <GlassCardTitle>{categoryLabel(category, locale)}</GlassCardTitle>
-                  <GlassCardDescription>
+              <RolePanel key={category} className="p-5">
+                <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-white/10">
+                  <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{categoryLabel(category, locale)}</h2>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                     {items.length} widget{items.length === 1 ? '' : 's'}
-                  </GlassCardDescription>
-                </GlassCardHeader>
-                <GlassCardContent className="space-y-3">
+                  </p>
+                </div>
+                <div className="space-y-3">
                   {items.map((w, idx) => (
                     <div
                       key={w.key}
-                      className="flex items-center gap-3 p-3 rounded-xl border border-slate-200/50 dark:border-white/10 bg-white/40 dark:bg-white/5 backdrop-blur-md"
+                      className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50"
                     >
                       <div className="flex flex-col gap-0.5">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
+                          className="h-6 w-6 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                           disabled={idx === 0}
                           onClick={() => move(w, 'up')}
                           aria-label={copy(locale, 'Move up', 'Flytta upp')}
@@ -482,7 +494,7 @@ export default function AthleteDashboardTemplatesClient({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-6 w-6 hover:bg-slate-100 dark:hover:bg-white/5"
+                          className="h-6 w-6 hover:bg-zinc-200 dark:hover:bg-zinc-800"
                           disabled={idx === items.length - 1}
                           onClick={() => move(w, 'down')}
                           aria-label={copy(locale, 'Move down', 'Flytta ner')}
@@ -491,7 +503,7 @@ export default function AthleteDashboardTemplatesClient({
                         </Button>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <Label className="text-base font-medium flex items-center gap-2 text-slate-900 dark:text-white">
+                        <Label className="flex items-center gap-2 text-base font-medium text-zinc-950 dark:text-zinc-50">
                           {widgetDisplayName(w.definition, locale)}
                           {w.definition.required && (
                             <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
@@ -499,7 +511,7 @@ export default function AthleteDashboardTemplatesClient({
                             </span>
                           )}
                         </Label>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                        <p className="text-sm leading-6 text-zinc-500 dark:text-zinc-400">
                           {widgetDescription(w.definition, locale)}
                         </p>
                       </div>
@@ -510,22 +522,22 @@ export default function AthleteDashboardTemplatesClient({
                       />
                     </div>
                   ))}
-                </GlassCardContent>
-              </GlassCard>
+                </div>
+              </RolePanel>
             )
           })}
 
           {/* Save bar */}
           <div className={cn(
-            "flex items-center justify-between sticky bottom-4 p-4 rounded-2xl border transition-all backdrop-blur-md z-35",
-            hasChanges 
-              ? "bg-amber-500/10 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]" 
-              : "bg-white/80 dark:bg-black/50 border-slate-200/50 dark:border-white/10"
+            "sticky bottom-4 z-30 flex flex-col gap-3 rounded-lg border p-4 shadow-lg transition-all sm:flex-row sm:items-center sm:justify-between",
+            hasChanges
+              ? "border-amber-200 bg-amber-50 dark:border-amber-900/60 dark:bg-amber-950/40"
+              : "border-zinc-200 bg-white dark:border-white/10 dark:bg-zinc-950"
           )}>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
               {currentTemplate && (
-                <Button variant="outline" size="sm" onClick={remove} disabled={isSaving} className="border-slate-200 dark:border-white/10 text-red-500 hover:text-red-650 hover:bg-red-500/10 transition-all">
-                  <Trash2 className="h-4 w-4 mr-2" />
+                <Button variant="outline" size="sm" onClick={remove} disabled={isSaving} className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900/60 dark:text-red-300 dark:hover:bg-red-950/30">
+                  <Trash2 className="h-4 w-4" />
                   {copy(locale, 'Delete template', 'Ta bort mall')}
                 </Button>
               )}
@@ -541,25 +553,25 @@ export default function AthleteDashboardTemplatesClient({
                 </p>
               )}
               {hasChanges && !saveMessage && (
-                <p className="text-sm font-semibold text-amber-600 dark:text-amber-400">{copy(locale, 'Unsaved changes', 'Osparade ändringar')}</p>
+                <p className="text-sm font-semibold text-amber-700 dark:text-amber-300">{copy(locale, 'Unsaved changes', 'Osparade ändringar')}</p>
               )}
             </div>
             <Button 
               onClick={save} 
               disabled={isSaving || !hasChanges}
               className={cn(
-                "transition-all",
-                hasChanges && "bg-amber-500 hover:bg-amber-600 text-white dark:bg-amber-650 dark:hover:bg-amber-700"
+                "w-full transition-all sm:w-auto",
+                hasChanges && "bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-600"
               )}
             >
               {isSaving ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin" />
                   {copy(locale, 'Saving...', 'Sparar...')}
                 </>
               ) : (
                 <>
-                  <Save className="h-4 w-4 mr-2" />
+                  <Save className="h-4 w-4" />
                   {currentTemplate ? copy(locale, 'Update template', 'Uppdatera mall') : copy(locale, 'Create template', 'Skapa mall')}
                 </>
               )}
@@ -567,6 +579,7 @@ export default function AthleteDashboardTemplatesClient({
           </div>
         </>
       )}
-    </div>
+      </div>
+    </RolePageFrame>
   )
 }
