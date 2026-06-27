@@ -3141,7 +3141,17 @@
         }
       },
       "clientNew": {
+        "eyebrow": "Client register",
         "title": "New client",
+        "description": "Create a new athlete profile, assign team context, and choose the access level used if an athlete account is created.",
+        "sections": {
+          "profileTitle": "Profile details",
+          "profileDescription": "Core identity, contact, and body metrics used across testing and training.",
+          "teamTitle": "Team and account",
+          "teamDescription": "Optional team details plus the subscription tier for an automatically created athlete account.",
+          "notesTitle": "Notes",
+          "notesDescription": "Add context the coaching team should see on the client profile."
+        },
         "fields": {
           "name": "Name",
           "email": "Email",

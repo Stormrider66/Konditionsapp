@@ -3141,7 +3141,17 @@
         }
       },
       "clientNew": {
+        "eyebrow": "Klientregister",
         "title": "Ny Klient",
+        "description": "Skapa en ny atletprofil, koppla den till rätt lag och välj vilken åtkomst som ska användas om ett atletkonto skapas.",
+        "sections": {
+          "profileTitle": "Profiluppgifter",
+          "profileDescription": "Grunddata, kontaktuppgifter och kroppsmått som används i tester och träningsplanering.",
+          "teamTitle": "Lag och konto",
+          "teamDescription": "Valfria laguppgifter samt prenumerationsnivån för ett automatiskt skapat atletkonto.",
+          "notesTitle": "Anteckningar",
+          "notesDescription": "Lägg till kontext som coachteamet bör se på klientprofilen."
+        },
         "fields": {
           "name": "Namn",
           "email": "E-post",

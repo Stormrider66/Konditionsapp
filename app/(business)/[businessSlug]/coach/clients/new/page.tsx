@@ -3,14 +3,14 @@
 
 import { useCallback, useState, useEffect, useMemo } from 'react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { createClientSchema, type ClientFormData } from '@/lib/validations/schemas'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import {
   Select,
   SelectContent,
@@ -20,13 +20,19 @@ import {
 } from '@/components/ui/select'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2 } from 'lucide-react'
+import { ArrowLeft, Loader2, UserPlus } from 'lucide-react'
 import { useLocale, useTranslations } from '@/i18n/client'
 
 interface TeamOption {
   id: string
   name: string
 }
+
+const labelClassName = 'text-zinc-700 dark:text-zinc-200'
+const fieldClassName =
+  'border-zinc-200 bg-white text-zinc-950 shadow-sm placeholder:text-zinc-400 focus-visible:ring-blue-500/30 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50 dark:placeholder:text-zinc-600'
+const helperTextClassName = 'text-xs leading-5 text-zinc-500 dark:text-zinc-400'
+const errorTextClassName = 'text-sm text-red-600 dark:text-red-400'
 
 export default function BusinessNewClientPage() {
   const router = useRouter()
@@ -69,7 +75,7 @@ export default function BusinessNewClientPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors },
   } = useForm<ClientFormData>({
     resolver: zodResolver(formSchema),
@@ -80,9 +86,9 @@ export default function BusinessNewClientPage() {
     },
   })
 
-  const gender = watch('gender')
-  const selectedTeamId = watch('teamId')
-  const athleteTier = watch('athleteTier') ?? 'FREE'
+  const gender = useWatch({ control, name: 'gender' })
+  const selectedTeamId = useWatch({ control, name: 'teamId' })
+  const athleteTier = useWatch({ control, name: 'athleteTier' }) ?? 'FREE'
 
   const onSubmit = async (data: ClientFormData) => {
     try {
@@ -133,73 +139,95 @@ export default function BusinessNewClientPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 lg:py-12">
-      <GlassCard glow="blue">
-        <GlassCardHeader>
-          <GlassCardTitle className="dark:text-white">{t('title')}</GlassCardTitle>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+    <RolePageFrame contentClassName="max-w-4xl">
+      <RolePageHeader
+        eyebrow={t('eyebrow')}
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button
+            variant="outline"
+            className="border-zinc-200 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-200 dark:hover:bg-white/5"
+            asChild
+          >
+            <Link href={basePath}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              {t('actions.cancel')}
+            </Link>
+          </Button>
+        }
+      />
 
-            {/* Namn */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="dark:text-slate-200">
-                {t('fields.name')} <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="name"
-                {...register('name')}
-                placeholder={t('placeholders.name')}
-                className="dark:bg-slate-800 dark:border-white/10"
-              />
-              {errors.name && (
-                <p className="text-sm text-red-600">{errors.name.message}</p>
-              )}
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-            {/* E-post */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="dark:text-slate-200">{t('fields.email')}</Label>
-              <Input
-                id="email"
-                type="email"
-                {...register('email')}
-                placeholder="namn@example.com"
-                className="dark:bg-slate-800 dark:border-white/10"
-              />
-              {errors.email && (
-                <p className="text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-5 border-b border-zinc-200 pb-4 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              {t('sections.profileTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {t('sections.profileDescription')}
+            </p>
+          </div>
 
-            {/* Telefon */}
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="dark:text-slate-200">{t('fields.phone')}</Label>
-              <Input
-                id="phone"
-                type="tel"
-                {...register('phone')}
-                placeholder="070-123 45 67"
-                className="dark:bg-slate-800 dark:border-white/10"
-              />
-            </div>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="name" className={labelClassName}>
+                  {t('fields.name')} <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="name"
+                  {...register('name')}
+                  placeholder={t('placeholders.name')}
+                  className={fieldClassName}
+                />
+                {errors.name && (
+                  <p className={errorTextClassName}>{errors.name.message}</p>
+                )}
+              </div>
 
-            {/* Kön och Födelsedatum */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="gender" className="dark:text-slate-200">
+                <Label htmlFor="email" className={labelClassName}>{t('fields.email')}</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  {...register('email')}
+                  placeholder="namn@example.com"
+                  className={fieldClassName}
+                />
+                {errors.email && (
+                  <p className={errorTextClassName}>{errors.email.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone" className={labelClassName}>{t('fields.phone')}</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  {...register('phone')}
+                  placeholder="070-123 45 67"
+                  className={fieldClassName}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="gender" className={labelClassName}>
                   {t('fields.gender')} <span className="text-red-500">*</span>
                 </Label>
                 <Select
                   value={gender}
                   onValueChange={(value) => setValue('gender', value as 'MALE' | 'FEMALE')}
                 >
-                  <SelectTrigger id="gender" className="dark:bg-slate-800 dark:border-white/10">
+                  <SelectTrigger id="gender" className={fieldClassName}>
                     <SelectValue placeholder={t('placeholders.gender')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -208,30 +236,29 @@ export default function BusinessNewClientPage() {
                   </SelectContent>
                 </Select>
                 {errors.gender && (
-                  <p className="text-sm text-red-600">{errors.gender.message}</p>
+                  <p className={errorTextClassName}>{errors.gender.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="birthDate" className="dark:text-slate-200">
+                <Label htmlFor="birthDate" className={labelClassName}>
                   {t('fields.birthDate')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id="birthDate"
                   type="date"
                   {...register('birthDate')}
-                  className="dark:bg-slate-800 dark:border-white/10"
+                  className={fieldClassName}
                 />
                 {errors.birthDate && (
-                  <p className="text-sm text-red-600">{errors.birthDate.message}</p>
+                  <p className={errorTextClassName}>{errors.birthDate.message}</p>
                 )}
               </div>
             </div>
 
-            {/* Längd och Vikt */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="height" className="dark:text-slate-200">
+                <Label htmlFor="height" className={labelClassName}>
                   {t('fields.height')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -240,15 +267,15 @@ export default function BusinessNewClientPage() {
                   step="0.1"
                   {...register('height', { valueAsNumber: true })}
                   placeholder="180"
-                  className="dark:bg-slate-800 dark:border-white/10"
+                  className={fieldClassName}
                 />
                 {errors.height && (
-                  <p className="text-sm text-red-600">{errors.height.message}</p>
+                  <p className={errorTextClassName}>{errors.height.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weight" className="dark:text-slate-200">
+                <Label htmlFor="weight" className={labelClassName}>
                   {t('fields.weight')} <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -257,22 +284,34 @@ export default function BusinessNewClientPage() {
                   step="0.1"
                   {...register('weight', { valueAsNumber: true })}
                   placeholder="75"
-                  className="dark:bg-slate-800 dark:border-white/10"
+                  className={fieldClassName}
                 />
                 {errors.weight && (
-                  <p className="text-sm text-red-600">{errors.weight.message}</p>
+                  <p className={errorTextClassName}>{errors.weight.message}</p>
                 )}
               </div>
             </div>
+          </div>
+        </RolePanel>
 
-            {/* Lag/Klubb */}
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-5 border-b border-zinc-200 pb-4 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              {t('sections.teamTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {t('sections.teamDescription')}
+            </p>
+          </div>
+
+          <div className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="teamId" className="dark:text-slate-200">{t('fields.team')}</Label>
+              <Label htmlFor="teamId" className={labelClassName}>{t('fields.team')}</Label>
               <Select
                 value={selectedTeamId ?? 'none'}
                 onValueChange={(value) => setValue('teamId', value === 'none' ? undefined : value)}
               >
-                <SelectTrigger id="teamId" disabled={teamsLoading} className="dark:bg-slate-800 dark:border-white/10">
+                <SelectTrigger id="teamId" disabled={teamsLoading} className={fieldClassName}>
                   <SelectValue placeholder={teamsLoading ? t('placeholders.loadingTeams') : t('placeholders.team')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -286,10 +325,9 @@ export default function BusinessNewClientPage() {
               </Select>
             </div>
 
-            {/* Tröjnummer & Position */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="jerseyNumber" className="dark:text-slate-200">{t('fields.jerseyNumber')}</Label>
+                <Label htmlFor="jerseyNumber" className={labelClassName}>{t('fields.jerseyNumber')}</Label>
                 <Input
                   id="jerseyNumber"
                   type="number"
@@ -297,31 +335,30 @@ export default function BusinessNewClientPage() {
                   max={999}
                   {...register('jerseyNumber', { valueAsNumber: true })}
                   placeholder={t('placeholders.jerseyNumber')}
-                  className="dark:bg-slate-800 dark:border-white/10"
+                  className={fieldClassName}
                 />
                 {errors.jerseyNumber && (
-                  <p className="text-sm text-red-600">{errors.jerseyNumber.message}</p>
+                  <p className={errorTextClassName}>{errors.jerseyNumber.message}</p>
                 )}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="position" className="dark:text-slate-200">{t('fields.position')}</Label>
+                <Label htmlFor="position" className={labelClassName}>{t('fields.position')}</Label>
                 <Input
                   id="position"
                   type="text"
                   {...register('position')}
                   placeholder={t('placeholders.position')}
-                  className="dark:bg-slate-800 dark:border-white/10"
+                  className={fieldClassName}
                 />
                 {errors.position && (
-                  <p className="text-sm text-red-600">{errors.position.message}</p>
+                  <p className={errorTextClassName}>{errors.position.message}</p>
                 )}
               </div>
             </div>
 
-            {/* Prenumerationsnivå (only relevant when an email is provided — drives auto-created athlete account) */}
             <div className="space-y-2">
-              <Label htmlFor="athleteTier" className="dark:text-slate-200">
+              <Label htmlFor="athleteTier" className={labelClassName}>
                 {t('fields.athleteTier')}
               </Label>
               <Select
@@ -330,7 +367,7 @@ export default function BusinessNewClientPage() {
                   setValue('athleteTier', value as 'FREE' | 'STANDARD' | 'PRO' | 'ELITE')
                 }
               >
-                <SelectTrigger id="athleteTier" className="dark:bg-slate-800 dark:border-white/10">
+                <SelectTrigger id="athleteTier" className={fieldClassName}>
                   <SelectValue placeholder={t('placeholders.athleteTier')} />
                 </SelectTrigger>
                 <SelectContent>
@@ -340,49 +377,66 @@ export default function BusinessNewClientPage() {
                   <SelectItem value="ELITE">{t('tiers.elite')}</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
+              <p className={helperTextClassName}>
                 {t('athleteTierHelper')}
               </p>
             </div>
+          </div>
+        </RolePanel>
 
-            {/* Anteckningar */}
-            <div className="space-y-2">
-              <Label htmlFor="notes" className="dark:text-slate-200">{t('fields.notes')}</Label>
-              <textarea
-                id="notes"
-                {...register('notes')}
-                rows={4}
-                className="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-slate-800 dark:border-white/10"
-                placeholder={t('placeholders.notes')}
-              />
-            </div>
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-5 border-b border-zinc-200 pb-4 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              {t('sections.notesTitle')}
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+              {t('sections.notesDescription')}
+            </p>
+          </div>
 
-            {/* Buttons */}
-            <div className="flex justify-end gap-4 pt-4">
-              <Link href={basePath}>
-                <Button type="button" variant="outline">
-                  {t('actions.cancel')}
-                </Button>
-              </Link>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isSubmitting ? t('actions.saving') : t('actions.createClient')}
-              </Button>
-            </div>
-          </form>
-        </GlassCardContent>
-      </GlassCard>
+          <div className="space-y-2">
+            <Label htmlFor="notes" className={labelClassName}>{t('fields.notes')}</Label>
+            <textarea
+              id="notes"
+              {...register('notes')}
+              rows={4}
+              className={`flex min-h-[110px] w-full rounded-md border px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 ${fieldClassName}`}
+              placeholder={t('placeholders.notes')}
+            />
+          </div>
+        </RolePanel>
 
-      <GlassCard glow="blue" className="mt-6">
-        <GlassCardContent className="p-4 space-y-2">
-          <p className="text-sm text-blue-800 dark:text-blue-300">
+        <div className="flex flex-col-reverse gap-3 border-t border-zinc-200 pt-5 dark:border-white/10 sm:flex-row sm:justify-end">
+          <Button
+            variant="outline"
+            className="border-zinc-200 bg-white text-zinc-700 shadow-sm hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-200 dark:hover:bg-white/5"
+            asChild
+          >
+            <Link href={basePath}>
+              {t('actions.cancel')}
+            </Link>
+          </Button>
+          <Button type="submit" disabled={isSubmitting} className="bg-blue-600 text-white hover:bg-blue-700">
+            {isSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <UserPlus className="mr-2 h-4 w-4" />
+            )}
+            {isSubmitting ? t('actions.saving') : t('actions.createClient')}
+          </Button>
+        </div>
+      </form>
+
+      <RolePanel className="mt-5 border-blue-100 bg-blue-50/80 p-4 dark:border-blue-900/50 dark:bg-blue-950/20">
+        <div className="space-y-2 text-sm leading-6 text-blue-900 dark:text-blue-200">
+          <p>
             <strong>{t('info.requiredPrefix')}</strong> {t('info.requiredText')} <span className="text-red-500">*</span> {t('info.requiredSuffix')}
           </p>
-          <p className="text-sm text-blue-800 dark:text-blue-300">
+          <p>
             <strong>{t('info.autoAccountPrefix')}</strong> {t('info.autoAccountText')}
           </p>
-        </GlassCardContent>
-      </GlassCard>
-    </div>
+        </div>
+      </RolePanel>
+    </RolePageFrame>
   )
 }
