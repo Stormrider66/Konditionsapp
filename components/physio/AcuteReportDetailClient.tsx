@@ -32,6 +32,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 interface AcuteReportDetail {
   id: string
@@ -89,21 +90,28 @@ function copy(locale: AppLocale, en: string, sv: string) {
 }
 
 const urgencyStyles: Record<string, string> = {
-  EMERGENCY: 'bg-red-500/20 text-red-300 border-red-500/40',
-  URGENT: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
-  MODERATE: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
-  LOW: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+  EMERGENCY: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/50 dark:bg-red-950/25 dark:text-red-300',
+  URGENT: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800/50 dark:bg-orange-950/25 dark:text-orange-300',
+  MODERATE: 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800/50 dark:bg-amber-950/25 dark:text-amber-300',
+  LOW: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/25 dark:text-emerald-300',
 }
 
 const statusStyles: Record<string, string> = {
-  PENDING_REVIEW: 'bg-red-500/20 text-red-300 border-red-500/30',
-  REVIEWED: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  IN_TREATMENT: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-  RESOLVED: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
-  REFERRED: 'bg-orange-500/20 text-orange-300 border-orange-500/30',
-  ASSESSED: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-  CLOSED: 'bg-slate-500/20 text-slate-300 border-slate-500/30',
+  PENDING_REVIEW: 'border-red-200 bg-red-50 text-red-700 dark:border-red-800/50 dark:bg-red-950/25 dark:text-red-300',
+  REVIEWED: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/25 dark:text-blue-300',
+  IN_TREATMENT: 'border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800/50 dark:bg-violet-950/25 dark:text-violet-300',
+  RESOLVED: 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/50 dark:bg-emerald-950/25 dark:text-emerald-300',
+  REFERRED: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-800/50 dark:bg-orange-950/25 dark:text-orange-300',
+  ASSESSED: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800/50 dark:bg-blue-950/25 dark:text-blue-300',
+  CLOSED: 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300',
 }
+
+const panelClass = 'border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950/60'
+const titleClass = 'flex items-center gap-2 text-zinc-950 dark:text-zinc-50'
+const inputClass = 'border-zinc-200 bg-white text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-100'
+const quietBlockClass = 'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 text-sm leading-6 text-zinc-700 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-200'
+const outlineButtonClass = 'border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50'
+const capsLabelClass = 'text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500'
 
 const urgencyLabels: Record<string, Record<AppLocale, string>> = {
   EMERGENCY: { en: 'Emergency', sv: 'Akut' },
@@ -298,23 +306,23 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Skeleton className="mb-6 h-10 w-40 bg-slate-800/60" />
+      <RolePageFrame maxWidth="wide">
+        <Skeleton className="mb-6 h-10 w-40 bg-zinc-200 dark:bg-zinc-800" />
         <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-          <Skeleton className="h-96 bg-slate-800/60" />
-          <Skeleton className="h-96 bg-slate-800/60" />
+          <Skeleton className="h-96 bg-zinc-200 dark:bg-zinc-800" />
+          <Skeleton className="h-96 bg-zinc-200 dark:bg-zinc-800" />
         </div>
-      </div>
+      </RolePageFrame>
     )
   }
 
   if (!report) return null
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <RolePageFrame maxWidth="wide">
       <Button
         variant="ghost"
-        className="mb-6 text-slate-400 hover:text-white"
+        className="mb-6 text-zinc-500 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-zinc-50"
         onClick={() => router.push(`${basePath}/acute-reports`)}
       >
         <ArrowLeft className="mr-2 h-4 w-4" />
@@ -324,21 +332,21 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="mb-3 flex flex-wrap gap-2">
-            <Badge className={urgencyStyles[report.urgency] || urgencyStyles.MODERATE}>
+            <Badge variant="outline" className={urgencyStyles[report.urgency] || urgencyStyles.MODERATE}>
               {labelFor(urgencyLabels, report.urgency, locale)}
             </Badge>
-            <Badge className={statusStyles[report.status] || statusStyles.PENDING_REVIEW}>
+            <Badge variant="outline" className={statusStyles[report.status] || statusStyles.PENDING_REVIEW}>
               {labelFor(statusLabels, report.status, locale)}
             </Badge>
           </div>
-          <h1 className="text-3xl font-bold text-white">{report.client.name}</h1>
-          <p className="mt-2 text-slate-400">
+          <h1 className="text-3xl font-semibold text-zinc-950 dark:text-zinc-50">{report.client.name}</h1>
+          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
             {formatEnum(report.bodyPart, locale)}
             {report.side ? ` · ${labelFor(sideLabels, report.side, locale)}` : ''} · {copy(locale, 'pain', 'smärta')} {report.initialSeverity}/10
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" className="border-white/10 text-slate-200 hover:text-white">
+          <Button asChild variant="outline" className={outlineButtonClass}>
             <Link href={`${basePath}/athletes/${report.client.id}`}>
               <Stethoscope className="mr-2 h-4 w-4" />
               {copy(locale, 'Open player', 'Öppna spelare')}
@@ -359,9 +367,9 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
 
       <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
         <div className="space-y-6">
-          <Card className="border-white/10 bg-slate-900/50">
+          <Card className={panelClass}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
+              <CardTitle className={titleClass}>
                 <ShieldAlert className="h-5 w-5 text-red-400" />
                 {copy(locale, 'Report details', 'Rapportdetaljer')}
               </CardTitle>
@@ -376,10 +384,10 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
 
               {report.description && (
                 <section>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                  <p className={`mb-2 ${capsLabelClass}`}>
                     {copy(locale, 'Description', 'Beskrivning')}
                   </p>
-                  <p className="rounded-xl border border-white/10 bg-slate-950/60 p-4 text-sm leading-6 text-slate-200">
+                  <p className={quietBlockClass}>
                     {report.description}
                   </p>
                 </section>
@@ -393,10 +401,10 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
 
               {report.immediateCareGiven && (
                 <section>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+                  <p className={`mb-2 ${capsLabelClass}`}>
                     {copy(locale, 'Immediate care', 'Akut åtgärd')}
                   </p>
-                  <p className="rounded-xl border border-white/10 bg-slate-950/60 p-4 text-sm leading-6 text-slate-200">
+                  <p className={quietBlockClass}>
                     {report.immediateCareGiven}
                   </p>
                 </section>
@@ -405,20 +413,20 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
           </Card>
 
           {report.injury && (
-            <Card className="border-blue-500/20 bg-blue-500/10">
+            <Card className="border-blue-200 bg-blue-50/70 shadow-sm dark:border-blue-900/60 dark:bg-blue-950/20">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-white">
+                <CardTitle className="flex items-center gap-2 text-blue-950 dark:text-blue-100">
                   <ClipboardCheck className="h-5 w-5 text-blue-300" />
                   {copy(locale, 'Linked injury', 'Kopplad skada')}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-slate-200">
+              <CardContent className="space-y-4 text-blue-900 dark:text-blue-100">
                 <p>
                   {report.injury.injuryType || copy(locale, 'Injury assessment', 'Skadebedömning')} · {report.injury.bodyPart || report.bodyPart} · {copy(locale, 'pain', 'smärta')}{' '}
                   {report.injury.painLevel}/10
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button asChild variant="outline" className="border-white/10 text-slate-200 hover:text-white">
+                  <Button asChild variant="outline" className={outlineButtonClass}>
                     <Link href={`${basePath}/restrictions/new?clientId=${report.client.id}&injuryId=${report.injury.id}`}>
                       <Ban className="mr-2 h-4 w-4" />
                       {copy(locale, 'Add restriction', 'Lägg restriktion')}
@@ -436,16 +444,16 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
           )}
         </div>
 
-        <Card className="border-white/10 bg-slate-900/50">
+        <Card className={panelClass}>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className={titleClass}>
               <AlertTriangle className="h-5 w-5 text-orange-400" />
               {copy(locale, 'Assess and flag', 'Bedöm och flagga')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             {report.injury ? (
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-200">
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300">
                 {copy(
                   locale,
                   'This report has already been assessed. Create or update a restriction and rehab program from the buttons above.',
@@ -459,7 +467,7 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                     value={injuryType}
                     onChange={(event) => setInjuryType(event.target.value)}
                     placeholder={copy(locale, 'e.g. knee pain, sprain, overload', 't.ex. knäsmärta, stukning, överbelastning')}
-                    className="border-white/10 bg-slate-950/70 text-white placeholder:text-slate-500"
+                    className={inputClass}
                   />
                 </Field>
 
@@ -467,34 +475,34 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                   <Input
                     value={bodyPart}
                     onChange={(event) => setBodyPart(event.target.value)}
-                    className="border-white/10 bg-slate-950/70 text-white"
+                    className={inputClass}
                   />
                 </Field>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label={copy(locale, 'Side', 'Sida')}>
                     <Select value={side} onValueChange={(value) => setSide(value as SideValue | 'none')}>
-                      <SelectTrigger className="border-white/10 bg-slate-950/70 text-white">
+                      <SelectTrigger className={inputClass}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-white/10 bg-slate-900">
-                        <SelectItem value="none" className="text-slate-200">{copy(locale, 'Not specified', 'Ej angivet')}</SelectItem>
-                        <SelectItem value="LEFT" className="text-slate-200">{copy(locale, 'Left', 'Vänster')}</SelectItem>
-                        <SelectItem value="RIGHT" className="text-slate-200">{copy(locale, 'Right', 'Höger')}</SelectItem>
-                        <SelectItem value="BILATERAL" className="text-slate-200">{copy(locale, 'Both', 'Båda')}</SelectItem>
-                        <SelectItem value="CENTRAL" className="text-slate-200">{copy(locale, 'Center', 'Centralt')}</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="none">{copy(locale, 'Not specified', 'Ej angivet')}</SelectItem>
+                        <SelectItem value="LEFT">{copy(locale, 'Left', 'Vänster')}</SelectItem>
+                        <SelectItem value="RIGHT">{copy(locale, 'Right', 'Höger')}</SelectItem>
+                        <SelectItem value="BILATERAL">{copy(locale, 'Both', 'Båda')}</SelectItem>
+                        <SelectItem value="CENTRAL">{copy(locale, 'Center', 'Centralt')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
                   <Field label={copy(locale, 'Phase', 'Fas')}>
                     <Select value={phase} onValueChange={(value) => setPhase(value as PhaseValue)}>
-                      <SelectTrigger className="border-white/10 bg-slate-950/70 text-white">
+                      <SelectTrigger className={inputClass}>
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent className="border-white/10 bg-slate-900">
-                        <SelectItem value="ACUTE" className="text-slate-200">{copy(locale, 'Acute', 'Akut')}</SelectItem>
-                        <SelectItem value="SUBACUTE" className="text-slate-200">{copy(locale, 'Subacute', 'Subakut')}</SelectItem>
-                        <SelectItem value="CHRONIC" className="text-slate-200">{copy(locale, 'Chronic', 'Kronisk')}</SelectItem>
+                      <SelectContent>
+                        <SelectItem value="ACUTE">{copy(locale, 'Acute', 'Akut')}</SelectItem>
+                        <SelectItem value="SUBACUTE">{copy(locale, 'Subacute', 'Subakut')}</SelectItem>
+                        <SelectItem value="CHRONIC">{copy(locale, 'Chronic', 'Kronisk')}</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
@@ -507,7 +515,7 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                     max={10}
                     value={painLevel}
                     onChange={(event) => setPainLevel(Number(event.target.value))}
-                    className="border-white/10 bg-slate-950/70"
+                    className="accent-emerald-600"
                   />
                 </Field>
 
@@ -516,11 +524,11 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
                     placeholder={copy(locale, 'Assessment, plan, follow-up...', 'Bedömning, plan, återbesök...')}
-                    className="min-h-28 border-white/10 bg-slate-950/70 text-white placeholder:text-slate-500"
+                    className={`min-h-28 ${inputClass}`}
                   />
                 </Field>
 
-                <div className="rounded-xl border border-orange-500/20 bg-orange-500/10 p-4">
+                <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900/60 dark:bg-orange-950/20">
                   <div className="mb-4 flex items-start gap-3">
                     <Checkbox
                       checked={createRestriction}
@@ -528,8 +536,8 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                       className="mt-1 border-orange-400 data-[state=checked]:bg-orange-500"
                     />
                     <div>
-                      <Label className="font-semibold text-white">{copy(locale, 'Create training restriction', 'Skapa träningsrestriktion')}</Label>
-                      <p className="text-sm text-orange-100/80">
+                      <Label className="font-semibold text-orange-950 dark:text-orange-100">{copy(locale, 'Create training restriction', 'Skapa träningsrestriktion')}</Label>
+                      <p className="text-sm text-orange-700 dark:text-orange-300">
                         {copy(
                           locale,
                           'Good default when the player needs a clear limitation in planning and calendar.',
@@ -543,12 +551,12 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                     <div className="space-y-4">
                       <Field label={copy(locale, 'Type', 'Typ')}>
                         <Select value={restrictionType} onValueChange={setRestrictionType}>
-                          <SelectTrigger className="border-white/10 bg-slate-950/70 text-white">
+                          <SelectTrigger className={inputClass}>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="border-white/10 bg-slate-900">
+                          <SelectContent>
                             {Object.entries(restrictionLabels).map(([value, labels]) => (
-                              <SelectItem key={value} value={value} className="text-slate-200">
+                              <SelectItem key={value} value={value}>
                                 {labels[locale]}
                               </SelectItem>
                             ))}
@@ -558,14 +566,14 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                       <div className="grid gap-4 sm:grid-cols-2">
                         <Field label={copy(locale, 'Severity', 'Allvarlighet')}>
                           <Select value={restrictionSeverity} onValueChange={setRestrictionSeverity}>
-                            <SelectTrigger className="border-white/10 bg-slate-950/70 text-white">
+                            <SelectTrigger className={inputClass}>
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent className="border-white/10 bg-slate-900">
-                              <SelectItem value="MILD" className="text-slate-200">Mild</SelectItem>
-                              <SelectItem value="MODERATE" className="text-slate-200">{copy(locale, 'Moderate', 'Måttlig')}</SelectItem>
-                              <SelectItem value="SEVERE" className="text-slate-200">{copy(locale, 'Severe', 'Stor')}</SelectItem>
-                              <SelectItem value="COMPLETE" className="text-slate-200">{copy(locale, 'Complete rest', 'Total vila')}</SelectItem>
+                            <SelectContent>
+                              <SelectItem value="MILD">Mild</SelectItem>
+                              <SelectItem value="MODERATE">{copy(locale, 'Moderate', 'Måttlig')}</SelectItem>
+                              <SelectItem value="SEVERE">{copy(locale, 'Severe', 'Stor')}</SelectItem>
+                              <SelectItem value="COMPLETE">{copy(locale, 'Complete rest', 'Total vila')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </Field>
@@ -574,7 +582,7 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
                             type="date"
                             value={restrictionEndDate}
                             onChange={(event) => setRestrictionEndDate(event.target.value)}
-                            className="border-white/10 bg-slate-950/70 text-white"
+                            className={inputClass}
                           />
                         </Field>
                       </div>
@@ -595,14 +603,14 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
           </CardContent>
         </Card>
       </div>
-    </div>
+    </RolePageFrame>
   )
 }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-2">
-      <Label className="text-xs font-bold uppercase tracking-widest text-slate-500">{label}</Label>
+      <Label className={capsLabelClass}>{label}</Label>
       {children}
     </div>
   )
@@ -618,12 +626,12 @@ function Info({
   icon?: ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-slate-950/60 p-4">
-      <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+    <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-zinc-900/40">
+      <p className={`mb-2 flex items-center gap-2 ${capsLabelClass}`}>
         {icon}
         {label}
       </p>
-      <p className="font-medium text-white">{value}</p>
+      <p className="font-medium text-zinc-950 dark:text-zinc-100">{value}</p>
     </div>
   )
 }
@@ -640,11 +648,11 @@ function CareBadge({
   tone?: 'emerald' | 'red'
 }) {
   const activeClass = tone === 'red'
-    ? 'border-red-500/30 bg-red-500/10 text-red-300'
-    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+    ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/60 dark:bg-red-950/20 dark:text-red-300'
+    : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/20 dark:text-emerald-300'
 
   return (
-    <div className={`rounded-xl border p-3 text-sm ${active ? activeClass : 'border-white/10 bg-slate-950/60 text-slate-500'}`}>
+    <div className={`rounded-lg border p-3 text-sm ${active ? activeClass : 'border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-400'}`}>
       {active ? copy(locale, 'Yes', 'Ja') : copy(locale, 'No', 'Nej')} · {label}
     </div>
   )
