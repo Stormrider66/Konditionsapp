@@ -1,10 +1,11 @@
 'use client'
 
-import { ChevronLeft, Zap, Lightbulb, Cog } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { ArrowLeft, Zap, Lightbulb, Cog } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { useLocale } from '@/i18n/client'
 import {
   Table,
@@ -94,304 +95,258 @@ function profileCopy(id: string, field: 'name' | 'description', locale: AppLocal
   return PROFILE_COPY[id]?.[field][locale] ?? fallback
 }
 
+function SectionHeading({ title, description }: { title: ReactNode; description?: ReactNode }) {
+  return (
+    <div>
+      <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{title}</h2>
+      {description && (
+        <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">{description}</p>
+      )}
+    </div>
+  )
+}
+
 export function AICostInfoClient({ businessSlug }: AICostInfoClientProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const settingsHref = businessSlug ? `/${businessSlug}/coach/settings` : '/login'
 
-  // Reference models for cost comparisons
   const flashModel = AI_MODELS.find(m => m.id === 'gemini-3-flash')!
   const sonnetModel = AI_MODELS.find(m => m.id === 'claude-sonnet')!
 
   return (
-    <div className="min-h-screen text-slate-900 dark:text-slate-200 pb-20 selection:bg-orange-500/30 transition-colors">
-      {/* Header */}
-      <div className="bg-white/70 dark:bg-black/40 backdrop-blur-md border-b border-slate-200 dark:border-white/5 sticky top-16 z-20 transition-colors">
-        <div className="container max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href={settingsHref}>
-            <Button variant="ghost" size="icon" className="text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 rounded-full transition-all">
-              <ChevronLeft className="h-5 w-5" />
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-500/10 flex items-center justify-center border border-green-200 dark:border-green-500/20 transition-colors">
-              <Zap className="h-5 w-5 text-green-600 dark:text-green-400 transition-colors" />
-            </div>
-            <div>
-              <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">
-                {copy(locale, 'AI costs', 'AI-kostnader')}
-              </h1>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">
-                {copy(locale, 'Cost per athlete', 'Kostnad per atlet')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <RolePageFrame contentClassName="max-w-5xl">
+      <RolePageHeader
+        eyebrow={copy(locale, 'Cost per athlete', 'Kostnad per atlet')}
+        title={
+          <span className="flex items-center gap-2">
+            <Zap className="h-6 w-6 text-emerald-600 dark:text-emerald-300" />
+            {copy(locale, 'AI costs', 'AI-kostnader')}
+          </span>
+        }
+        description={copy(locale, 'Compare AI model pricing, common feature costs, and monthly per-athlete estimates.', 'Jämför AI-modellpriser, vanliga funktionskostnader och uppskattad månadskostnad per atlet.')}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={settingsHref}>
+              <ArrowLeft className="h-4 w-4" />
+              {copy(locale, 'Settings', 'Inställningar')}
+            </Link>
+          </Button>
+        }
+      />
 
-      {/* Content */}
-      <div className="container max-w-2xl mx-auto p-4 space-y-6 relative z-10">
-
-        {/* Model Overview */}
+      <div className="space-y-6">
         <section className="space-y-3">
-          <div className="flex items-center gap-2 px-2">
-            <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">
-              {copy(locale, 'Model overview', 'Modellöversikt')}
-            </h3>
-          </div>
-          <GlassCard glow="blue">
-            <GlassCardContent className="p-0 pt-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs font-bold">{copy(locale, 'Model', 'Modell')}</TableHead>
-                      <TableHead className="text-xs font-bold">{copy(locale, 'Speed', 'Hastighet')}</TableHead>
-                      <TableHead className="text-xs font-bold text-right">Input $/1M</TableHead>
-                      <TableHead className="text-xs font-bold text-right">Output $/1M</TableHead>
-                      <TableHead className="text-xs font-bold text-right">Max output</TableHead>
+          <SectionHeading title={copy(locale, 'Model overview', 'Modellöversikt')} />
+          <RolePanel className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs font-bold">{copy(locale, 'Model', 'Modell')}</TableHead>
+                    <TableHead className="text-xs font-bold">{copy(locale, 'Speed', 'Hastighet')}</TableHead>
+                    <TableHead className="text-right text-xs font-bold">Input $/1M</TableHead>
+                    <TableHead className="text-right text-xs font-bold">Output $/1M</TableHead>
+                    <TableHead className="text-right text-xs font-bold">Max output</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {AI_MODELS.map((model) => (
+                    <TableRow key={model.id}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">{model.name}</span>
+                          {model.recommended && (
+                            <Badge className="border-emerald-200 bg-emerald-50 px-1.5 text-[10px] text-emerald-700 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300">
+                              Rec
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] capitalize text-zinc-500 dark:text-zinc-400">{model.provider}</span>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={COST_TIER_COLORS[model.costTier] + ' px-1.5 text-[10px]'}>
+                          {model.capabilities.speed === 'fast'
+                            ? copy(locale, 'Fast', 'Snabb')
+                            : model.capabilities.speed === 'medium'
+                              ? copy(locale, 'Medium', 'Medel')
+                              : copy(locale, 'Slow', 'Långsam')}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">${model.pricing.input.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">${model.pricing.output.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-sm tabular-nums">{formatTokenCount(model.capabilities.maxOutputTokens)}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {AI_MODELS.map((model) => (
-                      <TableRow key={model.id}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{model.name}</span>
-                            {model.recommended && (
-                              <Badge className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 text-[10px] px-1.5">Rec</Badge>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-slate-500 capitalize">{model.provider}</span>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={COST_TIER_COLORS[model.costTier] + ' text-[10px] px-1.5'}>
-                            {model.capabilities.speed === 'fast'
-                              ? copy(locale, 'Fast', 'Snabb')
-                              : model.capabilities.speed === 'medium'
-                                ? copy(locale, 'Medium', 'Medel')
-                                : copy(locale, 'Slow', 'Långsam')}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">${model.pricing.input.toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">${model.pricing.output.toFixed(2)}</TableCell>
-                        <TableCell className="text-right text-sm tabular-nums">{formatTokenCount(model.capabilities.maxOutputTokens)}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </GlassCardContent>
-          </GlassCard>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </RolePanel>
         </section>
 
-        {/* Per-Feature Costs */}
         <section className="space-y-3">
-          <div className="flex items-center gap-2 px-2">
-            <div className="w-1.5 h-4 bg-blue-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">
-              {copy(locale, 'Cost per feature', 'Kostnad per funktion')}
-            </h3>
-          </div>
-          <GlassCard glow="purple">
-            <GlassCardContent className="p-0 pt-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs font-bold">{copy(locale, 'Feature', 'Funktion')}</TableHead>
-                      <TableHead className="text-xs font-bold text-right">Gemini Flash</TableHead>
-                      <TableHead className="text-xs font-bold text-right">Claude Sonnet</TableHead>
+          <SectionHeading title={copy(locale, 'Cost per feature', 'Kostnad per funktion')} />
+          <RolePanel className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs font-bold">{copy(locale, 'Feature', 'Funktion')}</TableHead>
+                    <TableHead className="text-right text-xs font-bold">Gemini Flash</TableHead>
+                    <TableHead className="text-right text-xs font-bold">Claude Sonnet</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {AI_FEATURES.map((feature) => (
+                    <TableRow key={feature.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium">{featureCopy(feature.id, 'name', locale, feature.name)}</span>
+                          {feature.automatic && (
+                            <Badge className="border-amber-200 bg-amber-50 px-1.5 text-[10px] text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                              Auto
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-zinc-500 dark:text-zinc-400">{featureCopy(feature.id, 'description', locale, feature.description)}</span>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
+                        {formatCostUSD(featureCostUSD(feature, flashModel))}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right text-sm tabular-nums">
+                        {formatCostUSD(featureCostUSD(feature, sonnetModel))}
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {AI_FEATURES.map((feature) => (
-                      <TableRow key={feature.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{featureCopy(feature.id, 'name', locale, feature.name)}</span>
-                            {feature.automatic && (
-                              <Badge className="bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30 text-[10px] px-1.5">Auto</Badge>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-slate-500">{featureCopy(feature.id, 'description', locale, feature.description)}</span>
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">
-                          {formatCostUSD(featureCostUSD(feature, flashModel))}
-                        </TableCell>
-                        <TableCell className="text-right text-sm tabular-nums whitespace-nowrap">
-                          {formatCostUSD(featureCostUSD(feature, sonnetModel))}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </GlassCardContent>
-          </GlassCard>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </RolePanel>
         </section>
 
-        {/* Monthly Cost Per Athlete */}
         <section className="space-y-3">
-          <div className="flex items-center gap-2 px-2">
-            <div className="w-1.5 h-4 bg-green-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">
-              {copy(locale, 'Monthly cost per athlete', 'Månadskostnad per atlet')}
-            </h3>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 px-2">
-            {copy(
+          <SectionHeading
+            title={copy(locale, 'Monthly cost per athlete', 'Månadskostnad per atlet')}
+            description={copy(
               locale,
               'Estimated cost with Gemini 3.5 Flash (recommended balanced model). Actual cost depends on the selected model.',
               'Uppskattad kostnad med Gemini 3.5 Flash (rekommenderad balanserad modell). Faktisk kostnad beror på modellval.'
             )}
-          </p>
+          />
           <div className="grid gap-4 sm:grid-cols-3">
             {USAGE_PROFILES.map((profile) => {
               const costFlash = monthlyCostUSD(profile, flashModel)
               const costSonnet = monthlyCostUSD(profile, sonnetModel)
-              const glowColor = profile.id === 'light' ? 'blue' : profile.id === 'normal' ? 'purple' : 'amber'
               return (
-                <GlassCard key={profile.id} glow={glowColor}>
-                  <GlassCardContent className="p-4 pt-4 space-y-3">
-                    <div>
-                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">{profileCopy(profile.id, 'name', locale, profile.name)}</h4>
-                      <p className="text-[10px] text-slate-500">{profileCopy(profile.id, 'description', locale, profile.description)}</p>
-                    </div>
-                    <div className="space-y-1 text-xs text-slate-600 dark:text-slate-400">
-                      {AI_FEATURES.filter(f => (profile.usage[f.id] || 0) > 0).map(f => (
-                        <div key={f.id} className="flex justify-between">
-                          <span>{featureCopy(f.id, 'name', locale, f.name).split('(')[0].trim()}</span>
-                          <span className="tabular-nums">{profile.usage[f.id]}×</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="border-t border-slate-200 dark:border-white/10 pt-2 space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Flash:</span>
-                        <span className="font-bold text-green-600 dark:text-green-400">{formatCostSEK(costFlash)}</span>
+                <RolePanel key={profile.id} className="p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{profileCopy(profile.id, 'name', locale, profile.name)}</h3>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{profileCopy(profile.id, 'description', locale, profile.description)}</p>
+                  </div>
+                  <div className="mt-4 space-y-1 text-xs text-zinc-600 dark:text-zinc-400">
+                    {AI_FEATURES.filter(f => (profile.usage[f.id] || 0) > 0).map(f => (
+                      <div key={f.id} className="flex justify-between gap-3">
+                        <span>{featureCopy(f.id, 'name', locale, f.name).split('(')[0].trim()}</span>
+                        <span className="tabular-nums">{profile.usage[f.id]}x</span>
                       </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-slate-500">Sonnet:</span>
-                        <span className="font-bold text-orange-600 dark:text-orange-400">{formatCostSEK(costSonnet)}</span>
-                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 space-y-2 border-t border-zinc-200 pt-3 dark:border-white/10">
+                    <div className="flex justify-between gap-3 text-sm">
+                      <span className="text-zinc-500 dark:text-zinc-400">Flash</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-300">{formatCostSEK(costFlash)}</span>
                     </div>
-                  </GlassCardContent>
-                </GlassCard>
+                    <div className="flex justify-between gap-3 text-sm">
+                      <span className="text-zinc-500 dark:text-zinc-400">Sonnet</span>
+                      <span className="font-semibold text-orange-600 dark:text-orange-300">{formatCostSEK(costSonnet)}</span>
+                    </div>
+                  </div>
+                </RolePanel>
               )
             })}
           </div>
         </section>
 
-        {/* Automatic Costs */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-2 px-2">
-            <div className="w-1.5 h-4 bg-amber-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">
-              {copy(locale, 'Automatic costs', 'Automatiska kostnader')}
-            </h3>
-          </div>
-          <GlassCard glow="amber">
-            <GlassCardContent className="p-4 pt-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <Cog className="h-5 w-5 text-amber-500 mt-0.5 shrink-0" />
-                <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-                  <p>
-                    {copy(
-                      locale,
-                      'Some AI features run automatically without the athlete actively starting them:',
-                      'Vissa AI-funktioner körs automatiskt utan att atleten aktivt startar dem:'
-                    )}
-                  </p>
-                  <ul className="list-disc pl-4 space-y-1">
-                    <li>
-                      <strong>{copy(locale, 'Morning briefing', 'Morgonbriefing')}</strong>
-                      {' - '}
-                      {copy(locale, 'Generated every morning for athletes with the feature enabled', 'Genereras varje morgon för atleter med funktionen aktiverad')}
-                    </li>
-                    <li>
-                      <strong>{copy(locale, 'Memory extraction', 'Minnesextraktion')}</strong>
-                      {' - '}
-                      {copy(locale, 'Extracts key information after AI conversations', 'Extraherar nyckelinfo efter AI-konversationer')}
-                    </li>
-                  </ul>
-                  <p className="text-xs text-slate-500">
-                    {copy(
-                      locale,
-                      'These always run with the cheapest available model (for example Gemini Flash) to keep costs low.',
-                      'Dessa körs alltid med den billigaste tillgängliga modellen (t.ex. Gemini Flash) för att minimera kostnad.'
-                    )}
-                  </p>
-                </div>
+        <section className="grid gap-4 lg:grid-cols-2">
+          <RolePanel className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300">
+                <Cog className="h-5 w-5" />
               </div>
-            </GlassCardContent>
-          </GlassCard>
-        </section>
-
-        {/* Tips */}
-        <section className="space-y-3">
-          <div className="flex items-center gap-2 px-2">
-            <div className="w-1.5 h-4 bg-cyan-500 rounded-full" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 transition-colors">
-              {copy(locale, 'Cost optimization tips', 'Tips för kostnadsoptimering')}
-            </h3>
-          </div>
-          <GlassCard glow="teal">
-            <GlassCardContent className="p-4 pt-4 space-y-3">
-              <div className="flex items-start gap-3">
-                <Lightbulb className="h-5 w-5 text-cyan-500 mt-0.5 shrink-0" />
-                <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {copy(locale, 'Background tasks -> Flash Lite / GPT-5.3 Instant', 'Bakgrundsuppgifter -> Flash Lite / GPT-5.3 Instant')}
-                    </p>
-                    <p className="text-xs">
-                      {copy(locale, 'Cheapest. Perfect for briefings, memory extraction, and nudges.', 'Billigast. Perfekt för briefings, minnesextraktion och nudges.')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {copy(locale, 'Daily training -> Gemini Flash / Claude Haiku', 'Daglig träning -> Gemini Flash / Claude Haiku')}
-                    </p>
-                    <p className="text-xs">
-                      {copy(locale, 'Fast and affordable. Good for WOD, chat, and simpler questions.', 'Snabb och prisvärd. Bra för WOD, chatt och enklare frågor.')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {copy(locale, 'Longer programs -> Claude Opus / GPT-5.4', 'Längre program -> Claude Opus / GPT-5.4')}
-                    </p>
-                    <p className="text-xs">
-                      {copy(locale, '128K output tokens. Can generate 16+ weeks of detailed programming in one response.', '128K output-tokens. Kan generera 16+ veckors detaljerat program i ett svar.')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {copy(locale, 'Best quality -> Claude Sonnet / Gemini Pro', 'Bäst kvalitet -> Claude Sonnet / Gemini Pro')}
-                    </p>
-                    <p className="text-xs">
-                      {copy(locale, 'Excellent reasoning at a reasonable cost. Good for nutrition planning and analysis.', 'Utmärkt resonering till rimlig kostnad. Bra för nutritionsplanering och analys.')}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-slate-900 dark:text-white">
-                      {copy(locale, 'Multiple providers -> lower risk', 'Flera providers -> lägre risk')}
-                    </p>
-                    <p className="text-xs">
-                      {copy(
-                        locale,
-                        'Configure 2-3 API keys. If one provider has an outage, another is used automatically.',
-                        'Konfigurera 2-3 API-nycklar. Om en provider har driftstörning används automatiskt en annan.'
-                      )}
-                    </p>
-                  </div>
-                </div>
+              <div className="space-y-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Automatic costs', 'Automatiska kostnader')}</h2>
+                <p>
+                  {copy(
+                    locale,
+                    'Some AI features run automatically without the athlete actively starting them:',
+                    'Vissa AI-funktioner körs automatiskt utan att atleten aktivt startar dem:'
+                  )}
+                </p>
+                <ul className="list-disc space-y-1 pl-4">
+                  <li>
+                    <strong>{copy(locale, 'Morning briefing', 'Morgonbriefing')}</strong>
+                    {' - '}
+                    {copy(locale, 'Generated every morning for athletes with the feature enabled', 'Genereras varje morgon för atleter med funktionen aktiverad')}
+                  </li>
+                  <li>
+                    <strong>{copy(locale, 'Memory extraction', 'Minnesextraktion')}</strong>
+                    {' - '}
+                    {copy(locale, 'Extracts key information after AI conversations', 'Extraherar nyckelinfo efter AI-konversationer')}
+                  </li>
+                </ul>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {copy(
+                    locale,
+                    'These always run with the cheapest available model (for example Gemini Flash) to keep costs low.',
+                    'Dessa körs alltid med den billigaste tillgängliga modellen (t.ex. Gemini Flash) för att minimera kostnad.'
+                  )}
+                </p>
               </div>
-            </GlassCardContent>
-          </GlassCard>
-        </section>
+            </div>
+          </RolePanel>
 
+          <RolePanel className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
+                <Lightbulb className="h-5 w-5" />
+              </div>
+              <div className="space-y-3 text-sm leading-6 text-zinc-600 dark:text-zinc-400">
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Cost optimization tips', 'Tips för kostnadsoptimering')}</h2>
+                {[
+                  [
+                    copy(locale, 'Background tasks -> Flash Lite / GPT-5.3 Instant', 'Bakgrundsuppgifter -> Flash Lite / GPT-5.3 Instant'),
+                    copy(locale, 'Cheapest. Perfect for briefings, memory extraction, and nudges.', 'Billigast. Perfekt för briefings, minnesextraktion och nudges.'),
+                  ],
+                  [
+                    copy(locale, 'Daily training -> Gemini Flash / Claude Haiku', 'Daglig träning -> Gemini Flash / Claude Haiku'),
+                    copy(locale, 'Fast and affordable. Good for WOD, chat, and simpler questions.', 'Snabb och prisvärd. Bra för WOD, chatt och enklare frågor.'),
+                  ],
+                  [
+                    copy(locale, 'Longer programs -> Claude Opus / GPT-5.4', 'Längre program -> Claude Opus / GPT-5.4'),
+                    copy(locale, '128K output tokens. Can generate 16+ weeks of detailed programming in one response.', '128K output-tokens. Kan generera 16+ veckors detaljerat program i ett svar.'),
+                  ],
+                  [
+                    copy(locale, 'Best quality -> Claude Sonnet / Gemini Pro', 'Bäst kvalitet -> Claude Sonnet / Gemini Pro'),
+                    copy(locale, 'Excellent reasoning at a reasonable cost. Good for nutrition planning and analysis.', 'Utmärkt resonering till rimlig kostnad. Bra för nutritionsplanering och analys.'),
+                  ],
+                  [
+                    copy(locale, 'Multiple providers -> lower risk', 'Flera providers -> lägre risk'),
+                    copy(
+                      locale,
+                      'Configure 2-3 API keys. If one provider has an outage, another is used automatically.',
+                      'Konfigurera 2-3 API-nycklar. Om en provider har driftstörning används automatiskt en annan.'
+                    ),
+                  ],
+                ].map(([title, description]) => (
+                  <div key={title}>
+                    <p className="font-semibold text-zinc-950 dark:text-zinc-50">{title}</p>
+                    <p className="text-xs leading-5 text-zinc-500 dark:text-zinc-400">{description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </RolePanel>
+        </section>
       </div>
-    </div>
+    </RolePageFrame>
   )
 }
