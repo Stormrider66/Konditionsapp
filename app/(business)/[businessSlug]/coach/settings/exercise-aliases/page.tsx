@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft } from 'lucide-react'
 import { ExerciseAliasesClient } from '@/components/programs/import/ExerciseAliasesClient'
 import { getTranslations } from '@/i18n/server'
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -46,25 +47,20 @@ export default async function ExerciseAliasesPage({ params }: PageProps) {
   })
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <Link href={`${basePath}/settings`}>
-        <Button
-          variant="ghost"
-          className="mb-6 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-slate-800/50"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          {t('backToSettings')}
-        </Button>
-      </Link>
-
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 text-slate-900 dark:text-white">
-          {t('title')}
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400">
-          {t('description')}
-        </p>
-      </div>
+    <RolePageFrame contentClassName="max-w-4xl">
+      <RolePageHeader
+        eyebrow="Settings"
+        title={t('title')}
+        description={t('description')}
+        actions={
+          <Button asChild variant="outline" size="sm">
+            <Link href={`${basePath}/settings`}>
+              <ArrowLeft className="h-4 w-4" />
+              {t('backToSettings')}
+            </Link>
+          </Button>
+        }
+      />
 
       <ExerciseAliasesClient
         initialAliases={initialAliases.map((a) => ({
@@ -77,6 +73,6 @@ export default async function ExerciseAliasesPage({ params }: PageProps) {
           biomechanicalPillar: a.exercise.biomechanicalPillar,
         }))}
       />
-    </div>
+    </RolePageFrame>
   )
 }

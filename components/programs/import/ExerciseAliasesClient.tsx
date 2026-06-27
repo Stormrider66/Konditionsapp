@@ -8,13 +8,7 @@
  */
 
 import { useState, useTransition, useCallback } from 'react'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -112,34 +106,34 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
   }
 
   return (
-    <GlassCard glow="blue">
-      <GlassCardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <RolePanel className="p-5">
+      <div className="border-b border-zinc-200 pb-5 dark:border-white/10">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <GlassCardTitle className="text-lg">{t('title')}</GlassCardTitle>
-            <GlassCardDescription>
+            <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t('title')}</h2>
+            <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-zinc-400">
               {t('aliasCount', { count: aliases.length })}
-            </GlassCardDescription>
+            </p>
           </div>
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <Input
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               placeholder={t('searchPlaceholder')}
-              className="pl-9"
+              className="border-zinc-200 bg-white pl-9 dark:border-white/10 dark:bg-zinc-900"
             />
             {pending && (
-              <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-zinc-400" />
             )}
           </div>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </div>
+      <div className="mt-5">
         {aliases.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="font-medium">{t('emptyTitle')}</p>
-            <p className="text-sm mt-1">
+          <div className="py-12 text-center text-zinc-500 dark:text-zinc-400">
+            <p className="font-medium text-zinc-700 dark:text-zinc-300">{t('emptyTitle')}</p>
+            <p className="mt-1 text-sm">
               {t('emptyDescription')}
             </p>
           </div>
@@ -148,19 +142,19 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
             {aliases.map((a) => (
               <div
                 key={a.id}
-                className="flex items-center justify-between gap-3 p-3 rounded border border-slate-200/80 dark:border-white/10 hover:bg-muted/30 transition-colors"
+                className="flex items-center justify-between gap-3 rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-900/50 dark:hover:bg-zinc-900"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium truncate">{a.alias}</span>
-                    <span className="text-muted-foreground text-xs">→</span>
-                    <span className="text-sm text-blue-700 dark:text-blue-400 truncate">
+                    <span className="truncate font-medium text-zinc-950 dark:text-zinc-50">{a.alias}</span>
+                    <span className="text-xs text-zinc-400">→</span>
+                    <span className="truncate text-sm text-blue-700 dark:text-blue-300">
                       {a.exerciseName}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap">
                     {a.category && (
-                      <Badge variant="secondary" className="text-[10px]">
+                      <Badge variant="outline" className="border-zinc-200 bg-zinc-50 text-[10px] text-zinc-600 dark:border-white/10 dark:bg-zinc-950 dark:text-zinc-300">
                         {a.category}
                       </Badge>
                     )}
@@ -169,7 +163,7 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
                         {a.biomechanicalPillar}
                       </Badge>
                     )}
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
                       {t('createdPrefix')}{' '}
                       {format(new Date(a.createdAt), 'd MMM yyyy', {
                         locale: dateLocale,
@@ -184,6 +178,7 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
                   onClick={() => handleDelete(a)}
                   disabled={busyId === a.id}
                   title={t('deleteButton')}
+                  className="text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950/30"
                 >
                   {busyId === a.id ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -195,7 +190,7 @@ export function ExerciseAliasesClient({ initialAliases }: Props) {
             ))}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
