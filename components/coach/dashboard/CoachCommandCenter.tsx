@@ -48,6 +48,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { roleMutedBlockClass, roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import {
   painAlertOutcomeLabel,
@@ -260,7 +261,7 @@ export function CoachCommandCenter({
             )}
 
             {hasQueue ? (
-              <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white/70 dark:divide-white/10 dark:border-white/10 dark:bg-slate-950/40">
+              <div className={roleSurfaceClass('divide-y divide-slate-200 overflow-hidden dark:divide-white/10')}>
                 {alertError && (
                   <div className="border-b border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-200">
                     {alertError}
@@ -302,7 +303,7 @@ export function CoachCommandCenter({
               {data.recommendations.map(recommendation => (
                 <div
                   key={recommendation.id}
-                  className="rounded-lg border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-950/40"
+                  className={roleSurfaceClass('p-4')}
                 >
                   <div className="mb-3 flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -378,7 +379,7 @@ function MetricPill({
     risk: 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-200',
     watch: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-200',
     good: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-200',
-    neutral: 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200',
+    neutral: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200',
   }[tone]
 
   return (
@@ -408,7 +409,7 @@ function QueueRow({
   return (
     <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center">
       <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className="mt-0.5 rounded-md bg-slate-100 p-2 text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+        <div className={roleMutedBlockClass('mt-0.5 rounded-md p-2 text-zinc-700 dark:text-zinc-200')}>
           <Icon className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">

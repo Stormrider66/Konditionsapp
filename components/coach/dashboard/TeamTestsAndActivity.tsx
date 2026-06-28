@@ -118,7 +118,7 @@ export function TeamTestsAndActivity({
                       </div>
                       <span className="shrink-0 text-xs font-medium text-muted-foreground">{completion}%</span>
                     </div>
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/10">
                       <div className="h-full rounded-full bg-emerald-500" style={{ width: `${completion}%` }} />
                     </div>
                   </div>

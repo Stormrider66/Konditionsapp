@@ -114,7 +114,7 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                   </div>
                   </Link>
 
-                  <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+                  <div className="mt-3 flex h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-white/10">
                     {team.readiness.total > 0 ? (
                       <>
                         <span className="bg-emerald-500" style={{ width: `${(team.readiness.high / team.readiness.total) * 100}%` }} />
@@ -122,7 +122,7 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
                         <span className="bg-red-500" style={{ width: `${(team.readiness.low / team.readiness.total) * 100}%` }} />
                       </>
                     ) : (
-                      <span className="w-full bg-slate-300 dark:bg-slate-700" />
+                      <span className="w-full bg-zinc-300 dark:bg-zinc-700" />
                     )}
                   </div>
 

@@ -21,6 +21,7 @@ import {
   DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { openCoachFloatingChat } from '@/lib/events/coach-floating-chat'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
 import type {
@@ -121,13 +122,13 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
             </div>
 
             {hasQueue ? (
-              <div className="divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white/70 dark:divide-white/10 dark:border-white/10 dark:bg-slate-950/40">
+              <div className={roleSurfaceClass('divide-y divide-slate-200 overflow-hidden dark:divide-white/10')}>
                 {data.topItems.map(item => (
                   <OperatorQueueRow key={item.id} item={item} priorityLabel={priorityLabel} />
                 ))}
               </div>
             ) : (
-              <div className="rounded-lg border border-emerald-200 bg-white/60 p-4 text-sm text-emerald-800 dark:border-emerald-900/70 dark:bg-slate-950/40 dark:text-emerald-100">
+              <div className="rounded-lg border border-emerald-200 bg-white p-4 text-sm text-emerald-800 shadow-sm dark:border-emerald-900/70 dark:bg-emerald-950/20 dark:text-emerald-100">
                 <CheckCircle2 className="mb-2 h-5 w-5" />
                 {t('emptyQueue')}
               </div>
@@ -177,7 +178,7 @@ function OperatorMetric({
   const className = {
     risk: 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-200',
     watch: 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-200',
-    neutral: 'bg-white/70 text-slate-700 dark:bg-slate-950/40 dark:text-slate-200',
+    neutral: 'bg-white text-zinc-700 dark:bg-zinc-950/60 dark:text-zinc-200',
   }[tone]
 
   return (
@@ -204,7 +205,7 @@ function OperatorQueueRow({
           'mt-0.5 rounded-md p-2',
           isUrgent
             ? 'bg-red-100 text-red-700 dark:bg-red-950/50 dark:text-red-200'
-            : 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-200'
+            : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-900 dark:text-zinc-200'
         )}>
           {isUrgent ? <AlertTriangle className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
         </div>
