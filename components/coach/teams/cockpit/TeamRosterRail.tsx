@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { Users, Search, Check, CheckCheck, Plus, CalendarDays } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import type { RosterDotLevel } from '@/lib/coach/roster-dot-status'
 
@@ -104,7 +105,7 @@ export function TeamRosterRail({
   }, [members, query, sort, positionFilter])
 
   return (
-    <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+    <div className={roleSurfaceClass()}>
       <div className="flex items-center justify-between gap-2 border-b px-4 py-3 dark:border-white/10">
         <div className="flex items-center gap-2 font-semibold dark:text-white">
           <Users className="h-4 w-4" />
@@ -131,7 +132,7 @@ export function TeamRosterRail({
             value={positionFilter ?? ''}
             onChange={(event) => onPositionFilterChange(event.target.value || null)}
             aria-label={t('cockpit.rail.filterPosition')}
-            className="rounded-md border bg-transparent px-2 py-1.5 text-sm outline-none dark:border-white/10 dark:bg-slate-900"
+            className="rounded-md border bg-transparent px-2 py-1.5 text-sm outline-none dark:border-white/10 dark:bg-zinc-900"
           >
             <option value="">{t('cockpit.rail.allPositions')}</option>
             {positions.map((position) => (
@@ -145,7 +146,7 @@ export function TeamRosterRail({
           value={sort}
           onChange={(event) => setSort(event.target.value as SortKey)}
           aria-label={t('cockpit.rail.sortLabel')}
-          className="rounded-md border bg-transparent px-2 py-1.5 text-sm outline-none dark:border-white/10 dark:bg-slate-900"
+          className="rounded-md border bg-transparent px-2 py-1.5 text-sm outline-none dark:border-white/10 dark:bg-zinc-900"
         >
           <option value="position">{t('cockpit.rail.sortPosition')}</option>
           <option value="number">{t('cockpit.rail.sortNumber')}</option>

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PlayerStaffNotesPanel } from '@/components/coach/player-notes/PlayerStaffNotesPanel'
 import { useTranslations } from '@/i18n/client'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { rosterStatusReason } from '@/lib/coach/roster-dot-status'
 import { cn } from '@/lib/utils'
 import type { DayCoverage, RailMember } from './TeamRosterRail'
@@ -118,7 +119,7 @@ export function TeamSelectedPlayerPanel({
   const statusReason = rosterStatusReason(member)
 
   return (
-    <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+    <div className={roleSurfaceClass()}>
       <div className="flex items-start justify-between gap-3 border-b px-4 py-3 dark:border-white/10">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">

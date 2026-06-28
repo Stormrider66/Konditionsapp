@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
 import type { WattbikeSample } from '@/lib/integrations/wattbike'
 import { receiverSlotForEquipment } from '@/lib/team-capture/equipment'
@@ -200,7 +201,7 @@ export function TeamCaptureStationReceiver({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_2fr]">
-        <div className="rounded-lg border bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className={roleSurfaceClass('p-5')}>
           <div className="mb-4 flex items-center gap-2 font-medium dark:text-white">
             {connected ? <BluetoothConnected className="h-5 w-5 text-emerald-600" /> : <Bluetooth className="h-5 w-5 text-muted-foreground" />}
             {text(locale, 'Bluetooth receiver', 'Bluetoothmottagare')}
@@ -240,7 +241,7 @@ export function TeamCaptureStationReceiver({
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className={roleSurfaceClass('p-5')}>
           <p className="text-sm text-muted-foreground">{text(locale, 'Current athlete', 'Aktuell spelare')}</p>
           {currentAthlete ? (
             <div className="mt-3">

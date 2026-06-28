@@ -14,6 +14,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import { buildWorkoutPrintUrl } from '@/components/workouts/print/PrintWorkoutButton'
 import type { PrintableWorkoutKind } from '@/lib/workout-print/normalize'
@@ -224,7 +225,7 @@ export function TeamSchedulePane({
   })
 
   return (
-    <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+    <div className={roleSurfaceClass()}>
       <div className="flex items-center justify-between gap-2 border-b px-4 py-3 dark:border-white/10">
         <div className="flex items-center gap-2 font-semibold dark:text-white">
           <CalendarClock className="h-4 w-4 text-blue-500" />

@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { roleSurfaceClass, roleTableHeadClass } from '@/components/layouts/role-shell/RolePage'
 import {
   buildDefaultTeamCaptureTemplate,
   buildTeamCaptureLanePlan,
@@ -154,7 +155,7 @@ export function TeamCaptureLauncher({
       </div>
 
       {existingSessions.length > 0 && (
-        <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className={roleSurfaceClass('mb-4')}>
           <div className="border-b px-4 py-3 font-medium dark:border-white/10 dark:text-white">
             {text(locale, 'Recent team cardio sessions', 'Senaste lagkonditionspass')}
           </div>
@@ -180,7 +181,7 @@ export function TeamCaptureLauncher({
         </div>
       )}
 
-      <div className="mb-4 rounded-lg border bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <div className={roleSurfaceClass('mb-4 p-4')}>
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_180px_2fr]">
           <div className="min-w-0">
             <label className="mb-2 block text-sm font-medium dark:text-white">
@@ -270,7 +271,7 @@ export function TeamCaptureLauncher({
 
       {template && plan ? (
       <div className="grid gap-4 lg:grid-cols-[2fr_1fr]">
-        <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className={roleSurfaceClass()}>
           <div className="flex items-center justify-between border-b px-4 py-3 dark:border-white/10">
             <div className="flex items-center gap-2 font-medium dark:text-white">
               <Users className="h-4 w-4" />
@@ -280,7 +281,7 @@ export function TeamCaptureLauncher({
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-sm">
-              <thead className="border-b bg-muted/40 text-xs uppercase text-muted-foreground dark:border-white/10">
+              <thead className={roleTableHeadClass()}>
                 <tr>
                   <th className="px-4 py-2 text-left">{text(locale, 'Lane', 'Bana')}</th>
                   {heatNumbers.map((heat) => (
@@ -316,7 +317,7 @@ export function TeamCaptureLauncher({
           </div>
         </div>
 
-        <div className="rounded-lg border bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className={roleSurfaceClass('p-4')}>
           <div className="mb-3 flex items-center gap-2 font-medium dark:text-white">
             <Activity className="h-4 w-4 text-emerald-600" />
             {text(locale, 'Session setup', 'Passupplägg')}

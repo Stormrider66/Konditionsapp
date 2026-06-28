@@ -6,6 +6,7 @@ import { Activity, AlertTriangle, HeartPulse, Loader2, TrendingUp, Zap } from 'l
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import type { Locale } from './TeamSchedulePane'
 
@@ -129,7 +130,7 @@ export function TeamMonitoringRollup({ teamId, businessSlug, locale }: TeamMonit
   }, [data?.players, sortMode])
 
   return (
-    <div className="mb-4 rounded-lg border bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+    <div className={roleSurfaceClass('mb-4 p-4')}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-white">

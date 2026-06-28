@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useTranslations } from '@/i18n/client'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import type { DayCoverage, RailMember } from './TeamRosterRail'
 import type { Locale } from './TeamSchedulePane'
@@ -131,7 +132,7 @@ export function TeamUnplannedPlayersQueue({
   }
 
   return (
-    <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+    <div className={roleSurfaceClass('mb-4')}>
       <div className="flex flex-col gap-3 border-b px-4 py-3 dark:border-white/10 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold dark:text-white">

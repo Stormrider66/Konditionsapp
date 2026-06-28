@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import {
   PHYSICAL_TEAM_EVENT_TYPES,
@@ -176,7 +177,7 @@ export function TeamActionInbox({
   }
 
   return (
-    <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+    <div className={roleSurfaceClass('mb-4')}>
       <div className="flex flex-col gap-2 border-b px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold dark:text-white">

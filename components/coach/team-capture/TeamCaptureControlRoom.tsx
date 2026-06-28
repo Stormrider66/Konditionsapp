@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { roleListItemClass, roleSurfaceClass, roleTableHeadClass } from '@/components/layouts/role-shell/RolePage'
 import { labelFromEquipmentKey } from '@/lib/team-capture/equipment'
 import { cn } from '@/lib/utils'
 
@@ -354,7 +355,7 @@ export function TeamCaptureControlRoom({
         </div>
       </div>
 
-      <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <div className={roleSurfaceClass('mb-4')}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/10">
           <div className="flex items-center gap-2 font-medium dark:text-white">
             <Watch className="h-4 w-4 text-blue-600" />
@@ -371,7 +372,7 @@ export function TeamCaptureControlRoom({
         </div>
         <div className="max-h-[360px] overflow-auto">
           <table className="w-full min-w-[860px] text-sm">
-            <thead className="sticky top-0 border-b bg-muted/80 text-xs uppercase text-muted-foreground backdrop-blur dark:border-white/10 dark:bg-slate-900/90">
+            <thead className={roleTableHeadClass('sticky top-0 backdrop-blur')}>
               <tr>
                 <th className="px-4 py-2 text-left">{text(locale, 'Lane', 'Bana')}</th>
                 <th className="px-4 py-2 text-left">{text(locale, 'Player', 'Spelare')}</th>
@@ -443,7 +444,7 @@ export function TeamCaptureControlRoom({
       </div>
 
       {showLiveMetrics && (
-        <div className="mb-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className={roleSurfaceClass('mb-4')}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/10">
             <div className="flex items-center gap-2 font-medium dark:text-white">
               <Activity className="h-4 w-4 text-emerald-600" />
@@ -458,7 +459,7 @@ export function TeamCaptureControlRoom({
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] text-sm">
-              <thead className="border-b bg-muted/80 text-xs uppercase text-muted-foreground dark:border-white/10 dark:bg-slate-900/90">
+              <thead className={roleTableHeadClass()}>
                 <tr>
                   <th className="px-4 py-2 text-left">{text(locale, 'Station', 'Station')}</th>
                   <th className="px-4 py-2 text-left">{text(locale, 'Player', 'Spelare')}</th>
@@ -550,7 +551,7 @@ export function TeamCaptureControlRoom({
           <Link
             key={station.id}
             href={`${baseHref}/station/${station.id}`}
-            className="rounded-lg border bg-white p-4 shadow-sm transition hover:border-blue-300 dark:border-white/10 dark:bg-slate-900 dark:hover:border-blue-500"
+            className={roleListItemClass('blue', 'p-4')}
           >
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 font-medium dark:text-white">
@@ -568,7 +569,7 @@ export function TeamCaptureControlRoom({
         ))}
       </div>
 
-      <div className="rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <div className={roleSurfaceClass()}>
         <div className="border-b px-4 py-3 font-medium dark:border-white/10 dark:text-white">
           {text(locale, 'Lane board', 'Banöversikt')}
         </div>
@@ -614,7 +615,7 @@ export function TeamCaptureControlRoom({
         </div>
       </div>
 
-      <div className="mt-4 rounded-lg border bg-white shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <div className={roleSurfaceClass('mt-4')}>
         <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 dark:border-white/10">
           <div className="flex items-center gap-2 font-medium dark:text-white">
             <ArrowRightLeft className="h-4 w-4" />
@@ -630,7 +631,7 @@ export function TeamCaptureControlRoom({
         </div>
         <div className="max-h-[520px] overflow-auto">
           <table className="w-full min-w-[920px] text-sm">
-            <thead className="sticky top-0 border-b bg-muted/80 text-xs uppercase text-muted-foreground backdrop-blur dark:border-white/10 dark:bg-slate-900/90">
+            <thead className={roleTableHeadClass('sticky top-0 backdrop-blur')}>
               <tr>
                 <th className="px-4 py-2 text-left">{text(locale, 'Round', 'Runda')}</th>
                 <th className="px-4 py-2 text-left">{text(locale, 'Lane', 'Bana')}</th>

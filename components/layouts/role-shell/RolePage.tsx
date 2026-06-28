@@ -203,6 +203,20 @@ export function roleMutedBlockClass(className?: string) {
   )
 }
 
+export function roleSurfaceClass(className?: string) {
+  return cn(
+    'rounded-lg border border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950/60',
+    className
+  )
+}
+
+export function roleTableHeadClass(className?: string) {
+  return cn(
+    'border-b bg-zinc-50/90 text-xs uppercase text-zinc-500 dark:border-white/10 dark:bg-zinc-900/80 dark:text-zinc-400',
+    className
+  )
+}
+
 export function roleListItemClass(tone: keyof typeof rowToneClasses = 'zinc', className?: string) {
   return cn(
     'rounded-lg border border-zinc-200 bg-white transition-colors dark:border-white/10 dark:bg-zinc-950/40',

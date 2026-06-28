@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowRight, Layers } from 'lucide-react'
 import { useTranslations } from '@/i18n/client'
+import { roleSurfaceClass } from '@/components/layouts/role-shell/RolePage'
 
 interface TeamPhaseStripProps {
   /** Link to the Plan tab. */
@@ -35,7 +36,7 @@ export function TeamPhaseStrip({
 
   return (
     <Link href={href} className="block">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-blue-100 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors hover:border-blue-300 dark:border-blue-500/20 dark:bg-slate-900 dark:hover:border-blue-500/40">
+      <div className={roleSurfaceClass('flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm transition-colors hover:border-blue-300 dark:hover:border-blue-500/40')}>
         <Layers className="h-4 w-4 shrink-0 text-blue-500" />
         <span className="rounded-md bg-blue-50 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-500/10 dark:text-blue-200">
           {t('tabs.plan')}
