@@ -12,7 +12,13 @@ import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import { useLocale } from 'next-intl'
 import { Play, Pause, RotateCcw, ArrowLeftRight, TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelDescription as CardDescription,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
