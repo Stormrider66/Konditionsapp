@@ -17,6 +17,16 @@ const statToneClasses = {
   zinc: 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300',
 }
 
+const rowToneClasses = {
+  blue: 'hover:border-blue-200 hover:bg-blue-50/30 dark:hover:border-blue-900/60 dark:hover:bg-blue-950/20',
+  emerald: 'hover:border-emerald-200 hover:bg-emerald-50/30 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/20',
+  red: 'hover:border-red-200 hover:bg-red-50/30 dark:hover:border-red-900/60 dark:hover:bg-red-950/20',
+  amber: 'hover:border-amber-200 hover:bg-amber-50/30 dark:hover:border-amber-900/60 dark:hover:bg-amber-950/20',
+  orange: 'hover:border-orange-200 hover:bg-orange-50/30 dark:hover:border-orange-900/60 dark:hover:bg-orange-950/20',
+  violet: 'hover:border-violet-200 hover:bg-violet-50/30 dark:hover:border-violet-900/60 dark:hover:bg-violet-950/20',
+  zinc: 'hover:border-zinc-300 hover:bg-zinc-50 dark:hover:border-zinc-700 dark:hover:bg-zinc-900/70',
+}
+
 export interface RolePageFrameProps {
   children: ReactNode
   className?: string
@@ -189,6 +199,21 @@ export function RolePanelFooter({ className, ...props }: ComponentPropsWithoutRe
 export function roleMutedBlockClass(className?: string) {
   return cn(
     'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-zinc-900/40',
+    className
+  )
+}
+
+export function roleListItemClass(tone: keyof typeof rowToneClasses = 'zinc', className?: string) {
+  return cn(
+    'rounded-lg border border-zinc-200 bg-white transition-colors dark:border-white/10 dark:bg-zinc-950/40',
+    rowToneClasses[tone],
+    className
+  )
+}
+
+export function roleEmptyStateClass(className?: string) {
+  return cn(
+    'rounded-lg border border-dashed border-zinc-200 px-4 py-10 text-center text-zinc-500 dark:border-white/10 dark:text-zinc-400',
     className
   )
 }

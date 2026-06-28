@@ -22,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
 import { useTranslations } from '@/i18n/client'
 
 interface Athlete {
@@ -221,7 +221,7 @@ export default function BusinessPhysioAthletesPage() {
                 </div>
 
                 {athlete.currentInjury && (
-                  <div className="mb-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50">
+                  <div className={roleMutedBlockClass('mb-3 p-3')}>
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <span className="truncate text-sm font-medium text-zinc-700 dark:text-zinc-200">
                         {athlete.currentInjury.injuryType}

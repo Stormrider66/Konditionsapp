@@ -285,7 +285,7 @@ export function RestrictionForm({
         </p>
       </div>
       <div className="space-y-5 p-5">
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-2')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.athlete')}</Label>
             <Select value={clientId} onValueChange={setClientId} disabled={Boolean(restrictionId)}>
@@ -323,7 +323,7 @@ export function RestrictionForm({
           </div>
         </div>
 
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-3')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.type')}</Label>
             <Select value={type} onValueChange={setType}>
@@ -414,7 +414,7 @@ export function RestrictionForm({
           </div>
         </div>
 
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-2')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.volumeReduction')}</Label>
             <Input

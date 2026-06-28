@@ -223,7 +223,7 @@ export function RehabProgramForm({
         </p>
       </div>
       <div className="space-y-5 p-5">
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-2')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.athlete')}</Label>
             <Select value={clientId} onValueChange={setClientId} disabled={Boolean(programId)}>
@@ -271,7 +271,7 @@ export function RehabProgramForm({
           />
         </div>
 
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-3')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.phase')}</Label>
             <Select value={currentPhase} onValueChange={setCurrentPhase}>
@@ -312,7 +312,7 @@ export function RehabProgramForm({
           </div>
         </div>
 
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-2')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.shortTermGoals')}</Label>
             <Textarea
@@ -333,7 +333,7 @@ export function RehabProgramForm({
           </div>
         </div>
 
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-2')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.contraindications')}</Label>
             <Textarea
@@ -354,7 +354,7 @@ export function RehabProgramForm({
           </div>
         </div>
 
-        <div className={roleMutedBlockClass('')}>
+        <div className={roleMutedBlockClass('grid gap-4 md:grid-cols-2')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.acceptablePainDuring')}</Label>
             <Input

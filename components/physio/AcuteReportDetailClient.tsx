@@ -37,6 +37,7 @@ import {
   RolePanelContent as CardContent,
   RolePanelHeader as CardHeader,
   RolePanelTitle as CardTitle,
+  roleMutedBlockClass,
 } from '@/components/layouts/role-shell/RolePage'
 
 interface AcuteReportDetail {
@@ -113,7 +114,7 @@ const statusStyles: Record<string, string> = {
 
 const titleClass = 'flex items-center gap-2 text-zinc-950 dark:text-zinc-50'
 const inputClass = 'border-zinc-200 bg-white text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-100'
-const quietBlockClass = 'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 text-sm leading-6 text-zinc-700 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-200'
+const quietBlockClass = roleMutedBlockClass('text-sm leading-6 text-zinc-700 dark:text-zinc-200')
 const outlineButtonClass = 'border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-white/10 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50'
 const capsLabelClass = 'text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500 dark:text-zinc-500'
 
@@ -630,7 +631,7 @@ function Info({
   icon?: ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-zinc-900/40">
+    <div className={roleMutedBlockClass()}>
       <p className={`mb-2 flex items-center gap-2 ${capsLabelClass}`}>
         {icon}
         {label}

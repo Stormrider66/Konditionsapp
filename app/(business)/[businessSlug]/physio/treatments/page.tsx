@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 
 interface TreatmentSession {
@@ -227,7 +227,7 @@ export default function BusinessPhysioTreatmentsPage() {
                   </div>
 
                   {hasPainData && (
-                    <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-white/10 dark:bg-zinc-900/50 lg:text-right">
+                    <div className={roleMutedBlockClass('px-3 py-2 text-sm lg:text-right')}>
                       {treatment.painBefore !== null && (
                         <div className="text-zinc-500 dark:text-zinc-400">
                           Before: <span className="font-medium text-zinc-800 dark:text-zinc-100">{treatment.painBefore}/10</span>

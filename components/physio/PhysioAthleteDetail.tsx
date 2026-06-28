@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { RolePageFrame, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
 import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 
@@ -138,8 +138,7 @@ const phaseColors: Record<string, string> = {
 const actionButtonClass =
   'w-full justify-start border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50 hover:text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-300 dark:hover:bg-zinc-900 dark:hover:text-zinc-50'
 
-const listItemClass =
-  'rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50'
+const listItemClass = roleMutedBlockClass()
 
 const painBarColor = (pain: number) => {
   if (pain >= 7) return 'bg-red-500 dark:bg-red-400'
@@ -719,7 +718,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
                     {athlete.dailyMetrics.map((metric, index) => (
                       <div
                         key={`${metric.date}-${index}`}
-                        className="flex flex-col gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50 sm:flex-row sm:items-center sm:justify-between"
+                        className={roleMutedBlockClass('flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between')}
                       >
                         <span className="font-medium text-zinc-700 dark:text-zinc-200">
                           {new Date(metric.date).toLocaleDateString()}

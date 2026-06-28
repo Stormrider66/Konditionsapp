@@ -22,6 +22,8 @@ import {
   RolePageHeader,
   RolePanel,
   RoleStatCard,
+  roleEmptyStateClass,
+  roleListItemClass,
 } from '@/components/layouts/role-shell/RolePage'
 
 interface DashboardStats {
@@ -257,7 +259,7 @@ export default function BusinessPhysioDashboardPage() {
           </div>
           <div className="p-5">
             {acuteReports.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-zinc-200 px-4 py-10 text-center text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+              <div className={roleEmptyStateClass()}>
                 <AlertTriangle className="mx-auto mb-4 h-10 w-10 opacity-50" />
                 <p className="text-sm font-medium">No pending acute reports</p>
               </div>
@@ -267,7 +269,7 @@ export default function BusinessPhysioDashboardPage() {
                   <Link
                     key={report.id}
                     href={`${basePath}/acute-reports/${report.id}`}
-                    className="group block rounded-lg border border-zinc-200 bg-white p-4 transition-colors hover:border-red-200 hover:bg-red-50/40 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-red-900/60 dark:hover:bg-red-950/20"
+                    className={roleListItemClass('red', 'group block p-4')}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
@@ -309,7 +311,7 @@ export default function BusinessPhysioDashboardPage() {
           </div>
           <div className="p-5">
             {athletes.length === 0 ? (
-              <div className="rounded-lg border border-dashed border-zinc-200 px-4 py-10 text-center text-zinc-500 dark:border-white/10 dark:text-zinc-400">
+              <div className={roleEmptyStateClass()}>
                 <Users className="mx-auto mb-4 h-10 w-10 opacity-50" />
                 <p className="text-sm font-medium">No athletes with active injuries</p>
               </div>
@@ -319,7 +321,7 @@ export default function BusinessPhysioDashboardPage() {
                   <Link
                     key={athlete.id}
                     href={`${basePath}/athletes/${athlete.id}`}
-                    className="group block rounded-lg border border-zinc-200 bg-white p-4 transition-colors hover:border-emerald-200 hover:bg-emerald-50/40 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/20"
+                    className={roleListItemClass('emerald', 'group block p-4')}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
