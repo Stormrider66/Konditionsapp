@@ -117,6 +117,8 @@ const COPY = {
     cancel: 'Cancel',
     saveChanges: 'Save changes',
     created: 'Block plan created',
+    teamWorkoutsSkipped: (count: number) =>
+      `${count} team ${count === 1 ? 'session' : 'sessions'} marked as skipped for the injury plan`,
     updated: 'Block plan updated',
     createError: 'Could not create block plan',
     updateError: 'Could not update block plan',
@@ -154,6 +156,8 @@ const COPY = {
     cancel: 'Avbryt',
     saveChanges: 'Spara ändringar',
     created: 'Blockplan skapad',
+    teamWorkoutsSkipped: (count: number) =>
+      `${count} lagpass markerade som överhoppade för skadeplanen`,
     updated: 'Blockplan uppdaterad',
     createError: 'Kunde inte skapa blockplan',
     updateError: 'Kunde inte uppdatera blockplan',
@@ -550,6 +554,9 @@ export function CreateBlockPlanDialog({
         onCreated?.(body.data)
       }
       toast.success(isEditing ? copy.updated : copy.created)
+      if (!isEditing && typeof body.teamWorkoutsSkipped === 'number' && body.teamWorkoutsSkipped > 0) {
+        toast.success(copy.teamWorkoutsSkipped(body.teamWorkoutsSkipped))
+      }
       setOpen(false)
       if ((isEditing && !onSaved) || (!isEditing && !onCreated)) window.location.reload()
     } catch (error) {

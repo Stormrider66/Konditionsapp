@@ -10,6 +10,8 @@ import {
   normalizeBlockPlanDates,
 } from '@/lib/block-plans/duration'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
+import { skipTeamWorkoutsForInjuryPlan } from '@/lib/coach/injury-plan-sync'
+import { logger } from '@/lib/logger'
 
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
@@ -201,7 +203,22 @@ export async function POST(
       select: planSelect(),
     })
 
-    return NextResponse.json({ success: true, data: plan }, { status: 201 })
+    // Injury-recovery plans: drop the player's team-broadcast workouts in the plan
+    // window (marked skipped, reversible) so the plan and their sessions stay in sync.
+    let teamWorkoutsSkipped = 0
+    if ((parsed.data.planType ?? 'SPECIAL_PROGRAM') === 'INJURY_RECOVERY') {
+      try {
+        teamWorkoutsSkipped = await skipTeamWorkoutsForInjuryPlan({
+          clientId,
+          planStart: planStartDate,
+          planEnd: planEndDate,
+        })
+      } catch (error) {
+        logger.error('Failed to sync team workouts for injury plan', { clientId, planId: plan.id }, error)
+      }
+    }
+
+    return NextResponse.json({ success: true, data: plan, teamWorkoutsSkipped }, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'INVALID_BLOCK_DATES') {
       return NextResponse.json({ success: false, error: t(locale, 'Invalid block dates', 'Ogiltiga blockdatum') }, { status: 400 })
