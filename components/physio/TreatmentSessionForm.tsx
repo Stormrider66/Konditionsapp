@@ -1,13 +1,12 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, type ComponentPropsWithoutRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     Stethoscope,
     User,
     Save,
 } from 'lucide-react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -23,6 +22,8 @@ import {
 } from '@/components/ui/select'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { useTranslations } from '@/i18n/client'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { cn } from '@/lib/utils'
 
 interface Athlete {
     id: string
@@ -42,6 +43,26 @@ interface TreatmentSessionFormProps {
 }
 
 type SelectOption = { value: string; label: string }
+
+function Card({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
+    return <RolePanel className={className} {...props} />
+}
+
+function CardHeader({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+    return <div className={cn('border-b border-zinc-200 p-5 dark:border-white/10', className)} {...props} />
+}
+
+function CardContent({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+    return <div className={cn('p-5', className)} {...props} />
+}
+
+function CardTitle({ className, ...props }: ComponentPropsWithoutRef<'h3'>) {
+    return <h3 className={cn('text-base font-semibold text-zinc-950 dark:text-zinc-50', className)} {...props} />
+}
+
+function CardDescription({ className, ...props }: ComponentPropsWithoutRef<'p'>) {
+    return <p className={cn('mt-1 text-sm text-zinc-500 dark:text-zinc-400', className)} {...props} />
+}
 
 const panelClass = 'border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950/60'
 const titleClass = 'flex items-center gap-2 text-zinc-950 dark:text-zinc-50'

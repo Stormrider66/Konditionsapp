@@ -1,7 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState, useEffect, type ComponentPropsWithoutRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Label } from '@/components/ui/label'
@@ -41,10 +40,32 @@ import {
   type NutritionPlan,
 } from '@/lib/ai/nutrition-calculator'
 import { useLocale } from 'next-intl'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { cn } from '@/lib/utils'
 
 type AppLocale = 'en' | 'sv'
 
 const copy = (locale: AppLocale, en: string, sv: string) => locale === 'sv' ? sv : en
+
+function Card({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
+  return <RolePanel className={className} {...props} />
+}
+
+function CardHeader({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return <div className={cn('border-b border-zinc-200 p-5 dark:border-white/10', className)} {...props} />
+}
+
+function CardContent({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return <div className={cn('p-5', className)} {...props} />
+}
+
+function CardTitle({ className, ...props }: ComponentPropsWithoutRef<'h3'>) {
+  return <h3 className={cn('text-base font-semibold text-zinc-950 dark:text-zinc-50', className)} {...props} />
+}
+
+function CardDescription({ className, ...props }: ComponentPropsWithoutRef<'p'>) {
+  return <p className={cn('mt-1 text-sm text-zinc-500 dark:text-zinc-400', className)} {...props} />
+}
 
 interface NutritionRecommendationsProps {
   clientId: string

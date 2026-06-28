@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/i18n/client'
@@ -18,7 +18,6 @@ import {
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -32,7 +31,8 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { cn } from '@/lib/utils'
 
 interface AcuteReportDetail {
   id: string
@@ -84,6 +84,22 @@ interface AcuteReportDetailClientProps {
 type SideValue = 'LEFT' | 'RIGHT' | 'BILATERAL' | 'CENTRAL'
 type PhaseValue = 'ACUTE' | 'SUBACUTE' | 'CHRONIC'
 type AppLocale = 'en' | 'sv'
+
+function Card({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
+  return <RolePanel className={className} {...props} />
+}
+
+function CardHeader({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return <div className={cn('border-b border-zinc-200 p-5 dark:border-white/10', className)} {...props} />
+}
+
+function CardContent({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return <div className={cn('p-5', className)} {...props} />
+}
+
+function CardTitle({ className, ...props }: ComponentPropsWithoutRef<'h3'>) {
+  return <h3 className={cn('text-base font-semibold text-zinc-950 dark:text-zinc-50', className)} {...props} />
+}
 
 function copy(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
