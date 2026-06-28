@@ -1,10 +1,10 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -97,14 +97,14 @@ export function PTDashboardLayout({
     {
       key: 'recent-tests',
       node: (
-        <GlassCard glow="blue" className="group">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm flex items-center gap-2">
+        <DashboardCard glow="blue" className="group">
+          <DashboardCardHeader className="pb-2">
+            <DashboardCardTitle className="text-sm flex items-center gap-2">
               <Gauge className="h-4 w-4 text-cyan-500" />
               {t('ptDashboard.recentTests.title')}
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
+            </DashboardCardTitle>
+          </DashboardCardHeader>
+          <DashboardCardContent>
             {recentTests.length === 0 ? (
               <p className={quietStateClass}>
                 {t('ptDashboard.recentTests.empty')}
@@ -139,21 +139,21 @@ export function PTDashboardLayout({
                 </Link>
               </div>
             )}
-          </GlassCardContent>
-        </GlassCard>
+          </DashboardCardContent>
+        </DashboardCard>
       ),
     },
     {
       key: 'upcoming-events',
       node: (
-        <GlassCard glow="purple" className="group">
-          <GlassCardHeader className="pb-3">
-            <GlassCardTitle className="text-base flex items-center gap-2">
+        <DashboardCard glow="purple" className="group">
+          <DashboardCardHeader className="pb-3">
+            <DashboardCardTitle className="text-base flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-purple-500" />
               {t('ptDashboard.upcomingEvents.title')}
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
+            </DashboardCardTitle>
+          </DashboardCardHeader>
+          <DashboardCardContent>
             {upcomingEvents.length === 0 ? (
               <div className={quietStateClass}>
                 <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -193,8 +193,8 @@ export function PTDashboardLayout({
                 </Link>
               </div>
             )}
-          </GlassCardContent>
-        </GlassCard>
+          </DashboardCardContent>
+        </DashboardCard>
       ),
     },
   ])

@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
@@ -118,19 +118,19 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
   }, [fetchClasses])
 
   return (
-    <GlassCard glow="purple" className="group">
-      <GlassCardHeader className="pb-3">
+    <DashboardCard glow="purple" className="group">
+      <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-base flex items-center gap-2">
+          <DashboardCardTitle className="text-base flex items-center gap-2">
             <Calendar className="h-4 w-4 text-purple-500" />
             {t('title')}
-          </GlassCardTitle>
+          </DashboardCardTitle>
           {classes.length > 0 && (
             <Badge variant="secondary" className="text-xs">{classes.length}</Badge>
           )}
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </DashboardCardHeader>
+      <DashboardCardContent>
         {loading ? (
           <div className={quietStateClass}>
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -184,7 +184,7 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
             ))}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }
