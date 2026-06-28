@@ -6,6 +6,8 @@ import {
   RolePanelContent as CardContent,
   RolePanelHeader as CardHeader,
   RolePanelTitle as CardTitle,
+  roleListItemClass,
+  roleMutedBlockClass,
 } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -305,7 +307,7 @@ export function BusinessCoachAssignmentsTab() {
       )}
 
       {/* Section A: Pending Coach Requests */}
-      <Card className="bg-white dark:bg-slate-900/50 border dark:border-white/10">
+      <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <UserPlus className="h-5 w-5 text-muted-foreground" />
@@ -324,7 +326,7 @@ export function BusinessCoachAssignmentsTab() {
               {requests.map((req) => (
                 <div
                   key={req.id}
-                  className="flex items-center justify-between p-3 rounded-lg border dark:border-white/10"
+                  className={roleListItemClass('blue', 'flex items-center justify-between p-3')}
                 >
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">
@@ -382,7 +384,7 @@ export function BusinessCoachAssignmentsTab() {
       </Card>
 
       {/* Section B: Unassigned Athletes */}
-      <Card className="bg-white dark:bg-slate-900/50 border dark:border-white/10">
+      <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
@@ -401,10 +403,10 @@ export function BusinessCoachAssignmentsTab() {
               {unassigned.map((athlete) => (
                 <div
                   key={athlete.id}
-                  className="flex items-center justify-between p-3 rounded-lg border dark:border-white/10"
+                  className={roleListItemClass('blue', 'flex items-center justify-between p-3')}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted dark:bg-white/10">
+                    <div className={roleMutedBlockClass('flex h-8 w-8 items-center justify-center rounded-full p-0')}>
                       <Users className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div className="min-w-0">
@@ -498,7 +500,7 @@ export function BusinessCoachAssignmentsTab() {
       </Dialog>
 
       {/* Section C: Current Assignments Overview */}
-      <Card className="bg-white dark:bg-slate-900/50 border dark:border-white/10">
+      <Card>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-muted-foreground" />
@@ -517,10 +519,10 @@ export function BusinessCoachAssignmentsTab() {
               {coachSummaries.map((coach) => (
                 <div
                   key={coach.id}
-                  className="flex items-center justify-between p-3 rounded-lg border dark:border-white/10"
+                  className={roleListItemClass('blue', 'flex items-center justify-between p-3')}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted dark:bg-white/10">
+                    <div className={roleMutedBlockClass('flex h-8 w-8 items-center justify-center rounded-full p-0')}>
                       <UserPlus className="h-4 w-4 text-muted-foreground" />
                     </div>
                     <div>
