@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { RolePanel, RolePanelContent } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -108,11 +109,11 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
     : null
 
   return (
-    <div className={cn(
-      'rounded-lg bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow',
+    <RolePanel className={cn(
+      'hover:shadow-md transition-shadow',
       borderColor,
     )}>
-      <div className="p-4 space-y-3">
+      <RolePanelContent className="p-4 space-y-3">
         {/* Header: Avatar + Name + Sport/Phase */}
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-300 flex-shrink-0">
@@ -224,7 +225,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
             </Button>
           </Link>
         </div>
-      </div>
-    </div>
+      </RolePanelContent>
+    </RolePanel>
   )
 }

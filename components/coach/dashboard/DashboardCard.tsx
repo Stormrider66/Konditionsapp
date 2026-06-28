@@ -1,4 +1,11 @@
-import type { HTMLAttributes, ReactNode } from 'react'
+import type { ComponentPropsWithoutRef, HTMLAttributes, ReactNode } from 'react'
+import {
+  RolePanel,
+  RolePanelContent,
+  RolePanelDescription,
+  RolePanelHeader,
+  RolePanelTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 
 type DashboardCardTone = 'blue' | 'emerald' | 'purple' | 'amber' | 'red' | 'teal' | 'slate' | 'none'
@@ -14,7 +21,7 @@ const toneHoverClasses: Record<DashboardCardTone, string> = {
   slate: 'hover:border-zinc-300 hover:shadow-zinc-500/10 dark:hover:border-zinc-700',
 }
 
-interface DashboardCardProps extends HTMLAttributes<HTMLDivElement> {
+interface DashboardCardProps extends ComponentPropsWithoutRef<'section'> {
   children: ReactNode
   gradient?: boolean
   glow?: DashboardCardTone
@@ -28,23 +35,23 @@ export function DashboardCard({
   ...props
 }: DashboardCardProps) {
   return (
-    <div
+    <RolePanel
       className={cn(
-        'overflow-hidden rounded-lg border border-zinc-200 bg-white text-zinc-950 shadow-sm transition-colors dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-50',
+        'overflow-hidden text-zinc-950 transition-colors dark:text-zinc-50',
         toneHoverClasses[glow],
         className
       )}
       {...props}
     >
       {children}
-    </div>
+    </RolePanel>
   )
 }
 
 export function DashboardCardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={cn('flex flex-col space-y-1.5 border-b border-zinc-200 p-5 dark:border-white/10', className)}
+    <RolePanelHeader
+      className={cn('flex flex-col space-y-1.5', className)}
       {...props}
     />
   )
@@ -52,8 +59,8 @@ export function DashboardCardHeader({ className, ...props }: HTMLAttributes<HTML
 
 export function DashboardCardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
   return (
-    <h3
-      className={cn('font-semibold leading-none tracking-normal text-zinc-950 dark:text-zinc-50', className)}
+    <RolePanelTitle
+      className={cn('leading-none tracking-normal', className)}
       {...props}
     />
   )
@@ -61,15 +68,15 @@ export function DashboardCardTitle({ className, ...props }: HTMLAttributes<HTMLH
 
 export function DashboardCardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p
-      className={cn('text-sm text-zinc-500 dark:text-zinc-400', className)}
+    <RolePanelDescription
+      className={cn('mt-0', className)}
       {...props}
     />
   )
 }
 
 export function DashboardCardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('p-5', className)} {...props} />
+  return <RolePanelContent className={className} {...props} />
 }
 
 export function DashboardCardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

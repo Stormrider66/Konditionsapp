@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { RolePanel, RolePanelContent } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -150,11 +151,11 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
   const hasAnyMetric = hasReadiness || hasAcwr || hasCompliance || hasInjuries || hasWeeklyActivity
 
   return (
-    <div className={cn(
-      'rounded-lg bg-white dark:bg-slate-900/60 border border-slate-200 dark:border-white/10 shadow-sm hover:shadow-md transition-shadow',
+    <RolePanel className={cn(
+      'hover:shadow-md transition-shadow',
       urgencyBorder,
     )}>
-      <div className="p-4 space-y-3">
+      <RolePanelContent className="p-4 space-y-3">
         {/* Header: Avatar + Name + Sport + Engagement */}
         <div className="flex items-center gap-3">
           <div className="relative">
@@ -343,7 +344,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
             <ExternalLink className="h-3 w-3" />
           </Button>
         </div>
-      </div>
-    </div>
+      </RolePanelContent>
+    </RolePanel>
   )
 }
