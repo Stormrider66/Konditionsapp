@@ -154,6 +154,15 @@ function Group({
   )
 }
 
+function SummaryChip({ label, count, cls }: { label: string; count: number; cls: string }) {
+  return (
+    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${cls}`}>
+      <span className="text-lg font-semibold tabular-nums leading-none">{count}</span>
+      <span className="text-xs font-medium leading-tight">{label}</span>
+    </div>
+  )
+}
+
 export function TeamIndividualPlansSection({ businessSlug, locale, special, recovery, needs }: TeamIndividualPlansSectionProps) {
   const total = special.length + recovery.length + needs.length
 
@@ -176,6 +185,24 @@ export function TeamIndividualPlansSection({ businessSlug, locale, special, reco
 
   return (
     <div>
+      <div className="mb-5 flex flex-wrap gap-2">
+        <SummaryChip
+          label={tt(locale, 'Specialprogram', 'Special programs')}
+          count={special.length}
+          cls="border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200"
+        />
+        <SummaryChip
+          label={tt(locale, 'Skadeåterhämtning', 'Injury recovery')}
+          count={recovery.length}
+          cls="border-red-200 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
+        />
+        <SummaryChip
+          label={tt(locale, 'Behöver en plan', 'Needs a program')}
+          count={needs.length}
+          cls="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
+        />
+      </div>
+
       <Group
         title={tt(locale, 'Specialprogram', 'Special programs')}
         hint={tt(locale, 'Spelare med individuellt anpassad träning (ej skada).', 'Players with individualised training (not injury-related).')}
