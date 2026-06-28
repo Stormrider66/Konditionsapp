@@ -164,6 +164,10 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
   const formatEnumLabel = (value?: string | null) =>
     value ? value.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase()) : ''
   const plansByClient = new Map(activeIndividualPlans.map((plan) => [plan.clientId, plan]))
+  // Severe restriction = the player should come off the team plan (SEVERE/COMPLETE
+  // severity, or a whole-category block), vs. minor restrictions that just filter
+  // unsafe exercises.
+  const MAJOR_BLOCK_TYPES = new Set(['NO_LOWER_BODY', 'NO_UPPER_BODY', 'NO_IMPACT'])
   const individualSpecial: IndividualPlanEntry[] = []
   const individualRecovery: IndividualPlanEntry[] = []
   const individualNeeds: IndividualPlanEntry[] = []
@@ -195,6 +199,11 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
           ? { label: formatEnumLabel(restrictionRow.type), detail: formatEnumLabel(restrictionRow.severity) }
           : null,
       restriction: restrictionRow ? { label: formatEnumLabel(restrictionRow.type) } : null,
+      severeRestriction:
+        !!restrictionRow &&
+        (restrictionRow.severity === 'SEVERE' ||
+          restrictionRow.severity === 'COMPLETE' ||
+          MAJOR_BLOCK_TYPES.has(restrictionRow.type)),
       hasPendingReport,
     }
 
@@ -210,6 +219,8 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
       individualNeeds.push(entry)
     }
   }
+  // Severe restrictions first — those are the players a coach most likely needs to act on.
+  individualNeeds.sort((a, b) => Number(b.severeRestriction) - Number(a.severeRestriction))
 
   const teamNotes = await prisma.teamNote.findMany({
     where: { teamId },

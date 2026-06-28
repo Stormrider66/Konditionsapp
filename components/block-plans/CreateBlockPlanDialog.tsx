@@ -70,6 +70,8 @@ interface CreateBlockPlanDialogProps {
   initialPlan?: AthletePlanSummary
   /** Show a plan-type selector (special program / injury recovery / …). Used for athlete plans, not team plans. */
   includePlanType?: boolean
+  /** Pre-select the plan type for a NEW plan (e.g. open straight into an injury-recovery plan). */
+  defaultPlanType?: 'SPECIAL_PROGRAM' | 'INJURY_RECOVERY' | 'RETURN_TO_PLAY' | 'PERFORMANCE'
 }
 
 type AppLocale = 'en' | 'sv'
@@ -367,6 +369,7 @@ export function CreateBlockPlanDialog({
   defaultTemplateKey = 'hockey-9',
   initialPlan,
   includePlanType = false,
+  defaultPlanType,
 }: CreateBlockPlanDialogProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
@@ -379,7 +382,7 @@ export function CreateBlockPlanDialog({
   const [isSaving, setIsSaving] = useState(false)
   const [templateKey, setTemplateKey] = useState(isEditing ? 'custom-edit' : initialTemplate.key)
   const [planType, setPlanType] = useState<AthletePlanTypeValue>(
-    (initialPlan?.planType as AthletePlanTypeValue) ?? 'SPECIAL_PROGRAM'
+    (initialPlan?.planType as AthletePlanTypeValue) ?? defaultPlanType ?? 'SPECIAL_PROGRAM'
   )
   const [name, setName] = useState(initialPlan?.name ?? initialTemplate.planName)
   const [description, setDescription] = useState(initialPlan?.description ?? initialTemplate.description)
@@ -390,7 +393,7 @@ export function CreateBlockPlanDialog({
   const totalWeeks = blockPlanTotalWeeks(blocks)
 
   function resetForm() {
-    setPlanType((initialPlan?.planType as AthletePlanTypeValue) ?? 'SPECIAL_PROGRAM')
+    setPlanType((initialPlan?.planType as AthletePlanTypeValue) ?? defaultPlanType ?? 'SPECIAL_PROGRAM')
     if (initialPlan) {
       const nextBlocks = buildBlocksFromPlan(initialPlan)
       const nextDescriptionTracksBlocks = hasAutoBlockPlanDescription(initialPlan.description ?? '')

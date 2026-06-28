@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { AthletePlanStaffNoteCard } from '@/components/coach/player-notes/AthletePlanStaffNoteCard'
+import { CreateAthletePlanDialog } from '@/components/coach/clients/CreateAthletePlanDialog'
 import type { AthletePlanSummary } from '@/components/athlete-plans/AthletePlanSummaryCard'
 
 export interface IndividualPlanEntry {
@@ -16,6 +17,8 @@ export interface IndividualPlanEntry {
   rehab: { name: string; phase: string | null } | null
   injury: { label: string; detail: string } | null
   restriction: { label: string } | null
+  /** SEVERE/COMPLETE restriction (or whole-category block) → should come off the team plan. */
+  severeRestriction?: boolean
   hasPendingReport: boolean
 }
 
@@ -46,6 +49,11 @@ function PlayerBadges({ entry, locale }: { entry: IndividualPlanEntry; locale: L
       {planTypeMeta && (
         <Badge variant="outline" className={planTypeMeta.cls}>
           {locale === 'sv' ? planTypeMeta.sv : planTypeMeta.en}
+        </Badge>
+      )}
+      {entry.severeRestriction && (
+        <Badge variant="outline" className="border-red-400 bg-red-50 text-red-800 dark:border-red-700 dark:bg-red-950/40 dark:text-red-200">
+          {tt(locale, 'Allvarlig restriktion', 'Severe restriction')}
         </Badge>
       )}
       {entry.injury && <Badge variant="destructive">{tt(locale, 'Skadad', 'Injured')}</Badge>}
@@ -110,11 +118,34 @@ function PlanCard({ entry, businessSlug, locale, mode }: {
             </p>
           )}
           {mode === 'needs' && (
-            <Button asChild size="sm" variant="outline" className="mt-1">
-              <Link href={`/${businessSlug}/coach/clients/${entry.clientId}?tab=planning`}>
-                {tt(locale, 'Skapa individuell plan', 'Create individual plan')}
-              </Link>
-            </Button>
+            entry.severeRestriction ? (
+              <div className="mt-1 space-y-1.5">
+                <CreateAthletePlanDialog
+                  clientId={entry.clientId}
+                  clientName={entry.name}
+                  defaultPlanType="INJURY_RECOVERY"
+                  defaultTemplateKey="return-6"
+                  trigger={
+                    <Button size="sm" className="bg-red-600 text-white hover:bg-red-700">
+                      {tt(locale, 'Ta av lagplan & starta skadeplan', 'Take off team plan & start injury plan')}
+                    </Button>
+                  }
+                />
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {tt(
+                    locale,
+                    'Skapar en skadeplan och hoppar över spelarens lagpass i planperioden.',
+                    'Creates an injury plan and skips the player’s team sessions during the plan window.'
+                  )}
+                </p>
+              </div>
+            ) : (
+              <Button asChild size="sm" variant="outline" className="mt-1">
+                <Link href={`/${businessSlug}/coach/clients/${entry.clientId}?tab=planning`}>
+                  {tt(locale, 'Skapa individuell plan', 'Create individual plan')}
+                </Link>
+              </Button>
+            )
           )}
         </RolePanel>
       )}

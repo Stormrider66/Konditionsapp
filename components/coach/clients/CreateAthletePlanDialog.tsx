@@ -11,6 +11,8 @@ interface CreateAthletePlanDialogProps {
   onSaved?: (plan: AthletePlanSummary) => void
   trigger?: ReactNode
   initialPlan?: AthletePlanSummary
+  defaultTemplateKey?: string
+  defaultPlanType?: 'SPECIAL_PROGRAM' | 'INJURY_RECOVERY' | 'RETURN_TO_PLAY' | 'PERFORMANCE'
 }
 
 export function CreateAthletePlanDialog({
@@ -20,6 +22,8 @@ export function CreateAthletePlanDialog({
   onSaved,
   trigger,
   initialPlan,
+  defaultTemplateKey = 'hockey-9',
+  defaultPlanType,
 }: CreateAthletePlanDialogProps) {
   return (
     <CreateBlockPlanDialog
@@ -29,9 +33,10 @@ export function CreateAthletePlanDialog({
       onCreated={onCreated}
       onSaved={onSaved}
       trigger={trigger}
-      defaultTemplateKey="hockey-9"
+      defaultTemplateKey={defaultTemplateKey}
       initialPlan={initialPlan}
       includePlanType
+      defaultPlanType={defaultPlanType}
     />
   )
 }
