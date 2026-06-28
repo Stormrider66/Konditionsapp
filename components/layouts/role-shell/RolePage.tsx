@@ -185,3 +185,10 @@ export function RolePanelFooter({ className, ...props }: ComponentPropsWithoutRe
     />
   )
 }
+
+export function roleMutedBlockClass(className?: string) {
+  return cn(
+    'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-zinc-900/40',
+    className
+  )
+}

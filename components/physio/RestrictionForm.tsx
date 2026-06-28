@@ -17,7 +17,7 @@ import {
 import { useToast } from '@/components/ui/use-toast'
 import { useLocale, useTranslations } from '@/i18n/client'
 import { getExerciseDisplayName } from '@/lib/exercises/display-name'
-import { RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
 import { MultiExercisePicker, type PickedExercise } from './MultiExercisePicker'
 
 type AthleteOption = {
@@ -59,7 +59,6 @@ const workoutTypes = ['STRENGTH', 'CARDIO', 'HYBRID', 'AGILITY', 'ICE', 'MATCH']
 
 const labelClass = 'text-zinc-700 dark:text-zinc-200'
 const inputClass = 'bg-white text-zinc-950 dark:bg-zinc-950/60 dark:text-zinc-100'
-const sectionClass = 'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 dark:border-white/10 dark:bg-zinc-900/40'
 const hintClass = 'text-xs text-zinc-500 dark:text-zinc-400'
 
 function splitList(value: string) {
@@ -286,7 +285,7 @@ export function RestrictionForm({
         </p>
       </div>
       <div className="space-y-5 p-5">
-        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
+        <div className={roleMutedBlockClass('')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.athlete')}</Label>
             <Select value={clientId} onValueChange={setClientId} disabled={Boolean(restrictionId)}>
@@ -324,7 +323,7 @@ export function RestrictionForm({
           </div>
         </div>
 
-        <div className={`grid gap-4 md:grid-cols-3 ${sectionClass}`}>
+        <div className={roleMutedBlockClass('')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.type')}</Label>
             <Select value={type} onValueChange={setType}>
@@ -375,7 +374,7 @@ export function RestrictionForm({
           />
         </div>
 
-        <div className={sectionClass}>
+        <div className={roleMutedBlockClass()}>
           <Label className={labelClass}>{t('fields.affectedWorkoutTypes')}</Label>
           <div className="mt-3 flex flex-wrap gap-2">
             {workoutTypes.map((workoutType) => {
@@ -401,7 +400,7 @@ export function RestrictionForm({
           </div>
         </div>
 
-        <div className={sectionClass}>
+        <div className={roleMutedBlockClass()}>
           <Label className={labelClass}>{t('fields.blockedExercises')}</Label>
           <p className={`mt-1 ${hintClass}`}>{t('hints.blockedExercises')}</p>
           <div className="mt-3">
@@ -415,7 +414,7 @@ export function RestrictionForm({
           </div>
         </div>
 
-        <div className={`grid gap-4 md:grid-cols-2 ${sectionClass}`}>
+        <div className={roleMutedBlockClass('')}>
           <div className="space-y-2">
             <Label className={labelClass}>{t('fields.volumeReduction')}</Label>
             <Input
