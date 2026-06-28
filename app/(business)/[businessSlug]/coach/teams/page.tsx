@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useToast } from '@/hooks/use-toast'
 import { Button } from '@/components/ui/button'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { TeamForm } from '@/components/forms/TeamForm'
 import { Trash2, Edit2, Users, Plus, BarChart3, Building2, Calendar } from 'lucide-react'
@@ -58,9 +58,9 @@ function TeamCard({
   const sportLabelKey = getSportLabelKey(team.sportType)
 
   return (
-    <GlassCard glow="blue" className="hover:scale-[1.01] transition-all duration-300">
-      <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="flex justify-between items-start">
+    <RolePanel className="transition-all duration-300 hover:scale-[1.01]">
+      <div className="border-b border-zinc-200 p-5 pb-3 dark:border-white/10">
+        <div className="flex justify-between items-start">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold dark:text-white">{team.name}</h3>
@@ -97,9 +97,9 @@ function TeamCard({
               <Trash2 className="w-4 h-4 text-red-600" />
             </Button>
           </div>
-        </GlassCardTitle>
-      </GlassCardHeader>
-      <GlassCardContent>
+        </div>
+      </div>
+      <div className="p-5">
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Users className="w-4 h-4" />
@@ -133,8 +133,8 @@ function TeamCard({
             </Button>
           </Link>
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
 
@@ -292,19 +292,19 @@ export default function BusinessTeamsPage() {
           </div>
 
           {loading ? (
-            <GlassCard>
-              <GlassCardContent className="p-12 text-center">
+            <RolePanel>
+              <div className="p-12 text-center">
                 <p className="dark:text-slate-300">{t('loading')}</p>
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           ) : teams.length === 0 ? (
-            <GlassCard>
-              <GlassCardContent className="p-12 text-center">
+            <RolePanel>
+              <div className="p-12 text-center">
                 <Users className="w-12 h-12 mx-auto text-gray-300 dark:text-slate-600 mb-4" />
                 <p className="text-gray-600 dark:text-slate-400 mb-4">{t('emptyDescription')}</p>
                 <Button onClick={() => setShowForm(true)}>{t('createFirstTeam')}</Button>
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           ) : (
             <div className="space-y-8">
               {hasOrganizations &&

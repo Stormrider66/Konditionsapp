@@ -12,13 +12,7 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { getTeamRosterStatus } from '@/lib/coach/team-roster-status'
 import { rosterDotLevel, isHighAcwr } from '@/lib/coach/roster-dot-status'
 import { prisma } from '@/lib/prisma'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2 } from 'lucide-react'
 import { TeamPhaseStrip } from '@/components/coach/teams/cockpit/TeamPhaseStrip'
@@ -226,17 +220,17 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
       />
 
       {!setupComplete && (
-        <GlassCard glow="teal" className="mb-8">
-          <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 dark:text-white">
+        <RolePanel className="mb-8">
+          <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
               <CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
               {t('readiness.title')}
-            </GlassCardTitle>
-            <GlassCardDescription>
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
               {t('readiness.description')}
-            </GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
+            </p>
+          </div>
+          <div className="p-5">
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <PilotReadinessItem
                 label={t('readiness.roster')}
@@ -267,8 +261,8 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
                 pendingLabel={t('readiness.pending')}
               />
             </div>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
     </div>
   )

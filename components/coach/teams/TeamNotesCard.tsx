@@ -7,13 +7,7 @@ import { useLocale } from '@/i18n/client'
 import { useToast } from '@/hooks/use-toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import {
   Select,
   SelectContent,
@@ -196,15 +190,15 @@ export function TeamNotesCard({
   }
 
   return (
-    <GlassCard glow="blue">
-      <GlassCardHeader>
-        <GlassCardTitle className="flex items-center gap-2 dark:text-white">
+    <RolePanel>
+      <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
           <NotebookPen className="h-5 w-5 text-blue-600 dark:text-blue-300" />
           {copy.title}
-        </GlassCardTitle>
-        <GlassCardDescription>{copy.description}</GlassCardDescription>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-5">
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{copy.description}</p>
+      </div>
+      <div className="space-y-5 p-5">
         <div className="rounded-xl border border-slate-200 bg-white/70 p-4 dark:border-white/10 dark:bg-slate-950/35">
           <Textarea
             value={body}
@@ -331,7 +325,7 @@ export function TeamNotesCard({
             })
           )}
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
