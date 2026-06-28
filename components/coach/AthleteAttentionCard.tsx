@@ -33,7 +33,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { cn } from '@/lib/utils'
-import { GlassCard } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 interface CoachAlert {
   id: string
@@ -344,15 +344,12 @@ export function AthleteAttentionCard({
     }
   }
 
-  const alertGlow = alert.severity === 'CRITICAL' ? 'red' : alert.severity === 'HIGH' ? 'amber' : alert.severity === 'MEDIUM' ? 'amber' : 'blue'
-
   return (
-    <GlassCard
+    <RolePanel
       className={cn(
-        'border-l-4 overflow-hidden rounded-xl border border-slate-200/50 dark:border-white/5',
+        'border-l-4 overflow-hidden',
         severity.border
       )}
-      glow={alertGlow}
     >
       {/* Header */}
       <div className="p-3">
@@ -477,6 +474,6 @@ export function AthleteAttentionCard({
           </div>
         </div>
       )}
-    </GlassCard>
+    </RolePanel>
   )
 }

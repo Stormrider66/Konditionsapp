@@ -10,11 +10,11 @@
 import { useMemo, useState } from 'react'
 import useSWR from 'swr'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardDescription,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -157,15 +157,15 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
   const totalActive = alerts.length
 
   return (
-    <GlassCard className="h-full">
-      <GlassCardHeader className="pb-3">
+    <DashboardCard className="h-full">
+      <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
               <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div>
-              <GlassCardTitle className="text-lg flex items-center gap-2">
+              <DashboardCardTitle className="text-lg flex items-center gap-2">
                 {copy(locale, 'AI Assistant', 'AI Assistent')}
                 {totalActive > 0 && (
                   <Badge
@@ -181,8 +181,8 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
                     {totalActive}
                   </Badge>
                 )}
-              </GlassCardTitle>
-              <GlassCardDescription>{copy(locale, 'Athletes who need attention', 'Atleter som behöver uppmärksamhet')}</GlassCardDescription>
+              </DashboardCardTitle>
+              <DashboardCardDescription>{copy(locale, 'Athletes who need attention', 'Atleter som behöver uppmärksamhet')}</DashboardCardDescription>
             </div>
           </div>
           <Button
@@ -199,9 +199,9 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
             )}
           </Button>
         </div>
-      </GlassCardHeader>
+      </DashboardCardHeader>
 
-      <GlassCardContent className="pt-0">
+      <DashboardCardContent className="pt-0">
         {error ? (
           <div className="text-center py-8 text-muted-foreground">
             <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-red-500" />
@@ -299,7 +299,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
             </ScrollArea>
           </>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }
