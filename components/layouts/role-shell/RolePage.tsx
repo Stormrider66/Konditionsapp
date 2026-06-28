@@ -140,3 +140,48 @@ export function RolePanel({ className, ...props }: ComponentPropsWithoutRef<'sec
     />
   )
 }
+
+export function RolePanelHeader({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return (
+    <div
+      className={cn('border-b border-zinc-200 p-5 dark:border-white/10', className)}
+      {...props}
+    />
+  )
+}
+
+export function RolePanelContent({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return (
+    <div
+      className={cn('p-5', className)}
+      {...props}
+    />
+  )
+}
+
+export function RolePanelTitle({ className, ...props }: ComponentPropsWithoutRef<'h3'>) {
+  return (
+    <h3
+      className={cn('text-base font-semibold text-zinc-950 dark:text-zinc-50', className)}
+      {...props}
+    />
+  )
+}
+
+export function RolePanelDescription({ className, ...props }: ComponentPropsWithoutRef<'p'>) {
+  return (
+    <p
+      className={cn('mt-1 text-sm text-zinc-500 dark:text-zinc-400', className)}
+      {...props}
+    />
+  )
+}
+
+export function RolePanelFooter({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
+  return (
+    <div
+      className={cn('border-t border-zinc-200 p-5 dark:border-white/10', className)}
+      {...props}
+    />
+  )
+}

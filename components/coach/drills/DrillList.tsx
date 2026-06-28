@@ -1,7 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+} from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
