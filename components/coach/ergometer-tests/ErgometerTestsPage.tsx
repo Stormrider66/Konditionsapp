@@ -11,13 +11,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ErgometerType } from '@prisma/client';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-  GlassCardContent,
-} from '@/components/ui/GlassCard';
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -192,29 +186,25 @@ export default function CoachErgometerTestsPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-8 px-4 max-w-7xl space-y-6">
+      <RolePageFrame maxWidth="wide">
         <Skeleton className="h-10 w-64" />
         <Skeleton className="h-[400px] w-full" />
-      </div>
+      </RolePageFrame>
     );
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+    <RolePageFrame maxWidth="wide">
+      <RolePageHeader
+        title={
+          <span className="flex items-center gap-2">
             <Activity className="h-6 w-6 text-blue-500" />
             {t.title}
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 text-sm">
-            {t.description}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {!showNewTestForm && (
+          </span>
+        }
+        description={t.description}
+        actions={
+          !showNewTestForm ? (
             <>
               <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                 <SelectTrigger className="w-[220px] bg-white/50 dark:bg-slate-950/50 backdrop-blur-sm border-slate-200 dark:border-white/10 text-slate-900 dark:text-white">
@@ -234,9 +224,9 @@ export default function CoachErgometerTestsPage() {
                 {t.newTest}
               </Button>
             </>
-          )}
-        </div>
-      </div>
+          ) : null
+        }
+      />
 
       {/* New test form */}
       {showNewTestForm && (
@@ -263,15 +253,15 @@ export default function CoachErgometerTestsPage() {
 
       {/* No client selected and no form */}
       {!selectedClientId && !showNewTestForm && (
-        <GlassCard glow="blue">
-          <GlassCardContent className="py-12 text-center">
+        <RolePanel>
+          <div className="py-12 text-center">
             <Users className="h-12 w-12 mx-auto text-blue-500 mb-4" />
             <h3 className="text-lg font-semibold mb-2 text-slate-900 dark:text-white">{t.selectTitle}</h3>
             <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
               {t.selectBody}
             </p>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
 
       {/* Client selected - show tabs */}
@@ -291,14 +281,14 @@ export default function CoachErgometerTestsPage() {
           </TabsList>
 
           <TabsContent value="tests">
-            <GlassCard glow="blue">
-              <GlassCardHeader>
-                <GlassCardTitle className="text-slate-900 dark:text-white">{t.tabs.tests}</GlassCardTitle>
-                <GlassCardDescription className="text-slate-600 dark:text-slate-400">
+            <RolePanel>
+              <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{t.tabs.tests}</h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                   {t.testsDescription(selectedClient?.name)}
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent>
+                </p>
+              </div>
+              <div className="p-5">
                 {loadingTests ? (
                   <div className="space-y-3">
                     <Skeleton className="h-16 w-full" />
@@ -314,22 +304,22 @@ export default function CoachErgometerTestsPage() {
                 ) : (
                   <ErgometerTestList tests={tests} locale={locale} avgLabel={t.avg} />
                 )}
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           </TabsContent>
 
           <TabsContent value="zones">
-            <GlassCard glow="emerald">
-              <GlassCardHeader>
-                <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+            <RolePanel>
+              <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                   <TrendingUp className="h-5 w-5 text-emerald-500" />
                   {t.zonesTitle}
-                </GlassCardTitle>
-                <GlassCardDescription className="text-slate-600 dark:text-slate-400">
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                   {t.zonesDescription}
-                </GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent>
+                </p>
+              </div>
+              <div className="p-5">
                 {loadingTests ? (
                   <Skeleton className="h-40 w-full" />
                 ) : zones.length === 0 ? (
@@ -340,13 +330,13 @@ export default function CoachErgometerTestsPage() {
                 ) : (
                   <SimpleZoneGrid zones={zones} locale={locale} zoneLabel={t.zone} />
                 )}
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           </TabsContent>
           </Tabs>
         </div>
       )}
-    </div>
+    </RolePageFrame>
   );
 }
 
