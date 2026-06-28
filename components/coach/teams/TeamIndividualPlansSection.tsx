@@ -123,8 +123,9 @@ function PlanCard({ entry, businessSlug, locale, mode }: {
 }
 
 function Group({
-  title, hint, icon, accent, entries, businessSlug, locale, mode,
+  anchorId, title, hint, icon, accent, entries, businessSlug, locale, mode,
 }: {
+  anchorId: string
   title: string
   hint: string
   icon: React.ReactNode
@@ -136,7 +137,7 @@ function Group({
 }) {
   if (entries.length === 0) return null
   return (
-    <div className="mb-6">
+    <div id={anchorId} className="mb-6 scroll-mt-24">
       <div className="mb-3 flex items-center gap-2">
         <span className={`flex h-7 w-7 items-center justify-center rounded-md ${accent}`}>{icon}</span>
         <h4 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{title}</h4>
@@ -154,12 +155,24 @@ function Group({
   )
 }
 
-function SummaryChip({ label, count, cls }: { label: string; count: number; cls: string }) {
-  return (
-    <div className={`flex items-center gap-2 rounded-lg border px-3 py-2 ${cls}`}>
+function SummaryChip({ label, count, cls, href }: { label: string; count: number; cls: string; href: string }) {
+  const base = `flex items-center gap-2 rounded-lg border px-3 py-2 ${cls}`
+  const content = (
+    <>
       <span className="text-lg font-semibold tabular-nums leading-none">{count}</span>
       <span className="text-xs font-medium leading-tight">{label}</span>
-    </div>
+    </>
+  )
+  if (count === 0) {
+    return <div className={`${base} opacity-50`}>{content}</div>
+  }
+  return (
+    <a
+      href={href}
+      className={`${base} cursor-pointer transition hover:opacity-90 hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1`}
+    >
+      {content}
+    </a>
   )
 }
 
@@ -187,16 +200,19 @@ export function TeamIndividualPlansSection({ businessSlug, locale, special, reco
     <div>
       <div className="mb-5 flex flex-wrap gap-2">
         <SummaryChip
+          href="#individual-special"
           label={tt(locale, 'Specialprogram', 'Special programs')}
           count={special.length}
           cls="border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200"
         />
         <SummaryChip
+          href="#individual-recovery"
           label={tt(locale, 'Skadeåterhämtning', 'Injury recovery')}
           count={recovery.length}
           cls="border-red-200 bg-red-50 text-red-800 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
         />
         <SummaryChip
+          href="#individual-needs"
           label={tt(locale, 'Behöver en plan', 'Needs a program')}
           count={needs.length}
           cls="border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"
@@ -204,6 +220,7 @@ export function TeamIndividualPlansSection({ businessSlug, locale, special, reco
       </div>
 
       <Group
+        anchorId="individual-special"
         title={tt(locale, 'Specialprogram', 'Special programs')}
         hint={tt(locale, 'Spelare med individuellt anpassad träning (ej skada).', 'Players with individualised training (not injury-related).')}
         icon={<Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-300" />}
@@ -214,6 +231,7 @@ export function TeamIndividualPlansSection({ businessSlug, locale, special, reco
         mode="plan"
       />
       <Group
+        anchorId="individual-recovery"
         title={tt(locale, 'Skadeåterhämtning / rehab', 'Injury recovery / rehab')}
         hint={tt(locale, 'Spelare på återhämtnings- eller rehabplan, med skadekontext.', 'Players on recovery or rehab plans, with injury context.')}
         icon={<HeartPulse className="h-4 w-4 text-red-600 dark:text-red-300" />}
@@ -224,6 +242,7 @@ export function TeamIndividualPlansSection({ businessSlug, locale, special, reco
         mode="plan"
       />
       <Group
+        anchorId="individual-needs"
         title={tt(locale, 'Behöver en plan', 'Needs a program')}
         hint={tt(locale, 'Skadade eller begränsade spelare som saknar en individuell plan.', 'Injured or restricted players without an individual plan yet.')}
         icon={<AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-300" />}
