@@ -11,7 +11,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { GlassCard, GlassCardContent, GlassCardDescription, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard';
+import { RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -443,8 +443,6 @@ export function CoachSubscriptionClient({
 
   const currentTierInfo = getCurrentTierInfo();
 
-  const currentGlow = currentTier === 'PRO' ? 'purple' : currentTier === 'BASIC' ? 'blue' : 'emerald';
-
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 text-slate-900 dark:text-white">
       {/* Header */}
@@ -465,11 +463,11 @@ export function CoachSubscriptionClient({
       {/* Content */}
       <div className="max-w-6xl mx-auto p-4 space-y-6">
         {/* Current Plan Summary */}
-        <GlassCard glow={currentGlow}>
-          <GlassCardHeader>
+        <RolePanel>
+          <div className="border-b border-zinc-200 p-5 dark:border-white/10">
             <div className="flex items-center justify-between">
               <div>
-                <GlassCardTitle className="flex items-center gap-2">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                   {copy.currentPlan}
                   <Badge
                     variant={currentTier === 'FREE' ? 'secondary' : 'default'}
@@ -483,12 +481,12 @@ export function CoachSubscriptionClient({
                   >
                     {copy.tiers[currentTierInfo.id].name}
                   </Badge>
-                </GlassCardTitle>
-                <GlassCardDescription>
+                </h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                   {currentTier === 'FREE'
                     ? copy.upgradePrompt
                     : copy.renewsAutomatically}
-                </GlassCardDescription>
+                </p>
               </div>
               <div className="text-right">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -499,9 +497,9 @@ export function CoachSubscriptionClient({
                 </div>
               </div>
             </div>
-          </GlassCardHeader>
+          </div>
           {subscription?.stripeSubscriptionId && (
-            <GlassCardContent>
+            <div className="p-5">
               <div className="flex items-center gap-4">
                 <Button variant="outline" onClick={handleManageSubscription} disabled={isLoading === 'manage'} className="border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/5">
                   {isLoading === 'manage' ? (
@@ -518,9 +516,9 @@ export function CoachSubscriptionClient({
                   </span>
                 )}
               </div>
-            </GlassCardContent>
+            </div>
           )}
-        </GlassCard>
+        </RolePanel>
 
         {/* Billing Cycle Toggle */}
         <div className="flex justify-center">
@@ -558,11 +556,9 @@ export function CoachSubscriptionClient({
             const tierCopy = copy.tiers[tier.id];
             const canUpgrade = TIER_META.findIndex((t) => t.id === tier.id) > TIER_META.findIndex((t) => t.id === currentTier);
 
-            const glowColor = tier.id === 'FREE' ? 'slate' : tier.id === 'BASIC' ? 'blue' : tier.id === 'PRO' ? 'purple' : 'amber';
             return (
-              <GlassCard
+              <RolePanel
                 key={tier.id}
-                glow={glowColor}
                 className={`relative ${isActive ? 'ring-2 ring-blue-500' : ''}`}
               >
                 {tier.popular && !isActive && (
@@ -573,7 +569,7 @@ export function CoachSubscriptionClient({
                   </div>
                 )}
 
-                <GlassCardHeader className="text-center pb-2">
+                <div className="border-b border-zinc-200 p-5 pb-3 text-center dark:border-white/10">
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${
                       tier.color === 'gray'
@@ -597,11 +593,11 @@ export function CoachSubscriptionClient({
                       }`}
                     />
                   </div>
-                  <GlassCardTitle className="text-lg">{tierCopy.name}</GlassCardTitle>
-                  <GlassCardDescription className="text-xs">{tierCopy.description}</GlassCardDescription>
-                </GlassCardHeader>
+                  <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{tierCopy.name}</h3>
+                  <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">{tierCopy.description}</p>
+                </div>
 
-                <GlassCardContent className="text-center">
+                <div className="p-5 text-center">
                   <div className="mb-4">
                     {price !== null ? (
                       <>
@@ -669,19 +665,19 @@ export function CoachSubscriptionClient({
                       {copy.lowerPlan}
                     </Button>
                   )}
-                </GlassCardContent>
-              </GlassCard>
+                </div>
+              </RolePanel>
             );
           })}
         </div>
 
         {/* Feature Comparison */}
-        <GlassCard glow="blue">
-          <GlassCardHeader>
-            <GlassCardTitle>{copy.compareTitle}</GlassCardTitle>
-            <GlassCardDescription>{copy.compareDescription}</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
+        <RolePanel>
+          <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy.compareTitle}</h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{copy.compareDescription}</p>
+          </div>
+          <div className="p-5">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -733,15 +729,15 @@ export function CoachSubscriptionClient({
                 </tbody>
               </table>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
 
         {/* FAQ */}
-        <GlassCard glow="purple">
-          <GlassCardHeader>
-            <GlassCardTitle>{copy.faqTitle}</GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent className="space-y-4">
+        <RolePanel>
+          <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">{copy.faqTitle}</h2>
+          </div>
+          <div className="space-y-4 p-5">
             <div>
               <h4 className="font-semibold">{copy.faqChangePlan}</h4>
               <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -760,8 +756,8 @@ export function CoachSubscriptionClient({
                 {copy.faqPaymentsAnswer}
               </p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       </div>
     </div>
   );

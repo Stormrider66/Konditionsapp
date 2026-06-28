@@ -1,11 +1,7 @@
 'use client'
 
 import { useState, useRef, type SyntheticEvent } from 'react'
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -842,8 +838,8 @@ export function VideoAnalysisCard({
 
   return (
     <>
-      <GlassCard glow="none" className="overflow-hidden bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-        <GlassCardHeader className="p-0">
+      <RolePanel className="overflow-hidden">
+        <div>
           {/* Video thumbnail/preview */}
           <div
             className="aspect-video bg-gray-900 relative cursor-pointer group"
@@ -887,9 +883,9 @@ export function VideoAnalysisCard({
               </div>
             )}
           </div>
-        </GlassCardHeader>
+        </div>
 
-        <GlassCardContent className="p-4 space-y-3">
+        <div className="p-4 space-y-3">
           {/* Type and date */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -1053,8 +1049,8 @@ export function VideoAnalysisCard({
               )}
             </Button>
           </div>
-        </GlassCardContent>
-      </GlassCard>
+        </div>
+      </RolePanel>
 
       {/* Video Dialog */}
       <Dialog open={showVideoDialog} onOpenChange={setShowVideoDialog}>

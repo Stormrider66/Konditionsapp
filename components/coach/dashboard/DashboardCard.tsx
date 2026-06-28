@@ -75,12 +75,3 @@ export function DashboardCardContent({ className, ...props }: HTMLAttributes<HTM
 export function DashboardCardFooter({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return <div className={cn('flex items-center p-5 pt-0', className)} {...props} />
 }
-
-export {
-  DashboardCard as GlassCard,
-  DashboardCardContent as GlassCardContent,
-  DashboardCardDescription as GlassCardDescription,
-  DashboardCardFooter as GlassCardFooter,
-  DashboardCardHeader as GlassCardHeader,
-  DashboardCardTitle as GlassCardTitle,
-}
