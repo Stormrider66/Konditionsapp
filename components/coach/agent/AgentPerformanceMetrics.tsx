@@ -12,13 +12,7 @@
 
 import { useState } from 'react'
 import useSWR from 'swr'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -134,14 +128,12 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
 
   if (error || !data) {
     return (
-      <GlassCard>
-        <GlassCardContent className="py-8 text-center">
-          <p className="text-red-500">Failed to load metrics</p>
-          <Button variant="outline" size="sm" onClick={() => mutate()} className="mt-4">
-            Try Again
-          </Button>
-        </GlassCardContent>
-      </GlassCard>
+      <RolePanel className="p-8 text-center">
+        <p className="text-red-500">Failed to load metrics</p>
+        <Button variant="outline" size="sm" onClick={() => mutate()} className="mt-4">
+          Try Again
+        </Button>
+      </RolePanel>
     )
   }
 
@@ -157,13 +149,15 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-indigo-500" />
+          <h2 className="flex items-center gap-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <BarChart3 className="h-5 w-5" />
+            </span>
             Agent Performance
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
             AI agent effectiveness and accuracy metrics
           </p>
         </div>
@@ -187,238 +181,222 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
 
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Actions</p>
-                <p className="text-2xl font-bold">{summary.totalActions}</p>
-              </div>
-              <Activity className="h-8 w-8 text-indigo-500 opacity-50" />
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Actions</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{summary.totalActions}</p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+            <Activity className="h-8 w-8 text-violet-500 opacity-50" />
+          </div>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Acceptance Rate</p>
-                <p className="text-2xl font-bold">
-                  {summary.acceptanceRate.toFixed(1)}%
-                </p>
-              </div>
-              {summary.acceptanceRate >= 80 ? (
-                <TrendingUp className="h-8 w-8 text-green-500 opacity-50" />
-              ) : (
-                <TrendingDown className="h-8 w-8 text-amber-500 opacity-50" />
-              )}
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Acceptance Rate</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+                {summary.acceptanceRate.toFixed(1)}%
+              </p>
             </div>
-            <Progress value={summary.acceptanceRate} className="mt-2 h-1" />
-          </GlassCardContent>
-        </GlassCard>
+            {summary.acceptanceRate >= 80 ? (
+              <TrendingUp className="h-8 w-8 text-emerald-500 opacity-50" />
+            ) : (
+              <TrendingDown className="h-8 w-8 text-amber-500 opacity-50" />
+            )}
+          </div>
+          <Progress value={summary.acceptanceRate} className="mt-2 h-1" />
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Override Rate</p>
-                <p className="text-2xl font-bold">{summary.overrideRate.toFixed(1)}%</p>
-              </div>
-              <Target className="h-8 w-8 text-amber-500 opacity-50" />
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Override Rate</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{summary.overrideRate.toFixed(1)}%</p>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {summary.overridden} actions overridden
-            </p>
-          </GlassCardContent>
-        </GlassCard>
+            <Target className="h-8 w-8 text-amber-500 opacity-50" />
+          </div>
+          <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+            {summary.overridden} actions overridden
+          </p>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Avg Confidence</p>
-                <p className="text-2xl font-bold">
-                  {(confidence.averageConfidence * 100).toFixed(0)}%
-                </p>
-              </div>
-              <Bot className="h-8 w-8 text-purple-500 opacity-50" />
+        <RolePanel className="p-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm text-zinc-500 dark:text-zinc-400">Avg Confidence</p>
+              <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+                {(confidence.averageConfidence * 100).toFixed(0)}%
+              </p>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+            <Bot className="h-8 w-8 text-violet-500 opacity-50" />
+          </div>
+        </RolePanel>
       </div>
 
       {/* Charts Row */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Trend Chart */}
-        <GlassCard>
-          <GlassCardHeader>
-            <GlassCardTitle className="text-base">Action Trends</GlassCardTitle>
-            <GlassCardDescription>Actions over time</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trends}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(v) => formatChartDate(v, locale, { day: 'numeric', month: 'short' })}
-                    fontSize={12}
-                  />
-                  <YAxis fontSize={12} />
-                  <Tooltip
-                    labelFormatter={(v) => formatChartDate(v as string | Date, locale)}
-                    contentStyle={{
-                      backgroundColor: 'rgba(0,0,0,0.8)',
-                      border: 'none',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="autoApplied"
-                    stackId="1"
-                    stroke="#6366f1"
-                    fill="#6366f1"
-                    fillOpacity={0.6}
-                    name="Auto-Applied"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="accepted"
-                    stackId="1"
-                    stroke="#22c55e"
-                    fill="#22c55e"
-                    fillOpacity={0.6}
-                    name="Accepted"
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="rejected"
-                    stackId="1"
-                    stroke="#ef4444"
-                    fill="#ef4444"
-                    fillOpacity={0.6}
-                    name="Rejected"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </GlassCardContent>
-        </GlassCard>
-
-        {/* Distribution Pie */}
-        <GlassCard>
-          <GlassCardHeader>
-            <GlassCardTitle className="text-base">Action Distribution</GlassCardTitle>
-            <GlassCardDescription>Breakdown by outcome</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent>
-            <div className="h-[250px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsPie>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={(props) => {
-                      const { name, percent } = props as unknown as { name: string; percent: number }
-                      return `${name} ${(percent * 100).toFixed(0)}%`
-                    }}
-                    labelLine={false}
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </RechartsPie>
-              </ResponsiveContainer>
-            </div>
-          </GlassCardContent>
-        </GlassCard>
-      </div>
-
-      {/* Action Type Breakdown */}
-      <GlassCard>
-        <GlassCardHeader>
-          <GlassCardTitle className="text-base">Performance by Action Type</GlassCardTitle>
-          <GlassCardDescription>Success rate for each action category</GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <div className="h-[300px]">
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Action Trends</h3>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Actions over time</p>
+          </div>
+          <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={byActionType} layout="vertical">
+              <AreaChart data={trends}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                <XAxis type="number" />
-                <YAxis
-                  type="category"
-                  dataKey="actionType"
-                  width={150}
-                  tickFormatter={(v) => v.replace(/_/g, ' ').toLowerCase()}
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(v) => formatChartDate(v, locale, { day: 'numeric', month: 'short' })}
                   fontSize={12}
                 />
+                <YAxis fontSize={12} />
                 <Tooltip
+                  labelFormatter={(v) => formatChartDate(v as string | Date, locale)}
                   contentStyle={{
                     backgroundColor: 'rgba(0,0,0,0.8)',
                     border: 'none',
                     borderRadius: '8px',
                   }}
                 />
-                <Legend />
-                <Bar dataKey="autoApplied" stackId="a" fill="#6366f1" name="Auto-Applied" />
-                <Bar dataKey="accepted" stackId="a" fill="#22c55e" name="Accepted" />
-                <Bar dataKey="rejected" stackId="a" fill="#ef4444" name="Rejected" />
-              </BarChart>
+                <Area
+                  type="monotone"
+                  dataKey="autoApplied"
+                  stackId="1"
+                  stroke="#6366f1"
+                  fill="#6366f1"
+                  fillOpacity={0.6}
+                  name="Auto-Applied"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="accepted"
+                  stackId="1"
+                  stroke="#22c55e"
+                  fill="#22c55e"
+                  fillOpacity={0.6}
+                  name="Accepted"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="rejected"
+                  stackId="1"
+                  stroke="#ef4444"
+                  fill="#ef4444"
+                  fillOpacity={0.6}
+                  name="Rejected"
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
-        </GlassCardContent>
-      </GlassCard>
+        </RolePanel>
+
+        {/* Distribution Pie */}
+        <RolePanel className="p-5 sm:p-6">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Action Distribution</h3>
+            <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Breakdown by outcome</p>
+          </div>
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsPie>
+                <Pie
+                  data={pieData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={2}
+                  dataKey="value"
+                  label={(props) => {
+                    const { name, percent } = props as unknown as { name: string; percent: number }
+                    return `${name} ${(percent * 100).toFixed(0)}%`
+                  }}
+                  labelLine={false}
+                >
+                  {pieData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </RechartsPie>
+            </ResponsiveContainer>
+          </div>
+        </RolePanel>
+      </div>
+
+      {/* Action Type Breakdown */}
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Performance by Action Type</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Success rate for each action category</p>
+        </div>
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={byActionType} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
+              <XAxis type="number" />
+              <YAxis
+                type="category"
+                dataKey="actionType"
+                width={150}
+                tickFormatter={(v) => v.replace(/_/g, ' ').toLowerCase()}
+                fontSize={12}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(0,0,0,0.8)',
+                  border: 'none',
+                  borderRadius: '8px',
+                }}
+              />
+              <Legend />
+              <Bar dataKey="autoApplied" stackId="a" fill="#6366f1" name="Auto-Applied" />
+              <Bar dataKey="accepted" stackId="a" fill="#22c55e" name="Accepted" />
+              <Bar dataKey="rejected" stackId="a" fill="#ef4444" name="Rejected" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </RolePanel>
 
       {/* Confidence Accuracy */}
-      <GlassCard>
-        <GlassCardHeader>
-          <GlassCardTitle className="text-base">Confidence Calibration</GlassCardTitle>
-          <GlassCardDescription>
+      <RolePanel className="p-5 sm:p-6">
+        <div className="mb-4">
+          <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Confidence Calibration</h3>
+          <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
             How well agent confidence predicts success
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
-          <div className="grid md:grid-cols-4 gap-4">
-            {confidence.accuracyByConfidence.map((level) => (
-              <div
-                key={level.level}
-                className="p-4 rounded-lg bg-muted/50 space-y-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{level.level}</span>
-                  <Badge
-                    variant="outline"
-                    className={
-                      level.rate >= 80
-                        ? 'bg-green-500/10 text-green-600'
-                        : level.rate >= 60
-                          ? 'bg-amber-500/10 text-amber-600'
-                          : 'bg-red-500/10 text-red-600'
-                    }
-                  >
-                    {level.rate.toFixed(0)}% accurate
-                  </Badge>
-                </div>
-                <Progress value={level.rate} className="h-2" />
-                <p className="text-xs text-muted-foreground">
-                  {level.successful} / {level.total} successful
-                </p>
+          </p>
+        </div>
+        <div className="grid md:grid-cols-4 gap-4">
+          {confidence.accuracyByConfidence.map((level) => (
+            <div
+              key={level.level}
+              className="space-y-2 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/60"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-zinc-950 dark:text-zinc-50">{level.level}</span>
+                <Badge
+                  variant="outline"
+                  className={
+                    level.rate >= 80
+                      ? 'bg-green-500/10 text-green-600'
+                      : level.rate >= 60
+                        ? 'bg-amber-500/10 text-amber-600'
+                        : 'bg-red-500/10 text-red-600'
+                  }
+                >
+                  {level.rate.toFixed(0)}% accurate
+                </Badge>
               </div>
-            ))}
-          </div>
-        </GlassCardContent>
-      </GlassCard>
+              <Progress value={level.rate} className="h-2" />
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                {level.successful} / {level.total} successful
+              </p>
+            </div>
+          ))}
+        </div>
+      </RolePanel>
     </div>
   )
 }

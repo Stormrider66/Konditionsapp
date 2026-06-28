@@ -6,6 +6,7 @@
 
 import { Metadata } from 'next'
 import { AgentPerformanceMetrics } from '@/components/coach/agent'
+import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
 
 export const metadata: Metadata = {
   title: 'Agent Performance | Coach Dashboard',
@@ -21,8 +22,8 @@ export default async function AgentMetricsPage({ params }: Props) {
   const basePath = `/${businessSlug}`
 
   return (
-    <div className="container max-w-6xl py-8">
+    <RolePageFrame contentClassName="max-w-6xl">
       <AgentPerformanceMetrics basePath={basePath} />
-    </div>
+    </RolePageFrame>
   )
 }
