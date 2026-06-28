@@ -3,11 +3,11 @@
 import { useEffect } from 'react'
 import * as Sentry from '@sentry/nextjs'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { AlertTriangle, RefreshCw, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useTranslations } from '@/i18n/client'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 export default function CoachError({
   error,
@@ -26,23 +26,23 @@ export default function CoachError({
 
   return (
     <div className="flex items-center justify-center py-16 px-4">
-      <Card className="max-w-lg w-full">
-        <CardHeader>
+      <RolePanel className="max-w-lg w-full">
+        <div className="border-b border-zinc-200 p-5 dark:border-white/10">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-red-100 dark:bg-red-900/30 p-2">
+            <div className="rounded-md border border-red-100 bg-red-50 p-2 dark:border-red-900/60 dark:bg-red-950/30">
               <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
             </div>
             <div>
-              <CardTitle className="text-lg">{t('title')}</CardTitle>
-              <CardDescription>
+              <h2 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t('title')}</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 {t('description')}
-              </CardDescription>
+              </p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        </div>
+        <div className="space-y-4 p-5">
           {error.digest && (
-            <p className="text-xs text-muted-foreground font-mono">
+            <p className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
               {t('errorId', { digest: error.digest })}
             </p>
           )}
@@ -59,8 +59,8 @@ export default function CoachError({
               </Link>
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </RolePanel>
     </div>
   )
 }

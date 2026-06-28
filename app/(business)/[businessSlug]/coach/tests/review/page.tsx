@@ -8,7 +8,7 @@ import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { getTestReviewQueue } from '@/lib/testing/test-review-queue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 
 interface TestReviewQueuePageProps {
@@ -34,53 +34,49 @@ export default async function TestReviewQueuePage({ params }: TestReviewQueuePag
   const basePath = `/${businessSlug}`
 
   return (
-    <main className="container mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
-      <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <Link href={`${basePath}/coach/dashboard`}>
-            <Button variant="outline" size="sm" className="mb-4 gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Dashboard
-            </Button>
-          </Link>
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-amber-100 p-2 text-amber-700 dark:bg-amber-950/50 dark:text-amber-200">
+    <RolePageFrame contentClassName="max-w-6xl">
+      <RolePageHeader
+        eyebrow="Coach tools"
+        title={
+          <span className="flex items-center gap-3">
+            <span className="rounded-md border border-amber-100 bg-amber-50 p-2 text-amber-700 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
               <FileText className="h-5 w-5" />
+            </span>
+            Test review queue
+          </span>
+        }
+        description="Flagged tests awaiting coach approval."
+        actions={
+          <>
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link href={`${basePath}/coach/dashboard`}>
+                <ArrowLeft className="h-4 w-4" />
+                Dashboard
+              </Link>
+            </Button>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <QueueMetric label="Pending" value={queue.length} tone="watch" />
+              <QueueMetric label="High risk" value={highRiskCount} tone="risk" />
+              <QueueMetric label="Athletes" value={athleteCount} tone="neutral" />
             </div>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-950 dark:text-slate-50">
-                Test review queue
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Flagged tests awaiting coach approval.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <QueueMetric label="Pending" value={queue.length} tone="watch" />
-          <QueueMetric label="High risk" value={highRiskCount} tone="risk" />
-          <QueueMetric label="Athletes" value={athleteCount} tone="neutral" />
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {queue.length === 0 ? (
-        <Card className="rounded-lg border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-100">
-          <CardContent className="flex flex-col items-center gap-3 p-8 text-center">
-            <CheckCircle2 className="h-10 w-10" />
-            <div>
-              <p className="text-base font-semibold">No tests need review.</p>
-              <p className="mt-1 text-sm">The current testing queue is clear.</p>
-            </div>
-          </CardContent>
-        </Card>
+        <RolePanel className="flex flex-col items-center gap-3 border-emerald-200 bg-emerald-50 p-8 text-center text-emerald-900 dark:border-emerald-900/70 dark:bg-emerald-950/30 dark:text-emerald-100">
+          <CheckCircle2 className="h-10 w-10" />
+          <div>
+            <p className="text-base font-semibold">No tests need review.</p>
+            <p className="mt-1 text-sm">The current testing queue is clear.</p>
+          </div>
+        </RolePanel>
       ) : (
-        <Card className="overflow-hidden rounded-lg">
-          <CardHeader className="border-b bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/50">
-            <CardTitle className="text-sm font-semibold">Pending test reviews</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
+        <RolePanel className="overflow-hidden">
+          <div className="border-b border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-white/10 dark:bg-zinc-900/40">
+            <h2 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Pending test reviews</h2>
+          </div>
+          <div>
             <div className="divide-y">
               {queue.map(item => (
                 <div
@@ -156,10 +152,10 @@ export default async function TestReviewQueuePage({ params }: TestReviewQueuePag
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </RolePanel>
       )}
-    </main>
+    </RolePageFrame>
   )
 }
 
