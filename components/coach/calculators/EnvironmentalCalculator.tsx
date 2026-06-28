@@ -16,13 +16,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-  GlassCardContent,
-} from '@/components/ui/GlassCard';
+import { RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -102,14 +96,14 @@ export function EnvironmentalCalculator() {
             </TabsList>
 
             <TabsContent value="temperature">
-              <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-                <GlassCardHeader>
-                  <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Temperature & Humidity (WBGT)</GlassCardTitle>
-                  <GlassCardDescription className="text-slate-650 dark:text-slate-400">
+              <RolePanel className="p-5 sm:p-6">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Temperature & Humidity (WBGT)</h3>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     Wet Bulb Globe Temperature analysis for heat stress
-                  </GlassCardDescription>
-                </GlassCardHeader>
-                <GlassCardContent className="space-y-4">
+                  </p>
+                </div>
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="temperature"
@@ -153,19 +147,19 @@ export function EnvironmentalCalculator() {
                       </FormItem>
                     )}
                   />
-                </GlassCardContent>
-              </GlassCard>
+                </div>
+              </RolePanel>
             </TabsContent>
 
             <TabsContent value="altitude">
-              <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-                <GlassCardHeader>
-                  <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Altitude Adjustment</GlassCardTitle>
-                  <GlassCardDescription className="text-slate-650 dark:text-slate-400">
+              <RolePanel className="p-5 sm:p-6">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Altitude Adjustment</h3>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     Performance impact at elevation (VO₂max decline ~1% per 100m above 1500m)
-                  </GlassCardDescription>
-                </GlassCardHeader>
-                <GlassCardContent className="space-y-4">
+                  </p>
+                </div>
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="altitude"
@@ -189,19 +183,19 @@ export function EnvironmentalCalculator() {
                       </FormItem>
                     )}
                   />
-                </GlassCardContent>
-              </GlassCard>
+                </div>
+              </RolePanel>
             </TabsContent>
 
             <TabsContent value="wind">
-              <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-                <GlassCardHeader>
-                  <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Wind Resistance</GlassCardTitle>
-                  <GlassCardDescription className="text-slate-650 dark:text-slate-400">
+              <RolePanel className="p-5 sm:p-6">
+                <div className="mb-4">
+                  <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Wind Resistance</h3>
+                  <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
                     Wind impact on running performance
-                  </GlassCardDescription>
-                </GlassCardHeader>
-                <GlassCardContent className="space-y-4">
+                  </p>
+                </div>
+                <div className="space-y-4">
                   <FormField
                     control={form.control}
                     name="windSpeed"
@@ -244,17 +238,17 @@ export function EnvironmentalCalculator() {
                       </FormItem>
                     )}
                   />
-                </GlassCardContent>
-              </GlassCard>
+                </div>
+              </RolePanel>
             </TabsContent>
           </Tabs>
 
-          <GlassCard className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Baseline Performance (Optional)</GlassCardTitle>
-              <GlassCardDescription className="text-slate-650 dark:text-slate-400">Enter baseline pace to calculate adjusted targets</GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent>
+          <RolePanel className="p-5 sm:p-6">
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Baseline Performance (Optional)</h3>
+              <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">Enter baseline pace to calculate adjusted targets</p>
+            </div>
+            <div>
               <FormField
                 control={form.control}
                 name="baselinePace"
@@ -279,8 +273,8 @@ export function EnvironmentalCalculator() {
                   </FormItem>
                 )}
               />
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
 
           <Button type="submit" size="lg" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md">
             {submitting ? 'Calculating...' : 'Calculate Adjustments'}
@@ -292,14 +286,14 @@ export function EnvironmentalCalculator() {
         <div className="space-y-6">
           {/* WBGT Results */}
           {result.wbgt && (
-            <GlassCard glow="amber" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-              <GlassCardHeader>
-                <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+            <RolePanel className="p-5 sm:p-6">
+              <div className="mb-4">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                   <Thermometer className="h-5 w-5 text-amber-500" />
                   Heat Stress Analysis (WBGT)
-                </GlassCardTitle>
-              </GlassCardHeader>
-              <GlassCardContent>
+                </h3>
+              </div>
+              <div>
                 <div className="space-y-4">
                   <div className={`p-6 rounded-lg ${getWBGTColorClass(result.wbgt.category)}`}>
                     <p className="text-sm opacity-80 mb-2 font-medium">WBGT Index</p>
@@ -339,20 +333,20 @@ export function EnvironmentalCalculator() {
                     </AlertDescription>
                   </Alert>
                 </div>
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           )}
 
           {/* Altitude Results */}
           {result.altitude && (
-            <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-              <GlassCardHeader>
-                <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+            <RolePanel className="p-5 sm:p-6">
+              <div className="mb-4">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                   <Mountain className="h-5 w-5 text-blue-500" />
                   Altitude Adjustment
-                </GlassCardTitle>
-              </GlassCardHeader>
-              <GlassCardContent>
+                </h3>
+              </div>
+              <div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4">
                     <div className="p-3 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg text-center">
@@ -391,20 +385,20 @@ export function EnvironmentalCalculator() {
                     ))}
                   </ul>
                 </div>
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           )}
 
           {/* Wind Results */}
           {result.wind && (
-            <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-              <GlassCardHeader>
-                <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+            <RolePanel className="p-5 sm:p-6">
+              <div className="mb-4">
+                <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                   <Wind className="h-5 w-5 text-sky-500" />
                   Wind Resistance
-                </GlassCardTitle>
-              </GlassCardHeader>
-              <GlassCardContent>
+                </h3>
+              </div>
+              <div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg text-center">
@@ -439,8 +433,8 @@ export function EnvironmentalCalculator() {
                     </ul>
                   )}
                 </div>
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           )}
         </div>
       )}
