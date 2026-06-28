@@ -15,13 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-  GlassCardContent,
-} from '@/components/ui/GlassCard';
+import { RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
@@ -102,14 +96,14 @@ export function InjuryAssessmentForm({ athletes, onAssessmentComplete }: InjuryA
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Injury Assessment</GlassCardTitle>
-              <GlassCardDescription className="text-slate-650 dark:text-slate-400">
+          <RolePanel>
+            <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Injury Assessment</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 University of Delaware pain rules - assessment for return-to-running clearance
-              </GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-6">
+              </p>
+            </div>
+            <div className="space-y-6 p-5">
               <FormField
                 control={form.control}
                 name="athleteId"
@@ -261,8 +255,8 @@ export function InjuryAssessmentForm({ athletes, onAssessmentComplete }: InjuryA
                   </FormItem>
                 )}
               />
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
 
           <Button type="submit" size="lg" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md">
             {submitting ? 'Assessing...' : 'Assess Injury'}
@@ -271,16 +265,16 @@ export function InjuryAssessmentForm({ athletes, onAssessmentComplete }: InjuryA
       </Form>
 
       {result && (
-        <GlassCard glow={result.decision === 'STOP' ? 'red' : result.decision === 'MODIFY' ? 'amber' : 'emerald'} className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-          <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+        <RolePanel>
+          <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
               {result.decision === 'STOP' && <AlertTriangle className="h-5 w-5 text-rose-500" />}
               {result.decision === 'MODIFY' && <AlertTriangle className="h-5 w-5 text-amber-500" />}
               {result.decision === 'PROCEED' && <CheckCircle className="h-5 w-5 text-emerald-600" />}
               Assessment Results
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent className="space-y-6">
+            </h2>
+          </div>
+          <div className="space-y-6 p-5">
             {/* Decision */}
             <Alert className={`${
               result.decision === 'STOP' 
@@ -386,8 +380,8 @@ export function InjuryAssessmentForm({ athletes, onAssessmentComplete }: InjuryA
                 ))}
               </ul>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
     </div>
   );

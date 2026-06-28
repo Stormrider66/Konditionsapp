@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label'
 import { toast } from 'sonner'
 import dynamic from 'next/dynamic'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 function ExerciseLibraryLoading() {
   const { copy } = useStrengthDashboardCopy()
@@ -768,14 +768,14 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
 
           {/* Weekly program banner */}
           {weeklySessionQueue.length > 1 && weeklySessionQueue.length > currentWeeklyIndex && (
-            <GlassCard glow="blue" className="mb-4">
-              <GlassCardContent className="p-3 space-y-2">
+            <RolePanel className="mb-4">
+              <div className="p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-white">
+                    <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
                       {copy.weeklyProgram(currentWeeklyIndex + 1, weeklySessionQueue.length)}
                     </p>
-                    <p className="text-xs text-slate-400">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       {copy.saveToContinue}
                     </p>
                   </div>
@@ -785,19 +785,19 @@ export function StrengthDashboard({ businessId }: StrengthDashboardProps) {
                         key={i}
                         className={`h-2.5 w-2.5 rounded-full transition-all duration-300 ${
                           i < currentWeeklyIndex ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' :
-                          i === currentWeeklyIndex ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-white/20'
+                          i === currentWeeklyIndex ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-zinc-200 dark:bg-white/20'
                         }`}
                       />
                     ))}
                   </div>
                 </div>
                 {weeklyRationales[currentWeeklyIndex] && (
-                  <p className="text-xs text-slate-300 border-t border-white/10 pt-2 font-light">
+                  <p className="border-t border-zinc-200 pt-2 text-xs text-zinc-600 dark:border-white/10 dark:text-zinc-300">
                     {weeklyRationales[currentWeeklyIndex]}
                   </p>
                 )}
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           )}
 
           {useSectionBuilder ? (

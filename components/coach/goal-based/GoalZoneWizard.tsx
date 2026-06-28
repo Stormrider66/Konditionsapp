@@ -8,13 +8,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { toast } from 'sonner'
 import {
   Target,
@@ -455,21 +449,21 @@ export function GoalZoneWizard({ onComplete, clientId: _clientId }: GoalZoneWiza
   }
 
   return (
-    <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-      <GlassCardHeader>
-        <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+    <RolePanel>
+      <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
           <Target className="h-5 w-5 text-blue-500" />
           {copy(locale, 'Goal-based zone calculation', 'Målbaserad zonberäkning')}
-        </GlassCardTitle>
-        <GlassCardDescription className="text-slate-650 dark:text-slate-400">
+        </h2>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
           {copy(locale, 'Calculate training zones without equipment based on a race, time trial, or goal', 'Beräkna träningszoner utan utrustning baserat på lopp, tidstest eller mål')}
-        </GlassCardDescription>
-      </GlassCardHeader>
-      <GlassCardContent>
+        </p>
+      </div>
+      <div className="p-5">
         {step === 0 && renderStep0()}
         {step === 1 && renderStep1()}
         {step === 2 && renderStep2()}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
