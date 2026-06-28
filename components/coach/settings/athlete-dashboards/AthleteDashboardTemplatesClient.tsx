@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { RolePageFrame, RolePageHeader, RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleMutedBlockClass, roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -340,7 +340,7 @@ export default function AthleteDashboardTemplatesClient({
       <div className="space-y-6">
         {/* Scope tabs */}
         <Tabs value={scope} onValueChange={v => { setScope(v as Scope); setTargetId('') }}>
-          <TabsList className="grid w-full grid-cols-3 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60">
+          <TabsList className={roleTabsListClass('grid w-full grid-cols-3')}>
             <TabsTrigger value="BUSINESS_DEFAULT" className="gap-2">
               <Building2 className="h-4 w-4" /> {copy(locale, 'Default', 'Standard')}
             </TabsTrigger>

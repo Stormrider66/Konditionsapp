@@ -28,6 +28,7 @@ import {
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { BusinessAdminProvider } from '@/components/coach/admin/BusinessAdminContext'
+import { roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 
 interface BusinessAdminClientProps {
   businessId: string
@@ -72,7 +73,7 @@ export function BusinessAdminClient({
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-grid">
+          <TabsList className={roleTabsListClass('grid h-auto w-full grid-cols-5 gap-1 xl:w-auto xl:inline-grid xl:grid-cols-10')}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <LayoutDashboard className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>

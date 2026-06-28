@@ -12,7 +12,7 @@ import { PracticePlanner } from '@/components/coach/drills/PracticePlanner'
 import { ClubDrillLibrary } from '@/components/coach/drills/ClubDrillLibrary'
 import { ClipboardList } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
-import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -49,7 +49,7 @@ export default async function DrillsPage({ params }: PageProps) {
       />
 
       <Tabs defaultValue="create" className="space-y-5">
-        <TabsList className="h-auto flex-wrap justify-start gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60">
+        <TabsList className={roleTabsListClass('h-auto flex-wrap justify-start gap-1')}>
           <TabsTrigger value="create" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.create')}</TabsTrigger>
           <TabsTrigger value="draw" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.draw')}</TabsTrigger>
           <TabsTrigger value="templates" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.templates')}</TabsTrigger>

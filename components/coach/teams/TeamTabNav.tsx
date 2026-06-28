@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useTranslations } from '@/i18n/client'
+import { roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 import {
   LayoutDashboard,
   CalendarDays,
@@ -59,7 +60,7 @@ export function TeamTabNav({ base }: TeamTabNavProps) {
   return (
     <nav className="sticky top-16 z-40 border-y bg-gray-50/95 backdrop-blur-sm dark:border-white/10 dark:bg-slate-950/85">
       <div className="container mx-auto px-4 py-3">
-        <div className="flex gap-1 overflow-x-auto rounded-lg border bg-white p-1 shadow-sm dark:border-white/10 dark:bg-slate-900">
+        <div className={roleTabsListClass('flex gap-1 overflow-x-auto')}>
           {TEAM_TABS.map(({ key, labelKey, icon: Icon, segment, activeSegments }) => {
             const isActive = activeSegments.includes(currentSegment)
             return (

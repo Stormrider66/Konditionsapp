@@ -211,6 +211,13 @@ export function roleListItemClass(tone: keyof typeof rowToneClasses = 'zinc', cl
   )
 }
 
+export function roleTabsListClass(className?: string) {
+  return cn(
+    'rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60',
+    className
+  )
+}
+
 export function roleEmptyStateClass(className?: string) {
   return cn(
     'rounded-lg border border-dashed border-zinc-200 px-4 py-10 text-center text-zinc-500 dark:border-white/10 dark:text-zinc-400',

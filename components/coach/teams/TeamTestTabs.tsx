@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useLocale } from 'next-intl'
 import { Grid3x3, LayoutList, LineChart } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 import { TeamTestProfile } from './TeamTestProfile'
 import { TeamTestsClient } from './TeamTestsClient'
 import { TeamPlayerDevelopment } from './TeamPlayerDevelopment'
@@ -34,7 +35,7 @@ export function TeamTestTabs({ teamId, teamName, basePath, businessSlug }: TeamT
 
   return (
     <div className="space-y-6">
-      <div className="inline-flex gap-1 rounded-lg border bg-white p-1 shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <div className={roleTabsListClass('inline-flex gap-1')}>
         {TABS.map((t) => {
           const Icon = t.icon
           const isActive = tab === t.key

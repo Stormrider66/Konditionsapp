@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { RolePageFrame, RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePanel, roleMutedBlockClass, roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 
@@ -446,7 +446,7 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
 
         <div className="lg:col-span-2">
           <Tabs defaultValue="injuries" className="w-full">
-            <TabsList className="mb-4 grid h-auto w-full grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60 sm:grid-cols-3 xl:flex xl:justify-start">
+            <TabsList className={roleTabsListClass('mb-4 grid h-auto w-full grid-cols-2 gap-1 sm:grid-cols-3 xl:flex xl:justify-start')}>
               {[
                 ['injuries', t('tabs.injuries')],
                 ['restrictions', t('tabs.restrictions')],

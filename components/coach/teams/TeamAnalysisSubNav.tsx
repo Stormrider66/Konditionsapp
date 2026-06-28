@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { Activity, FlaskConical, Network } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 
 interface SubTab {
   segment: string
@@ -33,7 +34,7 @@ export function TeamAnalysisSubNav({ base }: { base: string }) {
   const active = segment === 'analys' ? 'analysis' : segment
 
   return (
-    <div className="mb-6 inline-flex gap-1 rounded-lg border bg-white p-1 shadow-sm dark:border-white/10 dark:bg-slate-900">
+    <div className={roleTabsListClass('mb-6 inline-flex gap-1')}>
       {SUB_TABS.map((tab) => {
         const Icon = tab.icon
         const isActive = active === tab.segment

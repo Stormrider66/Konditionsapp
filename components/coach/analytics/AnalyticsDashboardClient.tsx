@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useLocale } from 'next-intl';
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage';
+import { RolePageFrame, RolePageHeader, RolePanel, roleTabsListClass } from '@/components/layouts/role-shell/RolePage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -168,7 +168,7 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
         actions={
           <>
             <Tabs value={range} onValueChange={setRange}>
-              <TabsList className="rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60">
+              <TabsList className={roleTabsListClass()}>
                 <TabsTrigger value="7">{t('7days')}</TabsTrigger>
                 <TabsTrigger value="30">{t('30days')}</TabsTrigger>
                 <TabsTrigger value="90">{t('90days')}</TabsTrigger>

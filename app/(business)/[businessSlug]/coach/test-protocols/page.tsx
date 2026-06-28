@@ -6,7 +6,7 @@ import { ProtocolBuilder } from '@/components/coach/test-protocols/ProtocolBuild
 import { ProtocolList } from '@/components/coach/test-protocols/ProtocolList'
 import { ClipboardList } from 'lucide-react'
 import { getTranslations } from '@/i18n/server'
-import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{ businessSlug: string }>
@@ -36,7 +36,7 @@ export default async function TestProtocolsPage({ params }: PageProps) {
       />
 
       <Tabs defaultValue="protocols" className="space-y-5">
-        <TabsList className="h-auto rounded-lg border border-zinc-200 bg-white p-1 shadow-sm dark:border-white/10 dark:bg-zinc-950/60">
+        <TabsList className={roleTabsListClass('h-auto')}>
           <TabsTrigger value="protocols" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.protocols')}</TabsTrigger>
           <TabsTrigger value="create" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">{t('tabs.create')}</TabsTrigger>
         </TabsList>
