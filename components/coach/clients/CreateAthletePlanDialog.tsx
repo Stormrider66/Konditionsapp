@@ -31,6 +31,7 @@ export function CreateAthletePlanDialog({
       trigger={trigger}
       defaultTemplateKey="hockey-9"
       initialPlan={initialPlan}
+      includePlanType
     />
   )
 }

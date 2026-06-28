@@ -43,6 +43,7 @@ const createPlanSchema = z.object({
   startDate: z.string().min(1),
   endDate: z.string().min(1),
   status: z.enum(['ACTIVE', 'DRAFT']).default('ACTIVE'),
+  planType: z.enum(['SPECIAL_PROGRAM', 'INJURY_RECOVERY', 'RETURN_TO_PLAY', 'PERFORMANCE']).optional(),
   blocks: z.array(blockSchema).min(1).max(24),
 })
 
@@ -60,6 +61,7 @@ function planSelect() {
     name: true,
     description: true,
     status: true,
+    planType: true,
     staffPlanNote: true,
     staffPlanNoteVisibleToAthlete: true,
     staffPlanNoteUpdatedAt: true,
@@ -182,6 +184,7 @@ export async function POST(
         name: blockPlanNameWithActualWeeks(parsed.data.name, totalWeeks),
         description: blockPlanDescriptionWithActualWeeks(parsed.data.description, finalBlocks) || null,
         status: parsed.data.status,
+        planType: parsed.data.planType ?? 'SPECIAL_PROGRAM',
         startDate: planStartDate,
         endDate: planEndDate,
         blocks: {

@@ -5,8 +5,8 @@ import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
 import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
 import { AthletePlanSummaryCard } from '@/components/athlete-plans/AthletePlanSummaryCard'
-import { AthletePlanStaffNoteCard } from '@/components/coach/player-notes/AthletePlanStaffNoteCard'
 import { TeamNotesCard, type TeamNoteSummary, type TeamNoteTag } from '@/components/coach/teams/TeamNotesCard'
+import { TeamIndividualPlansSection, type IndividualPlanEntry } from '@/components/coach/teams/TeamIndividualPlansSection'
 import { getTranslations } from '@/i18n/server'
 import { ClipboardList } from 'lucide-react'
 import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
@@ -81,6 +81,7 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
       name: true,
       description: true,
       status: true,
+      planType: true,
       staffPlanNote: true,
       staffPlanNoteVisibleToAthlete: true,
       staffPlanNoteUpdatedAt: true,
@@ -119,6 +120,96 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
       { startDate: 'desc' },
     ],
   })
+
+  // Injury / restriction / rehab context for every team member, so individual
+  // plans can be split into special vs injury-recovery, and so injured players
+  // without a plan surface as "needs a program". Mirrors the Medical (Hälsa) tab.
+  const medicalTeam = await prisma.team.findUnique({
+    where: { id: teamId },
+    select: {
+      members: {
+        orderBy: [{ jerseyNumber: 'asc' }, { name: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          jerseyNumber: true,
+          position: true,
+          injuryAssessments: {
+            where: { resolved: false, status: { in: ['ACTIVE', 'MONITORING'] } },
+            orderBy: { date: 'desc' },
+            take: 1,
+            select: { injuryType: true, bodyPart: true, painLevel: true },
+          },
+          trainingRestrictions: {
+            where: { isActive: true, OR: [{ endDate: null }, { endDate: { gte: today } }] },
+            orderBy: [{ severity: 'desc' }, { createdAt: 'desc' }],
+            take: 1,
+            select: { type: true, severity: true },
+          },
+          rehabPrograms: {
+            where: { status: 'ACTIVE' },
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { name: true, currentPhase: true },
+          },
+          acuteInjuryReports: {
+            where: { status: 'PENDING_REVIEW' },
+            select: { id: true },
+          },
+        },
+      },
+    },
+  })
+
+  const formatEnumLabel = (value?: string | null) =>
+    value ? value.replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase()) : ''
+  const plansByClient = new Map(activeIndividualPlans.map((plan) => [plan.clientId, plan]))
+  const individualSpecial: IndividualPlanEntry[] = []
+  const individualRecovery: IndividualPlanEntry[] = []
+  const individualNeeds: IndividualPlanEntry[] = []
+
+  for (const member of medicalTeam?.members ?? []) {
+    const plan = plansByClient.get(member.id) ?? null
+    const injuryRow = member.injuryAssessments[0] ?? null
+    const restrictionRow = member.trainingRestrictions[0] ?? null
+    const rehabRow = member.rehabPrograms[0] ?? null
+    const hasPendingReport = member.acuteInjuryReports.length > 0
+    const hasInjuryContext = Boolean(injuryRow || restrictionRow || rehabRow || hasPendingReport)
+
+    if (!plan && !hasInjuryContext) continue
+
+    const entry: IndividualPlanEntry = {
+      clientId: member.id,
+      name: member.name,
+      jerseyNumber: member.jerseyNumber,
+      position: member.position,
+      plan,
+      planType: plan?.planType ?? null,
+      rehab: rehabRow ? { name: rehabRow.name, phase: rehabRow.currentPhase } : null,
+      injury: injuryRow
+        ? {
+            label: formatEnumLabel(injuryRow.injuryType || injuryRow.bodyPart) || (locale === 'sv' ? 'Skada' : 'Injury'),
+            detail: `${locale === 'sv' ? 'Smärta' : 'Pain'} ${injuryRow.painLevel}/10`,
+          }
+        : restrictionRow
+          ? { label: formatEnumLabel(restrictionRow.type), detail: formatEnumLabel(restrictionRow.severity) }
+          : null,
+      restriction: restrictionRow ? { label: formatEnumLabel(restrictionRow.type) } : null,
+      hasPendingReport,
+    }
+
+    const isRecovery =
+      (plan && (plan.planType === 'INJURY_RECOVERY' || plan.planType === 'RETURN_TO_PLAY')) || hasInjuryContext
+
+    if (plan) {
+      if (isRecovery) individualRecovery.push(entry)
+      else individualSpecial.push(entry)
+    } else if (rehabRow) {
+      individualRecovery.push(entry)
+    } else {
+      individualNeeds.push(entry)
+    }
+  }
 
   const teamNotes = await prisma.teamNote.findMany({
     where: { teamId },
@@ -198,47 +289,21 @@ export default async function TeamPlanPage({ params }: TeamPlanPageProps) {
       <div className="mb-8">
         <div className="mb-3">
           <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
-            {locale === 'sv' ? 'Individuella plananteckningar' : 'Individual plan notes'}
+            {locale === 'sv' ? 'Individuella planer' : 'Individual plans'}
           </h3>
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             {locale === 'sv'
-              ? 'Delad personaltext för spelare som har en aktiv individuell plan.'
-              : 'Shared staff text for players with an active individual plan.'}
+              ? 'Specialprogram och skadeåterhämtning – en överblick av spelare som behöver särskild planering.'
+              : 'Special programs and injury recovery — an overview of players who need special planning.'}
           </p>
         </div>
-        {activeIndividualPlans.length === 0 ? (
-          <RolePanel className="p-5 sm:p-6">
-            <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">
-              {locale === 'sv' ? 'Inga aktiva individuella planer' : 'No active individual plans'}
-            </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {locale === 'sv'
-                ? 'Skapa en individuell plan från spelarprofilen för att lägga till plananteckningar här.'
-                : 'Create an individual plan from the player profile to add plan notes here.'}
-            </p>
-          </RolePanel>
-        ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
-            {activeIndividualPlans.map((plan) => (
-              <div key={plan.id} className="space-y-2">
-                <div>
-                  <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
-                    {plan.client.jerseyNumber != null ? `#${plan.client.jerseyNumber} ` : ''}{plan.client.name}
-                  </p>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                    {plan.client.position ? `${plan.client.position} · ` : ''}{plan.name}
-                  </p>
-                </div>
-                <AthletePlanStaffNoteCard
-                  clientId={plan.clientId}
-                  businessSlug={businessSlug}
-                  plan={plan}
-                  compact
-                />
-              </div>
-            ))}
-          </div>
-        )}
+        <TeamIndividualPlansSection
+          businessSlug={businessSlug}
+          locale={locale}
+          special={individualSpecial}
+          recovery={individualRecovery}
+          needs={individualNeeds}
+        />
       </div>
 
       <div>

@@ -146,6 +146,13 @@ model TrainingProgram {
   @@index([isActive])
 }
 
+enum AthletePlanType {
+  SPECIAL_PROGRAM // Individualised / special programming (no injury)
+  INJURY_RECOVERY // Player is rehabbing an injury
+  RETURN_TO_PLAY // Late-stage return from injury, reintegration
+  PERFORMANCE // Targeted performance / development emphasis
+}
+
 model AthletePlan {
   id       String @id @default(uuid())
   clientId String
@@ -154,6 +161,7 @@ model AthletePlan {
   name        String
   description String? @db.Text
   status      String  @default("ACTIVE") // ACTIVE, DRAFT, ARCHIVED
+  planType    AthletePlanType @default(SPECIAL_PROGRAM)
 
   staffPlanNote                 String?   @db.Text
   staffPlanNoteVisibleToAthlete Boolean   @default(false)

@@ -31,6 +31,7 @@ export interface AthletePlanSummary {
   name: string
   description: string | null
   status: string
+  planType?: 'SPECIAL_PROGRAM' | 'INJURY_RECOVERY' | 'RETURN_TO_PLAY' | 'PERFORMANCE' | string
   staffPlanNote?: string | null
   staffPlanNoteVisibleToAthlete?: boolean
   staffPlanNoteUpdatedAt?: string | Date | null

@@ -68,9 +68,20 @@ interface CreateBlockPlanDialogProps {
   trigger?: ReactNode
   defaultTemplateKey?: string
   initialPlan?: AthletePlanSummary
+  /** Show a plan-type selector (special program / injury recovery / …). Used for athlete plans, not team plans. */
+  includePlanType?: boolean
 }
 
 type AppLocale = 'en' | 'sv'
+
+type AthletePlanTypeValue = 'SPECIAL_PROGRAM' | 'INJURY_RECOVERY' | 'RETURN_TO_PLAY' | 'PERFORMANCE'
+
+const PLAN_TYPE_OPTIONS: { value: AthletePlanTypeValue; en: string; sv: string }[] = [
+  { value: 'SPECIAL_PROGRAM', en: 'Special program', sv: 'Specialprogram' },
+  { value: 'INJURY_RECOVERY', en: 'Injury recovery', sv: 'Skadeåterhämtning' },
+  { value: 'RETURN_TO_PLAY', en: 'Return to play', sv: 'Återgång (return to play)' },
+  { value: 'PERFORMANCE', en: 'Performance', sv: 'Prestation' },
+]
 
 const COPY = {
   en: {
@@ -81,6 +92,7 @@ const COPY = {
     editDescription: 'Adjust name, dates, and blocks without recreating workouts.',
     createDescription: 'Build the plan first. Workouts can be filled into the calendar later.',
     template: 'Template',
+    planType: 'Plan type',
     existingPlan: 'Existing plan',
     chooseTemplate: 'Choose template',
     startDate: 'Start date',
@@ -117,6 +129,7 @@ const COPY = {
     editDescription: 'Justera namn, datum och block utan att skapa om passen.',
     createDescription: 'Lägg planen först. Workouts kan fyllas på i kalendern senare.',
     template: 'Mall',
+    planType: 'Plantyp',
     existingPlan: 'Befintlig plan',
     chooseTemplate: 'Välj mall',
     startDate: 'Startdatum',
@@ -349,6 +362,7 @@ export function CreateBlockPlanDialog({
   trigger,
   defaultTemplateKey = 'hockey-9',
   initialPlan,
+  includePlanType = false,
 }: CreateBlockPlanDialogProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
@@ -360,6 +374,9 @@ export function CreateBlockPlanDialog({
   const [open, setOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [templateKey, setTemplateKey] = useState(isEditing ? 'custom-edit' : initialTemplate.key)
+  const [planType, setPlanType] = useState<AthletePlanTypeValue>(
+    (initialPlan?.planType as AthletePlanTypeValue) ?? 'SPECIAL_PROGRAM'
+  )
   const [name, setName] = useState(initialPlan?.name ?? initialTemplate.planName)
   const [description, setDescription] = useState(initialPlan?.description ?? initialTemplate.description)
   const [descriptionTracksBlocks, setDescriptionTracksBlocks] = useState(() =>
@@ -369,6 +386,7 @@ export function CreateBlockPlanDialog({
   const totalWeeks = blockPlanTotalWeeks(blocks)
 
   function resetForm() {
+    setPlanType((initialPlan?.planType as AthletePlanTypeValue) ?? 'SPECIAL_PROGRAM')
     if (initialPlan) {
       const nextBlocks = buildBlocksFromPlan(initialPlan)
       const nextDescriptionTracksBlocks = hasAutoBlockPlanDescription(initialPlan.description ?? '')
@@ -509,6 +527,7 @@ export function CreateBlockPlanDialog({
           startDate: planStartDate,
           endDate: planEndDate,
           status: 'ACTIVE',
+          ...(includePlanType ? { planType } : {}),
           blocks: blocks.map((block, index) => ({
             title: block.title,
             focus: block.focus,
@@ -604,6 +623,24 @@ export function CreateBlockPlanDialog({
               </div>
             </div>
           </div>
+
+          {includePlanType && (
+            <div className="grid gap-2 md:max-w-[260px]">
+              <Label htmlFor="block-plan-type">{copy.planType}</Label>
+              <Select value={planType} onValueChange={(value) => setPlanType(value as AthletePlanTypeValue)}>
+                <SelectTrigger id="block-plan-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLAN_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {locale === 'sv' ? option.sv : option.en}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div className="grid gap-2">
             <Label htmlFor="block-plan-description">{copy.description}</Label>
