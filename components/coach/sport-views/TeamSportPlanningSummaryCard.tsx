@@ -2,7 +2,13 @@
 
 import { Activity, Gauge, ShieldCheck } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelDescription as CardDescription,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import type { TeamSportPlanningSummary } from '@/lib/program-generator/team-sports/explainability'
 import type { WorkoutTheme } from '@/lib/themes'
 
