@@ -11,7 +11,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { BarChart3, Gauge, Grid3x3, LayoutList, Loader2, Trophy, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+} from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 
 // ---------------------------------------------------------------------------

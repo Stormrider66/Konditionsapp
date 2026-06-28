@@ -9,7 +9,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { useLocale } from 'next-intl'
 import { Loader2, TrendingUp, Trophy, User, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 
 type Locale = 'en' | 'sv'

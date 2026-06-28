@@ -11,12 +11,12 @@
 
 import { useMemo, useEffect, useState } from 'react'
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card'
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+  RolePanelDescription as CardDescription,
+} from '@/components/layouts/role-shell/RolePage'
 import {
   AreaChart,
   Area,

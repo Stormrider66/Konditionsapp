@@ -1,5 +1,9 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelHeader as CardHeader,
+} from '@/components/layouts/role-shell/RolePage'
 
 export default function AthleteProfileLoading() {
   return (

@@ -6,12 +6,12 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Calendar, Clock, TrendingUp, CheckCircle2, XCircle, MessageSquare, HeartPulse } from 'lucide-react'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelDescription as CardDescription,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import {
   Table,
   TableBody,

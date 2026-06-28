@@ -10,7 +10,10 @@ import type { RealtimeChannel } from '@supabase/supabase-js'
 import { createClient } from '@/lib/supabase/client'
 import { useTranslations, useLocale } from '@/i18n/client'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+} from '@/components/layouts/role-shell/RolePage'
 import { Textarea } from '@/components/ui/textarea'
 import { Loader2, Send } from 'lucide-react'
 import { cn } from '@/lib/utils'
