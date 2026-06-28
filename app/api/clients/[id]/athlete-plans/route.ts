@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { canAccessClient, requireCoach } from '@/lib/auth-utils'
+import { canAccessClient, canModifyProgramsAsPhysio, getCurrentUser, requireCoach } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import {
   blockPlanDescriptionWithActualWeeks,
@@ -136,12 +136,17 @@ export async function POST(
   let locale = resolveRequestLocale(request)
 
   try {
-    const user = await requireCoach()
+    const user = await getCurrentUser()
+    if (!user) {
+      return NextResponse.json({ error: t(locale, 'Authentication required', 'Autentisering krävs') }, { status: 401 })
+    }
     locale = resolveRequestLocale(request, user.language)
     const { id: clientId } = await params
 
-    const hasAccess = await canAccessClient(user.id, clientId)
-    if (!hasAccess) {
+    // Coaches with client access OR an assigned physio with program-modify rights
+    // (so a physio can set a player on an injury-recovery plan).
+    const canModify = await canModifyProgramsAsPhysio(user.id, clientId)
+    if (!canModify) {
       return NextResponse.json({ error: t(locale, 'Client not found or access denied', 'Klienten hittades inte eller åtkomst nekades') }, { status: 404 })
     }
 
