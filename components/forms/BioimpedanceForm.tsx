@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -423,11 +423,11 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
           isGlass ? "space-y-6" : "space-y-4"
         )}>
           {isGlass ? (
-            <GlassCard className="border-slate-200 bg-white dark:border-white/5 dark:bg-white/[0.02]">
-              <GlassCardHeader>
-                <GlassCardTitle className="text-lg font-black italic uppercase tracking-tight">{copy.results}</GlassCardTitle>
-              </GlassCardHeader>
-              <GlassCardContent className="space-y-6">
+            <RolePanel className="border-slate-200 bg-white dark:border-white/5 dark:bg-white/[0.02]">
+              <div className="border-b border-slate-200 p-5 dark:border-white/5">
+                <h3 className="text-lg font-black italic uppercase tracking-tight text-slate-900 dark:text-white">{copy.results}</h3>
+              </div>
+              <div className="space-y-6 p-5">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
                     { label: copy.weight, value: result.measurement.weightKg, unit: 'kg' },
@@ -469,8 +469,8 @@ export function BioimpedanceForm({ clientId, clientName, onSuccess, onCancel, in
                     </ul>
                   </div>
                 )}
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           ) : (
             <Card>
               <CardHeader>
