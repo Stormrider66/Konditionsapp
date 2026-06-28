@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useLocale } from 'next-intl'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+} from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

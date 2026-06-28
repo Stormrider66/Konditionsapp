@@ -29,7 +29,10 @@ import {
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+} from '@/components/layouts/role-shell/RolePage'
 import { useToast } from '@/hooks/use-toast'
 import {
   MessageSquare,

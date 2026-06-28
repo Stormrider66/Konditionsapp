@@ -28,7 +28,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useLocale } from 'next-intl'
 import { usePageContextOptional } from '@/components/ai-studio/PageContextProvider'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelDescription as CardDescription,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
