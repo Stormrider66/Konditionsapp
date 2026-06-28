@@ -1,7 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, type ComponentPropsWithoutRef } from 'react'
-import { RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelDescription as CardDescription,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
@@ -52,41 +58,6 @@ import { useLocale } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 
 type AppLocale = 'en' | 'sv'
-
-function Card({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
-  return <RolePanel className={className} {...props} />
-}
-
-function CardHeader({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
-  return (
-    <div
-      className={cn('border-b border-zinc-200 p-5 dark:border-white/10', className)}
-      {...props}
-    />
-  )
-}
-
-function CardContent({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
-  return <div className={cn('p-5', className)} {...props} />
-}
-
-function CardTitle({ className, ...props }: ComponentPropsWithoutRef<'h3'>) {
-  return (
-    <h3
-      className={cn('text-base font-semibold text-zinc-950 dark:text-zinc-50', className)}
-      {...props}
-    />
-  )
-}
-
-function CardDescription({ className, ...props }: ComponentPropsWithoutRef<'p'>) {
-  return (
-    <p
-      className={cn('mt-1 text-sm text-zinc-500 dark:text-zinc-400', className)}
-      {...props}
-    />
-  )
-}
 
 const copy = {
   en: {
