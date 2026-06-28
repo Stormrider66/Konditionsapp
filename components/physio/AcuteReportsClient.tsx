@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 
 interface AcuteReport {
   id: string
@@ -259,7 +259,7 @@ export function AcuteReportsClient({ basePath }: AcuteReportsClientProps) {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-32 bg-zinc-200/80 dark:bg-white/10" />
+            <Skeleton key={index} className={roleSkeletonClass('h-32')} />
           ))}
         </div>
       ) : filteredReports.length === 0 ? (

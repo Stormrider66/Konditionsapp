@@ -38,6 +38,7 @@ import {
   RolePanelHeader as CardHeader,
   RolePanelTitle as CardTitle,
   roleMutedBlockClass,
+  roleSkeletonClass,
 } from '@/components/layouts/role-shell/RolePage'
 
 interface AcuteReportDetail {
@@ -312,10 +313,10 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
   if (loading) {
     return (
       <RolePageFrame maxWidth="wide">
-        <Skeleton className="mb-6 h-10 w-40 bg-zinc-200 dark:bg-zinc-800" />
+        <Skeleton className={roleSkeletonClass('mb-6 h-10 w-40')} />
         <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
-          <Skeleton className="h-96 bg-zinc-200 dark:bg-zinc-800" />
-          <Skeleton className="h-96 bg-zinc-200 dark:bg-zinc-800" />
+          <Skeleton className={roleSkeletonClass('h-96')} />
+          <Skeleton className={roleSkeletonClass('h-96')} />
         </div>
       </RolePageFrame>
     )

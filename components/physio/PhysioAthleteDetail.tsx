@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { RolePageFrame, RolePanel, roleMutedBlockClass, roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePanel, roleMutedBlockClass, roleSkeletonClass, roleTabsListClass } from '@/components/layouts/role-shell/RolePage'
 import { useTranslations } from '@/i18n/client'
 import { cn } from '@/lib/utils'
 
@@ -274,10 +274,10 @@ export function PhysioAthleteDetail({ athleteId, basePath }: PhysioAthleteDetail
   if (loading) {
     return (
       <RolePageFrame maxWidth="wide">
-        <Skeleton className="mb-6 h-9 w-40 bg-zinc-200/80 dark:bg-white/10" />
+        <Skeleton className={roleSkeletonClass('mb-6 h-9 w-40')} />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Skeleton className="h-64 bg-zinc-200/80 dark:bg-white/10" />
-          <Skeleton className="h-64 bg-zinc-200/80 dark:bg-white/10 lg:col-span-2" />
+          <Skeleton className={roleSkeletonClass('h-64')} />
+          <Skeleton className={roleSkeletonClass('h-64 lg:col-span-2')} />
         </div>
       </RolePageFrame>
     )

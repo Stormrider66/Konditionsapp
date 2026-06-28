@@ -218,6 +218,10 @@ export function roleTabsListClass(className?: string) {
   )
 }
 
+export function roleSkeletonClass(className?: string) {
+  return cn('bg-zinc-200/80 dark:bg-white/10', className)
+}
+
 export function roleEmptyStateClass(className?: string) {
   return cn(
     'rounded-lg border border-dashed border-zinc-200 px-4 py-10 text-center text-zinc-500 dark:border-white/10 dark:text-zinc-400',

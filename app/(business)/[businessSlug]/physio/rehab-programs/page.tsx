@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RolePageFrame, RolePageHeader, RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleMutedBlockClass, roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 
 interface RehabMilestone {
@@ -214,7 +214,7 @@ export default function BusinessPhysioRehabProgramsPage() {
       {loading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
-            <Skeleton key={index} className="h-52 bg-zinc-200/80 dark:bg-white/10" />
+            <Skeleton key={index} className={roleSkeletonClass('h-52')} />
           ))}
         </div>
       ) : programs.length === 0 ? (

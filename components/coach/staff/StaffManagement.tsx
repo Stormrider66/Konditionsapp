@@ -5,11 +5,13 @@ import { useLocale } from 'next-intl'
 import {
   RolePanel as Card,
   RolePanelContent as CardContent,
+  roleSkeletonClass,
 } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -700,7 +702,7 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+            <Skeleton key={i} className={roleSkeletonClass('h-16')} />
           ))}
         </div>
       ) : (

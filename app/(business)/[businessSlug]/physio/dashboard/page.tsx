@@ -24,6 +24,7 @@ import {
   RoleStatCard,
   roleEmptyStateClass,
   roleListItemClass,
+  roleSkeletonClass,
 } from '@/components/layouts/role-shell/RolePage'
 
 interface DashboardStats {
@@ -165,18 +166,18 @@ export default function BusinessPhysioDashboardPage() {
       <RolePageFrame maxWidth="wide">
         <div className="space-y-6">
           <div className="border-b border-zinc-200 pb-5 dark:border-white/10">
-            <Skeleton className="h-3 w-28 bg-zinc-200/80 dark:bg-white/10" />
-            <Skeleton className="mt-3 h-8 w-72 bg-zinc-200/80 dark:bg-white/10" />
-            <Skeleton className="mt-3 h-4 w-full max-w-xl bg-zinc-200/80 dark:bg-white/10" />
+            <Skeleton className={roleSkeletonClass('h-3 w-28')} />
+            <Skeleton className={roleSkeletonClass('mt-3 h-8 w-72')} />
+            <Skeleton className={roleSkeletonClass('mt-3 h-4 w-full max-w-xl')} />
           </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton key={index} className="h-32 bg-zinc-200/80 dark:bg-white/10" />
+              <Skeleton key={index} className={roleSkeletonClass('h-32')} />
             ))}
           </div>
           <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
-            <Skeleton className="h-96 bg-zinc-200/80 dark:bg-white/10" />
-            <Skeleton className="h-96 bg-zinc-200/80 dark:bg-white/10" />
+            <Skeleton className={roleSkeletonClass('h-96')} />
+            <Skeleton className={roleSkeletonClass('h-96')} />
           </div>
         </div>
       </RolePageFrame>

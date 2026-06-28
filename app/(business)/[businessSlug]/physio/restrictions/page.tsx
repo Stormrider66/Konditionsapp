@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 
 interface TrainingRestriction {
@@ -188,7 +188,7 @@ export default function BusinessPhysioRestrictionsPage() {
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, index) => (
-            <Skeleton key={index} className="h-28 bg-zinc-200/80 dark:bg-white/10" />
+            <Skeleton key={index} className={roleSkeletonClass('h-28')} />
           ))}
         </div>
       ) : restrictions.length === 0 ? (

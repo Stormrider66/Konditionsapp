@@ -4,10 +4,12 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
   RolePanel as Card,
   RolePanelContent as CardContent,
+  roleSkeletonClass,
 } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -197,7 +199,7 @@ export function ClubDrillLibrary({ teams }: ClubDrillLibraryProps) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />
+          <Skeleton key={i} className={roleSkeletonClass('h-20')} />
         ))}
       </div>
     )

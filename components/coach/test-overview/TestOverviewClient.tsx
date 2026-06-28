@@ -5,6 +5,8 @@ import { useLocale } from 'next-intl'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 import {
   Select,
   SelectContent,
@@ -188,7 +190,7 @@ export function TestOverviewClient({ teams, businessSlug, canAccessSimca }: Test
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="h-14 bg-muted animate-pulse rounded-lg" />
+                <Skeleton key={i} className={roleSkeletonClass('h-14')} />
               ))}
             </div>
           ) : athletes.length === 0 ? (

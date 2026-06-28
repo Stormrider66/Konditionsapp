@@ -4,8 +4,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   RolePanel as Card,
   RolePanelContent as CardContent,
+  roleSkeletonClass,
 } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { IceHockeyRink, type DrillStructure } from './IceHockeyRink'
 import { DrillAnimationPlayer } from './DrillAnimationPlayer'
 import type { DrillSportType } from '@/remotion/drills/surfaces'
@@ -170,7 +172,7 @@ export function DrillList({ teamId }: DrillListProps) {
     return (
       <div className="space-y-3">
         {[1, 2].map((i) => (
-          <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />
+          <Skeleton key={i} className={roleSkeletonClass('h-24')} />
         ))}
       </div>
     )

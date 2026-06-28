@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react'
 import {
   RolePanel as Card,
   RolePanelContent as CardContent,
+  roleSkeletonClass,
 } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Select,
   SelectContent,
@@ -338,7 +340,9 @@ export function HockeyTestResults({ teams, businessSlug }: HockeyTestResultsProp
       </Select>
 
       {loading ? (
-        <div className="space-y-2">{[1, 2, 3].map((i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}</div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className={roleSkeletonClass('h-20')} />)}
+        </div>
       ) : tests.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">{t('Inga testresultat hittades', 'No test results found')}</div>
       ) : (

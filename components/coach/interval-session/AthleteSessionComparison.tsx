@@ -15,8 +15,10 @@ import {
   RolePanelContent as CardContent,
   RolePanelHeader as CardHeader,
   RolePanelTitle as CardTitle,
+  roleSkeletonClass,
 } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Timer, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'
 import { useLocale } from '@/i18n/client'
@@ -115,7 +117,7 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
   }, [clientId, sportType, text.fetchFailed])
 
   if (loading) {
-    return <div className="h-48 bg-muted animate-pulse rounded-lg" />
+    return <Skeleton className={roleSkeletonClass('h-48')} />
   }
 
   if (sessions.length === 0) {

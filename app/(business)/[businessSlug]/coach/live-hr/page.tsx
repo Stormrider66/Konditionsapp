@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Radio } from 'lucide-react'
 import { LiveHRSessionList } from '@/components/coach/live-hr/SessionList'
 import { getTranslations } from '@/i18n/server'
-import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{
@@ -84,11 +84,11 @@ function SessionListSkeleton() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Skeleton className="h-10 w-40 bg-zinc-200/80 dark:bg-white/10" />
+        <Skeleton className={roleSkeletonClass('h-10 w-40')} />
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-32 bg-zinc-200/80 dark:bg-white/10" />
+          <Skeleton key={i} className={roleSkeletonClass('h-32')} />
         ))}
       </div>
     </div>

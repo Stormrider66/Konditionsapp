@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { getISOWeek } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 import { CreateEventDialog } from './CreateEventDialog'
 import { EditEventDialog } from './EditEventDialog'
 import { CreateTeamPlanDialog } from '@/components/coach/teams/CreateTeamPlanDialog'
@@ -1199,7 +1201,7 @@ export function TeamCalendarView({
       {loading ? (
         <div className="space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-16 bg-muted animate-pulse rounded-lg" />
+            <Skeleton key={i} className={roleSkeletonClass('h-16')} />
           ))}
         </div>
       ) : viewMode === 'day' ? (

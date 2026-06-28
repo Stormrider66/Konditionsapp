@@ -11,7 +11,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { HybridStudioClient } from '@/components/hybrid-studio/HybridStudioClient'
 import { Skeleton } from '@/components/ui/skeleton'
-import { RolePageFrame } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 
 interface PageProps {
   params: Promise<{
@@ -41,13 +41,13 @@ export default async function BusinessHybridStudioPage({ params }: PageProps) {
 function HybridStudioSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <Skeleton className="h-10 w-48" />
-        <Skeleton className="h-10 w-32" />
+      <div className="flex items-center justify-between">
+        <Skeleton className={roleSkeletonClass('h-10 w-48')} />
+        <Skeleton className={roleSkeletonClass('h-10 w-32')} />
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 w-full bg-zinc-200/80 dark:bg-white/10" />
+          <Skeleton key={i} className={roleSkeletonClass('h-48 w-full')} />
         ))}
       </div>
     </div>

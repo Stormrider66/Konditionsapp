@@ -1,11 +1,12 @@
 import { Loader2 } from 'lucide-react'
+import { RolePageFrame, RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 export default function Loading() {
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 lg:py-12">
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    </div>
+    <RolePageFrame>
+      <RolePanel className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </RolePanel>
+    </RolePageFrame>
   )
 }

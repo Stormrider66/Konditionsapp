@@ -10,6 +10,8 @@ import { validateBusinessMembership } from '@/lib/business-context'
 import { getCoachScopedIds } from '@/lib/coach/scoping'
 import { prisma } from '@/lib/prisma'
 import { agilityBusinessScopeWhere } from '@/lib/workouts/business-scope'
+import { Skeleton } from '@/components/ui/skeleton'
+import { RolePageFrame, roleSkeletonClass } from '@/components/layouts/role-shell/RolePage'
 
 export const metadata: Metadata = {
   title: 'Agility Studio | Coach Dashboard',
@@ -104,7 +106,7 @@ export default async function AgilityStudioPage({ params }: PageProps) {
   const initialData = await getInitialData(user.id, membership.businessId, membership.role)
 
   return (
-    <div className="min-h-screen bg-background">
+    <RolePageFrame maxWidth="wide">
       <Suspense fallback={<AgilityStudioSkeleton />}>
         <AgilityStudioClient
           userId={user.id}
@@ -115,18 +117,18 @@ export default async function AgilityStudioPage({ params }: PageProps) {
           businessId={membership.businessId}
         />
       </Suspense>
-    </div>
+    </RolePageFrame>
   )
 }
 
 function AgilityStudioSkeleton() {
   return (
-    <div className="container mx-auto py-6 space-y-6">
-      <div className="h-8 w-48 bg-muted animate-pulse rounded" />
-      <div className="h-10 w-full bg-muted animate-pulse rounded" />
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="space-y-6">
+      <Skeleton className={roleSkeletonClass('h-8 w-48')} />
+      <Skeleton className={roleSkeletonClass('h-10 w-full')} />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-48 bg-muted animate-pulse rounded-lg" />
+          <Skeleton key={i} className={roleSkeletonClass('h-48')} />
         ))}
       </div>
     </div>
