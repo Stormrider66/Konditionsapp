@@ -8,10 +8,7 @@ import { requireCoach } from '@/lib/auth-utils'
 import { getSession, getAvailableClients } from '@/lib/live-hr/session-service'
 import { getSessionStreamData } from '@/lib/live-hr/reading-service'
 import { LiveHRDashboard } from '@/components/coach/live-hr/LiveHRDashboard'
-import {
-  GlassCard,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePageFrame, RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -61,9 +58,9 @@ export default async function LiveHRSessionPage({ params }: PageProps) {
   // Verify ownership
   if (session.coachId !== user.id) {
     return (
-      <div className="container mx-auto py-8">
-        <GlassCard glow="red" className="border border-slate-200 dark:border-white/5 bg-white/60 dark:bg-slate-900/60 shadow-md">
-          <GlassCardContent className="flex flex-col items-center justify-center py-12">
+      <RolePageFrame maxWidth="wide">
+        <RolePanel>
+          <div className="flex flex-col items-center justify-center py-12">
             <AlertCircle className="h-12 w-12 text-rose-500 mb-4" />
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{copy.accessDeniedTitle}</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{copy.accessDeniedDescription}</p>
@@ -73,9 +70,9 @@ export default async function LiveHRSessionPage({ params }: PageProps) {
                 {copy.back}
               </Button>
             </Link>
-          </GlassCardContent>
-        </GlassCard>
-      </div>
+          </div>
+        </RolePanel>
+      </RolePageFrame>
     )
   }
 
@@ -89,12 +86,12 @@ export default async function LiveHRSessionPage({ params }: PageProps) {
   const availableClients = await getAvailableClients(id, user.id)
 
   return (
-    <div className="container mx-auto py-8">
+    <RolePageFrame maxWidth="wide">
       <LiveHRDashboard
         sessionId={id}
         initialData={streamData}
         initialAvailableClients={availableClients}
       />
-    </div>
+    </RolePageFrame>
   )
 }

@@ -1,10 +1,7 @@
 'use client'
 
 import { LiveHRParticipantData, ZONE_COLORS, ZONE_NAMES_EN, ZONE_NAMES_SV } from '@/lib/live-hr/types'
-import {
-  GlassCard,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Heart, AlertCircle, Bike } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -68,9 +65,9 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
   const accentColor = heartRate != null ? zoneColor : power != null ? powerColor : '#6B7280'
 
   return (
-    <GlassCard
+    <RolePanel
       className={cn(
-        'relative overflow-hidden transition-all duration-300 bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-sm',
+        'relative overflow-hidden transition-all duration-300',
         isStale && 'opacity-60',
         !isStale && hasData && 'ring-2'
       )}
@@ -85,7 +82,7 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
         style={{ backgroundColor: accentColor }}
       />
 
-      <GlassCardContent className="p-4">
+      <div className="p-4">
         {/* Athlete name */}
         <div className="flex items-center justify-between mb-3">
           <span className="font-semibold text-sm truncate text-slate-900 dark:text-white">{clientName}</span>
@@ -184,7 +181,7 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
             <span className="text-xs text-rose-600 dark:text-rose-400 font-semibold">{copy.noSignal}</span>
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

@@ -16,12 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
 import type { WattbikeSample } from '@/lib/integrations/wattbike'
 import type { LiveHRMachineType, LiveHRParticipantData } from '@/lib/live-hr/types'
@@ -177,13 +172,13 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
   }, [activeClientId, copy.streamError, device?.client, disabled, isConnected, machine.kind, selectedMachineType, sessionId])
 
   return (
-    <GlassCard glow="teal" className="mb-6 bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-sm">
-      <GlassCardHeader className="pb-3">
+    <RolePanel className="mb-6">
+      <div className="border-b border-zinc-200 p-4 dark:border-white/10">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <GlassCardTitle className="flex items-center gap-2 text-base text-slate-900 dark:text-white">
+          <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
             <Bluetooth className="h-4 w-4 text-teal-500" />
             {copy.title}
-          </GlassCardTitle>
+          </h3>
           <Badge
             variant={isConnected ? 'default' : 'outline'}
             className={cn(
@@ -195,8 +190,8 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
             {isConnected ? copy.live : copy.idle}
           </Badge>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </div>
+      <div className="p-4">
         <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
           <Select value={activeClientId} onValueChange={setSelectedClientId} disabled={disabled || participants.length === 0}>
             <SelectTrigger>
@@ -287,7 +282,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
             {copy.heartRate}: {displayLatest?.heartRate != null ? Math.round(displayLatest.heartRate) : '-'}
           </span>
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
