@@ -8,7 +8,10 @@
  */
 
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent } from '@/components/ui/card';
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+} from '@/components/layouts/role-shell/RolePage';
 import { Progress } from '@/components/ui/progress';
 import { Trophy, TrendingUp, Target, Info, Zap } from 'lucide-react';
 import { InfoTooltip } from '@/components/ui/InfoTooltip';
