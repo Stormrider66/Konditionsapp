@@ -6,6 +6,8 @@ import {
   DashboardCardContent,
   DashboardCardHeader,
   DashboardCardTitle,
+  dashboardEmptyStateClass,
+  dashboardListItemClass,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { CardLoadError } from '@/components/coach/dashboard/CardLoadError'
@@ -44,12 +46,6 @@ const classTypeColors: Record<string, string> = {
   STRETCHING: 'bg-teal-500',
   OTHER: 'bg-slate-500',
 }
-
-const classRowClass =
-  'rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-violet-200 hover:bg-violet-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-violet-900/60 dark:hover:bg-violet-950/20'
-
-const quietStateClass =
-  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
 
 interface GymClassesCardProps {
   basePath: string
@@ -132,13 +128,13 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
       </DashboardCardHeader>
       <DashboardCardContent>
         {loading ? (
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : loadFailed ? (
           <CardLoadError onRetry={() => void fetchClasses()} />
         ) : classes.length === 0 ? (
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('empty.title')}</p>
             <p className="text-xs mt-1">{t('empty.description')}</p>
@@ -146,7 +142,7 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
         ) : (
           <div className="space-y-2">
             {classes.slice(0, 5).map(cls => (
-              <div key={cls.id} className={`flex items-center gap-3 ${classRowClass}`}>
+              <div key={cls.id} className={dashboardListItemClass('purple', 'flex items-center gap-3 p-3')}>
                 <div className={cn(
                   'h-11 w-1 flex-shrink-0 rounded-full',
                   cls.color || classTypeColors[cls.classType] || 'bg-slate-400'

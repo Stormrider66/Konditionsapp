@@ -16,6 +16,8 @@ import {
   DashboardCardContent,
   DashboardCardHeader,
   DashboardCardTitle,
+  dashboardEmptyStateClass,
+  dashboardListItemClass,
 } from '@/components/coach/dashboard/DashboardCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -87,12 +89,6 @@ const SOURCE_LABELS: Record<string, string> = {
   OUTLOOK: 'Outlook',
   ICAL_URL: 'Kalender',
 };
-
-const appointmentRowClass =
-  'rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-emerald-200 hover:bg-emerald-50/40 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-emerald-900/60 dark:hover:bg-emerald-950/20';
-
-const quietStateClass =
-  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40';
 
 function getDateLabel(date: Date, locale: Locale, today: string, tomorrow: string, yesterday: string): string {
   if (isToday(date)) return today;
@@ -205,7 +201,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
                 return (
                   <div
                     key={`${appointment.type}-${appointment.id}`}
-                    className={`flex items-center justify-between gap-3 ${appointmentRowClass}`}
+                    className={dashboardListItemClass('emerald', 'flex items-center justify-between gap-3 p-3')}
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate dark:text-slate-200">
@@ -285,7 +281,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           </div>
         </DashboardCardHeader>
         <DashboardCardContent>
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         </DashboardCardContent>
@@ -306,7 +302,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           </div>
         </DashboardCardHeader>
         <DashboardCardContent>
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{isToday(selectedDate) ? t('empty.noneToday') : t('empty.none')}</p>
             <p className="text-xs mt-1">
@@ -342,7 +338,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
           return (
             <div
               key={`${appointment.type}-${appointment.id}`}
-              className={`flex items-start gap-3 ${appointmentRowClass}`}
+              className={dashboardListItemClass('emerald', 'flex items-start gap-3 p-3')}
             >
               {/* Time */}
               <div className="flex w-14 flex-shrink-0 justify-center rounded-lg border border-zinc-200 bg-zinc-50 px-2 py-1.5 text-center dark:border-white/10 dark:bg-zinc-900/60">

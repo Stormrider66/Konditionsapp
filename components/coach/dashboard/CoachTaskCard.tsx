@@ -6,6 +6,8 @@ import {
   DashboardCardContent,
   DashboardCardHeader,
   DashboardCardTitle,
+  dashboardEmptyStateClass,
+  dashboardListItemClass,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,9 +54,6 @@ const priorityDots: Record<string, string> = {
   NORMAL: 'bg-slate-400',
   LOW: 'bg-slate-300',
 }
-
-const quietStateClass =
-  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
 
 export function CoachTaskCard() {
   const t = useTranslations('components.coachTaskCard')
@@ -176,13 +175,13 @@ export function CoachTaskCard() {
         </div>
 
         {loading ? (
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : loadFailed ? (
           <CardLoadError onRetry={() => void fetchTasks()} />
         ) : pendingTasks.length === 0 && completedTasks.length === 0 ? (
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <ListTodo className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('empty')}</p>
           </div>
@@ -203,7 +202,7 @@ export function CoachTaskCard() {
               <>
                 <button
                   onClick={() => setShowCompleted(!showCompleted)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 text-left text-xs text-muted-foreground transition-colors hover:text-foreground dark:border-white/10 dark:bg-zinc-950/40"
+                  className={dashboardListItemClass('slate', 'w-full px-3 py-2 text-left text-xs text-muted-foreground hover:text-foreground')}
                 >
                   {showCompleted ? t('hideCompleted', { count: completedTasks.length }) : t('showCompleted', { count: completedTasks.length })}
                 </button>
@@ -228,7 +227,7 @@ function TaskRow({ task, onToggle, onDelete, dateLocale }: {
   const isCompleted = task.status === 'COMPLETED'
 
   return (
-    <div className="group flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-blue-900/60 dark:hover:bg-blue-950/20">
+    <div className={dashboardListItemClass('blue', 'group flex items-center gap-3 px-3 py-2.5')}>
       <button type="button" onClick={() => void onToggle(task)} className="flex-shrink-0 rounded-full">
         {isCompleted ? (
           <CheckCircle2 className="h-4 w-4 text-green-500" />

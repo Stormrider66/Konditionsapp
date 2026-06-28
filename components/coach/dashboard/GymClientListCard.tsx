@@ -7,6 +7,8 @@ import {
   DashboardCardContent,
   DashboardCardHeader,
   DashboardCardTitle,
+  dashboardEmptyStateClass,
+  dashboardListItemClass,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -39,12 +41,6 @@ function getProgressionColor(status: string | null): string {
     default: return 'text-muted-foreground'
   }
 }
-
-const clientRowClass =
-  'flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5 transition-colors hover:border-orange-200 hover:bg-orange-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-orange-900/60 dark:hover:bg-orange-950/20'
-
-const quietStateClass =
-  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
 
 type GymClientListTranslator = ReturnType<typeof useTranslations>
 
@@ -101,11 +97,11 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
       </DashboardCardHeader>
       <DashboardCardContent>
         {loading ? (
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
         ) : clients.length === 0 ? (
-          <div className={quietStateClass}>
+          <div className={dashboardEmptyStateClass}>
             <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{t('empty')}</p>
           </div>
@@ -115,7 +111,7 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
               <Link
                 key={client.id}
                 href={`${basePath}/coach/clients/${client.id}`}
-                className={clientRowClass}
+                className={dashboardListItemClass('orange', 'flex items-center gap-3 px-3 py-2.5')}
               >
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10">
                   {getInitials(client.name)}

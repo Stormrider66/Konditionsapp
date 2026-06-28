@@ -5,6 +5,8 @@ import {
   DashboardCardContent,
   DashboardCardHeader,
   DashboardCardTitle,
+  dashboardEmptyStateClass,
+  dashboardListItemClass,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -24,12 +26,6 @@ import { cn } from '@/lib/utils'
 import { getTranslations } from '@/i18n/server'
 
 type CoachTranslator = Awaited<ReturnType<typeof getTranslations>>
-
-const listRowClass =
-  'rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-white/10 dark:bg-zinc-950/40 dark:hover:border-blue-900/60 dark:hover:bg-blue-950/20'
-
-const quietStateClass =
-  'rounded-lg border border-dashed border-zinc-200 bg-zinc-50 px-4 py-8 text-center text-muted-foreground dark:border-white/10 dark:bg-zinc-950/40'
 
 interface PTDashboardLayoutProps {
   basePath: string
@@ -106,7 +102,7 @@ export function PTDashboardLayout({
           </DashboardCardHeader>
           <DashboardCardContent>
             {recentTests.length === 0 ? (
-              <p className={quietStateClass}>
+              <p className={dashboardEmptyStateClass}>
                 {t('ptDashboard.recentTests.empty')}
               </p>
             ) : (
@@ -115,7 +111,7 @@ export function PTDashboardLayout({
                   <Link
                     key={test.id}
                     href={`${basePath}/coach/tests/${test.id}`}
-                    className={`flex items-center justify-between gap-3 ${listRowClass}`}
+                    className={dashboardListItemClass('blue', 'flex items-center justify-between gap-3 p-3')}
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-zinc-950 dark:text-zinc-100">
@@ -155,7 +151,7 @@ export function PTDashboardLayout({
           </DashboardCardHeader>
           <DashboardCardContent>
             {upcomingEvents.length === 0 ? (
-              <div className={quietStateClass}>
+              <div className={dashboardEmptyStateClass}>
                 <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">{t('ptDashboard.upcomingEvents.empty')}</p>
               </div>
@@ -167,7 +163,7 @@ export function PTDashboardLayout({
                     <Link
                       key={event.id}
                       href={`${basePath}/coach/athletes/${event.client.id}/calendar`}
-                      className={`flex items-center gap-3 ${listRowClass}`}
+                      className={dashboardListItemClass('blue', 'flex items-center gap-3 p-3')}
                     >
                       <div className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center',
