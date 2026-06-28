@@ -8,7 +8,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import type { AnalysisData } from '@/lib/interval-session/analysis-service'
 import { useLocale } from '@/i18n/client'
 

@@ -10,7 +10,12 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Timer, TrendingDown } from 'lucide-react'
 import { toast } from 'sonner'

@@ -13,7 +13,13 @@ import { toast } from 'sonner'
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelDescription as CardDescription,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 
 export interface CoachQuickErgPlanMatchView {
   assignmentId: string
