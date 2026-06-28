@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
-import { RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge';
 import {
   Select,
@@ -307,7 +307,7 @@ export function DefaultModelSelector() {
 
           {/* Model details for selected model */}
           {defaultModel && (
-            <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50">
+            <div className={roleMutedBlockClass('space-y-3')}>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{copy(locale, 'Selected model', 'Vald modell')}: {defaultModel.displayName || defaultModel.name}</span>
                 {defaultModel.bestForLongOutput && (

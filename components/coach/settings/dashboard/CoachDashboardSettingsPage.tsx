@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleListItemClass } from '@/components/layouts/role-shell/RolePage'
 import {
   Select,
   SelectContent,
@@ -274,7 +274,7 @@ export default function CoachDashboardSettingsPage() {
               </div>
               <div className="space-y-3">
                 {items.map((w, idx) => (
-                  <div key={w.key} className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white p-3 transition-colors dark:border-white/10 dark:bg-zinc-950/60">
+                  <div key={w.key} className={roleListItemClass('zinc', 'flex items-center gap-3 p-3')}>
                     <div className="flex flex-col gap-1">
                       <Button
                         variant="ghost"

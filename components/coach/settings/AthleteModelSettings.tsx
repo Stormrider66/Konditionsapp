@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePanel, roleListItemClass } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -151,7 +151,7 @@ export function AthleteModelSettings() {
             return (
               <label
                 key={tier}
-                className="flex cursor-pointer items-start gap-3 rounded-lg border border-zinc-200 bg-white p-3 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-white/10 dark:bg-zinc-950/60 dark:hover:border-white/20 dark:hover:bg-zinc-900/70"
+                className={roleListItemClass('zinc', 'flex cursor-pointer items-start gap-3 p-3')}
               >
                 <Checkbox
                   className="mt-0.5"

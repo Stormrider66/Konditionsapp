@@ -16,7 +16,7 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleMutedBlockClass } from '@/components/layouts/role-shell/RolePage'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -478,7 +478,7 @@ export default function AthleteDashboardTemplatesClient({
                   {items.map((w, idx) => (
                     <div
                       key={w.key}
-                      className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-white/10 dark:bg-zinc-900/50"
+                      className={roleMutedBlockClass('flex items-center gap-3 p-3')}
                     >
                       <div className="flex flex-col gap-0.5">
                         <Button

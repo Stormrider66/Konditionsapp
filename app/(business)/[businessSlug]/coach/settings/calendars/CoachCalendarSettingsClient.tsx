@@ -4,7 +4,7 @@ import { useCallback, useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { RolePageFrame, RolePageHeader, RolePanel } from '@/components/layouts/role-shell/RolePage'
+import { RolePageFrame, RolePageHeader, RolePanel, roleListItemClass } from '@/components/layouts/role-shell/RolePage'
 import {
   Dialog,
   DialogContent,
@@ -321,7 +321,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
               {connections.map(connection => (
                 <div
                   key={connection.id}
-                  className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-4 transition-colors dark:border-white/10 dark:bg-zinc-950/60 sm:flex-row sm:items-center sm:justify-between"
+                  className={roleListItemClass('blue', 'flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between')}
                 >
                   <div className="flex min-w-0 items-start gap-4">
                     <div

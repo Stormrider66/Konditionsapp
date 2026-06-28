@@ -2,7 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { RolePageFrame, RolePageHeader, RolePanel, RoleStatCard } from '@/components/layouts/role-shell/RolePage';
+import {
+  RolePageFrame,
+  RolePageHeader,
+  RolePanel,
+  RoleStatCard,
+  roleListItemClass,
+  roleMutedBlockClass,
+} from '@/components/layouts/role-shell/RolePage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -313,7 +320,7 @@ export function ReferralDashboardClient({
               {availableRewards.map((reward) => (
                 <div
                   key={reward.id}
-                  className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4 dark:border-white/10 dark:bg-zinc-950/70 sm:flex-row sm:items-center sm:justify-between"
+                  className={roleListItemClass('violet', 'flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between')}
                 >
                   <div>
                     <p className="font-medium text-zinc-950 dark:text-zinc-50">
@@ -360,7 +367,7 @@ export function ReferralDashboardClient({
               {referrals.map((referral) => (
                 <div
                   key={referral.id}
-                  className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-white/10 dark:bg-zinc-900/50 sm:flex-row sm:items-center sm:justify-between"
+                  className={roleMutedBlockClass('flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between')}
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
