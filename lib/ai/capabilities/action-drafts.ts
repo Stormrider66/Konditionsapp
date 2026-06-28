@@ -129,6 +129,10 @@ function buildDefaultPreview(
   input: unknown,
   locale: AppLocale
 ): Required<Pick<AiActionPreviewInput, 'title' | 'description' | 'details'>> & AiActionPreviewInput {
+  const inputRecord = input && typeof input === 'object' ? input as Record<string, unknown> : null
+  const isGarminWorkoutPush =
+    inputRecord?.pushToGarmin === true &&
+    (capability.id === 'createTodayWorkout' || capability.id === 'createCardioWorkout')
   const targetLabel = getStringField(input, [
     'title',
     'name',
@@ -141,8 +145,9 @@ function buildDefaultPreview(
   ])
   const body = getStringField(input, ['content', 'notes', 'description', 'goal', 'injuryType'])
 
-  const details = input && typeof input === 'object'
-    ? Object.entries(input as Record<string, unknown>)
+  const details = inputRecord
+    ? Object.entries(inputRecord)
+        .filter(([key]) => key !== 'pushToGarmin')
         .slice(0, 8)
         .map(([key, value]) => {
           const formatted = formatDetailValue(value)
@@ -150,6 +155,10 @@ function buildDefaultPreview(
         })
         .filter((item): item is string => Boolean(item))
     : []
+
+  if (isGarminWorkoutPush) {
+    details.push(t(locale, 'Garmin: send to watch', 'Garmin: skicka till klockan'))
+  }
 
   return {
     title: capability.label,
@@ -161,7 +170,9 @@ function buildDefaultPreview(
     targetLabel,
     body,
     details,
-    confirmLabel: capability.confirmLabel,
+    confirmLabel: isGarminWorkoutPush
+      ? t(locale, 'Create and send to Garmin', 'Skapa och skicka till Garmin')
+      : capability.confirmLabel,
     reviewHref: capability.reviewHref,
   }
 }

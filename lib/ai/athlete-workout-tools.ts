@@ -21,11 +21,19 @@ import { logger } from '@/lib/logger'
 import { rollupAssignmentProgression } from '@/lib/training-engine/progression/assignment-rollup'
 import { estimateCalories } from '@/lib/adhoc-workout/calorie-estimator'
 import type { ParsedWorkout } from '@/lib/adhoc-workout/types'
-import { createCardioWorkoutInputSchema } from '@/lib/ai/cardio-workout-action'
+import { createCardioWorkoutInputSchema, stockholmDateKey } from '@/lib/ai/cardio-workout-action'
 import {
   executeUpdateLiveWorkoutFeedback,
   updateLiveWorkoutFeedbackInputSchema,
 } from '@/lib/ai/athlete-live-workout-feedback'
+import {
+  createGarminWorkout,
+  deleteGarminWorkout,
+  parseNumberTargetBounds,
+  resolveGarminWorkoutId,
+  scheduleGarminWorkout,
+  serializeWorkoutToGarmin,
+} from '@/lib/integrations/garmin/training'
 import { refreshActivePerformanceMealGuideForClient } from '@/lib/nutrition/performance-plan'
 
 type ChatLocale = 'en' | 'sv'
@@ -56,6 +64,240 @@ function parseWorkoutDate(value: string | undefined): Date {
     if (!Number.isNaN(parsed.getTime())) return parsed
   }
   return new Date()
+}
+
+function parseWorkoutDateKey(value: string | undefined): string {
+  return value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : stockholmDateKey()
+}
+
+interface ChatCardioChildStep {
+  type: string
+  duration?: number
+  distance?: number
+  calories?: number
+  zone?: number
+  notes?: string
+  equipment?: string
+  targetType?: string
+  targetValue?: string
+}
+
+interface ChatCardioSegment extends ChatCardioChildStep {
+  repeats?: number
+  restBetweenRounds?: number
+  steps?: ChatCardioChildStep[]
+}
+
+type GarminWorkoutInput = Parameters<typeof serializeWorkoutToGarmin>[0]
+type GarminChildStepInput = NonNullable<GarminWorkoutInput['segments'][number]['steps']>[number]
+
+function buildGarminStepDescription(input: {
+  notes?: string
+  equipment?: string
+  calories?: number
+  zone?: number
+  targetType?: string
+  targetValue?: string
+}): string | undefined {
+  const parts: string[] = []
+  if (input.equipment) parts.push(input.equipment)
+  if (input.notes) parts.push(input.notes)
+  if (input.zone) parts.push(`Z${input.zone}`)
+  if (input.calories) parts.push(`${input.calories} cal`)
+  if (input.targetType === 'calories' && input.targetValue) parts.push(`${input.targetValue} cal`)
+  return parts.length > 0 ? parts.join(' - ') : undefined
+}
+
+function mapCardioSegmentType(
+  type: string
+): 'warmup' | 'interval' | 'recovery' | 'cooldown' | 'rest' | 'steady' {
+  const map: Record<string, 'warmup' | 'interval' | 'recovery' | 'cooldown' | 'rest' | 'steady'> = {
+    WARMUP: 'warmup',
+    warmup: 'warmup',
+    COOLDOWN: 'cooldown',
+    cooldown: 'cooldown',
+    INTERVAL: 'interval',
+    interval: 'interval',
+    RECOVERY: 'recovery',
+    recovery: 'recovery',
+    REST: 'rest',
+    rest: 'rest',
+    STEADY: 'steady',
+    steady: 'steady',
+  }
+  return map[type] || 'interval'
+}
+
+function mapCardioChildStepType(type: string): 'interval' | 'recovery' | 'rest' {
+  const mapped = mapCardioSegmentType(type)
+  if (mapped === 'recovery' || mapped === 'rest') return mapped
+  return 'interval'
+}
+
+function resolveCardioTargetType(
+  step: { targetType?: string; targetValue?: string }
+): 'power' | 'cadence' | 'none' {
+  if (!step.targetValue) return 'none'
+  if (step.targetType === 'power' || step.targetType === 'cadence') return step.targetType
+  return 'none'
+}
+
+function resolveCardioTargetLow(step: { targetType?: string; targetValue?: string }): number | undefined {
+  const targetType = resolveCardioTargetType(step)
+  if (targetType === 'none') return undefined
+  return parseNumberTargetBounds(step.targetValue).low
+}
+
+function resolveCardioTargetHigh(step: { targetType?: string; targetValue?: string }): number | undefined {
+  const targetType = resolveCardioTargetType(step)
+  if (targetType === 'none') return undefined
+  return parseNumberTargetBounds(step.targetValue).high
+}
+
+function serializeChatCardioSessionToGarmin(session: {
+  name: string
+  description?: string | null
+  sport?: string | null
+  segments: unknown
+}) {
+  const segments = Array.isArray(session.segments) ? session.segments as ChatCardioSegment[] : []
+  const garminSegments = segments.map((segment) => {
+    if (segment.type === 'REPEAT_GROUP' && segment.steps?.length) {
+      const steps: GarminChildStepInput[] = segment.steps.map((step) => ({
+        type: mapCardioChildStepType(step.type),
+        ...(step.calories && !step.duration && !step.distance ? { durationIsLapButton: true } : {}),
+        durationSeconds: step.duration || undefined,
+        distanceMeters: step.distance || undefined,
+        targetType: resolveCardioTargetType(step),
+        targetLow: resolveCardioTargetLow(step),
+        targetHigh: resolveCardioTargetHigh(step),
+        description: buildGarminStepDescription(step),
+      }))
+
+      if (segment.restBetweenRounds && segment.restBetweenRounds > 0) {
+        steps.push({
+          type: 'recovery',
+          durationSeconds: segment.restBetweenRounds,
+        })
+      }
+
+      return {
+        type: 'interval' as const,
+        repeats: segment.repeats || 1,
+        steps,
+      }
+    }
+
+    return {
+      type: mapCardioSegmentType(segment.type),
+      durationSeconds: segment.duration || undefined,
+      distanceMeters: segment.distance || undefined,
+      targetType: resolveCardioTargetType(segment),
+      targetLow: resolveCardioTargetLow(segment),
+      targetHigh: resolveCardioTargetHigh(segment),
+      description: buildGarminStepDescription(segment),
+    }
+  })
+
+  if (!garminSegments.length) return null
+
+  return serializeWorkoutToGarmin({
+    name: session.name,
+    description: session.description || undefined,
+    sportType: session.sport || 'GENERAL_FITNESS',
+    segments: garminSegments as Parameters<typeof serializeWorkoutToGarmin>[0]['segments'],
+  })
+}
+
+async function pushChatCardioAssignmentToGarmin(params: {
+  clientId: string
+  assignmentId: string
+  assignedDateKey: string
+  locale: ChatLocale
+  session: {
+    name: string
+    description?: string | null
+    sport?: string | null
+    segments: unknown
+  }
+}): Promise<
+  | { success: true; garminWorkoutId: string; scheduled: boolean; scheduleWarning?: string; message: string }
+  | { success: false; code?: string; error: string }
+> {
+  const { clientId, assignmentId, assignedDateKey, locale, session } = params
+
+  const token = await prisma.integrationToken.findUnique({
+    where: { clientId_type: { clientId, type: 'GARMIN' } },
+    select: { syncEnabled: true },
+  })
+  if (!token || !token.syncEnabled) {
+    return {
+      success: false,
+      code: 'GARMIN_NOT_CONNECTED',
+      error: chatText(locale, 'Garmin is not connected.', 'Garmin är inte anslutet.'),
+    }
+  }
+
+  const garminWorkout = serializeChatCardioSessionToGarmin(session)
+  if (!garminWorkout) {
+    return {
+      success: false,
+      error: chatText(locale, 'This cardio workout has no pushable steps.', 'Det här konditionspasset har inga steg som kan skickas.'),
+    }
+  }
+
+  const assignment = await prisma.cardioSessionAssignment.findUnique({
+    where: { id: assignmentId },
+    select: { garminWorkoutId: true },
+  })
+
+  if (assignment?.garminWorkoutId) {
+    try {
+      await deleteGarminWorkout(clientId, assignment.garminWorkoutId)
+    } catch (deleteErr) {
+      logger.warn('Failed to delete previous Garmin cardio assignment workout; continuing with replacement', {
+        clientId,
+        assignmentId,
+        garminWorkoutId: assignment.garminWorkoutId,
+      }, deleteErr)
+    }
+  }
+
+  const created = await createGarminWorkout(clientId, garminWorkout)
+  const garminWorkoutId = resolveGarminWorkoutId(created)
+  if (!garminWorkoutId) {
+    throw new Error('Garmin did not return a workout ID')
+  }
+
+  let scheduled = false
+  let scheduleWarning: string | undefined
+  try {
+    await scheduleGarminWorkout(clientId, { workoutId: garminWorkoutId, calendarDate: assignedDateKey })
+    scheduled = true
+  } catch (scheduleErr) {
+    scheduleWarning = scheduleErr instanceof Error ? scheduleErr.message : 'Garmin scheduling failed'
+    logger.warn('Garmin cardio assignment scheduling failed after workout creation', {
+      clientId,
+      assignmentId,
+      garminWorkoutId,
+      assignedDateKey,
+    }, scheduleErr)
+  }
+
+  await prisma.cardioSessionAssignment.update({
+    where: { id: assignmentId },
+    data: { garminWorkoutId, garminPushedAt: new Date() },
+  })
+
+  return {
+    success: true,
+    garminWorkoutId,
+    scheduled,
+    ...(scheduleWarning && { scheduleWarning }),
+    message: scheduleWarning
+      ? chatText(locale, 'The cardio session was sent to Garmin, but calendar scheduling failed.', 'Konditionspasset skickades till Garmin, men kalenderplanering misslyckades.')
+      : chatText(locale, 'The cardio session was sent to your Garmin watch.', 'Konditionspasset skickades till din Garmin-klocka.'),
+  }
 }
 
 /** RPE → TrainingLoad intensity label (same mapping as the focus-mode routes). */
@@ -623,11 +865,11 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
     createCardioWorkout: tool({
       description: chatText(
         locale,
-        'Create a structured cardio/erg session (intervals, EMOM rounds, machine circuits) and assign it to the athlete so it can be started in focus mode with live machine data. Use when the athlete asks for a cardio, rowing, BikeErg, SkiErg, bike or interval workout to DO (not one they already did). Each station can have a fixed time window (e.g. 60 s on the minute), a calorie goal, or both — with both, the window runs on the clock and the calories are the goal within it.',
-        'Skapa ett strukturerat konditions-/ergometerpass (intervaller, EMOM-rundor, maskincirklar) och tilldela det till atleten så att det kan startas i fokusläge med live-maskindata. Använd när atleten ber om ett konditions-, rodd-, BikeErg-, SkiErg-, cykel- eller intervallpass att GÖRA (inte ett de redan gjort). Varje station kan ha ett fast tidsfönster (t.ex. 60 s varje minut), ett kalorimål, eller båda — med båda går fönstret på klockan och kalorierna är målet inom det.'
+        'Create a structured cardio/erg session (intervals, EMOM rounds, machine circuits) and assign it to the athlete so it can be started in focus mode with live machine data. Use when the athlete asks for a cardio, rowing, BikeErg, SkiErg, bike or interval workout to DO (not one they already did). Each station can have a fixed time window (e.g. 60 s on the minute), a calorie goal, or both - with both, the window runs on the clock and the calories are the goal within it. If and only if they explicitly ask to send/push it to Garmin, set pushToGarmin true.',
+        'Skapa ett strukturerat konditions-/ergometerpass (intervaller, EMOM-rundor, maskincirklar) och tilldela det till atleten så att det kan startas i fokusläge med live-maskindata. Använd när atleten ber om ett konditions-, rodd-, BikeErg-, SkiErg-, cykel- eller intervallpass att GÖRA (inte ett de redan gjort). Varje station kan ha ett fast tidsfönster (t.ex. 60 s varje minut), ett kalorimål, eller båda - med båda går fönstret på klockan och kalorierna är målet inom det. Om och bara om atleten uttryckligen ber om Garmin-skickning, sätt pushToGarmin till true.'
       ),
       inputSchema: createCardioWorkoutInputSchema,
-      execute: async ({ name, description, sport, date, warmupMinutes, cooldownMinutes, rounds, restBetweenRoundsSeconds, stations }) => {
+      execute: async ({ name, description, sport, date, warmupMinutes, cooldownMinutes, rounds, restBetweenRoundsSeconds, pushToGarmin, stations }) => {
         try {
           const client = await prisma.client.findUnique({
             where: { id: clientId },
@@ -674,6 +916,7 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
             repeats * stationSeconds +
             Math.max(0, repeats - 1) * (restBetweenRoundsSeconds ?? 0)
 
+          const assignedDateKey = parseWorkoutDateKey(date)
           const assignedDate = parseWorkoutDate(date)
 
           const { session, assignment } = await prisma.$transaction(async (tx) => {
@@ -707,9 +950,43 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
             clientId,
             sessionId: session.id,
             assignmentId: assignment.id,
+            pushToGarmin: Boolean(pushToGarmin),
             rounds: repeats,
             stations: stations.length,
           })
+
+          const garminPush = pushToGarmin
+            ? await pushChatCardioAssignmentToGarmin({
+                clientId,
+                assignmentId: assignment.id,
+                assignedDateKey,
+                locale,
+                session: {
+                  name: session.name,
+                  description: session.description,
+                  sport: session.sport,
+                  segments: session.segments,
+                },
+              })
+            : null
+
+          const message = garminPush
+            ? garminPush.success
+              ? chatText(
+                  locale,
+                  'The session is assigned and sent to your Garmin watch.',
+                  'Passet är tilldelat och skickat till din Garmin-klocka.'
+                )
+              : chatText(
+                  locale,
+                  `The session is assigned, but Garmin push failed: ${garminPush.error}`,
+                  `Passet är tilldelat, men Garmin-skickningen misslyckades: ${garminPush.error}`
+                )
+            : chatText(
+                locale,
+                'The session is assigned - open it to start focus mode.',
+                'Passet är tilldelat - öppna det för att starta fokusläget.'
+              )
 
           return {
             success: true,
@@ -719,14 +996,12 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
             rounds: repeats,
             stationCount: stations.length,
             totalDurationSeconds: totalDuration > 0 ? totalDuration : null,
+            pushToGarmin: Boolean(pushToGarmin),
+            garminPush,
             // Relative to the athlete area — the chat card prefixes the
             // business basePath before navigating.
             startPath: `/athlete/cardio?start=${assignment.id}`,
-            message: chatText(
-              locale,
-              'The session is assigned — open it to start focus mode.',
-              'Passet är tilldelat — öppna det för att starta fokusläget.'
-            ),
+            message,
           }
         } catch (error) {
           logger.error('createCardioWorkout tool failed', { clientId }, error)

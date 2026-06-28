@@ -40,6 +40,7 @@ export const createCardioWorkoutInputSchema = z.object({
   cooldownMinutes: z.number().int().min(1).max(60).optional().describe('Optional cool-down duration in minutes.'),
   rounds: z.number().int().min(1).max(30).optional().describe('Rounds of the station circuit. Default 1.'),
   restBetweenRoundsSeconds: z.number().int().min(5).max(600).optional().describe('Rest between rounds in seconds.'),
+  pushToGarmin: z.boolean().optional().describe('Set true only when the athlete explicitly asks to send/push this workout to their Garmin watch.'),
   stations: z.array(cardioWorkoutStationSchema).min(1).max(10).describe('The stations of one round, in order.'),
 })
 
@@ -176,6 +177,7 @@ export function buildCreateCardioWorkoutPreview(input: CreateCardioWorkoutInput,
     input.warmupMinutes != null ? `${t(locale, 'Warm-up', 'Uppvärmning')}: ${input.warmupMinutes} min` : null,
     input.cooldownMinutes != null ? `${t(locale, 'Cool-down', 'Nedvarvning')}: ${input.cooldownMinutes} min` : null,
     totalSeconds != null ? `${t(locale, 'Estimated total time', 'Beräknad totaltid')}: ${formatSeconds(totalSeconds, locale)}` : null,
+    input.pushToGarmin ? `${t(locale, 'Garmin', 'Garmin')}: ${t(locale, 'send to watch', 'skicka till klockan')}` : null,
   ].filter((detail): detail is string => Boolean(detail))
 
   return {
@@ -188,7 +190,9 @@ export function buildCreateCardioWorkoutPreview(input: CreateCardioWorkoutInput,
     targetLabel: workSummary,
     body: input.description || null,
     details,
-    confirmLabel: t(locale, 'Create cardio workout', 'Skapa konditionspass'),
+    confirmLabel: input.pushToGarmin
+      ? t(locale, 'Create and send to Garmin', 'Skapa och skicka till Garmin')
+      : t(locale, 'Create cardio workout', 'Skapa konditionspass'),
   }
 }
 
@@ -234,6 +238,14 @@ export function buildCreateCardioWorkoutRealtimeTool(locale: AppLocale): Realtim
           minimum: 5,
           maximum: 600,
           description: t(locale, 'Required for repeated interval workouts.', 'Krävs för upprepade intervallpass.'),
+        },
+        pushToGarmin: {
+          type: 'boolean',
+          description: t(
+            locale,
+            'Set true only when the athlete explicitly asks to send this workout to their Garmin watch.',
+            'Sätt true bara när atleten uttryckligen ber om att skicka passet till sin Garmin-klocka.'
+          ),
         },
         stations: {
           type: 'array',

@@ -104,6 +104,41 @@ describe('AI action drafts', () => {
     expect(wrapped).toBe(tools)
   })
 
+  it('labels Garmin workout drafts with the real delivery action', async () => {
+    const result = await createAiActionDraftForTool(
+      'createCardioWorkout',
+      {
+        name: 'Threshold bike',
+        pushToGarmin: true,
+        stations: [{ equipment: 'BIKE', durationSeconds: 180 }],
+      },
+      {
+        enabled: true,
+        actorUserId: 'athlete-user-1',
+        actorRole: 'ATHLETE',
+        surface: 'athlete_chat',
+        businessId: 'business-1',
+        clientId: 'client-1',
+        locale: 'en',
+      }
+    )
+
+    expect(result.success).toBe(true)
+    if (!result.success) return
+    expect(result.action.confirmLabel).toBe('Create and send to Garmin')
+    expect(result.action.details).toContain('Garmin: send to watch')
+    expect(mocks.prisma.aIActionDraft.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          preview: expect.objectContaining({
+            confirmLabel: 'Create and send to Garmin',
+            details: expect.arrayContaining(['Garmin: send to watch']),
+          }),
+        }),
+      })
+    )
+  })
+
   it('preserves suggested follow-ups and selected recipient context', async () => {
     const result = await createAiActionDraftForTool(
       'prepareCoachDailyBriefing',

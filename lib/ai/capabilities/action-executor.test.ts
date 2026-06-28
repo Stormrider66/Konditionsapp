@@ -112,6 +112,23 @@ describe('confirmAiActionDraft', () => {
     })
   })
 
+  it('returns the executed tool message when one is provided', async () => {
+    const draft = pendingAthleteDraft()
+    mocks.prisma.aIActionDraft.findUnique.mockResolvedValue(draft)
+    mocks.executeLogMeal.mockResolvedValue({
+      success: true,
+      mealId: 'meal-1',
+      message: 'Meal logged with updated macros.',
+    })
+
+    const result = await confirmAiActionDraft('draft-1', 'athlete-user-1', 'en')
+
+    expect(result).toMatchObject({
+      success: true,
+      message: 'Meal logged with updated macros.',
+    })
+  })
+
   it('rejects actions owned by another actor', async () => {
     mocks.prisma.aIActionDraft.findUnique.mockResolvedValue(pendingAthleteDraft())
 

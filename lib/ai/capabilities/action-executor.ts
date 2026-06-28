@@ -260,10 +260,17 @@ export async function confirmAiActionDraft(
       }
     }
 
+    const resultMessage =
+      typeof result === 'object' &&
+      result !== null &&
+      typeof (result as { message?: unknown }).message === 'string'
+        ? (result as { message: string }).message
+        : null
+
     return {
       success: true,
       result,
-      message: t(locale, 'Action confirmed and executed.', 'Åtgärden har bekräftats och körts.'),
+      message: resultMessage || t(locale, 'Action confirmed and executed.', 'Åtgärden har bekräftats och körts.'),
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : t(locale, 'Unknown error', 'Okänt fel')

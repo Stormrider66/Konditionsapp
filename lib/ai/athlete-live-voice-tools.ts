@@ -122,6 +122,7 @@ export const createTodayWorkoutVoiceInputSchema = z.object({
   workoutType: z.enum(['strength', 'cardio', 'mixed', 'core']),
   duration: z.number().min(10).max(180),
   intensity: z.enum(['recovery', 'easy', 'moderate', 'threshold']).optional(),
+  pushToGarmin: z.boolean().optional(),
   sections: z.array(z.object({
     type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']),
     name: z.string(),
@@ -321,10 +322,13 @@ export function buildCreateTodayWorkoutPreview(input: CreateTodayWorkoutVoiceInp
       `${t(locale, 'Type', 'Typ')}: ${input.workoutType}`,
       `${t(locale, 'Duration', 'Duration')}: ${input.duration} min`,
       input.intensity ? `${t(locale, 'Intensity', 'Intensitet')}: ${input.intensity}` : null,
+      input.pushToGarmin ? `${t(locale, 'Garmin', 'Garmin')}: ${t(locale, 'send to watch today', 'skicka till klockan idag')}` : null,
       `${t(locale, 'Sections', 'Sektioner')}: ${input.sections.map((section) => section.name).join(', ')}`,
       `${t(locale, 'Exercises', 'Övningar')}: ${totalExercises}`,
     ]),
-    confirmLabel: t(locale, 'Create workout', 'Skapa pass'),
+    confirmLabel: input.pushToGarmin
+      ? t(locale, 'Create and send to Garmin', 'Skapa och skicka till Garmin')
+      : t(locale, 'Create workout', 'Skapa pass'),
   }
 }
 
@@ -494,6 +498,14 @@ function createTodayWorkoutRealtimeTool(locale: AppLocale): RealtimeFunctionTool
         workoutType: { type: 'string', enum: ['strength', 'cardio', 'mixed', 'core'] },
         duration: { type: 'integer', minimum: 10, maximum: 180, description: t(locale, 'Total duration in minutes.', 'Total duration i minuter.') },
         intensity: { type: 'string', enum: ['recovery', 'easy', 'moderate', 'threshold'] },
+        pushToGarmin: {
+          type: 'boolean',
+          description: t(
+            locale,
+            'Set true only when the athlete explicitly asks to send this workout to their Garmin watch.',
+            'Sätt true bara när atleten uttryckligen ber om att skicka passet till sin Garmin-klocka.'
+          ),
+        },
         sections: {
           type: 'array',
           description: t(locale, 'Workout sections in order, each with its exercises.', 'Passets sektioner i ordning, var och en med sina övningar.'),

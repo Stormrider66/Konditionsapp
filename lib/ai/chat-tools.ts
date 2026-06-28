@@ -31,6 +31,7 @@ import {
 import { createAthleteReadTools } from '@/lib/ai/athlete-read-tools'
 import { createAthleteWorkoutWriteTools } from '@/lib/ai/athlete-workout-tools'
 import { createAthleteNutritionTools } from '@/lib/ai/athlete-nutrition-tools'
+import { pushAiWodToGarmin } from '@/lib/ai/wod-garmin-push'
 import { dayKeyFromInput, dayKeyInTimeZone, utcDateFromDayKey } from '@/lib/nutrition/day-key'
 import { getAthleteTimezone } from '@/lib/nutrition/athlete-day'
 
@@ -79,9 +80,11 @@ export function createChatTools(
         chatText(
           locale,
           'Create a workout for the athlete today. The workout is saved to the dashboard and calendar. ' +
-            'Use this tool when the athlete asks you to create, write, suggest, or give them a workout.',
+            'Use this tool when the athlete asks you to create, write, suggest, or give them a workout. ' +
+            'If and only if they explicitly ask to send/push it to Garmin, set pushToGarmin true.',
           'Skapa ett träningspass åt atleten för idag. Passet sparas på dashboarden och i kalendern. ' +
-            'Använd detta verktyg när atleten ber dig skapa, skriva, föreslå eller ge dem ett pass.'
+            'Använd detta verktyg när atleten ber dig skapa, skriva, föreslå eller ge dem ett pass. ' +
+            'Om och bara om atleten uttryckligen ber om Garmin-skickning, sätt pushToGarmin till true.'
         ),
       inputSchema: z.object({
         title: z.string().describe(chatText(locale, 'Short, motivating title in the chat language (for example "Explosive Strength")', 'Kort, motiverande svensk titel (t.ex. "Explosiv Styrka")')),
@@ -91,6 +94,12 @@ export function createChatTools(
         duration: z.number().min(10).max(180).describe(chatText(locale, 'Total duration in minutes', 'Total duration i minuter')),
         intensity: z.enum(['recovery', 'easy', 'moderate', 'threshold']).optional()
           .describe(chatText(locale, 'Intensity level based on athlete readiness', 'Intensitetsnivå baserat på atletens beredskap')),
+        pushToGarmin: z.boolean().optional()
+          .describe(chatText(
+            locale,
+            'Set true only when the athlete explicitly asks to send/push this new workout to their Garmin watch.',
+            'Sätt true bara när atleten uttryckligen ber om att skicka/pusha det nya passet till sin Garmin-klocka.'
+          )),
         sections: z.array(z.object({
           type: z.enum(['WARMUP', 'MAIN', 'CORE', 'COOLDOWN']).describe(chatText(locale, 'Section type', 'Sektionstyp')),
           name: z.string().describe(chatText(locale, 'Section name in the chat language (for example "Warm-up")', 'Svenskt sektionsnamn (t.ex. "Uppvärmning")')),
@@ -109,9 +118,9 @@ export function createChatTools(
           })),
         })),
       }),
-      execute: async ({ title, subtitle, description, workoutType, duration, intensity, sections }) => {
+      execute: async ({ title, subtitle, description, workoutType, duration, intensity, pushToGarmin, sections }) => {
         const startTime = Date.now()
-        logger.info('createTodayWorkout tool called', { clientId, title, workoutType, duration, sectionCount: sections.length })
+        logger.info('createTodayWorkout tool called', { clientId, title, workoutType, duration, pushToGarmin: Boolean(pushToGarmin), sectionCount: sections.length })
 
         try {
           // Fetch athlete context for readiness-aware creation
@@ -181,6 +190,10 @@ export function createChatTools(
             exerciseCount: totalExercises,
           })
 
+          const garminPush = pushToGarmin
+            ? await pushAiWodToGarmin({ wodId: savedWOD.id, clientId, locale })
+            : null
+
           // Fetch existing exercise images for preview (non-blocking best-effort)
           const exerciseNamesEn = sections.flatMap(s => s.exercises.map(e => e.name))
           const exerciseNamesSv = sections.flatMap(s => s.exercises.map(e => e.nameSv))
@@ -234,6 +247,20 @@ export function createChatTools(
             }
           })()
 
+          const message = garminPush
+            ? garminPush.success
+              ? chatText(
+                  locale,
+                  'The workout was created and sent to your Garmin watch for today.',
+                  'Passet skapades och skickades till din Garmin-klocka för idag.'
+                )
+              : chatText(
+                  locale,
+                  `The workout was created, but Garmin push failed: ${garminPush.error}`,
+                  `Passet skapades, men Garmin-skickningen misslyckades: ${garminPush.error}`
+                )
+            : chatText(locale, 'The workout was created.', 'Passet skapades.')
+
           return {
             success: true,
             wodId: savedWOD.id,
@@ -245,6 +272,9 @@ export function createChatTools(
             exerciseCount: totalExercises,
             sectionCount: sections.length,
             previewImages,
+            pushToGarmin: Boolean(pushToGarmin),
+            garminPush,
+            message,
           }
         } catch (error) {
           logger.error('Failed to create WOD via chat tool', { clientId }, error)

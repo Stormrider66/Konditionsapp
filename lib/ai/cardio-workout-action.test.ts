@@ -47,7 +47,10 @@ describe('cardio workout live voice action', () => {
   })
 
   it('builds a confirmation preview with the key workout details', () => {
-    const parsed = createCardioWorkoutInputSchema.parse(wattbikeIntervals)
+    const parsed = createCardioWorkoutInputSchema.parse({
+      ...wattbikeIntervals,
+      pushToGarmin: true,
+    })
     const preview = buildCreateCardioWorkoutPreview(parsed, 'en')
 
     expect(preview.title).toBe('10 x 3 min Wattbike intervals')
@@ -56,6 +59,8 @@ describe('cardio workout live voice action', () => {
     expect(preview.details).toContain('Rest between rounds: 1 min')
     expect(preview.details).toContain('Intensity: zone 4 · Threshold effort')
     expect(preview.details).toContain('Estimated total time: 39 min')
+    expect(preview.details).toContain('Garmin: send to watch')
+    expect(preview.confirmLabel).toBe('Create and send to Garmin')
     expect(estimateCreateCardioWorkoutDurationSeconds(parsed)).toBe(2340)
   })
 
