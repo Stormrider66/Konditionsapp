@@ -14,11 +14,11 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardDescription,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { openCoachFloatingChat } from '@/lib/events/coach-floating-chat'
 import { cn } from '@/lib/utils'
@@ -71,8 +71,8 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
   }
 
   return (
-    <GlassCard glow={data.tone === 'steady' ? 'emerald' : data.tone === 'watch' ? 'amber' : 'red'} className={cn('border group', tone.shell)} data-ai-operator-brief>
-      <GlassCardHeader className="pb-4">
+    <DashboardCard glow={data.tone === 'steady' ? 'emerald' : data.tone === 'watch' ? 'amber' : 'red'} className={cn('border group', tone.shell)} data-ai-operator-brief>
+      <DashboardCardHeader className="pb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
             <div className={cn('rounded-lg p-2', tone.icon)}>
@@ -80,14 +80,14 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <GlassCardTitle className="text-base">AI coach operator</GlassCardTitle>
+                <DashboardCardTitle className="text-base">AI coach operator</DashboardCardTitle>
                 <Badge className={cn('border-0 text-[10px]', tone.badge)}>
                   {data.summary.queueCount > 0 ? t('queueCount', { count: data.summary.queueCount }) : t('stable')}
                 </Badge>
               </div>
-              <GlassCardDescription className={cn('mt-1 text-sm font-medium', tone.accent)}>
+              <DashboardCardDescription className={cn('mt-1 text-sm font-medium', tone.accent)}>
                 {data.headline}
-              </GlassCardDescription>
+              </DashboardCardDescription>
               <p className="mt-1 max-w-3xl text-sm text-slate-600 dark:text-slate-300">
                 {data.subheadline}
               </p>
@@ -103,9 +103,9 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
             <OperatorMetric label="Alerts" value={data.summary.activeAlerts} tone={data.summary.activeAlerts > 0 ? 'watch' : 'neutral'} />
           </div>
         </div>
-      </GlassCardHeader>
+      </DashboardCardHeader>
 
-      <GlassCardContent>
+      <DashboardCardContent>
         <div className="grid gap-4 xl:grid-cols-5">
           <section className="xl:col-span-3">
             <div className="mb-3 flex items-center justify-between">
@@ -160,8 +160,8 @@ export function CoachOperatorBrief({ data }: CoachOperatorBriefProps) {
             </div>
           </section>
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }
 

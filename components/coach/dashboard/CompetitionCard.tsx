@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -90,13 +90,13 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
   const activeCompetitions = competitions.filter(c => c.isActive && new Date(c.endDate) > new Date())
 
   return (
-    <GlassCard glow="amber" className="group">
-      <GlassCardHeader className="pb-3">
+    <DashboardCard glow="amber" className="group">
+      <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-base flex items-center gap-2">
+          <DashboardCardTitle className="text-base flex items-center gap-2">
             <Trophy className="h-4 w-4 text-yellow-500" />
             {t('title')}
-          </GlassCardTitle>
+          </DashboardCardTitle>
           <div className="flex items-center gap-1">
             {activeCompetitions.length > 0 && (
               <Badge variant="secondary" className="text-xs">{t('activeCount', { count: activeCompetitions.length })}</Badge>
@@ -106,8 +106,8 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
             </Link>
           </div>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </DashboardCardHeader>
+      <DashboardCardContent>
         {loading ? (
           <div className="flex justify-center py-4">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -175,7 +175,7 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
             })}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }

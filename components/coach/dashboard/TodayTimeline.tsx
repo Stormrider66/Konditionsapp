@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -135,13 +135,13 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
   const showTodayButton = !isToday(selectedDate)
 
   return (
-    <GlassCard glow="emerald" className="h-full group">
-      <GlassCardHeader className="pb-3">
+    <DashboardCard glow="emerald" className="h-full group">
+      <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-base flex items-center gap-2">
+          <DashboardCardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-500" />
             {t('title')}
-          </GlassCardTitle>
+          </DashboardCardTitle>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={goToPreviousDay}>
               <ChevronLeft className="h-4 w-4" />
@@ -161,8 +161,8 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
             </Button>
           </div>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-4">
+      </DashboardCardHeader>
+      <DashboardCardContent className="space-y-4">
         {/* Morning Readiness Bar */}
         {readinessDistribution && readinessDistribution.total > 0 && isToday(selectedDate) && (
           <div className="flex items-center gap-3 p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
@@ -308,7 +308,7 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
             {t('actions.viewCalendar')} <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         </Link>
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }

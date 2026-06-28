@@ -33,11 +33,11 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardDescription,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Input } from '@/components/ui/input'
 import {
@@ -173,20 +173,20 @@ export function CoachCommandCenter({
   }
 
   return (
-    <GlassCard gradient glow="blue" className="mt-8 group">
-      <GlassCardHeader className="pb-4">
+    <DashboardCard gradient glow="blue" className="mt-8 group">
+      <DashboardCardHeader className="pb-4">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-3">
             <div className="rounded-lg bg-cyan-100 p-2 text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-200">
               <ClipboardCheck className="h-5 w-5" />
             </div>
             <div>
-              <GlassCardTitle className="text-base">Coach Command Center</GlassCardTitle>
-              <GlassCardDescription>
+              <DashboardCardTitle className="text-base">Coach Command Center</DashboardCardTitle>
+              <DashboardCardDescription>
                 {expanded
                   ? 'Prioritized work queue with evidence-backed AI recommendations.'
                   : 'Collapsed so your main dashboard stays first.'}
-              </GlassCardDescription>
+              </DashboardCardDescription>
             </div>
           </div>
 
@@ -212,10 +212,10 @@ export function CoachCommandCenter({
             </Button>
           </div>
         </div>
-      </GlassCardHeader>
+      </DashboardCardHeader>
 
       {expanded && (
-      <GlassCardContent>
+      <DashboardCardContent>
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-5">
           <section className="xl:col-span-3">
             <div className="mb-3 flex items-center justify-between gap-3">
@@ -357,9 +357,9 @@ export function CoachCommandCenter({
             </div>
           </section>
         </div>
-      </GlassCardContent>
+      </DashboardCardContent>
       )}
-    </GlassCard>
+    </DashboardCard>
   )
 }
 

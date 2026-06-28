@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -146,19 +146,19 @@ export function CoachTaskCard() {
   const completedTasks = tasks.filter(t => t.status === 'COMPLETED')
 
   return (
-    <GlassCard>
-      <GlassCardHeader className="pb-3">
+    <DashboardCard>
+      <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-base flex items-center gap-2">
+          <DashboardCardTitle className="text-base flex items-center gap-2">
             <ListTodo className="h-4 w-4 text-blue-500" />
             {t('title')}
-          </GlassCardTitle>
+          </DashboardCardTitle>
           {pendingTasks.length > 0 && (
             <Badge variant="secondary" className="text-xs">{pendingTasks.length}</Badge>
           )}
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </DashboardCardHeader>
+      <DashboardCardContent>
         {/* Add task */}
         <div className="mb-4 flex gap-2 rounded-lg border border-zinc-200 bg-zinc-50 p-2 dark:border-white/10 dark:bg-zinc-950/40">
           <Input
@@ -214,8 +214,8 @@ export function CoachTaskCard() {
             )}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }
 

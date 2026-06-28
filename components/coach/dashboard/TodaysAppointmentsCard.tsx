@@ -12,10 +12,10 @@
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -143,13 +143,13 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
     const showTodayButton = !isToday(selectedDate);
 
     return (
-      <GlassCard glow="emerald" className="group">
-        <GlassCardHeader className="pb-2">
+      <DashboardCard glow="emerald" className="group">
+        <DashboardCardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <GlassCardTitle className="text-sm flex items-center gap-2">
+            <DashboardCardTitle className="text-sm flex items-center gap-2">
               <Clock className="h-4 w-4 text-emerald-500" />
               {t('title')}
-            </GlassCardTitle>
+            </DashboardCardTitle>
             {/* Date Navigation */}
             <div className="flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 dark:border-white/10 dark:bg-zinc-950/40">
               <Button
@@ -180,8 +180,8 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
               </Button>
             </div>
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+        </DashboardCardHeader>
+        <DashboardCardContent>
           {loading ? (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -232,8 +232,8 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
               </Link>
             </div>
           )}
-        </GlassCardContent>
-      </GlassCard>
+        </DashboardCardContent>
+      </DashboardCard>
     );
   }
 
@@ -274,38 +274,38 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
 
   if (loading) {
     return (
-      <GlassCard glow="emerald" className="group">
-        <GlassCardHeader className="pb-3">
+      <DashboardCard glow="emerald" className="group">
+        <DashboardCardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <GlassCardTitle className="text-base flex items-center gap-2">
+            <DashboardCardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-emerald-500" />
               {t('title')}
-            </GlassCardTitle>
+            </DashboardCardTitle>
             {renderDateNavigation()}
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+        </DashboardCardHeader>
+        <DashboardCardContent>
           <div className={quietStateClass}>
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
-        </GlassCardContent>
-      </GlassCard>
+        </DashboardCardContent>
+      </DashboardCard>
     );
   }
 
   if (appointments.length === 0) {
     return (
-      <GlassCard glow="emerald" className="group">
-        <GlassCardHeader className="pb-3">
+      <DashboardCard glow="emerald" className="group">
+        <DashboardCardHeader className="pb-3">
           <div className="flex items-center justify-between">
-            <GlassCardTitle className="text-base flex items-center gap-2">
+            <DashboardCardTitle className="text-base flex items-center gap-2">
               <Clock className="h-4 w-4 text-emerald-500" />
               {t('title')}
-            </GlassCardTitle>
+            </DashboardCardTitle>
             {renderDateNavigation()}
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+        </DashboardCardHeader>
+        <DashboardCardContent>
           <div className={quietStateClass}>
             <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
             <p className="text-sm">{isToday(selectedDate) ? t('empty.noneToday') : t('empty.none')}</p>
@@ -313,19 +313,19 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
               {t('empty.description')}
             </p>
           </div>
-        </GlassCardContent>
-      </GlassCard>
+        </DashboardCardContent>
+      </DashboardCard>
     );
   }
 
   return (
-    <GlassCard glow="emerald" className="group">
-      <GlassCardHeader className="pb-3">
+    <DashboardCard glow="emerald" className="group">
+      <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-base flex items-center gap-2">
+          <DashboardCardTitle className="text-base flex items-center gap-2">
             <Clock className="h-4 w-4 text-emerald-500" />
             {t('title')}
-          </GlassCardTitle>
+          </DashboardCardTitle>
           <div className="flex items-center gap-2">
             {renderDateNavigation()}
             <Badge variant="secondary" className="text-xs">
@@ -333,8 +333,8 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
             </Badge>
           </div>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-3">
+      </DashboardCardHeader>
+      <DashboardCardContent className="space-y-3">
         {appointments.slice(0, 5).map((appointment) => {
           const Icon = TYPE_ICONS[appointment.type] || CalendarCheck;
           const locationDisplay = appointment.locationName || appointment.location?.name;
@@ -407,7 +407,7 @@ export function TodaysAppointmentsCard({ basePath = '', variant = 'default' }: T
             {t('viewCalendar')} <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
         </Link>
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   );
 }

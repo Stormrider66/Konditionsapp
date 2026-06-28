@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -156,13 +156,13 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
   const publishedCount = posts.filter(p => p.status === 'PUBLISHED').length
 
   return (
-    <GlassCard>
-      <GlassCardHeader className="pb-3">
+    <DashboardCard>
+      <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-base flex items-center gap-2">
+          <DashboardCardTitle className="text-base flex items-center gap-2">
             <Share2 className="h-4 w-4 text-pink-500" />
             {t('title')}
-          </GlassCardTitle>
+          </DashboardCardTitle>
           <div className="flex items-center gap-1">
             {draftCount > 0 && (
               <Badge variant="secondary" className="text-[10px]">{t('draftCount', { count: draftCount })}</Badge>
@@ -175,8 +175,8 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
             </Link>
           </div>
         </div>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </DashboardCardHeader>
+      <DashboardCardContent>
         {/* AI Generate */}
         <div className="space-y-2 mb-4">
           <div className="flex gap-2">
@@ -264,7 +264,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
             })}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }

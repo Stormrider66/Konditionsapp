@@ -5,10 +5,10 @@ import { AlertTriangle, ArrowRight, HeartPulse, MessageSquare, ShieldAlert, User
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
 import { useTranslations } from '@/i18n/client'
@@ -44,14 +44,14 @@ export function TeamPulsePanel({
     .slice(0, 3)
 
   return (
-    <GlassCard glow="teal" className="group">
-      <GlassCardHeader className="pb-3">
-        <GlassCardTitle className="text-base flex items-center gap-2">
+    <DashboardCard glow="teal" className="group">
+      <DashboardCardHeader className="pb-3">
+        <DashboardCardTitle className="text-base flex items-center gap-2">
           <HeartPulse className="h-4 w-4 text-emerald-500" />
           {t('title')}
-        </GlassCardTitle>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-4">
+        </DashboardCardTitle>
+      </DashboardCardHeader>
+      <DashboardCardContent className="space-y-4">
         <div className="grid grid-cols-3 gap-2">
           <div className="rounded-lg bg-emerald-50 p-3 text-center dark:bg-emerald-950/25">
             <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{readinessDistribution.high}</p>
@@ -129,7 +129,7 @@ export function TeamPulsePanel({
             {t('messageGroup')} <MessageSquare className="h-3 w-3 ml-2" />
           </Button>
         </Link>
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }

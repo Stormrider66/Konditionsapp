@@ -3,10 +3,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -172,14 +172,14 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
   ]
 
   return (
-    <GlassCard glow="blue" className="group">
-      <GlassCardHeader className="pb-2">
+    <DashboardCard glow="blue" className="group">
+      <DashboardCardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <GlassCardTitle className="text-sm flex items-center gap-2">
+          <DashboardCardTitle className="text-sm flex items-center gap-2">
             <Users className="h-4 w-4 text-blue-500" />
             {t('title')}
             <Badge variant="secondary" className="text-xs">{roster.length}</Badge>
-          </GlassCardTitle>
+          </DashboardCardTitle>
         </div>
         {!compact && (
           <div className="flex gap-1 mt-2 flex-wrap">
@@ -197,8 +197,8 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
             ))}
           </div>
         )}
-      </GlassCardHeader>
-      <GlassCardContent>
+      </DashboardCardHeader>
+      <DashboardCardContent>
         {loading ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -302,7 +302,7 @@ export function TeamRosterGrid({ basePath, compact = false }: TeamRosterGridProp
             )}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }

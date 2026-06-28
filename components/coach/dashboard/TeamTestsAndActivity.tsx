@@ -8,10 +8,10 @@ import { ArrowRight, ClipboardList, Dumbbell } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
 import { useLocale, useTranslations } from '@/i18n/client'
@@ -41,21 +41,21 @@ export function TeamTestsAndActivity({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <GlassCard glow="blue" className="group">
-        <GlassCardHeader className="pb-3">
+      <DashboardCard glow="blue" className="group">
+        <DashboardCardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <GlassCardTitle className="text-base flex items-center gap-2">
+            <DashboardCardTitle className="text-base flex items-center gap-2">
               <ClipboardList className="h-4 w-4 text-cyan-500" />
               {t('upcomingTests.title')}
-            </GlassCardTitle>
+            </DashboardCardTitle>
             <Link href={`${basePath}/coach/test`}>
               <Button variant="ghost" size="sm" className="h-8 text-xs">
                 {t('upcomingTests.newTest')}
               </Button>
             </Link>
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+        </DashboardCardHeader>
+        <DashboardCardContent>
           {upcomingTests.length === 0 ? (
             <div className="rounded-lg border border-dashed p-5 text-center dark:border-white/10">
               <p className="text-sm font-medium dark:text-slate-200">{t('upcomingTests.emptyTitle')}</p>
@@ -80,24 +80,24 @@ export function TeamTestsAndActivity({
               ))}
             </div>
           )}
-        </GlassCardContent>
-      </GlassCard>
+        </DashboardCardContent>
+      </DashboardCard>
 
-      <GlassCard glow="amber" className="group">
-        <GlassCardHeader className="pb-3">
+      <DashboardCard glow="amber" className="group">
+        <DashboardCardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <GlassCardTitle className="text-base flex items-center gap-2">
+            <DashboardCardTitle className="text-base flex items-center gap-2">
               <Dumbbell className="h-4 w-4 text-orange-500" />
               {t('recentActivity.title')}
-            </GlassCardTitle>
+            </DashboardCardTitle>
             <Link href={`${basePath}/coach/programs`}>
               <Button variant="ghost" size="sm" className="h-8 text-xs">
                 {t('recentActivity.programs')} <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </Link>
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+        </DashboardCardHeader>
+        <DashboardCardContent>
           {recentActivity.length === 0 ? (
             <div className="rounded-lg border border-dashed p-5 text-center dark:border-white/10">
               <p className="text-sm font-medium dark:text-slate-200">{t('recentActivity.emptyTitle')}</p>
@@ -126,8 +126,8 @@ export function TeamTestsAndActivity({
               })}
             </div>
           )}
-        </GlassCardContent>
-      </GlassCard>
+        </DashboardCardContent>
+      </DashboardCard>
     </div>
   )
 }

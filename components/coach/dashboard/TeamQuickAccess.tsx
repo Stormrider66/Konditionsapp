@@ -6,10 +6,10 @@ import { ArrowRight, CalendarDays, ClipboardList, HeartPulse, MessageSquare, Tim
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { cn } from '@/lib/utils'
 import type { TeamDashboardData } from '@/components/coach/dashboard/TeamDashboardLayout'
@@ -43,21 +43,21 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
 
   return (
     <>
-      <GlassCard glow="blue" className="group">
-        <GlassCardHeader className="pb-3">
+      <DashboardCard glow="blue" className="group">
+        <DashboardCardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
-            <GlassCardTitle className="text-base flex items-center gap-2">
+            <DashboardCardTitle className="text-base flex items-center gap-2">
               <Users className="h-4 w-4 text-blue-500" />
               {t('title')}
-            </GlassCardTitle>
+            </DashboardCardTitle>
             <Link href={`${basePath}/coach/teams`}>
               <Button variant="ghost" size="sm" className="h-8 text-xs">
                 {t('allTeams')} <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </Link>
           </div>
-        </GlassCardHeader>
-        <GlassCardContent>
+        </DashboardCardHeader>
+        <DashboardCardContent>
           {teams.length === 0 ? (
             <div className="rounded-lg border border-dashed p-6 text-center dark:border-white/10">
               <p className="text-sm font-medium dark:text-slate-200">{t('empty.title')}</p>
@@ -151,8 +151,8 @@ export function TeamQuickAccess({ basePath, teams }: { basePath: string; teams: 
               })}
             </div>
           )}
-        </GlassCardContent>
-      </GlassCard>
+        </DashboardCardContent>
+      </DashboardCard>
       <TeamCoachActionDialog
         action={activeAction}
         basePath={basePath}

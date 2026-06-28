@@ -1,10 +1,10 @@
 'use client'
 
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Trophy } from 'lucide-react'
 import { useLocale, useTranslations } from '@/i18n/client'
@@ -38,14 +38,14 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
   const dateLocale = useLocale() === 'sv' ? sv : enUS
 
   return (
-    <GlassCard glow="amber" className="group">
-      <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-sm flex items-center gap-2">
+    <DashboardCard glow="amber" className="group">
+      <DashboardCardHeader className="pb-2">
+        <DashboardCardTitle className="text-sm flex items-center gap-2">
           <Trophy className="h-4 w-4 text-yellow-500" />
           {t('title')}
-        </GlassCardTitle>
-      </GlassCardHeader>
-      <GlassCardContent>
+        </DashboardCardTitle>
+      </DashboardCardHeader>
+      <DashboardCardContent>
         {recentPRs.length === 0 ? (
           <div className={quietStateClass}>
             <Trophy className="h-8 w-8 mx-auto mb-2 opacity-50" />
@@ -81,7 +81,7 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
             })}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }

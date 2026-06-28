@@ -3,10 +3,10 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
+  DashboardCard,
+  DashboardCardContent,
+  DashboardCardHeader,
+  DashboardCardTitle,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -99,11 +99,11 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
 
     return (
       <>
-        <GlassCard>
-          <GlassCardHeader className="pb-3">
-            <GlassCardTitle className="text-base">{t('team.title')}</GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent className="grid grid-cols-2 gap-2">
+        <DashboardCard>
+          <DashboardCardHeader className="pb-3">
+            <DashboardCardTitle className="text-base">{t('team.title')}</DashboardCardTitle>
+          </DashboardCardHeader>
+          <DashboardCardContent className="grid grid-cols-2 gap-2">
             {actions.map(action => {
               const Icon = action.icon
               if ('href' in action) {
@@ -142,8 +142,8 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
                 </div>
               </Link>
             )}
-          </GlassCardContent>
-        </GlassCard>
+          </DashboardCardContent>
+        </DashboardCard>
         <TeamCoachActionDialog
           action={activeAction}
           basePath={basePath}
@@ -160,11 +160,11 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
   // GYM mode — strength-focused quick links
   if (mode === 'GYM') {
     return (
-      <GlassCard>
-        <GlassCardHeader className="pb-3">
-          <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
-        </GlassCardHeader>
-        <GlassCardContent className="grid grid-cols-2 gap-2">
+      <DashboardCard>
+        <DashboardCardHeader className="pb-3">
+          <DashboardCardTitle className="text-base">{t('quickLinks')}</DashboardCardTitle>
+        </DashboardCardHeader>
+        <DashboardCardContent className="grid grid-cols-2 gap-2">
           <Link href={`${basePath}/coach/clients/new`} className="block">
             <div className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border border-emerald-200/60 bg-emerald-50 p-3 text-center transition hover:bg-emerald-100 dark:border-emerald-800/30 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30">
               <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -207,18 +207,18 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
               <span className={actionLabelClass}>{t('gym.assignWorkout')}</span>
             </div>
           </Link>
-        </GlassCardContent>
-      </GlassCard>
+        </DashboardCardContent>
+      </DashboardCard>
     )
   }
 
   // PT mode — 7 links
   return (
-    <GlassCard>
-      <GlassCardHeader className="pb-3">
-        <GlassCardTitle className="text-base">{t('quickLinks')}</GlassCardTitle>
-      </GlassCardHeader>
-      <GlassCardContent className="grid grid-cols-2 gap-2">
+    <DashboardCard>
+      <DashboardCardHeader className="pb-3">
+        <DashboardCardTitle className="text-base">{t('quickLinks')}</DashboardCardTitle>
+      </DashboardCardHeader>
+      <DashboardCardContent className="grid grid-cols-2 gap-2">
         <Link href={`${basePath}/coach/clients/new`} className="block">
           <div className="flex min-h-[76px] flex-col items-center justify-center gap-2 rounded-lg border border-emerald-200/60 bg-emerald-50 p-3 text-center transition hover:bg-emerald-100 dark:border-emerald-800/30 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/30">
             <UserPlus className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -262,7 +262,7 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
             <span className={actionLabelClass}>{t('pt.intervals')}</span>
           </div>
         </Link>
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 }

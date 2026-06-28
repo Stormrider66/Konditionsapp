@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {
-  GlassCard,
-  GlassCardContent,
+  DashboardCard,
+  DashboardCardContent,
 } from '@/components/coach/dashboard/DashboardCard'
 import { Activity, Users, Calendar, AlertCircle, ArrowRight, Dumbbell, Trophy, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -59,11 +59,11 @@ function DashboardStatCard({
   }
 
   const cardContent = (
-    <GlassCard
+    <DashboardCard
       glow={accentColor}
       className="group flex h-full min-h-[142px] flex-col"
     >
-      <GlassCardContent className="flex h-full w-full flex-col p-5">
+      <DashboardCardContent className="flex h-full w-full flex-col p-5">
         <div className="flex w-full items-start justify-between gap-4">
           <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">
             {title}
@@ -90,8 +90,8 @@ function DashboardStatCard({
           <span className="truncate pr-2">{subtext}</span>
           {linkHref && <ArrowRight className="h-3.5 w-3.5 text-slate-400 group-hover:translate-x-0.5 transition-transform shrink-0" />}
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </DashboardCardContent>
+    </DashboardCard>
   )
 
   if (linkHref) {
