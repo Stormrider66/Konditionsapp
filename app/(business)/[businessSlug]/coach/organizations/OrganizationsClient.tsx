@@ -8,7 +8,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -278,37 +278,37 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3 mb-8">
-        <GlassCard glow="blue">
-          <GlassCardHeader className="pb-2">
-            <GlassCardDescription>{t('stats.organizations')}</GlassCardDescription>
-            <GlassCardTitle className="text-2xl dark:text-white">{organizations.length}</GlassCardTitle>
-          </GlassCardHeader>
-        </GlassCard>
-        <GlassCard glow="purple">
-          <GlassCardHeader className="pb-2">
-            <GlassCardDescription>{t('stats.totalTeams')}</GlassCardDescription>
-            <GlassCardTitle className="text-2xl dark:text-white">{totalTeams}</GlassCardTitle>
-          </GlassCardHeader>
-        </GlassCard>
-        <GlassCard glow="emerald">
-          <GlassCardHeader className="pb-2">
-            <GlassCardDescription>{t('stats.totalPlayers')}</GlassCardDescription>
-            <GlassCardTitle className="text-2xl dark:text-white">{totalMembers}</GlassCardTitle>
-          </GlassCardHeader>
-        </GlassCard>
+        <RolePanel>
+          <div className="p-5">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('stats.organizations')}</p>
+            <p className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{organizations.length}</p>
+          </div>
+        </RolePanel>
+        <RolePanel>
+          <div className="p-5">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('stats.totalTeams')}</p>
+            <p className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{totalTeams}</p>
+          </div>
+        </RolePanel>
+        <RolePanel>
+          <div className="p-5">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('stats.totalPlayers')}</p>
+            <p className="mt-2 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{totalMembers}</p>
+          </div>
+        </RolePanel>
       </div>
 
       {/* Organizations List */}
       {loading ? (
-        <GlassCard>
-          <GlassCardContent className="p-12 text-center">
+        <RolePanel>
+          <div className="p-12 text-center">
             <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-muted-foreground" />
             <p className="text-muted-foreground">{t('loading')}</p>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       ) : organizations.length === 0 ? (
-        <GlassCard>
-          <GlassCardContent className="p-12 text-center">
+        <RolePanel>
+          <div className="p-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2 dark:text-white">{t('emptyTitle')}</h3>
             <p className="text-muted-foreground mb-4">
@@ -318,29 +318,29 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
               <Plus className="mr-2 h-4 w-4" />
               {t('createFirst')}
             </Button>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       ) : (
         <div className="space-y-6">
           {organizations.map((org) => (
-            <GlassCard key={org.id} glow="blue" className="overflow-hidden">
-              <GlassCardHeader className="bg-muted/30 dark:bg-white/5">
+            <RolePanel key={org.id} className="overflow-hidden">
+              <div className="border-b border-zinc-200 bg-muted/30 p-5 dark:border-white/10 dark:bg-white/5">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-primary/10 rounded-lg">
                       <Trophy className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <GlassCardTitle className="flex items-center gap-2 dark:text-white">
+                      <h3 className="flex items-center gap-2 font-semibold text-zinc-950 dark:text-zinc-50">
                         {org.name}
                         {org.sportType && (
                           <Badge variant="secondary" className="text-xs">
                             {getSportLabelKey(org.sportType) ? tSports(getSportLabelKey(org.sportType)!) : org.sportType}
                           </Badge>
                         )}
-                      </GlassCardTitle>
+                      </h3>
                       {org.description && (
-                        <GlassCardDescription className="mt-1">{org.description}</GlassCardDescription>
+                        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{org.description}</p>
                       )}
                     </div>
                   </div>
@@ -366,8 +366,8 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                     </Button>
                   </div>
                 </div>
-              </GlassCardHeader>
-              <GlassCardContent className="pt-4">
+              </div>
+              <div className="p-5 pt-4">
                 {org.teams && org.teams.length > 0 ? (
                   <div className="space-y-2">
                     <p className="text-sm font-medium text-muted-foreground mb-3">
@@ -401,8 +401,8 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
                     {t('noTeams.suffix')}
                   </p>
                 )}
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           ))}
         </div>
       )}
