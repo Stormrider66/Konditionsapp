@@ -11,12 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Calendar } from 'lucide-react'
 
 interface TestRecord {
@@ -99,9 +94,9 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
   }
 
   return (
-    <GlassCard glow="purple">
-      <GlassCardHeader className="pb-2">
-        <GlassCardTitle className="text-sm flex items-center gap-2">
+    <RolePanel>
+      <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+        <h3 className="flex flex-wrap items-center gap-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50">
           <Calendar className="h-4 w-4" />
           {config.label} {locale === 'sv' ? 'över tid' : 'over time'} ({config.unit})
           {reviewRequiredCount > 0 && (
@@ -111,9 +106,9 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
                 : `${reviewRequiredCount} need review`}
             </span>
           )}
-        </GlassCardTitle>
-      </GlassCardHeader>
-      <GlassCardContent>
+        </h3>
+      </div>
+      <div className="p-4">
         <ResponsiveContainer width="100%" height={280}>
           <LineChart data={chartData} margin={{ left: -10, right: 5 }}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -134,7 +129,7 @@ export function YearOverYearChart({ tests, selectedAthleteIds, metric }: YearOve
             ))}
           </LineChart>
         </ResponsiveContainer>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

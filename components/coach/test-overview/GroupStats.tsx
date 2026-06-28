@@ -1,12 +1,7 @@
 'use client'
 
 import { useLocale } from 'next-intl'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Users } from 'lucide-react'
 
 interface TeamGroupStats {
@@ -54,9 +49,9 @@ export function GroupStats({ stats }: GroupStatsProps) {
   return (
     <div className="space-y-4">
       {stats.map((team) => (
-        <GlassCard key={team.teamName} glow="blue">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-base flex items-center gap-2">
+        <RolePanel key={team.teamName}>
+          <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+            <h3 className="flex flex-wrap items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
               <Users className="h-4 w-4" />
               {team.teamName}
               <span className="text-xs text-muted-foreground font-normal">
@@ -69,16 +64,16 @@ export function GroupStats({ stats }: GroupStatsProps) {
                     : `${team.reviewRequiredCount} need review`}
                 </span>
               ) : null}
-            </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
+            </h3>
+          </div>
+          <div className="p-4">
             <div className="grid grid-cols-3 gap-4">
               <StatValue label="VO2max" avg={team.vo2max.avg} min={team.vo2max.min} max={team.vo2max.max} unit="ml/kg/min" />
               <StatValue label="Max HR" avg={team.maxHR.avg} min={team.maxHR.min} max={team.maxHR.max} unit="bpm" />
               <StatValue label={locale === 'sv' ? 'Max Laktat' : 'Max lactate'} avg={team.maxLactate.avg} min={team.maxLactate.min} max={team.maxLactate.max} unit="mmol/L" />
             </div>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       ))}
     </div>
   )

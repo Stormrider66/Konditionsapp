@@ -10,12 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 
 interface AthleteSummary {
   id: string
@@ -61,11 +56,11 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {vo2Data.length > 0 && (
-        <GlassCard glow="blue">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm">VO2max (ml/kg/min)</GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
+        <RolePanel>
+          <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+            <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">VO2max (ml/kg/min)</h3>
+          </div>
+          <div className="p-4">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={vo2Data}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -75,16 +70,16 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <Bar dataKey="VO2max" fill="#3B82F6" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
 
       {hrData.length > 0 && (
-        <GlassCard glow="red">
-          <GlassCardHeader className="pb-2">
-            <GlassCardTitle className="text-sm">Max HR (bpm)</GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
+        <RolePanel>
+          <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+            <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Max HR (bpm)</h3>
+          </div>
+          <div className="p-4">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={hrData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -94,18 +89,18 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <Bar dataKey="Max HR" fill="#EF4444" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
 
       {lactateData.length > 0 && (
-        <GlassCard glow="amber">
-          <GlassCardHeader className="pb-2">
-          <GlassCardTitle className="text-sm">
-            {locale === 'sv' ? 'Max Laktat' : 'Max lactate'} (mmol/L)
-          </GlassCardTitle>
-          </GlassCardHeader>
-          <GlassCardContent>
+        <RolePanel>
+          <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+            <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+              {locale === 'sv' ? 'Max Laktat' : 'Max lactate'} (mmol/L)
+            </h3>
+          </div>
+          <div className="p-4">
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={lactateData}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -115,18 +110,18 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
                 <Bar dataKey={locale === 'sv' ? 'Max Laktat' : 'Max lactate'} fill="#F59E0B" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       )}
 
       {/* Data table */}
-      <GlassCard className="md:col-span-2" glow="purple">
-        <GlassCardHeader className="pb-2">
-          <GlassCardTitle className="text-sm">
+      <RolePanel className="md:col-span-2">
+        <div className="border-b border-zinc-200 px-4 py-3 dark:border-white/10">
+          <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
             {locale === 'sv' ? 'Detaljerad jämförelse' : 'Detailed comparison'}
-          </GlassCardTitle>
-        </GlassCardHeader>
-        <GlassCardContent className="overflow-x-auto">
+          </h3>
+        </div>
+        <div className="overflow-x-auto p-4">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b">
@@ -165,8 +160,8 @@ export function AthleteComparison({ athletes }: AthleteComparisonProps) {
               ))}
             </tbody>
           </table>
-        </GlassCardContent>
-      </GlassCard>
+        </div>
+      </RolePanel>
     </div>
   )
 }
