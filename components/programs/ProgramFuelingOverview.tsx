@@ -2,12 +2,7 @@ import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import { CheckCircle2, FlaskConical, TrendingUp, Utensils } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import {
   buildFuelingCoachingRecommendation,
   type FuelingCoachingRecommendation,
@@ -105,14 +100,14 @@ export function ProgramFuelingOverview({ program, className, locale: rawLocale }
   })
 
   return (
-    <GlassCard className={cn('rounded-2xl', className)}>
-      <GlassCardHeader className="pb-4">
+    <RolePanel className={className}>
+      <div className="border-b border-zinc-200 p-5 dark:border-white/10">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <GlassCardTitle className="flex items-center gap-2 text-xl font-black uppercase tracking-tight">
+            <h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
               <FlaskConical className="h-5 w-5 text-orange-500" />
               {t(locale, 'Kolhydratsträning i programmet', 'Carbohydrate training in the program')}
-            </GlassCardTitle>
+            </h3>
             <p className="mt-2 max-w-2xl text-sm font-medium leading-relaxed text-slate-600 dark:text-slate-300">
               {t(
                 locale,
@@ -125,9 +120,9 @@ export function ProgramFuelingOverview({ program, className, locale: rawLocale }
             {sessions.length} {t(locale, 'pass', sessions.length === 1 ? 'session' : 'sessions')}
           </Badge>
         </div>
-      </GlassCardHeader>
+      </div>
 
-      <GlassCardContent className="space-y-6">
+      <div className="space-y-6 p-5">
         <div className="grid gap-3 md:grid-cols-4">
           <MetricTile label={t(locale, 'Startnivå', 'Starting level')} value={firstTarget ? `${Math.round(firstTarget)} g/h` : '-'} />
           <MetricTile label={t(locale, 'Högsta mål', 'Highest target')} value={`${Math.round(peakTarget)} g/h`} tone="orange" />
@@ -175,8 +170,8 @@ export function ProgramFuelingOverview({ program, className, locale: rawLocale }
             <FuelingSessionRow key={session.workout.id} session={session} locale={locale} />
           ))}
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
 

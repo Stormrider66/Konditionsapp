@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { useTranslations } from '@/i18n/client'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -97,8 +97,8 @@ export function ProgramInfographic({
   if (readOnly && !url) return null
 
   return (
-    <GlassCard className="rounded-2xl">
-      <GlassCardContent className="p-6">
+    <RolePanel>
+      <div className="p-5 sm:p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold dark:text-white text-slate-900">
             {t('title')}
@@ -183,7 +183,7 @@ export function ProgramInfographic({
             <p className="text-xs mt-1">{t('emptyAction')}</p>
           </div>
         ) : null}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

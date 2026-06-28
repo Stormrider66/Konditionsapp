@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { useLocale } from 'next-intl'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import {
   Timer,
@@ -221,28 +221,26 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
 
   if (!analysis) {
     return (
-      <GlassCard className="border-dashed border-muted-foreground/30 text-center" glow="slate">
-        <GlassCardContent className="py-8 text-muted-foreground">
+      <RolePanel className="border-dashed p-8 text-center text-zinc-500 dark:text-zinc-400">
           <Timer className="h-8 w-8 mx-auto mb-2 opacity-50" />
           <p className="text-sm">
             {t(locale, 'Fyll i minst 3 stationstider för att se analys', 'Enter at least 3 station times to see the analysis')}
           </p>
-        </GlassCardContent>
-      </GlassCard>
+      </RolePanel>
     )
   }
 
   const levelInfo = getPerformanceLevelLabel(analysis.performanceLevel)
 
   return (
-    <GlassCard glow="blue">
-      <GlassCardHeader className="pb-3">
-        <GlassCardTitle className="text-lg flex items-center gap-2">
+    <RolePanel>
+      <div className="border-b border-zinc-200 p-5 pb-3 dark:border-white/10">
+        <h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
           <Timer className="h-5 w-5" />
           {t(locale, 'Tävlingstidsanalys', 'Race time analysis')}
-        </GlassCardTitle>
-      </GlassCardHeader>
-      <GlassCardContent className="space-y-6">
+        </h3>
+      </div>
+      <div className="space-y-6 p-5">
         {/* Estimated Time & Level */}
         <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
           <div>
@@ -406,7 +404,7 @@ export function HyroxRaceTimeAnalysis({ stationTimes, gender = 'male', targetTim
             </p>
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

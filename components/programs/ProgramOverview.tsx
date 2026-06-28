@@ -4,7 +4,7 @@
 import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import { useLocale } from 'next-intl'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -266,8 +266,7 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
 
       {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <GlassCard>
-          <GlassCardContent className="pt-6">
+        <RolePanel className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t(locale, 'Vecka', 'Week')}</p>
@@ -283,11 +282,9 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-6">
+        <RolePanel className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t(locale, 'Mål', 'Goal')}</p>
@@ -297,11 +294,9 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
               </div>
               <Target className="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-6">
+        <RolePanel className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t(locale, 'Startdatum', 'Start date')}</p>
@@ -311,11 +306,9 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
               </div>
               <Calendar className="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
 
-        <GlassCard>
-          <GlassCardContent className="pt-6">
+        <RolePanel className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{t(locale, 'Slutdatum', 'End date')}</p>
@@ -325,8 +318,7 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
               </div>
               <TrendingUp className="h-8 w-8 text-slate-400 dark:text-slate-500" />
             </div>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
       </div>
 
       {/* Infographic */}
@@ -337,8 +329,7 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
       />
 
       {planningSummary && (
-        <GlassCard>
-          <GlassCardContent className="pt-6">
+        <RolePanel className="p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h3 className="flex items-center gap-2 font-semibold text-slate-900 dark:text-white">
@@ -397,18 +388,15 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
                 )}
               </div>
             </div>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
       )}
 
       {/* Program Notes */}
       {program.description && (
-        <GlassCard>
-          <GlassCardContent className="pt-6">
+        <RolePanel className="p-5">
             <h3 className="font-semibold mb-2 text-slate-900 dark:text-white">{t(locale, 'Anteckningar', 'Notes')}</h3>
             <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap">{program.description}</p>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
       )}
 
       {/* Edit Dialog */}
@@ -476,8 +464,7 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
 
       {/* Test Info */}
       {program.test && (
-        <GlassCard>
-          <GlassCardContent className="pt-6">
+        <RolePanel className="p-5">
             <h3 className="font-semibold mb-3 text-slate-900 dark:text-white">{t(locale, 'Baserat på test', 'Based on test')}</h3>
             <div className="flex items-center gap-6 text-sm">
               <div>
@@ -497,8 +484,7 @@ export function ProgramOverview({ program, basePath }: ProgramOverviewProps) {
                 </div>
               )}
             </div>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
       )}
     </div>
   )

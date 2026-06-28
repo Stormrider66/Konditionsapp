@@ -13,7 +13,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { useLocale } from '@/i18n/client';
 import { Button } from '@/components/ui/button';
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle, GlassCardDescription } from '@/components/ui/GlassCard';
+import { RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -691,19 +691,17 @@ export function HybridStudioClient({ businessId }: HybridStudioClientProps = {})
 
         <TabsContent value="custom" className="mt-6">
           {customWorkouts.length === 0 && !loading ? (
-            <GlassCard glow="blue" className="p-8 text-center">
-              <GlassCardContent>
-                <Dumbbell className="h-12 w-12 mx-auto text-muted-foreground mb-4 animate-pulse" />
-                <h3 className="text-lg font-semibold mb-2 text-white">{copy.emptyCustomTitle}</h3>
-                <p className="text-slate-400 mb-4">
+            <RolePanel className="p-8 text-center sm:p-12">
+                <Dumbbell className="mx-auto mb-4 h-12 w-12 animate-pulse text-zinc-400 dark:text-zinc-600" />
+                <h3 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">{copy.emptyCustomTitle}</h3>
+                <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
                   {copy.emptyCustomDescription}
                 </p>
                 <Button onClick={() => setIsCreateOpen(true)} className="bg-blue-600 hover:bg-blue-500 text-white">
                   <Plus className="mr-2 h-4 w-4" />
                   {copy.createWorkout}
                 </Button>
-              </GlassCardContent>
-            </GlassCard>
+            </RolePanel>
           ) : (
             <WorkoutGrid
               workouts={customWorkouts}
@@ -954,16 +952,16 @@ function WorkoutGrid({
     return (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
-          <GlassCard key={i} className="animate-pulse">
-            <GlassCardHeader>
-              <div className="h-6 bg-muted/20 rounded w-3/4 animate-pulse" />
-              <div className="h-4 bg-muted/20 rounded w-1/2 mt-2 animate-pulse" />
-            </GlassCardHeader>
-            <GlassCardContent>
-              <div className="h-4 bg-muted/20 rounded w-full animate-pulse" />
-              <div className="h-4 bg-muted/20 rounded w-2/3 mt-2 animate-pulse" />
-            </GlassCardContent>
-          </GlassCard>
+          <RolePanel key={i} className="animate-pulse">
+            <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+              <div className="h-6 w-3/4 rounded bg-zinc-200 dark:bg-white/10" />
+              <div className="mt-2 h-4 w-1/2 rounded bg-zinc-200 dark:bg-white/10" />
+            </div>
+            <div className="p-5">
+              <div className="h-4 w-full rounded bg-zinc-200 dark:bg-white/10" />
+              <div className="mt-2 h-4 w-2/3 rounded bg-zinc-200 dark:bg-white/10" />
+            </div>
+          </RolePanel>
         ))}
       </div>
     );
@@ -971,45 +969,50 @@ function WorkoutGrid({
 
   if (workouts.length === 0) {
     return (
-      <GlassCard glow="blue" className="p-8 text-center">
-        <GlassCardContent>
-          <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2 text-white">{copy.noWorkoutsTitle}</h3>
-          <p className="text-muted-foreground">{copy.noWorkoutsDescription}</p>
-        </GlassCardContent>
-      </GlassCard>
+      <RolePanel className="p-8 text-center sm:p-12">
+        <Search className="mx-auto mb-4 h-12 w-12 text-zinc-400 dark:text-zinc-600" />
+        <h3 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">{copy.noWorkoutsTitle}</h3>
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">{copy.noWorkoutsDescription}</p>
+      </RolePanel>
     );
   }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {workouts.map((workout) => {
-        const glowColor =
-          workout.scalingLevel === 'RX' ? 'emerald' : workout.scalingLevel === 'SCALED' ? 'amber' : 'blue';
         const teamName = workout.teamId ? teamNames.get(workout.teamId) ?? 'Lag' : null;
         const athleteTagId = getWorkoutAthleteIdFromTags(workout.tags);
         const athleteName = athleteTagId ? athleteNames.get(athleteTagId) : null;
 
         return (
-          <GlassCard
+          <RolePanel
             key={workout.id}
-            glow={glowColor}
-            className="hover:border-white/20 transition-all duration-300 cursor-pointer group hover:scale-[1.02]"
+            className="group cursor-pointer transition-all hover:border-blue-200 hover:shadow-md dark:hover:border-blue-900/60"
+            role="button"
+            tabIndex={0}
+            aria-label={workout.name}
             onClick={() => onView?.(workout)}
+            onKeyDown={(event) => {
+              if (event.currentTarget !== event.target) return;
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onView?.(workout);
+              }
+            }}
           >
-            <GlassCardHeader className="pb-2">
+            <div className="border-b border-zinc-200 p-5 pb-3 dark:border-white/10">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <GlassCardTitle className="text-lg flex items-center gap-2 text-slate-900 group-hover:text-slate-950 dark:text-slate-100 dark:group-hover:text-white">
+                  <h3 className="flex items-center gap-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
                     {workout.isBenchmark && (
                       <Trophy className="h-4 w-4 text-yellow-500 flex-shrink-0" />
                     )}
                     <span className="truncate">{workout.name}</span>
-                  </GlassCardTitle>
-                  <GlassCardDescription className="flex items-center gap-2 mt-1">
+                  </h3>
+                  <p className="mt-1 flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
                     {formatLabels[workout.format]?.icon}
                     {formatLabels[workout.format]?.label[locale] || workout.format}
-                  </GlassCardDescription>
+                  </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {onUseForCalendar ? (
@@ -1051,7 +1054,7 @@ function WorkoutGrid({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity bg-white/5 hover:bg-white/10 border-none text-slate-300"
+                          className="h-8 w-8 border-none text-zinc-500 opacity-0 transition-opacity hover:bg-zinc-100 hover:text-zinc-950 group-hover:opacity-100 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-white"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </Button>
@@ -1086,9 +1089,9 @@ function WorkoutGrid({
                   )}
                 </div>
               </div>
-            </GlassCardHeader>
-            <GlassCardContent>
-              <p className="text-sm text-slate-400 line-clamp-2">
+            </div>
+            <div className="p-5">
+              <p className="line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
                 {workout.description}
               </p>
               <div className="mt-3 text-xs text-muted-foreground font-medium">
@@ -1113,8 +1116,8 @@ function WorkoutGrid({
                   {workout._count.results} {copy.results}
                 </div>
               )}
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
         );
       })}
     </div>

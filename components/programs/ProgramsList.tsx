@@ -8,13 +8,7 @@ import { useLocale } from 'next-intl'
 import { getBusinessSlugFromPathname } from '@/lib/business-scope-client'
 import { format } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -102,13 +96,12 @@ export function ProgramsList({ programs }: ProgramsListProps) {
 
   if (programs.length === 0) {
     return (
-      <GlassCard className="text-center py-12" glow="blue">
-        <GlassCardContent>
-          <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-          <h3 className="text-lg font-semibold mb-2 dark:text-white">
+      <RolePanel className="p-8 text-center sm:p-12">
+        <Activity className="mx-auto mb-4 h-12 w-12 text-zinc-400 dark:text-zinc-600" />
+          <h3 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
             {label(appLocale, 'Inga program än', 'No programs yet')}
           </h3>
-          <p className="text-muted-foreground mb-6">
+          <p className="mb-6 text-sm text-zinc-500 dark:text-zinc-400">
             {label(
               appLocale,
               'Kom igång genom att skapa ditt första träningsprogram',
@@ -118,8 +111,7 @@ export function ProgramsList({ programs }: ProgramsListProps) {
           <Link href={`${basePath}/coach/programs/new`}>
             <Button>{label(appLocale, 'Skapa program', 'Create program')}</Button>
           </Link>
-        </GlassCardContent>
-      </GlassCard>
+      </RolePanel>
     )
   }
 
@@ -179,17 +171,15 @@ export function ProgramsList({ programs }: ProgramsListProps) {
       </div>
 
       {filteredPrograms.length === 0 && (
-        <GlassCard className="text-center py-12" glow="blue">
-          <GlassCardContent>
-            <Filter className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2 dark:text-white">
+        <RolePanel className="p-8 text-center sm:p-12">
+            <Filter className="mx-auto mb-4 h-12 w-12 text-zinc-400 dark:text-zinc-600" />
+            <h3 className="mb-2 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
               {label(appLocale, 'Inga matchande program', 'No matching programs')}
             </h3>
-            <p className="text-muted-foreground">
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
               {label(appLocale, 'Prova att ändra dina filterinställningar', 'Try changing your filters')}
             </p>
-          </GlassCardContent>
-        </GlassCard>
+        </RolePanel>
       )}
     </div>
   )
@@ -251,7 +241,7 @@ function ProgramCard({
   }
 
   return (
-    <GlassCard className="hover:shadow-lg transition-shadow h-full relative group" glow={isActive ? "emerald" : "blue"}>
+    <RolePanel className="group relative h-full transition hover:border-blue-200 hover:shadow-md dark:hover:border-blue-900/60">
       {/* Delete button - positioned at top-right, left of the active badge */}
       <div className="absolute top-3 right-20 z-20">
         <AlertDialog>
@@ -290,19 +280,19 @@ function ProgramCard({
       </div>
 
       <Link href={`${basePath}/coach/programs/${program.id}`} className="block">
-        <GlassCardHeader>
+        <div className="border-b border-zinc-200 p-5 dark:border-white/10">
           <div className="flex justify-between items-start mb-2">
-            <GlassCardTitle className="text-lg pr-12 text-slate-900 dark:text-white">{program.name}</GlassCardTitle>
+            <h3 className="pr-12 text-lg font-semibold text-zinc-950 dark:text-zinc-50">{program.name}</h3>
             {isActive && (
               <Badge variant="default" className="bg-green-600 hover:bg-green-700">{label(locale, 'Aktiv', 'Active')}</Badge>
             )}
           </div>
-          <GlassCardDescription className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+          <p className="flex items-center gap-2 text-sm text-zinc-500 dark:text-zinc-400">
             <User className="h-4 w-4" />
             {program.client?.name || label(locale, 'Okänd klient', 'Unknown client')}
-          </GlassCardDescription>
-        </GlassCardHeader>
-        <GlassCardContent>
+          </p>
+        </div>
+        <div className="p-5">
           <div className="space-y-3">
             {/* Goal Type */}
             {program.goalType && (
@@ -339,9 +329,9 @@ function ProgramCard({
               />
             </div>
           </div>
-        </GlassCardContent>
+        </div>
       </Link>
-    </GlassCard>
+    </RolePanel>
   )
 }
 

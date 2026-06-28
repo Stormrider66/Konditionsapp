@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
 import { SportType } from '@prisma/client'
 import { Button } from '@/components/ui/button'
-import { GlassCard, GlassCardContent } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { WizardProgress } from './WizardProgress'
@@ -479,8 +479,8 @@ export function ProgramWizard({ clients, teams = [], basePath, initialClientId =
   const athletePromptName = selectedClientName || t(locale, 'en atlet', 'an athlete')
 
   return (
-    <GlassCard className="w-full max-w-4xl mx-auto">
-      <GlassCardContent className="p-6">
+    <RolePanel className="mx-auto w-full max-w-4xl">
+      <div className="p-5 sm:p-6">
         {/* Cancel Button */}
         <div className="flex justify-end mb-4">
           <Button variant="ghost" size="sm" onClick={handleCancel}>
@@ -602,7 +602,7 @@ export function ProgramWizard({ clients, teams = [], basePath, initialClientId =
             )}
           </div>
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

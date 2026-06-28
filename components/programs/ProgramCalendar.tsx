@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { useLocale } from 'next-intl'
 import { format, addDays } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
-import { GlassCard, GlassCardContent, GlassCardHeader, GlassCardTitle } from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -59,13 +59,11 @@ export function ProgramCalendar({ program, basePath, bundledAssignments = [] }: 
 
   if (!program.weeks || program.weeks.length === 0) {
     return (
-      <GlassCard>
-        <GlassCardContent className="text-center py-12">
+      <RolePanel className="p-12 text-center">
           <p className="text-slate-500 dark:text-slate-400">
             {t(appLocale, 'Inga veckor tillgängliga', 'No weeks available')}
           </p>
-        </GlassCardContent>
-      </GlassCard>
+      </RolePanel>
     )
   }
 
@@ -164,7 +162,7 @@ function WeekCard({
   const weeklyStats = calculateWeeklyStats(week)
 
   return (
-    <GlassCard
+    <RolePanel
       className={cn(
         'transition-all',
         isCurrent && 'border-primary/50 ring-1 ring-primary/20',
@@ -173,14 +171,14 @@ function WeekCard({
     >
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
         <CollapsibleTrigger asChild>
-          <GlassCardHeader className="cursor-pointer hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+          <button type="button" className="w-full cursor-pointer p-5 text-left transition-colors hover:bg-zinc-50 dark:hover:bg-white/5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <GlassCardTitle className="text-lg">
+                    <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">
                       {t(locale, 'Vecka', 'Week')} {week.weekNumber}
-                    </GlassCardTitle>
+                    </h3>
                     {isCurrent && (
                       <Badge variant="default">{t(locale, 'Aktuell vecka', 'Current week')}</Badge>
                     )}
@@ -222,11 +220,11 @@ function WeekCard({
                 )}
               </div>
             </div>
-          </GlassCardHeader>
+          </button>
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <GlassCardContent className="pt-0">
+          <div className="px-5 pb-5 pt-0">
             <div className="space-y-3">
               {week.days && week.days.length > 0 ? (
                 week.days.map((day) => (
@@ -252,10 +250,10 @@ function WeekCard({
                 />
               ))}
             </div>
-          </GlassCardContent>
+          </div>
         </CollapsibleContent>
       </Collapsible>
-    </GlassCard>
+    </RolePanel>
   )
 }
 

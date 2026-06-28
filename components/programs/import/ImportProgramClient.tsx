@@ -15,13 +15,7 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from '@/i18n/client'
-import {
-  GlassCard,
-  GlassCardContent,
-  GlassCardDescription,
-  GlassCardHeader,
-  GlassCardTitle,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -488,15 +482,15 @@ export function ImportProgramClient({
   return (
     <div className="space-y-6">
       {!parseResult ? (
-        <GlassCard glow="blue">
-          <GlassCardHeader>
-            <GlassCardTitle className="flex items-center gap-2">
+        <RolePanel>
+          <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
               <Sparkles className="h-5 w-5 text-blue-500" />
               {t('title.step1')}
-            </GlassCardTitle>
-            <GlassCardDescription>{t('step1Description')}</GlassCardDescription>
-          </GlassCardHeader>
-          <GlassCardContent className="space-y-4">
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{t('step1Description')}</p>
+          </div>
+          <div className="space-y-4 p-5">
             <Tabs value={tab} onValueChange={(v) => setTab(v as 'paste' | 'upload')}>
               <TabsList className="grid grid-cols-2 max-w-md">
                 <TabsTrigger value="paste">
@@ -680,31 +674,31 @@ export function ImportProgramClient({
                 </div>
               </div>
             )}
-          </GlassCardContent>
-        </GlassCard>
+          </div>
+        </RolePanel>
       ) : (
         <>
-          <GlassCard glow="blue">
-            <GlassCardHeader className="pb-3">
+          <RolePanel>
+            <div className="border-b border-zinc-200 p-5 pb-3 dark:border-white/10">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <GlassCardTitle className="text-base flex items-center gap-2">
+                  <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                     {t('title.step2')}
                     <Badge variant="outline">{parseResult.inputKind}</Badge>
                     <Badge variant="secondary">{parseResult.modelUsed}</Badge>
-                  </GlassCardTitle>
-                  <GlassCardDescription>
+                  </h2>
+                  <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                     {t('step2Description')}
-                  </GlassCardDescription>
+                  </p>
                 </div>
                 <Button variant="outline" size="sm" onClick={handleReset}>
                   <X className="h-4 w-4 mr-1" />
                   {t('reset')}
                 </Button>
               </div>
-            </GlassCardHeader>
+            </div>
             {parseResult.warnings.length > 0 && (
-              <GlassCardContent className="pt-0">
+              <div className="px-5 pb-5 pt-0">
                 <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded">
                   <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5" />
                   <ul className="text-sm text-amber-800 space-y-0.5">
@@ -713,9 +707,9 @@ export function ImportProgramClient({
                     ))}
                   </ul>
                 </div>
-              </GlassCardContent>
+              </div>
             )}
-          </GlassCard>
+          </RolePanel>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
             <div>
@@ -734,14 +728,14 @@ export function ImportProgramClient({
             </div>
             <div className="space-y-4">
               {!selfOnly && (
-                <GlassCard glow="blue" className="h-fit">
-                  <GlassCardHeader className="pb-3">
-                    <GlassCardTitle className="text-sm">{t('assignAthlete.title')}</GlassCardTitle>
-                    <GlassCardDescription className="text-xs">
+                <RolePanel className="h-fit">
+                  <div className="border-b border-zinc-200 p-4 pb-3 dark:border-white/10">
+                    <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{t('assignAthlete.title')}</h3>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                       {t('assignAthlete.description')}
-                    </GlassCardDescription>
-                  </GlassCardHeader>
-                  <GlassCardContent className="space-y-2">
+                    </p>
+                  </div>
+                  <div className="space-y-2 p-4">
                     <Select
                       value={selectedAthleteId}
                       onValueChange={setSelectedAthleteId}
@@ -766,24 +760,24 @@ export function ImportProgramClient({
                     <p className="text-xs text-muted-foreground">
                       {t('assignAthlete.publishHint')}
                     </p>
-                  </GlassCardContent>
-                </GlassCard>
+                  </div>
+                </RolePanel>
               )}
               {selfOnly && (
-                <GlassCard glow="blue" className="h-fit border-blue-200 bg-blue-50/50 dark:bg-blue-900/10">
-                  <GlassCardHeader className="pb-3">
-                    <GlassCardTitle className="text-sm">{t('ownProgram.title')}</GlassCardTitle>
-                    <GlassCardDescription className="text-xs">
+                <RolePanel className="h-fit border-blue-200 bg-blue-50/50 dark:bg-blue-900/10">
+                  <div className="p-4">
+                    <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{t('ownProgram.title')}</h3>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                       {t('ownProgram.description')}
-                    </GlassCardDescription>
-                  </GlassCardHeader>
-                </GlassCard>
+                    </p>
+                  </div>
+                </RolePanel>
               )}
 
               {(resolving || totalExercises > 0) && (
-                <GlassCard glow="blue" className="h-fit">
-                  <GlassCardHeader className="pb-3">
-                    <GlassCardTitle className="text-sm flex items-center justify-between">
+                <RolePanel className="h-fit">
+                  <div className="border-b border-zinc-200 p-4 pb-3 dark:border-white/10">
+                    <h3 className="flex items-center justify-between text-sm font-semibold text-zinc-950 dark:text-zinc-50">
                       <span>{t('mapping.heading')}</span>
                       {!resolving && (
                         <Badge
@@ -802,8 +796,8 @@ export function ImportProgramClient({
                             t('mapping.badge.skippedCount', { count: skippedCount })}
                         </Badge>
                       )}
-                    </GlassCardTitle>
-                    <GlassCardDescription className="text-xs">
+                    </h3>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
                       {resolving
                         ? t('mapping.status.resolving')
                         : needsMapping.length === 0
@@ -815,10 +809,10 @@ export function ImportProgramClient({
                             })
                           : t('mapping.status.allLinked')
                         : t('mapping.status.linkHint')}
-                    </GlassCardDescription>
-                  </GlassCardHeader>
+                    </p>
+                  </div>
                   {!resolving && (
-                    <GlassCardContent className="space-y-3 max-h-[520px] overflow-y-auto">
+                    <div className="max-h-[520px] space-y-3 overflow-y-auto p-4">
                       {needsMapping.map((r) => (
                         <NeedsMappingRow
                           key={r.name}
@@ -849,9 +843,9 @@ export function ImportProgramClient({
                           {t('mapping.scanAgain')}
                         </Button>
                       </div>
-                    </GlassCardContent>
+                    </div>
                   )}
-                </GlassCard>
+                </RolePanel>
               )}
             </div>
           </div>
