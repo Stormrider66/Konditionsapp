@@ -21,6 +21,7 @@ import { GoalZoneWizard } from '@/components/coach/goal-based/GoalZoneWizard';
 import { prisma } from '@/lib/prisma';
 import { Calculator, Thermometer, Activity, AlertTriangle, Target } from 'lucide-react';
 import { getLocale } from 'next-intl/server';
+import { RolePageFrame, RolePageHeader } from '@/components/layouts/role-shell/RolePage';
 
 interface CoachToolsPageProps {
   businessSlug?: string;
@@ -59,13 +60,12 @@ export default async function CoachToolsPage({ businessSlug }: CoachToolsPagePro
   }));
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Coach Tools</h1>
-        <p className="text-muted-foreground">
-          Calculators and utilities for training optimization
-        </p>
-      </div>
+    <RolePageFrame>
+      <RolePageHeader
+        eyebrow={copy('Coach', 'Coach')}
+        title="Coach Tools"
+        description="Calculators and utilities for training optimization"
+      />
 
       <Tabs defaultValue="vdot" className="space-y-6">
         <TabsList className="grid w-full grid-cols-5">
@@ -111,6 +111,6 @@ export default async function CoachToolsPage({ businessSlug }: CoachToolsPagePro
           <InjuryAssessmentForm athletes={athletes} />
         </TabsContent>
       </Tabs>
-    </div>
+    </RolePageFrame>
   );
 }
