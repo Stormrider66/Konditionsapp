@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, type ComponentPropsWithoutRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
     Stethoscope,
@@ -22,8 +22,13 @@ import {
 } from '@/components/ui/select'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
 import { useTranslations } from '@/i18n/client'
-import { RolePanel } from '@/components/layouts/role-shell/RolePage'
-import { cn } from '@/lib/utils'
+import {
+    RolePanel as Card,
+    RolePanelContent as CardContent,
+    RolePanelDescription as CardDescription,
+    RolePanelHeader as CardHeader,
+    RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 
 interface Athlete {
     id: string
@@ -44,27 +49,6 @@ interface TreatmentSessionFormProps {
 
 type SelectOption = { value: string; label: string }
 
-function Card({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
-    return <RolePanel className={className} {...props} />
-}
-
-function CardHeader({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
-    return <div className={cn('border-b border-zinc-200 p-5 dark:border-white/10', className)} {...props} />
-}
-
-function CardContent({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
-    return <div className={cn('p-5', className)} {...props} />
-}
-
-function CardTitle({ className, ...props }: ComponentPropsWithoutRef<'h3'>) {
-    return <h3 className={cn('text-base font-semibold text-zinc-950 dark:text-zinc-50', className)} {...props} />
-}
-
-function CardDescription({ className, ...props }: ComponentPropsWithoutRef<'p'>) {
-    return <p className={cn('mt-1 text-sm text-zinc-500 dark:text-zinc-400', className)} {...props} />
-}
-
-const panelClass = 'border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950/60'
 const titleClass = 'flex items-center gap-2 text-zinc-950 dark:text-zinc-50'
 const descriptionClass = 'text-zinc-500 dark:text-zinc-400'
 const labelClass = 'text-zinc-700 dark:text-zinc-200'
@@ -218,7 +202,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
             {/* Athlete Selection */}
-            <Card className={panelClass}>
+            <Card>
                 <CardHeader>
                     <CardTitle className={titleClass}>
                         <User className="w-5 h-5 text-emerald-500" />
@@ -270,7 +254,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             </Card>
 
             {/* Session Details */}
-            <Card className={panelClass}>
+            <Card>
                 <CardHeader>
                     <CardTitle className={titleClass}>
                         <Stethoscope className="w-5 h-5 text-emerald-500" />
@@ -342,7 +326,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             </Card>
 
             {/* SOAP Notes */}
-            <Card className={panelClass}>
+            <Card>
                 <CardHeader>
                     <CardTitle className={titleClass}>{t('sections.soapNotes')} <InfoTooltip conceptKey="soapNotes" /></CardTitle>
                     <CardDescription className={descriptionClass}>
@@ -393,7 +377,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             </Card>
 
             {/* Modalities Used */}
-            <Card className={panelClass}>
+            <Card>
                 <CardHeader>
                     <CardTitle className={titleClass}>{t('sections.modalities')}</CardTitle>
                 </CardHeader>
@@ -420,7 +404,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             </Card>
 
             {/* Exercise Prescription */}
-            <Card className={panelClass}>
+            <Card>
                 <CardHeader>
                     <CardTitle className={titleClass}>{t('sections.exercisePrescription')}</CardTitle>
                 </CardHeader>
@@ -450,7 +434,7 @@ export function TreatmentSessionForm({ preselectedClientId, preselectedInjuryId,
             </Card>
 
             {/* Additional Notes */}
-            <Card className={panelClass}>
+            <Card>
                 <CardHeader>
                     <CardTitle className={titleClass}>{t('sections.additionalNotes')}</CardTitle>
                 </CardHeader>

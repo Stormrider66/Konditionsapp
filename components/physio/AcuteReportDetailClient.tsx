@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { ComponentPropsWithoutRef, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useLocale } from '@/i18n/client'
@@ -31,8 +31,13 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { RolePageFrame, RolePanel } from '@/components/layouts/role-shell/RolePage'
-import { cn } from '@/lib/utils'
+import {
+  RolePageFrame,
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 
 interface AcuteReportDetail {
   id: string
@@ -85,22 +90,6 @@ type SideValue = 'LEFT' | 'RIGHT' | 'BILATERAL' | 'CENTRAL'
 type PhaseValue = 'ACUTE' | 'SUBACUTE' | 'CHRONIC'
 type AppLocale = 'en' | 'sv'
 
-function Card({ className, ...props }: ComponentPropsWithoutRef<'section'>) {
-  return <RolePanel className={className} {...props} />
-}
-
-function CardHeader({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
-  return <div className={cn('border-b border-zinc-200 p-5 dark:border-white/10', className)} {...props} />
-}
-
-function CardContent({ className, ...props }: ComponentPropsWithoutRef<'div'>) {
-  return <div className={cn('p-5', className)} {...props} />
-}
-
-function CardTitle({ className, ...props }: ComponentPropsWithoutRef<'h3'>) {
-  return <h3 className={cn('text-base font-semibold text-zinc-950 dark:text-zinc-50', className)} {...props} />
-}
-
 function copy(locale: AppLocale, en: string, sv: string) {
   return locale === 'sv' ? sv : en
 }
@@ -122,7 +111,6 @@ const statusStyles: Record<string, string> = {
   CLOSED: 'border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300',
 }
 
-const panelClass = 'border-zinc-200 bg-white shadow-sm dark:border-white/10 dark:bg-zinc-950/60'
 const titleClass = 'flex items-center gap-2 text-zinc-950 dark:text-zinc-50'
 const inputClass = 'border-zinc-200 bg-white text-zinc-950 dark:border-white/10 dark:bg-zinc-950/60 dark:text-zinc-100'
 const quietBlockClass = 'rounded-lg border border-zinc-200 bg-zinc-50/70 p-4 text-sm leading-6 text-zinc-700 dark:border-white/10 dark:bg-zinc-900/40 dark:text-zinc-200'
@@ -383,7 +371,7 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
 
       <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
         <div className="space-y-6">
-          <Card className={panelClass}>
+          <Card>
             <CardHeader>
               <CardTitle className={titleClass}>
                 <ShieldAlert className="h-5 w-5 text-red-400" />
@@ -460,7 +448,7 @@ export function AcuteReportDetailClient({ basePath, reportId }: AcuteReportDetai
           )}
         </div>
 
-        <Card className={panelClass}>
+        <Card>
           <CardHeader>
             <CardTitle className={titleClass}>
               <AlertTriangle className="h-5 w-5 text-orange-400" />
