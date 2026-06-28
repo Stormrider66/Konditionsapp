@@ -30,7 +30,13 @@ import {
 } from 'recharts'
 import { TrendingDown, TrendingUp, Award, Calendar, Info } from 'lucide-react'
 import { InfoTooltip } from '@/components/ui/InfoTooltip'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  RolePanel as Card,
+  RolePanelContent as CardContent,
+  RolePanelDescription as CardDescription,
+  RolePanelHeader as CardHeader,
+  RolePanelTitle as CardTitle,
+} from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
