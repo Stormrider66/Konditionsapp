@@ -1,11 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
 import { RefreshCw, Check, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -54,18 +49,18 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
   }
 
   return (
-    <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-      <GlassCardHeader className="flex flex-row items-center justify-between">
+    <RolePanel>
+      <div className="flex flex-col gap-3 border-b border-zinc-200 p-4 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <GlassCardTitle className="text-lg text-slate-900 dark:text-white font-semibold">{copy(locale, 'Garmin Connect sync', 'Garmin Connect-synkronisering')}</GlassCardTitle>
+          <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{copy(locale, 'Garmin Connect sync', 'Garmin Connect-synkronisering')}</h3>
           <GarminAttribution />
         </div>
         <Button onClick={handleSync} disabled={loading} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white font-medium">
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           {loading ? copy(locale, 'Syncing...', 'Synkar...') : copy(locale, 'Sync Garmin Connect', 'Synka Garmin Connect')}
         </Button>
-      </GlassCardHeader>
-      <GlassCardContent>
+      </div>
+      <div className="p-4">
         {!results ? (
           <p className="text-sm text-slate-600 dark:text-slate-400">
             {copy(
@@ -94,7 +89,7 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
             ))}
           </div>
         )}
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

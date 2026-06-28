@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  GlassCard,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Play, SkipForward, Square, Droplets, Pause } from 'lucide-react'
 import type { IntervalSessionStatus, IntervalProtocol, RestMode } from '@/lib/interval-session/types'
 import { useLocale } from '@/i18n/client'
@@ -209,12 +206,9 @@ export function IntervalSessionControls({
     : 0
   const displayElapsed = status === 'SETUP' ? 0 : closedIntervalElapsedMs ?? elapsed
 
-  // Set glow color dynamically depending on the current status
-  const glowColor = status === 'ACTIVE' ? 'red' : (status === 'LACTATE_ENTRY' ? 'emerald' : 'blue')
-
   return (
-    <GlassCard glow={glowColor} className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-      <GlassCardContent className="p-4 space-y-4">
+    <RolePanel>
+      <div className="p-4 space-y-4">
         {/* Timer display */}
         <div className="text-center">
           {isGroupResting ? (
@@ -344,7 +338,7 @@ export function IntervalSessionControls({
             <div className="text-slate-550 dark:text-slate-400 font-medium">{copy(locale, 'Session ended', 'Session avslutad')}</div>
           )}
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }

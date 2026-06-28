@@ -4,10 +4,7 @@ import { useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Check } from 'lucide-react'
-import {
-  GlassCard,
-  GlassCardContent,
-} from '@/components/ui/GlassCard'
+import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { toast } from 'sonner'
 import type { IntervalParticipantData } from '@/lib/interval-session/types'
 import { useLocale } from '@/i18n/client'
@@ -62,8 +59,8 @@ export function LactateEntryPanel({
   }
 
   return (
-    <GlassCard glow="emerald" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-      <GlassCardContent className="p-4">
+    <RolePanel>
+      <div className="p-4">
         <h3 className="font-semibold text-slate-900 dark:text-white mb-3">
           {text(`Laktat efter intervall ${currentInterval}`, `Lactate after interval ${currentInterval}`)}
         </h3>
@@ -135,7 +132,7 @@ export function LactateEntryPanel({
             )
           })}
         </div>
-      </GlassCardContent>
-    </GlassCard>
+      </div>
+    </RolePanel>
   )
 }
