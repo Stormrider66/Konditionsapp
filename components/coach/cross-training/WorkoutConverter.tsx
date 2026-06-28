@@ -17,13 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  GlassCard,
-  GlassCardHeader,
-  GlassCardTitle,
-  GlassCardDescription,
-  GlassCardContent,
-} from '@/components/ui/GlassCard';
+import { RolePanel } from '@/components/layouts/role-shell/RolePage';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ArrowRight, Droplets, Bike, Footprints, Waves, Activity, TrendingUp } from 'lucide-react';
@@ -101,12 +95,12 @@ export function WorkoutConverter() {
     <div className="space-y-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Running Workout Details</GlassCardTitle>
-              <GlassCardDescription className="text-slate-650 dark:text-slate-400">Enter the original running workout to convert</GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-4">
+          <RolePanel>
+            <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Running Workout Details</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Enter the original running workout to convert</p>
+            </div>
+            <div className="space-y-4 p-5">
               <FormField
                 control={form.control}
                 name="workout.type"
@@ -190,15 +184,15 @@ export function WorkoutConverter() {
                   </FormItem>
                 )}
               />
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
 
-          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Cross-Training Modality</GlassCardTitle>
-              <GlassCardDescription className="text-slate-650 dark:text-slate-400">Select alternative training modality</GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-4">
+          <RolePanel>
+            <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Cross-Training Modality</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Select alternative training modality</p>
+            </div>
+            <div className="space-y-4 p-5">
               <FormField
                 control={form.control}
                 name="targetModality"
@@ -254,15 +248,15 @@ export function WorkoutConverter() {
                   </FormItem>
                 )}
               />
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
 
-          <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-            <GlassCardHeader>
-              <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">Injury Context (Optional)</GlassCardTitle>
-              <GlassCardDescription className="text-slate-650 dark:text-slate-400">Provide injury details for fitness retention prediction</GlassCardDescription>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-4">
+          <RolePanel>
+            <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+              <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Injury Context (Optional)</h2>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Provide injury details for fitness retention prediction</p>
+            </div>
+            <div className="space-y-4 p-5">
               <FormField
                 control={form.control}
                 name="injuryContext.severity"
@@ -307,16 +301,16 @@ export function WorkoutConverter() {
                   </FormItem>
                 )}
               />
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
 
           {watchModality === 'ALTERG' && (
-            <GlassCard glow="blue" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-              <GlassCardHeader>
-                <GlassCardTitle className="text-slate-900 dark:text-white font-semibold">AlterG Settings</GlassCardTitle>
-                <GlassCardDescription className="text-slate-650 dark:text-slate-400">Body weight support progression</GlassCardDescription>
-              </GlassCardHeader>
-              <GlassCardContent className="space-y-4">
+            <RolePanel>
+              <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+                <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">AlterG Settings</h2>
+                <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Body weight support progression</p>
+              </div>
+              <div className="space-y-4 p-5">
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -364,8 +358,8 @@ export function WorkoutConverter() {
                     )}
                   />
                 </div>
-              </GlassCardContent>
-            </GlassCard>
+              </div>
+            </RolePanel>
           )}
 
           <Button type="submit" size="lg" disabled={submitting} className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-md">
@@ -376,14 +370,14 @@ export function WorkoutConverter() {
 
       {result && (
         <div className="space-y-6">
-          <GlassCard glow="purple" className="bg-white/60 dark:bg-slate-900/60 border border-slate-200 dark:border-white/5 shadow-md">
-            <GlassCardHeader>
-              <GlassCardTitle className="flex items-center gap-2 text-slate-900 dark:text-white font-semibold">
+          <RolePanel>
+            <div className="border-b border-zinc-200 p-5 dark:border-white/10">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
                 <ArrowRight className="h-5 w-5 text-purple-500" />
                 Conversion Results
-              </GlassCardTitle>
-            </GlassCardHeader>
-            <GlassCardContent className="space-y-6">
+              </h2>
+            </div>
+            <div className="space-y-6 p-5">
               {/* Conversion Overview */}
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="p-4 bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 rounded-lg">
@@ -518,8 +512,8 @@ export function WorkoutConverter() {
                   </AlertDescription>
                 </Alert>
               )}
-            </GlassCardContent>
-          </GlassCard>
+            </div>
+          </RolePanel>
         </div>
       )}
     </div>
