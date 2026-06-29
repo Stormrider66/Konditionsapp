@@ -103,6 +103,8 @@ export function TeamKioskWorkoutPanel({
   const targetWeight = currentSetRow?.weight ?? currentExercise?.weight
   const targetPercent = currentSetRow?.weightPercent ?? currentExercise?.weightPercent
   const previousLog = currentExercise?.setLogs[currentExercise.setLogs.length - 1] ?? null
+  const lastSession = currentExercise?.lastPerformance
+  const preferPrescription = currentSetRow != null || targetPercent != null
   const exerciseComplete = currentExercise ? currentExercise.completedSets >= currentExercise.sets : false
 
   const handleDirtyChange = (next: boolean) => {
@@ -300,9 +302,13 @@ export function TeamKioskWorkoutPanel({
                 <p className="mt-4 rounded-md border bg-slate-50 p-3 text-sm text-slate-700">{currentExercise.notes}</p>
               )}
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
+              <div className="mt-4 grid gap-3 sm:grid-cols-4">
                 <MetricCard label={text(locale, 'Mål vikt', 'Target weight')} value={targetWeight ? `${targetWeight} kg` : targetPercent ? `${targetPercent}%` : '-'} />
                 <MetricCard label={text(locale, 'Mål reps', 'Target reps')} value={String(targetReps)} />
+                <MetricCard
+                  label={text(locale, 'Förra passet', 'Last time')}
+                  value={lastSession ? `${lastSession.weight} kg × ${lastSession.reps}` : '-'}
+                />
                 <MetricCard label={text(locale, 'Senast loggat', 'Last logged')} value={previousLog ? `${previousLog.weight} kg × ${previousLog.repsCompleted}` : '-'} />
               </div>
             </div>
@@ -325,6 +331,8 @@ export function TeamKioskWorkoutPanel({
                 targetWeight={targetWeight}
                 targetReps={targetReps}
                 previousLog={previousLog}
+                lastSession={lastSession}
+                preferTargetWeight={preferPrescription}
                 onDirtyChange={handleDirtyChange}
                 onActivity={onActivity}
                 onSaved={async () => {

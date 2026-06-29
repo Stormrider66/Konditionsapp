@@ -25,6 +25,8 @@ interface KioskSetLoggerProps {
   targetWeight?: number
   targetReps: number | string
   previousLog: FocusModeExercise['setLogs'][number] | null
+  lastSession?: FocusModeExercise['lastPerformance']
+  preferTargetWeight?: boolean
   onDirtyChange: (dirty: boolean) => void
   onActivity: () => void
   onSaved: () => Promise<void>
@@ -40,11 +42,15 @@ export function KioskSetLogger({
   targetWeight,
   targetReps,
   previousLog,
+  lastSession,
+  preferTargetWeight = false,
   onDirtyChange,
   onActivity,
   onSaved,
 }: KioskSetLoggerProps) {
-  const defaultWeight = targetWeight ?? previousLog?.weight ?? 0
+  const defaultWeight = preferTargetWeight
+    ? targetWeight ?? previousLog?.weight ?? lastSession?.weight ?? 0
+    : previousLog?.weight ?? lastSession?.weight ?? targetWeight ?? 0
   const defaultReps = parseTargetReps(targetReps)
   const [weight, setWeight] = useState(defaultWeight)
   const [reps, setReps] = useState(defaultReps)
@@ -133,6 +139,12 @@ export function KioskSetLogger({
           <p className="text-sm text-slate-600">
             {targetWeight ? `${targetWeight} kg · ` : ''}{targetReps} reps
           </p>
+          {lastSession && (
+            <p className="mt-1 text-xs font-medium text-slate-500">
+              {text(locale, 'Förra passet', 'Last time')}: {lastSession.weight} kg × {lastSession.reps}
+              {!lastSession.sameScheme && lastSession.repsTarget ? ` (${lastSession.repsTarget} reps)` : ''}
+            </p>
+          )}
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={reset} disabled={!dirty || saving}>

@@ -9992,7 +9992,8 @@
         "set": "Set",
         "weight": "Vikt",
         "percentOf1rm": "{percent}% av {oneRepMax}kg",
-        "missing1rm": "Saknar 1RM"
+        "missing1rm": "Saknar 1RM",
+        "lastPerformance": "Senast: {weight}kg × {reps}"
       },
       "pr": {
         "firstEstimate": "Första PR-uppskattningen!",

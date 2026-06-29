@@ -47,6 +47,14 @@ interface SetLogSummary {
   estimated1RM?: number
 }
 
+interface LastPerformanceSummary {
+  weight: number
+  reps: number
+  repsTarget: number | null
+  date: string
+  sameScheme: boolean
+}
+
 interface FocusModeFollowUp {
   exerciseId: string
   name: string
@@ -83,6 +91,7 @@ interface FocusModeExercise {
   weight?: number
   weightPercent?: number
   oneRepMax?: number
+  lastPerformance?: LastPerformanceSummary
   tempo?: string
   restSeconds: number
   notes?: string
@@ -113,6 +122,8 @@ interface ActiveStage {
   weightPercent?: number
   /** Athlete's 1RM the kg was resolved from (only when relevant). */
   oneRepMax?: number
+  /** Most recent historical set for this exercise, excluding the current assignment. */
+  lastPerformance?: LastPerformanceSummary
   notes?: string
   completedSets: number
   setLogs: SetLogSummary[]
@@ -167,6 +178,7 @@ function buildActiveStage(
       // oneRepMax is the same across rows (one PR per exercise).
       weightPercent: row?.weightPercent ?? ex.weightPercent,
       oneRepMax: ex.oneRepMax,
+      lastPerformance: ex.lastPerformance,
       notes: ex.notes,
       completedSets: ex.completedSets,
       setLogs: ex.setLogs,
@@ -346,7 +358,15 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
       setLogWeight(activeStage.weight != null ? String(activeStage.weight) : '')
       setLogReps(String(target))
     } else {
-      setLogWeight(lastLog ? String(lastLog.weight) : activeStage.weight ? String(activeStage.weight) : '')
+      setLogWeight(
+        lastLog
+          ? String(lastLog.weight)
+          : activeStage.lastPerformance
+            ? String(activeStage.lastPerformance.weight)
+            : activeStage.weight != null
+              ? String(activeStage.weight)
+              : ''
+      )
       setLogReps(lastLog ? String(lastLog.repsCompleted) : String(target))
     }
     setLogRpe(null)
@@ -738,6 +758,14 @@ export function StrengthFocusMode({ assignmentId, onClose, onComplete }: Strengt
               {activeStage.weightPercent != null && activeStage.oneRepMax == null && (
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   {t('targets.missing1rm')}
+                </p>
+              )}
+              {activeStage.lastPerformance && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {t('targets.lastPerformance', {
+                    weight: activeStage.lastPerformance.weight,
+                    reps: activeStage.lastPerformance.reps,
+                  })}
                 </p>
               )}
             </div>

@@ -9625,7 +9625,8 @@
         "set": "Set",
         "weight": "Weight",
         "percentOf1rm": "{percent}% of {oneRepMax}kg",
-        "missing1rm": "Missing 1RM"
+        "missing1rm": "Missing 1RM",
+        "lastPerformance": "Last: {weight}kg × {reps}"
       },
       "pr": {
         "firstEstimate": "First PR estimate!",

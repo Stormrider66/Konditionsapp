@@ -45,6 +45,13 @@ export interface FocusModeExercise {
   weight?: number
   weightPercent?: number
   oneRepMax?: number
+  lastPerformance?: {
+    weight: number
+    reps: number
+    repsTarget: number | null
+    date: string
+    sameScheme: boolean
+  }
   tempo?: string
   restSeconds: number
   notes?: string
