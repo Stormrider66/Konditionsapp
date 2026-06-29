@@ -171,6 +171,7 @@ export function CoachAppShell({
   const mainNavItems: RoleShellNavItem[] = [
     { href: `${basePath}/coach/dashboard`, label: t('nav.today'), icon: LayoutDashboard, exact: true },
     { href: `${basePath}/coach/calendar`, label: t('nav.calendar'), icon: CalendarDays },
+    { href: `${basePath}/coach/teams`, label: t('nav.teams'), icon: Users2 },
     { href: `${basePath}/coach/clients`, label: t('nav.athletes'), icon: Users },
     { href: `${basePath}/coach/programs`, label: t('nav.programs'), icon: FileStack },
   ]
@@ -200,7 +201,6 @@ export function CoachAppShell({
     competitions: { href: `${basePath}/coach/competitions`, label: t('nav.challenges'), icon: Trophy },
     community: { href: `${basePath}/coach/community`, label: t('nav.community'), icon: Megaphone },
     analytics: { href: `${basePath}/coach/analytics`, label: t('nav.analytics'), icon: BarChart3 },
-    teams: { href: `${basePath}/coach/teams`, label: t('nav.teams'), icon: Users2 },
     browse: { href: `${basePath}/coach/browse-athletes`, label: t('nav.browseAthletes'), icon: UserPlus },
     orgs: { href: `${basePath}/coach/organizations`, label: t('nav.organizations'), icon: Building2 },
     docs: { href: `${basePath}/coach/documents`, label: t('nav.documents'), icon: FileStack },
@@ -253,7 +253,6 @@ export function CoachAppShell({
     ],
     TEAM: [
       allMoreItems.staff,
-      allMoreItems.teams,
       allMoreItems.messages,
       allMoreItems.docs,
       allMoreItems.orgs,
