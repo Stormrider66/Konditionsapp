@@ -106,24 +106,24 @@ export function SkiingAthleteView({ clientId: _clientId, clientName: _clientName
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Timer className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+              <Timer className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">LT (bpm)</p>
               <p className="font-bold text-lg">
                 {skiingSettings.currentLactateThreshold || '-'}
               </p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Mountain className="h-5 w-5 mx-auto mb-1 text-green-500" />
+              <Mountain className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('km/vecka', 'km/week')}</p>
               <p className="font-bold text-lg">{skiingSettings.weeklyDistance || '-'}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <TrendingUp className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+              <TrendingUp className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('tim/vecka', 'hours/week')}</p>
               <p className="font-bold text-lg">{skiingSettings.weeklyHours || '-'}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Snowflake className="h-5 w-5 mx-auto mb-1 text-cyan-500" />
+              <Snowflake className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('Erfarenhet', 'Experience')}</p>
               <p className="font-bold text-lg">
                 {skiingSettings.experienceYears ? `${skiingSettings.experienceYears} ${t('år', 'yrs')}` : '-'}

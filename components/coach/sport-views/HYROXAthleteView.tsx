@@ -177,7 +177,7 @@ function HYROXEvaluationReviewCard({ clientId }: { clientId: string }) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-              <Gauge className="h-5 w-5 text-orange-500" />
+              <Gauge className="h-5 w-5" style={{ color: theme.colors.textMuted }} />
               {t('Senaste HYROX-utvärdering', 'Latest HYROX evaluation')}
             </CardTitle>
             <CardDescription style={{ color: theme.colors.textMuted }}>
@@ -432,9 +432,9 @@ export function HYROXAthleteView({ clientId, clientName: _clientName, settings }
             </div>
             <div
               className="text-center p-3 rounded-lg"
-              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.15)' : '#f0fdf4' }}
+              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5' }}
             >
-              <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-600" />
+              <TrendingUp className="h-5 w-5 mx-auto mb-1 text-emerald-600" />
               <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Starkast', 'Strongest')}</p>
               <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {bestStation?.name.split(' ')[0] || hyroxSettings.strongestStation || '-'}
@@ -470,16 +470,16 @@ export function HYROXAthleteView({ clientId, clientName: _clientName, settings }
                 className="p-3 rounded-lg border"
                 style={{
                   borderColor: station.status === 'good'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.3)' : '#bbf7d0')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.3)' : '#a7f3d0')
                     : station.status === 'average'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(234, 179, 8, 0.3)' : '#fef08a')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(245, 158, 11, 0.3)' : '#fde68a')
                     : station.status === 'needs_work'
                     ? (theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.3)' : '#fed7aa')
                     : theme.colors.border,
                   backgroundColor: station.status === 'good'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(240, 253, 244, 0.5)')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(236, 253, 245, 0.5)')
                     : station.status === 'average'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(254, 252, 232, 0.5)')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 251, 235, 0.5)')
                     : station.status === 'needs_work'
                     ? (theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255, 247, 237, 0.5)')
                     : (theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
@@ -503,8 +503,8 @@ export function HYROXAthleteView({ clientId, clientName: _clientName, settings }
                     <div className="flex justify-between text-xs" style={{ color: theme.colors.textMuted }}>
                       <span>Benchmark: {formatTime(station.benchmark)}</span>
                       <span className={
-                        station.status === 'good' ? 'text-green-600' :
-                        station.status === 'average' ? 'text-yellow-600' :
+                        station.status === 'good' ? 'text-emerald-600' :
+                        station.status === 'average' ? 'text-amber-600' :
                         'text-orange-600'
                       }>
                         {station.status === 'good' ? t('Bra!', 'Good!') :
@@ -617,8 +617,8 @@ export function HYROXAthleteView({ clientId, clientName: _clientName, settings }
                   <div
                     className="p-4 rounded-lg space-y-3"
                     style={{
-                      backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.1)' : '#f0fdf4',
-                      borderColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.3)' : '#bbf7d0',
+                      backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.1)' : '#ecfdf5',
+                      borderColor: theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.3)' : '#a7f3d0',
                       border: '1px solid'
                     }}
                   >
@@ -626,7 +626,7 @@ export function HYROXAthleteView({ clientId, clientName: _clientName, settings }
                       <p className="text-sm" style={{ color: theme.colors.textMuted }}>
                         {t('Uppskattad sluttid', 'Estimated finish time')}
                       </p>
-                      <p className="text-3xl font-bold text-green-600">
+                      <p className="text-3xl font-bold text-emerald-600">
                         {Math.floor(simulationResult.totalTime / 3600)}:{formatTime(simulationResult.totalTime % 3600)}
                       </p>
                     </div>
@@ -671,7 +671,7 @@ export function HYROXAthleteView({ clientId, clientName: _clientName, settings }
                     </div>
 
                     {stationsWithData.length < 8 && (
-                      <p className="text-xs text-center text-orange-600">
+                      <p className="text-xs text-center text-amber-600">
                         ⚠️ {8 - stationsWithData.length} {t('station(er) saknar data - resultatet är en uppskattning', 'station(s) missing data - result is an estimate')}
                       </p>
                     )}

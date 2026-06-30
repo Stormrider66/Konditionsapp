@@ -49,7 +49,7 @@ const GOAL_LABELS: Record<string, { label: string; labelSv: string; icon: string
   weight_loss: { label: 'Weight loss', labelSv: 'Viktminskning', icon: '⚖️', color: 'bg-orange-100 text-orange-800' },
   general_health: { label: 'General Health', labelSv: 'Allmän Hälsa', icon: '❤️', color: 'bg-red-100 text-red-800' },
   strength: { label: 'Strength', labelSv: 'Styrka', icon: '💪', color: 'bg-blue-100 text-blue-800' },
-  endurance: { label: 'Endurance', labelSv: 'Uthållighet', icon: '🏃', color: 'bg-green-100 text-green-800' },
+  endurance: { label: 'Endurance', labelSv: 'Uthållighet', icon: '🏃', color: 'bg-emerald-100 text-emerald-800' },
   flexibility: { label: 'Mobility', labelSv: 'Rörlighet', icon: '🧘', color: 'bg-purple-100 text-purple-800' },
   stress_relief: { label: 'Stress relief', labelSv: 'Stresshantering', icon: '🧘‍♂️', color: 'bg-teal-100 text-teal-800' },
 }
@@ -152,7 +152,7 @@ export function GeneralFitnessAthleteView({ clientId, clientName, settings, clie
     label: fitnessSettings.primaryGoal || 'Ej angivet',
     labelSv: fitnessSettings.primaryGoal || 'Ej angivet',
     icon: '🎯',
-    color: 'bg-gray-100 text-gray-800'
+    color: 'bg-slate-100 text-slate-800'
   }
 
   const fitnessLevel = LEVEL_LABELS[fitnessSettings.fitnessLevel || ''] || {
@@ -202,22 +202,22 @@ export function GeneralFitnessAthleteView({ clientId, clientName, settings, clie
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Target className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+              <Target className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('Nivå', 'Level')}</p>
               <p className="font-bold text-sm">{isSv ? fitnessLevel.labelSv : fitnessLevel.label}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Calendar className="h-5 w-5 mx-auto mb-1 text-green-500" />
+              <Calendar className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('Pass/vecka', 'Sessions/week')}</p>
               <p className="font-bold text-lg">{fitnessSettings.weeklyWorkouts || '-'}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Dumbbell className="h-5 w-5 mx-auto mb-1 text-purple-500" />
+              <Dumbbell className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">Gym</p>
               <p className="font-bold text-sm">{fitnessSettings.hasGymAccess ? t('Ja', 'Yes') : t('Nej', 'No')}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Heart className="h-5 w-5 mx-auto mb-1 text-red-500" />
+              <Heart className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('Vila HF', 'Resting HR')}</p>
               <p className="font-bold text-lg">
                 {fitnessSettings.restingHeartRate ? `${fitnessSettings.restingHeartRate}` : '-'}
@@ -284,7 +284,7 @@ export function GeneralFitnessAthleteView({ clientId, clientName, settings, clie
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               {t('Föredragna aktiviteter', 'Preferred Activities')}
             </CardTitle>
           </CardHeader>
@@ -292,7 +292,7 @@ export function GeneralFitnessAthleteView({ clientId, clientName, settings, clie
             {fitnessSettings.preferredActivities && fitnessSettings.preferredActivities.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {fitnessSettings.preferredActivities.map((activity) => (
-                  <Badge key={activity} variant="secondary" className="bg-green-100 text-green-800">
+                  <Badge key={activity} variant="secondary" className="bg-emerald-100 text-emerald-800">
                     {ACTIVITY_LABELS[activity]?.[isSv ? 'sv' : 'en'] || activity}
                   </Badge>
                 ))}

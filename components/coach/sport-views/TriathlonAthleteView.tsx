@@ -48,8 +48,8 @@ const DISTANCE_INFO: Record<string, { name: string; nameSv: string; swim: string
 
 const DISCIPLINE_LABELS: Record<string, { icon: string; label: string; labelSv: string; color: string }> = {
   swim: { icon: '🏊', label: 'Swimming', labelSv: 'Simning', color: 'bg-blue-100 text-blue-800' },
-  bike: { icon: '🚴', label: 'Cycling', labelSv: 'Cykling', color: 'bg-yellow-100 text-yellow-800' },
-  run: { icon: '🏃', label: 'Running', labelSv: 'Löpning', color: 'bg-green-100 text-green-800' },
+  bike: { icon: '🚴', label: 'Cycling', labelSv: 'Cykling', color: 'bg-amber-100 text-amber-800' },
+  run: { icon: '🏃', label: 'Running', labelSv: 'Löpning', color: 'bg-emerald-100 text-emerald-800' },
 }
 
 const EXPERIENCE_LABELS: Record<string, { sv: string; en: string }> = {
@@ -175,9 +175,9 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
 
           {/* Strengths/Weaknesses */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="p-3 bg-green-50 rounded-lg">
+            <div className="p-3 bg-emerald-50 rounded-lg">
               <div className="flex items-center gap-2 mb-1">
-                <TrendingUp className="h-4 w-4 text-green-600" />
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
                 <span className="text-sm font-medium">{t('Starkast', 'Strongest')}</span>
               </div>
               <p className="font-bold">
@@ -218,9 +218,9 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
                     <Badge
                       variant="outline"
                       className={
-                        strength >= 70 ? 'border-green-500 text-green-700' :
+                        strength >= 70 ? 'border-emerald-500 text-emerald-700' :
                         strength <= 40 ? 'border-orange-500 text-orange-700' :
-                        'border-gray-500'
+                        'border-slate-500'
                       }
                     >
                       {strength >= 70 ? t('Stark', 'Strong') : strength <= 40 ? t('Utveckla', 'Develop') : t('Medel', 'Average')}
@@ -229,7 +229,7 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
                   <Progress
                     value={strength}
                     className={`h-3 ${
-                      strength >= 70 ? '[&>div]:bg-green-500' :
+                      strength >= 70 ? '[&>div]:bg-emerald-500' :
                       strength <= 40 ? '[&>div]:bg-orange-500' :
                       ''
                     }`}
@@ -247,7 +247,7 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Waves className="h-4 w-4 text-blue-500" />
+              <Waves className="h-4 w-4 text-muted-foreground" />
               {t('Simning', 'Swimming')}
             </CardTitle>
           </CardHeader>
@@ -281,7 +281,7 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-500" />
+              <Zap className="h-4 w-4 text-muted-foreground" />
               {t('Cykling', 'Cycling')}
             </CardTitle>
           </CardHeader>
@@ -313,7 +313,7 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Timer className="h-4 w-4 text-green-500" />
+              <Timer className="h-4 w-4 text-muted-foreground" />
               {t('Löpning', 'Running')}
             </CardTitle>
           </CardHeader>
@@ -346,7 +346,7 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
         <CardContent>
           <div className="space-y-2 text-sm">
             {weakestInfo && (
-              <p className="p-2 bg-orange-50 rounded border-l-4 border-orange-400">
+              <p className="p-2 bg-amber-50 rounded border-l-4 border-amber-400">
                 <strong>{t('Prioritet', 'Priority')}:</strong> {t('Fokusera på', 'Focus on')} {(isSv ? weakestInfo.labelSv : weakestInfo.label).toLowerCase()} {t('för att förbättra balansen.', 'to improve balance.')}
               </p>
             )}
@@ -356,7 +356,7 @@ export function TriathlonAthleteView({ clientId: _clientId, clientName: _clientN
               </p>
             )}
             {triathlonSettings.openWaterExperience === 'none' && (
-              <p className="p-2 bg-yellow-50 rounded border-l-4 border-yellow-400">
+              <p className="p-2 bg-blue-50 rounded border-l-4 border-blue-400">
                 <strong>{t('Simning', 'Swimming')}:</strong> {t('Börja träna i öppet vatten före race.', 'Start training in open water before race day.')}
               </p>
             )}

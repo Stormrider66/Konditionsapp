@@ -55,8 +55,8 @@ const BIKE_LABELS: Record<string, { sv: string; en: string }> = {
 const FTP_ZONES = [
   { zone: 1, name: { sv: 'Återhämtning', en: 'Recovery' }, min: 0, max: 55, color: 'bg-gray-200' },
   { zone: 2, name: { sv: 'Uthållighet', en: 'Endurance' }, min: 56, max: 75, color: 'bg-blue-200' },
-  { zone: 3, name: { sv: 'Tempo', en: 'Tempo' }, min: 76, max: 90, color: 'bg-green-200' },
-  { zone: 4, name: { sv: 'Tröskel', en: 'Threshold' }, min: 91, max: 105, color: 'bg-yellow-200' },
+  { zone: 3, name: { sv: 'Tempo', en: 'Tempo' }, min: 76, max: 90, color: 'bg-emerald-200' },
+  { zone: 4, name: { sv: 'Tröskel', en: 'Threshold' }, min: 91, max: 105, color: 'bg-amber-200' },
   { zone: 5, name: { sv: 'VO2max', en: 'VO2 max' }, min: 106, max: 120, color: 'bg-orange-200' },
   { zone: 6, name: { sv: 'Anaerob', en: 'Anaerobic' }, min: 121, max: 150, color: 'bg-red-200' },
 ]
@@ -67,8 +67,8 @@ function getFtpCategory(ftp: number, weight: number | null, locale: string): { c
   if (wpkg >= 5.0) return { category: 'World Class', color: 'text-purple-600' }
   if (wpkg >= 4.5) return { category: t('Exceptionell', 'Exceptional'), color: 'text-indigo-600' }
   if (wpkg >= 4.0) return { category: t('Utmärkt', 'Excellent'), color: 'text-blue-600' }
-  if (wpkg >= 3.5) return { category: t('Mycket bra', 'Very good'), color: 'text-green-600' }
-  if (wpkg >= 3.0) return { category: t('Bra', 'Good'), color: 'text-yellow-600' }
+  if (wpkg >= 3.5) return { category: t('Mycket bra', 'Very good'), color: 'text-emerald-600' }
+  if (wpkg >= 3.0) return { category: t('Bra', 'Good'), color: 'text-amber-600' }
   if (wpkg >= 2.5) return { category: t('Medel', 'Average'), color: 'text-orange-600' }
   return { category: t('Nybörjare', 'Beginner'), color: 'text-gray-600' }
 }
@@ -141,12 +141,12 @@ export function CyclingAthleteView({ clientId: _clientId, clientName: _clientNam
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Zap className="h-5 w-5 mx-auto mb-1 text-yellow-500" />
+              <Zap className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">FTP</p>
               <p className="font-bold text-lg">{ftp ? `${ftp}W` : '-'}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Scale className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+              <Scale className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">W/kg</p>
               <p className="font-bold text-lg">{wpkg || '-'}</p>
               {ftpCategory && (
@@ -161,7 +161,7 @@ export function CyclingAthleteView({ clientId: _clientId, clientName: _clientNam
               </p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Activity className="h-5 w-5 mx-auto mb-1 text-green-500" />
+              <Activity className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('Tim/vecka', 'Hours/week')}</p>
               <p className="font-bold text-lg">{cyclingSettings.weeklyHours || '-'}</p>
             </div>

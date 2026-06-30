@@ -254,7 +254,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-                <Trophy className="h-5 w-5 text-green-500" />
+                <Trophy className="h-5 w-5 text-blue-500" />
                 {footballSettings.teamName || 'Fotboll'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2" style={{ color: theme.colors.textMuted }}>
@@ -264,7 +264,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
                     : labelFor(POSITION_LABELS, footballSettings.position, locale)}
                 </Badge>
                 <Badge variant="secondary">{labelFor(LEAGUE_LABELS, footballSettings.leagueLevel, locale)}</Badge>
-                <Badge className="bg-green-500">{labelFor(PHASE_LABELS, footballSettings.seasonPhase, locale)}</Badge>
+                <Badge className="bg-blue-500">{labelFor(PHASE_LABELS, footballSettings.seasonPhase, locale)}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
@@ -279,28 +279,28 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
           {/* Playing stats */}
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Timer className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+              <Timer className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.avgMinutesPerMatch ?? '-'}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'min/match', 'min/game')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
+              <Zap className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.matchesPerWeek}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'matcher/v', 'games/wk')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
+              <Activity className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {footballSettings.weeklyTrainingSessions}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'träning/v', 'training/wk')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+              <Target className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {labelFor(FOOT_LABELS, footballSettings.preferredFootwork, locale)}
               </div>
@@ -313,7 +313,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
             <span className="text-sm" style={{ color: theme.colors.textMuted }}>{t(locale, 'Spelstil:', 'Play style:')}</span>
             <Badge className={
               footballSettings.playStyle === 'possession' ? 'bg-blue-500' :
-              footballSettings.playStyle === 'counter' ? 'bg-yellow-500' :
+              footballSettings.playStyle === 'counter' ? 'bg-amber-500' :
               footballSettings.playStyle === 'pressing' ? 'bg-red-500' :
               'bg-orange-500'
             }>
@@ -336,7 +336,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-              <MapPin className="h-4 w-4 text-purple-500" />
+              <MapPin className="h-4 w-4" style={{ color: theme.colors.textMuted }} />
               GPS-data
             </CardTitle>
           </CardHeader>
@@ -369,7 +369,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-            <Activity className="h-4 w-4 text-red-500" />
+            <Activity className="h-4 w-4" />
             {t(locale, 'Fysiska tester', 'Physical tests')} ({labelFor(POSITION_LABELS, footballSettings.position, locale)})
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
@@ -386,7 +386,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
               </div>
               {footballSettings.benchmarks.yoyoIR1Level && (
                 <div className={`text-xs mt-1 ${
-                  footballSettings.benchmarks.yoyoIR1Level >= positionBenchmarks.yoyoIR1 ? 'text-green-500' : 'text-orange-500'
+                  footballSettings.benchmarks.yoyoIR1Level >= positionBenchmarks.yoyoIR1 ? 'text-emerald-500' : 'text-orange-500'
                 }`}>
                   {getBenchmarkPercentage(footballSettings.benchmarks.yoyoIR1Level, positionBenchmarks.yoyoIR1)}% {t(locale, 'av elit', 'of elite')}
                 </div>
@@ -401,7 +401,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
               </div>
               {footballSettings.benchmarks.sprint10m && (
                 <div className={`text-xs mt-1 ${
-                  footballSettings.benchmarks.sprint10m <= positionBenchmarks.sprint10m ? 'text-green-500' : 'text-orange-500'
+                  footballSettings.benchmarks.sprint10m <= positionBenchmarks.sprint10m ? 'text-emerald-500' : 'text-orange-500'
                 }`}>
                   {getBenchmarkPercentage(footballSettings.benchmarks.sprint10m, positionBenchmarks.sprint10m, true)}% {t(locale, 'av elit', 'of elite')}
                 </div>
@@ -416,7 +416,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
               </div>
               {footballSettings.benchmarks.sprint30m && (
                 <div className={`text-xs mt-1 ${
-                  footballSettings.benchmarks.sprint30m <= positionBenchmarks.sprint30m ? 'text-green-500' : 'text-orange-500'
+                  footballSettings.benchmarks.sprint30m <= positionBenchmarks.sprint30m ? 'text-emerald-500' : 'text-orange-500'
                 }`}>
                   {getBenchmarkPercentage(footballSettings.benchmarks.sprint30m, positionBenchmarks.sprint30m, true)}% {t(locale, 'av elit', 'of elite')}
                 </div>
@@ -431,7 +431,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
               </div>
               {footballSettings.benchmarks.cmjHeight && (
                 <div className={`text-xs mt-1 ${
-                  footballSettings.benchmarks.cmjHeight >= positionBenchmarks.cmj ? 'text-green-500' : 'text-orange-500'
+                  footballSettings.benchmarks.cmjHeight >= positionBenchmarks.cmj ? 'text-emerald-500' : 'text-orange-500'
                 }`}>
                   {getBenchmarkPercentage(footballSettings.benchmarks.cmjHeight, positionBenchmarks.cmj)}% {t(locale, 'av elit', 'of elite')}
                 </div>
@@ -476,7 +476,7 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
             <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{t(locale, 'Fokusera på:', 'Focus on:')}</h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.focus.map((item, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-green-500/10 border-green-500">
+                <Badge key={i} variant="outline" className="text-xs bg-emerald-500/10 border-emerald-500">
                   {localized(locale, item)}
                 </Badge>
               ))}
@@ -537,15 +537,15 @@ export function FootballAthleteView({ clientId, clientName: _clientName, setting
       {footballSettings.injuryHistory.length > 0 && (
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base text-yellow-600" style={{ color: theme.colors.textPrimary }}>
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <CardTitle className="flex items-center gap-2 text-base text-amber-600" style={{ color: theme.colors.textPrimary }}>
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
               {t(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {footballSettings.injuryHistory.map((injury) => (
-                <Badge key={injury} variant="outline" className="text-xs bg-yellow-500/10 border-yellow-500">
+                <Badge key={injury} variant="outline" className="text-xs bg-amber-500/10 border-amber-500">
                   {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}

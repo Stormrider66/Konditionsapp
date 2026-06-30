@@ -212,11 +212,11 @@ export function TennisAthleteView({
   const getRatingColor = (rating: 'elite' | 'good' | 'developing' | null) => {
     switch (rating) {
       case 'elite':
-        return 'text-green-500'
+        return 'text-emerald-500'
       case 'good':
         return 'text-blue-500'
       case 'developing':
-        return 'text-orange-500'
+        return 'text-amber-500'
       default:
         return 'text-muted-foreground'
     }
@@ -239,13 +239,13 @@ export function TennisAthleteView({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-                <Trophy className="h-5 w-5 text-green-500" />
+                <Trophy className="h-5 w-5 text-blue-500" />
                 {clientName} - {settings.clubName || 'Tennis'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2">
                 <Badge variant="outline">{labelFor(PLAYSTYLE_LABELS, playStyle, locale)}</Badge>
                 <Badge variant="secondary">{labelFor(LEAGUE_LABELS, settings.leagueLevel, locale)}</Badge>
-                <Badge className="bg-green-500">{labelFor(PHASE_LABELS, settings.seasonPhase, locale)}</Badge>
+                <Badge className="bg-blue-500">{labelFor(PHASE_LABELS, settings.seasonPhase, locale)}</Badge>
                 <Badge variant="outline">{labelFor(SURFACE_LABELS, settings.preferredSurface, locale)}</Badge>
               </CardDescription>
             </div>
@@ -258,27 +258,27 @@ export function TennisAthleteView({
         <CardContent>
           <div className="grid grid-cols-5 gap-4">
             <div className="text-center">
-              <Ruler className="h-4 w-4 mx-auto mb-1 text-green-500" />
+              <Ruler className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.height ?? '-'}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'cm längd', 'cm height')}</div>
             </div>
             <div className="text-center">
-              <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
+              <Zap className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.serveSpeed ?? '-'}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>km/h serve</div>
             </div>
             <div className="text-center">
-              <Activity className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+              <Activity className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{GRIP_LABELS[settings.forehandGrip] || '-'}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>FH-grepp</div>
             </div>
             <div className="text-center">
-              <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+              <Target className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.matchesPerWeek}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'matcher/v', 'matches/wk')}</div>
             </div>
             <div className="text-center">
-              <Activity className="h-4 w-4 mx-auto mb-1 text-orange-500" />
+              <Activity className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.weeklyTrainingSessions}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'träning/v', 'training/wk')}</div>
             </div>
@@ -328,7 +328,7 @@ export function TennisAthleteView({
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-            <Activity className="h-4 w-4 text-green-500" />
+            <Activity className="h-4 w-4" />
             {t(locale, 'Fysiska tester', 'Physical tests')} - {labelFor(PLAYSTYLE_LABELS, playStyle, locale)}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>{t(locale, 'Resultat jämfört med elitnivå', 'Results compared with elite level')}</CardDescription>
@@ -532,7 +532,7 @@ export function TennisAthleteView({
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-              <Target className="h-4 w-4 text-green-500" />
+              <Target className="h-4 w-4" style={{ color: theme.colors.textMuted }} />
               {labelFor(SURFACE_LABELS, settings.preferredSurface, locale)} - {t(locale, 'Överväganden', 'Considerations')}
             </CardTitle>
           </CardHeader>
@@ -540,7 +540,7 @@ export function TennisAthleteView({
             <ul className="space-y-2">
               {surfaceConsiderations.map((tip, i) => (
                 <li key={i} className="text-sm flex items-start gap-2" style={{ color: theme.colors.textMuted }}>
-                  <span className="text-green-500 mt-1">-</span>
+                  <span className="mt-1" style={{ color: theme.colors.textMuted }}>-</span>
                   <span>{tip}</span>
                 </li>
               ))}
@@ -555,7 +555,7 @@ export function TennisAthleteView({
           <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-                <Zap className="h-4 w-4 text-green-500" />
+                <Zap className="h-4 w-4 text-emerald-500" />
                 {t(locale, 'Styrkor', 'Strengths')}
               </CardTitle>
             </CardHeader>
@@ -575,7 +575,7 @@ export function TennisAthleteView({
           <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-                <Target className="h-4 w-4 text-blue-500" />
+                <Target className="h-4 w-4 text-amber-500" />
                 {t(locale, 'Utvecklingsområden', 'Development areas')}
               </CardTitle>
             </CardHeader>

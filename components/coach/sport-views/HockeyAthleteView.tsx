@@ -687,7 +687,7 @@ function interpretationBadge(tone: HockeySummaryResponse['interpretations'][numb
 function playerHighlightClasses(tone: HockeyPlayerHighlight['tone']): string {
   if (tone === 'priority') return 'border-red-500/40 bg-red-500/10'
   if (tone === 'positive') return 'border-emerald-500/40 bg-emerald-500/10'
-  return 'border-sky-500/30 bg-sky-500/10'
+  return 'border-blue-500/30 bg-blue-500/10'
 }
 
 function pathwayChangeText(value: number | null | undefined, unit: string, decimals: number): string {
@@ -901,21 +901,21 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
           {/* Playing stats */}
           <div className="grid grid-cols-3 gap-3">
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Timer className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+              <Timer className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hockeySettings.averageIceTimeMinutes ?? '-'}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{tr(locale, 'min/match', 'min/game')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
+              <Zap className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {hockeySettings.shiftsPerGame ?? '-'}
               </div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{tr(locale, 'byten', 'shifts')}</div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
+              <Activity className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {avgShiftLength ?? '-'}
               </div>
@@ -931,7 +931,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
               hockeySettings.playStyle === 'defensive' ? 'bg-blue-500' :
               hockeySettings.playStyle === 'physical' ? 'bg-orange-500' :
               hockeySettings.playStyle === 'skill' ? 'bg-purple-500' :
-              'bg-green-500'
+              'bg-emerald-500'
             }>
               {labelFor(PLAYSTYLE_LABELS, hockeySettings.playStyle, locale)}
             </Badge>
@@ -967,7 +967,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-                <Target className="h-4 w-4 text-sky-500" />
+                <Target className="h-4 w-4 text-blue-500" />
                 {tr(locale, 'Spelarvy', 'Player view')}
               </CardTitle>
               <CardDescription style={{ color: theme.colors.textMuted }}>
@@ -1261,7 +1261,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
                 <div className="rounded-lg border p-3" style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}>
                   <div className="flex items-center justify-between gap-2 mb-2">
                     <h4 className="text-sm font-medium flex items-center gap-1.5" style={{ color: theme.colors.textPrimary }}>
-                      <Timer className="h-4 w-4 text-sky-500" />
+                      <Timer className="h-4 w-4 text-blue-500" />
                       {tr(locale, 'Isfart', 'Ice speed')}
                     </h4>
                     <Badge variant="outline" className="text-[10px]">km/h</Badge>
@@ -1511,7 +1511,7 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
             <h4 className="text-sm font-medium mb-1" style={{ color: theme.colors.textPrimary }}>{tr(locale, 'Fokusera på:', 'Focus on:')}</h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.focus.map((item, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-green-500/10 border-green-500">
+                <Badge key={i} variant="outline" className="text-xs bg-emerald-500/10 border-emerald-500">
                   {localized(locale, item)}
                 </Badge>
               ))}
@@ -1572,15 +1572,15 @@ export function HockeyAthleteView({ clientId, clientName, settings, basePath = '
       {hockeySettings.injuryHistory.length > 0 && (
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-base text-yellow-600" style={{ color: theme.colors.textPrimary }}>
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <CardTitle className="flex items-center gap-2 text-base text-amber-600" style={{ color: theme.colors.textPrimary }}>
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
               {tr(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {hockeySettings.injuryHistory.map((injury) => (
-                <Badge key={injury} variant="outline" className="text-xs bg-yellow-500/10 border-yellow-500">
+                <Badge key={injury} variant="outline" className="text-xs bg-amber-500/10 border-amber-500">
                   {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}

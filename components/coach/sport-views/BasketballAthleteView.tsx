@@ -195,11 +195,11 @@ export function BasketballAthleteView({
   const getRatingColor = (rating: 'elite' | 'good' | 'developing' | null) => {
     switch (rating) {
       case 'elite':
-        return 'text-green-500'
+        return 'text-emerald-500'
       case 'good':
         return 'text-blue-500'
       case 'developing':
-        return 'text-orange-500'
+        return 'text-amber-500'
       default:
         return 'text-muted-foreground'
     }
@@ -217,13 +217,13 @@ export function BasketballAthleteView({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-                <Trophy className="h-5 w-5 text-orange-500" />
+                <Trophy className="h-5 w-5 text-blue-500" />
                 {clientName} - {settings.teamName || 'Basket'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2">
                 <Badge variant="outline">{labelFor(POSITION_LABELS, position, locale)}</Badge>
                 <Badge variant="secondary">{labelFor(LEAGUE_LABELS, settings.leagueLevel, locale)}</Badge>
-                <Badge className="bg-orange-500">{labelFor(PHASE_LABELS, settings.seasonPhase, locale)}</Badge>
+                <Badge className="bg-blue-500">{labelFor(PHASE_LABELS, settings.seasonPhase, locale)}</Badge>
                 <Badge variant="outline">{labelFor(PLAY_STYLE_LABELS, settings.playStyle, locale)}</Badge>
               </CardDescription>
             </div>
@@ -236,27 +236,27 @@ export function BasketballAthleteView({
         <CardContent>
           <div className="grid grid-cols-5 gap-4">
             <div className="text-center">
-              <Timer className="h-4 w-4 mx-auto mb-1 text-orange-500" />
+              <Timer className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.avgMinutesPerMatch ?? '-'}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'min/match', 'min/game')}</div>
             </div>
             <div className="text-center">
-              <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
+              <Zap className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.matchesPerWeek}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'matcher/v', 'games/wk')}</div>
             </div>
             <div className="text-center">
-              <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
+              <Activity className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.weeklyTrainingSessions}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'träning/v', 'training/wk')}</div>
             </div>
             <div className="text-center">
-              <Ruler className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+              <Ruler className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.height ?? '-'}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'cm längd', 'cm height')}</div>
             </div>
             <div className="text-center">
-              <Target className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+              <Target className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>{settings.shootingHand === 'right' ? t(locale, 'Höger', 'Right') : t(locale, 'Vänster', 'Left')}</div>
               <div className="text-xs" style={{ color: theme.colors.textMuted }}>{t(locale, 'skotthand', 'shooting hand')}</div>
             </div>
@@ -302,7 +302,7 @@ export function BasketballAthleteView({
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-            <Activity className="h-4 w-4 text-red-500" />
+            <Activity className="h-4 w-4" />
             {t(locale, 'Fysiska tester', 'Physical tests')} - {labelFor(POSITION_LABELS, position, locale)}
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>{t(locale, 'Resultat jämfört med elitnivå', 'Results compared with elite level')}</CardDescription>
@@ -513,7 +513,7 @@ export function BasketballAthleteView({
           <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-                <Zap className="h-4 w-4 text-yellow-500" />
+                <Zap className="h-4 w-4 text-emerald-500" />
                 {t(locale, 'Styrkor', 'Strengths')}
               </CardTitle>
             </CardHeader>
@@ -533,7 +533,7 @@ export function BasketballAthleteView({
           <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-                <Target className="h-4 w-4 text-blue-500" />
+                <Target className="h-4 w-4 text-amber-500" />
                 {t(locale, 'Utvecklingsområden', 'Development areas')}
               </CardTitle>
             </CardHeader>

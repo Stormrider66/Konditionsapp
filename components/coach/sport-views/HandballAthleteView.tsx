@@ -233,13 +233,13 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-                <Trophy className="h-5 w-5 text-orange-500" />
+                <Trophy className="h-5 w-5 text-blue-500" />
                 {handballSettings.teamName || 'Handboll'}
               </CardTitle>
               <CardDescription className="flex flex-wrap gap-2 mt-2" style={{ color: theme.colors.textMuted }}>
                 <Badge variant="outline">{getPositionDisplay()}</Badge>
                 <Badge variant="secondary">{labelFor(LEAGUE_LABELS, handballSettings.leagueLevel, locale)}</Badge>
-                <Badge className="bg-orange-500">{labelFor(PHASE_LABELS, handballSettings.seasonPhase, locale)}</Badge>
+                <Badge className="bg-blue-500">{labelFor(PHASE_LABELS, handballSettings.seasonPhase, locale)}</Badge>
               </CardDescription>
             </div>
             <div className="text-right">
@@ -256,7 +256,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
           {/* Playing stats */}
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Timer className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+              <Timer className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {handballSettings.avgMinutesPerMatch ?? '-'}
               </div>
@@ -265,7 +265,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
+              <Zap className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {handballSettings.matchesPerWeek}
               </div>
@@ -274,7 +274,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
+              <Activity className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {handballSettings.weeklyTrainingSessions}
               </div>
@@ -283,7 +283,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+              <Target className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {handballSettings.throwingArm === 'right' ? t(locale, 'Höger', 'Right') : t(locale, 'Vänster', 'Left')}
               </div>
@@ -306,7 +306,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
                     ? 'bg-blue-500'
                     : handballSettings.playStyle === 'specialist'
                       ? 'bg-purple-500'
-                      : 'bg-green-500'
+                      : 'bg-emerald-500'
               }
             >
               {labelFor(PLAYSTYLE_LABELS, handballSettings.playStyle, locale)}
@@ -319,7 +319,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-            <Activity className="h-4 w-4 text-red-500" />
+            <Activity className="h-4 w-4" />
             {t(locale, 'Fysiska tester', 'Physical tests')} ({labelFor(POSITION_LABELS, handballSettings.position, locale)})
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
@@ -340,7 +340,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
                 <div
                   className={`text-xs mt-1 ${
                     handballSettings.benchmarks.yoyoIR1Level >= positionBenchmarks.yoyoIR1
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -361,7 +361,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
                 <div
                   className={`text-xs mt-1 ${
                     handballSettings.benchmarks.sprint10m <= positionBenchmarks.sprint10m
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -383,7 +383,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
                 <div
                   className={`text-xs mt-1 ${
                     handballSettings.benchmarks.cmjHeight >= positionBenchmarks.cmj
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -404,7 +404,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
                 <div
                   className={`text-xs mt-1 ${
                     handballSettings.benchmarks.medicineBallThrow >= positionBenchmarks.medicineBall
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -461,7 +461,7 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
             </h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.focus.map((item, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-green-500/10 border-green-500">
+                <Badge key={i} variant="outline" className="text-xs bg-emerald-500/10 border-emerald-500">
                   {localized(locale, item)}
                 </Badge>
               ))}
@@ -529,17 +529,17 @@ export function HandballAthleteView({ clientId, clientName: _clientName, setting
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
             <CardTitle
-              className="flex items-center gap-2 text-base text-yellow-600"
+              className="flex items-center gap-2 text-base text-amber-600"
               style={{ color: theme.colors.textPrimary }}
             >
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
               {t(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {handballSettings.injuryHistory.map((injury) => (
-                <Badge key={injury} variant="outline" className="text-xs bg-yellow-500/10 border-yellow-500">
+                <Badge key={injury} variant="outline" className="text-xs bg-amber-500/10 border-amber-500">
                   {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}

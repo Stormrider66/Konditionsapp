@@ -151,8 +151,8 @@ export function SwimmingAthleteView({ clientId, clientName: _clientName, setting
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
-              <Timer className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <Timer className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">CSS</p>
               <p className="font-bold text-lg">
                 {css ? `${formatCss(css)}/100m` : '-'}
@@ -166,12 +166,12 @@ export function SwimmingAthleteView({ clientId, clientName: _clientName, setting
               </p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Waves className="h-5 w-5 mx-auto mb-1 text-cyan-500" />
+              <Waves className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('km/vecka', 'km/week')}</p>
               <p className="font-bold text-lg">{swimmingSettings.weeklySwimDistance || '-'}</p>
             </div>
             <div className="text-center p-3 bg-muted/50 rounded-lg">
-              <Target className="h-5 w-5 mx-auto mb-1 text-green-500" />
+              <Target className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
               <p className="text-xs text-muted-foreground">{t('Pass/vecka', 'Sessions/week')}</p>
               <p className="font-bold text-lg">{swimmingSettings.weeklySwimSessions || '-'}</p>
             </div>
@@ -193,7 +193,7 @@ export function SwimmingAthleteView({ clientId, clientName: _clientName, setting
                   key={zone.zone}
                   className={`p-2 rounded-lg text-center ${
                     zone.zone <= 2 ? 'bg-blue-50' :
-                    zone.zone <= 4 ? 'bg-green-50' :
+                    zone.zone <= 4 ? 'bg-emerald-50' :
                     'bg-orange-50'
                   }`}
                 >

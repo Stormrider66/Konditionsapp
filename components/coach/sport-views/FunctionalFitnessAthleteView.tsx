@@ -221,7 +221,7 @@ export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: 
                 {FOCUS_LABELS[ffSettings.primaryFocus || 'general'][isSv ? 'sv' : 'en']}
               </Badge>
               {ffSettings.competitionInterest && (
-                <Badge variant="default" className="bg-purple-500">
+                <Badge variant="default" className="bg-blue-500">
                   <Medal className="h-3 w-3 mr-1" />
                   {t('Tävlar', 'Competes')}
                 </Badge>
@@ -253,9 +253,9 @@ export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: 
             </div>
             <div
               className="text-center p-3 rounded-lg"
-              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.15)' : '#f0fdf4' }}
+              style={{ backgroundColor: theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5' }}
             >
-              <TrendingUp className="h-5 w-5 mx-auto mb-1 text-green-600" />
+              <TrendingUp className="h-5 w-5 mx-auto mb-1 text-emerald-600" />
               <p className="text-xs" style={{ color: theme.colors.textMuted }}>{t('Bästa benchmark', 'Best benchmark')}</p>
               <p className="font-medium text-sm truncate" style={{ color: theme.colors.textPrimary }}>
                 {bestBenchmark?.name || '-'}
@@ -279,7 +279,7 @@ export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: 
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-            <Clock className="h-4 w-4 text-red-500" />
+            <Clock className="h-4 w-4" style={{ color: theme.colors.textMuted }} />
             Benchmark Workouts
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
@@ -294,16 +294,16 @@ export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: 
                 className="p-3 rounded-lg border text-center"
                 style={{
                   borderColor: benchmark.status === 'good'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.3)' : '#bbf7d0')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.3)' : '#a7f3d0')
                     : benchmark.status === 'average'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(234, 179, 8, 0.3)' : '#fef08a')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(245, 158, 11, 0.3)' : '#fde68a')
                     : benchmark.status === 'needs_work'
                     ? (theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.3)' : '#fed7aa')
                     : theme.colors.border,
                   backgroundColor: benchmark.status === 'good'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(240, 253, 244, 0.5)')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(16, 185, 129, 0.1)' : 'rgba(236, 253, 245, 0.5)')
                     : benchmark.status === 'average'
-                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(234, 179, 8, 0.1)' : 'rgba(254, 252, 232, 0.5)')
+                    ? (theme.id === 'FITAPP_DARK' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(255, 251, 235, 0.5)')
                     : benchmark.status === 'needs_work'
                     ? (theme.id === 'FITAPP_DARK' ? 'rgba(249, 115, 22, 0.1)' : 'rgba(255, 247, 237, 0.5)')
                     : (theme.id === 'FITAPP_DARK' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'),
@@ -341,7 +341,7 @@ export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: 
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-              <Dumbbell className="h-4 w-4 text-blue-500" />
+              <Dumbbell className="h-4 w-4" style={{ color: theme.colors.textMuted }} />
               {t('Styrka (1RM)', 'Strength (1RM)')}
             </CardTitle>
           </CardHeader>
@@ -373,7 +373,7 @@ export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: 
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-              <Zap className="h-4 w-4 text-purple-500" />
+              <Zap className="h-4 w-4" style={{ color: theme.colors.textMuted }} />
               {t('Gymnastik-skills', 'Gymnastics Skills')}
             </CardTitle>
           </CardHeader>
@@ -421,7 +421,7 @@ export function FunctionalFitnessAthleteView({ clientId: _clientId, clientName: 
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2" style={{ color: theme.colors.textPrimary }}>
-            <Medal className="h-4 w-4 text-yellow-500" />
+            <Medal className="h-4 w-4" style={{ color: theme.colors.textMuted }} />
             {t('Olympiska lyft', 'Olympic Lifts')}
           </CardTitle>
         </CardHeader>

@@ -238,7 +238,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
           {/* Playing stats */}
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Timer className="h-4 w-4 mx-auto mb-1 text-blue-500" />
+              <Timer className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {floorballSettings.avgMinutesPerMatch ?? '-'}
               </div>
@@ -247,7 +247,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Zap className="h-4 w-4 mx-auto mb-1 text-yellow-500" />
+              <Zap className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {floorballSettings.matchesPerWeek}
               </div>
@@ -256,7 +256,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Activity className="h-4 w-4 mx-auto mb-1 text-green-500" />
+              <Activity className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {floorballSettings.weeklyTrainingSessions}
               </div>
@@ -265,7 +265,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
               </div>
             </div>
             <div className="text-center p-2 rounded-lg" style={{ backgroundColor: theme.colors.background }}>
-              <Target className="h-4 w-4 mx-auto mb-1 text-purple-500" />
+              <Target className="h-4 w-4 mx-auto mb-1" style={{ color: theme.colors.textMuted }} />
               <div className="text-lg font-bold" style={{ color: theme.colors.textPrimary }}>
                 {floorballSettings.stickHand === 'right' ? t(locale, 'Höger', 'Right') : t(locale, 'Vänster', 'Left')}
               </div>
@@ -288,7 +288,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
                     ? 'bg-blue-500'
                     : floorballSettings.playStyle === 'physical'
                       ? 'bg-orange-500'
-                      : 'bg-green-500'
+                      : 'bg-emerald-500'
               }
             >
               {labelFor(PLAYSTYLE_LABELS, floorballSettings.playStyle, locale)}
@@ -301,7 +301,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
       <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base" style={{ color: theme.colors.textPrimary }}>
-            <Activity className="h-4 w-4 text-red-500" />
+            <Activity className="h-4 w-4" />
             {t(locale, 'Fysiska tester', 'Physical tests')} ({labelFor(POSITION_LABELS, floorballSettings.position, locale)})
           </CardTitle>
           <CardDescription style={{ color: theme.colors.textMuted }}>
@@ -322,7 +322,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
                 <div
                   className={`text-xs mt-1 ${
                     floorballSettings.benchmarks.yoyoIR1Level >= positionBenchmarks.yoyoIR1
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -343,7 +343,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
                 <div
                   className={`text-xs mt-1 ${
                     floorballSettings.benchmarks.sprint20m <= positionBenchmarks.sprint20m
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -365,7 +365,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
                 <div
                   className={`text-xs mt-1 ${
                     floorballSettings.benchmarks.agilityTest <= positionBenchmarks.agility
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -387,7 +387,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
                 <div
                   className={`text-xs mt-1 ${
                     floorballSettings.benchmarks.standingLongJump >= positionBenchmarks.longJump
-                      ? 'text-green-500'
+                      ? 'text-emerald-500'
                       : 'text-orange-500'
                   }`}
                 >
@@ -444,7 +444,7 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
             </h4>
             <div className="flex flex-wrap gap-1">
               {phaseRecommendations.focus.map((item, i) => (
-                <Badge key={i} variant="outline" className="text-xs bg-green-500/10 border-green-500">
+                <Badge key={i} variant="outline" className="text-xs bg-emerald-500/10 border-emerald-500">
                   {localized(locale, item)}
                 </Badge>
               ))}
@@ -512,17 +512,17 @@ export function FloorballAthleteView({ clientId, clientName: _clientName, settin
         <Card style={{ backgroundColor: theme.colors.backgroundCard, borderColor: theme.colors.border }}>
           <CardHeader className="pb-2">
             <CardTitle
-              className="flex items-center gap-2 text-base text-yellow-600"
+              className="flex items-center gap-2 text-base text-amber-600"
               style={{ color: theme.colors.textPrimary }}
             >
-              <AlertTriangle className="h-4 w-4 text-yellow-500" />
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
               {t(locale, 'Skadehistorik', 'Injury history')}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-1">
               {floorballSettings.injuryHistory.map((injury) => (
-                <Badge key={injury} variant="outline" className="text-xs bg-yellow-500/10 border-yellow-500">
+                <Badge key={injury} variant="outline" className="text-xs bg-amber-500/10 border-amber-500">
                   {INJURY_LABELS[injury] ? localized(locale, INJURY_LABELS[injury]) : injury}
                 </Badge>
               ))}

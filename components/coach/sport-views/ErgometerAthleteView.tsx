@@ -95,9 +95,9 @@ const ERGOMETER_CONFIG: Record<
 };
 
 const ZONE_COLORS: Record<number, string> = {
-  1: 'bg-green-500',
+  1: 'bg-emerald-500',
   2: 'bg-blue-500',
-  3: 'bg-yellow-500',
+  3: 'bg-amber-500',
   4: 'bg-orange-500',
   5: 'bg-red-500',
   6: 'bg-purple-500',
@@ -416,7 +416,7 @@ export function ErgometerAthleteView({ clientId, clientName: _clientName }: Ergo
                         </span>
                       )}
                       {test.criticalPower && (
-                        <span className="text-sm font-medium text-green-600">
+                        <span className="text-sm font-medium text-emerald-600">
                           CP {test.criticalPower}W
                         </span>
                       )}
