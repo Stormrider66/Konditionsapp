@@ -355,7 +355,7 @@ export function CoachCalendarSettingsClient({ basePath = '' }: CoachCalendarSett
                                 {t('sync.error')}
                               </span>
                             ) : (
-                              <span className="flex items-center gap-1 text-green-600">
+                              <span className="flex items-center gap-1 text-emerald-600">
                                 <CheckCircle2 className="h-3 w-3" />
                                 {t('sync.syncedAt', { date: format(new Date(connection.lastSyncAt), 'd MMM HH:mm', { locale: dateLocale }) })}
                               </span>

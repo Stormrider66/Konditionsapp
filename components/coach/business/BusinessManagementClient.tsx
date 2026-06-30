@@ -428,7 +428,7 @@ export function BusinessManagementClient({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           {tester.email && <span>{tester.email}</span>}
                           {tester.isPrivate && (
-                            <span className="px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded">
+                            <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded">
                               {copy('Private', 'Privat')}
                             </span>
                           )}

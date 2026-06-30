@@ -106,7 +106,7 @@ const PROVIDERS: ProviderConfig[] = [
     placeholder: 'sk-ant-api03-...',
     docsUrl: 'https://console.anthropic.com/settings/keys',
     icon: Bot,
-    toneClassName: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
+    toneClassName: 'border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300',
   },
   {
     id: 'google',

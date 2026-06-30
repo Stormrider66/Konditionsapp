@@ -381,21 +381,21 @@ export function BusinessLocationsTab() {
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="rounded-lg bg-muted/50 p-2">
                     <div className="flex items-center justify-center gap-1 text-lg font-semibold">
-                      <Dumbbell className="h-4 w-4 text-orange-500" />
+                      <Dumbbell className="h-4 w-4 text-muted-foreground" />
                       {location._count.equipment}
                     </div>
                     <div className="text-xs text-muted-foreground">Equipment</div>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2">
                     <div className="flex items-center justify-center gap-1 text-lg font-semibold">
-                      <FlaskConical className="h-4 w-4 text-blue-500" />
+                      <FlaskConical className="h-4 w-4 text-muted-foreground" />
                       {location._count.tests}
                     </div>
                     <div className="text-xs text-muted-foreground">Tests</div>
                   </div>
                   <div className="rounded-lg bg-muted/50 p-2">
                     <div className="flex items-center justify-center gap-1 text-lg font-semibold">
-                      <Users className="h-4 w-4 text-green-500" />
+                      <Users className="h-4 w-4 text-muted-foreground" />
                       {location._count.staff}
                     </div>
                     <div className="text-xs text-muted-foreground">Staff</div>

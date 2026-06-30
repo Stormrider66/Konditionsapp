@@ -176,7 +176,7 @@ export function OrgSwitcher({
         <DropdownMenuSeparator className={separatorClassName} />
         <DropdownMenuItem asChild className={cn('cursor-pointer', isDark ? 'focus:bg-white/10 focus:text-white' : 'focus:bg-zinc-100 focus:text-zinc-950')}>
           <Link href="/my/calendar" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
               <CalendarDays className="w-4 h-4 text-white" />
             </div>
             <div>

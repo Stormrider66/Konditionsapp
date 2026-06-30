@@ -227,7 +227,7 @@ export function DefaultModelSelector() {
                           </Badge>
                         )}
                         {model.bestForLongOutput && (
-                          <Badge variant="outline" className="text-xs py-0 border-green-500 text-green-600">
+                          <Badge variant="outline" className="text-xs py-0 border-emerald-500 text-emerald-600">
                             <FileText className="h-3 w-3 mr-1" />
                             {copy(locale, 'Long programs', 'Långa program')}
                           </Badge>
@@ -311,7 +311,7 @@ export function DefaultModelSelector() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">{copy(locale, 'Selected model', 'Vald modell')}: {defaultModel.displayName || defaultModel.name}</span>
                 {defaultModel.bestForLongOutput && (
-                  <Badge variant="outline" className="border-green-500 text-green-600">
+                  <Badge variant="outline" className="border-emerald-500 text-emerald-600">
                     {copy(locale, 'Good for long programs', 'Bra för långa program')}
                   </Badge>
                 )}

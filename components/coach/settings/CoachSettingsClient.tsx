@@ -32,14 +32,13 @@ interface CoachSettingsClientProps {
   businessId?: string
 }
 
-type LinkTone = 'blue' | 'emerald' | 'violet' | 'cyan' | 'teal'
+// Settings nav tiles are purely a category grid, not a status signal — keep them neutral.
+// cyan is reserved for the soft "AI" accent (Bot/Sparkles icons), not decorative variety.
+type LinkTone = 'neutral' | 'cyan'
 
 const linkToneClasses: Record<LinkTone, string> = {
-  blue: 'border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
-  emerald: 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
-  violet: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
+  neutral: 'border-zinc-200 bg-zinc-100 text-zinc-700 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-100',
   cyan: 'border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300',
-  teal: 'border-teal-100 bg-teal-50 text-teal-600 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-300',
 }
 
 function SettingsSection({ title, children }: { title: string; children: ReactNode }) {
@@ -154,14 +153,14 @@ export function CoachSettingsClient({
                 icon={LayoutDashboard}
                 title={t('dashboard.title')}
                 description={t('dashboard.description')}
-                tone="blue"
+                tone="neutral"
               />
               <SettingsLink
                 href={coachHref('/settings/athlete-dashboards')}
                 icon={Users}
                 title={t('athleteDashboards.title')}
                 description={t('athleteDashboards.description')}
-                tone="violet"
+                tone="neutral"
               />
             </div>
           </SettingsSection>
@@ -184,7 +183,7 @@ export function CoachSettingsClient({
               icon={CreditCard}
               title={t('subscription.title')}
               description={t('subscription.description')}
-              tone="emerald"
+              tone="neutral"
             />
           </SettingsSection>
 
@@ -195,14 +194,14 @@ export function CoachSettingsClient({
                 icon={Bot}
                 title={t('aiConfig.title')}
                 description={t('aiConfig.description')}
-                tone="violet"
+                tone="cyan"
               />
               <SettingsLink
                 href={coachHref('/settings/ai-kostnader')}
                 icon={DollarSign}
                 title={t('aiCosts.title')}
                 description={t('aiCosts.description')}
-                tone="emerald"
+                tone="neutral"
               />
             </div>
           </SettingsSection>
@@ -214,14 +213,14 @@ export function CoachSettingsClient({
                 icon={CalendarDays}
                 title={t('integrations.calendar.title')}
                 description="Google, Outlook, Apple, iCal"
-                tone="cyan"
+                tone="neutral"
               />
               <SettingsLink
                 href={coachHref('/settings/gym-platform')}
                 icon={Plug}
                 title={t('integrations.platforms.title')}
                 description={t('integrations.platforms.description')}
-                tone="teal"
+                tone="neutral"
               />
             </div>
           </SettingsSection>

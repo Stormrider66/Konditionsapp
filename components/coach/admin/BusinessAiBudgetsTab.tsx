@@ -237,7 +237,7 @@ export function BusinessAiBudgetsTab() {
                   )}
                 </div>
                 {message && (
-                  <div className={`text-sm ${message.ok ? 'text-green-600' : 'text-destructive'}`}>
+                  <div className={`text-sm ${message.ok ? 'text-emerald-600' : 'text-destructive'}`}>
                     {message.text}
                   </div>
                 )}

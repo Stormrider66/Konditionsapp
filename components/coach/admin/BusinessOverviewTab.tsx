@@ -179,7 +179,7 @@ export function BusinessOverviewTab() {
             </div>
             <p className="text-2xl font-bold mt-1">{stats.referrals.total}</p>
             <div className="flex gap-2 mt-1 text-xs">
-              <span className="text-green-600">{stats.referrals.active} active</span>
+              <span className="text-emerald-600">{stats.referrals.active} active</span>
               <span className="text-muted-foreground">{stats.referrals.pending} pending</span>
             </div>
           </CardContent>
@@ -207,7 +207,7 @@ export function BusinessOverviewTab() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Your Share</span>
             </div>
-            <p className="text-2xl font-bold mt-1 text-green-600">
+            <p className="text-2xl font-bold mt-1 text-emerald-600">
               {formatCurrency(stats.referrals.businessShare)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">Earned from referrals</p>

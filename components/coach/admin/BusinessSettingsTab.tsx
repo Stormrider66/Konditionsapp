@@ -256,7 +256,7 @@ export function BusinessSettingsTab() {
             </div>
           )}
           {successMessage && (
-            <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md dark:bg-green-950/20 dark:border-green-900/30 dark:text-green-400">
+            <div className="p-3 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-md dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400">
               {successMessage}
             </div>
           )}

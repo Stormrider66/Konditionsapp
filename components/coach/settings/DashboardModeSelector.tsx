@@ -49,8 +49,8 @@ const MODE_OPTIONS: {
     labelKey: 'gym',
     descriptionKey: 'gym',
     icon: Dumbbell,
-    color: 'border-violet-200 bg-violet-50 dark:border-violet-900/60 dark:bg-violet-950/30',
-    iconColor: 'text-violet-600 dark:text-violet-300',
+    color: 'border-zinc-300 bg-zinc-100 dark:border-zinc-600 dark:bg-zinc-900/60',
+    iconColor: 'text-zinc-600 dark:text-zinc-300',
   },
 ]
 

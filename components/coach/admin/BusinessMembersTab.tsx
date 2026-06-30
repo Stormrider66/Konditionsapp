@@ -74,14 +74,14 @@ const roleIcons: Record<MemberRole, React.ReactNode> = {
   OWNER: <Crown className="h-4 w-4 text-amber-500" />,
   ADMIN: <Shield className="h-4 w-4 text-blue-500" />,
   MEMBER: <User className="h-4 w-4 text-gray-500" />,
-  COACH: <Beaker className="h-4 w-4 text-green-500" />,
+  COACH: <Beaker className="h-4 w-4 text-emerald-500" />,
 }
 
 const roleColors: Record<MemberRole, string> = {
   OWNER: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   ADMIN: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   MEMBER: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  COACH: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  COACH: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
 interface BusinessMembersTabProps {
@@ -350,7 +350,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
                   </div>
                 )}
                 {addSuccess && (
-                  <div className="p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md dark:bg-green-950/20 dark:border-green-900/30 dark:text-green-400 flex items-center gap-2">
+                  <div className="p-3 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-md dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400 flex items-center gap-2">
                     <Check className="h-4 w-4" />
                     {addSuccess}
                   </div>
@@ -461,7 +461,7 @@ export function BusinessMembersTab({ currentUserRole }: BusinessMembersTabProps)
       </CardHeader>
       <CardContent>
         {inviteSuccess && (
-          <div className="mb-3 p-3 text-sm text-green-600 bg-green-50 border border-green-200 rounded-md dark:bg-green-950/20 dark:border-green-900/30 dark:text-green-400 flex items-center gap-2">
+          <div className="mb-3 p-3 text-sm text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-md dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-400 flex items-center gap-2">
             <Check className="h-4 w-4 flex-shrink-0" />
             {inviteSuccess}
           </div>

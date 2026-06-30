@@ -251,8 +251,8 @@ export function BusinessApiKeysTab() {
 
               {createdKey ? (
                 <div className="space-y-4 py-4">
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-md dark:bg-green-950/20 dark:border-green-900/30">
-                    <p className="text-sm text-green-800 dark:text-green-400 mb-2">
+                  <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-md dark:bg-emerald-950/20 dark:border-emerald-900/30">
+                    <p className="text-sm text-emerald-800 dark:text-emerald-400 mb-2">
                       Your API key has been created. Copy it now - you won&apos;t see it again!
                     </p>
                     <div className="flex gap-2">
@@ -268,7 +268,7 @@ export function BusinessApiKeysTab() {
                         aria-label={copied ? 'Kopierad' : 'Kopiera API-nyckel'}
                       >
                         {copied ? (
-                          <Check className="h-4 w-4 text-green-500" />
+                          <Check className="h-4 w-4 text-emerald-500" />
                         ) : (
                           <Copy className="h-4 w-4" />
                         )}

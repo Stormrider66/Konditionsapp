@@ -212,7 +212,7 @@ export function CustomEmailDomainSection() {
       )}
 
       {info && (
-        <div className="flex items-start gap-2 rounded-md border border-green-300 bg-green-50 p-3 text-sm text-green-800 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300">
+        <div className="flex items-start gap-2 rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-300">
           <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0" />
           <span>{info}</span>
         </div>

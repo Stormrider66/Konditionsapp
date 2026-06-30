@@ -540,7 +540,7 @@ export function CoachSubscriptionClient({
               {copy.yearly}
             </button>
             {billingCycle === 'YEARLY' && (
-              <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300 ml-1">
+              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300 ml-1">
                 {copy.saveYearly}
               </Badge>
             )}
@@ -620,7 +620,7 @@ export function CoachSubscriptionClient({
                   <ul className="text-xs text-left space-y-1.5 mb-6 text-slate-700 dark:text-slate-300">
                     {tierCopy.features.slice(0, 5).map((feature, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <Check className="h-3 w-3 text-green-500 flex-shrink-0 mt-0.5" />
+                        <Check className="h-3 w-3 text-emerald-500 flex-shrink-0 mt-0.5" />
                         <span>{feature}</span>
                       </li>
                     ))}
@@ -784,7 +784,7 @@ function FeatureRow({
         <td key={i} className="text-center py-3 px-2">
           {typeof value === 'boolean' ? (
             value ? (
-              <Check className="h-4 w-4 text-green-500 mx-auto" />
+              <Check className="h-4 w-4 text-emerald-500 mx-auto" />
             ) : (
               <span className="text-gray-300">—</span>
             )

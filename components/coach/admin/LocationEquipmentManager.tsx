@@ -512,7 +512,7 @@ export function LocationEquipmentManager({ locationId, locationName, onBack }: L
                           <div className="font-medium text-sm flex items-center gap-2">
                             {item.equipment.name}
                             {!item.isAvailable && (
-                              <Badge variant="outline" className="text-xs text-yellow-600">
+                              <Badge variant="outline" className="text-xs text-amber-600">
                                 Unavailable
                               </Badge>
                             )}

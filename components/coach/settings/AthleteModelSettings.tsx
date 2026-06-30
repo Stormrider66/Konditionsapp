@@ -119,7 +119,7 @@ export function AthleteModelSettings() {
     return (
       <RolePanel className="p-5">
         <div className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
             <Users className="h-5 w-5" />
           </div>
           <h3 className="text-lg font-semibold text-zinc-950 dark:text-zinc-50">{t('athleteModels.title')}</h3>
@@ -133,7 +133,7 @@ export function AthleteModelSettings() {
     <RolePanel className="p-5">
       <div className="border-b border-zinc-200 pb-5 dark:border-white/10">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+          <div className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
             <Users className="h-5 w-5" />
           </div>
           <div>

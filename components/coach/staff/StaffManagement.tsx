@@ -498,7 +498,7 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
                 <Badge key={t.id} variant="outline" className="text-[10px]">{t.name}</Badge>
               ))}
               {athleteCount > 0 && (
-                <Badge variant="outline" className="text-[10px] border-pink-300 text-pink-700 dark:text-pink-400">
+                <Badge variant="outline" className="text-[10px] border-blue-300 text-blue-700 dark:text-blue-400">
                   {copy(`${athleteCount} ${athleteCount === 1 ? 'athlete' : 'athletes'}`, `${athleteCount} ${athleteCount === 1 ? 'atlet' : 'atleter'}`)}
                 </Badge>
               )}
@@ -796,7 +796,7 @@ export function StaffManagement({ teams, businessSlug, currentUserId }: StaffMan
                         onClick={() => toggleEditClient(athlete.id)}
                         className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
                           editClientIds.includes(athlete.id)
-                            ? 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                             : 'hover:bg-muted'
                         }`}
                       >

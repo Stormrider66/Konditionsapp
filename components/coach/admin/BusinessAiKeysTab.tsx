@@ -315,7 +315,7 @@ export function BusinessAiKeysTab() {
                 <div className="flex items-center gap-2">
                   {isConfigured ? (
                     isValid ? (
-                      <Badge variant="default" className="bg-green-500">
+                      <Badge variant="default" className="bg-emerald-500">
                         <Check className="h-3 w-3 mr-1" />
                         {copy.active}
                       </Badge>
@@ -391,7 +391,7 @@ export function BusinessAiKeysTab() {
                     <p className="text-sm text-red-500">{errors[provider.id]}</p>
                   )}
                   {success[provider.id] && (
-                    <p className="text-sm text-green-500">{copy.keySaved}</p>
+                    <p className="text-sm text-emerald-500">{copy.keySaved}</p>
                   )}
                 </div>
 

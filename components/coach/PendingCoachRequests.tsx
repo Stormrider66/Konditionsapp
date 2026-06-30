@@ -185,7 +185,7 @@ export function PendingCoachRequests({ businessId, onRequestHandled }: PendingCo
                 size="sm"
                 onClick={() => handleAccept(req.id)}
                 disabled={actionLoading === req.id}
-                className="bg-green-600 hover:bg-green-700 text-white"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white"
               >
                 {actionLoading === req.id ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

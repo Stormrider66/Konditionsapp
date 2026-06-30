@@ -346,7 +346,7 @@ export function BusinessCoachAssignmentsTab() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="text-green-600 border-green-200 hover:bg-green-50 dark:border-green-900/30 dark:hover:bg-green-950/20"
+                      className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-900/30 dark:hover:bg-emerald-950/20"
                       disabled={requestActionLoading === req.id}
                       onClick={() => handleAcceptRequest(req.id)}
                     >

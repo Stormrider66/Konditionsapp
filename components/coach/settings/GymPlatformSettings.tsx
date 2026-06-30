@@ -36,13 +36,13 @@ interface GymConnection {
 
 type GymProvider = 'ZOEZI' | 'WONDR' | 'BOKADIREKT' | 'MINDBODY'
 type GymProviderKey = 'zoezi' | 'wondr' | 'bokaDirekt' | 'mindBody'
-type ProviderTone = 'emerald' | 'blue' | 'amber' | 'violet'
+type ProviderTone = 'emerald' | 'blue' | 'amber' | 'slate'
 
 const providerToneClasses: Record<ProviderTone, string> = {
   emerald: 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
   blue: 'border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
   amber: 'border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300',
-  violet: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
+  slate: 'border-zinc-200 bg-zinc-50 text-zinc-500 dark:border-white/10 dark:bg-zinc-900 dark:text-zinc-400',
 }
 
 const providerConfig: Record<
@@ -75,7 +75,7 @@ const providerConfig: Record<
     descriptionKey: 'mindBody',
     fields: ['apiKey', 'siteId'],
     provider: 'MINDBODY',
-    tone: 'violet',
+    tone: 'slate',
   },
 }
 

@@ -207,7 +207,7 @@ export function BusinessReferralsTab() {
             />
             <Button variant="outline" size="icon" onClick={copyReferralLink} disabled={!referralLink}>
               {copied ? (
-                <Check className="h-4 w-4 text-green-500" />
+                <Check className="h-4 w-4 text-emerald-500" />
               ) : (
                 <Copy className="h-4 w-4" />
               )}
@@ -230,7 +230,7 @@ export function BusinessReferralsTab() {
               </div>
               <p className="text-2xl font-bold mt-1">{stats.totalReferrals}</p>
               <div className="flex gap-2 mt-2 text-xs">
-                <span className="text-green-600">{stats.byStatus.active} active</span>
+                <span className="text-emerald-600">{stats.byStatus.active} active</span>
                 <span className="text-muted-foreground">{stats.byStatus.pending} pending</span>
               </div>
             </CardContent>
@@ -255,7 +255,7 @@ export function BusinessReferralsTab() {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm text-muted-foreground">Your Share</span>
               </div>
-              <p className="text-2xl font-bold mt-1 text-green-600">
+              <p className="text-2xl font-bold mt-1 text-emerald-600">
                 {formatCurrency(stats.revenue.businessShare)}
               </p>
               <p className="text-xs text-muted-foreground mt-2">
@@ -365,7 +365,7 @@ export function BusinessReferralsTab() {
                       <TableCell className="text-right">
                         {formatCurrency(referral.totalRevenue, referral.currency)}
                       </TableCell>
-                      <TableCell className="text-right text-green-600">
+                      <TableCell className="text-right text-emerald-600">
                         {formatCurrency(referral.totalBusinessShare, referral.currency)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
