@@ -313,7 +313,7 @@ export function InjuryProgressTimeline() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center justify-center gap-2 py-8">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <CheckCircle2 className="h-12 w-12 text-emerald-500" />
             <p className="text-lg font-medium">{t('Inga aktiva skador', 'No active injuries')}</p>
             <p className="text-sm text-muted-foreground">
               {t(
@@ -411,7 +411,7 @@ export function InjuryProgressTimeline() {
                   {t('Smärttrend', 'Pain trend')}
                 </CardTitle>
                 {painTrend < 0 ? (
-                  <TrendingDown className="h-4 w-4 text-green-500" />
+                  <TrendingDown className="h-4 w-4 text-emerald-500" />
                 ) : (
                   <TrendingUp className="h-4 w-4 text-red-500" />
                 )}
@@ -471,7 +471,7 @@ export function InjuryProgressTimeline() {
                       {idx < phases.length - 1 && (
                         <div
                           className={`absolute left-4 top-12 w-0.5 h-full ${
-                            isCompleted ? 'bg-green-500' : 'bg-muted'
+                            isCompleted ? 'bg-emerald-500' : 'bg-muted'
                           }`}
                         />
                       )}
@@ -481,7 +481,7 @@ export function InjuryProgressTimeline() {
                         <div
                           className={`relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 ${
                             isCompleted
-                              ? 'border-green-500 bg-green-500 text-white'
+                              ? 'border-emerald-500 bg-emerald-500 text-white'
                               : isCurrent
                               ? 'border-blue-500 bg-blue-500 text-white'
                               : 'border-muted bg-background text-muted-foreground'
@@ -510,7 +510,7 @@ export function InjuryProgressTimeline() {
                               <Badge variant="default">{t('Pågående', 'Current')}</Badge>
                             )}
                             {isCompleted && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-700">
+                              <Badge variant="secondary" className="bg-emerald-100 text-emerald-700">
                                 {t('Slutförd', 'Completed')}
                               </Badge>
                             )}
@@ -646,9 +646,9 @@ export function InjuryProgressTimeline() {
                     <Line
                       type="monotone"
                       dataKey="soreness"
-                      stroke="#8b5cf6"
+                      stroke="#64748b"
                       strokeWidth={2}
-                      dot={{ fill: '#8b5cf6', r: 4 }}
+                      dot={{ fill: '#64748b', r: 4 }}
                       name={t('Ömhet', 'Soreness')}
                       strokeDasharray="5 5"
                     />

@@ -246,7 +246,7 @@ export function AutoModifiedWorkoutsView() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col items-center justify-center gap-2 py-8">
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
+            <CheckCircle2 className="h-12 w-12 text-emerald-500" />
             <p className="text-lg font-medium">
               {t('Inga automatiska ändringar', 'No automatic changes')}
             </p>
@@ -616,7 +616,7 @@ function ModificationCard({
 
           {modification.reviewed && (
             <div className="flex items-center justify-center gap-2 pt-2 border-t">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               <p className="text-sm text-muted-foreground">
                 {t('Granskad och godkänd', 'Reviewed and approved')}
               </p>

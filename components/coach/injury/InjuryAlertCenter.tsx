@@ -284,7 +284,7 @@ export function InjuryAlertCenter() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{copy.acwrWarnings}</CardTitle>
-            <TrendingUp className="h-4 w-4 text-yellow-500" />
+            <TrendingUp className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -326,7 +326,7 @@ export function InjuryAlertCenter() {
           <TabsTrigger value="acwr" className="relative">
             {copy.acwrMonitoring}
             {hasACWRWarnings && (
-              <span className="absolute -top-1 -right-1 h-3 w-3 bg-yellow-500 rounded-full" />
+              <span className="absolute -top-1 -right-1 h-3 w-3 bg-amber-500 rounded-full" />
             )}
           </TabsTrigger>
           <TabsTrigger value="modifications" className="relative">
@@ -349,7 +349,7 @@ export function InjuryAlertCenter() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center justify-center gap-2 py-8">
-                  <CheckCircle2 className="h-12 w-12 text-green-500" />
+                  <CheckCircle2 className="h-12 w-12 text-emerald-500" />
                   <p className="text-lg font-medium">{copy.noActiveInjuryWarnings}</p>
                   <p className="text-sm text-muted-foreground">
                     {copy.normalValues}
@@ -377,7 +377,7 @@ export function InjuryAlertCenter() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center justify-center gap-2 py-8">
-                  <CheckCircle2 className="h-12 w-12 text-green-500" />
+                  <CheckCircle2 className="h-12 w-12 text-emerald-500" />
                   <p className="text-lg font-medium">{copy.noAcwrWarnings}</p>
                   <p className="text-sm text-muted-foreground">
                     {copy.safeTrainingLoad}
@@ -405,7 +405,7 @@ export function InjuryAlertCenter() {
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col items-center justify-center gap-2 py-8">
-                  <CheckCircle2 className="h-12 w-12 text-green-500" />
+                  <CheckCircle2 className="h-12 w-12 text-emerald-500" />
                   <p className="text-lg font-medium">{copy.noModifiedWorkouts}</p>
                   <p className="text-sm text-muted-foreground">
                     {copy.noAutomaticAdjustments}
@@ -449,7 +449,7 @@ function InjuryAlertCard({
   const urgencyColors = {
     CRITICAL: 'bg-red-500',
     HIGH: 'bg-orange-500',
-    MEDIUM: 'bg-yellow-500',
+    MEDIUM: 'bg-amber-500',
     LOW: 'bg-blue-500',
   }
 

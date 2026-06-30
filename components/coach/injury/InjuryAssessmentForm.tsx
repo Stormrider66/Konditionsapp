@@ -268,7 +268,7 @@ export function InjuryAssessmentForm({ athletes, onAssessmentComplete }: InjuryA
         <RolePanel>
           <div className="border-b border-zinc-200 p-5 dark:border-white/10">
             <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-              {result.decision === 'STOP' && <AlertTriangle className="h-5 w-5 text-rose-500" />}
+              {result.decision === 'STOP' && <AlertTriangle className="h-5 w-5 text-red-500" />}
               {result.decision === 'MODIFY' && <AlertTriangle className="h-5 w-5 text-amber-500" />}
               {result.decision === 'PROCEED' && <CheckCircle className="h-5 w-5 text-emerald-600" />}
               Assessment Results
@@ -277,8 +277,8 @@ export function InjuryAssessmentForm({ athletes, onAssessmentComplete }: InjuryA
           <div className="space-y-6 p-5">
             {/* Decision */}
             <Alert className={`${
-              result.decision === 'STOP' 
-                ? 'bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-500/20 text-rose-950 dark:text-rose-300' 
+              result.decision === 'STOP'
+                ? 'bg-red-50/50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-500/20 text-red-950 dark:text-red-300'
                 : result.decision === 'MODIFY' 
                 ? 'bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-500/20 text-amber-950 dark:text-amber-300' 
                 : 'bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-500/20 text-emerald-950 dark:text-emerald-300'

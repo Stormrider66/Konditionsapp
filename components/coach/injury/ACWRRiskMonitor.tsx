@@ -158,9 +158,9 @@ const ZONE_CONFIG = {
   OPTIMAL: {
     label: { en: 'Optimal', sv: 'Optimal' },
     range: '0.8-1.3',
-    color: 'bg-green-500',
-    textColor: 'text-green-700',
-    bgColor: 'bg-green-50',
+    color: 'bg-emerald-500',
+    textColor: 'text-emerald-700',
+    bgColor: 'bg-emerald-50',
     icon: CheckCircle2,
     description: {
       en: 'Perfect balance between load and recovery',
@@ -170,9 +170,9 @@ const ZONE_CONFIG = {
   CAUTION: {
     label: { en: 'Caution', sv: 'Varning' },
     range: '1.3-1.5',
-    color: 'bg-yellow-500',
-    textColor: 'text-yellow-700',
-    bgColor: 'bg-yellow-50',
+    color: 'bg-amber-500',
+    textColor: 'text-amber-700',
+    bgColor: 'bg-amber-50',
     icon: AlertTriangle,
     description: {
       en: 'Moderate risk - monitor closely',
@@ -345,7 +345,7 @@ export function ACWRRiskMonitor() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
               {copy.riskZonesTitle}
             </CardTitle>
             <CardDescription>
@@ -519,7 +519,7 @@ export function ACWRRiskMonitor() {
 
                     {/* Zone Reference Lines */}
                     <ReferenceLine y={0.8} stroke="#3b82f6" strokeDasharray="3 3" label={ZONE_CONFIG.DETRAINING.label[locale]} />
-                    <ReferenceLine y={1.3} stroke="#eab308" strokeDasharray="3 3" label={ZONE_CONFIG.CAUTION.label[locale]} />
+                    <ReferenceLine y={1.3} stroke="#f59e0b" strokeDasharray="3 3" label={ZONE_CONFIG.CAUTION.label[locale]} />
                     <ReferenceLine y={1.5} stroke="#f97316" strokeDasharray="3 3" label={ZONE_CONFIG.DANGER.label[locale]} />
                     <ReferenceLine y={2.0} stroke="#ef4444" strokeDasharray="3 3" label={ZONE_CONFIG.CRITICAL.label[locale]} />
 
@@ -536,9 +536,9 @@ export function ACWRRiskMonitor() {
                     <Line
                       type="monotone"
                       dataKey="acwr"
-                      stroke="#6366f1"
+                      stroke="#3b82f6"
                       strokeWidth={3}
-                      dot={{ fill: '#6366f1', r: 4 }}
+                      dot={{ fill: '#3b82f6', r: 4 }}
                       name="ACWR"
                     />
                   </LineChart>
