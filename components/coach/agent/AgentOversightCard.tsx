@@ -103,12 +103,12 @@ const actionTypeConfig: Record<
   REST_DAY_INJECTION: {
     icon: <Moon className="h-4 w-4" />,
     label: 'Add Rest Day',
-    color: 'bg-purple-500/10 text-purple-600 border-purple-500/20',
+    color: 'bg-slate-500/10 text-slate-600 border-slate-500/20',
   },
   RECOVERY_ACTIVITY_SUGGESTION: {
     icon: <Zap className="h-4 w-4" />,
     label: 'Recovery Activity',
-    color: 'bg-green-500/10 text-green-600 border-green-500/20',
+    color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   },
   ESCALATE_TO_COACH: {
     icon: <AlertTriangle className="h-4 w-4" />,
@@ -118,15 +118,15 @@ const actionTypeConfig: Record<
   MOTIVATIONAL_NUDGE: {
     icon: <MessageSquare className="h-4 w-4" />,
     label: 'Motivation',
-    color: 'bg-green-500/10 text-green-600 border-green-500/20',
+    color: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
   },
 }
 
 const confidenceColors: Record<string, string> = {
   LOW: 'bg-red-500/10 text-red-600 border-red-500/20',
   MEDIUM: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  HIGH: 'bg-green-500/10 text-green-600 border-green-500/20',
-  VERY_HIGH: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  HIGH: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
+  VERY_HIGH: 'bg-emerald-600/15 text-emerald-700 border-emerald-600/30',
 }
 
 const priorityColors: Record<string, string> = {
@@ -178,7 +178,7 @@ export function AgentOversightCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10">
-              <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm">
+              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-700 text-white text-sm">
                 {initials}
               </AvatarFallback>
             </Avatar>
@@ -254,7 +254,7 @@ export function AgentOversightCard({
                     ? 'bg-orange-500/10 text-orange-600'
                     : action.perception.acwrZone === 'CAUTION'
                       ? 'bg-amber-500/10 text-amber-600'
-                      : 'bg-green-500/10 text-green-600'
+                      : 'bg-emerald-500/10 text-emerald-600'
               )}
             >
               ACWR: {action.perception.acwr.toFixed(2)}
@@ -283,7 +283,7 @@ export function AgentOversightCard({
             size="sm"
             onClick={() => onApprove(action.id)}
             disabled={isProcessing}
-            className="bg-green-600 hover:bg-green-700"
+            className="bg-emerald-600 hover:bg-emerald-700"
           >
             <Check className="h-4 w-4 mr-1" />
             Approve

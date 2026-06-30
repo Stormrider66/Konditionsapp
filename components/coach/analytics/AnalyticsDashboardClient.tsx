@@ -148,9 +148,9 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
   const getTierColor = (tier: string) => {
     switch (tier) {
       case 'ENTERPRISE': return 'text-amber-600 bg-amber-100';
-      case 'PRO': return 'text-purple-600 bg-purple-100';
+      case 'PRO': return 'text-emerald-600 bg-emerald-100';
       case 'BASIC': return 'text-blue-600 bg-blue-100';
-      default: return 'text-gray-600 bg-gray-100';
+      default: return 'text-zinc-600 bg-zinc-100';
     }
   };
 
@@ -256,7 +256,7 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
 
           <RolePanel className="p-4">
             <div className="mb-2 flex items-center justify-between">
-              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
                 <Calendar className="h-5 w-5" />
               </div>
               {data.overview.programsThisPeriod > 0 && (
@@ -393,8 +393,8 @@ export function AnalyticsDashboardClient(_props: AnalyticsDashboardClientProps) 
                 <p className="text-2xl font-semibold text-emerald-600 dark:text-emerald-300">{data.overview.testsThisPeriod}</p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('testsCreated')}</p>
               </div>
-              <div className="rounded-lg border border-violet-100 bg-violet-50 p-3 text-center dark:border-violet-900/60 dark:bg-violet-950/30">
-                <p className="text-2xl font-semibold text-violet-600 dark:text-violet-300">{data.overview.programsThisPeriod}</p>
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 text-center dark:border-zinc-800 dark:bg-zinc-900">
+                <p className="text-2xl font-semibold text-zinc-600 dark:text-zinc-300">{data.overview.programsThisPeriod}</p>
                 <p className="text-xs text-zinc-500 dark:text-zinc-400">{t('programsCreated')}</p>
               </div>
               <div className="rounded-lg border border-amber-100 bg-amber-50 p-3 text-center dark:border-amber-900/60 dark:bg-amber-950/30">

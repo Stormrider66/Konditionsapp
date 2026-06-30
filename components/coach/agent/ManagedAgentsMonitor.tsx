@@ -73,10 +73,10 @@ const AGENT_TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType
 }
 
 const MODE_CONFIG: Record<string, { label: string; color: string; description: string }> = {
-  disabled: { label: 'Disabled', color: 'bg-gray-500/20 text-gray-400', description: 'Crons only — agents off' },
-  shadow: { label: 'Shadow', color: 'bg-yellow-500/20 text-yellow-400', description: 'Agents run but don\'t execute — log only' },
+  disabled: { label: 'Disabled', color: 'bg-slate-500/20 text-slate-400', description: 'Crons only — agents off' },
+  shadow: { label: 'Shadow', color: 'bg-amber-500/20 text-amber-400', description: 'Agents run but don\'t execute — log only' },
   primary: { label: 'Primary', color: 'bg-blue-500/20 text-blue-400', description: 'Agents handle events — crons as fallback' },
-  exclusive: { label: 'Exclusive', color: 'bg-green-500/20 text-green-400', description: 'Agents only — crons disabled' },
+  exclusive: { label: 'Exclusive', color: 'bg-emerald-500/20 text-emerald-400', description: 'Agents only — crons disabled' },
 }
 
 interface MonitorData {
@@ -139,7 +139,7 @@ export function ManagedAgentsMonitor() {
   if (error || !data) {
     return (
       <RolePanel className="p-8 text-center sm:p-12">
-        <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-yellow-500" />
+        <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-amber-500" />
         <p className="text-sm text-zinc-600 dark:text-zinc-400">{copy(locale, 'Could not load agent data', 'Kunde inte ladda agentdata')}</p>
       </RolePanel>
     )
@@ -153,7 +153,7 @@ export function ManagedAgentsMonitor() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="flex items-center gap-3 text-2xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
               <Bot className="h-5 w-5" />
             </span>
             Managed Agents
@@ -184,7 +184,7 @@ export function ManagedAgentsMonitor() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <RolePanel className="p-4">
           <div className="flex items-center gap-2">
-            <Bot className="h-4 w-4 text-violet-500" />
+            <Bot className="h-4 w-4 text-cyan-500" />
             <span className="text-sm text-zinc-500 dark:text-zinc-400">{copy(locale, 'Sessions', 'Sessioner')}</span>
           </div>
           <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data.summary.totalSessions}</p>
@@ -303,8 +303,8 @@ export function ManagedAgentsMonitor() {
               <Area
                 type="monotone"
                 dataKey="cost"
-                stroke="#6366f1"
-                fill="#6366f1"
+                stroke="#10b981"
+                fill="#10b981"
                 fillOpacity={0.2}
               />
             </AreaChart>

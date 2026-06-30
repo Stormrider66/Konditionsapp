@@ -119,7 +119,7 @@ export function AgentApprovalDialog({
             {mode === 'review' && 'Review Agent Action'}
             {mode === 'approve' && (
               <>
-                <Check className="h-5 w-5 text-green-600" />
+                <Check className="h-5 w-5 text-emerald-600" />
                 Approve Action
               </>
             )}
@@ -157,7 +157,7 @@ export function AgentApprovalDialog({
                 variant="outline"
                 className={cn(
                   action.confidence === 'HIGH' || action.confidence === 'VERY_HIGH'
-                    ? 'bg-green-500/10 text-green-600'
+                    ? 'bg-emerald-500/10 text-emerald-600'
                     : action.confidence === 'MEDIUM'
                       ? 'bg-amber-500/10 text-amber-600'
                       : 'bg-red-500/10 text-red-600'
@@ -188,7 +188,7 @@ export function AgentApprovalDialog({
                 >
                   <RadioGroupItem value="approve" id="approve" />
                   <Label htmlFor="approve" className="flex-1 cursor-pointer">
-                    <div className="font-medium text-green-600">Approve as-is</div>
+                    <div className="font-medium text-emerald-600">Approve as-is</div>
                     <div className="text-xs text-muted-foreground">
                       Execute the action exactly as proposed
                     </div>
@@ -307,7 +307,7 @@ export function AgentApprovalDialog({
             <Button
               onClick={handleApprove}
               disabled={isSubmitting}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-emerald-600 hover:bg-emerald-700"
             >
               {isSubmitting ? (
                 <>

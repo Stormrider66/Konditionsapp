@@ -204,7 +204,7 @@ export function AgentOversightQueue({
         <div className="mb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <span className="flex h-9 w-9 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
                 <Bot className="h-4 w-4" />
               </span>
               <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">Agent Oversight</h3>
@@ -212,7 +212,7 @@ export function AgentOversightQueue({
             {data?.counts.proposed ? (
               <Badge variant="destructive">{data.counts.proposed} pending</Badge>
             ) : (
-              <Badge variant="outline" className="bg-green-500/10 text-green-600">
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600">
                 All clear
               </Badge>
             )}
@@ -244,7 +244,7 @@ export function AgentOversightQueue({
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-7 w-7 p-0 text-green-600"
+                      className="h-7 w-7 p-0 text-emerald-600"
                       onClick={() => handleApprove(action.id)}
                       disabled={processingId === action.id}
                     >
@@ -285,7 +285,7 @@ export function AgentOversightQueue({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
               <Bot className="h-5 w-5" />
             </span>
             Agent Oversight Queue
@@ -321,7 +321,7 @@ export function AgentOversightQueue({
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Auto-Applied</p>
               <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{data?.counts.autoApplied || 0}</p>
             </div>
-            <Bot className="h-8 w-8 text-violet-500 opacity-50" />
+            <Bot className="h-8 w-8 text-cyan-500 opacity-50" />
           </div>
         </RolePanel>
 

@@ -141,8 +141,8 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
 
   // Prepare pie chart data
   const pieData = [
-    { name: 'Auto-Applied', value: summary.autoApplied, color: '#6366f1' },
-    { name: 'Accepted', value: summary.accepted, color: '#22c55e' },
+    { name: 'Auto-Applied', value: summary.autoApplied, color: '#3b82f6' },
+    { name: 'Accepted', value: summary.accepted, color: '#10b981' },
     { name: 'Rejected', value: summary.rejected, color: '#ef4444' },
   ].filter((d) => d.value > 0)
 
@@ -152,7 +152,7 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="flex items-center gap-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
               <BarChart3 className="h-5 w-5" />
             </span>
             Agent Performance
@@ -187,7 +187,7 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
               <p className="text-sm text-zinc-500 dark:text-zinc-400">Total Actions</p>
               <p className="mt-1 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{summary.totalActions}</p>
             </div>
-            <Activity className="h-8 w-8 text-violet-500 opacity-50" />
+            <Activity className="h-8 w-8 text-blue-500 opacity-50" />
           </div>
         </RolePanel>
 
@@ -229,7 +229,7 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
                 {(confidence.averageConfidence * 100).toFixed(0)}%
               </p>
             </div>
-            <Bot className="h-8 w-8 text-violet-500 opacity-50" />
+            <Bot className="h-8 w-8 text-cyan-500 opacity-50" />
           </div>
         </RolePanel>
       </div>
@@ -264,8 +264,8 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
                   type="monotone"
                   dataKey="autoApplied"
                   stackId="1"
-                  stroke="#6366f1"
-                  fill="#6366f1"
+                  stroke="#3b82f6"
+                  fill="#3b82f6"
                   fillOpacity={0.6}
                   name="Auto-Applied"
                 />
@@ -273,8 +273,8 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
                   type="monotone"
                   dataKey="accepted"
                   stackId="1"
-                  stroke="#22c55e"
-                  fill="#22c55e"
+                  stroke="#10b981"
+                  fill="#10b981"
                   fillOpacity={0.6}
                   name="Accepted"
                 />
@@ -352,8 +352,8 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
                 }}
               />
               <Legend />
-              <Bar dataKey="autoApplied" stackId="a" fill="#6366f1" name="Auto-Applied" />
-              <Bar dataKey="accepted" stackId="a" fill="#22c55e" name="Accepted" />
+              <Bar dataKey="autoApplied" stackId="a" fill="#3b82f6" name="Auto-Applied" />
+              <Bar dataKey="accepted" stackId="a" fill="#10b981" name="Accepted" />
               <Bar dataKey="rejected" stackId="a" fill="#ef4444" name="Rejected" />
             </BarChart>
           </ResponsiveContainer>
@@ -380,7 +380,7 @@ export function AgentPerformanceMetrics({ timeRange: initialRange = '30d', baseP
                   variant="outline"
                   className={
                     level.rate >= 80
-                      ? 'bg-green-500/10 text-green-600'
+                      ? 'bg-emerald-500/10 text-emerald-600'
                       : level.rate >= 60
                         ? 'bg-amber-500/10 text-amber-600'
                         : 'bg-red-500/10 text-red-600'

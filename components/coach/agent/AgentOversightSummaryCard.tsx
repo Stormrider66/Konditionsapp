@@ -53,7 +53,7 @@ export function AgentOversightSummaryCard({ basePath = '' }: AgentOversightSumma
       <div className="mb-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-9 w-9 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-9 w-9 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
               <Bot className="h-4 w-4" />
             </span>
             <h3 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">AI Agent</h3>
@@ -68,7 +68,7 @@ export function AgentOversightSummaryCard({ basePath = '' }: AgentOversightSumma
               {pendingCount} pending
             </Badge>
           ) : (
-            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
               <CheckCircle2 className="h-3 w-3 mr-1" />
               All clear
             </Badge>

@@ -172,7 +172,7 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <RolePanel className="p-5">
           <div className="mb-4 flex items-center gap-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-8 w-8 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
               <Activity className="h-4 w-4" />
             </span>
             <span className="inline-flex items-center gap-2">
@@ -249,8 +249,8 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
           <AreaChart data={chartData}>
             <defs>
               <linearGradient id="colorHRV" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" />
@@ -260,7 +260,7 @@ export function MonitoringCharts({ athleteId }: MonitoringChartsProps) {
             <Area
               type="monotone"
               dataKey="hrv"
-              stroke="#8884d8"
+              stroke="#3b82f6"
               fillOpacity={1}
               fill="url(#colorHRV)"
             />
