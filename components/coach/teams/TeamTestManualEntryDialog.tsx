@@ -447,7 +447,7 @@ export function TeamTestManualEntryDialog({
           )}
 
           {resultMsg && (
-            <div className="flex items-start gap-2 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-2 text-xs text-green-700 dark:text-green-300">
+            <div className="flex items-start gap-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-2 text-xs text-emerald-700 dark:text-emerald-300">
               <Check className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{resultMsg}</span>
             </div>

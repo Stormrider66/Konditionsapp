@@ -45,7 +45,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
     return (
       <RolePageFrame contentClassName="max-w-2xl">
         <RolePanel className="p-8 text-center sm:p-10">
-          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
             <Lock className="h-6 w-6" />
           </div>
           <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{t('title')}</h1>
@@ -76,7 +76,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
         eyebrow={team.name}
         title={(
           <span className="inline-flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
               <BarChart3 className="h-5 w-5" />
             </span>
             {t('title')}

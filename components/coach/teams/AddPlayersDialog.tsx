@@ -304,7 +304,7 @@ export function AddPlayersDialog({
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             {c.jerseyNumber != null && <span>#{c.jerseyNumber}</span>}
                             {inThisTeam ? (
-                              <span className="text-green-600">{copy(locale, 'In this team', 'I detta lag')}</span>
+                              <span className="text-emerald-600">{copy(locale, 'In this team', 'I detta lag')}</span>
                             ) : c.team ? (
                               <span>{c.team.name}</span>
                             ) : null}

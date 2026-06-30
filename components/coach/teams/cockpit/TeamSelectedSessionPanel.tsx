@@ -116,7 +116,7 @@ function assignmentStatusLabel(status: string, t: (key: string) => string) {
 
 function assignmentStatusClass(status: string) {
   if (status === 'COMPLETED') return 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-200'
-  if (status === 'SKIPPED') return 'border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200'
+  if (status === 'SKIPPED') return 'border-red-300 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200'
   if (status === 'IN_PROGRESS' || status === 'ACTIVE' || status === 'SCHEDULED' || status === 'ASSIGNED' || status === 'PENDING') {
     return 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-200'
   }

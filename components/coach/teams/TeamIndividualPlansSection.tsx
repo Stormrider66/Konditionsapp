@@ -39,7 +39,7 @@ const PLAN_TYPE_LABEL: Record<string, { sv: string; en: string; cls: string }> =
   SPECIAL_PROGRAM: { sv: 'Specialprogram', en: 'Special program', cls: 'border-slate-300 text-slate-700 dark:border-slate-700 dark:text-slate-300' },
   INJURY_RECOVERY: { sv: 'Skadeåterhämtning', en: 'Injury recovery', cls: 'border-red-300 text-red-700 dark:border-red-800 dark:text-red-300' },
   RETURN_TO_PLAY: { sv: 'Return to play', en: 'Return to play', cls: 'border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-300' },
-  PERFORMANCE: { sv: 'Prestation', en: 'Performance', cls: 'border-violet-300 text-violet-700 dark:border-violet-800 dark:text-violet-300' },
+  PERFORMANCE: { sv: 'Prestation', en: 'Performance', cls: 'border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-300' },
 }
 
 function PlayerBadges({ entry, locale }: { entry: IndividualPlanEntry; locale: Locale }) {
@@ -58,7 +58,7 @@ function PlayerBadges({ entry, locale }: { entry: IndividualPlanEntry; locale: L
       )}
       {entry.injury && <Badge variant="destructive">{tt(locale, 'Skadad', 'Injured')}</Badge>}
       {entry.restriction && (
-        <Badge variant="outline" className="border-orange-300 text-orange-700 dark:border-orange-800 dark:text-orange-300">
+        <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-300">
           {tt(locale, 'Restriktion', 'Restriction')}
         </Badge>
       )}
@@ -68,7 +68,7 @@ function PlayerBadges({ entry, locale }: { entry: IndividualPlanEntry; locale: L
         </Badge>
       )}
       {entry.hasPendingReport && (
-        <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-800 dark:text-purple-300">
+        <Badge variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-300">
           {tt(locale, 'Ny rapport', 'New report')}
         </Badge>
       )}
@@ -234,7 +234,7 @@ export function TeamIndividualPlansSection({ businessSlug, locale, special, reco
           href="#individual-special"
           label={tt(locale, 'Specialprogram', 'Special programs')}
           count={special.length}
-          cls="border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-200"
+          cls="border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-200"
         />
         <SummaryChip
           href="#individual-recovery"
@@ -254,8 +254,8 @@ export function TeamIndividualPlansSection({ businessSlug, locale, special, reco
         anchorId="individual-special"
         title={tt(locale, 'Specialprogram', 'Special programs')}
         hint={tt(locale, 'Spelare med individuellt anpassad träning (ej skada).', 'Players with individualised training (not injury-related).')}
-        icon={<Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-300" />}
-        accent="border border-violet-100 bg-violet-50 dark:border-violet-900/60 dark:bg-violet-950/30"
+        icon={<Sparkles className="h-4 w-4 text-slate-600 dark:text-slate-300" />}
+        accent="border border-slate-100 bg-slate-50 dark:border-slate-800 dark:bg-slate-900/40"
         entries={special}
         businessSlug={businessSlug}
         locale={locale}

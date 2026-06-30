@@ -368,7 +368,7 @@ export function TeamTestImportDialog({
           </div>
 
           {parsed.warnings.length > 0 && (
-            <div className="rounded-md bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 p-2 text-xs text-orange-800 dark:text-orange-200 space-y-1">
+            <div className="rounded-md bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-2 text-xs text-amber-800 dark:text-amber-200 space-y-1">
               <div className="flex items-center gap-1.5 font-medium">
                 <AlertCircle className="h-3.5 w-3.5" />
                 {text(locale, 'Cellantal stämmer inte i', 'Cell count mismatch in')} {parsed.warnings.length} {parsed.warnings.length === 1 ? text(locale, 'rad', 'row') : text(locale, 'rader', 'rows')}
@@ -469,7 +469,7 @@ export function TeamTestImportDialog({
                           <td className="px-2 py-1.5">
                             {matched ? (
                               <div className="flex items-center gap-1">
-                                <Check className="h-3 w-3 text-green-600 shrink-0" />
+                                <Check className="h-3 w-3 text-emerald-600 shrink-0" />
                                 <span className="truncate">{matched.name}</span>
                               </div>
                             ) : (
@@ -505,7 +505,7 @@ export function TeamTestImportDialog({
                                   cell && headerMatched && nameMatched
                                     ? 'text-foreground'
                                     : cell
-                                      ? 'text-orange-600'
+                                      ? 'text-amber-600'
                                       : 'text-muted-foreground/50'
                                 }`}
                               >
@@ -543,7 +543,7 @@ export function TeamTestImportDialog({
           )}
 
           {resultMsg && (
-            <div className="flex items-start gap-2 rounded-md bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 p-2 text-xs text-green-700 dark:text-green-300">
+            <div className="flex items-start gap-2 rounded-md bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 p-2 text-xs text-emerald-700 dark:text-emerald-300">
               <Check className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{resultMsg}</span>
             </div>

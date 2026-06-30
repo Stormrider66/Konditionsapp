@@ -1191,7 +1191,7 @@ export function TeamTestsClient({ teamId, teamName, basePath }: TeamTestsClientP
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <p className="text-sm font-semibold flex items-center gap-2">
-                    <FlaskConical className="h-4 w-4 text-violet-500" />
+                    <FlaskConical className="h-4 w-4 text-cyan-500" />
                     {t(locale, 'SIMCA export package', 'SIMCA exportpaket')}
                   </p>
                   <p className="text-xs text-muted-foreground">

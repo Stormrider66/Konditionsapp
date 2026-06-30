@@ -203,7 +203,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
         <RoleStatCard label={t('stats.restrictions')} value={restrictedCount} icon={Ban} tone="amber" />
         <RoleStatCard label={t('stats.needsProgram')} value={needsProgramCount} icon={AlertTriangle} tone="amber" />
         <RoleStatCard label={t('stats.inRehab')} value={rehabCount} icon={Stethoscope} tone="blue" />
-        <RoleStatCard label={t('stats.newReports')} value={pendingReportsCount} icon={ClipboardList} tone="violet" />
+        <RoleStatCard label={t('stats.newReports')} value={pendingReportsCount} icon={ClipboardList} tone="blue" />
       </div>
 
       <RolePanel className="overflow-hidden">
@@ -259,7 +259,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                         )}
                         {row.hasInjury && <Badge variant="destructive">{t('badges.injured')}</Badge>}
                         {row.hasRestriction && (
-                          <Badge variant="outline" className="border-orange-300 text-orange-700 dark:border-orange-800 dark:text-orange-300">
+                          <Badge variant="outline" className="border-amber-300 text-amber-700 dark:border-amber-800 dark:text-amber-300">
                             {t('badges.restriction')}
                           </Badge>
                         )}
@@ -274,7 +274,7 @@ export default async function TeamMedicalBoardPage({ params }: PageProps) {
                           </Badge>
                         )}
                         {row.hasPendingReport && (
-                          <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-800 dark:text-purple-300">
+                          <Badge variant="outline" className="border-blue-300 text-blue-700 dark:border-blue-800 dark:text-blue-300">
                             {t('badges.newReport')}
                           </Badge>
                         )}

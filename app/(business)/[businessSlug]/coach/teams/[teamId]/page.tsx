@@ -223,7 +223,7 @@ export default async function BusinessTeamDashboardPage({ params }: TeamPageProp
         <RolePanel className="mb-8">
           <div className="border-b border-zinc-200 p-5 dark:border-white/10">
             <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-              <CheckCircle2 className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               {t('readiness.title')}
             </h2>
             <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">

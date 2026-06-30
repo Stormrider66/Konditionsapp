@@ -380,7 +380,7 @@ export function ImportRosterClient({ teamId, teamName, teamPath, businessSlug }:
                             className="h-20 w-20 object-cover rounded border border-slate-200 dark:border-slate-700 shrink-0"
                           />
                         ) : /\.(xlsx|xls|csv)$/i.test(file.name) ? (
-                          <FileSpreadsheet className="h-10 w-10 text-green-600 shrink-0" />
+                          <FileSpreadsheet className="h-10 w-10 text-emerald-600 shrink-0" />
                         ) : (
                           <FileText className="h-10 w-10 text-red-500 shrink-0" />
                         )}

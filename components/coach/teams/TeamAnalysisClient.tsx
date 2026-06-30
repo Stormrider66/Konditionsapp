@@ -244,7 +244,7 @@ const ZONE_META: Record<
   CAUTION: { label: { en: 'Caution', sv: 'Varning' }, color: 'text-amber-700 dark:text-amber-400', icon: Shield, bg: 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' },
   DANGER: { label: { en: 'Danger', sv: 'Fara' }, color: 'text-orange-700 dark:text-orange-400', icon: ShieldAlert, bg: 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' },
   CRITICAL: { label: { en: 'Critical', sv: 'Kritisk' }, color: 'text-red-700 dark:text-red-400', icon: AlertTriangle, bg: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' },
-  DETRAINING: { label: { en: 'Detraining', sv: 'Nedträning' }, color: 'text-sky-700 dark:text-sky-400', icon: TrendingDown, bg: 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800' },
+  DETRAINING: { label: { en: 'Detraining', sv: 'Nedträning' }, color: 'text-blue-700 dark:text-blue-400', icon: TrendingDown, bg: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800' },
   UNKNOWN: { label: { en: 'Unknown', sv: 'Okänt' }, color: 'text-muted-foreground', icon: HelpCircle, bg: 'bg-muted/30' },
 }
 
@@ -334,7 +334,7 @@ export function TeamAnalysisClient({ teamId, basePath, businessSlug }: TeamAnaly
           <div className="text-sm text-muted-foreground">
             {missingPRCount > 0 ? (
               <>
-                <span className="text-orange-600 font-medium">{missingPRCount}</span>{' '}
+                <span className="text-amber-600 font-medium">{missingPRCount}</span>{' '}
                 {copy(locale, missingPRCount === 1 ? 'athlete is missing 1RM data.' : 'athletes are missing 1RM data.', missingPRCount === 1 ? 'atlet saknar 1RM-data.' : 'atleter saknar 1RM-data.')}
               </>
             ) : (
@@ -680,7 +680,7 @@ function NeedsAttentionCard({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-orange-500" />
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
           {copy(locale, 'Needs attention', 'Behöver uppmärksamhet')}
           <Badge variant="secondary">{entries.length}</Badge>
         </CardTitle>
@@ -793,7 +793,7 @@ function AthleteSummaryTable({
                     </td>
                     <td className="px-3 py-2.5 text-right tabular-nums">
                       {member.recentPRs > 0 ? (
-                        <span className="inline-flex items-center gap-1 text-yellow-600">
+                        <span className="inline-flex items-center gap-1 text-amber-600">
                           <Trophy className="h-3 w-3" />
                           {member.recentPRs}
                         </span>
@@ -873,41 +873,41 @@ function clamp(value: number): number {
 function toneText(tone: ScoreTone): string {
   if (tone === 'good') return 'text-emerald-700 dark:text-emerald-300'
   if (tone === 'watch') return 'text-amber-700 dark:text-amber-300'
-  if (tone === 'risk') return 'text-orange-700 dark:text-orange-300'
+  if (tone === 'risk') return 'text-red-700 dark:text-red-300'
   return 'text-muted-foreground'
 }
 
 function toneIconBg(tone: ScoreTone): string {
   if (tone === 'good') return 'bg-emerald-50 dark:bg-emerald-900/20'
   if (tone === 'watch') return 'bg-amber-50 dark:bg-amber-900/20'
-  if (tone === 'risk') return 'bg-orange-50 dark:bg-orange-900/20'
+  if (tone === 'risk') return 'bg-red-50 dark:bg-red-900/20'
   return 'bg-muted'
 }
 
 function toneProgress(tone: ScoreTone): string {
   if (tone === 'good') return 'bg-emerald-500'
   if (tone === 'watch') return 'bg-amber-500'
-  if (tone === 'risk') return 'bg-orange-500'
+  if (tone === 'risk') return 'bg-red-500'
   return 'bg-muted-foreground'
 }
 
 function toneMiniBg(tone: ScoreTone): string {
   if (tone === 'good') return 'bg-emerald-50 dark:bg-emerald-900/20'
   if (tone === 'watch') return 'bg-amber-50 dark:bg-amber-900/20'
-  if (tone === 'risk') return 'bg-orange-50 dark:bg-orange-900/20'
+  if (tone === 'risk') return 'bg-red-50 dark:bg-red-900/20'
   return 'bg-muted/50'
 }
 
 function readinessBadge(value: number): string {
   if (value >= 75) return 'bg-emerald-100 text-emerald-800 hover:bg-emerald-100'
   if (value >= 50) return 'bg-amber-100 text-amber-800 hover:bg-amber-100'
-  if (value > 0) return 'bg-orange-100 text-orange-800 hover:bg-orange-100'
+  if (value > 0) return 'bg-red-100 text-red-800 hover:bg-red-100'
   return 'bg-muted text-muted-foreground hover:bg-muted'
 }
 
 function readinessProgress(value: number): string {
   if (value >= 75) return 'bg-emerald-500'
   if (value >= 50) return 'bg-amber-500'
-  if (value > 0) return 'bg-orange-500'
+  if (value > 0) return 'bg-red-500'
   return 'bg-muted-foreground'
 }

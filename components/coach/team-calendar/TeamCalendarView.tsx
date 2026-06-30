@@ -919,14 +919,14 @@ export function TeamCalendarView({
       )}
 
       {isStaffPlanningView && planningReviewQueue.length > 0 && (
-        <div className="rounded-lg border bg-orange-50/70 p-3 text-orange-950">
+        <div className="rounded-lg border bg-amber-50/70 p-3 text-amber-950">
           <div className="flex flex-col gap-3">
             <div>
               <div className="flex items-center gap-2 text-sm font-semibold">
                 <TriangleAlert className="h-4 w-4" />
                 {text(locale, 'Planeringskontroll', 'Planning review')}
               </div>
-              <div className="text-xs text-orange-900/80">
+              <div className="text-xs text-amber-900/80">
                 {text(locale, `${planningReviewQueue.length} pass har detaljer som bör kontrolleras innan publicering.`, `${planningReviewQueue.length} sessions have details that should be checked before publishing.`)}
               </div>
             </div>
@@ -938,11 +938,11 @@ export function TeamCalendarView({
                   <button
                     key={event.id}
                     type="button"
-                    className="rounded-md border border-orange-300 bg-white/70 px-2.5 py-1.5 text-left text-xs shadow-sm hover:bg-white"
+                    className="rounded-md border border-amber-300 bg-white/70 px-2.5 py-1.5 text-left text-xs shadow-sm hover:bg-white"
                     onClick={() => setSelectedEvent(event)}
                   >
                     <div className="font-medium">{event.title}</div>
-                    <div className="text-orange-900/75">
+                    <div className="text-amber-900/75">
                       {new Date(event.startDate).toLocaleDateString(dateLocale(locale), { day: 'numeric', month: 'short' })} · {issues.slice(0, 2).join(' · ')}
                     </div>
                   </button>
@@ -1014,7 +1014,7 @@ export function TeamCalendarView({
                           type="button"
                           variant="outline"
                           size="sm"
-                          className="h-7 px-2 text-xs border-orange-300 text-orange-800 hover:bg-orange-50"
+                          className="h-7 px-2 text-xs border-blue-300 text-blue-800 hover:bg-blue-50"
                           disabled={Boolean(launchingEventId)}
                           onClick={() => void handleLaunchIntervalSession(event)}
                         >
@@ -1276,7 +1276,7 @@ export function TeamCalendarView({
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-7 shrink-0 px-2 text-xs border-orange-300 text-orange-800 hover:bg-orange-50"
+                        className="h-7 shrink-0 px-2 text-xs border-blue-300 text-blue-800 hover:bg-blue-50"
                         disabled={Boolean(launchingEventId)}
                         onClick={(e) => {
                           e.stopPropagation()
@@ -1648,7 +1648,7 @@ export function TeamCalendarView({
                               <Button
                                 variant="outline"
                                 size="sm"
-                                className="h-6 shrink-0 px-2 text-xs border-orange-300 text-orange-800 hover:bg-orange-50"
+                                className="h-6 shrink-0 px-2 text-xs border-blue-300 text-blue-800 hover:bg-blue-50"
                                 disabled={Boolean(launchingEventId)}
                                 onClick={(e) => {
                                   e.stopPropagation()

@@ -41,7 +41,7 @@ export default async function TeamTestsPage({ params }: TestsPageProps) {
         eyebrow={team.name}
         title={(
           <span className="inline-flex items-center gap-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
               <Activity className="h-5 w-5" />
             </span>
             {t('title')}

@@ -102,13 +102,13 @@ function scoreColor(s: number): string {
   if (s >= 80) return 'bg-emerald-500 text-white'
   if (s >= 70) return 'bg-emerald-100 text-emerald-900'
   if (s >= 55) return 'bg-amber-100 text-amber-900'
-  return 'bg-orange-100 text-orange-900'
+  return 'bg-red-100 text-red-900'
 }
 
 const POS_BADGE: Record<HockeyPosition, string> = {
   C: 'bg-blue-100 text-blue-700 border-blue-200',
-  W: 'bg-teal-100 text-teal-700 border-teal-200',
-  D: 'bg-violet-100 text-violet-700 border-violet-200',
+  W: 'bg-slate-100 text-slate-700 border-slate-200',
+  D: 'bg-slate-200 text-slate-700 border-slate-300',
   G: 'bg-slate-200 text-slate-700 border-slate-300',
 }
 
@@ -166,12 +166,12 @@ function MetricDevRow({ metricKey, label, unit, lowerIsBetter, target, elite, se
           </span>
         )}
         {athlete.delta != null && athlete.delta !== 0 && (
-          <span className={cn('text-xs tabular-nums', imp ? 'text-emerald-600' : 'text-orange-600')}>
+          <span className={cn('text-xs tabular-nums', imp ? 'text-emerald-600' : 'text-amber-600')}>
             {imp ? '▲' : '▼'} {formatDelta(athlete.delta, unit, locale)}
           </span>
         )}
         {athlete.targetGap != null && (
-          <Badge variant="outline" className={cn('h-5 px-1.5 text-[10px]', gapTone === 'good' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-orange-200 text-orange-700 bg-orange-50')}>
+          <Badge variant="outline" className={cn('h-5 px-1.5 text-[10px]', gapTone === 'good' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50')}>
             {formatDelta(athlete.targetGap, unit, locale)}
           </Badge>
         )}
@@ -272,7 +272,7 @@ function PlayerDevelopment({ seasons, locale }: { seasons: SeasonAnalysis[]; loc
         return (
           <div key={group.id} className="rounded-lg border bg-background p-4">
             <div className="mb-1 flex items-center gap-2 text-sm font-semibold">
-              {group.id === 'strength' ? <Trophy className="h-4 w-4 text-yellow-600" /> : <Zap className="h-4 w-4 text-blue-600" />}
+              {group.id === 'strength' ? <Trophy className="h-4 w-4 text-amber-600" /> : <Zap className="h-4 w-4 text-blue-600" />}
               {group.label}
             </div>
             <div className="divide-y">{rows}</div>

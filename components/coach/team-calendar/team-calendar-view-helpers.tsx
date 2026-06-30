@@ -366,7 +366,7 @@ export function getPlanningBadges(event: TeamEvent, locale: TeamCalendarLocale):
       key: 'needs-review',
       label: text(locale, 'Kontroll', 'Review'),
       icon: TriangleAlert,
-      className: 'border-orange-300 bg-orange-50 text-orange-800',
+      className: 'border-amber-300 bg-amber-50 text-amber-800',
     })
   }
 

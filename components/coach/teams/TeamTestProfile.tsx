@@ -191,13 +191,13 @@ function scoreColor(s: number): string {
   if (s >= 80) return 'bg-emerald-500 text-white'
   if (s >= 70) return 'bg-emerald-100 text-emerald-900'
   if (s >= 55) return 'bg-amber-100 text-amber-900'
-  return 'bg-orange-100 text-orange-900'
+  return 'bg-red-100 text-red-900'
 }
 
 const POS_BADGE: Record<HockeyPosition, string> = {
   C: 'bg-blue-100 text-blue-700 border-blue-200',
-  W: 'bg-teal-100 text-teal-700 border-teal-200',
-  D: 'bg-violet-100 text-violet-700 border-violet-200',
+  W: 'bg-slate-100 text-slate-700 border-slate-200',
+  D: 'bg-slate-200 text-slate-700 border-slate-300',
   G: 'bg-slate-200 text-slate-700 border-slate-300',
 }
 
@@ -212,7 +212,7 @@ function cellBg(status: AthleteStatus): string {
     case 'near':
       return 'bg-amber-100 text-amber-900'
     case 'under':
-      return 'bg-orange-100 text-orange-900'
+      return 'bg-red-100 text-red-900'
     default:
       return 'bg-muted/30 text-muted-foreground'
   }
@@ -226,7 +226,7 @@ function teamAvgScore(scores: PlayerScore[]): number | null {
 function miniBg(tone: 'good' | 'watch' | 'risk' | 'neutral'): string {
   if (tone === 'good') return 'bg-emerald-50'
   if (tone === 'watch') return 'bg-amber-50'
-  if (tone === 'risk') return 'bg-orange-50'
+  if (tone === 'risk') return 'bg-red-50'
   return 'bg-muted/40'
 }
 
@@ -285,7 +285,7 @@ function MetricAthleteRow({ athlete, metric, domain, locale }: { athlete: Adapti
       <div className="min-w-0">
         <div className="h-2.5 rounded-full bg-muted overflow-hidden">
           {score != null ? (
-            <div className={cn('h-full rounded-full', athlete.targetGap != null && athlete.targetGap < 0 ? 'bg-orange-400' : 'bg-blue-500')} style={{ width: `${score}%` }} />
+            <div className={cn('h-full rounded-full', athlete.targetGap != null && athlete.targetGap < 0 ? 'bg-amber-400' : 'bg-blue-500')} style={{ width: `${score}%` }} />
           ) : (
             <div className="h-full w-full bg-muted" />
           )}
@@ -304,7 +304,7 @@ function MetricAthleteRow({ athlete, metric, domain, locale }: { athlete: Adapti
           {formatDelta(athlete.delta, metric.unit, locale)}
         </div>
         {athlete.targetGap != null && (
-          <Badge variant="outline" className={cn('h-6 px-2 text-[10px]', gapTone === 'good' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-orange-200 text-orange-700 bg-orange-50')}>
+          <Badge variant="outline" className={cn('h-6 px-2 text-[10px]', gapTone === 'good' ? 'border-emerald-200 text-emerald-700 bg-emerald-50' : 'border-amber-200 text-amber-700 bg-amber-50')}>
             {formatDelta(athlete.targetGap, metric.unit, locale)}
           </Badge>
         )}
@@ -415,7 +415,7 @@ function ProfileSummary({ scores, compareScores, compareLabel, locale }: { score
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground"><Gauge className="h-3.5 w-3.5" /> {copy(locale, 'Team profile', 'Lagets fysprofil')}</div>
           <div className="mt-1 text-4xl font-bold leading-none tabular-nums">{teamAvg ?? '–'}<span className="text-base text-muted-foreground">/100</span></div>
           {teamDelta != null && (
-            <div className={cn('mt-1 text-xs font-medium tabular-nums', teamDelta > 0 ? 'text-emerald-600' : teamDelta < 0 ? 'text-orange-600' : 'text-muted-foreground')}>
+            <div className={cn('mt-1 text-xs font-medium tabular-nums', teamDelta > 0 ? 'text-emerald-600' : teamDelta < 0 ? 'text-amber-600' : 'text-muted-foreground')}>
               {teamDelta > 0 ? '▲' : teamDelta < 0 ? '▼' : ''} {signedNum(teamDelta, 0, locale)} {copy(locale, `vs ${compareLabel}`, `mot ${compareLabel}`)}
             </div>
           )}
@@ -458,7 +458,7 @@ function TestSelectorView({ groups, membersTotal, locale }: { groups: MetricGrou
         {groups.map((g) => (
           <div key={g.id} className="flex items-start gap-3 py-1">
             <span className="mt-1.5 flex w-20 shrink-0 items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {g.id === 'strength' ? <Trophy className="h-3.5 w-3.5 text-yellow-600" /> : <Zap className="h-3.5 w-3.5 text-blue-600" />} {g.label}
+              {g.id === 'strength' ? <Trophy className="h-3.5 w-3.5 text-amber-600" /> : <Zap className="h-3.5 w-3.5 text-blue-600" />} {g.label}
             </span>
             <div className="flex flex-wrap gap-2">
               {g.metrics.map((m) => {
@@ -591,7 +591,7 @@ function MatrixView({ groups, membersTotal, scores, seasonLabel, compare, locale
                 <td className="sticky left-0 z-10 bg-muted/40 px-3 py-1.5 text-left text-muted-foreground">Δ {copy(locale, 'vs', 'mot')} {compare.label}</td>
                 <td className="px-2 py-1.5 text-center">
                   {curTotalAvg != null && cmpTotalAvg != null ? (
-                    <span className={cn('font-semibold tabular-nums', curTotalAvg - cmpTotalAvg > 0 ? 'text-emerald-600' : curTotalAvg - cmpTotalAvg < 0 ? 'text-orange-600' : 'text-muted-foreground')}>{signedNum(Math.round(curTotalAvg - cmpTotalAvg), 0, locale)}</span>
+                    <span className={cn('font-semibold tabular-nums', curTotalAvg - cmpTotalAvg > 0 ? 'text-emerald-600' : curTotalAvg - cmpTotalAvg < 0 ? 'text-amber-600' : 'text-muted-foreground')}>{signedNum(Math.round(curTotalAvg - cmpTotalAvg), 0, locale)}</span>
                   ) : <span className="text-muted-foreground">–</span>}
                 </td>
                 {metrics.map((m, ci) => {
@@ -602,7 +602,7 @@ function MatrixView({ groups, membersTotal, scores, seasonLabel, compare, locale
                   const factor = Math.pow(10, dec)
                   const raw = Math.round((cur - cmp) * factor) / factor
                   const improvement = m.lowerIsBetter ? raw < 0 : raw > 0
-                  return <td key={m.key} className={cn('px-2 py-1.5 text-center tabular-nums', raw === 0 ? 'text-muted-foreground' : improvement ? 'text-emerald-600' : 'text-orange-600')}>{raw === 0 ? '0' : signedNum(raw, dec, locale)}</td>
+                  return <td key={m.key} className={cn('px-2 py-1.5 text-center tabular-nums', raw === 0 ? 'text-muted-foreground' : improvement ? 'text-emerald-600' : 'text-amber-600')}>{raw === 0 ? '0' : signedNum(raw, dec, locale)}</td>
                 })}
               </tr>
             )}
@@ -612,7 +612,7 @@ function MatrixView({ groups, membersTotal, scores, seasonLabel, compare, locale
       <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-emerald-300 bg-emerald-100" /> {copy(locale, 'Above target', 'Över mål')}</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-amber-300 bg-amber-100" /> {copy(locale, 'Near', 'Nära')}</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-orange-300 bg-orange-100" /> {copy(locale, 'Below', 'Under')}</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-red-300 bg-red-100" /> {copy(locale, 'Below', 'Under')}</span>
         <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border bg-muted/40" /> {copy(locale, 'Missing', 'Saknar')}</span>
         <span className="ml-auto">{copy(locale, 'Total = 70 meets position target, 100 = elite. Click a column to open the test.', 'Total = 70 når positionsmålet, 100 = elit. Klicka en kolumn för att öppna testet.')}</span>
       </div>

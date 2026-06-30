@@ -34,9 +34,9 @@ import { cn } from '@/lib/utils'
 // Above/on/below-target text color, matching the athlete focus-mode cue
 // (blue = under, green = on, red = over target).
 const STATUS_TEXT = {
-  below: 'text-sky-600 dark:text-sky-400',
+  below: 'text-blue-600 dark:text-blue-400',
   on: 'text-emerald-600 dark:text-emerald-400',
-  above: 'text-rose-600 dark:text-rose-400',
+  above: 'text-red-600 dark:text-red-400',
 } as const
 
 // Map a live bpm onto the athlete's HR zone (1-5) using their resolved bands.
