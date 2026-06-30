@@ -126,6 +126,12 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
   const captureSupported = hasMounted ? fleet.isSupported : false
   const canConnect = !disabled && captureSupported && participants.length > 0 && !!activeClientId
   const displayLatest = isConnected ? latest : null
+  const displayPower =
+    displayLatest?.power != null
+      ? displayLatest.power
+      : displayLatest?.avgPower != null
+        ? displayLatest.avgPower
+        : null
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -149,7 +155,12 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
 
     const intervalId = setInterval(() => {
       const sample = latestRef.current
-      if (!sample || typeof sample.power !== 'number') return
+      const power = typeof sample?.power === 'number'
+        ? sample.power
+        : typeof sample?.avgPower === 'number'
+          ? sample.avgPower
+          : null
+      if (!sample || power == null) return
 
       void fetch(`/api/coach/live-hr/sessions/${sessionId}/machine`, {
         method: 'POST',
@@ -158,7 +169,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
         body: JSON.stringify({
           clientId: activeClientId,
           ergometerType: selectedMachineType,
-          power: Math.round(sample.power),
+          power: Math.round(power),
           cadence: Math.round(machine.kind === 'rower' ? sample.strokeRate ?? 0 : sample.cadence ?? sample.avgCadence ?? 0) || undefined,
           heartRate: typeof sample.heartRate === 'number' ? Math.round(sample.heartRate) : undefined,
           deviceId: device?.client.getDeviceId() ?? undefined,
@@ -264,7 +275,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
           )}
           <span className="flex items-center gap-1 tabular-nums">
             <Gauge className="h-4 w-4 text-amber-500" />
-            {copy.watts}: {displayLatest?.power != null ? Math.round(displayLatest.power) : '-'}
+            {copy.watts}: {displayPower != null ? Math.round(displayPower) : '-'}
           </span>
           <span className="flex items-center gap-1 tabular-nums">
             <Bike className="h-4 w-4 text-blue-500" />

@@ -18,6 +18,7 @@
  */
 
 import {
+  mergePm5Sample,
   parseCyclingPower,
   parseIndoorBikeData,
   parsePm5AdditionalStatus1,
@@ -30,6 +31,7 @@ import type { CrankState } from './parsers';
 import type {
   ControlResponse,
   MachineKind,
+  WattbikeSample,
   WattbikeClientOptions,
   WattbikeEvents,
   WattbikeStatus,
@@ -122,6 +124,9 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
 
   // Crank state for cadence derivation in the CPS fallback path.
   private lastCrank: CrankState | null = null;
+  // Proprietary PM5 notifications are split across characteristics; merge
+  // them so consumers always see the latest complete machine state.
+  private lastPm5Sample: WattbikeSample | null = null;
 
   private reconnectAttempts = 0;
   private intentionalDisconnect = false;
@@ -285,6 +290,7 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     this.intentionalDisconnect = true;
     this.hasControl = false;
     this.lastCrank = null;
+    this.lastPm5Sample = null;
     this.machineKind = null;
     try {
       this.server?.disconnect();
@@ -428,6 +434,7 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     this.controlPoint = null; // no ERG over the proprietary protocol
     // RowErg/SkiErg/BikeErg PM5s are indistinguishable here — trust the slot.
     this.machineKind = this.opts.pm5Kind;
+    this.lastPm5Sample = null;
   }
 
   private async setupFtms(server: BluetoothRemoteGATTServer): Promise<void> {
@@ -504,26 +511,35 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
   private handlePm5GeneralStatus = (event: Event): void => {
     const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
     if (!dv) return;
-    this.emit('data', parsePm5GeneralStatus(dv));
+    this.emitPm5Data(parsePm5GeneralStatus(dv));
   };
 
   private handlePm5Status1 = (event: Event): void => {
     const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
     if (!dv) return;
-    this.emit('data', parsePm5AdditionalStatus1(dv));
+    this.emitPm5Data(parsePm5AdditionalStatus1(dv));
   };
 
   private handlePm5Status2 = (event: Event): void => {
     const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
     if (!dv) return;
-    this.emit('data', parsePm5AdditionalStatus2(dv));
+    this.emitPm5Data(parsePm5AdditionalStatus2(dv));
   };
 
   private handlePm5StrokeData = (event: Event): void => {
     const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
     if (!dv) return;
-    this.emit('data', parsePm5AdditionalStrokeData(dv));
+    this.emitPm5Data(parsePm5AdditionalStrokeData(dv));
   };
+
+  private emitPm5Data(sample: WattbikeSample): void {
+    this.lastPm5Sample = mergePm5Sample(
+      this.lastPm5Sample,
+      sample,
+      this.opts.pm5Kind,
+    );
+    this.emit('data', this.lastPm5Sample);
+  }
 
   private handleControlResponse = (event: Event): void => {
     const dv = (event.target as BluetoothRemoteGATTCharacteristic).value;
@@ -549,6 +565,7 @@ export class WattbikeClient extends Emitter<WattbikeEvents> {
     this.controlPoint = null;
     this.hasControl = false;
     this.lastCrank = null;
+    this.lastPm5Sample = null;
 
     if (this.intentionalDisconnect || !this.opts.autoReconnect) {
       this.setStatus('disconnected');

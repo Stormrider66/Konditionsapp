@@ -36,7 +36,7 @@ export function useLivePowerPush(
     if (!client) return;
     const off = client.on('data', (s) => {
       latestRef.current = {
-        power: s.power,
+        power: s.power ?? s.avgPower,
         cadence: s.cadence ?? s.avgCadence,
         strokeRate: s.strokeRate,
         heartRate: s.heartRate,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseCyclingPower, parseIndoorBikeData, parseRowerData } from './parsers';
+import { mergePm5Sample, parseCyclingPower, parseIndoorBikeData, parseRowerData } from './parsers';
 
 /** Build a little-endian DataView from a field spec. */
 function frame(
@@ -257,6 +257,19 @@ describe('PM5 proprietary parsers', async () => {
     expect(sample.calories).toBe(15);
   });
 
+  it('keeps zero average power as a valid idle reading', () => {
+    const dv = frame([
+      ['u24', 1234],
+      ['u8', 2],
+      ['u16', 0],
+      ['u16', 0],
+      ['u16', 0], ['u16', 0], ['u16', 0], ['u24', 0], ['u24', 0],
+    ]);
+    const sample = parsePm5AdditionalStatus2(dv);
+    expect(sample.avgPower).toBe(0);
+    expect(sample.calories).toBe(0);
+  });
+
   it('parses additional stroke data: per-stroke power', () => {
     const dv = frame([
       ['u24', 1234], // elapsed
@@ -268,5 +281,44 @@ describe('PM5 proprietary parsers', async () => {
     const sample = parsePm5AdditionalStrokeData(dv);
     expect(sample.power).toBe(244);
     expect(sample.strokeCount).toBe(87);
+  });
+});
+
+describe('mergePm5Sample', () => {
+  it('keeps PM5 packet fragments together for live consumers', () => {
+    const status = mergePm5Sample(
+      null,
+      { t: 1000, source: 'pm5', strokeRate: 88, heartRate: 151 },
+      'bike',
+    );
+    expect(status.cadence).toBe(88);
+    expect(status.heartRate).toBe(151);
+
+    const power = mergePm5Sample(
+      status,
+      { t: 1200, source: 'pm5', avgPower: 215 },
+      'bike',
+    );
+    expect(power.power).toBe(215);
+    expect(power.avgPower).toBe(215);
+    expect(power.cadence).toBe(88);
+    expect(power.heartRate).toBe(151);
+  });
+
+  it('preserves rower instantaneous power when average power packets arrive', () => {
+    const stroke = mergePm5Sample(
+      null,
+      { t: 1000, source: 'pm5', power: 244, strokeRate: 30 },
+      'rower',
+    );
+    const status = mergePm5Sample(
+      stroke,
+      { t: 1200, source: 'pm5', avgPower: 198 },
+      'rower',
+    );
+    expect(status.power).toBe(244);
+    expect(status.avgPower).toBe(198);
+    expect(status.strokeRate).toBe(30);
+    expect(status.cadence).toBeUndefined();
   });
 });

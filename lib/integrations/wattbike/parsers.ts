@@ -11,7 +11,7 @@
  * - Cycling Power Measurement (0x2A63): fallback for older Wattbikes.
  */
 
-import type { WattbikeSample } from './types';
+import type { MachineKind, WattbikeSample } from './types';
 
 /** Crank-revolution state carried between Cycling Power notifications. */
 export interface CrankState {
@@ -221,7 +221,7 @@ export function parsePm5AdditionalStatus2(dv: DataView): WattbikeSample {
   const sample: WattbikeSample = { t: performance.now(), source: 'pm5' };
   if (dv.byteLength >= 8) {
     const avgPower = dv.getUint16(4, true);
-    if (avgPower > 0 && avgPower !== 0xffff) sample.avgPower = avgPower;
+    if (avgPower !== 0xffff) sample.avgPower = avgPower;
     const totalCalories = dv.getUint16(6, true); // kcal, cumulative
     if (totalCalories !== 0xffff) sample.calories = totalCalories;
   }
@@ -237,4 +237,39 @@ export function parsePm5AdditionalStrokeData(dv: DataView): WattbikeSample {
     sample.strokeCount = dv.getUint16(7, true);
   }
   return sample;
+}
+
+/**
+ * PM5 proprietary characteristics arrive as fragments. Keep the latest values
+ * together so UI/push loops do not lose watts when a cadence/HR packet arrives.
+ */
+export function mergePm5Sample(
+  previous: WattbikeSample | null,
+  next: WattbikeSample,
+  machineKind: MachineKind,
+): WattbikeSample {
+  const normalized: WattbikeSample = { ...next };
+
+  if (
+    machineKind === 'bike' &&
+    typeof normalized.strokeRate === 'number' &&
+    typeof normalized.cadence !== 'number'
+  ) {
+    normalized.cadence = normalized.strokeRate;
+  }
+
+  if (
+    typeof normalized.power !== 'number' &&
+    typeof normalized.avgPower === 'number' &&
+    (machineKind === 'bike' || typeof previous?.power !== 'number')
+  ) {
+    normalized.power = normalized.avgPower;
+  }
+
+  return {
+    ...(previous ?? {}),
+    ...normalized,
+    t: next.t,
+    source: 'pm5',
+  };
 }
