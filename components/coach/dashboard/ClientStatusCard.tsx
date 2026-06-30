@@ -65,7 +65,7 @@ function getUrgencyBorder(client: PTClientStatus): string {
     acwrZone === 'CAUTION' ||
     highestAlertSeverity === 'MEDIUM'
   ) {
-    return 'border-l-4 border-l-yellow-500'
+    return 'border-l-4 border-l-amber-500'
   }
   if (engagementLevel === 'INACTIVE') {
     return 'border-l-4 border-l-slate-300 dark:border-l-slate-600'
@@ -75,15 +75,17 @@ function getUrgencyBorder(client: PTClientStatus): string {
 
 function getReadinessColor(score: number | null): string {
   if (score === null) return 'bg-slate-300 dark:bg-slate-600'
-  if (score >= 70) return 'bg-green-500'
-  if (score >= 40) return 'bg-yellow-500'
+  if (score >= 70) return 'bg-emerald-500'
+  if (score >= 40) return 'bg-amber-500'
   return 'bg-red-500'
 }
 
+// ACWR is a real 4-tier severity scale (OPTIMAL/CAUTION/DANGER/CRITICAL) — orange is a
+// deliberate 4th step between amber and red here, not a decorative color.
 function getAcwrBadgeColor(zone: string | null): string {
   switch (zone) {
-    case 'OPTIMAL': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-    case 'CAUTION': return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+    case 'OPTIMAL': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+    case 'CAUTION': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
     case 'DANGER': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
     case 'CRITICAL': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
     default: return 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
@@ -111,8 +113,8 @@ function getInitials(name: string): string {
 
 function getEngagementDot(level: PTClientStatus['engagementLevel'], t: ClientStatusCardTranslator): { color: string; label: string } {
   switch (level) {
-    case 'ACTIVE': return { color: 'bg-green-500', label: t('engagement.active') }
-    case 'MODERATE': return { color: 'bg-yellow-500', label: t('engagement.moderate') }
+    case 'ACTIVE': return { color: 'bg-emerald-500', label: t('engagement.active') }
+    case 'MODERATE': return { color: 'bg-amber-500', label: t('engagement.moderate') }
     case 'INACTIVE': return { color: 'bg-red-500', label: t('engagement.inactive') }
     case 'NEW': return { color: 'bg-slate-400', label: t('engagement.new') }
   }
@@ -189,7 +191,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
             <p className={cn(
               'text-xs font-medium',
               client.daysSinceLastActivity !== null && client.daysSinceLastActivity <= 1
-                ? 'text-green-600 dark:text-green-400'
+                ? 'text-emerald-600 dark:text-emerald-400'
                 : client.daysSinceLastActivity !== null && client.daysSinceLastActivity > 7
                   ? 'text-red-600 dark:text-red-400'
                   : 'text-muted-foreground'
@@ -212,9 +214,9 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
               <span className={cn(
                 'font-semibold',
                 client.readinessScore! >= 70
-                  ? 'text-green-600 dark:text-green-400'
+                  ? 'text-emerald-600 dark:text-emerald-400'
                   : client.readinessScore! >= 40
-                    ? 'text-yellow-600 dark:text-yellow-400'
+                    ? 'text-amber-600 dark:text-amber-400'
                     : 'text-red-600 dark:text-red-400'
               )}>
                 {client.readinessScore}
@@ -329,7 +331,7 @@ export function ClientStatusCard({ client, basePath, onExpand }: ClientStatusCar
           )}
           {client.engagementLevel === 'NEW' && !client.hasActiveProgram && (
             <Link href={`${basePath}/coach/clients/${client.id}`} className="flex-1">
-              <Button variant="outline" size="sm" className="w-full text-xs h-7 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/20">
+              <Button variant="outline" size="sm" className="w-full text-xs h-7 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
                 <UserPlus className="h-3 w-3 mr-1" />
                 {t('actions.getStarted')}
               </Button>

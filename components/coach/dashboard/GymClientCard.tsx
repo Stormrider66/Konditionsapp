@@ -52,7 +52,7 @@ function getInitials(name: string): string {
 }
 
 function getBorderColor(client: GymClientStatus): string {
-  if (client.hasPRThisWeek) return 'border-l-4 border-l-yellow-500'
+  if (client.hasPRThisWeek) return 'border-l-4 border-l-amber-500'
   if (client.worstProgressionStatus === 'REGRESSING') return 'border-l-4 border-l-red-500'
   if (client.worstProgressionStatus === 'PLATEAU' || client.worstProgressionStatus === 'DELOAD_NEEDED') {
     return 'border-l-4 border-l-amber-500'
@@ -60,16 +60,17 @@ function getBorderColor(client: GymClientStatus): string {
   return 'border-l-4 border-l-transparent'
 }
 
+// Training-phase legend (5 phases) — distinct hues are deliberate so the phase reads at a glance.
 const phaseColors: Record<string, string> = {
   ANATOMICAL_ADAPTATION: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   MAXIMUM_STRENGTH: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   POWER: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  MAINTENANCE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  MAINTENANCE: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
   TAPER: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
 }
 
 const statusColors: Record<string, string> = {
-  ON_TRACK: 'text-green-600 dark:text-green-400',
+  ON_TRACK: 'text-emerald-600 dark:text-emerald-400',
   PLATEAU: 'text-amber-600 dark:text-amber-400',
   REGRESSING: 'text-red-600 dark:text-red-400',
   DELOAD_NEEDED: 'text-orange-600 dark:text-orange-400',
@@ -78,7 +79,7 @@ const statusColors: Record<string, string> = {
 function DeltaDisplay({ value, unit, invert }: { value: number | null; unit?: string; invert?: boolean }) {
   if (value === null || value === 0) return <span className="text-[10px] text-muted-foreground">-</span>
   const isPositive = invert ? value < 0 : value > 0
-  const color = isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+  const color = isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
   const Icon = value > 0 ? ArrowUp : ArrowDown
   return (
     <span className={cn('text-[10px] font-medium flex items-center gap-0.5', color)}>
@@ -122,7 +123,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
           <div className="min-w-0 flex-1">
             <p className="font-semibold text-sm truncate dark:text-slate-200">{client.name}</p>
           </div>
-          <Badge variant="secondary" className="text-[10px] h-5 flex-shrink-0 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+          <Badge variant="secondary" className="text-[10px] h-5 flex-shrink-0 bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
             {t('sport.strength')}
           </Badge>
         </div>
@@ -186,7 +187,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
         {/* PR / Plateau badges */}
         <div className="flex flex-wrap gap-1.5">
           {client.hasPRThisWeek && (
-            <Badge className="text-[10px] h-5 bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-0">
+            <Badge className="text-[10px] h-5 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-0">
               <Trophy className="h-3 w-3 mr-0.5" />
               {t('badges.prThisWeek')}
             </Badge>
@@ -198,7 +199,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
             </Badge>
           )}
           {client.readyForIncreaseCount > 0 && (
-            <Badge variant="outline" className="text-[10px] h-5 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+            <Badge variant="outline" className="text-[10px] h-5 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
               <ArrowUp className="h-3 w-3 mr-0.5" />
               {t('badges.readyForIncrease', { count: client.readyForIncreaseCount })}
             </Badge>
@@ -219,7 +220,7 @@ export function GymClientCard({ client, basePath }: GymClientCardProps) {
             </Button>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full text-xs h-7 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-900/20">
+            <Button variant="outline" size="sm" className="w-full text-xs h-7 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
               <Dumbbell className="h-3 w-3 mr-1" />
               {t('actions.assignWorkout')}
             </Button>

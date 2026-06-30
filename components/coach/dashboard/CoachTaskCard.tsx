@@ -230,7 +230,7 @@ function TaskRow({ task, onToggle, onDelete, dateLocale }: {
     <div className={dashboardListItemClass('blue', 'group flex items-center gap-3 px-3 py-2.5')}>
       <button type="button" onClick={() => void onToggle(task)} className="flex-shrink-0 rounded-full">
         {isCompleted ? (
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
         ) : (
           <Circle className={cn('h-4 w-4', priorityColors[task.priority] || 'text-slate-400')} />
         )}

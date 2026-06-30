@@ -72,7 +72,7 @@ function buildAttentionChips(clients: PTClientStatus[], t: ClientStatusGridTrans
       chips.push({
         clientId: c.id,
         label: t(c.acwrZone === 'CRITICAL' ? 'chips.criticalLoad' : 'chips.highLoad', { name: firstName }),
-        color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+        color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
       })
     }
     if (c.pendingFeedbackCount > 0) {

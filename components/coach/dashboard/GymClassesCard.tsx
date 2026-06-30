@@ -36,13 +36,15 @@ interface ClassSchedule {
   color: string | null
 }
 
+// Per-type colors are a deliberate category legend (like a calendar app), not status —
+// kept distinct so a packed class schedule stays scannable.
 const classTypeColors: Record<string, string> = {
-  SPINNING: 'bg-yellow-500',
+  SPINNING: 'bg-amber-500',
   HIIT: 'bg-red-500',
   YOGA: 'bg-purple-500',
   CIRCUIT: 'bg-orange-500',
   CROSSFIT: 'bg-blue-500',
-  BODY_PUMP: 'bg-green-500',
+  BODY_PUMP: 'bg-emerald-500',
   STRETCHING: 'bg-teal-500',
   OTHER: 'bg-slate-500',
 }
@@ -114,11 +116,11 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
   }, [fetchClasses])
 
   return (
-    <DashboardCard glow="purple" className="group">
+    <DashboardCard glow="blue" className="group">
       <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <DashboardCardTitle className="text-base flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-purple-500" />
+            <Calendar className="h-4 w-4 text-blue-500" />
             {t('title')}
           </DashboardCardTitle>
           {classes.length > 0 && (
@@ -142,7 +144,7 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
         ) : (
           <div className="space-y-2">
             {classes.slice(0, 5).map(cls => (
-              <div key={cls.id} className={dashboardListItemClass('purple', 'flex items-center gap-3 p-3')}>
+              <div key={cls.id} className={dashboardListItemClass('blue', 'flex items-center gap-3 p-3')}>
                 <div className={cn(
                   'h-11 w-1 flex-shrink-0 rounded-full',
                   cls.color || classTypeColors[cls.classType] || 'bg-slate-400'
@@ -173,7 +175,7 @@ export function GymClassesCard({ basePath: _basePath }: GymClassesCardProps) {
                     </span>
                   </div>
                   {cls.checkedInCount > 0 && (
-                    <p className="text-[10px] text-green-600">{t('checkedIn', { count: cls.checkedInCount })}</p>
+                    <p className="text-[10px] text-emerald-600">{t('checkedIn', { count: cls.checkedInCount })}</p>
                   )}
                 </div>
               </div>

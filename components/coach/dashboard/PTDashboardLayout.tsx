@@ -142,10 +142,10 @@ export function PTDashboardLayout({
     {
       key: 'upcoming-events',
       node: (
-        <DashboardCard glow="purple" className="group">
+        <DashboardCard glow="blue" className="group">
           <DashboardCardHeader className="pb-3">
             <DashboardCardTitle className="text-base flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 text-purple-500" />
+              <CalendarDays className="h-4 w-4 text-blue-500" />
               {t('ptDashboard.upcomingEvents.title')}
             </DashboardCardTitle>
           </DashboardCardHeader>
@@ -168,8 +168,8 @@ export function PTDashboardLayout({
                       <div className={cn(
                         'w-8 h-8 rounded-lg flex items-center justify-center',
                         isRace
-                          ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400'
-                          : 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
+                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+                          : 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
                       )}>
                         {isRace ? <Trophy className="h-4 w-4" /> : <Calendar className="h-4 w-4" />}
                       </div>

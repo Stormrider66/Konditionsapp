@@ -185,17 +185,21 @@ function getInitials(name: string): string {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
+// CRITICAL/HIGH/MEDIUM/LOW is a real 4-tier severity scale — orange is a deliberate
+// step between red and amber here, not a decorative color.
 const severityColors: Record<string, string> = {
   CRITICAL: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   HIGH: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-  MEDIUM: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  MEDIUM: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   LOW: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
 }
 
+// strava/garmin keep their real product brand colors; quick_erg is an internal manual-entry
+// source, not a brand, so it stays in the neutral palette.
 const activitySourceClasses: Record<RecentActivity['source'], string> = {
   strava: 'border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/20 dark:bg-orange-500/10 dark:text-orange-300',
   garmin: 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-500/20 dark:bg-blue-500/10 dark:text-blue-300',
-  quick_erg: 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-500/20 dark:bg-indigo-500/10 dark:text-indigo-300',
+  quick_erg: 'border-slate-200 bg-slate-50 text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300',
 }
 
 function activitySourceLabel(source: RecentActivity['source']): string {
@@ -396,12 +400,12 @@ export function AthleteDetailSheet({ clientId, clientSummary, open, onOpenChange
             <TabsContent value="overview" className="space-y-4 mt-4">
               {/* Readiness */}
               <MetricRow
-                icon={<Zap className="h-4 w-4 text-yellow-500" />}
+                icon={<Zap className="h-4 w-4 text-amber-500" />}
                 label={t('metrics.readiness')}
                 value={data.dailyMetrics.length > 0 ? data.dailyMetrics[data.dailyMetrics.length - 1]?.readinessScore?.toFixed(1) ?? '-' : '-'}
                 suffix="/10"
               >
-                <Sparkline data={data.dailyMetrics} dataKey="readinessScore" emptyText={t('empty.insufficientData')} color="#eab308" />
+                <Sparkline data={data.dailyMetrics} dataKey="readinessScore" emptyText={t('empty.insufficientData')} color="#f59e0b" />
               </MetricRow>
 
               {/* HRV */}
@@ -679,7 +683,7 @@ function MetricRow({ icon, label, value, suffix, trend, children }: {
           <span className="text-lg font-bold">{value}</span>
           {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
           {trend && (
-            trend === 'IMPROVING' ? <TrendingUp className="h-3 w-3 text-green-500" /> :
+            trend === 'IMPROVING' ? <TrendingUp className="h-3 w-3 text-emerald-500" /> :
             trend === 'DECLINING' ? <TrendingDown className="h-3 w-3 text-red-500" /> :
             <Minus className="h-3 w-3 text-muted-foreground" />
           )}
@@ -746,8 +750,8 @@ function WellnessItem({ label, data, dataKey, color, emptyText, inverted }: {
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-muted-foreground">{label}</span>
         <span className={cn('text-sm font-bold', inverted
-          ? (typeof latest === 'number' && latest > 6 ? 'text-red-500' : 'text-green-500')
-          : (typeof latest === 'number' && latest >= 7 ? 'text-green-500' : typeof latest === 'number' && latest >= 4 ? 'text-yellow-500' : 'text-red-500')
+          ? (typeof latest === 'number' && latest > 6 ? 'text-red-500' : 'text-emerald-500')
+          : (typeof latest === 'number' && latest >= 7 ? 'text-emerald-500' : typeof latest === 'number' && latest >= 4 ? 'text-amber-500' : 'text-red-500')
         )}>
           {typeof latest === 'number' ? latest : '-'}/10
         </span>

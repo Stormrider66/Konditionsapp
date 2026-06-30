@@ -44,7 +44,7 @@ export function TeamPulsePanel({
     .slice(0, 3)
 
   return (
-    <DashboardCard glow="teal" className="group">
+    <DashboardCard glow="emerald" className="group">
       <DashboardCardHeader className="pb-3">
         <DashboardCardTitle className="text-base flex items-center gap-2">
           <HeartPulse className="h-4 w-4 text-emerald-500" />
@@ -57,9 +57,9 @@ export function TeamPulsePanel({
             <p className="text-xl font-bold text-emerald-700 dark:text-emerald-300">{readinessDistribution.high}</p>
             <p className="text-[11px] text-emerald-700/80 dark:text-emerald-300/80">{t('readiness.ready')}</p>
           </div>
-          <div className="rounded-lg bg-yellow-50 p-3 text-center dark:bg-yellow-950/25">
-            <p className="text-xl font-bold text-yellow-700 dark:text-yellow-300">{readinessDistribution.medium}</p>
-            <p className="text-[11px] text-yellow-700/80 dark:text-yellow-300/80">{t('readiness.monitor')}</p>
+          <div className="rounded-lg bg-amber-50 p-3 text-center dark:bg-amber-950/25">
+            <p className="text-xl font-bold text-amber-700 dark:text-amber-300">{readinessDistribution.medium}</p>
+            <p className="text-[11px] text-amber-700/80 dark:text-amber-300/80">{t('readiness.monitor')}</p>
           </div>
           <div className="rounded-lg bg-red-50 p-3 text-center dark:bg-red-950/25">
             <p className="text-xl font-bold text-red-700 dark:text-red-300">{readinessDistribution.low}</p>
@@ -84,7 +84,7 @@ export function TeamPulsePanel({
           </div>
           <div className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 dark:bg-white/5">
             <span className="flex items-center gap-2 text-sm dark:text-slate-200">
-              <UserX className="h-4 w-4 text-orange-500" />
+              <UserX className="h-4 w-4 text-amber-500" />
               {t('signals.missedWorkoutTeams')}
             </span>
             <Badge variant={missedWorkoutTeams.length > 0 ? 'default' : 'secondary'}>{missedWorkoutTeams.length}</Badge>
@@ -98,7 +98,7 @@ export function TeamPulsePanel({
           </Link>
           <Link href={`${basePath}/coach/clients`} className="flex items-center justify-between rounded-lg bg-muted/30 px-3 py-2 transition hover:bg-muted dark:bg-white/5 dark:hover:bg-white/10">
             <span className="flex items-center gap-2 text-sm dark:text-slate-200">
-              <MessageSquare className="h-4 w-4 text-violet-500" />
+              <MessageSquare className="h-4 w-4 text-amber-500" />
               {t('signals.workoutsWithoutFeedback')}
             </span>
             <Badge variant={pendingFeedbackCount > 0 ? 'default' : 'secondary'}>{pendingFeedbackCount}</Badge>

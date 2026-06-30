@@ -87,7 +87,7 @@ export function TeamTestsAndActivity({
         <DashboardCardHeader className="pb-3">
           <div className="flex items-center justify-between gap-3">
             <DashboardCardTitle className="text-base flex items-center gap-2">
-              <Dumbbell className="h-4 w-4 text-orange-500" />
+              <Dumbbell className="h-4 w-4 text-amber-500" />
               {t('recentActivity.title')}
             </DashboardCardTitle>
             <Link href={`${basePath}/coach/programs`}>

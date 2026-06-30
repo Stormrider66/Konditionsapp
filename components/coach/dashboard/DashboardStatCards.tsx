@@ -36,7 +36,7 @@ interface CardLayoutProps {
   value: React.ReactNode
   subtext: string
   icon: React.ElementType
-  accentColor: 'blue' | 'emerald' | 'purple' | 'amber' | 'red' | 'teal' | 'slate'
+  accentColor: 'blue' | 'emerald' | 'amber' | 'red' | 'slate'
   linkHref?: string
 }
 
@@ -51,10 +51,8 @@ function DashboardStatCard({
   const accentClasses = {
     blue: 'border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300',
     emerald: 'border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-300',
-    purple: 'border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300',
     amber: 'border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-300',
     red: 'border-red-100 bg-red-50 text-red-600 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300',
-    teal: 'border-teal-100 bg-teal-50 text-teal-600 dark:border-teal-900/60 dark:bg-teal-950/30 dark:text-teal-300',
     slate: 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300',
   }
 
@@ -156,7 +154,7 @@ export function DashboardStatCards({
           value={gymStats.prsThisWeek}
           subtext={t('dashboardStats.newPersonalRecords')}
           icon={Trophy}
-          accentColor="purple"
+          accentColor="amber"
         />
       ) : (
         <DashboardStatCard
@@ -168,7 +166,7 @@ export function DashboardStatCards({
               : t('completedByAthletes')
           }
           icon={Activity}
-          accentColor="purple"
+          accentColor="slate"
         />
       )}
 
@@ -207,7 +205,7 @@ export function DashboardStatCards({
           }
           subtext={t('dashboardStats.teamReadinessToday')}
           icon={Activity}
-          accentColor="teal"
+          accentColor="blue"
         />
       ) : mode === 'GYM' && gymStats ? (
         <DashboardStatCard

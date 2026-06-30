@@ -94,7 +94,7 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
       <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <DashboardCardTitle className="text-base flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-yellow-500" />
+            <Trophy className="h-4 w-4 text-amber-500" />
             {t('title')}
           </DashboardCardTitle>
           <div className="flex items-center gap-1">
@@ -160,7 +160,7 @@ export function CompetitionCard({ basePath = '' }: CompetitionCardProps) {
                           <span className="text-xs flex-1 truncate">{entry.client.name}</span>
                           <span className={cn(
                             'text-xs font-bold',
-                            i === 0 ? 'text-yellow-600 dark:text-yellow-400' : 'dark:text-slate-200'
+                            i === 0 ? 'text-amber-600 dark:text-amber-400' : 'dark:text-slate-200'
                           )}>
                             {entry.currentValue}{comp.unit ? ` ${comp.unit}` : ''}
                           </span>

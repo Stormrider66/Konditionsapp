@@ -129,9 +129,9 @@ const severityConfig = {
     icon: AlertTriangle,
   },
   warning: {
-    dot: 'bg-yellow-500',
-    text: 'text-yellow-700 dark:text-yellow-400',
-    bg: 'bg-yellow-50 dark:bg-yellow-900/10',
+    dot: 'bg-amber-500',
+    text: 'text-amber-700 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-900/10',
     icon: TrendingUp,
   },
   info: {

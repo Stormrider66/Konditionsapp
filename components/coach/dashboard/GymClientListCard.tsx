@@ -34,8 +34,8 @@ function getInitials(name: string): string {
 
 function getProgressionColor(status: string | null): string {
   switch (status) {
-    case 'ON_TRACK': return 'text-green-600 dark:text-green-400'
-    case 'PLATEAU': return 'text-yellow-600 dark:text-yellow-400'
+    case 'ON_TRACK': return 'text-emerald-600 dark:text-emerald-400'
+    case 'PLATEAU': return 'text-amber-600 dark:text-amber-400'
     case 'REGRESSING': return 'text-red-600 dark:text-red-400'
     case 'DELOAD_NEEDED': return 'text-orange-600 dark:text-orange-400'
     default: return 'text-muted-foreground'
@@ -89,7 +89,7 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
       <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <DashboardCardTitle className="text-base flex items-center gap-2">
-            <Dumbbell className="h-4 w-4 text-orange-500" />
+            <Dumbbell className="h-4 w-4 text-blue-500" />
             {t('title')}
           </DashboardCardTitle>
           <Badge variant="secondary" className="text-xs">{clients.length}</Badge>
@@ -111,7 +111,7 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
               <Link
                 key={client.id}
                 href={`${basePath}/coach/clients/${client.id}`}
-                className={dashboardListItemClass('orange', 'flex items-center gap-3 px-3 py-2.5')}
+                className={dashboardListItemClass('blue', 'flex items-center gap-3 px-3 py-2.5')}
               >
                 <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-zinc-100 text-[10px] font-semibold text-zinc-600 ring-1 ring-zinc-200 dark:bg-zinc-900 dark:text-zinc-300 dark:ring-white/10">
                   {getInitials(client.name)}
@@ -122,10 +122,10 @@ export function GymClientListCard({ basePath }: GymClientListCardProps) {
                 {/* Key metrics */}
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {client.hasPRThisWeek && (
-                    <Trophy className="h-3 w-3 text-yellow-500" />
+                    <Trophy className="h-3 w-3 text-amber-500" />
                   )}
                   {client.plateauExercises > 0 && (
-                    <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                    <AlertTriangle className="h-3 w-3 text-amber-500" />
                   )}
                   {client.injuryCount > 0 && (
                     <Badge variant="outline" className="text-[10px] h-4 px-1 text-red-500 border-red-200">

@@ -44,8 +44,8 @@ interface SocialPostData {
 const statusConfig: Record<string, { labelKey: string; color: string; icon: typeof FileText }> = {
   DRAFT: { labelKey: 'statuses.draft', color: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400', icon: FileText },
   APPROVED: { labelKey: 'statuses.approved', color: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', icon: CheckCircle2 },
-  QUEUED: { labelKey: 'statuses.queued', color: 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400', icon: Clock },
-  PUBLISHED: { labelKey: 'statuses.published', color: 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400', icon: CheckCircle2 },
+  QUEUED: { labelKey: 'statuses.queued', color: 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', icon: Clock },
+  PUBLISHED: { labelKey: 'statuses.published', color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400', icon: CheckCircle2 },
   FAILED: { labelKey: 'statuses.failed', color: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400', icon: AlertCircle },
 }
 
@@ -160,7 +160,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
       <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <DashboardCardTitle className="text-base flex items-center gap-2">
-            <Share2 className="h-4 w-4 text-pink-500" />
+            <Share2 className="h-4 w-4 text-blue-500" />
             {t('title')}
           </DashboardCardTitle>
           <div className="flex items-center gap-1">
@@ -168,7 +168,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
               <Badge variant="secondary" className="text-[10px]">{t('draftCount', { count: draftCount })}</Badge>
             )}
             {publishedCount > 0 && (
-              <Badge className="text-[10px] bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">{t('publishedCount', { count: publishedCount })}</Badge>
+              <Badge className="text-[10px] bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400">{t('publishedCount', { count: publishedCount })}</Badge>
             )}
             <Link href={`${basePath}/coach/social`}>
               <Button variant="ghost" size="sm" className="text-xs h-6 px-2">{t('manage')}</Button>
@@ -205,8 +205,8 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
           </div>
 
           {generatedCaption && (
-            <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-900/10 border border-purple-200 dark:border-purple-800/30 space-y-2">
-              <p className="text-xs text-purple-700 dark:text-purple-300 font-medium flex items-center gap-1">
+            <div className="p-3 rounded-lg bg-cyan-50 dark:bg-cyan-900/10 border border-cyan-200 dark:border-cyan-800/30 space-y-2">
+              <p className="text-xs text-cyan-700 dark:text-cyan-300 font-medium flex items-center gap-1">
                 <Sparkles className="h-3 w-3" /> {t('aiSuggestion')}
               </p>
               <p className="text-sm whitespace-pre-wrap">{generatedCaption}</p>
@@ -247,7 +247,7 @@ export function SocialMediaCard({ basePath = '' }: SocialMediaCardProps) {
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <Badge className={cn('text-[10px] h-4', config.color)}>{t(config.labelKey)}</Badge>
                       {post.isAiGenerated && (
-                        <Sparkles className="h-2.5 w-2.5 text-purple-500" />
+                        <Sparkles className="h-2.5 w-2.5 text-cyan-500" />
                       )}
                       {post.publishes.map(p => (
                         <span key={p.id} className="text-[10px]" title={p.account.accountName}>

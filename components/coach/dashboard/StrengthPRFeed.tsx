@@ -37,7 +37,7 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
     <DashboardCard glow="amber" className="group">
       <DashboardCardHeader className="pb-2">
         <DashboardCardTitle className="text-sm flex items-center gap-2">
-          <Trophy className="h-4 w-4 text-yellow-500" />
+          <Trophy className="h-4 w-4 text-amber-500" />
           {t('title')}
         </DashboardCardTitle>
       </DashboardCardHeader>
@@ -65,7 +65,7 @@ export function StrengthPRFeed({ recentPRs }: StrengthPRFeedProps) {
                     <p className="text-xs text-muted-foreground">
                       {pr.exerciseName} {'\u2022'} {pr.oneRepMax} kg
                       {delta !== null && delta > 0 && (
-                        <span className={cn('ml-1 font-medium text-green-600 dark:text-green-400')}>
+                        <span className={cn('ml-1 font-medium text-emerald-600 dark:text-emerald-400')}>
                           (+{Math.round(delta * 10) / 10} kg)
                         </span>
                       )}

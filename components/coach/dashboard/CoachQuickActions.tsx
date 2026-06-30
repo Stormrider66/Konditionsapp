@@ -63,7 +63,7 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
         action: 'workout' as const,
         label: t('team.createWorkout'),
         icon: Timer,
-        className: 'bg-teal-50 text-teal-700 border-teal-200/70 hover:bg-teal-100 dark:bg-teal-950/25 dark:text-teal-300 dark:border-teal-800/40 dark:hover:bg-teal-950/40',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200/70 hover:bg-emerald-100 dark:bg-emerald-950/25 dark:text-emerald-300 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40',
       },
       {
         action: 'test' as const,
@@ -81,13 +81,13 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
         href: `${basePath}/coach/programs/new`,
         label: t('team.program'),
         icon: Target,
-        className: 'bg-green-50 text-green-700 border-green-200/70 hover:bg-green-100 dark:bg-green-950/25 dark:text-green-300 dark:border-green-800/40 dark:hover:bg-green-950/40',
+        className: 'bg-emerald-50 text-emerald-700 border-emerald-200/70 hover:bg-emerald-100 dark:bg-emerald-950/25 dark:text-emerald-300 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40',
       },
       {
         href: `${basePath}/coach/clients/new`,
         label: t('team.newAthlete'),
         icon: UserPlus,
-        className: 'bg-emerald-50 text-emerald-700 border-emerald-200/70 hover:bg-emerald-100 dark:bg-emerald-950/25 dark:text-emerald-300 dark:border-emerald-800/40 dark:hover:bg-emerald-950/40',
+        className: 'bg-blue-50 text-blue-700 border-blue-200/70 hover:bg-blue-100 dark:bg-blue-950/25 dark:text-blue-300 dark:border-blue-800/40 dark:hover:bg-blue-950/40',
       },
       {
         href: `${basePath}/coach/teams`,
@@ -173,13 +173,13 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
           </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
             <div className={neutralActionTileClass}>
-              <Dumbbell className="h-5 w-5 text-orange-500" />
+              <Dumbbell className="h-5 w-5 text-blue-500" />
               <span className={actionLabelClass}>{t('gym.strengthWorkout')}</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
             <div className={neutralActionTileClass}>
-              <Target className="h-5 w-5 text-yellow-500" />
+              <Target className="h-5 w-5 text-amber-500" />
               <span className={actionLabelClass}>{t('gym.logPr')}</span>
             </div>
           </Link>
@@ -197,13 +197,13 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
           </Link>
           <Link href={`${basePath}/coach/ai-studio`} className="block">
             <div className={neutralActionTileClass}>
-              <Sparkles className="h-5 w-5 text-purple-500" />
+              <Sparkles className="h-5 w-5 text-cyan-500" />
               <span className={actionLabelClass}>AI Studio</span>
             </div>
           </Link>
           <Link href={`${basePath}/coach/strength`} className="block">
             <div className={neutralActionTileClass}>
-              <Timer className="h-5 w-5 text-teal-500" />
+              <Timer className="h-5 w-5 text-emerald-500" />
               <span className={actionLabelClass}>{t('gym.assignWorkout')}</span>
             </div>
           </Link>
@@ -234,13 +234,13 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
         </Link>
         <Link href={`${basePath}/coach/programs/new`} className="block">
           <div className={neutralActionTileClass}>
-            <Target className="h-5 w-5 text-green-500" />
+            <Target className="h-5 w-5 text-emerald-500" />
             <span className={actionLabelClass}>Program</span>
           </div>
         </Link>
         <Link href={`${basePath}/coach/ai-studio`} className="block">
           <div className={neutralActionTileClass}>
-            <Sparkles className="h-5 w-5 text-purple-500" />
+            <Sparkles className="h-5 w-5 text-cyan-500" />
             <span className={actionLabelClass}>AI Studio</span>
           </div>
         </Link>
@@ -252,13 +252,13 @@ export function CoachQuickActions({ mode, basePath, pendingFeedbackCount, teams 
         </Link>
         <Link href={`${basePath}/coach/strength`} className="block">
           <div className={neutralActionTileClass}>
-            <Dumbbell className="h-5 w-5 text-orange-500" />
+            <Dumbbell className="h-5 w-5 text-blue-500" />
             <span className={actionLabelClass}>{t('pt.strength')}</span>
           </div>
         </Link>
         <Link href={`${basePath}/coach/interval-sessions`} className="block">
           <div className={neutralActionTileClass}>
-            <Timer className="h-5 w-5 text-teal-500" />
+            <Timer className="h-5 w-5 text-emerald-500" />
             <span className={actionLabelClass}>{t('pt.intervals')}</span>
           </div>
         </Link>

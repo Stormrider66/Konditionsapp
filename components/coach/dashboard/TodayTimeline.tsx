@@ -171,13 +171,13 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
               <div className="flex h-2 rounded-full overflow-hidden bg-slate-200 dark:bg-slate-700">
                 {readinessDistribution.high > 0 && (
                   <div
-                    className="bg-green-500 transition-all"
+                    className="bg-emerald-500 transition-all"
                     style={{ width: `${(readinessDistribution.high / readinessDistribution.total) * 100}%` }}
                   />
                 )}
                 {readinessDistribution.medium > 0 && (
                   <div
-                    className="bg-yellow-500 transition-all"
+                    className="bg-amber-500 transition-all"
                     style={{ width: `${(readinessDistribution.medium / readinessDistribution.total) * 100}%` }}
                   />
                 )}
@@ -190,11 +190,11 @@ export function TodayTimeline({ basePath, readinessDistribution }: TodayTimeline
               </div>
               <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   {t('readiness.high', { count: readinessDistribution.high })}
                 </span>
                 <span className="flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                   {t('readiness.medium', { count: readinessDistribution.medium })}
                 </span>
                 <span className="flex items-center gap-1">
