@@ -6,13 +6,16 @@
  * Responsive grid of athlete HR cards.
  */
 
-import { LiveHRParticipantData } from '@/lib/live-hr/types'
+import { LiveHRParticipantData, LiveHRWorkflowAssignment, LiveHRWorkflowBlock } from '@/lib/live-hr/types'
 import { AthleteHRCard } from './AthleteHRCard'
 import { Users } from 'lucide-react'
 import { useLocale } from '@/i18n/client'
 
 interface LiveHRGridProps {
   participants: LiveHRParticipantData[]
+  assignments?: Record<string, LiveHRWorkflowAssignment>
+  activeBlockForClient?: (clientId: string) => LiveHRWorkflowBlock | null
+  nowMs?: number
   onRemoveParticipant?: (clientId: string) => void
 }
 
@@ -32,7 +35,7 @@ const COPY: Record<AppLocale, {
   },
 }
 
-export function LiveHRGrid({ participants, onRemoveParticipant }: LiveHRGridProps) {
+export function LiveHRGrid({ participants, assignments = {}, activeBlockForClient, nowMs, onRemoveParticipant }: LiveHRGridProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
 
@@ -52,6 +55,9 @@ export function LiveHRGrid({ participants, onRemoveParticipant }: LiveHRGridProp
         <AthleteHRCard
           key={participant.id}
           participant={participant}
+          assignment={assignments[participant.clientId]}
+          activeBlock={activeBlockForClient?.(participant.clientId) ?? null}
+          nowMs={nowMs}
           onRemove={onRemoveParticipant}
         />
       ))}

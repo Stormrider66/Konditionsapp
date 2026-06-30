@@ -7,6 +7,8 @@
 // Session statuses
 export type LiveHRSessionStatus = 'ACTIVE' | 'PAUSED' | 'ENDED'
 export type LiveHRMachineType = 'WATTBIKE' | 'CONCEPT2_ROW' | 'CONCEPT2_SKIERG' | 'CONCEPT2_BIKEERG'
+export type LiveHRWorkoutOptionType = 'CARDIO' | 'HYBRID'
+export type LiveHRWorkflowBlockType = 'INTERVAL' | 'REST' | 'LAP' | 'WARMUP' | 'COOLDOWN'
 
 // Session creation input
 export interface CreateLiveHRSessionInput {
@@ -37,6 +39,62 @@ export interface LiveHRParticipantData {
   lastUpdated: string | null
   isStale: boolean // true if no reading in last 10 seconds
   joinedAt: string
+}
+
+export interface LiveHRWorkoutTargetStep {
+  id: string
+  index: number
+  label: string
+  type: LiveHRWorkflowBlockType
+  durationSeconds?: number
+  targetPower?: number
+  targetCadence?: number
+  targetZone?: number
+  targetHeartRate?: string
+  targetCalories?: number
+  targetDistanceMeters?: number
+  equipment?: string
+  notes?: string
+}
+
+export interface LiveHRWorkoutOption {
+  id: string
+  workoutType: LiveHRWorkoutOptionType
+  workoutId: string
+  workoutName: string
+  source: 'ASSIGNED' | 'LIBRARY'
+  sourceLabel?: string
+  assignedDate?: string | null
+  sourceAssignmentId?: string | null
+  steps: LiveHRWorkoutTargetStep[]
+}
+
+export interface LiveHRWorkflowAssignment {
+  clientId: string
+  workoutType: LiveHRWorkoutOptionType
+  workoutId: string
+  workoutName: string
+  sourceAssignmentId?: string | null
+  currentStepIndex: number
+  steps: LiveHRWorkoutTargetStep[]
+  assignedAt: string
+}
+
+export interface LiveHRWorkflowBlock {
+  id: string
+  clientId: string | null
+  type: LiveHRWorkflowBlockType
+  label: string
+  sequence: number
+  startedAt: string
+  endedAt?: string | null
+  stepIndex?: number | null
+  target?: LiveHRWorkoutTargetStep | null
+}
+
+export interface LiveHRWorkflowState {
+  blocks: LiveHRWorkflowBlock[]
+  assignments: Record<string, LiveHRWorkflowAssignment>
 }
 
 // SSE stream data format

@@ -1,14 +1,25 @@
 'use client'
 
-import { LiveHRParticipantData, ZONE_COLORS, ZONE_NAMES_EN, ZONE_NAMES_SV } from '@/lib/live-hr/types'
+import {
+  LiveHRParticipantData,
+  LiveHRWorkflowAssignment,
+  LiveHRWorkflowBlock,
+  ZONE_COLORS,
+  ZONE_NAMES_EN,
+  ZONE_NAMES_SV,
+} from '@/lib/live-hr/types'
 import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { Badge } from '@/components/ui/badge'
-import { Heart, AlertCircle, Bike } from 'lucide-react'
+import { Heart, AlertCircle, Bike, Flag, Target, Timer } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
+import { buildLiveHRTargetGuidance, type LiveHRTargetMetric, type LiveHRTargetStatus } from '@/lib/live-hr/target-guidance'
 
 interface AthleteHRCardProps {
   participant: LiveHRParticipantData
+  assignment?: LiveHRWorkflowAssignment
+  activeBlock?: LiveHRWorkflowBlock | null
+  nowMs?: number
   onRemove?: (clientId: string) => void
 }
 
@@ -21,6 +32,11 @@ const COPY: Record<AppLocale, {
   noSignal: string
   waiting: string
   zone: string
+  target: string
+  remaining: string
+  overtime: string
+  status: Record<LiveHRTargetStatus, string>
+  metric: Record<LiveHRTargetMetric['key'], string>
 }> = {
   en: {
     unknown: 'Unknown',
@@ -29,6 +45,21 @@ const COPY: Record<AppLocale, {
     noSignal: 'No signal',
     waiting: 'Waiting...',
     zone: 'Zone',
+    target: 'Target',
+    remaining: 'left',
+    overtime: 'over',
+    status: {
+      waiting: 'Waiting',
+      on: 'OK',
+      low: 'Low',
+      high: 'High',
+    },
+    metric: {
+      power: 'W',
+      cadence: 'RPM',
+      zone: 'Zone',
+      heartRate: 'HR',
+    },
   },
   sv: {
     unknown: 'Okänd',
@@ -37,10 +68,63 @@ const COPY: Record<AppLocale, {
     noSignal: 'Ingen signal',
     waiting: 'Väntar...',
     zone: 'Zon',
+    target: 'Mål',
+    remaining: 'kvar',
+    overtime: 'över',
+    status: {
+      waiting: 'Väntar',
+      on: 'OK',
+      low: 'Låg',
+      high: 'Hög',
+    },
+    metric: {
+      power: 'W',
+      cadence: 'RPM',
+      zone: 'Zon',
+      heartRate: 'Puls',
+    },
   },
 }
 
-export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
+function formatDuration(seconds?: number) {
+  if (!seconds) return null
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return mins > 0 ? `${mins}:${String(secs).padStart(2, '0')}` : `${secs}s`
+}
+
+function formatDistance(meters?: number) {
+  if (!meters) return null
+  return meters >= 1000 ? `${(meters / 1000).toFixed(meters % 1000 === 0 ? 0 : 1)} km` : `${meters} m`
+}
+
+function formatClock(seconds: number) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${String(secs).padStart(2, '0')}`
+}
+
+function formatTarget(step?: LiveHRWorkflowAssignment['steps'][number] | null) {
+  if (!step) return null
+  return [
+    formatDuration(step.durationSeconds),
+    step.targetPower ? `${step.targetPower} W` : null,
+    step.targetCadence ? `${step.targetCadence} rpm` : null,
+    step.targetZone ? `Z${step.targetZone}` : null,
+    step.targetHeartRate ?? null,
+    step.targetCalories ? `${step.targetCalories} cal` : null,
+    formatDistance(step.targetDistanceMeters),
+  ].filter(Boolean).join(' · ')
+}
+
+function guidanceClass(status: LiveHRTargetStatus) {
+  if (status === 'on') return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300'
+  if (status === 'low') return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300'
+  if (status === 'high') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300'
+  return 'border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400'
+}
+
+export function AthleteHRCard({ participant, assignment, activeBlock, nowMs, onRemove }: AthleteHRCardProps) {
   const locale: AppLocale = useLocale() === 'sv' ? 'sv' : 'en'
   const copy = COPY[locale]
   const { clientName, heartRate, zone, isStale, power, cadence, powerZone, machineType } = participant
@@ -59,6 +143,9 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
           ? 'Wattbike'
           : null
   const cadenceUnit = machineType === 'CONCEPT2_ROW' || machineType === 'CONCEPT2_SKIERG' ? 'spm' : 'rpm'
+  const currentStep = assignment?.steps[assignment.currentStepIndex] ?? null
+  const targetText = formatTarget(currentStep)
+  const guidance = buildLiveHRTargetGuidance({ participant, step: currentStep, activeBlock, nowMs })
 
   const hasData = heartRate != null || power != null
   // Accent off HR when present, otherwise off power — so power-only riders light up too.
@@ -147,6 +234,61 @@ export function AthleteHRCard({ participant, onRemove }: AthleteHRCardProps) {
                 <span className="text-slate-500 dark:text-slate-400 text-xs">· {cadence} {cadenceUnit}</span>
               )}
             </div>
+          </div>
+        )}
+
+        {(activeBlock || currentStep) && (
+          <div className="mt-3 space-y-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-2 text-xs dark:border-white/10 dark:bg-white/[0.03]">
+            {activeBlock && (
+              <div className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                <Flag className="h-3.5 w-3.5 text-amber-500" />
+                <span className="truncate font-semibold">{activeBlock.label}</span>
+              </div>
+            )}
+            {currentStep && (
+              <div className="flex items-center gap-1 text-slate-600 dark:text-slate-400">
+                <Target className="h-3.5 w-3.5 text-blue-500" />
+                <span className="truncate">
+                  {copy.target}: {currentStep.label}{targetText ? ` · ${targetText}` : ''}
+                </span>
+              </div>
+            )}
+            {guidance.timer && (
+              <div className="space-y-1 pt-1">
+                <div className="flex items-center justify-between gap-2 text-slate-600 dark:text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <Timer className="h-3.5 w-3.5" />
+                    {guidance.timer.isOvertime
+                      ? `${formatClock(guidance.timer.elapsedSeconds - guidance.timer.durationSeconds)} ${copy.overtime}`
+                      : `${formatClock(guidance.timer.remainingSeconds)} ${copy.remaining}`}
+                  </span>
+                  <span>{Math.round(guidance.timer.progress * 100)}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
+                  <div
+                    className={cn('h-full rounded-full', guidance.timer.isOvertime ? 'bg-amber-500' : 'bg-blue-500')}
+                    style={{ width: `${Math.min(100, Math.round(guidance.timer.progress * 100))}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {guidance.metrics.length > 0 && (
+              <div className="grid grid-cols-1 gap-1 pt-1">
+                {guidance.metrics.slice(0, 3).map((metric) => (
+                  <div
+                    key={metric.key}
+                    className={cn('flex items-center justify-between gap-2 rounded border px-2 py-1', guidanceClass(metric.status))}
+                  >
+                    <span className="font-semibold">{copy.metric[metric.key]}</span>
+                    <span className="truncate tabular-nums">
+                      {metric.actualLabel} / {metric.targetLabel}
+                      {metric.deltaLabel ? ` (${metric.deltaLabel})` : ''}
+                    </span>
+                    <span className="font-semibold">{copy.status[metric.status]}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 

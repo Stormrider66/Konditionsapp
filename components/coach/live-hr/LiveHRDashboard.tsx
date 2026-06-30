@@ -13,7 +13,13 @@ import { SessionSummary } from './SessionSummary'
 import { LiveHRGrid } from './LiveHRGrid'
 import { AddParticipantDialog } from './AddParticipantDialog'
 import { MachineCapturePanel } from './MachineCapturePanel'
-import { LiveHRStreamData, LiveHRSessionStatus } from '@/lib/live-hr/types'
+import { LiveHRWorkoutPanel } from './LiveHRWorkoutPanel'
+import {
+  LiveHRStreamData,
+  LiveHRSessionStatus,
+  LiveHRWorkflowBlock,
+  LiveHRWorkflowState,
+} from '@/lib/live-hr/types'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, RefreshCw } from 'lucide-react'
 import { useRouter, usePathname } from 'next/navigation'
@@ -25,6 +31,21 @@ import { useLocale } from '@/i18n/client'
 interface AvailableClient {
   id: string
   name: string
+}
+
+const EMPTY_WORKFLOW: LiveHRWorkflowState = {
+  blocks: [],
+  assignments: {},
+}
+
+function workflowStorageKey(sessionId: string) {
+  return `live-hr-workflow:${sessionId}`
+}
+
+function activeBlockForClient(blocks: LiveHRWorkflowBlock[], clientId: string) {
+  return [...blocks]
+    .reverse()
+    .find((block) => !block.endedAt && (block.clientId === clientId || block.clientId === null)) ?? null
 }
 
 interface LiveHRDashboardProps {
@@ -82,6 +103,52 @@ export function LiveHRDashboard({
   const [availableClients, setAvailableClients] = useState(initialAvailableClients)
   const [isConnected, setIsConnected] = useState(false)
   const [connectionError, setConnectionError] = useState<string | null>(null)
+  const [workflow, setWorkflow] = useState<LiveHRWorkflowState>(EMPTY_WORKFLOW)
+  const [workflowHydrated, setWorkflowHydrated] = useState(false)
+  const [nowMs, setNowMs] = useState(() => Date.now())
+  const hasActiveWorkflowBlock = workflow.blocks.some((block) => !block.endedAt)
+
+  const clearSavedWorkflow = useCallback(() => {
+    setWorkflow({ blocks: [], assignments: {} })
+    try {
+      window.localStorage.removeItem(workflowStorageKey(sessionId))
+    } catch {
+      // Storage can fail in private mode; clearing in memory is enough.
+    }
+  }, [sessionId])
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(workflowStorageKey(sessionId))
+      if (raw) {
+        const parsed = JSON.parse(raw) as LiveHRWorkflowState
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setWorkflow({
+          blocks: Array.isArray(parsed.blocks) ? parsed.blocks : [],
+          assignments: parsed.assignments && typeof parsed.assignments === 'object' ? parsed.assignments : {},
+        })
+      }
+    } catch {
+      // Ignore corrupt local workflow state; the live data stream still works.
+    } finally {
+      setWorkflowHydrated(true)
+    }
+  }, [sessionId])
+
+  useEffect(() => {
+    if (!workflowHydrated) return
+    try {
+      window.localStorage.setItem(workflowStorageKey(sessionId), JSON.stringify(workflow))
+    } catch {
+      // Storage can fail in private mode; controls still work in memory.
+    }
+  }, [sessionId, workflow, workflowHydrated])
+
+  useEffect(() => {
+    if (!hasActiveWorkflowBlock) return
+    const intervalId = window.setInterval(() => setNowMs(Date.now()), 1_000)
+    return () => window.clearInterval(intervalId)
+  }, [hasActiveWorkflowBlock])
 
   // Connect to SSE stream
   useEffect(() => {
@@ -240,6 +307,17 @@ export function LiveHRDashboard({
         disabled={data.status !== 'ACTIVE'}
       />
 
+      <LiveHRWorkoutPanel
+        sessionId={sessionId}
+        participants={data.participants}
+        workflow={workflow}
+        setWorkflow={setWorkflow}
+        onWorkflowSaved={clearSavedWorkflow}
+        disabled={data.status !== 'ACTIVE'}
+        basePath={basePath}
+        nowMs={nowMs}
+      />
+
       {/* Summary */}
       <SessionSummary
         totalParticipants={data.summary.totalParticipants}
@@ -252,6 +330,9 @@ export function LiveHRDashboard({
       {/* Participant grid */}
       <LiveHRGrid
         participants={data.participants}
+        assignments={workflow.assignments}
+        activeBlockForClient={(clientId) => activeBlockForClient(workflow.blocks, clientId)}
+        nowMs={nowMs}
         onRemoveParticipant={data.status !== 'ENDED' ? handleRemoveParticipant : undefined}
       />
     </div>
