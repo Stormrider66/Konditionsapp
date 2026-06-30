@@ -302,8 +302,8 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                       <span
                         className={
                           log.duration >= workout.duration
-                            ? 'text-green-600'
-                            : 'text-orange-600'
+                            ? 'text-emerald-600'
+                            : 'text-amber-600'
                         }
                       >
                         ({log.duration >= workout.duration ? '+' : ''}
@@ -320,8 +320,8 @@ export function WorkoutFeedbackModal({ log, workout, athleteId }: WorkoutFeedbac
                       <span
                         className={
                           log.distance >= workout.distance
-                            ? 'text-green-600'
-                            : 'text-orange-600'
+                            ? 'text-emerald-600'
+                            : 'text-amber-600'
                         }
                       >
                         ({log.distance >= workout.distance ? '+' : ''}

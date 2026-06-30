@@ -438,7 +438,7 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
                 <SelectContent>
                   <SelectItem value="EXCEEDED">
                     <span className="flex items-center gap-2">
-                      <Target className="h-4 w-4 text-green-500" />
+                      <Target className="h-4 w-4 text-emerald-500" />
                       Exceeded Goal
                     </span>
                   </SelectItem>
@@ -461,11 +461,11 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
 
           {/* Data Moat: Prediction Linking */}
           {availablePredictions.length > 0 && (
-            <Card className="border-blue-200 bg-blue-50/50">
+            <Card className="border-cyan-200 bg-cyan-50/50">
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Brain className="h-4 w-4 text-blue-600" />
-                  <Label className="text-blue-800 font-medium">AI Prediction Available</Label>
+                  <Brain className="h-4 w-4 text-cyan-600" />
+                  <Label className="text-cyan-800 font-medium">AI Prediction Available</Label>
                 </div>
                 <div className="space-y-3">
                   <Select
@@ -490,7 +490,7 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
                     </SelectContent>
                   </Select>
                   {linkedPredictionId && (
-                    <p className="text-xs text-blue-600">
+                    <p className="text-xs text-cyan-600">
                       Linking helps validate AI predictions and improve future accuracy.
                     </p>
                   )}
@@ -515,7 +515,7 @@ export function RaceResultForm({ clientId, clientName, onSuccess, onCancel }: Ra
                   <Star
                     className={`h-4 w-4 ${
                       satisfactionScore && satisfactionScore >= score
-                        ? 'fill-yellow-400 text-yellow-400'
+                        ? 'fill-amber-400 text-amber-400'
                         : ''
                     }`}
                   />

@@ -100,7 +100,7 @@ export function DrillTemplatePage({ teams }: DrillTemplatePageProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <LayoutTemplate className="h-5 w-5 text-orange-500" />
+            <LayoutTemplate className="h-5 w-5 text-blue-500" />
             {t('editor.title')}
           </CardTitle>
           <p className="text-sm text-muted-foreground">

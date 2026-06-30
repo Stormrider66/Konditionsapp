@@ -186,7 +186,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Sparkles className="h-5 w-5 text-purple-500" />
+            <Sparkles className="h-5 w-5 text-cyan-500" />
             {t('creator.photoSectionTitle')}
           </CardTitle>
         </CardHeader>
@@ -252,7 +252,7 @@ export function DrillCreator({ teams, businessSlug: _businessSlug }: DrillCreato
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <MessageSquare className="h-5 w-5 text-green-500" />
+              <MessageSquare className="h-5 w-5 text-cyan-500" />
               {t('creator.textSectionTitle')}
             </CardTitle>
           </CardHeader>

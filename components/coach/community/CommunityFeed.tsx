@@ -44,8 +44,8 @@ interface CommunityPostData {
 
 const typeConfig: Record<string, { labelKey: string; icon: typeof Megaphone; color: string }> = {
   ANNOUNCEMENT: { labelKey: 'types.announcement', icon: Megaphone, color: 'text-blue-500' },
-  MOTIVATION: { labelKey: 'types.motivation', icon: Zap, color: 'text-yellow-500' },
-  ACHIEVEMENT: { labelKey: 'types.achievement', icon: Trophy, color: 'text-green-500' },
+  MOTIVATION: { labelKey: 'types.motivation', icon: Zap, color: 'text-amber-500' },
+  ACHIEVEMENT: { labelKey: 'types.achievement', icon: Trophy, color: 'text-amber-500' },
   GENERAL: { labelKey: 'types.general', icon: Users, color: 'text-zinc-500' },
 }
 
@@ -218,7 +218,7 @@ export function CommunityFeed() {
             className={cn(
               'flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors',
               notifyEmail
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                 : 'text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-900'
             )}
           >

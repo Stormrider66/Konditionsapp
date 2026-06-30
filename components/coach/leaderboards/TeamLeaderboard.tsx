@@ -170,11 +170,11 @@ const PROTOCOL_LABELS: Record<ErgometerTestProtocol, string> = {
 };
 
 const TIER_COLORS: Record<string, { bg: string; text: string }> = {
-  ELITE: { bg: 'bg-yellow-100', text: 'text-yellow-800' },
+  ELITE: { bg: 'bg-amber-100', text: 'text-amber-800' },
   ADVANCED: { bg: 'bg-blue-100', text: 'text-blue-800' },
-  INTERMEDIATE: { bg: 'bg-green-100', text: 'text-green-800' },
-  BEGINNER: { bg: 'bg-gray-100', text: 'text-gray-800' },
-  UNKNOWN: { bg: 'bg-gray-50', text: 'text-gray-600' },
+  INTERMEDIATE: { bg: 'bg-emerald-100', text: 'text-emerald-800' },
+  BEGINNER: { bg: 'bg-zinc-100', text: 'text-zinc-800' },
+  UNKNOWN: { bg: 'bg-zinc-50', text: 'text-zinc-600' },
 };
 
 const SORT_OPTIONS = [
@@ -187,15 +187,15 @@ const SORT_OPTIONS = [
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) {
     return (
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100">
-        <Trophy className="h-4 w-4 text-yellow-600" />
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100">
+        <Trophy className="h-4 w-4 text-amber-600" />
       </div>
     );
   }
   if (rank === 2) {
     return (
-      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100">
-        <Medal className="h-4 w-4 text-gray-500" />
+      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-100">
+        <Medal className="h-4 w-4 text-zinc-500" />
       </div>
     );
   }
@@ -224,7 +224,7 @@ function TrendIndicator({
 }) {
   if (trend === 'new') {
     return (
-      <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
         <Sparkles className="h-3 w-3 mr-1" />
         {copy.new}
       </Badge>
@@ -232,7 +232,7 @@ function TrendIndicator({
   }
   if (trend === 'up') {
     return (
-      <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+      <Badge variant="outline" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
         <TrendingUp className="h-3 w-3 mr-1" />
         {improvement ? `+${improvement.toFixed(1)}%` : copy.up}
       </Badge>

@@ -656,7 +656,7 @@ export function PracticePlanner({ teams }: PracticePlannerProps) {
       <RolePanel className="p-5 sm:p-6">
         <div className="mb-5 flex flex-col gap-3 border-b border-zinc-200 pb-4 dark:border-white/10 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
               <ClipboardList className="h-5 w-5" />
             </span>
             <h2 className="text-base font-semibold text-zinc-950 dark:text-zinc-50">

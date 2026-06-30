@@ -126,12 +126,12 @@ interface CoachCalendarClientProps {
 }
 
 const EVENT_TYPE_CONFIG: Record<string, { labelKey: string; icon: React.ElementType; color: string }> = {
-  RACE_A: { labelKey: 'events.raceA', icon: Trophy, color: 'text-yellow-500 bg-yellow-500/10' },
-  RACE_B: { labelKey: 'events.raceB', icon: Trophy, color: 'text-orange-500 bg-orange-500/10' },
+  RACE_A: { labelKey: 'events.raceA', icon: Trophy, color: 'text-amber-500 bg-amber-500/10' },
+  RACE_B: { labelKey: 'events.raceB', icon: Trophy, color: 'text-amber-500 bg-amber-500/10' },
   RACE_C: { labelKey: 'events.raceC', icon: Trophy, color: 'text-blue-500 bg-blue-500/10' },
-  COMPETITION: { labelKey: 'events.competition', icon: Trophy, color: 'text-purple-500 bg-purple-500/10' },
-  ALTITUDE_CAMP: { labelKey: 'events.altitudeCamp', icon: Mountain, color: 'text-cyan-500 bg-cyan-500/10' },
-  TRAINING_CAMP: { labelKey: 'events.trainingCamp', icon: MapPin, color: 'text-green-500 bg-green-500/10' },
+  COMPETITION: { labelKey: 'events.competition', icon: Trophy, color: 'text-amber-500 bg-amber-500/10' },
+  ALTITUDE_CAMP: { labelKey: 'events.altitudeCamp', icon: Mountain, color: 'text-blue-500 bg-blue-500/10' },
+  TRAINING_CAMP: { labelKey: 'events.trainingCamp', icon: MapPin, color: 'text-emerald-500 bg-emerald-500/10' },
   TRAVEL: { labelKey: 'events.travel', icon: Plane, color: 'border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300' },
   ILLNESS: { labelKey: 'events.illness', icon: AlertTriangle, color: 'text-red-500 bg-red-500/10' },
   REST_DAY: { labelKey: 'events.restDay', icon: Clock, color: 'text-emerald-500 bg-emerald-500/10' },
@@ -322,7 +322,7 @@ export function CoachCalendarClient({
                 <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{t('stats.upcomingEvents')}</p>
                 <p className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{filteredEvents.length + filteredTeamEvents.length}</p>
               </div>
-              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-violet-100 bg-violet-50 text-violet-600 dark:border-violet-900/60 dark:bg-violet-950/30 dark:text-violet-300">
+              <div className="flex h-10 w-10 items-center justify-center rounded-md border border-zinc-200 bg-zinc-50 text-zinc-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
                 <Calendar className="h-5 w-5" />
               </div>
             </div>
@@ -482,7 +482,7 @@ export function CoachCalendarClient({
           <div className="border-b border-zinc-200 px-5 py-4 dark:border-white/10">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                <Users className="h-5 w-5 text-violet-500" />
+                <Users className="h-5 w-5 text-blue-500" />
                 {t('sections.quickAccess')}
               </h2>
               <div className="relative w-full sm:w-64">

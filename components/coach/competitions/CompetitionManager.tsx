@@ -265,7 +265,7 @@ export function CompetitionManager({ basePath: _basePath }: CompetitionManagerPr
           {activeCompetitions.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Target className="h-5 w-5 text-green-500" />
+                <Target className="h-5 w-5 text-emerald-500" />
                 {t('sections.active')}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
@@ -342,7 +342,7 @@ function CompetitionDetailCard({
             {isEnded ? (
               <Badge variant="outline" className="text-xs">{t('state.ended')}</Badge>
             ) : (
-              <Badge className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+              <Badge className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
                 <Clock className="h-3 w-3 mr-1" /> {t('competition.daysLeft', { days })}
               </Badge>
             )}
@@ -365,7 +365,7 @@ function CompetitionDetailCard({
                   {getInitials(entry.client.name)}
                 </div>
                 <span className="text-sm flex-1 truncate">{entry.client.name}</span>
-                <span className={cn('text-sm font-bold', i === 0 && 'text-yellow-600')}>
+                <span className={cn('text-sm font-bold', i === 0 && 'text-amber-600')}>
                   {entry.currentValue}{comp.unit ? ` ${comp.unit}` : ''}
                 </span>
               </div>

@@ -282,7 +282,7 @@ export function DrillList({ teamId }: DrillListProps) {
                           <Eye className="h-3.5 w-3.5" />
                           {t('common.labels.seenBy', { viewed: status.viewed, total: status.total })}
                         </span>
-                        <span className="flex items-center gap-1 text-green-600">
+                        <span className="flex items-center gap-1 text-emerald-600">
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           {t('common.labels.confirmedCount', { count: status.acknowledged })}
                         </span>
@@ -322,7 +322,7 @@ export function DrillList({ teamId }: DrillListProps) {
                           {/* Acknowledged */}
                           {status.athletes.filter((a) => a.acknowledgedAt).length > 0 && (
                             <div>
-                              <p className="font-medium text-green-600 mb-0.5">{t('common.labels.confirmed')}</p>
+                              <p className="font-medium text-emerald-600 mb-0.5">{t('common.labels.confirmed')}</p>
                               {status.athletes
                                 .filter((a) => a.acknowledgedAt)
                                 .map((a) => (
