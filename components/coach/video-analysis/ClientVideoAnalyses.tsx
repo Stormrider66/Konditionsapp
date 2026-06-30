@@ -74,23 +74,23 @@ const VIDEO_TYPE_INFO = {
   STRENGTH: {
     label: { sv: 'Styrkeövning', en: 'Strength exercise' },
     icon: Dumbbell,
-    color: 'text-orange-500',
+    color: 'text-zinc-500',
   },
   RUNNING_GAIT: {
     label: { sv: 'Löpteknik', en: 'Running technique' },
     icon: PersonStanding,
-    color: 'text-blue-500',
+    color: 'text-zinc-500',
   },
   SPORT_SPECIFIC: {
     label: { sv: 'Sportspecifik', en: 'Sport-specific' },
     icon: Activity,
-    color: 'text-purple-500',
+    color: 'text-zinc-500',
   },
 }
 
 function getScoreColor(score: number) {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
+  if (score >= 80) return 'text-emerald-600'
+  if (score >= 60) return 'text-amber-600'
   return 'text-red-600'
 }
 
@@ -183,7 +183,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
           h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
           h2 { color: #374151; margin-top: 24px; }
           .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-          .score { font-size: 48px; font-weight: bold; color: ${analysis.formScore && analysis.formScore >= 70 ? '#16a34a' : analysis.formScore && analysis.formScore >= 50 ? '#ca8a04' : '#dc2626'}; }
+          .score { font-size: 48px; font-weight: bold; color: ${analysis.formScore && analysis.formScore >= 70 ? '#059669' : analysis.formScore && analysis.formScore >= 50 ? '#d97706' : '#dc2626'}; }
           .score-label { font-size: 18px; color: #6b7280; }
           .meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; background: #f3f4f6; padding: 16px; border-radius: 8px; }
           .meta-item label { font-size: 12px; color: #6b7280; }
@@ -194,7 +194,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
           .issue.LOW { border-color: #3b82f6; background: #eff6ff; }
           .issue-title { font-weight: 600; }
           .issue-desc { font-size: 14px; color: #4b5563; margin-top: 4px; }
-          .recommendation { padding: 12px; margin: 8px 0; background: #f0fdf4; border-radius: 4px; border-left: 4px solid #22c55e; }
+          .recommendation { padding: 12px; margin: 8px 0; background: #ecfdf5; border-radius: 4px; border-left: 4px solid #10b981; }
           .rec-title { font-weight: 600; }
           .rec-desc { font-size: 14px; color: #4b5563; margin-top: 4px; }
           .rec-priority { display: inline-block; background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-right: 8px; }
@@ -368,7 +368,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                       </span>
                       <Badge
                         variant={analysis.status === 'COMPLETED' ? 'default' : 'secondary'}
-                        className={analysis.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : ''}
+                        className={analysis.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : ''}
                       >
                         {analysis.status === 'COMPLETED' ? t('Klar', 'Complete') : analysis.status}
                       </Badge>
@@ -377,7 +377,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                       {format(new Date(analysis.createdAt), 'PPP', { locale: dateFnsLocale })}
                     </p>
                     {issueCount > 0 && (
-                      <p className="text-sm text-orange-600 mt-1">
+                      <p className="text-sm text-amber-600 mt-1">
                         <AlertTriangle className="h-3 w-3 inline mr-1" />
                         {issueCount}{' '}
                         {issueCount === 1 ? t('problem', 'issue') : t('problem', 'issues')}{' '}
@@ -453,7 +453,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
               {t('Analysresultat', 'Analysis results')}
             </DialogTitle>
           </DialogHeader>
@@ -477,7 +477,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
               {selectedAnalysis.issuesDetected && selectedAnalysis.issuesDetected.length > 0 && (
                 <div className="space-y-3">
                   <h3 className="font-semibold flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
+                    <AlertTriangle className="h-4 w-4 text-amber-500" />
                     {t(
                       `Identifierade problem (${selectedAnalysis.issuesDetected.length})`,
                       `Identified issues (${selectedAnalysis.issuesDetected.length})`
@@ -491,7 +491,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                           issue.severity === 'HIGH'
                             ? 'border-red-500 bg-red-50'
                             : issue.severity === 'MEDIUM'
-                            ? 'border-yellow-500 bg-yellow-50'
+                            ? 'border-amber-500 bg-amber-50'
                             : 'border-blue-500 bg-blue-50'
                         }`}
                       >
@@ -517,7 +517,7 @@ export function ClientVideoAnalyses({ clientId, clientName, onLoadToAI }: Client
                     {selectedAnalysis.recommendations
                       .sort((a, b) => a.priority - b.priority)
                       .map((rec, i) => (
-                        <div key={i} className="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                        <div key={i} className="p-3 bg-emerald-50 rounded-lg border-l-4 border-emerald-500">
                           <div className="flex items-center gap-2 mb-1">
                             <Badge variant="outline" className="bg-blue-100 text-blue-700">
                               {t('Prioritet', 'Priority')} {rec.priority}

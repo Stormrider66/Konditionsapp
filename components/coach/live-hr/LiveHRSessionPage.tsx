@@ -61,7 +61,7 @@ export default async function LiveHRSessionPage({ params }: PageProps) {
       <RolePageFrame maxWidth="wide">
         <RolePanel>
           <div className="flex flex-col items-center justify-center py-12">
-            <AlertCircle className="h-12 w-12 text-rose-500 mb-4" />
+            <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{copy.accessDeniedTitle}</h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">{copy.accessDeniedDescription}</p>
             <Link href={`${basePath}/coach/live-hr`}>

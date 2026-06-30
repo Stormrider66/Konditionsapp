@@ -90,7 +90,7 @@ export function SessionSummary({
       {/* Average HR */}
       <RolePanel>
         <div className="flex items-center gap-3 p-4">
-          <Heart className="h-8 w-8 text-rose-500" />
+          <Heart className="h-8 w-8 text-red-500" />
           <div>
             <p className="text-2xl font-bold text-slate-900 dark:text-white">
               {avgHeartRate ?? '-'}

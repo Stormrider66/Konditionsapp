@@ -256,7 +256,7 @@ export function LiveHRSessionList({ teams, athletes }: LiveHRSessionListProps) {
       {/* Empty state */}
       {sessions.length === 0 && (
         <RolePanel className="flex flex-col items-center justify-center px-6 py-12 text-center">
-          <Radio className="h-12 w-12 text-rose-500 mb-4 animate-pulse" />
+          <Radio className="h-12 w-12 text-slate-500 mb-4 animate-pulse" />
           <p className="text-lg font-semibold text-slate-900 dark:text-white">{copy.noSessions}</p>
           <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
             {copy.emptyHint}

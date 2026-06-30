@@ -1240,8 +1240,8 @@ export function PoseAnalyzer({
 
   const getStatusColor = (status: 'good' | 'warning' | 'critical') => {
     switch (status) {
-      case 'good': return 'bg-green-100 text-green-800'
-      case 'warning': return 'bg-yellow-100 text-yellow-800'
+      case 'good': return 'bg-emerald-100 text-emerald-800'
+      case 'warning': return 'bg-amber-100 text-amber-800'
       case 'critical': return 'bg-red-100 text-red-800'
     }
   }
@@ -1292,7 +1292,7 @@ export function PoseAnalyzer({
           </div>
 
           {hasSavedPoseData && (
-            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
               <CheckCircle2 className="h-4 w-4" />
               <span className="font-medium">{text(locale, 'Poseanalys är sparad', 'Pose analysis is saved')}</span>
               {savedFrameCount ? <span>{savedFrameCount} frames</span> : null}
@@ -1342,7 +1342,7 @@ export function PoseAnalyzer({
             {videoError && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/70">
                 <div className="text-center text-white">
-                  <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-yellow-400" />
+                  <AlertTriangle className="h-8 w-8 mx-auto mb-2 text-amber-400" />
                   <p>{text(locale, 'Kunde inte ladda videon', 'Could not load the video')}</p>
                   <p className="text-sm text-gray-400 mt-1">{text(locale, 'Kontrollera att videon fortfarande finns tillgänglig', 'Check that the video is still available')}</p>
                 </div>
@@ -1380,7 +1380,7 @@ export function PoseAnalyzer({
             <div className="rounded-lg border bg-slate-50 p-3">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <Gauge className="h-4 w-4 text-orange-600" />
+                  <Gauge className="h-4 w-4 text-blue-600" />
                   {text(locale, 'Squat jump / jump squat-effekt', 'Squat jump / jump squat power')}
                 </div>
                 {squatJumpPowerEstimate && (
@@ -1484,7 +1484,7 @@ export function PoseAnalyzer({
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium">
-                      <LineChart className="h-4 w-4 text-orange-600" />
+                      <LineChart className="h-4 w-4 text-blue-600" />
                       {text(locale, 'Laststege', 'Loaded series')}
                     </div>
                     <p className="text-xs text-muted-foreground">
@@ -1726,7 +1726,7 @@ export function PoseAnalyzer({
                           }
                         }}
                         title={isEditMode ? text(locale, 'Avsluta redigeringsläge', 'Exit edit mode') : text(locale, 'Redigera landmärken', 'Edit landmarks')}
-                        className={isEditMode ? "bg-yellow-500 hover:bg-yellow-600" : ""}
+                        className={isEditMode ? "bg-amber-500 hover:bg-amber-600" : ""}
                       >
                         {isEditMode ? <MousePointer className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
                       </Button>
@@ -1744,7 +1744,7 @@ export function PoseAnalyzer({
                     {/* Edit mode indicator */}
                     {isEditMode && (
                       <div className="text-center text-xs">
-                        <span className="text-yellow-600 font-medium">
+                        <span className="text-amber-600 font-medium">
                           {text(locale, 'Redigeringsläge aktivt', 'Edit mode active')}
                         </span>
                         {hoveredLandmark !== null && (
@@ -1753,7 +1753,7 @@ export function PoseAnalyzer({
                           </span>
                         )}
                         {hasEdits && (
-                          <span className="ml-2 text-green-600">
+                          <span className="ml-2 text-emerald-600">
                             {text(locale, '(ändringar sparade i sessionen)', '(changes saved in the session)')}
                           </span>
                         )}
@@ -1832,7 +1832,7 @@ export function PoseAnalyzer({
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <span>{text(locale, 'Analyserade frames', 'Analyzed frames')}: {frames.length}</span>
                 {detectedCameraAngle !== 'UNKNOWN' && (
-                  <Badge variant="outline" className={detectedCameraAngle === 'SAGITTAL' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-purple-50 text-purple-700 border-purple-200'}>
+                  <Badge variant="outline" className={detectedCameraAngle === 'SAGITTAL' ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-700 border-slate-200'}>
                     {detectedCameraAngle === 'SAGITTAL' ? text(locale, 'Sidovy', 'Side view') : text(locale, 'Fram-/Bakvy', 'Front/back view')}
                   </Badge>
                 )}
@@ -1873,19 +1873,19 @@ export function PoseAnalyzer({
 
       {/* AI Pose Analysis Results */}
       {aiPoseAnalysis && (
-        <Card className="border-purple-200 bg-purple-50/50">
+        <Card className="border-cyan-200 bg-cyan-50/50">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Brain className="h-5 w-5 text-purple-600" />
+              <Brain className="h-5 w-5 text-cyan-600" />
               {text(locale, 'Gemini AI-analys av posedata', 'Gemini AI analysis of pose data')}
-              <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200">
+              <Badge variant="outline" className="bg-cyan-100 text-cyan-700 border-cyan-200">
                 Gemini
               </Badge>
             </CardTitle>
             {aiPoseAnalysis.score !== undefined && (
               <CardDescription className="flex items-center gap-2">
                 <span>{text(locale, 'AI-poäng:', 'AI score:')}</span>
-                <span className={`font-bold ${aiPoseAnalysis.score >= 70 ? 'text-green-600' : aiPoseAnalysis.score >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                <span className={`font-bold ${aiPoseAnalysis.score >= 70 ? 'text-emerald-600' : aiPoseAnalysis.score >= 50 ? 'text-amber-600' : 'text-red-600'}`}>
                   {aiPoseAnalysis.score}%
                 </span>
               </CardDescription>
@@ -1895,7 +1895,7 @@ export function PoseAnalyzer({
             {/* Interpretation */}
             <div className="p-3 bg-white rounded-lg border">
               <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-purple-500" />
+                <Sparkles className="h-4 w-4 text-cyan-500" />
                 {text(locale, 'Tolkning', 'Interpretation')}
               </h4>
               <p className="text-sm text-muted-foreground">{aiPoseAnalysis.interpretation}</p>
@@ -1907,10 +1907,10 @@ export function PoseAnalyzer({
                 <h4 className="text-sm font-medium">{text(locale, 'Teknisk feedback', 'Technical feedback')}</h4>
                 {aiPoseAnalysis.technicalFeedback.map((fb, i) => (
                   <div key={i} className="p-3 bg-white rounded-lg border">
-                    <div className="font-medium text-sm text-purple-700">{fb.area}</div>
+                    <div className="font-medium text-sm text-cyan-700">{fb.area}</div>
                     <p className="text-sm mt-1"><strong>{text(locale, 'Observation:', 'Observation:')}</strong> {fb.observation}</p>
-                    <p className="text-sm text-orange-600"><strong>{text(locale, 'Påverkan:', 'Impact:')}</strong> {fb.impact}</p>
-                    <p className="text-sm text-green-600"><strong>{text(locale, 'Förslag:', 'Suggestion:')}</strong> {fb.suggestion}</p>
+                    <p className="text-sm text-amber-600"><strong>{text(locale, 'Påverkan:', 'Impact:')}</strong> {fb.impact}</p>
+                    <p className="text-sm text-emerald-600"><strong>{text(locale, 'Förslag:', 'Suggestion:')}</strong> {fb.suggestion}</p>
                   </div>
                 ))}
               </div>
@@ -1923,7 +1923,7 @@ export function PoseAnalyzer({
                 <div className="grid gap-2">
                   {aiPoseAnalysis.patterns.map((p, i) => (
                     <div key={i} className="p-2 bg-white rounded-lg border flex items-start gap-2">
-                      <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                      <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
                       <div>
                         <span className="text-sm font-medium">{p.pattern}</span>
                         <p className="text-xs text-muted-foreground">{p.significance}</p>
@@ -1964,9 +1964,9 @@ export function PoseAnalyzer({
             )}
 
             {/* Overall Assessment */}
-            <div className="p-3 bg-purple-100 rounded-lg border border-purple-200">
-              <h4 className="text-sm font-medium mb-1 text-purple-800">{text(locale, 'Sammanfattning', 'Summary')}</h4>
-              <p className="text-sm text-purple-700">{aiPoseAnalysis.overallAssessment}</p>
+            <div className="p-3 bg-cyan-100 rounded-lg border border-cyan-200">
+              <h4 className="text-sm font-medium mb-1 text-cyan-800">{text(locale, 'Sammanfattning', 'Summary')}</h4>
+              <p className="text-sm text-cyan-700">{aiPoseAnalysis.overallAssessment}</p>
             </div>
           </CardContent>
         </Card>

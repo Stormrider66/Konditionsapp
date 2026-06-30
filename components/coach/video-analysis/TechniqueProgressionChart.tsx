@@ -169,7 +169,7 @@ export function TechniqueProgressionChart({
           {stats && (
             <div className="flex items-center gap-2">
               {stats.trend === 'improving' && (
-                <Badge className="bg-green-100 text-green-800">
+                <Badge className="bg-emerald-100 text-emerald-800">
                   <TrendingUp className="h-3 w-3 mr-1" />
                   +{stats.improvement.toFixed(0)} {copy.points}
                 </Badge>
@@ -181,7 +181,7 @@ export function TechniqueProgressionChart({
                 </Badge>
               )}
               {stats.trend === 'stable' && (
-                <Badge className="bg-gray-100 text-gray-800">
+                <Badge className="bg-zinc-100 text-zinc-800">
                   <Minus className="h-3 w-3 mr-1" />
                   {copy.stable}
                 </Badge>
@@ -236,7 +236,7 @@ export function TechniqueProgressionChart({
               {showGoal && (
                 <ReferenceLine
                   y={goalScore}
-                  stroke="#22c55e"
+                  stroke="#10b981"
                   strokeDasharray="5 5"
                   label={{ value: `${copy.goal}: ${goalScore}`, position: 'right', fontSize: 12 }}
                 />
@@ -270,9 +270,9 @@ export function TechniqueProgressionChart({
                   variant="secondary"
                   className={
                     (item.score as number) >= 80
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-emerald-100 text-emerald-800'
                       : (item.score as number) >= 60
-                      ? 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-amber-100 text-amber-800'
                       : 'bg-red-100 text-red-800'
                   }
                 >

@@ -241,10 +241,10 @@ export function VideoComparisonView({
             <Badge
               className={
                 improvement > 0
-                  ? 'bg-green-100 text-green-800'
+                  ? 'bg-emerald-100 text-emerald-800'
                   : improvement < 0
                   ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-800'
+                  : 'bg-zinc-100 text-zinc-800'
               }
             >
               {improvement > 0 ? (
@@ -345,9 +345,9 @@ export function VideoComparisonView({
                     variant="secondary"
                     className={
                       leftVideo.formScore >= 80
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-emerald-100 text-emerald-800'
                         : leftVideo.formScore >= 60
-                        ? 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-amber-100 text-amber-800'
                         : 'bg-red-100 text-red-800'
                     }
                   >
@@ -391,9 +391,9 @@ export function VideoComparisonView({
                     variant="secondary"
                     className={
                       rightVideo.formScore >= 80
-                        ? 'bg-green-100 text-green-800'
+                        ? 'bg-emerald-100 text-emerald-800'
                         : rightVideo.formScore >= 60
-                        ? 'bg-yellow-100 text-yellow-800'
+                        ? 'bg-amber-100 text-amber-800'
                         : 'bg-red-100 text-red-800'
                     }
                   >
@@ -450,8 +450,8 @@ export function VideoComparisonView({
                           issue.severity === 'HIGH'
                             ? 'border-red-300 text-red-700'
                             : issue.severity === 'MEDIUM'
-                            ? 'border-yellow-300 text-yellow-700'
-                            : 'border-gray-300'
+                            ? 'border-amber-300 text-amber-700'
+                            : 'border-zinc-300'
                         }
                       >
                         {issue.severity === 'HIGH' ? copy.high : issue.severity === 'MEDIUM' ? copy.medium : copy.low}
@@ -478,8 +478,8 @@ export function VideoComparisonView({
                           issue.severity === 'HIGH'
                             ? 'border-red-300 text-red-700'
                             : issue.severity === 'MEDIUM'
-                            ? 'border-yellow-300 text-yellow-700'
-                            : 'border-gray-300'
+                            ? 'border-amber-300 text-amber-700'
+                            : 'border-zinc-300'
                         }
                       >
                         {issue.severity === 'HIGH' ? copy.high : issue.severity === 'MEDIUM' ? copy.medium : copy.low}
@@ -514,7 +514,7 @@ export function VideoComparisonView({
                 <p className="text-xs text-muted-foreground">{copy.scoreChange}</p>
                 <p
                   className={`font-medium ${
-                    improvement > 0 ? 'text-green-600' : improvement < 0 ? 'text-red-600' : ''
+                    improvement > 0 ? 'text-emerald-600' : improvement < 0 ? 'text-red-600' : ''
                   }`}
                 >
                   {improvement > 0 ? '+' : ''}

@@ -131,19 +131,19 @@ const VIDEO_TYPE_INFO = {
   SKIING_SKATING: { label: { en: 'Skate skiing', sv: 'Skate-skidåkning' }, icon: Snowflake, color: 'text-cyan-500' },
   SKIING_DOUBLE_POLE: { label: { en: 'Double poling', sv: 'Dubbelstakning' }, icon: Snowflake, color: 'text-cyan-500' },
   HYROX_STATION: { label: { en: 'HYROX Station', sv: 'HYROX Station' }, icon: Zap, color: 'text-orange-600' },
-  SPORT_SPECIFIC: { label: { en: 'Sport-specific', sv: 'Sportspecifik' }, icon: Activity, color: 'text-purple-500' },
+  SPORT_SPECIFIC: { label: { en: 'Sport-specific', sv: 'Sportspecifik' }, icon: Activity, color: 'text-zinc-500' },
 }
 
 const STATUS_INFO = {
-  PENDING: { label: { en: 'Pending', sv: 'Väntar' }, color: 'bg-gray-100 text-gray-700' },
+  PENDING: { label: { en: 'Pending', sv: 'Väntar' }, color: 'bg-zinc-100 text-zinc-700' },
   PROCESSING: { label: { en: 'Analyzing...', sv: 'Analyserar...' }, color: 'bg-blue-100 text-blue-700' },
-  COMPLETED: { label: { en: 'Complete', sv: 'Klar' }, color: 'bg-green-100 text-green-700' },
+  COMPLETED: { label: { en: 'Complete', sv: 'Klar' }, color: 'bg-emerald-100 text-emerald-700' },
   FAILED: { label: { en: 'Failed', sv: 'Misslyckades' }, color: 'bg-red-100 text-red-700' },
 }
 
 const SEVERITY_INFO = {
-  LOW: { label: { en: 'Low', sv: 'Låg' }, color: 'bg-yellow-100 text-yellow-800', icon: Info },
-  MEDIUM: { label: { en: 'Medium', sv: 'Medel' }, color: 'bg-orange-100 text-orange-800', icon: AlertTriangle },
+  LOW: { label: { en: 'Low', sv: 'Låg' }, color: 'bg-blue-100 text-blue-800', icon: Info },
+  MEDIUM: { label: { en: 'Medium', sv: 'Medel' }, color: 'bg-amber-100 text-amber-800', icon: AlertTriangle },
   HIGH: { label: { en: 'High', sv: 'Hög' }, color: 'bg-red-100 text-red-800', icon: AlertTriangle },
 }
 
@@ -160,9 +160,9 @@ function cameraAngleLabel(angle: string | null, locale: AppLocale): string {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return 'text-green-600'
-  if (score >= 60) return 'text-yellow-600'
-  if (score >= 40) return 'text-orange-600'
+  if (score >= 80) return 'text-emerald-600'
+  if (score >= 60) return 'text-amber-600'
+  if (score >= 40) return 'text-amber-600'
   return 'text-red-600'
 }
 
@@ -364,9 +364,9 @@ function FormattedAIAnalysis({ aiAnalysis, locale }: { aiAnalysis: string; local
 
       {/* Overall Assessment */}
       {analysis.overallAssessment && (
-        <div className="p-3 rounded-lg bg-green-50 border border-green-200">
-          <h4 className="font-medium mb-1 text-green-800">{t(locale, 'Overall assessment', 'Övergripande bedömning')}</h4>
-          <p className="text-sm text-green-700">{analysis.overallAssessment}</p>
+        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+          <h4 className="font-medium mb-1 text-emerald-800">{t(locale, 'Overall assessment', 'Övergripande bedömning')}</h4>
+          <p className="text-sm text-emerald-700">{analysis.overallAssessment}</p>
         </div>
       )}
     </div>
@@ -723,7 +723,7 @@ export function VideoAnalysisCard({
           h1 { color: #1f2937; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
           h2 { color: #374151; margin-top: 24px; font-size: 18px; }
           .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-          .score { font-size: 48px; font-weight: bold; color: ${analysis.formScore && analysis.formScore >= 70 ? '#16a34a' : analysis.formScore && analysis.formScore >= 50 ? '#ca8a04' : '#dc2626'}; }
+          .score { font-size: 48px; font-weight: bold; color: ${analysis.formScore && analysis.formScore >= 70 ? '#059669' : analysis.formScore && analysis.formScore >= 50 ? '#d97706' : '#dc2626'}; }
           .score-label { font-size: 18px; color: #6b7280; }
           .meta { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; background: #f3f4f6; padding: 16px; border-radius: 8px; }
           .meta-item label { font-size: 12px; color: #6b7280; display: block; }
@@ -734,13 +734,13 @@ export function VideoAnalysisCard({
           .issue.LOW { border-color: #3b82f6; background: #eff6ff; }
           .issue-title { font-weight: 600; }
           .issue-desc { font-size: 14px; color: #4b5563; margin-top: 4px; }
-          .recommendation { padding: 12px; margin: 8px 0; background: #f0fdf4; border-radius: 4px; border-left: 4px solid #22c55e; }
+          .recommendation { padding: 12px; margin: 8px 0; background: #eff6ff; border-radius: 4px; border-left: 4px solid #3b82f6; }
           .rec-title { font-weight: 600; }
           .rec-desc { font-size: 14px; color: #4b5563; margin-top: 4px; }
           .rec-priority { display: inline-block; background: #dbeafe; color: #1d4ed8; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-right: 8px; }
           .angles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
-          .angle-card { background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 12px; }
-          .angle-name { font-weight: 600; color: #7c3aed; margin-bottom: 8px; }
+          .angle-card { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; }
+          .angle-name { font-weight: 600; color: #374151; margin-bottom: 8px; }
           .angle-values { display: flex; justify-content: space-between; font-size: 14px; }
           .angle-min { color: #2563eb; }
           .angle-max { color: #ea580c; }
@@ -868,7 +868,7 @@ export function VideoAnalysisCard({
             {/* Multi-angle badge */}
             {groupVideos && (
               <div className="absolute top-2 left-2">
-                <Badge className="bg-purple-100 text-purple-700">
+                <Badge className="bg-blue-100 text-blue-700">
                   <Video className="h-3 w-3 mr-1" />
                   {t(locale, `${groupVideos.length} angles`, `${groupVideos.length} vinklar`)}
                 </Badge>
@@ -924,7 +924,7 @@ export function VideoAnalysisCard({
                 <span className="text-blue-700">{poseDataSummary.frameCount} frames</span>
               ) : null}
               {poseDataSummary?.hasAiPoseAnalysis ? (
-                <Badge variant="outline" className="border-purple-200 bg-purple-50 px-1.5 py-0 text-[11px] text-purple-700">
+                <Badge variant="outline" className="border-cyan-200 bg-cyan-50 px-1.5 py-0 text-[11px] text-cyan-700">
                   Gemini
                 </Badge>
               ) : null}
@@ -1102,7 +1102,7 @@ export function VideoAnalysisCard({
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle className="flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                 {t(locale, 'Analysis results', 'Analysresultat')}
               </DialogTitle>
               <Button
@@ -1165,7 +1165,7 @@ export function VideoAnalysisCard({
             {issues && issues.length > 0 && (
               <div className="space-y-3">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-orange-500" />
+                  <AlertTriangle className="h-4 w-4 text-amber-500" />
                   {t(locale, 'Identified issues', 'Identifierade problem')} ({issues.length})
                 </h3>
                 <Accordion type="single" collapsible className="w-full">
@@ -1231,7 +1231,7 @@ export function VideoAnalysisCard({
             {analysis.aiAnalysis && (
               <div className="space-y-3">
                 <h3 className="font-semibold flex items-center gap-2">
-                  <ThumbsUp className="h-4 w-4 text-green-500" />
+                  <ThumbsUp className="h-4 w-4 text-emerald-500" />
                   {t(locale, 'Full analysis', 'Fullständig analys')}
                 </h3>
                 <div className="p-4 bg-muted rounded-lg text-sm">
@@ -1303,43 +1303,43 @@ export function VideoAnalysisCard({
               {showExtendedPoseData && extendedPoseData && (
                 <div className="mt-4 space-y-4">
                   {extendedPoseData.aiPoseAnalysis && (
-                    <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                      <h4 className="font-medium text-purple-800 mb-2 flex items-center gap-2">
+                    <div className="p-3 bg-cyan-50 rounded-lg border border-cyan-200">
+                      <h4 className="font-medium text-cyan-800 mb-2 flex items-center gap-2">
                         <Brain className="h-4 w-4" />
                         {t(locale, 'Saved Gemini pose analysis', 'Sparad Gemini-poseanalys')}
                       </h4>
                       {typeof extendedPoseData.aiPoseAnalysis.score === 'number' && (
-                        <p className="text-sm text-purple-700 mb-2">
+                        <p className="text-sm text-cyan-700 mb-2">
                           {t(locale, 'Pose score', 'Posepoäng')}: <span className="font-semibold">{extendedPoseData.aiPoseAnalysis.score}/100</span>
                         </p>
                       )}
-                      <p className="text-sm text-purple-700">
+                      <p className="text-sm text-cyan-700">
                         {extendedPoseData.aiPoseAnalysis.overallAssessment || extendedPoseData.aiPoseAnalysis.interpretation}
                       </p>
                     </div>
                   )}
 
                   {extendedPoseData.powerEstimate?.status === 'ready' && extendedPoseData.powerEstimate.metrics && (
-                    <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                      <h4 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
+                    <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
                         <Zap className="h-4 w-4" />
                         {t(locale, 'Squat jump power estimate', 'Squat jump-effekt')}
                       </h4>
                       <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-5">
                         <div>
-                          <span className="text-orange-700">{t(locale, 'Jump height', 'Hopphöjd')}</span>
+                          <span className="text-blue-700">{t(locale, 'Jump height', 'Hopphöjd')}</span>
                           <p className="font-mono font-semibold">{extendedPoseData.powerEstimate.metrics.jumpHeightCm} cm</p>
                         </div>
                         <div>
-                          <span className="text-orange-700">{t(locale, 'Flight time', 'Flygtid')}</span>
+                          <span className="text-blue-700">{t(locale, 'Flight time', 'Flygtid')}</span>
                           <p className="font-mono font-semibold">{extendedPoseData.powerEstimate.metrics.flightTimeMs} ms</p>
                         </div>
                         <div>
-                          <span className="text-orange-700">{t(locale, 'Takeoff', 'Takeoff')}</span>
+                          <span className="text-blue-700">{t(locale, 'Takeoff', 'Takeoff')}</span>
                           <p className="font-mono font-semibold">{extendedPoseData.powerEstimate.metrics.takeoffVelocityMps} m/s</p>
                         </div>
                         <div>
-                          <span className="text-orange-700">{t(locale, 'Mean power', 'Medeleffekt')}</span>
+                          <span className="text-blue-700">{t(locale, 'Mean power', 'Medeleffekt')}</span>
                           <p className="font-mono font-semibold">
                             {extendedPoseData.powerEstimate.metrics.estimatedMeanPowerW
                               ? `${extendedPoseData.powerEstimate.metrics.estimatedMeanPowerW} W`
@@ -1347,7 +1347,7 @@ export function VideoAnalysisCard({
                           </p>
                         </div>
                         <div>
-                          <span className="text-orange-700">W/kg</span>
+                          <span className="text-blue-700">W/kg</span>
                           <p className="font-mono font-semibold">
                             {extendedPoseData.powerEstimate.metrics.relativeMeanPowerWPerKg
                               ?? extendedPoseData.powerEstimate.metrics.relativePeakPowerWPerKg
@@ -1358,7 +1358,7 @@ export function VideoAnalysisCard({
                       {extendedPoseData.powerEstimate.powerCurve?.length ? (
                         <div className="mt-3 overflow-x-auto">
                           <table className="w-full min-w-[420px] text-sm">
-                            <thead className="text-left text-xs text-orange-700">
+                            <thead className="text-left text-xs text-blue-700">
                               <tr>
                                 <th className="py-1 pr-2 font-medium">{t(locale, 'Load', 'Last')}</th>
                                 <th className="py-1 pr-2 font-medium">{t(locale, 'Jump height', 'Hopphöjd')}</th>
@@ -1368,7 +1368,7 @@ export function VideoAnalysisCard({
                             </thead>
                             <tbody>
                               {extendedPoseData.powerEstimate.powerCurve.map((point, index) => (
-                                <tr key={`${point.externalLoadKg}-${point.jumpHeightCm}-${index}`} className="border-t border-orange-100">
+                                <tr key={`${point.externalLoadKg}-${point.jumpHeightCm}-${index}`} className="border-t border-blue-100">
                                   <td className="py-1 pr-2 font-mono">{point.externalLoadKg} kg</td>
                                   <td className="py-1 pr-2 font-mono">{point.jumpHeightCm} cm</td>
                                   <td className="py-1 pr-2 font-mono">{point.estimatedMeanPowerW} W</td>
@@ -1411,13 +1411,13 @@ export function VideoAnalysisCard({
                     if (!angleStats) return null
 
                     return (
-                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                        <h4 className="font-medium text-purple-800 mb-2">{t(locale, 'Joint angle statistics (min/max)', 'Ledvinkelstatistik (min/max)')}</h4>
+                      <div className="p-3 bg-zinc-50 rounded-lg border border-zinc-200">
+                        <h4 className="font-medium text-zinc-800 mb-2">{t(locale, 'Joint angle statistics (min/max)', 'Ledvinkelstatistik (min/max)')}</h4>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           {Object.entries(angleStats).map(([key, stat]) => (
                             stat.min !== Infinity && (
                               <div key={key} className="p-2 bg-white rounded border">
-                                <div className="font-medium text-purple-700">{stat.name}</div>
+                                <div className="font-medium text-zinc-700">{stat.name}</div>
                                 <div className="flex justify-between mt-1">
                                   <span className="text-blue-600">
                                     Min: <span className="font-mono font-bold">{Math.round(stat.min)}°</span>
@@ -1448,7 +1448,7 @@ export function VideoAnalysisCard({
                     </div>
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-green-400 via-yellow-400 to-red-400"
+                        className="h-full bg-gradient-to-r from-emerald-400 via-amber-400 to-red-400"
                         style={{ width: '100%' }}
                       />
                     </div>

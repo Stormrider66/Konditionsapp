@@ -165,9 +165,9 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
 
   const getScoreColor = (score: number | null | undefined) => {
     if (score === null || score === undefined) return 'text-muted-foreground';
-    if (score >= 80) return 'text-green-600 dark:text-green-400';
+    if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
     if (score >= 60) return 'text-blue-600 dark:text-blue-400';
-    if (score >= 40) return 'text-yellow-600 dark:text-yellow-400';
+    if (score >= 40) return 'text-amber-600 dark:text-amber-400';
     return 'text-red-600 dark:text-red-400';
   };
 
@@ -395,10 +395,10 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
   const getBenchmarkBadge = (level: string | null | undefined) => {
     if (!level) return null;
     const colors: Record<string, string> = {
-      BEGINNER: 'bg-gray-100 text-gray-800',
+      BEGINNER: 'bg-zinc-100 text-zinc-800',
       INTERMEDIATE: 'bg-blue-100 text-blue-800',
-      ADVANCED: 'bg-purple-100 text-purple-800',
-      ELITE: 'bg-yellow-100 text-yellow-800',
+      ADVANCED: 'bg-emerald-100 text-emerald-800',
+      ELITE: 'bg-amber-100 text-amber-800',
     };
     const labels: Record<string, string> = {
       BEGINNER: t(locale, 'Beginner', 'Nybörjare'),
@@ -407,7 +407,7 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
       ELITE: t(locale, 'Elite', 'Elit'),
     };
     return (
-      <Badge className={colors[level] || 'bg-gray-100 text-gray-800'}>
+      <Badge className={colors[level] || 'bg-zinc-100 text-zinc-800'}>
         {labels[level] || level}
       </Badge>
     );
@@ -730,8 +730,8 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
       {/* Header with Station Type */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
-            <Zap className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+          <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+            <Zap className="h-6 w-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -852,9 +852,9 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
       {/* Fatigue Indicators */}
       {data.fatigueIndicators &&
         (data.fatigueIndicators.earlyPhase?.length || data.fatigueIndicators.latePhase?.length) && (
-        <Card className="border-yellow-200 dark:border-yellow-900/30">
+        <Card className="border-amber-200 dark:border-amber-900/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+            <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <AlertTriangle className="h-5 w-5" /> {t(locale, 'Fatigue indicators', 'Uttröttningsindikatorer')}
             </CardTitle>
           </CardHeader>
@@ -868,7 +868,7 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
                   <ul className="space-y-1">
                     {data.fatigueIndicators.earlyPhase.map((indicator, i) => (
                       <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-yellow-600 mt-0.5">•</span>
+                        <span className="text-amber-600 mt-0.5">•</span>
                         {indicator}
                       </li>
                     ))}
@@ -883,7 +883,7 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
                   <ul className="space-y-1">
                     {data.fatigueIndicators.latePhase.map((indicator, i) => (
                       <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                        <span className="text-orange-600 mt-0.5">•</span>
+                        <span className="text-red-600 mt-0.5">•</span>
                         {indicator}
                       </li>
                     ))}
@@ -898,9 +898,9 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
       {/* Strengths & Weaknesses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Strengths */}
-        <Card className="border-green-200 dark:border-green-900/30">
+        <Card className="border-emerald-200 dark:border-emerald-900/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+            <CardTitle className="text-lg flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="h-5 w-5" /> {t(locale, 'Strengths', 'Styrkor')}
             </CardTitle>
           </CardHeader>
@@ -909,7 +909,7 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
               <ul className="space-y-2">
                 {data.primaryStrengths.map((strength, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">+</span>
+                    <span className="text-emerald-600 mt-0.5">+</span>
                     <span>{strength}</span>
                   </li>
                 ))}
@@ -921,9 +921,9 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
         </Card>
 
         {/* Weaknesses */}
-        <Card className="border-yellow-200 dark:border-yellow-900/30">
+        <Card className="border-amber-200 dark:border-amber-900/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+            <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <TrendingUp className="h-5 w-5" /> {t(locale, 'Improvement areas', 'Förbättringsområden')}
             </CardTitle>
           </CardHeader>
@@ -932,7 +932,7 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
               <ul className="space-y-2">
                 {data.primaryWeaknesses.map((weakness, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-yellow-600 mt-0.5">!</span>
+                    <span className="text-amber-600 mt-0.5">!</span>
                     <span>{weakness}</span>
                   </li>
                 ))}
@@ -977,9 +977,9 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
 
       {/* Race Strategy Tips */}
       {data.raceStrategyTips && data.raceStrategyTips.length > 0 && (
-        <Card className="bg-orange-50 dark:bg-orange-900/10 border-orange-200 dark:border-orange-900/30">
+        <Card className="bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/30">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+            <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
               <Trophy className="h-6 w-6" />
               {t(locale, 'Race strategy tips', 'Tävlingsstrategitips')}
             </CardTitle>
@@ -989,7 +989,7 @@ export function HyroxStationDashboard({ data }: HyroxStationDashboardProps) {
             <ul className="space-y-3">
               {data.raceStrategyTips.map((tip, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-orange-200 dark:bg-orange-800 rounded-full flex items-center justify-center text-sm font-medium text-orange-700 dark:text-orange-300">
+                  <span className="flex-shrink-0 w-6 h-6 bg-blue-200 dark:bg-blue-800 rounded-full flex items-center justify-center text-sm font-medium text-blue-700 dark:text-blue-300">
                     {i + 1}
                   </span>
                   <span>{tip}</span>

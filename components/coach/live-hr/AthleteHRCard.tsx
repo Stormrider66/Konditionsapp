@@ -119,7 +119,7 @@ function formatTarget(step?: LiveHRWorkflowAssignment['steps'][number] | null) {
 
 function guidanceClass(status: LiveHRTargetStatus) {
   if (status === 'on') return 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300'
-  if (status === 'low') return 'border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/20 dark:bg-sky-400/10 dark:text-sky-300'
+  if (status === 'low') return 'border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-400/20 dark:bg-blue-400/10 dark:text-blue-300'
   if (status === 'high') return 'border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300'
   return 'border-slate-200 bg-white text-slate-500 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-400'
 }
@@ -176,7 +176,7 @@ export function AthleteHRCard({ participant, assignment, activeBlock, nowMs, onR
           {onRemove && (
             <button
               onClick={() => onRemove(participant.clientId)}
-              className="text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-450 text-xs font-medium"
+              className="text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 text-xs font-medium"
             >
               {copy.remove}
             </button>
@@ -320,7 +320,7 @@ export function AthleteHRCard({ participant, assignment, activeBlock, nowMs, onR
         {/* Stale indicator */}
         {isStale && hasData && (
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/90 dark:bg-slate-950/90 p-2 rounded-md border border-slate-200 dark:border-white/10 shadow-lg">
-            <span className="text-xs text-rose-600 dark:text-rose-400 font-semibold">{copy.noSignal}</span>
+            <span className="text-xs text-red-600 dark:text-red-400 font-semibold">{copy.noSignal}</span>
           </div>
         )}
       </div>

@@ -422,7 +422,7 @@ export function VideoUploader({
 
           {/* Multi-angle hint */}
           {allowMultiple && (
-            <div className="p-3 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-900/40 rounded-lg text-xs text-orange-900 dark:text-orange-100">
+            <div className="p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-900/40 rounded-lg text-xs text-blue-900 dark:text-blue-100">
               {text(
                 locale,
                 'Tips: filma samtidigt från flera vinklar (framifrån, från sidan, bakifrån) och ladda upp 2–3 videor. AI:n analyserar alla vinklar tillsammans för en säkrare bedömning. Ange vinkel för varje video nedan.',
@@ -446,7 +446,7 @@ export function VideoUploader({
                     onClick={() => setHyroxStation(station.value)}
                     className={`p-3 rounded-lg border text-left transition-colors ${
                       hyroxStation === station.value
-                        ? 'border-yellow-555 bg-yellow-50 dark:bg-yellow-950/30 text-yellow-900 dark:text-yellow-100 font-medium'
+                        ? 'border-blue-550 bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100 font-medium'
                         : 'border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'
                     }`}
                   >
@@ -531,7 +531,7 @@ export function VideoUploader({
                             onClick={() => setStagedAngle(index, angle.value)}
                             className={`px-2 py-0.5 rounded-md border text-xs transition-colors ${
                               video.angle === angle.value
-                                ? 'border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-900 dark:text-orange-100 font-medium'
+                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100 font-medium'
                                 : 'border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-white/20'
                             }`}
                           >

@@ -219,7 +219,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
       <div className="border-b border-zinc-200 p-4 dark:border-white/10">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-            <Bluetooth className="h-4 w-4 text-teal-500" />
+            <Bluetooth className="h-4 w-4 text-blue-500" />
             {copy.title}
           </h3>
           <Badge
@@ -321,7 +321,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
                   : '-'}
           </span>
           <span className="flex items-center gap-1 tabular-nums">
-            <Heart className="h-4 w-4 text-rose-500" />
+            <Heart className="h-4 w-4 text-red-500" />
             {copy.heartRate}: {displayHeartRate != null ? Math.round(displayHeartRate) : '-'}
           </span>
           {showNoDataHint && (

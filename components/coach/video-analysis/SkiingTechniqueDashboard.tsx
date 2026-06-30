@@ -126,9 +126,9 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
 
   const getScoreColor = (score: number | null | undefined) => {
     if (score === null || score === undefined) return 'text-muted-foreground';
-    if (score >= 80) return 'text-green-600 dark:text-green-400';
+    if (score >= 80) return 'text-emerald-600 dark:text-emerald-400';
     if (score >= 60) return 'text-blue-600 dark:text-blue-400';
-    if (score >= 40) return 'text-yellow-600 dark:text-yellow-400';
+    if (score >= 40) return 'text-amber-600 dark:text-amber-400';
     return 'text-red-600 dark:text-red-400';
   };
 
@@ -559,9 +559,9 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
       {/* Strengths & Weaknesses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Strengths */}
-        <Card className="border-green-200 dark:border-green-900/30">
+        <Card className="border-emerald-200 dark:border-emerald-900/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2 text-green-700 dark:text-green-400">
+            <CardTitle className="text-lg flex items-center gap-2 text-emerald-700 dark:text-emerald-400">
               <CheckCircle2 className="h-5 w-5" /> {copy(locale, 'Strengths', 'Styrkor')}
             </CardTitle>
           </CardHeader>
@@ -570,7 +570,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
               <ul className="space-y-2">
                 {data.primaryStrengths.map((strength, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-green-600 mt-0.5">+</span>
+                    <span className="text-emerald-600 mt-0.5">+</span>
                     <span>{strength}</span>
                   </li>
                 ))}
@@ -582,9 +582,9 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
         </Card>
 
         {/* Weaknesses */}
-        <Card className="border-yellow-200 dark:border-yellow-900/30">
+        <Card className="border-amber-200 dark:border-amber-900/30">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2 text-yellow-700 dark:text-yellow-400">
+            <CardTitle className="text-lg flex items-center gap-2 text-amber-700 dark:text-amber-400">
               <TrendingUp className="h-5 w-5" /> {copy(locale, 'Improvement areas', 'Förbättringsområden')}
             </CardTitle>
           </CardHeader>
@@ -593,7 +593,7 @@ export function SkiingTechniqueDashboard({ data }: SkiingTechniqueDashboardProps
               <ul className="space-y-2">
                 {data.primaryWeaknesses.map((weakness, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-yellow-600 mt-0.5">!</span>
+                    <span className="text-amber-600 mt-0.5">!</span>
                     <span>{weakness}</span>
                   </li>
                 ))}
