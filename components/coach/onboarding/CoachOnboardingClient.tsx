@@ -221,8 +221,8 @@ export function CoachOnboardingClient({
           {step === 'goals' && (
             <>
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Target className="h-8 w-8 text-green-600" />
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Target className="h-8 w-8 text-emerald-600" />
                 </div>
                 <CardTitle className="text-2xl">{t('goalsTitle')}</CardTitle>
                 <CardDescription className="text-base">
@@ -262,8 +262,8 @@ export function CoachOnboardingClient({
           {step === 'getStarted' && (
             <>
               <CardHeader className="text-center pb-4">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Rocket className="h-8 w-8 text-purple-600" />
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Rocket className="h-8 w-8 text-blue-600" />
                 </div>
                 <CardTitle className="text-2xl">{t('getStartedTitle')}</CardTitle>
                 <CardDescription className="text-base">
@@ -288,7 +288,7 @@ export function CoachOnboardingClient({
 
                 {/* Upgrade CTA */}
                 {currentTier === 'FREE' && (
-                  <div className="p-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg text-white">
+                  <div className="p-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-lg text-white">
                     <div className="flex items-center gap-3">
                       <Sparkles className="h-6 w-6" />
                       <div className="flex-1">

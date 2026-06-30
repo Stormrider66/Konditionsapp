@@ -130,8 +130,8 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
       </div>
 
       {!canCreateMore && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 rounded-lg p-4 mb-6">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/50 rounded-lg p-4 mb-6">
+          <p className="text-sm text-amber-800 dark:text-amber-200">
             {t('athleteLimitReached')}
           </p>
         </div>

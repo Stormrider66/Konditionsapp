@@ -216,7 +216,7 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
                   isActive
                     ? 'bg-blue-600 text-white'
                     : isDone
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                       : 'bg-muted text-muted-foreground'
                 }`}
               >
@@ -448,7 +448,7 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Check className="h-5 w-5 text-green-600" />
+              <Check className="h-5 w-5 text-emerald-600" />
               {t('titles.summary')}
             </CardTitle>
           </CardHeader>
@@ -458,12 +458,12 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
                 <p className="text-2xl font-bold text-blue-600">{teams.length}</p>
                 <p className="text-xs text-muted-foreground">{t('summary.labels.teams')}</p>
               </div>
-              <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/30">
-                <p className="text-2xl font-bold text-purple-600">{staff.length}</p>
+              <div className="p-3 rounded-lg bg-zinc-50 dark:bg-zinc-900/30">
+                <p className="text-2xl font-bold text-zinc-600 dark:text-zinc-400">{staff.length}</p>
                 <p className="text-xs text-muted-foreground">{t('summary.labels.staff')}</p>
               </div>
-              <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/30">
-                <p className="text-2xl font-bold text-green-600">{players.length}</p>
+              <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/30">
+                <p className="text-2xl font-bold text-emerald-600">{players.length}</p>
                 <p className="text-xs text-muted-foreground">{t('summary.labels.players')}</p>
               </div>
             </div>
@@ -500,7 +500,7 @@ export function ClubOnboardingWizard({ businessSlug, businessName }: ClubOnboard
 
             <div className="flex justify-between pt-2">
               <Button variant="outline" onClick={() => setStep(2)}>{tCommon('back')}</Button>
-              <Button onClick={handleFinish} disabled={loading} className="bg-green-600 hover:bg-green-700">
+              <Button onClick={handleFinish} disabled={loading} className="bg-emerald-600 hover:bg-emerald-700">
                 {loading ? t('actions.creating') : t('actions.createBusiness', { businessName })}
                 <Check className="h-4 w-4 ml-1" />
               </Button>
