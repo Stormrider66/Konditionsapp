@@ -185,16 +185,29 @@ export interface GarminSchedule {
   calendarDate?: string
 }
 
-function normalizeGarminSchedule(schedule: GarminSchedule): GarminSchedule {
-  const calendarDate = schedule.calendarDate ?? schedule.date
-  if (!calendarDate) {
+interface GarminSchedulePayload {
+  // Garmin's Training API stores workout IDs as numeric (Long) and rejects a
+  // string here, so send a number whenever the ID is purely numeric.
+  workoutId: number | string
+  // The schedule endpoint expects `date` (YYYY-MM-DD), NOT `calendarDate`.
+  // Posting `calendarDate` leaves `date` unset and the workout is created on
+  // Garmin but never lands on the athlete's calendar/watch.
+  date: string
+}
+
+function normalizeGarminSchedule(schedule: GarminSchedule): GarminSchedulePayload {
+  const date = schedule.calendarDate ?? schedule.date
+  if (!date) {
     throw new Error('Garmin schedule date is required')
   }
 
-  return {
-    workoutId: schedule.workoutId,
-    calendarDate,
-  }
+  const trimmedId = String(schedule.workoutId).trim()
+  const numericId = Number(trimmedId)
+  const workoutId = trimmedId.length > 0 && Number.isFinite(numericId) && String(numericId) === trimmedId
+    ? numericId
+    : schedule.workoutId
+
+  return { workoutId, date }
 }
 
 // ─── API Helpers ────────────────────────────────────────────────────────────
@@ -325,7 +338,7 @@ export async function scheduleGarminWorkout(
     'POST',
     payload
   )
-  logger.info('Scheduled Garmin workout', { clientId, workoutId: payload.workoutId, date: payload.calendarDate })
+  logger.info('Scheduled Garmin workout', { clientId, workoutId: payload.workoutId, date: payload.date })
   return result
 }
 

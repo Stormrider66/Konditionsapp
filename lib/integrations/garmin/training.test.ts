@@ -153,11 +153,38 @@ describe('Garmin Training API serializer', () => {
     })
   })
 
-  it('normalizes legacy schedule date fields to calendarDate', async () => {
+  it('posts schedules with Garmin\'s `date` field and a numeric workoutId', async () => {
     mockFetchWithTimeoutAndRetry.mockResolvedValue({
       ok: true,
       status: 200,
-      json: async () => ({ workoutId: 'workout-1', calendarDate: '2026-06-14' }),
+      json: async () => ({ workoutId: 1617240378, date: '2026-06-14' }),
+    } as Response)
+
+    // Numeric workout IDs (the real Garmin shape) must serialize as numbers,
+    // and the legacy `calendarDate` input must be mapped to `date`.
+    await scheduleGarminWorkout('client-1', {
+      workoutId: '1617240378',
+      calendarDate: '2026-06-14',
+    })
+
+    expect(mockFetchWithTimeoutAndRetry).toHaveBeenCalledWith(
+      expect.stringContaining('/schedule/'),
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({
+          workoutId: 1617240378,
+          date: '2026-06-14',
+        }),
+      }),
+      expect.any(Object)
+    )
+  })
+
+  it('keeps non-numeric workout IDs as strings and maps `date` through', async () => {
+    mockFetchWithTimeoutAndRetry.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ workoutId: 'workout-1', date: '2026-06-14' }),
     } as Response)
 
     await scheduleGarminWorkout('client-1', {
@@ -171,7 +198,7 @@ describe('Garmin Training API serializer', () => {
         method: 'POST',
         body: JSON.stringify({
           workoutId: 'workout-1',
-          calendarDate: '2026-06-14',
+          date: '2026-06-14',
         }),
       }),
       expect.any(Object)

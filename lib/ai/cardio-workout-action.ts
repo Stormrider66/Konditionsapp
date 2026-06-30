@@ -15,6 +15,7 @@ const equipmentValues = [
 ] as const
 
 const cardioWorkoutStationSchema = z.object({
+  kind: z.enum(['WORK', 'REST']).optional().describe('WORK (default) for a work station, or REST for a rest/recovery station between work stations within a round.'),
   equipment: z.enum(equipmentValues).optional().describe('Machine/modality. Concept2 machines: BIKE_ERG, ROW, SKI_ERG.'),
   durationSeconds: z.number().int().min(10).max(3600).optional().describe('Fixed work window in seconds (e.g. 60 for on-the-minute work).'),
   calories: z.number().int().min(1).max(200).optional().describe('Calorie goal. Without durationSeconds the station ends when the target is reached.'),
@@ -113,8 +114,11 @@ function stationIntensity(station: CreateCardioWorkoutInput['stations'][number],
 }
 
 function stationWorkLabel(station: CreateCardioWorkoutInput['stations'][number], locale: AppLocale): string {
+  const leadLabel = station.kind === 'REST'
+    ? t(locale, 'Rest', 'Vila')
+    : equipmentLabel(station.equipment, locale)
   const parts = [
-    equipmentLabel(station.equipment, locale),
+    leadLabel,
     station.durationSeconds != null ? formatSeconds(station.durationSeconds, locale) : null,
     station.distanceMeters != null ? `${station.distanceMeters} m` : null,
     station.calories != null ? `${station.calories} kcal` : null,
@@ -202,8 +206,8 @@ export function buildCreateCardioWorkoutRealtimeTool(locale: AppLocale): Realtim
     name: CREATE_CARDIO_WORKOUT_TOOL_NAME,
     description: t(
       locale,
-      'Prepare a visible confirmation card for a planned cardio or erg workout. Use only for workouts the athlete wants to do, not completed workouts. For interval workouts, ask for rest duration and intensity before calling. The function does not save the workout; the athlete must confirm the card.',
-      'Förbered ett synligt bekräftelsekort för ett planerat konditions- eller ergometerpass. Använd bara för pass atleten vill göra, inte genomförda pass. För intervallpass ska du fråga efter vila och intensitet innan du anropar funktionen. Funktionen sparar inte passet; atleten måste bekräfta kortet.'
+      'Prepare a visible confirmation card for a planned cardio or erg workout. Use only for workouts the athlete wants to do, not completed workouts. For interval workouts, ask for rest duration and intensity before calling. Always set `equipment` on each work station so intervals are named after their machine, and use kind="REST" for rest stations between work stations. The function does not save the workout; the athlete must confirm the card.',
+      'Förbered ett synligt bekräftelsekort för ett planerat konditions- eller ergometerpass. Använd bara för pass atleten vill göra, inte genomförda pass. För intervallpass ska du fråga efter vila och intensitet innan du anropar funktionen. Sätt alltid `equipment` på varje arbetsstation så att intervallerna namnges efter sin maskin, och använd kind="REST" för vilostationer mellan arbetsstationer. Funktionen sparar inte passet; atleten måste bekräfta kortet.'
     ),
     parameters: {
       type: 'object',
@@ -259,6 +263,11 @@ export function buildCreateCardioWorkoutRealtimeTool(locale: AppLocale): Realtim
               { required: ['distanceMeters'] },
             ],
             properties: {
+              kind: {
+                type: 'string',
+                enum: ['WORK', 'REST'],
+                description: t(locale, 'WORK (default) or REST for a rest station between work stations.', 'WORK (standard) eller REST för en vilostation mellan arbetsstationer.'),
+              },
               equipment: {
                 type: 'string',
                 enum: equipmentValues,

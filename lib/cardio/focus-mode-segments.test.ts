@@ -135,6 +135,41 @@ describe('buildCardioFocusModeSegments', () => {
     expect(segments[1].plannedCadence).toBe(90)
   })
 
+  it('names work intervals after their machine and labels rest stations', () => {
+    const segments = buildCardioFocusModeSegments({
+      locale: 'sv',
+      segments: [
+        {
+          id: 'main',
+          type: 'REPEAT_GROUP',
+          repeats: 1,
+          steps: [
+            { id: 's1', type: 'INTERVAL', duration: 180, equipment: 'WATTBIKE', targetType: 'power', targetValue: '300' },
+            { id: 's2', type: 'REST', duration: 90, equipment: 'OTHER' },
+            { id: 's3', type: 'INTERVAL', duration: 180, equipment: 'ROW' },
+            { id: 's4', type: 'INTERVAL', duration: 180, equipment: 'SKI_ERG' },
+          ],
+        },
+      ],
+    })
+
+    expect(segments.map((s) => s.typeName)).toEqual(['Wattbike', 'Vila', 'Rodd', 'SkiErg'])
+    // The objective stays available as structured power on the work step.
+    expect(segments[0].plannedPower).toBe(300)
+  })
+
+  it('falls back to the generic type name when equipment is unknown or absent', () => {
+    const segments = buildCardioFocusModeSegments({
+      locale: 'en',
+      segments: [
+        { id: 'a', type: 'INTERVAL', duration: 120 },
+        { id: 'b', type: 'INTERVAL', duration: 120, equipment: 'OTHER' },
+      ],
+    })
+
+    expect(segments.map((s) => s.typeName)).toEqual(['Interval', 'Interval'])
+  })
+
   it('normalizes repeat-group REST steps to the persisted RECOVERY segment type', () => {
     const segments = buildCardioFocusModeSegments({
       locale: 'en',

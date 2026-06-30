@@ -33,6 +33,7 @@ interface CardioFocusApiSegment {
   plannedZone?: number
   plannedCalories?: number
   plannedPower?: number
+  plannedCadence?: number
   powerRelPercent?: number
   powerRelTo?: 'OPENER' | 'FTP' | 'CP'
   isBenchmark?: boolean
@@ -137,6 +138,9 @@ function mapToPreviewData(
     if (seg.plannedDuration) meta.push(formatDuration(seg.plannedDuration))
     if (seg.plannedDistance) meta.push(`${seg.plannedDistance.toFixed(2)} km`)
     if (seg.plannedPace) meta.push(formatPace(seg.plannedPace))
+    if (seg.plannedPower) meta.push(`${seg.plannedPower} W`)
+    if (seg.plannedCalories) meta.push(`${seg.plannedCalories} cal`)
+    if (seg.plannedCadence) meta.push(`${seg.plannedCadence} rpm`)
     if (seg.plannedZone) meta.push(`${zoneLabel} ${seg.plannedZone}`)
     return {
       id: seg.id,

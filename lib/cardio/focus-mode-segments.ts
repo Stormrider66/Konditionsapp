@@ -247,6 +247,44 @@ function segmentTypeName(type: string, fallback: string | undefined, locale: App
   return SEGMENT_TYPE_NAMES[locale][type] || fallback || type
 }
 
+// Human-readable machine/modality names, keyed by the equipment enum used by
+// the cardio builders and the AI chat tool (see lib/ai/cardio-workout-action.ts).
+const EQUIPMENT_LABELS: Record<AppLocale, Record<string, string>> = {
+  en: {
+    RUN: 'Run', TREADMILL: 'Treadmill', BIKE: 'Bike', ASSAULT_BIKE: 'Assault Bike',
+    ECHO_BIKE: 'Echo Bike', WATTBIKE: 'Wattbike', BIKE_ERG: 'BikeErg', ROW: 'Row',
+    SKI_ERG: 'SkiErg', SWIM: 'Swim',
+  },
+  sv: {
+    RUN: 'Löpning', TREADMILL: 'Löpband', BIKE: 'Cykel', ASSAULT_BIKE: 'Assault Bike',
+    ECHO_BIKE: 'Echo Bike', WATTBIKE: 'Wattbike', BIKE_ERG: 'BikeErg', ROW: 'Rodd',
+    SKI_ERG: 'SkiErg', SWIM: 'Simning',
+  },
+}
+
+export function cardioEquipmentLabel(equipment: string | undefined | null, locale: AppLocale): string | undefined {
+  if (!equipment) return undefined
+  return EQUIPMENT_LABELS[locale][equipment.toUpperCase()]
+}
+
+// Work segments name themselves after the machine ("Wattbike", "Rodd", "SkiErg")
+// when one is known, so the athlete sees what to do — not a generic "Interval".
+// Rest/warm-up/cool-down keep their semantic name.
+const MACHINE_NAMED_TYPES = new Set(['INTERVAL', 'STEADY', 'HILL', 'DRILLS'])
+
+function workSegmentTypeName(
+  rawType: string,
+  equipment: string | undefined,
+  fallback: string | undefined,
+  locale: AppLocale,
+): string {
+  if (MACHINE_NAMED_TYPES.has(rawType)) {
+    const machine = cardioEquipmentLabel(equipment, locale)
+    if (machine) return machine
+  }
+  return segmentTypeName(rawType, fallback, locale)
+}
+
 function t(locale: AppLocale, en: string, sv: string): string {
   return locale === 'sv' ? sv : en
 }
@@ -323,7 +361,7 @@ export function buildCardioFocusModeSegments({
             id: `${seg.id || 'repeat'}-r${rep}-${step.id || globalIndex}`,
             index: globalIndex,
             type: segmentType,
-            typeName: segmentTypeName(rawType, step.type, locale),
+            typeName: workSegmentTypeName(rawType, step.equipment, step.type, locale),
             plannedDuration: step.duration,
             plannedDistance: step.distance ? step.distance / 1000 : undefined,
             plannedPace: parsePaceToSeconds(step.pace),
@@ -385,7 +423,7 @@ export function buildCardioFocusModeSegments({
           id: `${seg.id || 'segment'}-rep${rep}`,
           index: globalIndex,
           type: segmentType,
-          typeName: segmentTypeName(rawType, seg.type, locale),
+          typeName: workSegmentTypeName(rawType, seg.equipment, seg.type, locale),
           plannedDuration: seg.duration,
           plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
           plannedPace: parsePaceToSeconds(seg.pace),
@@ -444,7 +482,7 @@ export function buildCardioFocusModeSegments({
       id: seg.id || `segment-${globalIndex}`,
       index: globalIndex,
       type: segmentType,
-      typeName: segmentTypeName(rawType, seg.type, locale),
+      typeName: workSegmentTypeName(rawType, seg.equipment, seg.type, locale),
       plannedDuration: seg.duration,
       plannedDistance: seg.distance ? seg.distance / 1000 : undefined,
       plannedPace: parsePaceToSeconds(seg.pace),

@@ -865,8 +865,8 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
     createCardioWorkout: tool({
       description: chatText(
         locale,
-        'Create a structured cardio/erg session (intervals, EMOM rounds, machine circuits) and assign it to the athlete so it can be started in focus mode with live machine data. Use when the athlete asks for a cardio, rowing, BikeErg, SkiErg, bike or interval workout to DO (not one they already did). Each station can have a fixed time window (e.g. 60 s on the minute), a calorie goal, or both - with both, the window runs on the clock and the calories are the goal within it. If and only if they explicitly ask to send/push it to Garmin, set pushToGarmin true.',
-        'Skapa ett strukturerat konditions-/ergometerpass (intervaller, EMOM-rundor, maskincirklar) och tilldela det till atleten så att det kan startas i fokusläge med live-maskindata. Använd när atleten ber om ett konditions-, rodd-, BikeErg-, SkiErg-, cykel- eller intervallpass att GÖRA (inte ett de redan gjort). Varje station kan ha ett fast tidsfönster (t.ex. 60 s varje minut), ett kalorimål, eller båda - med båda går fönstret på klockan och kalorierna är målet inom det. Om och bara om atleten uttryckligen ber om Garmin-skickning, sätt pushToGarmin till true.'
+        'Create a structured cardio/erg session (intervals, EMOM rounds, machine circuits) and assign it to the athlete so it can be started in focus mode with live machine data. Use when the athlete asks for a cardio, rowing, BikeErg, SkiErg, bike or interval workout to DO (not one they already did). Each station can have a fixed time window (e.g. 60 s on the minute), a calorie goal, or both - with both, the window runs on the clock and the calories are the goal within it. ALWAYS set `equipment` on every work station so each interval is named after its machine (Wattbike, Row, SkiErg, …), and put the objective in `notes`/`zone`/`targetWatts` (e.g. "hold 300W", "1:46/500m pace"). For a rest/recovery station between work stations within a round, add a station with kind="REST" and its duration. If and only if they explicitly ask to send/push it to Garmin, set pushToGarmin true.',
+        'Skapa ett strukturerat konditions-/ergometerpass (intervaller, EMOM-rundor, maskincirklar) och tilldela det till atleten så att det kan startas i fokusläge med live-maskindata. Använd när atleten ber om ett konditions-, rodd-, BikeErg-, SkiErg-, cykel- eller intervallpass att GÖRA (inte ett de redan gjort). Varje station kan ha ett fast tidsfönster (t.ex. 60 s varje minut), ett kalorimål, eller båda - med båda går fönstret på klockan och kalorierna är målet inom det. Sätt ALLTID `equipment` på varje arbetsstation så att varje intervall namnges efter sin maskin (Wattbike, Rodd, SkiErg, …), och lägg målet i `notes`/`zone`/`targetWatts` (t.ex. "håll 300W", "tempo 1:46/500m"). För en vilostation mellan arbetsstationer inom en runda, lägg till en station med kind="REST" och dess tid. Om och bara om atleten uttryckligen ber om Garmin-skickning, sätt pushToGarmin till true.'
       ),
       inputSchema: createCardioWorkoutInputSchema,
       execute: async ({ name, description, sport, date, warmupMinutes, cooldownMinutes, rounds, restBetweenRoundsSeconds, pushToGarmin, stations }) => {
@@ -882,7 +882,9 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
           const repeats = rounds ?? 1
           const steps = stations.map((station, index) => ({
             id: `station-${index + 1}`,
-            type: 'INTERVAL',
+            // REST stations render as recovery ("Vila") in focus mode and map to
+            // a Garmin REST step; everything else is interval work.
+            type: station.kind === 'REST' ? 'REST' : 'INTERVAL',
             duration: station.durationSeconds,
             calories: station.calories,
             distance: station.distanceMeters,
@@ -972,11 +974,11 @@ export function createAthleteWorkoutWriteTools(clientId: string, locale: ChatLoc
 
           const message = garminPush
             ? garminPush.success
-              ? chatText(
-                  locale,
-                  'The session is assigned and sent to your Garmin watch.',
-                  'Passet är tilldelat och skickat till din Garmin-klocka.'
-                )
+              // garminPush.message already distinguishes a clean push from one
+              // where the workout reached Garmin but calendar scheduling failed
+              // (so it never lands on the watch) — don't overwrite it with a
+              // blanket success line.
+              ? garminPush.message
               : chatText(
                   locale,
                   `The session is assigned, but Garmin push failed: ${garminPush.error}`,
