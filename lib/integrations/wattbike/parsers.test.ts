@@ -229,6 +229,38 @@ describe('PM5 proprietary parsers', async () => {
     expect(sample.pace).toBe(113);
   });
 
+  it('parses PM5 status 1 average power when the longer payload includes it', () => {
+    const dv = frame([
+      ['u24', 1234],
+      ['u16', 4000],
+      ['u8', 88],
+      ['u8', 152],
+      ['u16', 11300],
+      ['u16', 11500],
+      ['u16', 0],
+      ['u24', 0],
+      ['u16', 212],
+    ]);
+    const sample = parsePm5AdditionalStatus1(dv);
+    expect(sample.strokeRate).toBe(88);
+    expect(sample.avgPower).toBe(212);
+  });
+
+  it('treats missing PM5 status 1 average power as unavailable', () => {
+    const dv = frame([
+      ['u24', 1234],
+      ['u16', 4000],
+      ['u8', 88],
+      ['u8', 152],
+      ['u16', 11300],
+      ['u16', 11500],
+      ['u16', 0],
+      ['u24', 0],
+      ['u16', 0xffff],
+    ]);
+    expect(parsePm5AdditionalStatus1(dv).avgPower).toBeUndefined();
+  });
+
   it('treats heart rate 255 as invalid', () => {
     const dv = frame([
       ['u24', 0],

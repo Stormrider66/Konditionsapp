@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 import { RolePanel } from '@/components/layouts/role-shell/RolePage'
 import { useErgFleet } from '@/hooks/use-erg-fleet'
-import type { WattbikeSample } from '@/lib/integrations/wattbike'
+import type { WattbikeClient, WattbikeSample } from '@/lib/integrations/wattbike'
 import type { LiveHRMachineType, LiveHRParticipantData } from '@/lib/live-hr/types'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
@@ -63,6 +63,7 @@ const COPY: Record<AppLocale, {
   cadenceBike: string
   cadenceRower: string
   heartRate: string
+  noMachineData: string
 }> = {
   en: {
     title: 'Machine stream',
@@ -81,6 +82,7 @@ const COPY: Record<AppLocale, {
     cadenceBike: 'RPM',
     cadenceRower: 'SPM',
     heartRate: 'HR',
+    noMachineData: 'Waiting for PM5 data: select Just Ride on the monitor and pedal',
   },
   sv: {
     title: 'Maskinström',
@@ -99,6 +101,7 @@ const COPY: Record<AppLocale, {
     cadenceBike: 'RPM',
     cadenceRower: 'SPM',
     heartRate: 'Puls',
+    noMachineData: 'Väntar på PM5-data: välj Just Ride på monitorn och trampa',
   },
 }
 
@@ -107,8 +110,9 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
   const copy = COPY[locale]
   const [selectedClientId, setSelectedClientId] = useState('')
   const [selectedMachineType, setSelectedMachineType] = useState<LiveHRMachineType>('WATTBIKE')
-  const [latest, setLatest] = useState<WattbikeSample | null>(null)
+  const [latest, setLatest] = useState<{ client: WattbikeClient; sample: WattbikeSample } | null>(null)
   const [hasMounted, setHasMounted] = useState(false)
+  const [noDataHintClient, setNoDataHintClient] = useState<WattbikeClient | null>(null)
   const latestRef = useRef<WattbikeSample | null>(null)
 
   const machine = useMemo(
@@ -125,7 +129,8 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
   const selectedParticipant = participants.find((participant) => participant.clientId === activeClientId)
   const captureSupported = hasMounted ? fleet.isSupported : false
   const canConnect = !disabled && captureSupported && participants.length > 0 && !!activeClientId
-  const displayLatest = isConnected ? latest : null
+  const displayLatest = isConnected && latest?.client === device?.client ? latest.sample : null
+  const showNoDataHint = isConnected && noDataHintClient === device?.client && !displayLatest
   const displayPower =
     displayLatest?.power != null
       ? displayLatest.power
@@ -142,12 +147,21 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
     latestRef.current = null
     if (!device?.client || !isConnected) return
 
-    const off = device.client.on('data', (sample) => {
+    const client = device.client
+    const hintTimeoutId = window.setTimeout(() => {
+      if (!latestRef.current) setNoDataHintClient(client)
+    }, 4_000)
+
+    const off = client.on('data', (sample) => {
       latestRef.current = sample
-      setLatest(sample)
+      setLatest({ client, sample })
+      setNoDataHintClient((current) => current === client ? null : current)
     })
 
-    return off
+    return () => {
+      window.clearTimeout(hintTimeoutId)
+      off()
+    }
   }, [device?.client, isConnected])
 
   useEffect(() => {
@@ -292,6 +306,9 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
             <Heart className="h-4 w-4 text-rose-500" />
             {copy.heartRate}: {displayLatest?.heartRate != null ? Math.round(displayLatest.heartRate) : '-'}
           </span>
+          {showNoDataHint && (
+            <span className="text-amber-600 dark:text-amber-400">{copy.noMachineData}</span>
+          )}
         </div>
       </div>
     </RolePanel>

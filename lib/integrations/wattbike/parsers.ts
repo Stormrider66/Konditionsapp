@@ -201,7 +201,7 @@ export function parsePm5GeneralStatus(dv: DataView): WattbikeSample {
   return sample;
 }
 
-/** PM5 Additional Status 1 (ce060032): speed, stroke rate, HR, pace. */
+/** PM5 Additional Status 1 (ce060032): speed, stroke/RPM, HR, pace, sometimes avg W. */
 export function parsePm5AdditionalStatus1(dv: DataView): WattbikeSample {
   const sample: WattbikeSample = { t: performance.now(), source: 'pm5' };
   if (dv.byteLength >= 9) {
@@ -212,6 +212,12 @@ export function parsePm5AdditionalStatus1(dv: DataView): WattbikeSample {
     if (hr > 0 && hr < 255) sample.heartRate = hr; // 255 = invalid
     const pace = dv.getUint16(7, true); // 0.01 s per 500 m
     if (pace > 0 && pace !== 0xffff) sample.pace = Math.round(pace * 0.01);
+    // Some PM5 firmware/multiplexed payloads append average watts to this
+    // packet. BikeErg can expose this before per-stroke watts are available.
+    if (dv.byteLength >= 18) {
+      const avgPower = dv.getUint16(16, true);
+      if (avgPower !== 0xffff) sample.avgPower = avgPower;
+    }
   }
   return sample;
 }
