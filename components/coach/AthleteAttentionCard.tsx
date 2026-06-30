@@ -221,8 +221,8 @@ const severityConfig = {
     labelKey: 'high',
   },
   MEDIUM: {
-    border: 'border-l-yellow-500',
-    badge: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-200',
+    border: 'border-l-amber-500',
+    badge: 'bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200',
     labelKey: 'medium',
   },
   LOW: {

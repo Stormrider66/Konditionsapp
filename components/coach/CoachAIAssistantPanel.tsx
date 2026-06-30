@@ -161,8 +161,8 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
       <DashboardCardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-              <Bot className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+              <Bot className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
             </div>
             <div>
               <DashboardCardTitle className="text-lg flex items-center gap-2">
@@ -213,7 +213,7 @@ export function CoachAIAssistantPanel({ basePath }: CoachAIAssistantPanelProps) 
           </div>
         ) : alerts.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-green-500" />
+            <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-emerald-500" />
             <p className="font-medium">{copy(locale, 'No active alerts', 'Inga aktiva alerts')}</p>
             <p className="text-sm mt-1">{copy(locale, 'All athletes look good right now', 'Alla atleter ser bra ut just nu')}</p>
           </div>
