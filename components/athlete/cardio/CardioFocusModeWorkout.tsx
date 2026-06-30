@@ -43,6 +43,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { IntervalTimer } from './IntervalTimer'
+import { LiveTargetCues } from './LiveTargetCues'
 import { SegmentLoggingForm } from './SegmentLoggingForm'
 import {
   resolveSegmentPower,
@@ -1616,6 +1617,25 @@ export function CardioFocusModeWorkout({
                 <p className="text-xl font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest">cal</p>
               </div>
             )}
+            {/* Live actual-vs-target cues (watts / pace / HR) for this effort. */}
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <LiveTargetCues
+                targetPower={currentTargetPower}
+                targetPowerPending={currentTargetPowerPending}
+                livePower={activeConnected ? activeDevice?.latest?.power ?? undefined : undefined}
+                targetPace={currentSegment.plannedPace}
+                paceUnit={equipmentIsRowing(currentSegment.equipment) ? '/500m' : '/km'}
+                livePace={
+                  activeConnected && equipmentIsRowing(currentSegment.equipment)
+                    ? activeDevice?.latest?.pace ?? undefined
+                    : undefined
+                }
+                targetZone={currentSegment.plannedZone}
+                liveHeartRate={hrBand.bpm ?? undefined}
+                liveHrZone={liveHrZone ?? undefined}
+                liveHrColor={liveHrColor}
+              />
+            </div>
             {isWorkType(currentSegment.type) && (
               // Elapsed stopwatch — this effort is scored by time-to-target.
               <p className="text-3xl font-bold tabular-nums text-slate-500 dark:text-slate-400">
