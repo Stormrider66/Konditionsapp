@@ -203,7 +203,7 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
                   <div className="text-xs text-muted-foreground">{t('summary.labels.improvement')}</div>
                 </div>
                 {trendAnalysis.improvement < 0 ? (
-                  <TrendingUp className="h-8 w-8 text-green-500" />
+                  <TrendingUp className="h-8 w-8 text-emerald-500" />
                 ) : (
                   <TrendingDown className="h-8 w-8 text-red-500" />
                 )}
@@ -367,11 +367,11 @@ export default function ProgressionChart({ initialClientId }: ProgressionChartPr
           {/* Legend for confidence levels */}
           <div className="flex items-center gap-4 mt-4 text-sm">
             <div className="flex items-center gap-1">
-              <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-white" />
+              <div className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white" />
               <span>{t('chart.legend.highReliability')}</span>
             </div>
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 rounded-full bg-yellow-500 border-2 border-white" />
+              <div className="w-3 h-3 rounded-full bg-amber-500 border-2 border-white" />
               <span>{t('chart.legend.mediumReliability')}</span>
             </div>
             <div className="flex items-center gap-1">

@@ -84,7 +84,7 @@ export function TestResultsDisplay({
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
+            <CheckCircle className="h-5 w-5 text-emerald-600" />
             Recommendations
           </CardTitle>
         </CardHeader>
@@ -178,14 +178,14 @@ function HRDriftResults({ results }: { results: any }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className={`p-6 rounded-lg ${isGoodPace ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
+          <div className={`p-6 rounded-lg ${isGoodPace ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'}`}>
             <p className="text-sm text-muted-foreground mb-2">HR Drift</p>
             <p className="text-4xl font-bold">{driftPercentage.toFixed(1)}%</p>
             {isGoodPace && (
-              <p className="text-sm text-green-700 mt-2">✅ Pace is below LT1 - suitable for easy runs</p>
+              <p className="text-sm text-emerald-700 mt-2">✅ Pace is below LT1 - suitable for easy runs</p>
             )}
             {!isGoodPace && (
-              <p className="text-sm text-orange-700 mt-2">⚠️ Significant drift - reduce pace for next test</p>
+              <p className="text-sm text-amber-700 mt-2">⚠️ Significant drift - reduce pace for next test</p>
             )}
           </div>
 
@@ -225,14 +225,14 @@ function CriticalVelocityResults({ results }: { results: any }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className={`p-6 rounded-lg ${isReliable ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
+          <div className={`p-6 rounded-lg ${isReliable ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'}`}>
             <p className="text-sm text-muted-foreground mb-2">R² (Fit Quality)</p>
             <p className="text-4xl font-bold">{r2.toFixed(3)}</p>
             {isReliable && (
-              <p className="text-sm text-green-700 mt-2">✅ Excellent fit - reliable CV estimate</p>
+              <p className="text-sm text-emerald-700 mt-2">✅ Excellent fit - reliable CV estimate</p>
             )}
             {!isReliable && (
-              <p className="text-sm text-orange-700 mt-2">⚠️ Lower R² - perform additional trials for better accuracy</p>
+              <p className="text-sm text-amber-700 mt-2">⚠️ Lower R² - perform additional trials for better accuracy</p>
             )}
           </div>
 

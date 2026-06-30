@@ -213,7 +213,7 @@ export function SortableExerciseItem({
               size="sm"
               onClick={toggleKind}
               className={`h-6 w-6 p-0 ${
-                isCardio ? 'text-rose-500' : 'text-muted-foreground'
+                isCardio ? 'text-red-500' : 'text-muted-foreground'
               } hover:text-foreground`}
               title={isCardio ? text(locale, 'Växla till styrka', 'Switch to strength') : text(locale, 'Växla till kondition (tid/distans)', 'Switch to cardio (time/distance)')}
             >

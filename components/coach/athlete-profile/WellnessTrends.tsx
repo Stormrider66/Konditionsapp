@@ -94,7 +94,7 @@ export function WellnessTrends({ clientId, days = 30 }: WellnessTrendsProps) {
   return (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
       <div className="flex items-center gap-2">
-        <Activity className="h-4 w-4 text-rose-500" />
+        <Activity className="h-4 w-4 text-blue-500" />
         <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('wellnessTrends.title')}</h2>
       </div>
       <p className="text-sm text-muted-foreground mt-1">{t('wellnessTrends.description', { days })}</p>
@@ -188,7 +188,7 @@ function TrendRow({
         <span className={cn(
           'inline-flex items-center gap-0.5 text-xs font-medium',
           improved === 'good' && 'text-emerald-600 dark:text-emerald-300',
-          improved === 'bad' && 'text-rose-600 dark:text-rose-300',
+          improved === 'bad' && 'text-red-600 dark:text-red-300',
           improved === 'flat' && 'text-muted-foreground',
         )}>
           {improved === 'good' ? <TrendingUp className="h-3.5 w-3.5" />

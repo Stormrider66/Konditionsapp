@@ -148,7 +148,7 @@ export function FieldTestForm({ athletes }: FieldTestFormProps) {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-emerald-600" />
               Test Results
             </CardTitle>
           </CardHeader>

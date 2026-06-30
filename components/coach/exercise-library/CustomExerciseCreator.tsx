@@ -334,7 +334,7 @@ export function CustomExerciseCreator({
 
             {/* Plyometric Details */}
             {formData.category === 'PLYOMETRIC' && (
-              <div className="bg-orange-50 p-3 rounded">
+              <div className="bg-slate-50 p-3 rounded">
                 <Label className="text-xs">Plyometric Details</Label>
                 <div className="flex gap-4 mt-1">
                   <div>
@@ -610,7 +610,7 @@ export function CustomExerciseCreator({
 
             {/* Plyometric Details (only if category is PLYOMETRIC) */}
             {formData.category === 'PLYOMETRIC' && (
-              <Card className="border-orange-200 bg-orange-50/50">
+              <Card className="border-slate-200 bg-slate-50/50">
                 <CardHeader>
                   <CardTitle className="text-sm">Plyometric Details</CardTitle>
                 </CardHeader>

@@ -15,7 +15,7 @@ interface GarminFreshnessBadgeProps {
 const DOT: Record<string, string> = {
   fresh: 'bg-emerald-500',
   stale: 'bg-amber-500',
-  error: 'bg-rose-500',
+  error: 'bg-red-500',
   never: 'bg-gray-400',
 }
 

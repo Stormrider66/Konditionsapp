@@ -84,7 +84,7 @@ export function GarminConnectionCard({ clientId }: GarminConnectionCardProps) {
           </dl>
 
           {status.lastSyncError && (
-            <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-200">
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-200">
               <span className="font-medium">{t('garmin.syncError')}:</span> {status.lastSyncError}
             </div>
           )}
@@ -111,7 +111,7 @@ function Field({
       <dd className={cn(
         'mt-1 text-sm font-semibold',
         tone === 'warn' && 'text-amber-600 dark:text-amber-300',
-        tone === 'bad' && 'text-rose-600 dark:text-rose-300',
+        tone === 'bad' && 'text-red-600 dark:text-red-300',
         tone === 'default' && 'text-gray-900 dark:text-white',
       )}>
         {value}

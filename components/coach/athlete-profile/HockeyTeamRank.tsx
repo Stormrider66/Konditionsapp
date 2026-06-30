@@ -36,11 +36,11 @@ interface MetricRow {
 }
 
 const BAND_DOT: Record<string, string> = {
-  ELITE: 'bg-violet-500',
+  ELITE: 'bg-blue-500',
   ADVANCED: 'bg-emerald-500',
   INTERMEDIATE: 'bg-amber-500',
-  DEVELOPING: 'bg-rose-500',
-  BEGINNER: 'bg-rose-500',
+  DEVELOPING: 'bg-red-500',
+  BEGINNER: 'bg-red-500',
 }
 
 export function HockeyTeamRank({ clientId, teamId }: HockeyTeamRankProps) {
@@ -99,7 +99,7 @@ export function HockeyTeamRank({ clientId, teamId }: HockeyTeamRankProps) {
   return (
     <div className="bg-white dark:bg-slate-900/50 rounded-lg shadow-md dark:border dark:border-white/10 p-4 sm:p-6">
       <div className="flex items-center gap-2">
-        <Trophy className="h-4 w-4 text-indigo-500" />
+        <Trophy className="h-4 w-4 text-blue-500" />
         <h2 className="text-lg sm:text-xl font-semibold dark:text-white">{t('hockeyTeamRank.title')}</h2>
       </div>
       <p className="text-sm text-muted-foreground mt-1">{t('hockeyTeamRank.description')}</p>

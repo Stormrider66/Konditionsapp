@@ -238,7 +238,7 @@ export function VDOTCalculator() {
           <RolePanel className="p-5 sm:p-6">
             <div className="mb-4">
               <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                <TrendingUp className="h-5 w-5 text-purple-500" />
+                <TrendingUp className="h-5 w-5 text-blue-500" />
                 Training Paces (Jack Daniels)
               </h3>
               <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">

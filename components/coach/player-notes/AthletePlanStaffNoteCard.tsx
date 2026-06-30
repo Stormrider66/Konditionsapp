@@ -82,7 +82,7 @@ export function AthletePlanStaffNoteCard({
       <div className={cn('border-b dark:border-white/10', compact ? 'px-3 py-2.5' : 'px-4 py-3')}>
         <div>
           <div className="flex items-center gap-2 text-sm font-semibold dark:text-white">
-            <StickyNote className="h-4 w-4 text-violet-500" />
+            <StickyNote className="h-4 w-4 text-blue-500" />
             {c.title}
           </div>
           {!compact && <p className="mt-1 text-xs text-muted-foreground">{c.description}</p>}

@@ -201,7 +201,7 @@ export default async function AthleteLogsPage({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-emerald-600">
               {filteredLogs.filter(l => l.completed).length}
             </div>
           </CardContent>
@@ -287,7 +287,7 @@ export default async function AthleteLogsPage({
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
-              <HeartPulse className="h-5 w-5 text-rose-600" />
+              <HeartPulse className="h-5 w-5 text-red-600" />
               Pain follow-ups
             </CardTitle>
             <CardDescription>
@@ -444,7 +444,7 @@ export default async function AthleteLogsPage({
                       </TableCell>
                       <TableCell className="text-center">
                         {log.completed ? (
-                          <CheckCircle2 className="h-5 w-5 text-green-600 mx-auto" />
+                          <CheckCircle2 className="h-5 w-5 text-emerald-600 mx-auto" />
                         ) : (
                           <XCircle className="h-5 w-5 text-gray-400 mx-auto" />
                         )}
@@ -487,8 +487,8 @@ function formatWorkoutType(t: (key: string) => string, type: string): string {
 }
 
 function getRPEBadgeClass(rpe: number): string {
-  if (rpe <= 3) return 'border-green-400 text-green-700 bg-green-50'
-  if (rpe <= 5) return 'border-yellow-400 text-yellow-700 bg-yellow-50'
+  if (rpe <= 3) return 'border-emerald-400 text-emerald-700 bg-emerald-50'
+  if (rpe <= 5) return 'border-amber-400 text-amber-700 bg-amber-50'
   if (rpe <= 7) return 'border-orange-400 text-orange-700 bg-orange-50'
   return 'border-red-400 text-red-700 bg-red-50'
 }

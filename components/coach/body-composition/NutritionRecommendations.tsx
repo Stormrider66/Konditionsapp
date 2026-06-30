@@ -224,7 +224,7 @@ export function NutritionRecommendations({
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-yellow-500" />
+          <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
           <p className="text-muted-foreground">
             {copy(locale, 'Weight and height are required to calculate nutrition recommendations.', 'Vikt och längd krävs för att beräkna näringsrekommendationer.')}
           </p>
@@ -291,7 +291,7 @@ export function NutritionRecommendations({
                         {g.value.includes('LOSS') ? (
                           <TrendingDown className="h-3 w-3 text-blue-500" />
                         ) : g.value.includes('GAIN') ? (
-                          <TrendingUp className="h-3 w-3 text-green-500" />
+                          <TrendingUp className="h-3 w-3 text-emerald-500" />
                         ) : (
                           <Minus className="h-3 w-3" />
                         )}
@@ -352,7 +352,7 @@ export function NutritionRecommendations({
                   {copy(locale, 'Estimated time', 'Uppskattad tid')}: {timeline.weeks} {copy(locale, 'weeks', 'veckor')} {copy(locale, 'with', 'med')} {Math.abs(timeline.dailyDeficit)} kcal/{copy(locale, 'day', 'dag')}{' '}
                   {timeline.dailyDeficit < 0 ? copy(locale, 'deficit', 'underskott') : copy(locale, 'surplus', 'överskott')}
                   {!timeline.achievable && (
-                    <span className="text-yellow-600 ml-2">
+                    <span className="text-amber-600 ml-2">
                       {copy(locale, '(may be too aggressive)', '(kan vara för aggressivt)')}
                     </span>
                   )}
@@ -370,7 +370,7 @@ export function NutritionRecommendations({
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Flame className="h-5 w-5 text-orange-500" />
+                <Flame className="h-5 w-5 text-blue-500" />
                 {copy(locale, 'Daily calorie intake', 'Dagligt kaloriintag')}
               </CardTitle>
             </CardHeader>
@@ -464,15 +464,15 @@ export function NutritionRecommendations({
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Droplet className="h-5 w-5 text-yellow-500" />
+                      <Droplet className="h-5 w-5 text-blue-500" />
                       <span className="font-medium">{copy(locale, 'Fat', 'Fett')}</span>
                     </div>
                     <Badge variant="secondary">
                       {nutritionPlan.macros.fat.percentage}%
                     </Badge>
                   </div>
-                  <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                    <p className="text-3xl font-bold text-yellow-700">
+                  <div className="text-center p-3 bg-blue-50 rounded-lg">
+                    <p className="text-3xl font-bold text-blue-700">
                       {nutritionPlan.macros.fat.grams}g
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -494,7 +494,7 @@ export function NutritionRecommendations({
                     style={{ width: `${nutritionPlan.macros.carbs.percentage}%` }}
                   />
                   <div
-                    className="bg-yellow-500"
+                    className="bg-blue-500"
                     style={{ width: `${nutritionPlan.macros.fat.percentage}%` }}
                   />
                 </div>
@@ -535,9 +535,9 @@ export function NutritionRecommendations({
 
           {/* Warnings */}
           {nutritionPlan.warnings.length > 0 && (
-            <Card className="border-yellow-200 bg-yellow-50">
+            <Card className="border-amber-200 bg-amber-50">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-yellow-800">
+                <CardTitle className="flex items-center gap-2 text-amber-800">
                   <AlertTriangle className="h-5 w-5" />
                   {copy(locale, 'Warnings', 'Varningar')}
                 </CardTitle>
@@ -545,7 +545,7 @@ export function NutritionRecommendations({
               <CardContent>
                 <ul className="space-y-2">
                   {nutritionPlan.warnings.map((warning, i) => (
-                    <li key={i} className="flex items-start gap-2 text-yellow-800">
+                    <li key={i} className="flex items-start gap-2 text-amber-800">
                       <AlertTriangle className="h-4 w-4 mt-0.5 flex-shrink-0" />
                       <span>{warning}</span>
                     </li>
@@ -560,7 +560,7 @@ export function NutritionRecommendations({
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5 text-green-500" />
+                  <Target className="h-5 w-5 text-emerald-500" />
                   {copy(locale, 'Recommendations', 'Rekommendationer')}
                 </CardTitle>
               </CardHeader>
@@ -568,7 +568,7 @@ export function NutritionRecommendations({
                 <ul className="space-y-2">
                   {nutritionPlan.recommendations.map((rec, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 flex-shrink-0" />
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 text-emerald-500 flex-shrink-0" />
                       <span>{rec}</span>
                     </li>
                   ))}
@@ -582,7 +582,7 @@ export function NutritionRecommendations({
             <CardContent className="py-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <Sparkles className="h-6 w-6 text-purple-500" />
+                  <Sparkles className="h-6 w-6 text-cyan-500" />
                   <div>
                     <p className="font-medium">{copy(locale, 'Want a more detailed plan?', 'Vill du ha en mer detaljerad plan?')}</p>
                     <p className="text-sm text-muted-foreground">

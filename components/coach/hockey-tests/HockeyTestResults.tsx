@@ -158,7 +158,7 @@ function TestValue({ label, value, unit, highlight, decimals = 2 }: {
 }) {
   if (value == null) return null
   return (
-    <div className={cn('text-center', highlight && 'text-green-600 font-semibold')}>
+    <div className={cn('text-center', highlight && 'text-emerald-600 font-semibold')}>
       <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
       <p className="font-mono text-sm font-medium">{typeof value === 'number' ? value.toFixed(decimals) : value}</p>
       <p className="text-[9px] text-muted-foreground">{unit}</p>
@@ -251,7 +251,7 @@ function MuscleLabChart({ test, locale }: { test: HockeyTest; locale: 'en' | 'sv
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={32} />
               <Tooltip />
               <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
-              <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
+              <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#059669" strokeWidth={2} dot />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -268,7 +268,7 @@ function MuscleLabChart({ test, locale }: { test: HockeyTest; locale: 'en' | 'sv
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 10 }} width={32} />
                 <Tooltip />
                 <Line yAxisId="left" type="monotone" dataKey="power" name="Power W" stroke="#2563eb" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="velocity" name="Velocity m/s" stroke="#16a34a" strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="velocity" name="Velocity m/s" stroke="#059669" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

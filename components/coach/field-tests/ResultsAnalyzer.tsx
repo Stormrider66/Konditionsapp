@@ -486,8 +486,8 @@ export default function ResultsAnalyzer({ initialTestId }: ResultsAnalyzerProps)
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-6 mb-6">
-                    <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="text-2xl font-bold text-green-700">
+                    <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-700">
                         {analysis.hrDrift.firstHalf}
                       </div>
                       <div className="text-sm text-muted-foreground">{t.labels.firstHalf}</div>

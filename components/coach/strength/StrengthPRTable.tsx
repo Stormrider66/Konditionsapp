@@ -326,7 +326,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-lg font-semibold flex items-center gap-2 dark:text-white">
-            <Trophy className="h-5 w-5 text-yellow-500" />
+            <Trophy className="h-5 w-5 text-amber-500" />
             {t.title}
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
@@ -390,7 +390,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                         {currentSourceMeta.label}
                       </Badge>
                       {stale.stale && (
-                        <Badge variant="outline" className="text-[10px] py-0 text-orange-600 border-orange-300">
+                        <Badge variant="outline" className="text-[10px] py-0 text-amber-600 border-amber-300">
                           {t.stale(stale.days)}
                         </Badge>
                       )}
@@ -434,7 +434,7 @@ export function StrengthPRTable({ clientId, clientName }: StrengthPRTableProps) 
                           {delta != null && delta !== 0 ? (
                             <span
                               className={`text-[10px] tabular-nums w-10 text-right ${
-                                delta > 0 ? 'text-green-600' : 'text-red-600'
+                                delta > 0 ? 'text-emerald-600' : 'text-red-600'
                               }`}
                             >
                               {delta > 0 ? '+' : ''}

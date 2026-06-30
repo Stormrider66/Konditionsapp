@@ -247,7 +247,7 @@ function MuscleLabPreview({ rows, maxima, raw, locale }: { rows: MuscleLabRow[];
               <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} width={36} />
               <Tooltip />
               <Line yAxisId="left" type="monotone" dataKey="AP" name="AP W" stroke="#2563eb" strokeWidth={2} dot />
-              <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#16a34a" strokeWidth={2} dot />
+              <Line yAxisId="right" type="monotone" dataKey="AV" name="AV m/s" stroke="#059669" strokeWidth={2} dot />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -265,7 +265,7 @@ function MuscleLabPreview({ rows, maxima, raw, locale }: { rows: MuscleLabRow[];
                 <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} width={36} />
                 <Tooltip />
                 <Line yAxisId="left" type="monotone" dataKey="power" name="Power W" stroke="#2563eb" strokeWidth={2} dot={false} />
-                <Line yAxisId="right" type="monotone" dataKey="velocity" name="Velocity m/s" stroke="#16a34a" strokeWidth={2} dot={false} />
+                <Line yAxisId="right" type="monotone" dataKey="velocity" name="Velocity m/s" stroke="#059669" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

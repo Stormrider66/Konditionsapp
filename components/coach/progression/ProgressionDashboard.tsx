@@ -222,8 +222,8 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
   // Get status badge
   const getStatusBadge = (status: string) => {
     const statusConfig = {
-      ON_TRACK: { color: 'bg-green-100 text-green-800', icon: CheckCircle2, label: 'On Track' },
-      PLATEAU: { color: 'bg-yellow-100 text-yellow-800', icon: Minus, label: 'Plateau' },
+      ON_TRACK: { color: 'bg-emerald-100 text-emerald-800', icon: CheckCircle2, label: 'On Track' },
+      PLATEAU: { color: 'bg-amber-100 text-amber-800', icon: Minus, label: 'Plateau' },
       REGRESSING: { color: 'bg-red-100 text-red-800', icon: TrendingDown, label: 'Regressing' },
       DELOAD_NEEDED: { color: 'bg-orange-100 text-orange-800', icon: AlertTriangle, label: 'Deload Needed' },
     }
@@ -263,13 +263,13 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
             </div>
             <div className="flex items-center gap-1 mt-1">
               {summary.improvement >= 0 ? (
-                <TrendingUp className="h-3 w-3 text-green-500" />
+                <TrendingUp className="h-3 w-3 text-emerald-500" />
               ) : (
                 <TrendingDown className="h-3 w-3 text-red-500" />
               )}
               <span
                 className={`text-xs ${
-                  summary.improvement >= 0 ? 'text-green-600' : 'text-red-600'
+                  summary.improvement >= 0 ? 'text-emerald-600' : 'text-red-600'
                 }`}
               >
                 {summary.improvement >= 0 ? '+' : ''}
@@ -323,7 +323,7 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
               </span>
             </div>
             {summary.plateauWeeks > 0 && (
-              <p className="text-xs text-orange-600 mt-1">
+              <p className="text-xs text-amber-600 mt-1">
                 Plateau: {summary.plateauWeeks} weeks
               </p>
             )}
@@ -439,7 +439,7 @@ export function ProgressionDashboard({ clientId, clientName }: ProgressionDashbo
                         <p className="text-sm font-semibold">{ex.current1RM.toFixed(1)} kg</p>
                         <p
                           className={`text-xs ${
-                            ex.improvement >= 0 ? 'text-green-600' : 'text-red-600'
+                            ex.improvement >= 0 ? 'text-emerald-600' : 'text-red-600'
                           }`}
                         >
                           {ex.improvement >= 0 ? '+' : ''}

@@ -350,7 +350,7 @@ export function MonitoringTab({ id, basePath, businessSlug }: MonitoringTabProps
                 {copy(locale, 'Monitoring', 'Monitoring')}
               </h2>
               {recoveryWarning && (
-                <Badge variant="outline" className="border-orange-200 bg-orange-50 text-orange-700 dark:border-orange-500/30 dark:bg-orange-500/10 dark:text-orange-200">
+                <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                   <AlertTriangle className="mr-1 h-3.5 w-3.5" />
                   {copy(locale, 'Recovery check', 'Aterhamtningskoll')}
                 </Badge>

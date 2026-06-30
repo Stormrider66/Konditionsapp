@@ -394,7 +394,7 @@ export function EnvironmentalCalculator() {
             <RolePanel className="p-5 sm:p-6">
               <div className="mb-4">
                 <h3 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                  <Wind className="h-5 w-5 text-sky-500" />
+                  <Wind className="h-5 w-5 text-blue-500" />
                   Wind Resistance
                 </h3>
               </div>
@@ -451,7 +451,7 @@ function getWBGTColorClass(category: string): string {
     case 'HIGH_RISK':
       return 'bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-500/20 text-orange-900 dark:text-orange-350';
     case 'EXTREME_RISK':
-      return 'bg-rose-50/50 dark:bg-rose-950/20 border border-rose-200/50 dark:border-rose-500/20 text-rose-900 dark:text-rose-350';
+      return 'bg-red-50/50 dark:bg-red-950/20 border border-red-200/50 dark:border-red-500/20 text-red-900 dark:text-red-350';
     default:
       return 'bg-slate-100/50 dark:bg-slate-950/50 border border-slate-200/50 dark:border-white/5 text-slate-900 dark:text-white';
   }

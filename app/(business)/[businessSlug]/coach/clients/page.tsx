@@ -463,7 +463,7 @@ export default function BusinessClientsPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">{t('fields.athleteAccount')}:</span>
                           {client.athleteAccount ? (
-                            <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                            <Badge variant="default" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
                               <Check className="w-3 h-3 mr-1" />
                               {t('account.active')}
                             </Badge>
@@ -560,7 +560,7 @@ export default function BusinessClientsPage() {
                         <TableCell>
                           {client.athleteAccount ? (
                             <div className="flex items-center gap-2">
-                              <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200">
+                              <Badge variant="default" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200">
                                 <Check className="w-3 h-3 mr-1" />
                                 {t('account.active')}
                               </Badge>

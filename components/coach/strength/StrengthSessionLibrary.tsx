@@ -128,9 +128,9 @@ function localizedTags(locale: AppLocale, tags: string[], tagsSv?: string[]): st
 
 const CATEGORY_LABELS: Record<string, { label: LocalizedLabel; icon: React.ElementType; color: string }> = {
   RUNNER: { label: { en: 'Runner', sv: 'Löpare' }, icon: TrendingUp, color: 'bg-blue-100 text-blue-800' },
-  BEGINNER: { label: { en: 'Beginner', sv: 'Nybörjare' }, icon: Target, color: 'bg-green-100 text-green-800' },
+  BEGINNER: { label: { en: 'Beginner', sv: 'Nybörjare' }, icon: Target, color: 'bg-emerald-100 text-emerald-800' },
   MARATHON: { label: { en: 'Marathon', sv: 'Maraton' }, icon: Target, color: 'bg-purple-100 text-purple-800' },
-  INJURY_PREVENTION: { label: { en: 'Injury prevention', sv: 'Skadeprevention' }, icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
+  INJURY_PREVENTION: { label: { en: 'Injury prevention', sv: 'Skadeprevention' }, icon: Shield, color: 'bg-amber-100 text-amber-800' },
   POWER: { label: { en: 'Power', sv: 'Kraft' }, icon: Zap, color: 'bg-red-100 text-red-800' },
   MAINTENANCE: { label: { en: 'Maintenance', sv: 'Underhåll' }, icon: Dumbbell, color: 'bg-gray-100 text-gray-800' },
 };
@@ -158,7 +158,7 @@ const phaseLabels: Record<string, { label: LocalizedLabel; color: string }> = {
   ANATOMICAL_ADAPTATION: { label: { en: 'Anatomical adaptation', sv: 'Anatom. Anpassning' }, color: 'bg-blue-500' },
   MAXIMUM_STRENGTH: { label: { en: 'Maximum strength', sv: 'Maxstyrka' }, color: 'bg-red-500' },
   POWER: { label: { en: 'Power', sv: 'Power' }, color: 'bg-orange-500' },
-  MAINTENANCE: { label: { en: 'Maintenance', sv: 'Underhåll' }, color: 'bg-green-500' },
+  MAINTENANCE: { label: { en: 'Maintenance', sv: 'Underhåll' }, color: 'bg-emerald-500' },
   TAPER: { label: { en: 'Taper', sv: 'Taper' }, color: 'bg-purple-500' },
 };
 
@@ -752,7 +752,7 @@ export function StrengthSessionLibrary({
                         </Badge>
                         {template.includesWarmup && (
                           <Badge variant="outline" className="text-xs">
-                            <Flame className="h-3 w-3 mr-1 text-yellow-500" />
+                            <Flame className="h-3 w-3 mr-1 text-amber-500" />
                             {copy(locale, 'Warm-up', 'Uppvärmning')}
                           </Badge>
                         )}
@@ -764,7 +764,7 @@ export function StrengthSessionLibrary({
                         )}
                         {template.includesCooldown && (
                           <Badge variant="outline" className="text-xs">
-                            <Timer className="h-3 w-3 mr-1 text-green-500" />
+                            <Timer className="h-3 w-3 mr-1 text-emerald-500" />
                             {copy(locale, 'Cool-down', 'Nedvarvning')}
                           </Badge>
                         )}

@@ -101,12 +101,12 @@ export function TrainingStats({ clientId, weeks = 12 }: TrainingStatsProps) {
               <div className="flex h-3 w-full overflow-hidden rounded-full">
                 <div className="bg-emerald-500" style={{ width: `${pct(easy)}%` }} />
                 <div className="bg-amber-500" style={{ width: `${pct(moderate)}%` }} />
-                <div className="bg-rose-500" style={{ width: `${pct(hard)}%` }} />
+                <div className="bg-red-500" style={{ width: `${pct(hard)}%` }} />
               </div>
               <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                 <LegendDot className="bg-emerald-500" label={`${t('trainingStats.intensityEasy')} ${pct(easy)}%`} />
                 <LegendDot className="bg-amber-500" label={`${t('trainingStats.intensityModerate')} ${pct(moderate)}%`} />
-                <LegendDot className="bg-rose-500" label={`${t('trainingStats.intensityHard')} ${pct(hard)}%`} />
+                <LegendDot className="bg-red-500" label={`${t('trainingStats.intensityHard')} ${pct(hard)}%`} />
               </div>
             </div>
           )}

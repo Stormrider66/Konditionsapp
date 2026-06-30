@@ -1414,11 +1414,11 @@ export function SectionWorkoutBuilder({
                       }}
                       aria-label={isFavorite ? text(locale, 'Ta bort favorit', 'Remove favorite') : text(locale, 'Markera som favorit', 'Mark as favorite')}
                       title={isFavorite ? text(locale, 'Ta bort favorit', 'Remove favorite') : text(locale, 'Markera som favorit', 'Mark as favorite')}
-                      className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-yellow-500 hover:bg-muted/50 transition-colors shrink-0"
+                      className="h-7 w-7 inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-amber-500 hover:bg-muted/50 transition-colors shrink-0"
                     >
                       <Star
                         className={`h-4 w-4 ${
-                          isFavorite ? 'fill-yellow-400 text-yellow-400' : ''
+                          isFavorite ? 'fill-amber-400 text-amber-400' : ''
                         }`}
                       />
                     </button>
@@ -1456,7 +1456,7 @@ export function SectionWorkoutBuilder({
             <div className="pt-2 space-y-2">
               <div className="flex flex-wrap gap-1">
                 {sections.WARMUP.enabled && (
-                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">
+                  <Badge className="bg-amber-100 text-amber-800 text-xs">
                     <Flame className="h-3 w-3 mr-1" />
                     {sectionLabel('WARMUP', locale)}
                   </Badge>
@@ -1478,7 +1478,7 @@ export function SectionWorkoutBuilder({
                   </Badge>
                 )}
                 {sections.COOLDOWN.enabled && (
-                  <Badge className="bg-green-100 text-green-800 text-xs">
+                  <Badge className="bg-emerald-100 text-emerald-800 text-xs">
                     <Sparkles className="h-3 w-3 mr-1" />
                     {sectionLabel('COOLDOWN', locale)}
                   </Badge>

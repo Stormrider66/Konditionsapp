@@ -272,7 +272,7 @@ export function ErgometerProgressionChart({
                 type="monotone"
                 dataKey="criticalPower"
                 name="CP"
-                stroke="#22c55e"
+                stroke="#10b981"
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}
@@ -337,7 +337,7 @@ export function ErgometerProgressionChart({
 function TrendBadge({ trend, locale }: { trend: 'up' | 'down' | 'stable'; locale: string }) {
   if (trend === 'up') {
     return (
-      <Badge className="bg-green-100 text-green-800 border-green-300">
+      <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300">
         <TrendingUp className="h-3 w-3 mr-1" />
         {text(locale, 'increasing')}
       </Badge>

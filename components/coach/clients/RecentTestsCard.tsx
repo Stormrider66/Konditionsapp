@@ -97,7 +97,7 @@ export function RecentTestsCard({ clientId, testsHref }: RecentTestsCardProps) {
         <div className="flex items-start justify-between gap-2">
           <div>
             <CardTitle className="text-base flex items-center gap-2">
-              <TestTube className="h-4 w-4 text-purple-500" />
+              <TestTube className="h-4 w-4 text-cyan-500" />
               {t('title')}
               <Badge variant="secondary">{totalTests}</Badge>
             </CardTitle>

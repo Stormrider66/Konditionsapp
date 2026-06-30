@@ -226,7 +226,7 @@ export function AssessmentTimeline({ clientId, basePath, onExportCsv, onEnduranc
                           className={cn(
                             'rounded-full px-2 py-0.5 text-[11px] font-medium',
                             entry.status === 'DRAFT'
-                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
                               : 'bg-gray-100 text-gray-800 dark:bg-slate-700 dark:text-slate-300',
                           )}
                         >

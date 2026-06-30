@@ -209,16 +209,16 @@ const phaseColors: Record<string, string> = {
   ANATOMICAL_ADAPTATION: 'bg-blue-500',
   MAXIMUM_STRENGTH: 'bg-red-500',
   POWER: 'bg-orange-500',
-  MAINTENANCE: 'bg-green-500',
+  MAINTENANCE: 'bg-emerald-500',
   TAPER: 'bg-purple-500',
 };
 
 const statusColors: Record<string, string> = {
-  PENDING: 'bg-yellow-500',
+  PENDING: 'bg-amber-500',
   SCHEDULED: 'bg-blue-500',
-  COMPLETED: 'bg-green-500',
+  COMPLETED: 'bg-emerald-500',
   SKIPPED: 'bg-gray-500',
-  MODIFIED: 'bg-purple-500',
+  MODIFIED: 'bg-slate-500',
 };
 
 export function StrengthSessionDetailSheet({
@@ -283,7 +283,7 @@ export function StrengthSessionDetailSheet({
       type: 'WARMUP',
       label: t.warmup,
       icon: Flame,
-      iconClassName: 'text-yellow-500',
+      iconClassName: 'text-amber-500',
       borderColor: '#f59e0b',
       defaultRest: 30,
       exercises: (session.warmupData?.exercises || []) as DisplayExercise[],
@@ -319,8 +319,8 @@ export function StrengthSessionDetailSheet({
       type: 'COOLDOWN',
       label: t.cooldown,
       icon: Sparkles,
-      iconClassName: 'text-green-500',
-      borderColor: '#22c55e',
+      iconClassName: 'text-emerald-500',
+      borderColor: '#10b981',
       defaultRest: 30,
       exercises: (session.cooldownData?.exercises || []) as DisplayExercise[],
     },

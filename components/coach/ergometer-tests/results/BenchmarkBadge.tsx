@@ -51,9 +51,9 @@ const TIER_CONFIG: Record<
   { bg: string; text: string; border: string; icon: React.ReactNode; label: Record<AppLocale, string> }
 > = {
   ELITE: {
-    bg: 'bg-purple-100',
-    text: 'text-purple-800',
-    border: 'border-purple-300',
+    bg: 'bg-cyan-100',
+    text: 'text-cyan-800',
+    border: 'border-cyan-300',
     icon: <Trophy className="h-4 w-4" />,
     label: { en: 'Elite', sv: 'Elit' },
   },
@@ -65,9 +65,9 @@ const TIER_CONFIG: Record<
     label: { en: 'Advanced', sv: 'Avancerad' },
   },
   INTERMEDIATE: {
-    bg: 'bg-green-100',
-    text: 'text-green-800',
-    border: 'border-green-300',
+    bg: 'bg-emerald-100',
+    text: 'text-emerald-800',
+    border: 'border-emerald-300',
     icon: <Target className="h-4 w-4" />,
     label: { en: 'Intermediate', sv: 'Mellanliggande' },
   },

@@ -100,9 +100,9 @@ function copy(locale: AppLocale, en: string, sv: string): string {
 }
 
 const CONFIDENCE_COLORS: Record<string, string> = {
-  VERY_HIGH: 'bg-green-600',
-  HIGH: 'bg-green-500',
-  MEDIUM: 'bg-yellow-500',
+  VERY_HIGH: 'bg-emerald-600',
+  HIGH: 'bg-emerald-500',
+  MEDIUM: 'bg-amber-500',
   LOW: 'bg-red-500',
 };
 
@@ -118,11 +118,11 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
   const ergometerLabels = locale === 'sv' ? ERGOMETER_LABELS_SV : ERGOMETER_LABELS;
 
   return (
-    <Card className="border-green-200 bg-green-50/30">
+    <Card className="border-emerald-200 bg-emerald-50/30">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle className="h-6 w-6 text-green-600" />
+            <CheckCircle className="h-6 w-6 text-emerald-600" />
             <div>
               <CardTitle>{copy(locale, 'Test results', 'Testresultat')}</CardTitle>
               <CardDescription>
@@ -141,7 +141,7 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {test.avgPower && (
             <MetricCard
-              icon={<Zap className="h-4 w-4 text-yellow-600" />}
+              icon={<Zap className="h-4 w-4 text-amber-600" />}
               label={copy(locale, 'Average power', 'Snitteffekt')}
               value={`${test.avgPower}W`}
             />
@@ -162,7 +162,7 @@ export function ErgometerTestResults({ result, ergometerType, onClose }: Ergomet
           )}
           {test.wPrime && (
             <MetricCard
-              icon={<Zap className="h-4 w-4 text-purple-600" />}
+              icon={<Zap className="h-4 w-4 text-slate-600" />}
               label={copy(locale, "W' (anaerobic)", "W' (Anaerob)")}
               value={`${(test.wPrime / 1000).toFixed(1)}kJ`}
             />

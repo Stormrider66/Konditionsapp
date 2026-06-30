@@ -713,9 +713,9 @@ function ConsistencyCheck({ label, consistent }: { label: string; consistent: bo
   return (
     <div className="flex items-center gap-2">
       {consistent ? (
-        <CheckCircle2 className="h-4 w-4 text-green-600" />
+        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
       ) : (
-        <AlertCircle className="h-4 w-4 text-yellow-600" />
+        <AlertCircle className="h-4 w-4 text-amber-600" />
       )}
       <span className="text-sm">{label}</span>
       <Badge variant={consistent ? 'default' : 'outline'}>

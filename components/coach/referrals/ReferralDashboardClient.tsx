@@ -248,7 +248,7 @@ export function ReferralDashboardClient({
         <RoleStatCard label={t('totalReferrals')} value={stats.totalReferrals} icon={Users} tone="blue" />
         <RoleStatCard label={t('completedReferrals')} value={stats.completedReferrals} icon={CheckCircle2} tone="emerald" />
         <RoleStatCard label={t('pendingReferrals')} value={stats.pendingReferrals} icon={Clock} tone="amber" />
-        <RoleStatCard label={t('rewardsAvailable')} value={stats.availableRewards} icon={Sparkles} tone="violet" />
+        <RoleStatCard label={t('rewardsAvailable')} value={stats.availableRewards} icon={Sparkles} tone="emerald" />
       </div>
 
       {/* Referral Code Card */}
@@ -307,9 +307,9 @@ export function ReferralDashboardClient({
 
       {/* Available Rewards */}
       {availableRewards.length > 0 && (
-        <RolePanel className="mb-8 border-violet-200 bg-violet-50/50 dark:border-violet-900/50 dark:bg-violet-950/20">
-          <div className="border-b border-violet-100 px-5 py-4 dark:border-violet-900/50">
-            <h2 className="flex items-center gap-2 text-base font-semibold text-violet-700 dark:text-violet-300">
+        <RolePanel className="mb-8 border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/50 dark:bg-emerald-950/20">
+          <div className="border-b border-emerald-100 px-5 py-4 dark:border-emerald-900/50">
+            <h2 className="flex items-center gap-2 text-base font-semibold text-emerald-700 dark:text-emerald-300">
               <Sparkles className="h-5 w-5" />
               {t('availableRewards')}
             </h2>
@@ -320,7 +320,7 @@ export function ReferralDashboardClient({
               {availableRewards.map((reward) => (
                 <div
                   key={reward.id}
-                  className={roleListItemClass('violet', 'flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between')}
+                  className={roleListItemClass('emerald', 'flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between')}
                 >
                   <div>
                     <p className="font-medium text-zinc-950 dark:text-zinc-50">
@@ -421,8 +421,8 @@ export function ReferralDashboardClient({
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('step2Description')}</p>
             </div>
             <div className="text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md border border-violet-100 bg-violet-50 dark:border-violet-900/60 dark:bg-violet-950/30">
-                <Gift className="h-6 w-6 text-violet-600" />
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-md border border-emerald-100 bg-emerald-50 dark:border-emerald-900/60 dark:bg-emerald-950/30">
+                <Gift className="h-6 w-6 text-emerald-600" />
               </div>
               <h3 className="mb-1 font-medium text-zinc-950 dark:text-zinc-50">{t('step3Title')}</h3>
               <p className="text-sm text-zinc-500 dark:text-zinc-400">{t('step3Description')}</p>

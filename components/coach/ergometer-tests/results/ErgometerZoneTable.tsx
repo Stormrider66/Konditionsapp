@@ -49,9 +49,9 @@ interface ErgometerZoneTableProps {
 }
 
 const ZONE_COLORS: Record<number, { bg: string; text: string; border: string }> = {
-  1: { bg: 'bg-green-100', text: 'text-green-800', border: 'border-green-300' },
+  1: { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-300' },
   2: { bg: 'bg-blue-100', text: 'text-blue-800', border: 'border-blue-300' },
-  3: { bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
+  3: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-300' },
   4: { bg: 'bg-orange-100', text: 'text-orange-800', border: 'border-orange-300' },
   5: { bg: 'bg-red-100', text: 'text-red-800', border: 'border-red-300' },
   6: { bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300' },

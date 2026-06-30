@@ -411,10 +411,10 @@ export default function ValidationDashboard() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-green-600">{validTests}</div>
+                <div className="text-3xl font-bold text-emerald-600">{validTests}</div>
                 <div className="text-sm text-muted-foreground">{text.valid}</div>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
+              <CheckCircle className="h-8 w-8 text-emerald-500" />
             </div>
           </CardContent>
         </Card>

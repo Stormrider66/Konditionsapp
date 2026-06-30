@@ -738,7 +738,7 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                     yAxisId="left"
                     type="monotone"
                     dataKey="muskel"
-                    stroke="#16a34a"
+                    stroke="#059669"
                     strokeWidth={2}
                     name={t.chart.muscle}
                     dot={{ r: 4 }}
@@ -773,14 +773,14 @@ export function BodyCompositionTracker({ clientId, clientName }: BodyComposition
                   <Tooltip formatter={(v) => [`${v}°`, t.clinical.phaseAngle]} />
                   <ReferenceLine
                     y={phaseAngleAthleticFloor}
-                    stroke="#16a34a"
+                    stroke="#059669"
                     strokeDasharray="4 4"
-                    label={{ value: t.clinical.paAthletic, position: 'insideTopRight', fontSize: 10, fill: '#16a34a' }}
+                    label={{ value: t.clinical.paAthletic, position: 'insideTopRight', fontSize: 10, fill: '#059669' }}
                   />
                   <Line
                     type="monotone"
                     dataKey="pa"
-                    stroke="#7c3aed"
+                    stroke="#0891b2"
                     strokeWidth={2}
                     name={t.clinical.phaseAngle}
                     dot={{ r: 4 }}
@@ -1000,7 +1000,7 @@ function ChangeIndicator({
   return (
     <span
       className={`flex items-center text-sm ${
-        isGood ? 'text-green-600' : 'text-red-600'
+        isGood ? 'text-emerald-600' : 'text-red-600'
       }`}
     >
       {isPositive ? (
@@ -1046,7 +1046,7 @@ function TrendCard({
           value === 0
             ? 'text-muted-foreground'
             : isGood
-              ? 'text-green-600'
+              ? 'text-emerald-600'
               : 'text-red-600'
         }`}
       >

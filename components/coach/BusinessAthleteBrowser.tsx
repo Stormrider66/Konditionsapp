@@ -144,7 +144,7 @@ export function BusinessAthleteBrowser({ businessId, onInvitationSent }: Busines
           <Card key={athlete.id} className="bg-slate-900/50 border-white/10 hover:border-white/20 transition-colors">
             <CardHeader className="pb-3">
               <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-lg font-bold shrink-0">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white text-lg font-bold shrink-0">
                   {(athlete.name || athlete.email).charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0">

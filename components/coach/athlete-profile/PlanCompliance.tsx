@@ -15,7 +15,7 @@ function barColor(compliance: number | null): string {
   if (compliance == null) return 'bg-gray-200 dark:bg-white/10'
   if (compliance >= 90) return 'bg-emerald-500'
   if (compliance >= 70) return 'bg-amber-500'
-  return 'bg-rose-500'
+  return 'bg-red-500'
 }
 
 export function PlanCompliance({ clientId, weeks = 8 }: PlanComplianceProps) {

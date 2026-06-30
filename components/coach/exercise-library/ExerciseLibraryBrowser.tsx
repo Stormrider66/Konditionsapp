@@ -346,9 +346,9 @@ export function ExerciseLibraryBrowser({
   const getPillarColor = (pillar: BiomechanicalPillar | null) => {
     const colors = {
       POSTERIOR_CHAIN: 'bg-blue-100 text-blue-800',
-      KNEE_DOMINANCE: 'bg-green-100 text-green-800',
+      KNEE_DOMINANCE: 'bg-emerald-100 text-emerald-800',
       UNILATERAL: 'bg-purple-100 text-purple-800',
-      FOOT_ANKLE: 'bg-yellow-100 text-yellow-800',
+      FOOT_ANKLE: 'bg-amber-100 text-amber-800',
       ANTI_ROTATION_CORE: 'bg-red-100 text-red-800',
       UPPER_BODY: 'bg-indigo-100 text-indigo-800',
     }
@@ -364,7 +364,7 @@ export function ExerciseLibraryBrowser({
 
   const getVisibilityBadgeClass = (exercise: Exercise) => {
     if (exercise.isPublic) return 'border-blue-200 bg-blue-50 text-blue-700'
-    if ((exercise as LibraryExercise)._count?.businessShares) return 'border-violet-200 bg-violet-50 text-violet-700'
+    if ((exercise as LibraryExercise)._count?.businessShares) return 'border-blue-200 bg-blue-50 text-blue-700'
     if (exercise.businessId) return 'border-emerald-200 bg-emerald-50 text-emerald-700'
     return 'border-slate-200 bg-slate-50 text-slate-700'
   }
@@ -422,7 +422,7 @@ export function ExerciseLibraryBrowser({
               className="h-8 w-8 flex-shrink-0"
             >
               {isFavorite ? (
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               ) : (
                 <StarOff className="h-4 w-4" />
               )}
@@ -542,7 +542,7 @@ export function ExerciseLibraryBrowser({
               }}
             >
               {isFavorite ? (
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
               ) : (
                 <StarOff className="h-4 w-4" />
               )}

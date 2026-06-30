@@ -316,10 +316,10 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-3xl font-bold text-orange-600">{dueSoonTests.length}</div>
+                <div className="text-3xl font-bold text-amber-600">{dueSoonTests.length}</div>
                 <div className="text-sm text-muted-foreground">{text(locale, 'Snart dags', 'Due soon')}</div>
               </div>
-              <Calendar className="h-8 w-8 text-orange-500" />
+              <Calendar className="h-8 w-8 text-amber-500" />
             </div>
           </CardContent>
         </Card>
@@ -397,7 +397,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {rec.readiness.isReady ? (
-                        <CheckCircle className="h-4 w-4 text-green-500" />
+                        <CheckCircle className="h-4 w-4 text-emerald-500" />
                       ) : (
                         <XCircle className="h-4 w-4 text-red-500" />
                       )}
@@ -480,7 +480,7 @@ export default function TestSchedule({ highlightedClientId, sourceLabel }: TestS
                       key={test.id}
                       className={`p-4 border rounded-lg ${
                         isCritical
-                          ? 'border-orange-300 bg-orange-50'
+                          ? 'border-amber-300 bg-amber-50'
                           : 'border-gray-200 bg-white'
                       }`}
                     >
