@@ -73,10 +73,10 @@ const ROLE_ICONS: Record<string, typeof Shield> = {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  OWNER: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+  OWNER: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
   ADMIN: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
   COACH: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  PHYSICAL_TRAINER: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  PHYSICAL_TRAINER: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
   ASSISTANT_COACH: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-400',
   PHYSIO: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-400',
   MEMBER: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
