@@ -267,6 +267,28 @@ export function cardioEquipmentLabel(equipment: string | undefined | null, local
   return EQUIPMENT_LABELS[locale][equipment.toUpperCase()]
 }
 
+export type TargetStatus = 'below' | 'on' | 'above'
+
+/**
+ * Compare a live reading (e.g. watts) to its target for the above/on/below cue
+ * in focus mode. "On" means within a tolerance band: tolerancePct (default 5%)
+ * of the target, but never tighter than minAbsolute so small targets aren't
+ * impossible to "hit". Returns null when either value is missing/invalid.
+ */
+export function targetStatus(
+  actual: number | undefined | null,
+  target: number | undefined | null,
+  opts: { tolerancePct?: number; minAbsolute?: number } = {},
+): TargetStatus | null {
+  if (actual == null || !Number.isFinite(actual)) return null
+  if (target == null || !Number.isFinite(target) || target <= 0) return null
+  const tolerancePct = opts.tolerancePct ?? 5
+  const window = Math.max(opts.minAbsolute ?? 0, (target * tolerancePct) / 100)
+  if (actual < target - window) return 'below'
+  if (actual > target + window) return 'above'
+  return 'on'
+}
+
 // Work segments name themselves after the machine ("Wattbike", "Rodd", "SkiErg")
 // when one is known, so the athlete sees what to do — not a generic "Interval".
 // Rest/warm-up/cool-down keep their semantic name.

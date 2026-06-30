@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildCardioFocusModeSegments, parseCadenceToRpm, resolveSegmentPower } from './focus-mode-segments'
+import { buildCardioFocusModeSegments, parseCadenceToRpm, resolveSegmentPower, targetStatus } from './focus-mode-segments'
 
 describe('buildCardioFocusModeSegments', () => {
   it('expands flat repeats and rest intervals into loggable focus steps', () => {
@@ -168,6 +168,23 @@ describe('buildCardioFocusModeSegments', () => {
     })
 
     expect(segments.map((s) => s.typeName)).toEqual(['Interval', 'Interval'])
+  })
+
+  it('classifies a live reading as below / on / above its target', () => {
+    // Default 5% tolerance around 300 W → on-target band is 285..315.
+    expect(targetStatus(300, 300)).toBe('on')
+    expect(targetStatus(310, 300)).toBe('on')
+    expect(targetStatus(284, 300)).toBe('below')
+    expect(targetStatus(316, 300)).toBe('above')
+
+    // minAbsolute widens the band for small targets (60 W ±5% = ±3, floored to ±5).
+    expect(targetStatus(56, 60, { minAbsolute: 5 })).toBe('on')
+    expect(targetStatus(54, 60, { minAbsolute: 5 })).toBe('below')
+
+    // Missing/invalid inputs → no status.
+    expect(targetStatus(undefined, 300)).toBeNull()
+    expect(targetStatus(300, undefined)).toBeNull()
+    expect(targetStatus(300, 0)).toBeNull()
   })
 
   it('normalizes repeat-group REST steps to the persisted RECOVERY segment type', () => {

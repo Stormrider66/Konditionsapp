@@ -24,9 +24,13 @@ import {
   Gauge,
   Zap,
   Flame,
+  ArrowUp,
+  ArrowDown,
+  Check,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useTranslations } from '@/i18n/client'
+import { useTranslations, useLocale } from '@/i18n/client'
+import { targetStatus, type TargetStatus } from '@/lib/cardio/focus-mode-segments'
 
 type SegmentType = 'WARMUP' | 'COOLDOWN' | 'INTERVAL' | 'STEADY' | 'RECOVERY' | 'HILL' | 'DRILLS' | 'CORE' | 'PREHAB' | 'PLYOMETRIC'
 
@@ -55,6 +59,14 @@ interface IntervalTimerProps {
   targetPower?: number
   /** Label for a relative power target not yet resolved, e.g. "80% prolog" (optional) */
   targetPowerPending?: string
+  /** Live power from a connected machine, in watts (optional). */
+  livePower?: number
+  /** Live heart rate from a connected band, in bpm (optional). */
+  liveHeartRate?: number
+  /** The athlete's current HR zone for the live reading (1-5, optional). */
+  liveHrZone?: number
+  /** Color (hex) for the live HR zone badge, from the parent's zone map (optional). */
+  liveHrColor?: string
   /** Called when timer completes */
   onComplete: () => void
   /** Called when user skips segment */
@@ -160,6 +172,14 @@ const ZONE_COLORS = [
   'bg-red-200 text-red-700', // Zone 5
 ]
 
+// Live above/on/below-target cue styling, shared by the power readout and the
+// HR zone readout. below = working too easy (blue), on = green, above = red.
+const TARGET_STATUS_STYLE: Record<TargetStatus, { pill: string; Icon: typeof ArrowUp }> = {
+  below: { pill: 'bg-sky-100 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300', Icon: ArrowDown },
+  on: { pill: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300', Icon: Check },
+  above: { pill: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300', Icon: ArrowUp },
+}
+
 export function IntervalTimer({
   duration,
   segmentType,
@@ -173,6 +193,10 @@ export function IntervalTimer({
   liveCalories,
   targetPower,
   targetPowerPending,
+  livePower,
+  liveHeartRate,
+  liveHrZone,
+  liveHrColor,
   onComplete,
   onSkip,
   autoStart = false,
@@ -184,6 +208,8 @@ export function IntervalTimer({
   onStateChange,
 }: IntervalTimerProps) {
   const t = useTranslations('components.intervalTimer')
+  const locale = useLocale()
+  const tw = (sv: string, en: string) => (locale === 'sv' ? sv : en)
   const [seconds, setSeconds] = useState(duration)
   const [isRunning, setIsRunning] = useState(autoStart)
   const [isMuted, setIsMuted] = useState(false)
@@ -414,6 +440,20 @@ export function IntervalTimer({
     return colors.stroke
   }
 
+  // Live above/on/below-target cues (shown when a machine/band is connected).
+  const powerStatus = targetStatus(livePower, targetPower, { minAbsolute: 5 })
+  const powerDelta =
+    livePower != null && targetPower != null ? Math.round(livePower) - targetPower : null
+  // HR is compared by zone band (discrete), not raw bpm.
+  const hrStatus: TargetStatus | null =
+    liveHrZone != null && targetZone != null
+      ? liveHrZone < targetZone
+        ? 'below'
+        : liveHrZone > targetZone
+          ? 'above'
+          : 'on'
+      : null
+
   return (
     <div className="flex flex-col items-center justify-center p-6 space-y-6">
       {/* Segment header */}
@@ -425,19 +465,84 @@ export function IntervalTimer({
       </div>
 
       {/* Target indicators */}
-      <div className="flex flex-wrap items-center justify-center gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         {targetPace && (
           <div className="flex items-center gap-2 text-sm">
             <Gauge className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{formatPace(targetPace)}</span>
           </div>
         )}
-        {targetZone && (
+
+        {/* Power: live watts vs target with above/on/below cue when a machine is
+            connected; otherwise just the target (or a pending relative label). */}
+        {livePower != null ? (
+          <div
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-1',
+              powerStatus ? TARGET_STATUS_STYLE[powerStatus].pill : 'bg-muted text-foreground',
+            )}
+          >
+            <Zap className="h-4 w-4" />
+            <span className="text-base font-black tabular-nums">{Math.round(livePower)}</span>
+            <span className="text-xs font-medium opacity-80">
+              {targetPower != null ? `/ ${targetPower} W` : 'W'}
+            </span>
+            {powerStatus && (() => {
+              const { Icon } = TARGET_STATUS_STYLE[powerStatus]
+              return (
+                <span className="ml-0.5 flex items-center gap-0.5 text-xs font-bold">
+                  <Icon className="h-3.5 w-3.5" />
+                  {powerStatus === 'on'
+                    ? tw('På mål', 'On target')
+                    : `${powerDelta != null && powerDelta > 0 ? '+' : ''}${powerDelta}`}
+                </span>
+              )
+            })()}
+          </div>
+        ) : targetPower != null ? (
+          <div className="flex items-center gap-2 text-sm">
+            <Zap className="h-4 w-4 text-amber-500" />
+            <span className="font-bold">{targetPower} W</span>
+          </div>
+        ) : targetPowerPending ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Zap className="h-4 w-4" />
+            <span className="font-medium">{targetPowerPending}</span>
+          </div>
+        ) : null}
+
+        {/* Heart rate: live bpm + zone vs the segment's target zone when a band
+            is connected; otherwise the plain target-zone badge. */}
+        {liveHeartRate != null ? (
+          <div
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-1',
+              hrStatus ? TARGET_STATUS_STYLE[hrStatus].pill : 'bg-muted text-foreground',
+            )}
+          >
+            <Heart
+              className="h-4 w-4 fill-current"
+              style={!hrStatus && liveHrColor ? { color: liveHrColor } : undefined}
+            />
+            <span className="text-base font-black tabular-nums">{liveHeartRate}</span>
+            {liveHrZone != null && <span className="text-xs font-medium opacity-80">Z{liveHrZone}</span>}
+            {targetZone != null && (() => {
+              const Icon = hrStatus ? TARGET_STATUS_STYLE[hrStatus].Icon : null
+              return (
+                <span className="ml-0.5 flex items-center gap-0.5 text-xs font-bold">
+                  {Icon && <Icon className="h-3.5 w-3.5" />}
+                  {tw('mål', 'target')} Z{targetZone}
+                </span>
+              )
+            })()}
+          </div>
+        ) : targetZone ? (
           <Badge className={cn('text-xs', ZONE_COLORS[targetZone])}>
             <Heart className="h-3 w-3 mr-1" />
             {t('zone', { zone: targetZone })}
           </Badge>
-        )}
+        ) : null}
+
         {targetDistance && (
           <div className="flex items-center gap-2 text-sm">
             <Route className="h-4 w-4 text-muted-foreground" />
@@ -452,17 +557,6 @@ export function IntervalTimer({
             </span>
           </div>
         )}
-        {targetPower != null ? (
-          <div className="flex items-center gap-2 text-sm">
-            <Zap className="h-4 w-4 text-amber-500" />
-            <span className="font-bold">{targetPower} W</span>
-          </div>
-        ) : targetPowerPending ? (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Zap className="h-4 w-4" />
-            <span className="font-medium">{targetPowerPending}</span>
-          </div>
-        ) : null}
       </div>
 
       {/* Circular Timer */}

@@ -50,6 +50,7 @@ import {
   equipmentIsRowing,
   equipmentIsAirbike,
   equipmentIsConcept2,
+  targetStatus,
 } from '@/lib/cardio/focus-mode-segments'
 import {
   useVoiceCoach,
@@ -436,6 +437,16 @@ export function CardioFocusModeWorkout({
     ? Math.max(1, Math.round(baseTargetPower * (1 + currentPowerAdjustmentPct / 100)))
     : baseTargetPower
   const currentTargetPowerPending = resolvedPower.pendingLabel
+
+  // Above/on/below-target color for the live erg-strip watts readout.
+  const stripPowerStatus = activeConnected
+    ? targetStatus(activeDevice?.latest?.power, currentTargetPower, { minAbsolute: 5 })
+    : null
+  const STRIP_POWER_COLOR = {
+    below: 'text-sky-600 dark:text-sky-400',
+    on: 'text-emerald-600 dark:text-emerald-400',
+    above: 'text-rose-600 dark:text-rose-400',
+  } as const
 
   // After a work effort the "rest between rounds" runs as a single auto-advancing
   // countdown on the log form: the athlete logs the finished effort while the rest
@@ -1381,7 +1392,12 @@ export function CardioFocusModeWorkout({
                   </span>
                 )}
                 <Gauge className="h-4 w-4 self-center text-blue-500" />
-                <span className="text-2xl font-black tabular-nums text-slate-900 dark:text-white">
+                <span
+                  className={cn(
+                    'text-2xl font-black tabular-nums',
+                    stripPowerStatus ? STRIP_POWER_COLOR[stripPowerStatus] : 'text-slate-900 dark:text-white',
+                  )}
+                >
                   {activeDevice.latest?.power ?? 0}
                 </span>
                 <span className="text-xs text-slate-500">W</span>
@@ -1536,6 +1552,10 @@ export function CardioFocusModeWorkout({
             liveCalories={liveSegmentCalories ?? undefined}
             targetPower={currentTargetPower}
             targetPowerPending={currentTargetPowerPending}
+            livePower={activeConnected ? activeDevice?.latest?.power ?? undefined : undefined}
+            liveHeartRate={hrBand.bpm ?? undefined}
+            liveHrZone={liveHrZone ?? undefined}
+            liveHrColor={liveHrColor}
             notes={currentSegment.notes}
             onComplete={handleTimerComplete}
             onSkip={handleTimerSkip}
