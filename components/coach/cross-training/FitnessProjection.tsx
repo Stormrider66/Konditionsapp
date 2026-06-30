@@ -443,7 +443,7 @@ export default function FitnessProjection({
                   return (
                     <TableRow
                       key={comp.modality}
-                      className={isRecommended ? 'bg-green-50 border-green-200' : ''}
+                      className={isRecommended ? 'bg-emerald-50 border-emerald-200' : ''}
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -452,7 +452,7 @@ export default function FitnessProjection({
                             {getModalityLabel(comp.modality, locale)}
                           </span>
                           {isRecommended && (
-                            <Badge variant="outline" className="bg-green-100 text-green-800">
+                            <Badge variant="outline" className="bg-emerald-100 text-emerald-800">
                               <Award className="h-3 w-3 mr-1" />
                               {copy(locale, 'Recommended', 'Rekommenderad')}
                             </Badge>
@@ -463,7 +463,7 @@ export default function FitnessProjection({
                         {comp.finalVO2max.toFixed(1)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="outline" className="bg-green-100">
+                        <Badge variant="outline" className="bg-emerald-100">
                           <TrendingUp className="h-3 w-3 mr-1" />
                           {comp.retentionPercent}%
                         </Badge>

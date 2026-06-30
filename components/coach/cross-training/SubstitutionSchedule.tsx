@@ -148,7 +148,7 @@ const MODALITY_CONFIG = {
   XC_SKIING: { icon: '⛷️', label: { en: 'Cross-country skiing', sv: 'Längdskidåkning' }, color: 'bg-slate-600' },
   ALTERG: { icon: '🏃', label: 'AlterG', color: 'bg-indigo-500' },
   AIR_BIKE: { icon: '🚴‍♂️', label: 'Air Bike', color: 'bg-red-500' },
-  CYCLING: { icon: '🚴', label: { en: 'Cycling', sv: 'Cykling' }, color: 'bg-green-500' },
+  CYCLING: { icon: '🚴', label: { en: 'Cycling', sv: 'Cykling' }, color: 'bg-emerald-500' },
   SWIMMING: { icon: '🏊‍♂️', label: { en: 'Swimming', sv: 'Simning' }, color: 'bg-cyan-500' },
   ROWING: { icon: '🚣', label: { en: 'Rowing', sv: 'Rodd' }, color: 'bg-purple-500' },
   ELLIPTICAL: { icon: '🏃‍♂️', label: { en: 'Elliptical', sv: 'Crosstrainer' }, color: 'bg-orange-500' },

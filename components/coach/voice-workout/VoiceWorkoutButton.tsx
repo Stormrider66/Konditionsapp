@@ -87,7 +87,7 @@ export function VoiceWorkoutButton({
     if (!mounted) {
       return (
         <button className={cardClassName}>
-          <Mic className="h-5 w-5 text-pink-500" />
+          <Mic className="h-5 w-5 text-cyan-500" />
           <span className="text-xs text-zinc-700 dark:text-zinc-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
         </button>
       )
@@ -97,7 +97,7 @@ export function VoiceWorkoutButton({
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button className={cardClassName}>
-            <Mic className="h-5 w-5 text-pink-500" />
+            <Mic className="h-5 w-5 text-cyan-500" />
             <span className="text-xs text-zinc-700 dark:text-zinc-300">{copy(locale, 'Voice workout', 'Röstpass')}</span>
           </button>
         </SheetTrigger>

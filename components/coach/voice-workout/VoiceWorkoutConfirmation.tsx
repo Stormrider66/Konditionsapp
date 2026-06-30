@@ -81,7 +81,7 @@ export function VoiceWorkoutConfirmation({
       case 'STRENGTH':
         return <Dumbbell className="h-5 w-5 text-orange-500" />
       case 'HYBRID':
-        return <Activity className="h-5 w-5 text-purple-500" />
+        return <Activity className="h-5 w-5 text-slate-500" />
       default:
         return <Activity className="h-5 w-5" />
     }
@@ -286,24 +286,24 @@ export function VoiceWorkoutConfirmation({
         <p className="font-medium">{t('Sammanfattning', 'Summary')}</p>
         <ul className="text-sm text-muted-foreground space-y-1">
           <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             {t('Skapar', 'Creating')} {generatedWorkout.type.toLowerCase()}
             {t('-pass', ' workout')}: &ldquo;{generatedWorkout.name}&rdquo;
           </li>
           <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             {t(
               `Tilldelar till ${targetInfo.athletes.length} atlet(er)`,
               `Assigning to ${targetInfo.athletes.length} athlete(s)`
             )}
           </li>
           <li className="flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
             {t('Datum:', 'Date:')} {parsedIntent.schedule.resolvedDate}
           </li>
           {createCalendarEvent && (
             <li className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               {t('Skapar kalenderhändelse', 'Creating calendar event')}
               {calendarTime && ` ${t('kl', 'at')} ${calendarTime}`}
             </li>

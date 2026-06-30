@@ -73,7 +73,7 @@ export function DetailedLapTable({ data }: DetailedLapTableProps) {
                       key={interval}
                       className={`text-center font-mono whitespace-nowrap ${
                         isBest
-                          ? 'text-green-600 dark:text-green-400 font-semibold'
+                          ? 'text-emerald-600 dark:text-emerald-400 font-semibold'
                           : isWorst
                             ? 'text-red-500 dark:text-red-400'
                             : ''
@@ -86,7 +86,7 @@ export function DetailedLapTable({ data }: DetailedLapTableProps) {
                 <TableCell className="text-center font-mono font-medium whitespace-nowrap">
                   {p.avgSplitMs !== null ? formatSplit(p.avgSplitMs) : '-'}
                 </TableCell>
-                <TableCell className="text-center font-mono text-green-600 dark:text-green-400 whitespace-nowrap">
+                <TableCell className="text-center font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                   {p.bestSplitMs !== null ? formatSplit(p.bestSplitMs) : '-'}
                 </TableCell>
                 <TableCell className="text-center font-mono text-red-500 dark:text-red-400 whitespace-nowrap">

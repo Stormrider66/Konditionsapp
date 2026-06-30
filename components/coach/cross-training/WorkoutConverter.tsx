@@ -373,7 +373,7 @@ export function WorkoutConverter() {
           <RolePanel>
             <div className="border-b border-zinc-200 p-5 dark:border-white/10">
               <h2 className="flex items-center gap-2 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-                <ArrowRight className="h-5 w-5 text-purple-500" />
+                <ArrowRight className="h-5 w-5 text-blue-500" />
                 Conversion Results
               </h2>
             </div>
@@ -442,8 +442,8 @@ export function WorkoutConverter() {
 
               {/* Fitness Projection */}
               {result.fitnessProjection && (
-                <div className="p-4 bg-orange-50/50 dark:bg-orange-950/20 border border-orange-200/50 dark:border-orange-500/20 text-orange-900 dark:text-orange-300 rounded-lg">
-                  <h4 className="font-semibold text-orange-950 dark:text-orange-300 mb-3">Fitness Projection</h4>
+                <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-500/20 text-blue-900 dark:text-blue-300 rounded-lg">
+                  <h4 className="font-semibold text-blue-950 dark:text-blue-300 mb-3">Fitness Projection</h4>
                   <div className="space-y-3">
                     <div>
                       <p className="text-sm opacity-80">Expected Retention After {form.watch('injuryContext.expectedDuration')} Weeks</p>

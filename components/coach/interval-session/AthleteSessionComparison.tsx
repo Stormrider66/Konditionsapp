@@ -153,7 +153,7 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
               {text.title(clientName)}
             </CardTitle>
             {improvement && parseFloat(improvement) > 0 && (
-              <Badge variant="outline" className="text-green-600 border-green-300">
+              <Badge variant="outline" className="text-emerald-600 border-emerald-300">
                 <TrendingDown className="h-3 w-3 mr-1" />
                 {text.faster(improvement)}
               </Badge>
@@ -185,7 +185,7 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
               <Line
                 type="monotone"
                 dataKey="best"
-                stroke="#22C55E"
+                stroke="#10b981"
                 strokeWidth={2}
                 name={text.best}
                 dot={{ r: 3 }}
@@ -209,7 +209,7 @@ export function AthleteSessionComparison({ clientId, sportType }: AthleteSession
             </div>
             <div className="flex items-center gap-3 font-mono text-xs">
               <span>{text.average}: <strong>{s.avgSplitMs ? formatSplit(s.avgSplitMs) : '-'}</strong></span>
-              <span className="text-green-600">{text.best}: <strong>{s.bestSplitMs ? formatSplit(s.bestSplitMs) : '-'}</strong></span>
+              <span className="text-emerald-600">{text.best}: <strong>{s.bestSplitMs ? formatSplit(s.bestSplitMs) : '-'}</strong></span>
               <span>{text.lapCount(s.totalLaps)}</span>
             </div>
           </div>

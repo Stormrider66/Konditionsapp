@@ -190,10 +190,10 @@ const sportIcons: Record<string, string> = {
 };
 
 const segmentTypeColors: Record<string, string> = {
-  WARMUP: 'bg-yellow-500',
+  WARMUP: 'bg-amber-500',
   COOLDOWN: 'bg-blue-300',
   INTERVAL: 'bg-red-500',
-  STEADY: 'bg-green-500',
+  STEADY: 'bg-emerald-500',
   RECOVERY: 'bg-gray-400',
   REST: 'bg-gray-400',
   HILL: 'bg-orange-500',
@@ -213,11 +213,11 @@ const zoneColors: Record<number, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  PENDING: 'bg-yellow-500',
+  PENDING: 'bg-amber-500',
   SCHEDULED: 'bg-blue-500',
-  COMPLETED: 'bg-green-500',
+  COMPLETED: 'bg-emerald-500',
   SKIPPED: 'bg-gray-500',
-  MODIFIED: 'bg-purple-500',
+  MODIFIED: 'bg-amber-500',
 };
 
 function formatDuration(seconds?: number): string {

@@ -81,7 +81,7 @@ export function GarminSyncPanel({ sessionId }: GarminSyncPanelProps) {
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="gap-1 border-slate-300 dark:border-white/10 text-slate-700 dark:text-slate-350">
-                    <X className="h-3 w-3 text-rose-500" />
+                    <X className="h-3 w-3 text-red-500" />
                     {r.error || copy(locale, 'Not matched', 'Ej matchad')}
                   </Badge>
                 )}

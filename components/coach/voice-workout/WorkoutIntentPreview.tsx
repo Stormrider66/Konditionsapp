@@ -98,10 +98,10 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
 
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 0.8) {
-      return <Badge variant="default" className="bg-green-500">{copy(locale, 'High confidence', 'Hög säkerhet')}</Badge>
+      return <Badge variant="default" className="bg-emerald-500">{copy(locale, 'High confidence', 'Hög säkerhet')}</Badge>
     }
     if (confidence >= 0.5) {
-      return <Badge variant="secondary" className="bg-yellow-500">{copy(locale, 'Medium confidence', 'Medel säkerhet')}</Badge>
+      return <Badge variant="secondary" className="bg-amber-500">{copy(locale, 'Medium confidence', 'Medel säkerhet')}</Badge>
     }
     return <Badge variant="destructive">{copy(locale, 'Low confidence', 'Låg säkerhet')}</Badge>
   }
@@ -408,9 +408,9 @@ export function WorkoutIntentPreview({ preview, onUpdate }: WorkoutIntentPreview
               className={cn(
                 'h-full rounded-full',
                 parsedIntent.confidence >= 0.8
-                  ? 'bg-green-500'
+                  ? 'bg-emerald-500'
                   : parsedIntent.confidence >= 0.5
-                    ? 'bg-yellow-500'
+                    ? 'bg-amber-500'
                     : 'bg-red-500'
               )}
               style={{ width: `${parsedIntent.confidence * 100}%` }}

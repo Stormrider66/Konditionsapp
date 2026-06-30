@@ -223,7 +223,7 @@ export function IntervalSessionList({ businessSlug }: IntervalSessionListProps) 
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-2 text-rose-600 dark:text-rose-450 hover:bg-rose-50 dark:hover:bg-rose-950/20"
+                        className="h-7 px-2 text-red-600 dark:text-red-450 hover:bg-red-50 dark:hover:bg-red-950/20"
                         onClick={(e) => handleDelete(session.id, e)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

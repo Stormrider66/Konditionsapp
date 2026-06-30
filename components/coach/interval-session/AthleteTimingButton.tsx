@@ -166,9 +166,9 @@ export function AthleteTimingButton({
           : isResting
             ? 'border-2 shadow-md'
             : restDone
-              ? 'border-2 border-green-500 bg-green-50 dark:bg-green-950'
+              ? 'border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950'
               : 'border-2 hover:scale-[1.02] active:scale-[0.95] cursor-pointer',
-        restAlmostDone && 'ring-2 ring-green-400 ring-offset-1 animate-pulse',
+        restAlmostDone && 'ring-2 ring-emerald-400 ring-offset-1 animate-pulse',
       )}
       style={
         tapped && !isResting && !restDone
@@ -203,7 +203,7 @@ export function AthleteTimingButton({
           <rect
             x="2" y="2" width="96" height="96" rx="12" ry="12"
             fill="none"
-            stroke={restAlmostDone ? '#22c55e' : color}
+            stroke={restAlmostDone ? '#10b981' : color}
             strokeWidth="3"
             strokeDasharray={`${restProgress * 384} 384`}
             strokeLinecap="round"
@@ -230,7 +230,7 @@ export function AthleteTimingButton({
       <span className={cn(
         'font-bold text-lg',
         tapped && !isResting && !restDone && 'text-white',
-        restDone && 'text-green-700 dark:text-green-300',
+        restDone && 'text-emerald-700 dark:text-emerald-300',
         allIntervalsCompleted && !tapped && 'text-muted-foreground',
       )}>
         {displayName}
@@ -255,7 +255,7 @@ export function AthleteTimingButton({
           {/* Rest countdown */}
           <span className={cn(
             'font-mono text-lg font-bold',
-            restAlmostDone && 'text-green-600 dark:text-green-400',
+            restAlmostDone && 'text-emerald-600 dark:text-emerald-400',
           )} style={restAlmostDone ? {} : { color }}>
             {formatCountdown(restRemaining)}
           </span>
@@ -264,10 +264,10 @@ export function AthleteTimingButton({
       ) : restDone ? (
         <>
           {/* Elapsed time since rest ended = how long they've been running */}
-          <span className="font-mono text-lg font-bold text-green-600 dark:text-green-400">
+          <span className="font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
             {intervalElapsed !== null ? formatElapsed(intervalElapsed) : ''}
           </span>
-          <span className="text-[10px] text-green-600/70 dark:text-green-400/70">{copy(locale, 'running', 'löpande')}</span>
+          <span className="text-[10px] text-emerald-600/70 dark:text-emerald-400/70">{copy(locale, 'running', 'löpande')}</span>
         </>
       ) : tapped ? (
         <span className="font-mono text-sm text-white/90 mt-1">
@@ -284,7 +284,7 @@ export function AthleteTimingButton({
         <span className={cn(
           'absolute bottom-1.5 left-2 text-[11px] font-semibold',
           tapped && !isResting && !restDone ? 'text-white/70' : 'opacity-70',
-          restDone && 'text-green-700 dark:text-green-300',
+          restDone && 'text-emerald-700 dark:text-emerald-300',
         )}>
           {laps.length} {copy(locale, 'laps', 'varv')}
         </span>
