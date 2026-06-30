@@ -38,6 +38,8 @@ export interface TeamCaptureStationTemplate {
   targetDistanceMeters?: number
   targetDurationSec?: number
   targetPower?: number
+  targetHrZone?: number
+  targetPace?: number
   estimatedSeconds: number
 }
 
@@ -97,6 +99,8 @@ export interface TeamCaptureSegmentPlan {
   targetDistanceMeters?: number
   targetDurationSec?: number
   targetPower?: number
+  targetHrZone?: number
+  targetPace?: number
 }
 
 export interface TeamCaptureLanePlan {
@@ -256,6 +260,8 @@ export function buildTeamCaptureLanePlan(
           targetDistanceMeters: station.targetDistanceMeters,
           targetDurationSec: station.targetDurationSec ?? durationSec,
           targetPower: station.targetPower,
+          targetHrZone: station.targetHrZone,
+          targetPace: station.targetPace,
         })
         cursor += durationSec
       }
@@ -305,6 +311,8 @@ export function createStationTemplate(input: {
   targetDistanceMeters?: number
   targetDurationSec?: number
   targetPower?: number
+  targetHrZone?: number
+  targetPace?: number
   estimatedSeconds?: number
   captureMethod?: TeamCaptureMethod
 }): TeamCaptureStationTemplate {
@@ -328,6 +336,8 @@ export function createStationTemplate(input: {
     targetDistanceMeters: input.targetDistanceMeters,
     targetDurationSec: input.targetDurationSec,
     targetPower: input.targetPower,
+    targetHrZone: input.targetHrZone,
+    targetPace: input.targetPace,
     estimatedSeconds: clampInt(input.estimatedSeconds, input.targetDurationSec ?? definition.estimatedSeconds, 5, 1800),
   }
 }

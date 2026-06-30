@@ -28,15 +28,31 @@ import { Button } from '@/components/ui/button'
 import { roleListItemClass, roleSurfaceClass, roleTableHeadClass } from '@/components/layouts/role-shell/RolePage'
 import { labelFromEquipmentKey } from '@/lib/team-capture/equipment'
 import { targetStatus } from '@/lib/cardio/focus-mode-segments'
+import type { LiveHrZones } from '@/lib/cardio/athlete-hr-zones'
 import { cn } from '@/lib/utils'
 
-// Above/on/below-target text color for the live watts cell, matching the
-// athlete focus-mode cue (blue = under, green = on, red = over target).
-const POWER_STATUS_TEXT = {
+// Above/on/below-target text color, matching the athlete focus-mode cue
+// (blue = under, green = on, red = over target).
+const STATUS_TEXT = {
   below: 'text-sky-600 dark:text-sky-400',
   on: 'text-emerald-600 dark:text-emerald-400',
   above: 'text-rose-600 dark:text-rose-400',
 } as const
+
+// Map a live bpm onto the athlete's HR zone (1-5) using their resolved bands.
+function zoneForBpm(bpm: number, zones: LiveHrZones['zones']): number | null {
+  if (!zones.length) return null
+  for (const z of zones) {
+    if (bpm <= z.hrMax) return z.zone
+  }
+  return zones[zones.length - 1].zone
+}
+
+// Target pace label without the "/500" suffix (shown after the live value).
+function formatTargetPace(seconds: number): string {
+  const total = Math.round(seconds)
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`
+}
 
 type CaptureStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
 type MachineType = 'BIKEERG' | 'ROWER' | 'SKIERG' | 'WATTBIKE' | 'ASSAULT_BIKE' | 'ECHO_BIKE' | 'AIR_BIKE' | 'RUN' | 'REST'
@@ -99,6 +115,10 @@ interface CaptureSegment {
   plannedEndSec: number
   /** Target power for this segment, in watts (drives the live above/on/below cue). */
   targetPower: number | null
+  /** Target HR zone (1-5) for this segment. */
+  targetHrZone: number | null
+  /** Target pace in sec/500m (rowing/ski) for this segment. */
+  targetPace: number | null
   status: string
   summary: unknown
 }
@@ -121,6 +141,8 @@ interface TeamCaptureControlRoomProps {
   teamId: string
   locale: 'en' | 'sv'
   initialSession: CaptureSession
+  /** Resolved HR zones per athlete (clientId → zones), for the live HR-zone cue. */
+  hrZonesByClient?: Record<string, LiveHrZones | null>
 }
 
 function text(locale: 'en' | 'sv', en: string, sv: string): string {
@@ -138,6 +160,7 @@ export function TeamCaptureControlRoom({
   teamId,
   locale,
   initialSession,
+  hrZonesByClient,
 }: TeamCaptureControlRoomProps) {
   const [session, setSession] = useState(initialSession)
   const [busy, setBusy] = useState(false)
@@ -537,7 +560,7 @@ export function TeamCaptureControlRoom({
                             : null
                           return (
                             <span className="inline-flex items-baseline justify-end gap-1.5">
-                              <span className={cn('font-semibold', status ? POWER_STATUS_TEXT[status] : undefined)}>
+                              <span className={cn('font-semibold', status ? STATUS_TEXT[status] : undefined)}>
                                 {formatLiveWatts(latestReading?.power)}
                               </span>
                               {currentSegment?.targetPower != null && (
@@ -548,10 +571,49 @@ export function TeamCaptureControlRoom({
                         })()}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
-                        {formatLiveHeartRate(latestReading?.heartRate)}
+                        {(() => {
+                          // Map live bpm to the athlete's zone and compare to the
+                          // segment's target zone (below/on/above), when fresh.
+                          const zones = participant ? hrZonesByClient?.[participant.clientId]?.zones : undefined
+                          const bpm = latestReading?.heartRate
+                          const liveZone = isFresh && bpm != null && zones?.length ? zoneForBpm(bpm, zones) : null
+                          const target = currentSegment?.targetHrZone ?? null
+                          const status = liveZone != null && target != null
+                            ? liveZone < target ? 'below' : liveZone > target ? 'above' : 'on'
+                            : null
+                          return (
+                            <span className="inline-flex items-baseline justify-end gap-1.5">
+                              <span className={cn('font-semibold', status ? STATUS_TEXT[status] : undefined)}>
+                                {formatLiveHeartRate(latestReading?.heartRate)}
+                              </span>
+                              {target != null && (
+                                <span className="text-xs text-muted-foreground">{text(locale, 'tgt', 'mål')} Z{target}</span>
+                              )}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
-                        {formatPace(latestReading?.paceSecPer500m)}
+                        {(() => {
+                          // Pace (sec/500m): lower = faster = harder, so invert.
+                          const status = isFresh
+                            ? targetStatus(latestReading?.paceSecPer500m, currentSegment?.targetPace, {
+                                tolerancePct: 0,
+                                minAbsolute: 2,
+                                invert: true,
+                              })
+                            : null
+                          return (
+                            <span className="inline-flex items-baseline justify-end gap-1.5">
+                              <span className={cn('font-semibold', status ? STATUS_TEXT[status] : undefined)}>
+                                {formatPace(latestReading?.paceSecPer500m)}
+                              </span>
+                              {currentSegment?.targetPace != null && (
+                                <span className="text-xs text-muted-foreground">/ {formatTargetPace(currentSegment.targetPace)}</span>
+                              )}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
                         {formatLiveCalories(latestReading?.calories)}

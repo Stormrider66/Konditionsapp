@@ -244,6 +244,8 @@ export async function createTeamCaptureSession(
         targetDistanceMeters: segment.targetDistanceMeters ?? null,
         targetDurationSec: segment.targetDurationSec ?? null,
         targetPower: segment.targetPower ?? null,
+        targetHrZone: segment.targetHrZone ?? null,
+        targetPace: segment.targetPace ?? null,
       })),
     })
 
@@ -621,6 +623,8 @@ async function exportTeamCaptureSensorCaptures(session: NonNullable<Awaited<Retu
         targetDistanceMeters: segment.targetDistanceMeters ?? undefined,
         targetDurationSec: segment.targetDurationSec ?? undefined,
         targetPower: segment.targetPower ?? undefined,
+        targetHrZone: segment.targetHrZone ?? undefined,
+        targetPace: segment.targetPace ?? undefined,
         status: segment.status,
         summary: segment.summary ?? undefined,
       })

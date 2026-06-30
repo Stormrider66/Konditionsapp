@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
 import { getWorkoutBusinessTag } from '@/lib/workouts/business-tags'
+import { parsePaceToSeconds } from '@/lib/cardio/focus-mode-segments'
 import { inferEquipmentFromText, normalizeEquipmentKey } from './equipment'
 import {
   buildDefaultTeamCaptureTemplate,
@@ -158,6 +159,12 @@ function stationFromStep(rawStep: unknown, stationIndex: number): TeamCaptureSta
   const distanceMeters = normaliseDistanceMeters(step.distance)
   const durationSec = positiveInt(step.duration)
   const power = positiveInt(step.power) ?? positiveInt(step.targetPower)
+  const zoneRaw = positiveInt(step.zone)
+  const hrZone = zoneRaw != null && zoneRaw >= 1 && zoneRaw <= 5 ? zoneRaw : undefined
+  // Pace is per-500m only for rowing/ski ergs (where the grid reads paceSecPer500m).
+  const pace = equipment.key === 'ROW' || equipment.key === 'SKI_ERG'
+    ? parsePaceToSeconds(typeof step.pace === 'number' ? String(step.pace) : asString(step.pace))
+    : undefined
   const label = asString(step.label) ?? asString(step.exerciseName) ?? asString(step.movementName) ?? equipment.label
 
   if (!calories && !distanceMeters && !durationSec && !power && !asString(step.notes)) return null
@@ -170,6 +177,8 @@ function stationFromStep(rawStep: unknown, stationIndex: number): TeamCaptureSta
     targetDistanceMeters: distanceMeters,
     targetDurationSec: durationSec,
     targetPower: power,
+    targetHrZone: hrZone,
+    targetPace: pace,
     estimatedSeconds: estimatedSeconds({
       equipmentKey: equipment.key,
       calories,

@@ -205,6 +205,8 @@ model TeamCaptureSegment {
   targetDistanceMeters Int?
   targetDurationSec    Int?
   targetPower          Int?
+  targetHrZone         Int? // target HR zone 1-5 for this segment
+  targetPace           Int? // target pace in sec/500m (rowing/ski) for this segment
 
   actualStartAt DateTime?
   actualEndAt   DateTime?
