@@ -187,6 +187,15 @@ describe('buildCardioFocusModeSegments', () => {
     expect(targetStatus(300, 0)).toBeNull()
   })
 
+  it('inverts the cue for pace where a lower value means more effort', () => {
+    // Target 106 s/500m, ±2 s band. Faster (lower) = harder = "above".
+    const opts = { minAbsolute: 2, tolerancePct: 0, invert: true }
+    expect(targetStatus(106, 106, opts)).toBe('on')
+    expect(targetStatus(102, 106, opts)).toBe('above') // 4 s faster → harder
+    expect(targetStatus(110, 106, opts)).toBe('below') // 4 s slower → easier
+    expect(targetStatus(105, 106, opts)).toBe('on') // within ±2 s
+  })
+
   it('normalizes repeat-group REST steps to the persisted RECOVERY segment type', () => {
     const segments = buildCardioFocusModeSegments({
       locale: 'en',

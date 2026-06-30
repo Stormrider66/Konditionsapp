@@ -61,6 +61,8 @@ interface IntervalTimerProps {
   targetPowerPending?: string
   /** Live power from a connected machine, in watts (optional). */
   livePower?: number
+  /** Live pace from a connected rower/SkiErg, in sec/500m (optional). */
+  livePace?: number
   /** Live heart rate from a connected band, in bpm (optional). */
   liveHeartRate?: number
   /** The athlete's current HR zone for the live reading (1-5, optional). */
@@ -194,6 +196,7 @@ export function IntervalTimer({
   targetPower,
   targetPowerPending,
   livePower,
+  livePace,
   liveHeartRate,
   liveHrZone,
   liveHrColor,
@@ -444,6 +447,10 @@ export function IntervalTimer({
   const powerStatus = targetStatus(livePower, targetPower, { minAbsolute: 5 })
   const powerDelta =
     livePower != null && targetPower != null ? Math.round(livePower) - targetPower : null
+  // Pace (sec/500m): lower = faster = harder, so invert. Band ±2 s.
+  const paceStatus = targetStatus(livePace, targetPace, { tolerancePct: 0, minAbsolute: 2, invert: true })
+  const paceDeltaAbs =
+    livePace != null && targetPace != null ? Math.abs(Math.round(livePace) - targetPace) : null
   // HR is compared by zone band (discrete), not raw bpm.
   const hrStatus: TargetStatus | null =
     liveHrZone != null && targetZone != null
@@ -466,12 +473,36 @@ export function IntervalTimer({
 
       {/* Target indicators */}
       <div className="flex flex-wrap items-center justify-center gap-3">
-        {targetPace && (
+        {/* Pace: live sec/500m vs target with above/on/below cue when a rower/
+            SkiErg is connected; otherwise just the target pace. */}
+        {livePace != null ? (
+          <div
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-1',
+              paceStatus ? TARGET_STATUS_STYLE[paceStatus].pill : 'bg-muted text-foreground',
+            )}
+          >
+            <Gauge className="h-4 w-4" />
+            <span className="text-base font-black tabular-nums">{formatPace(Math.round(livePace))}</span>
+            {targetPace != null && (
+              <span className="text-xs font-medium opacity-80">/ {formatTime(targetPace)}</span>
+            )}
+            {paceStatus && targetPace != null && (() => {
+              const { Icon } = TARGET_STATUS_STYLE[paceStatus]
+              return (
+                <span className="ml-0.5 flex items-center gap-0.5 text-xs font-bold">
+                  <Icon className="h-3.5 w-3.5" />
+                  {paceStatus === 'on' ? tw('På mål', 'On target') : `${paceDeltaAbs}s`}
+                </span>
+              )
+            })()}
+          </div>
+        ) : targetPace ? (
           <div className="flex items-center gap-2 text-sm">
             <Gauge className="h-4 w-4 text-muted-foreground" />
             <span className="font-medium">{formatPace(targetPace)}</span>
           </div>
-        )}
+        ) : null}
 
         {/* Power: live watts vs target with above/on/below cue when a machine is
             connected; otherwise just the target (or a pending relative label). */}

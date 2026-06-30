@@ -438,11 +438,19 @@ export function CardioFocusModeWorkout({
     : baseTargetPower
   const currentTargetPowerPending = resolvedPower.pendingLabel
 
-  // Above/on/below-target color for the live erg-strip watts readout.
+  // Above/on/below-target colors for the live erg-strip readouts (watts + pace).
   const stripPowerStatus = activeConnected
     ? targetStatus(activeDevice?.latest?.power, currentTargetPower, { minAbsolute: 5 })
     : null
-  const STRIP_POWER_COLOR = {
+  // Pace (sec/500m): lower = faster = harder, so invert for matching colors.
+  const stripPaceStatus = activeConnected
+    ? targetStatus(activeDevice?.latest?.pace, currentSegment?.plannedPace, {
+        tolerancePct: 0,
+        minAbsolute: 2,
+        invert: true,
+      })
+    : null
+  const STRIP_STATUS_COLOR = {
     below: 'text-sky-600 dark:text-sky-400',
     on: 'text-emerald-600 dark:text-emerald-400',
     above: 'text-rose-600 dark:text-rose-400',
@@ -1395,7 +1403,7 @@ export function CardioFocusModeWorkout({
                 <span
                   className={cn(
                     'text-2xl font-black tabular-nums',
-                    stripPowerStatus ? STRIP_POWER_COLOR[stripPowerStatus] : 'text-slate-900 dark:text-white',
+                    stripPowerStatus ? STRIP_STATUS_COLOR[stripPowerStatus] : 'text-slate-900 dark:text-white',
                   )}
                 >
                   {activeDevice.latest?.power ?? 0}
@@ -1448,7 +1456,12 @@ export function CardioFocusModeWorkout({
                 {activeDevice.kind === 'rower' ? (
                   <>
                     {activeDevice.latest?.pace != null && (
-                      <span className="tabular-nums font-semibold">
+                      <span
+                        className={cn(
+                          'tabular-nums font-semibold',
+                          stripPaceStatus ? STRIP_STATUS_COLOR[stripPaceStatus] : undefined,
+                        )}
+                      >
                         {formatDuration(activeDevice.latest.pace)}
                         <span className="font-normal text-xs">/500m</span>
                       </span>
@@ -1553,6 +1566,11 @@ export function CardioFocusModeWorkout({
             targetPower={currentTargetPower}
             targetPowerPending={currentTargetPowerPending}
             livePower={activeConnected ? activeDevice?.latest?.power ?? undefined : undefined}
+            livePace={
+              activeConnected && equipmentIsRowing(currentSegment.equipment)
+                ? activeDevice?.latest?.pace ?? undefined
+                : undefined
+            }
             liveHeartRate={hrBand.bpm ?? undefined}
             liveHrZone={liveHrZone ?? undefined}
             liveHrColor={liveHrColor}

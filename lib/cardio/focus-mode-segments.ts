@@ -274,19 +274,27 @@ export type TargetStatus = 'below' | 'on' | 'above'
  * in focus mode. "On" means within a tolerance band: tolerancePct (default 5%)
  * of the target, but never tighter than minAbsolute so small targets aren't
  * impossible to "hit". Returns null when either value is missing/invalid.
+ *
+ * `invert` is for metrics where a LOWER value means MORE effort — e.g. pace in
+ * sec/500m, where rowing faster than target is a smaller number. With invert,
+ * "above" still means "working harder than the target" so the colour semantics
+ * stay consistent across watts, HR and pace (red = harder, blue = easier).
  */
 export function targetStatus(
   actual: number | undefined | null,
   target: number | undefined | null,
-  opts: { tolerancePct?: number; minAbsolute?: number } = {},
+  opts: { tolerancePct?: number; minAbsolute?: number; invert?: boolean } = {},
 ): TargetStatus | null {
   if (actual == null || !Number.isFinite(actual)) return null
   if (target == null || !Number.isFinite(target) || target <= 0) return null
   const tolerancePct = opts.tolerancePct ?? 5
   const window = Math.max(opts.minAbsolute ?? 0, (target * tolerancePct) / 100)
-  if (actual < target - window) return 'below'
-  if (actual > target + window) return 'above'
-  return 'on'
+  let status: TargetStatus
+  if (actual < target - window) status = 'below'
+  else if (actual > target + window) status = 'above'
+  else status = 'on'
+  if (opts.invert && status !== 'on') status = status === 'below' ? 'above' : 'below'
+  return status
 }
 
 // Work segments name themselves after the machine ("Wattbike", "Rodd", "SkiErg")
