@@ -129,7 +129,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
   const selectedParticipant = participants.find((participant) => participant.clientId === activeClientId)
   const captureSupported = hasMounted ? fleet.isSupported : false
   const canConnect = !disabled && captureSupported && participants.length > 0 && !!activeClientId
-  const displayLatest = isConnected && latest?.client === device?.client ? latest.sample : null
+  const displayLatest = isConnected ? device?.latest ?? (latest?.client === device?.client ? latest.sample : null) : null
   const showNoDataHint = isConnected && noDataHintClient === device?.client && !displayLatest
   const displayPower =
     displayLatest?.power != null
@@ -142,6 +142,10 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHasMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (isConnected && displayLatest) latestRef.current = displayLatest
+  }, [displayLatest, isConnected])
 
   useEffect(() => {
     latestRef.current = null
