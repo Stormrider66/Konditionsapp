@@ -38,6 +38,8 @@ type MachineOption = {
 }
 
 const PUSH_INTERVAL_MS = 2_000
+const MIN_VALID_HEART_RATE = 30
+const MAX_VALID_HEART_RATE = 250
 
 const MACHINE_OPTIONS: MachineOption[] = [
   { type: 'WATTBIKE', slot: 'WATTBIKE', kind: 'bike', labels: { en: 'Wattbike', sv: 'Wattbike' } },
@@ -137,6 +139,12 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
       : displayLatest?.avgPower != null
         ? displayLatest.avgPower
         : null
+  const displayHeartRate =
+    typeof displayLatest?.heartRate === 'number' &&
+    displayLatest.heartRate >= MIN_VALID_HEART_RATE &&
+    displayLatest.heartRate <= MAX_VALID_HEART_RATE
+      ? displayLatest.heartRate
+      : null
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -179,6 +187,12 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
           ? sample.avgPower
           : null
       if (!sample || power == null) return
+      const heartRate =
+        typeof sample.heartRate === 'number' &&
+        sample.heartRate >= MIN_VALID_HEART_RATE &&
+        sample.heartRate <= MAX_VALID_HEART_RATE
+          ? Math.round(sample.heartRate)
+          : undefined
 
       void fetch(`/api/coach/live-hr/sessions/${sessionId}/machine`, {
         method: 'POST',
@@ -189,7 +203,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
           ergometerType: selectedMachineType,
           power: Math.round(power),
           cadence: Math.round(machine.kind === 'rower' ? sample.strokeRate ?? 0 : sample.cadence ?? sample.avgCadence ?? 0) || undefined,
-          heartRate: typeof sample.heartRate === 'number' ? Math.round(sample.heartRate) : undefined,
+          heartRate,
           deviceId: device?.client.getDeviceId() ?? undefined,
         }),
       }).catch(() => {
@@ -308,7 +322,7 @@ export function MachineCapturePanel({ sessionId, participants, disabled = false 
           </span>
           <span className="flex items-center gap-1 tabular-nums">
             <Heart className="h-4 w-4 text-rose-500" />
-            {copy.heartRate}: {displayLatest?.heartRate != null ? Math.round(displayLatest.heartRate) : '-'}
+            {copy.heartRate}: {displayHeartRate != null ? Math.round(displayHeartRate) : '-'}
           </span>
           {showNoDataHint && (
             <span className="text-amber-600 dark:text-amber-400">{copy.noMachineData}</span>

@@ -23,6 +23,12 @@ function isMachineType(value: unknown): value is LiveHRMachineType {
   )
 }
 
+function normalizeMachineHeartRate(value: unknown): number | undefined {
+  if (value == null || value === 0) return undefined
+  if (typeof value !== 'number' || value < 30 || value > 250) return Number.NaN
+  return Math.round(value)
+}
+
 export async function POST(req: NextRequest, context: RouteContext) {
   let locale: AppLocale = 'en'
 
@@ -46,7 +52,9 @@ export async function POST(req: NextRequest, context: RouteContext) {
       )
     }
 
-    if (body.heartRate != null && (typeof body.heartRate !== 'number' || body.heartRate < 30 || body.heartRate > 250)) {
+    const heartRate = normalizeMachineHeartRate(body.heartRate)
+
+    if (Number.isNaN(heartRate)) {
       return NextResponse.json(
         { error: t(locale, 'Invalid heart rate (30-250 bpm)', 'Ogiltig puls (30-250 bpm)') },
         { status: 400 }
@@ -56,7 +64,7 @@ export async function POST(req: NextRequest, context: RouteContext) {
     const input: PushPowerReadingInput = {
       power: body.power,
       cadence: typeof body.cadence === 'number' ? body.cadence : undefined,
-      heartRate: typeof body.heartRate === 'number' ? body.heartRate : undefined,
+      heartRate,
       ergometerType: isMachineType(body.ergometerType) ? body.ergometerType : undefined,
       deviceId: typeof body.deviceId === 'string' ? body.deviceId : undefined,
       timestamp: typeof body.timestamp === 'string' ? body.timestamp : undefined,
