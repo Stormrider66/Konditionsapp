@@ -27,7 +27,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { roleListItemClass, roleSurfaceClass, roleTableHeadClass } from '@/components/layouts/role-shell/RolePage'
 import { labelFromEquipmentKey } from '@/lib/team-capture/equipment'
+import { targetStatus } from '@/lib/cardio/focus-mode-segments'
 import { cn } from '@/lib/utils'
+
+// Above/on/below-target text color for the live watts cell, matching the
+// athlete focus-mode cue (blue = under, green = on, red = over target).
+const POWER_STATUS_TEXT = {
+  below: 'text-sky-600 dark:text-sky-400',
+  on: 'text-emerald-600 dark:text-emerald-400',
+  above: 'text-rose-600 dark:text-rose-400',
+} as const
 
 type CaptureStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED'
 type MachineType = 'BIKEERG' | 'ROWER' | 'SKIERG' | 'WATTBIKE' | 'ASSAULT_BIKE' | 'ECHO_BIKE' | 'AIR_BIKE' | 'RUN' | 'REST'
@@ -88,6 +97,8 @@ interface CaptureSegment {
   label: string
   plannedStartSec: number
   plannedEndSec: number
+  /** Target power for this segment, in watts (drives the live above/on/below cue). */
+  targetPower: number | null
   status: string
   summary: unknown
 }
@@ -518,7 +529,23 @@ export function TeamCaptureControlRoom({
                           : '-'}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
-                        {formatLiveWatts(latestReading?.power)}
+                        {(() => {
+                          // Colour the live watts by how the athlete is tracking
+                          // their segment's target; only when the reading is fresh.
+                          const status = isFresh
+                            ? targetStatus(latestReading?.power, currentSegment?.targetPower, { minAbsolute: 5 })
+                            : null
+                          return (
+                            <span className="inline-flex items-baseline justify-end gap-1.5">
+                              <span className={cn('font-semibold', status ? POWER_STATUS_TEXT[status] : undefined)}>
+                                {formatLiveWatts(latestReading?.power)}
+                              </span>
+                              {currentSegment?.targetPower != null && (
+                                <span className="text-xs text-muted-foreground">/ {currentSegment.targetPower}</span>
+                              )}
+                            </span>
+                          )
+                        })()}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums dark:text-slate-100">
                         {formatLiveHeartRate(latestReading?.heartRate)}
