@@ -210,7 +210,7 @@ export default async function AthleteDashboardPage({ searchParams }: AthleteDash
   // lib/athlete/dashboard-data.ts is the single implementation.
   const {
     activePrograms,
-    sortedTodayItems,
+    dashboardItems,
     upcomingItems,
     nextItem,
     firstActionableItem,
@@ -234,11 +234,11 @@ export default async function AthleteDashboardPage({ searchParams }: AthleteDash
 
   const currentProgram = activePrograms[0]
   const restDayMode = currentProgram ? 'rest-day' : 'open-day'
+  const dashboardToday = format(now, 'yyyy-MM-dd')
   const dashboardDateOptions = Array.from(
-    { length: 8 },
-    (_, index) => format(addDays(now, index), 'yyyy-MM-dd')
+    { length: 15 },
+    (_, index) => format(addDays(now, index - 7), 'yyyy-MM-dd')
   )
-  const dashboardItems = [...sortedTodayItems, ...upcomingItems]
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
@@ -287,6 +287,7 @@ export default async function AthleteDashboardPage({ searchParams }: AthleteDash
         <DashboardDaySwitcher
           items={dashboardItems}
           dateOptions={dashboardDateOptions}
+          todayDate={dashboardToday}
           nextItem={nextItem}
           readinessScore={readinessScore}
           athleteName={client.name.split(' ')[0]}

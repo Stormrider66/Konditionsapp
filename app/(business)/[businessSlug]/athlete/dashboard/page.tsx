@@ -278,8 +278,9 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
   const todayStart = startOfDay(now)
   const todayEnd = endOfDay(now)
   // Timezone-safe boundaries for training day dates (may be stored at CET/CEST midnight)
-  const todayStartTz = tzSafeDayStart(now)
   const todayEndTz = tzSafeDayEnd(now)
+  const pastStart = startOfDay(subDays(now, 7))
+  const pastStartTz = tzSafeDayStart(subDays(now, 7))
   const upcomingStart = startOfDay(addDays(now, 1))
   const upcomingEnd = endOfDay(addDays(now, 7))
   const upcomingStartTz = tzSafeDayStart(addDays(now, 1))
@@ -437,7 +438,7 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
       where: {
         athleteId: clientId,
         status: 'CONFIRMED',
-        workoutDate: { gte: todayStart, lte: todayEnd },
+        workoutDate: { gte: pastStart, lte: todayEnd },
       },
       orderBy: { workoutDate: 'desc' },
       select: {
@@ -475,11 +476,11 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     }))?.assignedCoachId,
   }
 
-  // Fetch today's WODs for dashboard items
-  const todayWODs = await prisma.aIGeneratedWOD.findMany({
+  // Fetch AI workouts in the dashboard history window
+  const rangeWODs = await prisma.aIGeneratedWOD.findMany({
     where: {
       clientId: clientId,
-      createdAt: { gte: todayStart, lte: todayEnd },
+      createdAt: { gte: pastStart, lte: todayEnd },
       status: { notIn: ['ABANDONED'] },
     },
     select: {
@@ -501,8 +502,8 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     orderBy: { createdAt: 'desc' },
   })
 
-  const todayWODItems: DashboardWOD[] = todayWODs.map(w => mapWODToDashboard(w as any))
-  const todayAdHocItems: DashboardAdHocWorkout[] = confirmedAdHocWorkouts.map(workout =>
+  const rangeWODItems: DashboardWOD[] = rangeWODs.map(w => mapWODToDashboard(w as any))
+  const rangeAdHocItems: DashboardAdHocWorkout[] = confirmedAdHocWorkouts.map(workout =>
     mapAdHocWorkoutToDashboard({
       ...workout,
       parsedStructure: workout.parsedStructure as any,
@@ -510,12 +511,12 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
   )
 
   // Fetch workouts with program info
-  const todaysWorkoutsWithProgram = await prisma.workout.findMany({
+  const historicalWorkoutsWithProgram = await prisma.workout.findMany({
     where: {
       status: { not: 'CANCELLED' },
       day: {
-        date: { gte: todayStartTz, lte: todayEndTz },
-        week: { program: { clientId: clientId, isActive: true } }
+        date: { gte: pastStartTz, lte: todayEndTz },
+        week: { program: { clientId: clientId } }
       }
     },
     include: {
@@ -564,7 +565,7 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
   }) as any[]
 
   // Map to DashboardWorkoutWithContext
-  const todaysWorkouts: DashboardWorkoutWithContext[] = todaysWorkoutsWithProgram.map(w => ({
+  const historicalWorkouts: DashboardWorkoutWithContext[] = historicalWorkoutsWithProgram.map(w => ({
     ...w,
     programId: w.day.week.program.id,
     programName: w.day.week.program.name,
@@ -583,7 +584,7 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     prisma.strengthSessionAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
+        assignedDate: { gte: pastStartTz, lte: upcomingEndTz },
         status: { not: 'SKIPPED' },
       },
       include: {
@@ -597,7 +598,7 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     prisma.cardioSessionAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
+        assignedDate: { gte: pastStartTz, lte: upcomingEndTz },
         status: { not: 'SKIPPED' },
       },
       include: {
@@ -611,7 +612,7 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     prisma.hybridWorkoutAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
+        assignedDate: { gte: pastStartTz, lte: upcomingEndTz },
         status: { not: 'SKIPPED' },
       },
       include: {
@@ -625,7 +626,7 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     prisma.agilityWorkoutAssignment.findMany({
       where: {
         athleteId: clientId,
-        assignedDate: { gte: todayStartTz, lte: upcomingEndTz },
+        assignedDate: { gte: pastStartTz, lte: upcomingEndTz },
         status: { notIn: ['SKIPPED'] },
       },
       include: {
@@ -646,27 +647,23 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     ...agilityAssignments.map(a => mapAgilityAssignment(a as any)),
   ]
 
-  // Split assignments into today vs upcoming
-  const todayAssignments = allAssignments.filter(a => {
-    const d = new Date(a.assignedDate)
-    return d >= todayStart && d <= todayEnd
-  })
-  const upcomingAssignments = allAssignments.filter(a => {
-    const d = new Date(a.assignedDate)
-    return d >= upcomingStart && d <= upcomingEnd
-  })
-
-  // Build merged DashboardItem arrays (WODs are always today, never upcoming)
-  const todayItems: DashboardItem[] = [
-    ...todaysWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
-    ...todayAssignments,
-    ...todayWODItems,
-    ...todayAdHocItems,
-  ]
-  const upcomingItems: DashboardItem[] = [
+  // One unified range powers the day switcher; derived slices retain existing
+  // today/upcoming behavior for quick actions and secondary widgets.
+  const dashboardItems: DashboardItem[] = [
+    ...historicalWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
     ...upcomingWorkouts.map(w => ({ kind: 'program' as const, workout: w })),
-    ...upcomingAssignments,
+    ...allAssignments,
+    ...rangeWODItems,
+    ...rangeAdHocItems,
   ].sort((a, b) => getItemDate(a).getTime() - getItemDate(b).getTime())
+  const todayItems = dashboardItems.filter(item => {
+    const date = getItemDate(item)
+    return date >= todayStart && date <= todayEnd
+  })
+  const upcomingItems = dashboardItems.filter(item => {
+    const date = getItemDate(item)
+    return date >= upcomingStart && date <= upcomingEnd
+  })
 
   // Current Phase / Week - calculate based on actual date
   const currentProgram = activePrograms[0]
@@ -758,11 +755,11 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     }
     return 0
   })
+  const dashboardToday = format(now, 'yyyy-MM-dd')
   const dashboardDateOptions = Array.from(
-    { length: 8 },
-    (_, index) => format(addDays(now, index), 'yyyy-MM-dd')
+    { length: 15 },
+    (_, index) => format(addDays(now, index - 7), 'yyyy-MM-dd')
   )
-  const dashboardItems = [...sortedTodayItems, ...upcomingItems]
   // First incomplete item for "Start Session" button
   const firstActionableItem = sortedTodayItems.find(
     (item) => item.kind !== 'adhoc' && !isItemCompleted(item)
@@ -812,6 +809,7 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
         <DashboardDaySwitcher
           items={dashboardItems}
           dateOptions={dashboardDateOptions}
+          todayDate={dashboardToday}
           nextItem={nextItem}
           readinessScore={readinessScore}
           athleteName={client.name.split(' ')[0]}

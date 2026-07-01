@@ -175,4 +175,56 @@ describe('getAthleteDashboardData', () => {
     expect(data.weeklyTSS).toBe(120)
     expect(data.weeklyTSSTarget).toBe(300)
   })
+
+  it('includes workouts from previous days in the dashboard range', async () => {
+    const yesterday = new Date('2026-06-10T12:00:00.000Z')
+    mocks.wodFindMany
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        {
+          id: 'wod-yesterday',
+          title: 'Yesterday WOD',
+          subtitle: null,
+          description: null,
+          mode: 'GUIDED',
+          workoutType: null,
+          requestedDuration: 30,
+          actualDuration: 28,
+          status: 'COMPLETED',
+          createdAt: yesterday,
+          completedAt: yesterday,
+          intensityAdjusted: null,
+          sessionRPE: 7,
+          primarySport: 'RUNNING',
+        },
+      ])
+    mocks.strengthFindMany.mockResolvedValue([
+      {
+        id: 'strength-yesterday',
+        assignedDate: yesterday,
+        status: 'COMPLETED',
+        completedAt: yesterday,
+        session: {
+          id: 'session-yesterday',
+          name: 'Yesterday strength',
+          description: null,
+          phase: null,
+          estimatedDuration: 45,
+        },
+        location: null,
+      },
+    ])
+
+    const data = await getAthleteDashboardData(baseParams())
+
+    expect(data.dashboardItems.map((item) => item.kind)).toEqual(['assignment', 'wod'])
+    expect(data.todayItems).toEqual([])
+    expect(mocks.wodFindMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          createdAt: expect.objectContaining({ gte: expect.any(Date), lte: expect.any(Date) }),
+        }),
+      })
+    )
+  })
 })

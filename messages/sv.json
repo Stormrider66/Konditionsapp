@@ -18108,6 +18108,7 @@
     "dashboardDaySwitcher": {
       "today": "Idag",
       "tomorrow": "Imorgon",
+      "yesterday": "Igår",
       "previousDay": "Visa föregående dag",
       "nextDay": "Visa nästa dag",
       "goToToday": "Gå tillbaka till idag",

@@ -17748,6 +17748,7 @@
     "dashboardDaySwitcher": {
       "today": "Today",
       "tomorrow": "Tomorrow",
+      "yesterday": "Yesterday",
       "previousDay": "Show previous day",
       "nextDay": "Show next day",
       "goToToday": "Return to today",

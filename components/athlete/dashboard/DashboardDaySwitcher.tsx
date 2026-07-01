@@ -17,6 +17,7 @@ import { RestDayHeroCard } from './RestDayHeroCard'
 interface DashboardDaySwitcherProps {
   items: DashboardItem[]
   dateOptions: string[]
+  todayDate: string
   nextItem: DashboardItem | null
   readinessScore: number | null
   athleteName: string
@@ -48,6 +49,7 @@ function sortDayItems(items: DashboardItem[]): DashboardItem[] {
 export function DashboardDaySwitcher({
   items,
   dateOptions,
+  todayDate,
   nextItem,
   readinessScore,
   athleteName,
@@ -61,7 +63,8 @@ export function DashboardDaySwitcher({
   const t = useTranslations('components.dashboardDaySwitcher')
   const locale = useLocale() === 'sv' ? 'sv' : 'en'
   const dateLocale = locale === 'sv' ? sv : enUS
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const todayIndex = Math.max(0, dateOptions.indexOf(todayDate))
+  const [selectedIndex, setSelectedIndex] = useState(todayIndex)
   const selectedDate = dateOptions[selectedIndex] ?? dateOptions[0]
 
   const selectedItems = selectedDate
@@ -70,13 +73,15 @@ export function DashboardDaySwitcher({
 
   if (!selectedDate) return null
 
-  const dateLabel = selectedIndex === 0
+  const dateLabel = selectedIndex === todayIndex
     ? t('today')
-    : selectedIndex === 1
+    : selectedIndex === todayIndex + 1
       ? t('tomorrow')
+      : selectedIndex === todayIndex - 1
+        ? t('yesterday')
       : format(parseISO(selectedDate), 'EEEE', { locale: dateLocale })
   const formattedDate = format(parseISO(selectedDate), 'd MMMM', { locale: dateLocale })
-  const isToday = selectedIndex === 0
+  const isToday = selectedIndex === todayIndex
   const canGoBack = selectedIndex > 0
   const canGoForward = selectedIndex < dateOptions.length - 1
 
@@ -97,7 +102,7 @@ export function DashboardDaySwitcher({
 
         <button
           type="button"
-          onClick={!isToday ? () => setSelectedIndex(0) : undefined}
+          onClick={!isToday ? () => setSelectedIndex(todayIndex) : undefined}
           className="min-w-0 flex-1 rounded-lg px-2 py-1 text-center"
           aria-label={!isToday ? t('goToToday') : undefined}
           aria-current={isToday ? 'date' : undefined}
