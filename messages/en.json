@@ -1601,7 +1601,10 @@
     },
     "prs": {
       "metadataTitle": "My PRs | Athlete",
-      "metadataDescription": "Current 1RM per exercise"
+      "metadataDescription": "Current 1RM per exercise",
+      "titlePrefix": "PERSONAL",
+      "titleAccent": "RECORDS",
+      "description": "Your all-time bests, one exercise at a time"
     },
     "wodHistory": {
       "metadataTitle": "WOD History | Konditionstest",

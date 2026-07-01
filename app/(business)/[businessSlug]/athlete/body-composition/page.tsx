@@ -52,14 +52,14 @@ export default async function BusinessBodyCompositionPage({ params }: BusinessBo
 
         {/* Header */}
         <div className="mb-8 flex items-center gap-4">
-          <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-2xl shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-            <Scale className="h-7 w-7 text-blue-400" />
+          <div className="p-3 bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl shadow-xl shadow-orange-500/5 transition-colors">
+            <Scale className="h-8 w-8 text-orange-600 dark:text-orange-400 transition-colors" />
           </div>
           <div>
-            <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
+            <h1 className="font-display text-3xl sm:text-4xl font-bold italic uppercase tracking-tight text-slate-900 leading-none dark:text-white transition-colors">
               {t('title')}
             </h1>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">
+            <p className="text-slate-600 dark:text-slate-400 font-medium mt-1 transition-colors">
               {t('subtitle')}
             </p>
           </div>

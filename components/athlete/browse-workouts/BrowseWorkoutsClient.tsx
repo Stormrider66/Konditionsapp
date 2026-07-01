@@ -111,13 +111,18 @@ export function BrowseWorkoutsClient({ athleteSport }: BrowseWorkoutsClientProps
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">
-          {t('title')}
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
-          {t('subtitle')}
-        </p>
+      <div className="flex items-start gap-4">
+        <div className="p-3 bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl shadow-xl shadow-orange-500/5 transition-colors">
+          <Dumbbell className="h-8 w-8 text-orange-600 dark:text-orange-400 transition-colors" />
+        </div>
+        <div>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold italic uppercase tracking-tight leading-none mb-1 text-slate-900 dark:text-white transition-colors">
+            {t('title')}
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 font-medium transition-colors">
+            {t('subtitle')}
+          </p>
+        </div>
       </div>
 
       {/* Search */}

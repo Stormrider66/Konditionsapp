@@ -1601,7 +1601,10 @@
     },
     "prs": {
       "metadataTitle": "Mina PR | Athlete",
-      "metadataDescription": "Aktuella 1RM per övning"
+      "metadataDescription": "Aktuella 1RM per övning",
+      "titlePrefix": "PERSONLIGA",
+      "titleAccent": "REKORD",
+      "description": "Dina bästa lyft genom tiderna, övning för övning"
     },
     "wodHistory": {
       "metadataTitle": "WOD Historik | Konditionstest",
