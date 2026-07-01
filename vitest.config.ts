@@ -5,6 +5,9 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    // The default forks pool crashes at teardown on Node 24
+    // (ERR_IPC_CHANNEL_CLOSED) before printing the run summary.
+    pool: 'threads',
     setupFiles: ['./vitest.setup.ts'],
     include: [
       '**/__tests__/**/*.{test,spec}.{ts,tsx}',
