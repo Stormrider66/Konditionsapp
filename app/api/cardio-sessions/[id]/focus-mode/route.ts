@@ -5,6 +5,7 @@ import { resolveAthleteClientId } from '@/lib/auth-utils'
 import { logError } from '@/lib/logger-console'
 import { getFutureWorkoutCompletionWarning } from '@/lib/workouts/future-completion-guard'
 import { buildCardioFocusModeSegments } from '@/lib/cardio/focus-mode-segments'
+import { resolveRecordedCardioDurationSeconds } from '@/lib/cardio/recorded-duration'
 import { linkGarminToCardioLog } from '@/lib/cardio/garmin-cardio-link'
 import { resolveAthleteHrZones } from '@/lib/cardio/athlete-hr-zones'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
@@ -357,6 +358,7 @@ export async function PUT(
     // Get assignment
     const assignment = await prisma.cardioSessionAssignment.findUnique({
       where: { id: assignmentId },
+      include: { session: { select: { segments: true } } },
     })
 
     if (!assignment) {
@@ -394,6 +396,7 @@ export async function PUT(
         athleteId: clientId,
         status: { in: ['PENDING', 'SCHEDULED'] },
       },
+      include: { segmentLogs: true },
     })
 
     if (!sessionLog) {
@@ -402,6 +405,18 @@ export async function PUT(
         { status: 404 }
       )
     }
+
+    const expectedSegmentCount = buildCardioFocusModeSegments({
+      segments: assignment.session.segments,
+      locale,
+    }).length
+    const resolvedActualDuration = status === 'COMPLETED'
+      ? resolveRecordedCardioDurationSeconds({
+          segmentLogs: sessionLog.segmentLogs,
+          expectedSegmentCount,
+          fallbackDuration: actualDuration,
+        })
+      : actualDuration
 
     // Build update data for session log
     const logUpdateData: {
@@ -418,7 +433,9 @@ export async function PUT(
     if (status) logUpdateData.status = status
     if (sessionRPE !== undefined) logUpdateData.sessionRPE = sessionRPE
     if (notes !== undefined) logUpdateData.notes = notes
-    if (actualDuration !== undefined) logUpdateData.actualDuration = actualDuration
+    if (resolvedActualDuration !== undefined && resolvedActualDuration !== null) {
+      logUpdateData.actualDuration = resolvedActualDuration
+    }
     if (actualDistance !== undefined) logUpdateData.actualDistance = actualDistance
     if (avgHeartRate !== undefined) logUpdateData.avgHeartRate = avgHeartRate
     if (maxHeartRate !== undefined) logUpdateData.maxHeartRate = maxHeartRate
@@ -445,7 +462,9 @@ export async function PUT(
 
       if (status === 'COMPLETED') {
         assignmentUpdateData.completedAt = new Date()
-        if (actualDuration !== undefined) assignmentUpdateData.actualDuration = actualDuration
+        if (resolvedActualDuration !== undefined && resolvedActualDuration !== null) {
+          assignmentUpdateData.actualDuration = resolvedActualDuration
+        }
         if (actualDistance !== undefined) assignmentUpdateData.actualDistance = actualDistance
         if (avgHeartRate !== undefined) assignmentUpdateData.avgHeartRate = avgHeartRate
       }
@@ -458,13 +477,13 @@ export async function PUT(
 
     // Create TrainingLoad entry when workout is completed
     // This ensures cardio sessions contribute to weekly load ("Veckobelastning")
-    if (status === 'COMPLETED' && actualDuration) {
+    if (status === 'COMPLETED' && resolvedActualDuration) {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
       // Calculate cardio TSS based on duration (seconds) and RPE
       // Formula: (duration in min) * RPE/10 * 1.0 (cardio modifier, higher than strength)
-      const durationMinutes = actualDuration / 60
+      const durationMinutes = resolvedActualDuration / 60
       const rpeValue = sessionRPE || 6 // Default to moderate if not provided
       const cardioTSS = Math.round(durationMinutes * (rpeValue / 10) * 1.0)
 

@@ -3,6 +3,10 @@ import { z } from 'zod'
 import { canAccessClient, getCurrentUser } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { buildCardioFocusModeSegments, type FocusModeSegment } from '@/lib/cardio/focus-mode-segments'
+import {
+  recordedCardioSegmentDurationSeconds,
+  resolveRecordedCardioDurationSeconds,
+} from '@/lib/cardio/recorded-duration'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
 
 const querySchema = z.object({
@@ -28,6 +32,17 @@ type DetailSection = {
 function formatSecondsToMinutes(seconds?: number | null) {
   if (!seconds || seconds <= 0) return null
   return `${Math.round(seconds / 60)} min`
+}
+
+function formatSecondsToClock(seconds?: number | null) {
+  if (!seconds || seconds <= 0) return null
+  const totalSeconds = Math.round(seconds)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const remainingSeconds = totalSeconds % 60
+  return hours > 0
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`
+    : `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
 }
 
 function formatDistanceMeters(meters?: number | null) {
@@ -240,14 +255,26 @@ export async function GET(request: NextRequest) {
     // Index-aligned planned segments tell us the opener (benchmark) and the
     // relative %-of-opener targets, so we can resolve them against logged watts.
     const plannedSegments = buildCardioFocusModeSegments({ segments: assignment.session.segments, locale })
+    const segmentLogs = log?.segmentLogs.map((segmentLog) => ({
+      ...segmentLog,
+      actualDuration:
+        recordedCardioSegmentDurationSeconds(segmentLog) ?? segmentLog.actualDuration,
+    }))
     const benchmarkIndex = plannedSegments.find((p) => p.isBenchmark)?.index
     const openerWatts = benchmarkIndex != null
-      ? (log?.segmentLogs.find((s) => s.segmentIndex === benchmarkIndex)?.actualAvgPower ?? null)
+      ? (segmentLogs?.find((s) => s.segmentIndex === benchmarkIndex)?.actualAvgPower ?? null)
       : null
+    const actualDuration = log
+      ? resolveRecordedCardioDurationSeconds({
+          segmentLogs: log.segmentLogs,
+          expectedSegmentCount: plannedSegments.length,
+          fallbackDuration: log.actualDuration ?? assignment.actualDuration,
+        })
+      : assignment.actualDuration
 
     const completedAt = log?.completedAt ?? assignment.completedAt
     const metrics = compactMetrics([
-      metric(t(locale, 'Time', 'Tid'), formatSecondsToMinutes(log?.actualDuration ?? assignment.actualDuration)),
+      metric(t(locale, 'Time', 'Tid'), formatSecondsToClock(actualDuration)),
       metric(t(locale, 'Distance', 'Distans'), formatDistanceKm(log?.actualDistance) ?? formatDistanceMeters(assignment.actualDistance)),
       metric(t(locale, 'Avg HR', 'Snittpuls'), log?.avgHeartRate ?? assignment.avgHeartRate),
       metric(t(locale, 'Max HR', 'Maxpuls'), log?.maxHeartRate),
@@ -263,7 +290,7 @@ export async function GET(request: NextRequest) {
       completedAt,
       metrics,
       notes: log?.notes ?? null,
-      details: buildCardioDetails(log?.segmentLogs, plannedSegments, openerWatts, locale),
+      details: buildCardioDetails(segmentLogs, plannedSegments, openerWatts, locale),
       original: log ?? assignment,
     })
   }

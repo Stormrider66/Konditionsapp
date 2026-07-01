@@ -475,4 +475,81 @@ describe('buildCardioSessionSummary', () => {
     })
     expect(summary.plannedVsActual!.keyFindings.join(' ')).toContain('below power target')
   })
+
+  it('replaces an undercounted session total with finalized segment times', () => {
+    const summary = buildCardioSessionSummary({
+      session: {
+        id: 'session-1',
+        name: 'Calories for time',
+        description: null,
+        sport: 'FUNCTIONAL_FITNESS',
+        segments: [
+          { id: 'warmup', type: 'WARMUP', duration: 600 },
+          { id: 'work', type: 'INTERVAL', calories: 20 },
+          { id: 'cooldown', type: 'COOLDOWN', duration: 600 },
+        ] as never,
+      },
+      log: {
+        id: 'log-1',
+        startedAt: new Date('2026-06-24T07:30:00Z'),
+        completedAt: new Date('2026-06-24T08:00:00Z'),
+        status: 'COMPLETED',
+        actualDuration: 1200,
+        sessionRPE: 5,
+        notes: null,
+        avgHeartRate: null,
+        maxHeartRate: null,
+        segmentLogs: [
+          {
+            id: 'warmup-log',
+            segmentIndex: 0,
+            actualDuration: 600,
+            actualDistance: null,
+            actualPace: null,
+            actualAvgHR: null,
+            actualMaxHR: null,
+            actualAvgPower: null,
+            actualMaxPower: null,
+            actualCalories: null,
+            completed: true,
+            skipped: false,
+          },
+          {
+            id: 'work-log',
+            segmentIndex: 1,
+            actualDuration: 0,
+            startedAt: new Date('2026-06-24T07:44:05.746Z'),
+            completedAt: new Date('2026-06-24T07:45:55.099Z'),
+            actualDistance: null,
+            actualPace: null,
+            actualAvgHR: null,
+            actualMaxHR: null,
+            actualAvgPower: null,
+            actualMaxPower: null,
+            actualCalories: null,
+            completed: true,
+            skipped: false,
+          },
+          {
+            id: 'cooldown-log',
+            segmentIndex: 2,
+            actualDuration: 600,
+            actualDistance: null,
+            actualPace: null,
+            actualAvgHR: null,
+            actualMaxHR: null,
+            actualAvgPower: null,
+            actualMaxPower: null,
+            actualCalories: null,
+            completed: true,
+            skipped: false,
+          },
+        ],
+      },
+      locale: 'en',
+    })
+
+    expect(summary.log.actualDuration).toBe(1309)
+    expect(summary.totals.workSeconds).toBe(109)
+  })
 })

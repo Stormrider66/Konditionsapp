@@ -18,6 +18,10 @@ import {
 } from './focus-mode-segments'
 import { summarizeCardioSensorSamples, type CardioSensorSeriesStats } from './sensor-samples'
 import {
+  recordedCardioSegmentDurationSeconds,
+  resolveRecordedCardioDurationSeconds,
+} from './recorded-duration'
+import {
   parseCardioDebriefFromNotes,
   stripCardioDebriefFromNotes,
   type CardioPostWorkoutDebrief,
@@ -1067,6 +1071,8 @@ export interface BuildSummaryInput {
       id: string
       segmentIndex: number
       actualDuration: number | null
+      startedAt?: Date | null
+      completedAt?: Date | null
       actualDistance: number | null
       actualPace: number | null
       actualAvgHR: number | null
@@ -1087,16 +1093,26 @@ export function buildCardioSessionSummary({
   log,
   locale,
 }: BuildSummaryInput): CardioSessionSummaryData {
+  const segmentLogs = log.segmentLogs.map((segmentLog) => ({
+    ...segmentLog,
+    actualDuration:
+      recordedCardioSegmentDurationSeconds(segmentLog) ?? segmentLog.actualDuration,
+  }))
   const sensorStatsBySegment = new Map(
-    log.segmentLogs.map((segmentLog) => [
+    segmentLogs.map((segmentLog) => [
       segmentLog.segmentIndex,
       summarizeCardioSensorSamples(segmentLog.powerSamples),
     ]),
   )
   const segments = buildCardioFocusModeSegments({
     segments: session.segments,
-    segmentLogs: log.segmentLogs,
+    segmentLogs,
     locale,
+  })
+  const actualDuration = resolveRecordedCardioDurationSeconds({
+    segmentLogs,
+    expectedSegmentCount: segments.length,
+    fallbackDuration: log.actualDuration,
   })
 
   const workSegments = segments.filter((s) => WORK_TYPES.has(s.type))
@@ -1159,7 +1175,7 @@ export function buildCardioSessionSummary({
       startedAt: log.startedAt.toISOString(),
       completedAt: log.completedAt ? log.completedAt.toISOString() : null,
       status: log.status,
-      actualDuration: log.actualDuration,
+      actualDuration,
       sessionRPE: log.sessionRPE,
       notes: visibleNotes,
       debrief,
