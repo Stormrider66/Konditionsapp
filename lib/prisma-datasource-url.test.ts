@@ -10,7 +10,7 @@ describe('buildPrismaDatasourceUrl', () => {
 
     const parsed = new URL(url!)
     expect(parsed.searchParams.get('pgbouncer')).toBe('true')
-    expect(parsed.searchParams.get('connection_limit')).toBe('1')
+    expect(parsed.searchParams.get('connection_limit')).toBe('5')
     expect(parsed.searchParams.get('pool_timeout')).toBe('30')
     expect(parsed.searchParams.get('application_name')).toBe('trainomics-app')
   })
