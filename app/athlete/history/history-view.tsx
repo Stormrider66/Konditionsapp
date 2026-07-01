@@ -119,7 +119,7 @@ export async function AthleteHistoryView({
   return (
     <div className="min-h-screen pb-20 pt-6 px-4 max-w-7xl mx-auto">
       <Link href={`${basePath}/athlete/dashboard`}>
-        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-white">
+        <Button variant="ghost" className="mb-8 font-black uppercase tracking-widest text-[10px] text-slate-500 hover:text-slate-900 dark:hover:text-white">
           <ArrowLeft className="mr-2 h-3.5 w-3.5" />
           {t('back')}
         </Button>
@@ -127,7 +127,7 @@ export async function AthleteHistoryView({
 
       <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-black text-white tracking-tighter uppercase italic leading-none">
+          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-none">
             {t('titlePrefix')}<span className="text-blue-600">{t('titleAccent')}</span>
           </h1>
           <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">
@@ -161,7 +161,7 @@ export async function AthleteHistoryView({
             </div>
           </GlassCardHeader>
           <GlassCardContent>
-            <div className="text-3xl font-black text-white">{totalWorkouts}</div>
+            <div className="text-3xl font-black text-slate-900 dark:text-white">{totalWorkouts}</div>
             <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">
               {t('stats.latest', { period: timeframeSummary })}
             </p>
@@ -180,7 +180,7 @@ export async function AthleteHistoryView({
             </div>
           </GlassCardHeader>
           <GlassCardContent>
-            <div className="text-3xl font-black text-white">{totalDistance.toFixed(1)}</div>
+            <div className="text-3xl font-black text-slate-900 dark:text-white">{totalDistance.toFixed(1)}</div>
             <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">{t('stats.kilometersCompleted')}</p>
           </GlassCardContent>
         </GlassCard>
@@ -197,7 +197,7 @@ export async function AthleteHistoryView({
             </div>
           </GlassCardHeader>
           <GlassCardContent>
-            <div className="text-3xl font-black text-white">
+            <div className="text-3xl font-black text-slate-900 dark:text-white">
               {Math.floor(totalDuration / 60)}h {totalDuration % 60}m
             </div>
             <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">{t('stats.effectiveTraining')}</p>
@@ -216,7 +216,7 @@ export async function AthleteHistoryView({
             </div>
           </GlassCardHeader>
           <GlassCardContent>
-            <div className="text-3xl font-black text-white">{avgRPE}</div>
+            <div className="text-3xl font-black text-slate-900 dark:text-white">{avgRPE}</div>
             <p className="text-[10px] text-slate-500 font-semibold mt-1 uppercase tracking-tight">{t('stats.perceivedEffort')}</p>
           </GlassCardContent>
         </GlassCard>
@@ -323,15 +323,15 @@ export async function AthleteHistoryView({
       {/* Workout History */}
       <GlassCard>
         <GlassCardHeader>
-          <GlassCardTitle className="text-xl font-black tracking-tight text-white uppercase italic">{t('table.title')}</GlassCardTitle>
+          <GlassCardTitle className="text-xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic">{t('table.title')}</GlassCardTitle>
           <GlassCardDescription className="text-slate-500 font-bold uppercase text-[9px] tracking-widest">
             {t('table.description')}
           </GlassCardDescription>
         </GlassCardHeader>
         <GlassCardContent>
           {historyItems.length === 0 ? (
-            <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5">
-              <Calendar className="h-16 w-16 mx-auto mb-6 opacity-10 text-white" />
+            <div className="text-center py-20 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-200 dark:border-white/5">
+              <Calendar className="h-16 w-16 mx-auto mb-6 opacity-10 text-slate-900 dark:text-white" />
               <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">{t('table.empty')}</p>
             </div>
           ) : (
@@ -341,12 +341,12 @@ export async function AthleteHistoryView({
                   <Link
                     key={item.id}
                     href={getItemHref(item, basePath)}
-                    className="block rounded-[1.75rem] border border-white/5 bg-white/5 p-4 transition-colors hover:bg-white/10"
+                    className="block rounded-[1.75rem] border border-slate-200 dark:border-white/5 bg-white dark:bg-white/5 p-4 transition-colors hover:bg-slate-50 dark:hover:bg-white/10"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="font-black uppercase italic tracking-tight text-white">
+                          <p className="font-black uppercase italic tracking-tight text-slate-900 dark:text-white">
                             {item.name}
                           </p>
                           {getSourceBadge(item, t)}
@@ -355,28 +355,28 @@ export async function AthleteHistoryView({
                           {getHistorySubtitle(item, t)}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-white/5 bg-white/5 px-3 py-2 text-right">
-                        <p className="text-xs font-black text-white">{format(new Date(item.date), 'd MMM', { locale: dateLocale })}</p>
+                      <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 px-3 py-2 text-right">
+                        <p className="text-xs font-black text-slate-900 dark:text-white">{format(new Date(item.date), 'd MMM', { locale: dateLocale })}</p>
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{format(new Date(item.date), 'yyyy', { locale: dateLocale })}</p>
                       </div>
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       {getHistoryMetaChips(item, formatWorkoutType).map((chip) => (
-                        <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                        <span key={chip} className="inline-flex items-center rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                           {chip}
                         </span>
                       ))}
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-2xl border border-white/5 bg-black/10 px-3 py-2">
+                      <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-black/10 px-3 py-2">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('table.distance')}</p>
-                        <p className="mt-1 text-sm font-black text-white">{item.distance ? `${item.distance.toFixed(1)} km` : '-'}</p>
+                        <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">{item.distance ? `${item.distance.toFixed(1)} km` : '-'}</p>
                       </div>
-                      <div className="rounded-2xl border border-white/5 bg-black/10 px-3 py-2">
+                      <div className="rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-black/10 px-3 py-2">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{t('table.time')}</p>
-                        <p className="mt-1 text-sm font-black text-white">{item.duration ? `${item.duration} min` : '-'}</p>
+                        <p className="mt-1 text-sm font-black text-slate-900 dark:text-white">{item.duration ? `${item.duration} min` : '-'}</p>
                       </div>
                     </div>
 
@@ -391,13 +391,13 @@ export async function AthleteHistoryView({
                             {item.perceivedEffort}
                           </div>
                         ) : (
-                          <span className="mt-1 inline-block text-sm font-black text-slate-700">-</span>
+                          <span className="mt-1 inline-block text-sm font-black text-slate-300 dark:text-slate-700">-</span>
                         )}
                       </div>
                       {item.source === 'garmin' ? (
                         <GarminAttribution deviceModel={item.deviceName ?? null} className="justify-end" />
                       ) : (
-                        <Button variant="ghost" className="h-10 rounded-xl border border-white/5 bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-slate-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white">
+                        <Button variant="ghost" className="h-10 rounded-xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 px-4 text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-200 hover:border-blue-600 hover:bg-blue-600 hover:text-white">
                           {t('table.viewDetails')}
                         </Button>
                       )}
@@ -409,7 +409,7 @@ export async function AthleteHistoryView({
               <div className="hidden overflow-x-auto md:block">
                 <Table>
                   <TableHeader>
-                    <TableRow className="border-white/5 hover:bg-transparent">
+                    <TableRow className="border-slate-200 dark:border-white/5 hover:bg-transparent">
                       <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.date')}</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.workout')}</TableHead>
                       <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-500">{t('table.category')}</TableHead>
@@ -421,10 +421,10 @@ export async function AthleteHistoryView({
                   </TableHeader>
                   <TableBody>
                     {historyItems.map((item) => (
-                      <TableRow key={item.id} className="border-white/5 hover:bg-white/5 transition-colors group">
+                      <TableRow key={item.id} className="border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/5 transition-colors group">
                         <TableCell className="py-5">
-                          <div className="inline-flex flex-col rounded-2xl border border-white/5 bg-white/5 px-3 py-2">
-                            <span className="font-black text-xs text-white">
+                          <div className="inline-flex flex-col rounded-2xl border border-slate-200 dark:border-white/5 bg-slate-100 dark:bg-white/5 px-3 py-2">
+                            <span className="font-black text-xs text-slate-900 dark:text-white">
                               {format(new Date(item.date), 'd MMM', { locale: dateLocale })}
                             </span>
                             <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
@@ -434,7 +434,7 @@ export async function AthleteHistoryView({
                         </TableCell>
                         <TableCell className="py-5">
                           <Link href={getItemHref(item, basePath)} className="block space-y-0.5">
-                            <div className="font-black text-white uppercase italic tracking-tight group-hover:text-blue-400 transition-colors flex flex-wrap items-center gap-2">
+                            <div className="font-black text-slate-900 dark:text-white uppercase italic tracking-tight group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex flex-wrap items-center gap-2">
                               {item.name}
                               {getSourceBadge(item, t)}
                             </div>
@@ -443,7 +443,7 @@ export async function AthleteHistoryView({
                             </div>
                             <div className="flex flex-wrap gap-2 pt-2">
                               {getHistoryMetaChips(item, formatWorkoutType).map((chip) => (
-                                <span key={chip} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-400">
+                                <span key={chip} className="inline-flex items-center rounded-full border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                                   {chip}
                                 </span>
                               ))}
@@ -451,14 +451,14 @@ export async function AthleteHistoryView({
                           </Link>
                         </TableCell>
                         <TableCell className="py-5">
-                          <Badge className="bg-white/5 border-0 text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg h-6">
+                          <Badge className="bg-slate-100 dark:bg-white/5 border-0 text-slate-600 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest rounded-lg h-6">
                             {formatWorkoutType(item.type)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="py-5 font-black text-white text-xs">
+                        <TableCell className="py-5 font-black text-slate-900 dark:text-white text-xs">
                           {item.distance ? `${item.distance.toFixed(1)} km` : '-'}
                         </TableCell>
-                        <TableCell className="py-5 font-black text-white text-xs">
+                        <TableCell className="py-5 font-black text-slate-900 dark:text-white text-xs">
                           {item.duration ? `${item.duration} min` : '-'}
                         </TableCell>
                         <TableCell className="py-5 text-center">
@@ -470,7 +470,7 @@ export async function AthleteHistoryView({
                               {item.perceivedEffort}
                             </div>
                           ) : (
-                            <span className="text-slate-700 font-black">-</span>
+                            <span className="text-slate-300 dark:text-slate-700 font-black">-</span>
                           )}
                         </TableCell>
                         <TableCell className="py-5 text-right">
@@ -522,7 +522,7 @@ export async function AthleteHistoryView({
                             </div>
                           ) : (
                             <Link href={getItemHref(item, basePath)}>
-                              <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-white/5 border border-white/5 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
+                              <Button variant="ghost" className="h-8 rounded-lg font-black uppercase tracking-widest text-[9px] bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-700 dark:text-slate-200 hover:bg-blue-600 hover:text-white hover:border-blue-600 transition-all">
                                 {t('table.view')}
                               </Button>
                             </Link>
@@ -555,7 +555,7 @@ function getHistorySubtitle(item: HistoryFeedItem, t: Awaited<ReturnType<typeof 
 function getSourceBadge(item: HistoryFeedItem, t: Awaited<ReturnType<typeof getTranslations>>) {
   if (item.isAdHoc) {
     return (
-      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
         <Plus className="h-2.5 w-2.5" />
         Ad-hoc
       </span>
@@ -563,7 +563,7 @@ function getSourceBadge(item: HistoryFeedItem, t: Awaited<ReturnType<typeof getT
   }
   if (item.source === 'wod') {
     return (
-      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 border border-orange-200 dark:bg-orange-500/10 dark:text-orange-400 dark:border-orange-500/20">
         <Sparkles className="h-2.5 w-2.5" />
         {t('sources.aiWorkout')}
       </span>
@@ -571,7 +571,7 @@ function getSourceBadge(item: HistoryFeedItem, t: Awaited<ReturnType<typeof getT
   }
   if (item.source === 'ai-chat') {
     return (
-      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
+      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 border border-purple-200 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20">
         <Sparkles className="h-2.5 w-2.5" />
         {t('sources.aiChat')}
       </span>
@@ -579,14 +579,14 @@ function getSourceBadge(item: HistoryFeedItem, t: Awaited<ReturnType<typeof getT
   }
   if (item.source === 'garmin') {
     return (
-      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+      <span className="inline-flex items-center gap-1 text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
         Garmin Connect
       </span>
     )
   }
   if (item.source) {
     return (
-      <span className="inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">
+      <span className="inline-flex items-center text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20">
         Studio
       </span>
     )
@@ -616,8 +616,8 @@ function getItemHref(item: HistoryFeedItem, basePath: string): string {
 }
 
 function getRPEBadgeClass(rpe: number): string {
-  if (rpe <= 3) return 'bg-emerald-500/10 text-emerald-400'
-  if (rpe <= 5) return 'bg-yellow-500/10 text-yellow-400'
-  if (rpe <= 7) return 'bg-orange-500/10 text-orange-400'
-  return 'bg-red-500/10 text-red-500'
+  if (rpe <= 3) return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+  if (rpe <= 5) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-500/10 dark:text-yellow-400'
+  if (rpe <= 7) return 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400'
+  return 'bg-red-100 text-red-700 dark:bg-red-500/10 dark:text-red-500'
 }
