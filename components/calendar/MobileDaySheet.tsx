@@ -200,7 +200,13 @@ export function MobileDaySheet({
         className={cn(
           'absolute bottom-0 left-0 right-0 shadow-2xl transition-all duration-300 ease-out',
           isGlass
-            ? 'bg-slate-950/90 backdrop-blur-xl border-t border-white/10 rounded-t-[2.5rem]'
+            // The glass sheet is always a dark surface, even when the app is in
+            // light mode. Scope it to `dark` + a light text base so every
+            // descendant (incl. shared detail panels using theme tokens like
+            // text-foreground / text-muted-foreground) renders light-on-dark
+            // instead of dark-on-dark. Desktop's sidebar is theme-aware and is
+            // untouched by this.
+            ? 'dark text-slate-100 bg-slate-950/90 backdrop-blur-xl border-t border-white/10 rounded-t-[2.5rem]'
             : 'bg-background rounded-t-2xl shadow-xl',
           'flex flex-col',
           // Snap heights: expanded fills the screen, collapsed hugs its content
