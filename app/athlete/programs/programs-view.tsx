@@ -8,7 +8,7 @@ import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Calendar, Clock, ArrowRight, CheckCircle2, Play, Upload } from 'lucide-react'
+import { Calendar, ClipboardList, Clock, ArrowRight, CheckCircle2, Play, Upload } from 'lucide-react'
 import { format, differenceInWeeks, isWithinInterval } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import {
@@ -181,13 +181,18 @@ export async function AthleteProgramsView({ clientId, basePath, showImport }: At
     <div className="min-h-screen pb-20 pt-10 px-4 max-w-4xl mx-auto">
       <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white tracking-tight uppercase leading-none mb-4 transition-colors">
-              {t('titlePrefix')} <span className="text-orange-600 dark:text-orange-500 italic">{t('titleAccent')}</span>
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 font-medium text-sm max-w-md transition-colors">
-              {t('description')}
-            </p>
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl shadow-xl shadow-orange-500/5 transition-colors">
+              <ClipboardList className="h-8 w-8 text-orange-600 dark:text-orange-400 transition-colors" />
+            </div>
+            <div>
+              <h1 className="font-display text-3xl sm:text-4xl font-bold italic uppercase tracking-tight leading-none mb-1 text-slate-900 dark:text-white transition-colors">
+                {t('titlePrefix')} <span className="text-orange-600 dark:text-orange-400">{t('titleAccent')}</span>
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400 font-medium max-w-md transition-colors">
+                {t('description')}
+              </p>
+            </div>
           </div>
           {showImport && (
             <Link href={`${basePath}/athlete/programs/import`} className="shrink-0">

@@ -83,7 +83,7 @@ export async function AthleteTestsView({ clientId, basePath }: AthleteTestsViewP
 
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-blue-50 border-blue-100 text-blue-600 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400 rounded-2xl shadow-xl shadow-blue-500/5 transition-colors">
+            <div className="p-3 bg-orange-100 border border-orange-200 text-orange-600 dark:bg-orange-500/10 dark:border-orange-500/20 dark:text-orange-400 rounded-2xl shadow-xl shadow-orange-500/5 transition-colors">
               <Activity className="h-8 w-8" />
             </div>
             <div>
