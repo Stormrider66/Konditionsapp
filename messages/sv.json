@@ -18104,6 +18104,18 @@
         "generic": "Något gick fel"
       }
     },
+    "dashboardDaySwitcher": {
+      "today": "Idag",
+      "tomorrow": "Imorgon",
+      "previousDay": "Visa föregående dag",
+      "nextDay": "Visa nästa dag",
+      "goToToday": "Gå tillbaka till idag",
+      "viewCalendar": "Öppna kalendern",
+      "empty": {
+        "title": "Inget pass planerat",
+        "description": "Det finns inget träningspass planerat den här dagen. Byt dag eller öppna kalendern för att se hela planen."
+      }
+    },
     "heroWorkoutCard": {
       "completed": "Slutfört",
       "metrics": {

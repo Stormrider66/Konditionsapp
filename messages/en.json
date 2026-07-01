@@ -17744,6 +17744,18 @@
         "generic": "Something went wrong"
       }
     },
+    "dashboardDaySwitcher": {
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "previousDay": "Show previous day",
+      "nextDay": "Show next day",
+      "goToToday": "Return to today",
+      "viewCalendar": "Open calendar",
+      "empty": {
+        "title": "No workout planned",
+        "description": "There is no workout scheduled for this day. Switch days or open the calendar to see the full plan."
+      }
+    },
     "heroWorkoutCard": {
       "completed": "Completed",
       "metrics": {

@@ -4,7 +4,7 @@ import { cookies } from 'next/headers'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { prisma } from '@/lib/prisma'
 import { SportType } from '@prisma/client'
-import { format } from 'date-fns'
+import { addDays, format } from 'date-fns'
 import { getAthleteDashboardData } from '@/lib/athlete/dashboard-data'
 import { UpcomingWorkouts } from '@/components/athlete/UpcomingWorkouts'
 import { IntegratedRecentActivity } from '@/components/athlete/IntegratedRecentActivity'
@@ -34,7 +34,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { NutritionFocusDashboard } from '@/components/athlete/NutritionFocusDashboard'
-import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid } from '@/components/athlete/dashboard'
+import { ReadinessPanel, AccountabilityStreakWidget, DashboardDaySwitcher, QuickActionsGrid } from '@/components/athlete/dashboard'
 import { AthleteDashboardFocusSplit } from '@/components/athlete/dashboard/AthleteDashboardFocusSplit'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -233,6 +233,11 @@ export default async function AthleteDashboardPage({ searchParams }: AthleteDash
 
   const currentProgram = activePrograms[0]
   const restDayMode = currentProgram ? 'rest-day' : 'open-day'
+  const dashboardDateOptions = Array.from(
+    { length: 8 },
+    (_, index) => format(addDays(now, index), 'yyyy-MM-dd')
+  )
+  const dashboardItems = [...sortedTodayItems, ...upcomingItems]
 
   return (
     <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
@@ -278,25 +283,19 @@ export default async function AthleteDashboardPage({ searchParams }: AthleteDash
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* HERO CARD(S) (Left 2/3) */}
-        {sortedTodayItems.length > 0 ? (
-          <HeroCardSlider
-            items={sortedTodayItems}
-            athleteName={client.name.split(' ')[0]}
-            basePath={basePath}
-          />
-        ) : (
-          <RestDayHeroCard
-            nextItem={nextItem}
-            readinessScore={readinessScore}
-            athleteName={client.name.split(' ')[0]}
-            mode={restDayMode}
-            sportType={primarySport}
-            basePath={basePath}
-            recentActivity={recentActivitySummary}
-            wodRemainingCount={wodUsageStats.remaining}
-            wodIsUnlimited={wodUsageStats.isUnlimited}
-          />
-        )}
+        <DashboardDaySwitcher
+          items={dashboardItems}
+          dateOptions={dashboardDateOptions}
+          nextItem={nextItem}
+          readinessScore={readinessScore}
+          athleteName={client.name.split(' ')[0]}
+          mode={restDayMode}
+          sportType={primarySport}
+          basePath={basePath}
+          recentActivity={recentActivitySummary}
+          wodRemainingCount={wodUsageStats.remaining}
+          wodIsUnlimited={wodUsageStats.isUnlimited}
+        />
 
         {/* READINESS PANEL (Right 1/3) */}
         <ReadinessPanel

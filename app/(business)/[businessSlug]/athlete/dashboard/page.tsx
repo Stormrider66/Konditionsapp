@@ -37,7 +37,7 @@ import {
 } from 'lucide-react'
 import { NutritionDashboard } from '@/components/nutrition/NutritionDashboard'
 import { NutritionFocusDashboard } from '@/components/athlete/NutritionFocusDashboard'
-import { RestDayHeroCard, ReadinessPanel, AccountabilityStreakWidget, HeroCardSlider, QuickActionsGrid, GarminHealthCard, OuraHealthCard } from '@/components/athlete/dashboard'
+import { ReadinessPanel, AccountabilityStreakWidget, DashboardDaySwitcher, QuickActionsGrid, GarminHealthCard, OuraHealthCard } from '@/components/athlete/dashboard'
 import { AthleteDashboardFocusSplit } from '@/components/athlete/dashboard/AthleteDashboardFocusSplit'
 import { AgentRecommendationsPanel } from '@/components/athlete/agent'
 import { ActiveRestrictionsCard } from '@/components/athlete/ActiveRestrictionsCard'
@@ -757,6 +757,11 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
     }
     return 0
   })
+  const dashboardDateOptions = Array.from(
+    { length: 8 },
+    (_, index) => format(addDays(now, index), 'yyyy-MM-dd')
+  )
+  const dashboardItems = [...sortedTodayItems, ...upcomingItems]
   // First incomplete item for "Start Session" button
   const firstActionableItem = sortedTodayItems.find(
     (item) => item.kind !== 'adhoc' && !isItemCompleted(item)
@@ -803,25 +808,19 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
       {/* Main Grid - Hero Card + Readiness Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* HERO CARD(S) (Left 2/3) — required, always visible */}
-        {sortedTodayItems.length > 0 ? (
-          <HeroCardSlider
-            items={sortedTodayItems}
-            athleteName={client.name.split(' ')[0]}
-            basePath={basePath}
-          />
-        ) : (
-          <RestDayHeroCard
-            nextItem={nextItem}
-            readinessScore={readinessScore}
-            athleteName={client.name.split(' ')[0]}
-            basePath={basePath}
-            mode={restDayMode}
-            sportType={primarySport}
-            recentActivity={recentActivitySummary}
-            wodRemainingCount={wodUsageStats.remaining}
-            wodIsUnlimited={wodUsageStats.isUnlimited}
-          />
-        )}
+        <DashboardDaySwitcher
+          items={dashboardItems}
+          dateOptions={dashboardDateOptions}
+          nextItem={nextItem}
+          readinessScore={readinessScore}
+          athleteName={client.name.split(' ')[0]}
+          basePath={basePath}
+          mode={restDayMode}
+          sportType={primarySport}
+          recentActivity={recentActivitySummary}
+          wodRemainingCount={wodUsageStats.remaining}
+          wodIsUnlimited={wodUsageStats.isUnlimited}
+        />
 
         {/* READINESS PANEL (Right 1/3) */}
         {isVisible('readiness-panel') && (
