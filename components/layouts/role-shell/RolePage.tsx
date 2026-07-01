@@ -77,7 +77,7 @@ export function RolePageHeader({
             {eyebrow}
           </div>
         )}
-        <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50 md:text-3xl">
+        <h1 className="font-display text-2xl font-bold text-zinc-950 dark:text-zinc-50 md:text-3xl">
           {title}
         </h1>
         {description && (
