@@ -15873,6 +15873,25 @@
       "subtitle": "Ta bild, analysera, spara"
     },
     "coachCalendar": {
+      "sports": {
+        "running": "Löpning",
+        "cycling": "Cykling",
+        "skiing": "Längdskidåkning",
+        "swimming": "Simning",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "Allmän träning",
+        "functionalFitness": "Funktionell Fitness",
+        "strength": "Styrketräning",
+        "football": "Fotboll",
+        "iceHockey": "Ishockey",
+        "handball": "Handboll",
+        "floorball": "Innebandy",
+        "basketball": "Basket",
+        "volleyball": "Volleyboll",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      },
       "title": "Kalender",
       "subtitle": "Överblick av alla atleters schema och händelser",
       "filters": {

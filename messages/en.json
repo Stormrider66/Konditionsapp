@@ -15513,6 +15513,25 @@
       "subtitle": "Take photo, analyze, save"
     },
     "coachCalendar": {
+      "sports": {
+        "running": "Running",
+        "cycling": "Cycling",
+        "skiing": "Cross-country skiing",
+        "swimming": "Swimming",
+        "triathlon": "Triathlon",
+        "hyrox": "HYROX",
+        "generalFitness": "General fitness",
+        "functionalFitness": "Functional Fitness",
+        "strength": "Strength training",
+        "football": "Football",
+        "iceHockey": "Ice hockey",
+        "handball": "Handball",
+        "floorball": "Floorball",
+        "basketball": "Basketball",
+        "volleyball": "Volleyball",
+        "tennis": "Tennis",
+        "padel": "Padel"
+      },
       "title": "Calendar",
       "subtitle": "Overview of all athletes' schedules and events",
       "filters": {
