@@ -7,6 +7,7 @@
 export { UnifiedCalendar } from './UnifiedCalendar'
 export { MonthView } from './MonthView'
 export { MonthViewDraggable } from './MonthViewDraggable'
+export { WeekView } from './WeekView'
 export { DaySidebar } from './DaySidebar'
 export { EventFormDialog } from './EventFormDialog'
 export { ConflictDialog } from './ConflictDialog'

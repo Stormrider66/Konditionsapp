@@ -378,6 +378,29 @@ function hasShiftKey(event: Event | null | undefined): boolean {
   return Boolean(event && 'shiftKey' in event && (event as KeyboardEvent).shiftKey)
 }
 
+function itemDotColor(item: UnifiedCalendarItem): string {
+  switch (item.type) {
+    case 'WORKOUT':
+      return WORKOUT_TYPE_COLORS[(item.metadata.workoutType as string) || 'OTHER'] || 'bg-blue-500'
+    case 'RACE':
+      return 'bg-red-500'
+    case 'CALENDAR_EVENT':
+      return 'bg-purple-500'
+    case 'FIELD_TEST':
+      return 'bg-green-500'
+    case 'AD_HOC':
+      return 'bg-teal-500'
+    case 'WOD':
+      return 'bg-emerald-500'
+    case 'QUICK_ERG':
+      return 'bg-lime-500'
+    case 'GARMIN':
+      return 'bg-cyan-500'
+    default:
+      return 'bg-blue-500'
+  }
+}
+
 function isScheduledWorkoutEvent(item: UnifiedCalendarItem): boolean {
   return (
     item.type === 'CALENDAR_EVENT' &&
@@ -565,8 +588,8 @@ function DroppableDayCell({
         </div>
       </div>
 
-      {/* Event Indicators */}
-      <div className="flex flex-wrap gap-1">
+      {/* Event Indicators (dots) — desktop only; mobile shows titles instead */}
+      <div className="hidden md:flex flex-wrap gap-1">
         {indicators.slice(0, maxIndicators).map((indicator, idx) => (
           <span
             key={`${indicator.type}-${idx}`}
@@ -581,7 +604,24 @@ function DroppableDayCell({
         )}
       </div>
 
-      {/* Items with drag handles */}
+      {/* Mobile: compact titles so each day shows what it holds at a glance */}
+      {day.items.length > 0 && (
+        <div className="md:hidden mt-1 space-y-0.5">
+          {day.items.slice(0, 2).map((item) => (
+            <div key={item.id} className="flex items-center gap-1 min-w-0">
+              <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', itemDotColor(item))} />
+              <span className="text-[9px] leading-tight truncate">{item.title}</span>
+            </div>
+          ))}
+          {day.items.length > 2 && (
+            <div className="text-[9px] leading-tight text-muted-foreground">
+              +{day.items.length - 2} {locale === 'sv' ? 'mer' : 'more'}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Items with drag handles (desktop) */}
       {day.items.length > 0 && (
         <div className="hidden md:block mt-1 space-y-0.5">
           {day.items.slice(0, 2).map((item) => (

@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, isToday } from 'date-fns'
+import { format, addMonths, subMonths, addWeeks, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek, isSameDay, isToday } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import useSWR from 'swr'
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
@@ -24,6 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useToast } from '@/hooks/use-toast'
 import { MonthViewDraggable } from './MonthViewDraggable'
+import { WeekView } from './WeekView'
 import { DaySidebar } from './DaySidebar'
 import { EventFormDialog } from './EventFormDialog'
 import { ConflictDialog } from './ConflictDialog'
@@ -70,6 +71,8 @@ interface RescheduleState {
   conflicts: Conflict[]
 }
 
+
+type CalendarView = 'month' | 'week' | 'agenda'
 
 interface UnifiedCalendarProps {
   clientId: string
@@ -118,7 +121,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const [selectedItem, setSelectedItem] = useState<UnifiedCalendarItem | null>(null)
   const [isEventDialogOpen, setIsEventDialogOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<UnifiedCalendarItem | null>(null)
-  const [activeView, setActiveView] = useState<'month' | 'agenda'>('month')
+  const [activeView, setActiveView] = useState<CalendarView>('month')
   const [defaultEventType, setDefaultEventType] = useState<CalendarEventType | undefined>()
 
   // Mobile-specific state
@@ -158,21 +161,48 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const [detailWorkoutId, setDetailWorkoutId] = useState<string | null>(null)
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false)
 
-  // Swipe navigation for mobile
+  // Move the calendar backward/forward by one step. Step size depends on the
+  // active view: weeks in the week view, months everywhere else.
+  const stepCalendar = useCallback((dir: 1 | -1) => {
+    setCurrentMonth((prev) => {
+      if (activeView === 'week') return dir === 1 ? addWeeks(prev, 1) : subWeeks(prev, 1)
+      return dir === 1 ? addMonths(prev, 1) : subMonths(prev, 1)
+    })
+    setSelectedDate(null)
+    setSelectedItem(null)
+  }, [activeView])
+
+  // Swipe navigation for mobile (month + week views)
   const { ref: swipeRef, swipeOffset, isSwiping } = useSwipeNavigation({
-    onSwipeLeft: () => setCurrentMonth((prev) => addMonths(prev, 1)),
-    onSwipeRight: () => setCurrentMonth((prev) => subMonths(prev, 1)),
-    enabled: isMobile && activeView === 'month',
+    onSwipeLeft: () => stepCalendar(1),
+    onSwipeRight: () => stepCalendar(-1),
+    enabled: isMobile && (activeView === 'month' || activeView === 'week'),
     threshold: 80,
   })
 
-  // Calculate date range for API call
-  const startDate = startOfMonth(currentMonth)
-  const endDate = endOfMonth(currentMonth)
+  // Calculate date range for the API call. The window widens for the agenda
+  // (≈3 months, kept under the API's 120-day clamp) so athletes can scroll
+  // past and upcoming workouts without paging; the week view fetches just its
+  // week (which may cross a month boundary).
+  const { fetchStart, fetchEnd } = useMemo(() => {
+    if (activeView === 'week') {
+      return {
+        fetchStart: startOfWeek(currentMonth, { weekStartsOn: 1 }),
+        fetchEnd: endOfWeek(currentMonth, { weekStartsOn: 1 }),
+      }
+    }
+    if (activeView === 'agenda') {
+      return {
+        fetchStart: startOfMonth(subMonths(currentMonth, 1)),
+        fetchEnd: endOfMonth(addMonths(currentMonth, 1)),
+      }
+    }
+    return { fetchStart: startOfMonth(currentMonth), fetchEnd: endOfMonth(currentMonth) }
+  }, [activeView, currentMonth])
 
   // Fetch unified calendar data
   const { data, error, isLoading, mutate } = useSWR(
-    `/api/calendar/unified?clientId=${clientId}&startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}&itemsMode=light&includeGroupedByDate=false`,
+    `/api/calendar/unified?clientId=${clientId}&startDate=${fetchStart.toISOString()}&endDate=${fetchEnd.toISOString()}&itemsMode=light&includeGroupedByDate=false`,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -192,22 +222,25 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
   const blockedDates: Date[] = []
   const reducedDates: Date[] = []
 
-  const handlePreviousMonth = useCallback(() => {
-    setCurrentMonth((prev) => subMonths(prev, 1))
-    setSelectedDate(null)
-    setSelectedItem(null)
-  }, [])
+  const handlePreviousMonth = useCallback(() => stepCalendar(-1), [stepCalendar])
 
-  const handleNextMonth = useCallback(() => {
-    setCurrentMonth((prev) => addMonths(prev, 1))
-    setSelectedDate(null)
-    setSelectedItem(null)
-  }, [])
+  const handleNextMonth = useCallback(() => stepCalendar(1), [stepCalendar])
 
   const handleToday = useCallback(() => {
     setCurrentMonth(new Date())
     setSelectedDate(new Date())
   }, [])
+
+  // Header label: week range in the week view, otherwise the month name.
+  const headerTitle = useMemo(() => {
+    if (activeView === 'week') {
+      const weekStart = startOfWeek(currentMonth, { weekStartsOn: 1 })
+      const weekEnd = endOfWeek(currentMonth, { weekStartsOn: 1 })
+      const sameMonth = weekStart.getMonth() === weekEnd.getMonth()
+      return `${format(weekStart, sameMonth ? 'd' : 'd MMM', { locale: dateLocale })} – ${format(weekEnd, 'd MMM yyyy', { locale: dateLocale })}`
+    }
+    return format(currentMonth, 'MMMM yyyy', { locale: dateLocale })
+  }, [activeView, currentMonth, dateLocale])
 
   const handleDayClick = useCallback((date: Date, event?: React.MouseEvent) => {
     setSelectedDate(date)
@@ -820,7 +853,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 </Button>
 
                 <h2 className="flex-1 text-center text-lg sm:text-xl font-black capitalize tracking-tight text-slate-900 dark:text-white">
-                  {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
+                  {headerTitle}
                 </h2>
 
                 <Button
@@ -845,12 +878,15 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                   {appLocale === 'sv' ? 'Idag' : 'Today'}
                 </Button>
 
-                <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'month' | 'agenda')}>
+                <Tabs value={activeView} onValueChange={(v) => setActiveView(v as CalendarView)}>
                   <TabsList className="h-8 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
-                    <TabsTrigger value="month" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white">
+                    <TabsTrigger value="month" className="text-[10px] uppercase font-bold tracking-widest px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white">
                       {appLocale === 'sv' ? 'Månad' : 'Month'}
                     </TabsTrigger>
-                    <TabsTrigger value="agenda" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white">
+                    <TabsTrigger value="week" className="text-[10px] uppercase font-bold tracking-widest px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white">
+                      {appLocale === 'sv' ? 'Vecka' : 'Week'}
+                    </TabsTrigger>
+                    <TabsTrigger value="agenda" className="text-[10px] uppercase font-bold tracking-widest px-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white">
                       {appLocale === 'sv' ? 'Lista' : 'List'}
                     </TabsTrigger>
                   </TabsList>
@@ -900,7 +936,15 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
               <div className="flex items-center justify-center h-96">
                 <Loader2 className="h-8 w-8 animate-spin text-orange-500/50" />
               </div>
-            ) : activeView === 'month' ? (
+            ) : activeView === 'agenda' ? (
+              <AgendaView
+                items={items}
+                onItemClick={handleItemClick}
+                selectedItem={selectedItem}
+                isGlass={true}
+                locale={appLocale}
+              />
+            ) : (
               <div
                 ref={swipeRef}
                 className={cn(
@@ -911,30 +955,34 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                   transform: isSwiping ? `translateX(${swipeOffset}px)` : undefined,
                 }}
               >
-                <MonthViewDraggable
-                  clientId={clientId}
-                  month={currentMonth}
-                  items={items}
-                  onDayClick={handleDayClick}
-                  onItemClick={handleItemClick}
-                  selectedDate={selectedDate}
-                  onReschedule={handleReschedule}
-                  onCopyWorkout={handleCopyWorkout}
-                  onMoveScheduledWorkout={handleMoveScheduledWorkout}
-                  onCopyScheduledWorkout={handleCopyScheduledWorkout}
-                  isRescheduling={isCheckingConflicts || isRescheduling}
-                  isCopying={isCopyingWorkout}
-                  isGlass={true}
-                />
+                {activeView === 'week' ? (
+                  <WeekView
+                    anchor={currentMonth}
+                    items={items}
+                    onDayClick={handleDayClick}
+                    onItemClick={handleItemClick}
+                    selectedDate={selectedDate}
+                    isGlass={true}
+                    locale={appLocale}
+                  />
+                ) : (
+                  <MonthViewDraggable
+                    clientId={clientId}
+                    month={currentMonth}
+                    items={items}
+                    onDayClick={handleDayClick}
+                    onItemClick={handleItemClick}
+                    selectedDate={selectedDate}
+                    onReschedule={handleReschedule}
+                    onCopyWorkout={handleCopyWorkout}
+                    onMoveScheduledWorkout={handleMoveScheduledWorkout}
+                    onCopyScheduledWorkout={handleCopyScheduledWorkout}
+                    isRescheduling={isCheckingConflicts || isRescheduling}
+                    isCopying={isCopyingWorkout}
+                    isGlass={true}
+                  />
+                )}
               </div>
-            ) : (
-              <AgendaView
-                items={items}
-                onItemClick={handleItemClick}
-                selectedItem={selectedItem}
-                isGlass={true}
-                locale={appLocale}
-              />
             )}
           </GlassCardContent>
         </GlassCard>
@@ -1196,34 +1244,57 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             </Button>
           </div>
 
-          {/* Month Navigation */}
-          <div className="flex items-center justify-between mt-4">
+          {/* Month Navigation — two rows so it never crowds on mobile */}
+          <div className="mt-4 space-y-3 sm:space-y-0">
+            {/* Row 1: arrows flanking the month/week title */}
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={handlePreviousMonth}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePreviousMonth}
+                aria-label={appLocale === 'sv' ? 'Föregående' : 'Previous'}
+                className="shrink-0"
+              >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={handleNextMonth}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNextMonth}
+                aria-label={appLocale === 'sv' ? 'Nästa' : 'Next'}
+                className="shrink-0"
+              >
                 <ChevronRight className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="sm" onClick={handleToday}>
+              <Button variant="ghost" size="sm" onClick={handleToday} className="hidden sm:inline-flex">
                 {appLocale === 'sv' ? 'Idag' : 'Today'}
               </Button>
+
+              <h2 className="flex-1 text-center sm:text-left text-lg sm:text-xl font-semibold capitalize truncate">
+                {headerTitle}
+              </h2>
             </div>
 
-            <h2 className="text-xl font-semibold capitalize">
-              {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
-            </h2>
+            {/* Row 2 (mobile): Today + view toggle */}
+            <div className="flex items-center justify-between gap-2 sm:justify-end sm:mt-3">
+              <Button variant="ghost" size="sm" onClick={handleToday} className="sm:hidden">
+                {appLocale === 'sv' ? 'Idag' : 'Today'}
+              </Button>
 
-            <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'month' | 'agenda')}>
-              <TabsList className="h-8">
-                <TabsTrigger value="month" className="text-xs px-3">
-                  {appLocale === 'sv' ? 'Månad' : 'Month'}
-                </TabsTrigger>
-                <TabsTrigger value="agenda" className="text-xs px-3">
-                  {appLocale === 'sv' ? 'Lista' : 'List'}
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as CalendarView)}>
+                <TabsList className="h-8">
+                  <TabsTrigger value="month" className="text-xs px-2.5">
+                    {appLocale === 'sv' ? 'Månad' : 'Month'}
+                  </TabsTrigger>
+                  <TabsTrigger value="week" className="text-xs px-2.5">
+                    {appLocale === 'sv' ? 'Vecka' : 'Week'}
+                  </TabsTrigger>
+                  <TabsTrigger value="agenda" className="text-xs px-2.5">
+                    {appLocale === 'sv' ? 'Lista' : 'List'}
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
           </div>
 
           {/* Summary Stats */}
@@ -1268,7 +1339,14 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             <div className="flex items-center justify-center h-96">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : activeView === 'month' ? (
+          ) : activeView === 'agenda' ? (
+            <AgendaView
+              items={items}
+              onItemClick={handleItemClick}
+              selectedItem={selectedItem}
+              locale={appLocale}
+            />
+          ) : (
             <div
               ref={swipeRef}
               className={cn(
@@ -1279,28 +1357,32 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                 transform: isSwiping ? `translateX(${swipeOffset}px)` : undefined,
               }}
             >
-              <MonthViewDraggable
-                clientId={clientId}
-                month={currentMonth}
-                items={items}
-                onDayClick={handleDayClick}
-                onItemClick={handleItemClick}
-                selectedDate={selectedDate}
-                onReschedule={handleReschedule}
-                onCopyWorkout={handleCopyWorkout}
-                onMoveScheduledWorkout={handleMoveScheduledWorkout}
-                onCopyScheduledWorkout={handleCopyScheduledWorkout}
-                isRescheduling={isCheckingConflicts || isRescheduling}
-                isCopying={isCopyingWorkout}
-              />
+              {activeView === 'week' ? (
+                <WeekView
+                  anchor={currentMonth}
+                  items={items}
+                  onDayClick={handleDayClick}
+                  onItemClick={handleItemClick}
+                  selectedDate={selectedDate}
+                  locale={appLocale}
+                />
+              ) : (
+                <MonthViewDraggable
+                  clientId={clientId}
+                  month={currentMonth}
+                  items={items}
+                  onDayClick={handleDayClick}
+                  onItemClick={handleItemClick}
+                  selectedDate={selectedDate}
+                  onReschedule={handleReschedule}
+                  onCopyWorkout={handleCopyWorkout}
+                  onMoveScheduledWorkout={handleMoveScheduledWorkout}
+                  onCopyScheduledWorkout={handleCopyScheduledWorkout}
+                  isRescheduling={isCheckingConflicts || isRescheduling}
+                  isCopying={isCopyingWorkout}
+                />
+              )}
             </div>
-          ) : (
-            <AgendaView
-              items={items}
-              onItemClick={handleItemClick}
-              selectedItem={selectedItem}
-              locale={appLocale}
-            />
           )}
         </CardContent>
       </Card>
@@ -1551,6 +1633,9 @@ interface AgendaViewProps {
 
 function AgendaView({ items, onItemClick, selectedItem, isGlass = false, locale }: AgendaViewProps) {
   const dateLocale = locale === 'sv' ? sv : enUS
+  const containerRef = useRef<HTMLDivElement>(null)
+  const targetRef = useRef<HTMLDivElement>(null)
+
   // Group items by date
   const groupedItems: Record<string, UnifiedCalendarItem[]> = {}
   for (const item of items) {
@@ -1563,22 +1648,53 @@ function AgendaView({ items, onItemClick, selectedItem, isGlass = false, locale 
 
   const sortedDates = Object.keys(groupedItems).sort()
 
+  // The day to bring into view on load: today, else the nearest upcoming day,
+  // else the last (most recent past) day — so the list opens on "now", not the
+  // top of a 3-month window.
+  const todayKey = format(new Date(), 'yyyy-MM-dd')
+  const targetKey =
+    sortedDates.find((k) => k >= todayKey) ?? sortedDates[sortedDates.length - 1] ?? null
+
+  // Scroll the target day to the top of the container (scrolls only the
+  // container, never the page) whenever the visible data set changes.
+  useEffect(() => {
+    const c = containerRef.current
+    const t = targetRef.current
+    if (!c || !t) return
+    const delta = t.getBoundingClientRect().top - c.getBoundingClientRect().top
+    c.scrollTop += delta
+  }, [targetKey, sortedDates.length])
+
   if (sortedDates.length === 0) {
     return (
       <div className="text-center text-muted-foreground py-12">
-        {locale === 'sv' ? 'Inga händelser denna månad' : 'No events this month'}
+        {locale === 'sv' ? 'Inga händelser i perioden' : 'No events in this period'}
       </div>
     )
   }
 
   return (
-    <div className="space-y-5 max-h-[65vh] lg:max-h-[560px] overflow-y-auto overscroll-contain pr-1 -mr-1">
-      {sortedDates.map((dateKey) => {
+    <div
+      ref={containerRef}
+      className="space-y-3 max-h-[65vh] lg:max-h-[560px] overflow-y-auto overscroll-contain pr-1 -mr-1"
+    >
+      {sortedDates.map((dateKey, idx) => {
         const dayDate = new Date(dateKey)
         const today = isToday(dayDate)
+        // 'yyyy-MM-dd'.slice(0, 7) === 'yyyy-MM' — a month separator precedes
+        // the first day of each month (compared against the previous group).
+        const showMonthSeparator = dateKey.slice(0, 7) !== (sortedDates[idx - 1]?.slice(0, 7) ?? '')
         return (
-          <div key={dateKey}>
-            <div className="flex items-baseline gap-2 mb-2">
+          <div key={dateKey} ref={dateKey === targetKey ? targetRef : undefined}>
+            {showMonthSeparator && (
+              <div className="flex items-center gap-3 pt-3 pb-1 first:pt-0">
+                <span className="text-xs font-black uppercase tracking-widest capitalize text-muted-foreground">
+                  {format(dayDate, 'MMMM yyyy', { locale: dateLocale })}
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            )}
+            <div className="flex items-baseline gap-2 mb-2 mt-1">
               <h3
                 className={cn(
                   'text-sm font-bold capitalize',
