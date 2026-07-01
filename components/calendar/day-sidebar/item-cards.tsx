@@ -630,15 +630,20 @@ export function CalendarEventItem({
         </div>
       </button>
 
-      {!isReadOnly && (
+      {/* Actions bar. Renders when there are editable actions OR a viewable
+          result. "View result" (the completed workout's logged metrics +
+          weight sets) is intentionally NOT gated by isReadOnly — an athlete
+          must always be able to see their own results, even on read-only
+          team/program scheduled workouts. Editing/copy/delete stay gated. */}
+      {(!isReadOnly || (scheduledWorkoutSource?.assignmentId && hasRegisteredWorkout)) && (
         <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-white/5">
-          {scheduledWorkoutSource?.sourceId && canEditScheduledWorkoutSource && (
+          {!isReadOnly && scheduledWorkoutSource?.sourceId && canEditScheduledWorkoutSource && (
             <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={openScheduledWorkout}>
               <ExternalLink className="h-3 w-3 shrink-0 mr-1" />
               {t('calendarItem.event.actions.editWorkout')}
             </Button>
           )}
-          {scheduledWorkoutSource?.sourceId && canPrintScheduledWorkoutSource && (
+          {!isReadOnly && scheduledWorkoutSource?.sourceId && canPrintScheduledWorkoutSource && (
             <PrintWorkoutButton
               kind={scheduledWorkoutSource.kind as PrintableWorkoutKind}
               workoutId={scheduledWorkoutSource.sourceId}
@@ -649,7 +654,7 @@ export function CalendarEventItem({
               className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold"
             />
           )}
-          {canCopyScheduledWorkoutSource && (
+          {!isReadOnly && canCopyScheduledWorkoutSource && (
             <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={openCopyDialog}>
               <Copy className="h-3 w-3 shrink-0 mr-1" />
               {t('calendarItem.event.actions.copyWorkout')}
@@ -661,7 +666,7 @@ export function CalendarEventItem({
               {t('calendarItem.event.actions.viewResult')}
             </Button>
           )}
-          {canSendPraise && (
+          {!isReadOnly && canSendPraise && (
             <Button
               variant="ghost"
               size="sm"
@@ -677,7 +682,7 @@ export function CalendarEventItem({
               {t('calendarItem.event.actions.praise')}
             </Button>
           )}
-          {!isVirtualAssignment && (
+          {!isReadOnly && !isVirtualAssignment && (
             <>
               <Button variant="ghost" size="sm" className="h-7 min-w-0 px-2 text-[10px] uppercase font-bold" onClick={onEdit}>
                 <Edit className="h-3 w-3 shrink-0 mr-1" />

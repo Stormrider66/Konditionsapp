@@ -27,6 +27,11 @@ import {
 import { PostEventMonitor } from './PostEventMonitor'
 import { cn } from '@/lib/utils'
 import { CalendarEventItem } from './day-sidebar/item-cards'
+import { WorkoutDetailPanel } from './day-sidebar/detail-panels/workout'
+import { AdHocDetailPanel } from './day-sidebar/detail-panels/adhoc'
+import { QuickErgDetailPanel } from './day-sidebar/detail-panels/quick-erg'
+import { RaceDetailPanel } from './day-sidebar/detail-panels/race'
+import { FieldTestDetailPanel } from './day-sidebar/detail-panels/field-test'
 import { useLocale } from '@/i18n/client'
 
 interface MobileDaySheetProps {
@@ -69,6 +74,8 @@ export function MobileDaySheet({
   const dateLocale = locale === 'sv' ? sv : enUS
   const isGlass = variant === 'glass'
   const sheetRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+  const detailPanelRef = useRef<HTMLDivElement>(null)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const startY = useRef(0)
@@ -139,6 +146,20 @@ export function MobileDaySheet({
       document.body.style.overflow = ''
     }
   }, [isOpen, onClose])
+
+  // When an item with an inline detail panel is selected, scroll the panel
+  // into view so its logged results (weights / cardio / splits) are visible.
+  useEffect(() => {
+    if (!isOpen || !selectedItem) return
+    const c = contentRef.current
+    const p = detailPanelRef.current
+    if (!c || !p) return
+    const id = window.requestAnimationFrame(() => {
+      const delta = p.getBoundingClientRect().top - c.getBoundingClientRect().top
+      c.scrollTop += delta - 12
+    })
+    return () => window.cancelAnimationFrame(id)
+  }, [isOpen, selectedItem])
 
   if (!isOpen || !date) return null
 
@@ -239,7 +260,7 @@ export function MobileDaySheet({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
+        <div ref={contentRef} className="flex-1 overflow-y-auto overscroll-contain p-4 space-y-4">
           {items.length === 0 ? (
             <div className="text-center py-16 flex flex-col items-center gap-4">
               <div className={cn(
@@ -371,6 +392,38 @@ export function MobileDaySheet({
                   ))}
                 </Section>
               )}
+
+              {/* Selected item details — logged weights, cardio time, splits.
+                  Mirrors the desktop day sidebar's inline detail panels so a
+                  tapped workout shows its history right here. */}
+              <div ref={detailPanelRef}>
+                {selectedItem?.type === 'WORKOUT' && (
+                  <WorkoutDetailPanel
+                    workout={selectedItem}
+                    isGlass={isGlass}
+                    onViewWorkoutDetails={
+                      onViewWorkoutDetails
+                        ? (id) => {
+                            onClose()
+                            onViewWorkoutDetails(id)
+                          }
+                        : undefined
+                    }
+                  />
+                )}
+                {selectedItem?.type === 'AD_HOC' && (
+                  <AdHocDetailPanel workout={selectedItem} isGlass={isGlass} />
+                )}
+                {selectedItem?.type === 'QUICK_ERG' && (
+                  <QuickErgDetailPanel session={selectedItem} isGlass={isGlass} />
+                )}
+                {selectedItem?.type === 'RACE' && (
+                  <RaceDetailPanel race={selectedItem} isGlass={isGlass} />
+                )}
+                {selectedItem?.type === 'FIELD_TEST' && (
+                  <FieldTestDetailPanel test={selectedItem} isGlass={isGlass} />
+                )}
+              </div>
 
               {/* Post-Event Monitoring */}
               {selectedItem?.type === 'CALENDAR_EVENT' &&
