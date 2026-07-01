@@ -143,9 +143,9 @@ export async function AthleteDashboardView({
       <div className="container mx-auto py-8 px-4 sm:px-6 max-w-7xl font-sans">
         <div className="flex flex-col gap-4 mb-8">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
+            <h1 className="font-display text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
               {t('welcomeBack')}{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-600 dark:from-emerald-400 dark:to-teal-500">{client.name.split(' ')[0]}</span>
+              <span className="text-emerald-600 dark:text-emerald-500">{client.name.split(' ')[0]}</span>
             </h1>
             <p className="text-slate-500 dark:text-slate-400 flex items-center gap-2 transition-colors">
               <CalendarDays className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
@@ -316,9 +316,9 @@ export async function AthleteDashboardView({
       {/* Welcome Section */}
       <div className="flex flex-col gap-4 mb-8">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-2 transition-colors">
             {t('welcomeBack')}{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600 dark:from-orange-400 dark:to-red-500">
+            <span className="text-orange-600 dark:text-orange-500">
               {client.name.split(' ')[0]}
             </span>
           </h1>

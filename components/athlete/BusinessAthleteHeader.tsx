@@ -84,8 +84,10 @@ export function BusinessAthleteHeader({
     const branding = useBusinessBrandingOptional()
     const themeContext = useWorkoutThemeOptional()
     const appIsDark = themeContext?.appTheme?.id === 'FITAPP_DARK'
-    const usesModernHeader = branding?.headerVariant === 'modern'
-    const headerIsDark = appIsDark || !usesModernHeader
+    // Header follows the app theme (same signal as the page background) so a
+    // dark bar never sits on a light page. The old 'modern' headerVariant
+    // opt-in is obsolete: light theme now always gets the light header.
+    const headerIsDark = appIsDark
     const t = useTranslations('components.businessAthleteHeader')
     const [isOpen, setIsOpen] = useState(false)
     const displayName = clientName || athleteName || user?.email || t('fallbackAthlete')

@@ -182,8 +182,8 @@ export async function AthleteProgramsView({ clientId, basePath, showImport }: At
       <div className="mb-12 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
-            <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none mb-4 transition-colors">
-              {t('titlePrefix')} <span className="text-blue-600 dark:text-blue-500 italic">{t('titleAccent')}</span>
+            <h1 className="font-display text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white tracking-tight uppercase leading-none mb-4 transition-colors">
+              {t('titlePrefix')} <span className="text-orange-600 dark:text-orange-500 italic">{t('titleAccent')}</span>
             </h1>
             <p className="text-slate-600 dark:text-slate-400 font-medium text-sm max-w-md transition-colors">
               {t('description')}

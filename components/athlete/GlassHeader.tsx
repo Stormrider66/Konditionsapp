@@ -143,7 +143,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
     ]
 
     return (
-        <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-slate-950/50 backdrop-blur-md transition-all duration-300">
+        <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-200/80 bg-white/80 shadow-sm dark:shadow-none dark:border-white/5 dark:bg-slate-950/50 backdrop-blur-md transition-all duration-300">
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
 
                 {/* Logo Area */}
@@ -152,14 +152,14 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(249,115,22,0.5)] group-hover:shadow-[0_0_20px_rgba(249,115,22,0.8)] transition-all">
                             {t('brand.initial')}
                         </div>
-                        <span className="font-bold text-lg tracking-tight text-white hidden sm:inline">
+                        <span className="font-bold text-lg tracking-tight text-slate-900 dark:text-white hidden sm:inline">
                             {t('brand.name')}<span className="text-orange-500">{t('brand.domain')}</span>
                         </span>
                     </Link>
 
                     {/* Sport Switcher */}
                     {sportProfile && sportProfile.secondarySports.length > 0 && (
-                        <div className="hidden md:block border-l border-white/10 pl-4">
+                        <div className="hidden md:block border-l border-slate-200 dark:border-white/10 pl-4">
                             <SportSwitcher
                                 primarySport={sportProfile.primarySport}
                                 secondarySports={sportProfile.secondarySports}
@@ -178,8 +178,8 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "text-sm font-medium transition-colors hover:text-white flex items-center gap-2",
-                                    isActive ? "text-white" : "text-slate-400"
+                                    "text-sm font-medium transition-colors hover:text-slate-950 dark:hover:text-white flex items-center gap-2",
+                                    isActive ? "text-slate-950 dark:text-white" : "text-slate-500 dark:text-slate-400"
                                 )}
                             >
                                 <item.icon className={cn("w-4 h-4", isActive ? "text-orange-500" : "opacity-0")} />
@@ -192,19 +192,19 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className={cn(
-                                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-white",
+                                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-slate-950 dark:hover:text-white",
                                 pathname?.includes('/athlete/') && !mainNavItems.some(i => i.href === pathname) && !navGroups.more.items.some(i => i.href === pathname)
-                                    ? "text-white"
-                                    : "text-slate-400"
+                                    ? "text-slate-950 dark:text-white"
+                                    : "text-slate-500 dark:text-slate-400"
                             )}>
                                 <navGroups.training.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.training.label}
                                 <ChevronDown className="w-3 h-3 opacity-50" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 bg-slate-950 border-white/10 text-slate-200" align="start">
+                        <DropdownMenuContent className="w-56 bg-white border-slate-200 text-slate-700 shadow-lg dark:bg-slate-950 dark:border-white/10 dark:text-slate-200" align="start">
                             {navGroups.training.items.map((item) => (
-                                <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuItem key={item.href} asChild className="focus:bg-slate-100 focus:text-slate-950 dark:focus:bg-white/10 dark:focus:text-white cursor-pointer">
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="w-4 h-4" />
                                         {item.label}
@@ -218,19 +218,19 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <button className={cn(
-                                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-white",
+                                "flex items-center gap-2 text-sm font-medium transition-colors hover:text-slate-950 dark:hover:text-white",
                                 navGroups.more.items.some(i => i.href === pathname)
-                                    ? "text-white"
-                                    : "text-slate-400"
+                                    ? "text-slate-950 dark:text-white"
+                                    : "text-slate-500 dark:text-slate-400"
                             )}>
                                 <navGroups.more.icon className="w-4 h-4 opacity-50" />
                                 {navGroups.more.label}
                                 <ChevronDown className="w-3 h-3 opacity-50" />
                             </button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200" align="start">
+                        <DropdownMenuContent className="w-56 bg-white border-slate-200 text-slate-700 shadow-lg dark:bg-slate-900 dark:border-white/10 dark:text-slate-200" align="start">
                             {navGroups.more.items.map((item) => (
-                                <DropdownMenuItem key={item.href} asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuItem key={item.href} asChild className="focus:bg-slate-100 focus:text-slate-950 dark:focus:bg-white/10 dark:focus:text-white cursor-pointer">
                                     <Link href={item.href} className="flex items-center gap-2">
                                         <item.icon className="w-4 h-4" />
                                         {item.label}
@@ -245,7 +245,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                 <div className="flex items-center gap-4">
 
                     {/* Trial Badge, Language & Notifications (Desktop) */}
-                    <div className="hidden md:flex items-center gap-2 text-slate-200">
+                    <div className="hidden md:flex items-center gap-2 text-slate-700 dark:text-slate-200">
                         {subscriptionStatus?.trialActive && subscriptionStatus.trialDaysRemaining && (
                             <TrialBadge
                                 daysRemaining={subscriptionStatus.trialDaysRemaining}
@@ -260,41 +260,41 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                     <div className="hidden md:block">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full ring-2 ring-white/10 hover:ring-orange-500/50 transition-all p-0">
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full ring-2 ring-slate-200 dark:ring-white/10 hover:ring-orange-500/50 transition-all p-0">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user?.user_metadata?.avatar_url} alt={displayName} />
-                                        <AvatarFallback className="bg-slate-800 text-orange-500 font-bold">
+                                        <AvatarFallback className="bg-slate-100 text-orange-600 dark:bg-slate-800 dark:text-orange-500 font-bold">
                                             {displayName.charAt(0).toUpperCase()}
                                         </AvatarFallback>
                                     </Avatar>
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent className="w-56 bg-slate-900 border-white/10 text-slate-200" align="end" forceMount>
+                            <DropdownMenuContent className="w-56 bg-white border-slate-200 text-slate-700 shadow-lg dark:bg-slate-900 dark:border-white/10 dark:text-slate-200" align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none text-white">{displayName}</p>
-                                        <p className="text-xs leading-none text-slate-400">
+                                        <p className="text-sm font-medium leading-none text-slate-900 dark:text-white">{displayName}</p>
+                                        <p className="text-xs leading-none text-slate-500 dark:text-slate-400">
                                             {user?.email}
                                         </p>
                                     </div>
                                 </DropdownMenuLabel>
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuSeparator className="bg-slate-200 dark:bg-white/10" />
+                                <DropdownMenuItem asChild className="focus:bg-slate-100 focus:text-slate-950 dark:focus:bg-white/10 dark:focus:text-white cursor-pointer">
                                     <Link href="/athlete/profile">
                                         <UserIcon className="mr-2 h-4 w-4" />
                                         <span>{t('account.profile')}</span>
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="focus:bg-white/10 focus:text-white cursor-pointer">
+                                <DropdownMenuItem asChild className="focus:bg-slate-100 focus:text-slate-950 dark:focus:bg-white/10 dark:focus:text-white cursor-pointer">
                                     <Link href="/athlete/settings">
                                         <Settings className="mr-2 h-4 w-4" />
                                         <span>{t('account.settings')}</span>
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-white/10" />
+                                <DropdownMenuSeparator className="bg-slate-200 dark:bg-white/10" />
                                 <AthleteModeToggle variant="dropdown" />
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <DropdownMenuItem onClick={handleSignOut} className="text-red-400 focus:bg-red-500/10 focus:text-red-400 cursor-pointer">
+                                <DropdownMenuSeparator className="bg-slate-200 dark:bg-white/10" />
+                                <DropdownMenuItem onClick={handleSignOut} className="text-red-600 dark:text-red-400 focus:bg-red-500/10 focus:text-red-600 dark:focus:text-red-400 cursor-pointer">
                                     <LogOut className="mr-2 h-4 w-4" />
                                     <span>{t('account.logOut')}</span>
                                 </DropdownMenuItem>
@@ -305,12 +305,12 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                     {/* Mobile Menu Trigger */}
                     <Sheet open={isOpen} onOpenChange={setIsOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="icon" className="lg:hidden text-slate-300 hover:text-white hover:bg-white/10">
+                            <Button variant="ghost" size="icon" className="lg:hidden text-slate-600 hover:text-slate-950 hover:bg-slate-100 dark:text-slate-300 dark:hover:text-white dark:hover:bg-white/10">
                                 <Menu className="h-6 w-6" />
                                 <span className="sr-only">{t('mobile.toggleMenu')}</span>
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="right" className="bg-slate-950 border-l border-white/10 text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
+                        <SheetContent side="right" className="bg-white border-l border-slate-200 text-slate-700 dark:bg-slate-950 dark:border-white/10 dark:text-slate-200 w-[300px] overflow-y-auto" aria-describedby={undefined}>
                             <SheetTitle className="sr-only">{t('mobile.navigationMenu')}</SheetTitle>
                             <div className="flex flex-col gap-6 mt-8">
                                 <div className="flex items-center justify-between px-4">
@@ -338,7 +338,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                         <SportSwitcher
                                             primarySport={sportProfile.primarySport}
                                             secondarySports={sportProfile.secondarySports}
-                                            className="w-full justify-start bg-white/5 hover:bg-white/10"
+                                            className="w-full justify-start bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10"
                                         />
                                     </div>
                                 )}
@@ -355,8 +355,8 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                                 className={cn(
                                                     "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors",
                                                     isActive
-                                                        ? "bg-white/10 text-white"
-                                                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                                                        ? "bg-slate-100 text-slate-950 dark:bg-white/10 dark:text-white"
+                                                        : "text-slate-500 hover:text-slate-950 hover:bg-slate-50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5"
                                                 )}
                                             >
                                                 <item.icon className={cn("w-5 h-5", isActive ? "text-orange-500" : "")} />
@@ -366,7 +366,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                     })}
                                 </div>
 
-                                <div className="h-px bg-white/10 my-2" />
+                                <div className="h-px bg-slate-200 dark:bg-white/10 my-2" />
 
                                 {/* Mobile User Actions */}
                                 <div className="flex flex-col gap-2 px-4">
@@ -376,7 +376,7 @@ export function GlassHeader({ user, athleteName, clientName, clientId, sportProf
                                             setIsOpen(false)
                                             void handleSignOut()
                                         }}
-                                        className="flex items-center gap-3 py-3 rounded-lg text-red-400 hover:bg-red-500/10 w-full text-left"
+                                        className="flex items-center gap-3 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-500/10 w-full text-left"
                                     >
                                         <LogOut className="w-5 h-5" />
                                         {t('account.logOut')}

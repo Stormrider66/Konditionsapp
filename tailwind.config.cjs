@@ -57,6 +57,10 @@ module.exports = {
           '5': 'hsl(var(--chart-5))',
         },
       },
+      fontFamily: {
+        sans: ['var(--font-sans)', 'Inter', 'Arial', 'sans-serif'],
+        display: ['var(--font-display)', 'var(--font-sans)', 'sans-serif'],
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

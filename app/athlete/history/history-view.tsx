@@ -127,8 +127,8 @@ export async function AthleteHistoryView({
 
       <div className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-8 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="space-y-2">
-          <h1 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-none">
-            {t('titlePrefix')}<span className="text-blue-600">{t('titleAccent')}</span>
+          <h1 className="font-display text-4xl sm:text-5xl font-bold text-slate-900 dark:text-white tracking-tight uppercase italic leading-none">
+            {t('titlePrefix')}<span className="text-orange-600 dark:text-orange-500">{t('titleAccent')}</span>
           </h1>
           <p className="text-slate-500 font-black uppercase tracking-[0.2em] text-[10px]">
             {t('description')}

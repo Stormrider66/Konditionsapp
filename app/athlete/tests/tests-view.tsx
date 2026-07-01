@@ -87,8 +87,8 @@ export async function AthleteTestsView({ clientId, basePath }: AthleteTestsViewP
               <Activity className="h-8 w-8" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-900 dark:text-white transition-colors">
-                {t('titlePrefix')} <span className="text-blue-600 dark:text-blue-400 transition-colors">{t('titleAccent')}</span>
+              <h1 className="font-display text-2xl sm:text-4xl font-bold italic uppercase tracking-tight mb-1 text-slate-900 dark:text-white transition-colors">
+                {t('titlePrefix')} <span className="text-orange-600 dark:text-orange-500 transition-colors">{t('titleAccent')}</span>
               </h1>
               <p className="text-slate-500 dark:text-slate-400 font-medium transition-colors">
                 {t('description')}
