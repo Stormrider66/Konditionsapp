@@ -1,8 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { Activity, Clock, Flame, Gauge, Heart, MapPin, Timer, Watch, Zap } from 'lucide-react'
+import { Activity, Clock, Flame, Gauge, Heart, MapPin, Timer, Zap } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import { UnifiedCalendarItem, formatDistanceKm } from '../../types'
 import { cn } from '@/lib/utils'
 import { useLocale } from '@/i18n/client'
@@ -73,11 +74,11 @@ export function GarminDetailPanel({ activity, isGlass = false }: { activity: Uni
           : 'bg-cyan-50 dark:bg-cyan-950/20 border-cyan-200 dark:border-cyan-800'
       )}
     >
+      {/* Official Garmin branding: the Garmin tag logo + "Garmin [device
+          model]" attribution, per Garmin API Brand Guidelines (v6.30.2025).
+          Shared GarminAttribution component keeps it consistent + compliant. */}
       <div className="flex items-center justify-between mb-4 gap-2">
-        <h4 className="font-black text-[10px] uppercase tracking-widest flex items-center gap-2 text-cyan-600 dark:text-cyan-400">
-          <Watch className="h-4 w-4" />
-          {t('Garmin-aktivitet', 'Garmin activity')}
-        </h4>
+        <GarminAttribution deviceModel={deviceName} size="md" />
         {(activityType || indoor) && (
           <Badge variant="secondary" className="text-[10px] capitalize shrink-0">
             {[activityType?.replace(/_/g, ' ').toLowerCase(), indoor ? t('inomhus', 'indoor') : null]
@@ -97,12 +98,6 @@ export function GarminDetailPanel({ activity, isGlass = false }: { activity: Uni
         <p className="text-sm text-muted-foreground flex items-center gap-2">
           <Activity className="h-4 w-4" />
           {t('Inga mätvärden registrerade.', 'No metrics recorded.')}
-        </p>
-      )}
-
-      {deviceName && (
-        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mt-3">
-          {deviceName}
         </p>
       )}
     </div>
