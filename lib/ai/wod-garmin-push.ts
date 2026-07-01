@@ -10,6 +10,7 @@ import {
   scheduleGarminWorkout,
   type GarminWorkout,
 } from '@/lib/integrations/garmin/training'
+import { resolveGarminExercise, extractWeightKg } from '@/lib/integrations/garmin/exercise-catalog'
 import { stockholmDateKey } from '@/lib/ai/cardio-workout-action'
 import { logger } from '@/lib/logger'
 import type { AppLocale } from '@/lib/i18n/request-locale'
@@ -99,12 +100,18 @@ export function buildGarminFromWod(wod: {
     const segments = sections.flatMap((s) => {
       const segType: 'warmup' | 'cooldown' | 'interval' =
         s.type === 'WARMUP' ? 'warmup' : s.type === 'COOLDOWN' ? 'cooldown' : 'interval'
-      return (s.exercises ?? []).map((e) => ({
-        type: segType,
-        durationSeconds: e.duration,
-        distanceMeters: e.distance,
-        description: [exerciseLabel(e), e.zone ? `Z${e.zone}` : null].filter(Boolean).join(' '),
-      }))
+      return (s.exercises ?? []).map((e) => {
+        const garminExercise = resolveGarminExercise(e.name, e.nameSv)
+        return {
+          type: segType,
+          durationSeconds: e.duration,
+          distanceMeters: e.distance,
+          description: [exerciseLabel(e), e.zone ? `Z${e.zone}` : null].filter(Boolean).join(' '),
+          exerciseCategory: garminExercise?.exerciseCategory,
+          exerciseName: garminExercise?.exerciseName,
+          weightKg: extractWeightKg(e.weight, e.name, e.nameSv),
+        }
+      })
     })
     return {
       workout: serializeWorkoutToGarmin({

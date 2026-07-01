@@ -19,6 +19,7 @@
 import 'server-only'
 
 import { getValidGarminAccessToken } from './client'
+import { resolveGarminExercise, extractWeightKg } from './exercise-catalog'
 import { fetchWithTimeoutAndRetry } from '@/lib/http/fetch'
 import { logger } from '@/lib/logger'
 
@@ -400,6 +401,9 @@ function buildStep(
     targetLow?: number
     targetHigh?: number
     description?: string
+    exerciseCategory?: string
+    exerciseName?: string
+    weightKg?: number
   } = {}
 ): GarminWorkoutStep {
   // Map step type to intensity
@@ -441,6 +445,16 @@ function buildStep(
   // Step description metadata, when supported by Garmin clients.
   if (opts.description) step.description = opts.description
 
+  // Garmin's controlled exercise vocabulary — this is what the watch renders as
+  // the exercise name (and uses for rep detection), unlike `description` which
+  // the watch ignores. Verified against the live Training API 2026-07-01.
+  if (opts.exerciseCategory) step.exerciseCategory = opts.exerciseCategory
+  if (opts.exerciseName) step.exerciseName = opts.exerciseName
+  if (opts.weightKg != null && opts.weightKg > 0) {
+    step.weightValue = opts.weightKg
+    step.weightDisplayUnit = 'KILOGRAM'
+  }
+
   return step
 }
 
@@ -475,6 +489,9 @@ export function serializeWorkoutToGarmin(workout: {
     targetLow?: number
     targetHigh?: number
     description?: string
+    exerciseCategory?: string
+    exerciseName?: string
+    weightKg?: number
     steps?: Array<{
       type: 'interval' | 'recovery' | 'rest'
       durationSeconds?: number
@@ -484,6 +501,9 @@ export function serializeWorkoutToGarmin(workout: {
       targetLow?: number
       targetHigh?: number
       description?: string
+      exerciseCategory?: string
+      exerciseName?: string
+      weightKg?: number
     }>
   }>
 }): GarminWorkout {
@@ -507,6 +527,9 @@ export function serializeWorkoutToGarmin(workout: {
           targetLow: step.targetLow,
           targetHigh: step.targetHigh,
           description: step.description,
+          exerciseCategory: step.exerciseCategory,
+          exerciseName: step.exerciseName,
+          weightKg: step.weightKg,
         })
       )
       steps.push(buildRepeatGroup(stepOrder++, segment.repeats, childSteps))
@@ -520,6 +543,9 @@ export function serializeWorkoutToGarmin(workout: {
           targetLow: segment.targetLow,
           targetHigh: segment.targetHigh,
           description: segment.description,
+          exerciseCategory: segment.exerciseCategory,
+          exerciseName: segment.exerciseName,
+          weightKg: segment.weightKg,
         })
       )
     }
@@ -584,12 +610,23 @@ export function buildGarminStrengthWorkout(session: StrengthSessionForGarmin): G
     const weightStr = ex.weight ? ` @ ${ex.weight}kg` : ''
     const exerciseDescription = `${ex.exerciseName}: ${repsStr} reps${weightStr}`
 
+    // Give the watch a real exercise identity (name + rep detection), not just
+    // a free-text description it ignores.
+    const garminExercise = resolveGarminExercise(ex.exerciseName)
+    const weightKg = ex.weight ?? extractWeightKg(ex.exerciseName)
+    const exerciseOpts = {
+      exerciseCategory: garminExercise?.exerciseCategory,
+      exerciseName: garminExercise?.exerciseName,
+      weightKg,
+    }
+
     if (ex.sets > 1 && ex.restSeconds && ex.restSeconds > 0) {
       // Repeat group: sets × (work + rest)
       const childSteps = [
         buildStep(1, 'interval', {
           isLapButton: true,
           description: exerciseDescription,
+          ...exerciseOpts,
         }),
         buildStep(2, 'rest', {
           durationSeconds: ex.restSeconds,
@@ -603,6 +640,7 @@ export function buildGarminStrengthWorkout(session: StrengthSessionForGarmin): G
         steps.push(buildStep(stepOrder++, 'interval', {
           isLapButton: true,
           description: `${exerciseDescription} (set ${s + 1}/${ex.sets})`,
+          ...exerciseOpts,
         }))
       }
     }

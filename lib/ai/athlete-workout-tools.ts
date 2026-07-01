@@ -34,6 +34,7 @@ import {
   scheduleGarminWorkout,
   serializeWorkoutToGarmin,
 } from '@/lib/integrations/garmin/training'
+import { resolveGarminExercise, extractWeightKg } from '@/lib/integrations/garmin/exercise-catalog'
 import { refreshActivePerformanceMealGuideForClient } from '@/lib/nutrition/performance-plan'
 
 type ChatLocale = 'en' | 'sv'
@@ -161,6 +162,16 @@ function serializeChatCardioSessionToGarmin(session: {
   segments: unknown
 }) {
   const segments = Array.isArray(session.segments) ? session.segments as ChatCardioSegment[] : []
+  // Resolve the station's exercise identity from its equipment/notes so the
+  // watch shows a real name instead of an unnamed interval → "Okänd".
+  const garminExerciseFields = (step: ChatCardioChildStep) => {
+    const ref = resolveGarminExercise(step.equipment, step.notes)
+    return {
+      exerciseCategory: ref?.exerciseCategory,
+      exerciseName: ref?.exerciseName,
+      weightKg: extractWeightKg(step.notes, step.equipment),
+    }
+  }
   const garminSegments = segments.map((segment) => {
     if (segment.type === 'REPEAT_GROUP' && segment.steps?.length) {
       const steps: GarminChildStepInput[] = segment.steps.map((step) => ({
@@ -172,6 +183,7 @@ function serializeChatCardioSessionToGarmin(session: {
         targetLow: resolveCardioTargetLow(step),
         targetHigh: resolveCardioTargetHigh(step),
         description: buildGarminStepDescription(step),
+        ...garminExerciseFields(step),
       }))
 
       if (segment.restBetweenRounds && segment.restBetweenRounds > 0) {
@@ -196,6 +208,7 @@ function serializeChatCardioSessionToGarmin(session: {
       targetLow: resolveCardioTargetLow(segment),
       targetHigh: resolveCardioTargetHigh(segment),
       description: buildGarminStepDescription(segment),
+      ...garminExerciseFields(segment),
     }
   })
 
