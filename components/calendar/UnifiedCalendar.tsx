@@ -948,7 +948,7 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
               <div
                 ref={swipeRef}
                 className={cn(
-                  'transition-transform duration-200 ease-out',
+                  'touch-pan-y transition-transform duration-200 ease-out',
                   isSwiping && 'transition-none'
                 )}
                 style={{
@@ -962,7 +962,6 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
                     onDayClick={handleDayClick}
                     onItemClick={handleItemClick}
                     selectedDate={selectedDate}
-                    isGlass={true}
                     locale={appLocale}
                   />
                 ) : (

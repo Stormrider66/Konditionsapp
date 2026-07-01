@@ -174,10 +174,12 @@ export function useSwipeNavigation(
     // Vertical scroll: hand control back to the browser entirely.
     if (g.axis === 'scroll') return
 
-    // Committed horizontal swipe: suppress native scroll and animate.
-    if (optionsRef.current.preventScrollOnSwipe && e.cancelable) {
-      e.preventDefault()
-    }
+    // Committed horizontal swipe: just animate the offset. We deliberately do
+    // NOT call preventDefault — the swipeable element uses `touch-action:
+    // pan-y` so the browser already refuses horizontal panning, and the
+    // browser cancels the synthesized click itself once a touch moves far
+    // enough. Calling preventDefault here used to kill the click for taps that
+    // drifted 12–80px, which is why "some days weren't clickable".
     const maxOffset = 100
     const offset = Math.max(-maxOffset, Math.min(maxOffset, deltaX * 0.5))
     setSwipeOffset(offset)
@@ -227,8 +229,10 @@ export function useSwipeNavigation(
     }
     boundEl.current = node
     if (node) {
+      // All passive: we never preventDefault. Horizontal-vs-vertical intent is
+      // handled by `touch-action: pan-y` on the element + swipe detection here.
       node.addEventListener('touchstart', onTouchStart, { passive: true })
-      node.addEventListener('touchmove', onTouchMove, { passive: false })
+      node.addEventListener('touchmove', onTouchMove, { passive: true })
       node.addEventListener('touchend', onTouchEnd, { passive: true })
       node.addEventListener('touchcancel', resetGesture, { passive: true })
     }

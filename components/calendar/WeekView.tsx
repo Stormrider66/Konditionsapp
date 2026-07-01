@@ -8,6 +8,10 @@
  * events as readable cards. This is the easiest surface for reading "what's on
  * this week" on a small screen, where month-grid cells are too cramped for
  * titles. Tapping a day opens the day sheet; tapping an item opens the item.
+ *
+ * Colours use semantic theme tokens (bg-card / text-foreground / …) so it is
+ * readable in both light and dark themes — the calendar's glass wrapper is
+ * white in light mode, so hard-coded white text would be invisible.
  */
 
 import { useMemo } from 'react'
@@ -23,7 +27,6 @@ interface WeekViewProps {
   onDayClick: (date: Date) => void
   onItemClick: (item: UnifiedCalendarItem) => void
   selectedDate: Date | null
-  isGlass?: boolean
   locale: 'en' | 'sv'
 }
 
@@ -102,7 +105,6 @@ export function WeekView({
   onDayClick,
   onItemClick,
   selectedDate,
-  isGlass = false,
   locale,
 }: WeekViewProps) {
   const dateLocale = locale === 'sv' ? sv : enUS
@@ -135,12 +137,9 @@ export function WeekView({
           <div
             key={key}
             className={cn(
-              'rounded-2xl border transition-colors',
-              isGlass
-                ? 'bg-white/5 border-white/10'
-                : 'bg-card border-border',
-              today && (isGlass ? 'border-orange-500/40 bg-orange-500/[0.06]' : 'border-orange-400/60'),
-              isSelected && (isGlass ? 'ring-1 ring-orange-500/50' : 'ring-2 ring-primary')
+              'rounded-2xl border bg-card border-border transition-colors',
+              today && 'border-orange-400/70 dark:border-orange-500/40 bg-orange-50/60 dark:bg-orange-500/[0.06]',
+              isSelected && 'ring-2 ring-primary'
             )}
           >
             {/* Day header — tap to open the day */}
@@ -157,7 +156,7 @@ export function WeekView({
                 <span
                   className={cn(
                     'text-sm font-black capitalize truncate',
-                    today ? 'text-orange-600 dark:text-orange-400' : isGlass ? 'text-white' : 'text-foreground'
+                    today ? 'text-orange-600 dark:text-orange-400' : 'text-foreground'
                   )}
                 >
                   {format(day, 'EEEE', { locale: dateLocale })}
@@ -193,17 +192,14 @@ export function WeekView({
                       type="button"
                       onClick={() => onItemClick(item)}
                       className={cn(
-                        'w-full text-left rounded-xl border-l-4 p-3 transition-all active:scale-[0.99]',
-                        BORDER_COLORS[item.type] || 'border-l-blue-500',
-                        isGlass
-                          ? 'bg-white/5 border-y border-r border-white/10 hover:bg-white/10'
-                          : 'bg-muted/40 border-y border-r border-border hover:bg-muted/70'
+                        'w-full text-left rounded-xl border-l-4 border-y border-r border-border bg-muted/40 p-3 transition-all active:scale-[0.99] hover:bg-muted/70',
+                        BORDER_COLORS[item.type] || 'border-l-blue-500'
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
                           <span className={cn('w-2 h-2 rounded-full shrink-0', DOT_COLORS[item.type])} />
-                          <span className={cn('font-semibold text-sm truncate', isGlass ? 'text-white' : '')}>
+                          <span className="font-semibold text-sm truncate text-foreground">
                             {item.title}
                           </span>
                           {completed && (
