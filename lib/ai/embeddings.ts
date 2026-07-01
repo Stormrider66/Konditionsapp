@@ -317,9 +317,17 @@ let resolvedVectorType: 'extensions.vector' | 'vector' | null = null;
 export async function getVectorType(): Promise<'extensions.vector' | 'vector'> {
   if (resolvedVectorType) return resolvedVectorType;
 
+  // Look up which schema hosts the pgvector type instead of probing with a
+  // cast — a failed cast gets logged as a Prisma error on every cold start.
   try {
-    await prisma.$queryRawUnsafe(`SELECT NULL::extensions.vector`);
-    resolvedVectorType = 'extensions.vector';
+    const rows = await prisma.$queryRawUnsafe<{ nspname: string }[]>(
+      `SELECT n.nspname
+       FROM pg_type t
+       JOIN pg_namespace n ON n.oid = t.typnamespace
+       WHERE t.typname = 'vector'
+       LIMIT 1`,
+    );
+    resolvedVectorType = rows[0]?.nspname === 'extensions' ? 'extensions.vector' : 'vector';
   } catch {
     resolvedVectorType = 'vector';
   }
