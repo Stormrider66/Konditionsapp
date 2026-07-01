@@ -455,7 +455,7 @@ export function CoachSubscriptionClient({
           </Link>
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-slate-700 dark:text-slate-350" />
-            <h1 className="text-lg font-semibold">{copy.pageTitle}</h1>
+            <h1 className="font-display text-lg font-semibold">{copy.pageTitle}</h1>
           </div>
         </div>
       </div>

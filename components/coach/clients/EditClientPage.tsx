@@ -25,7 +25,6 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2 } from 'lucide-react'
-import { MobileNav } from '@/components/navigation/MobileNav'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import { User } from '@supabase/supabase-js'
 import type { Client, Team } from '@/types'
@@ -277,8 +276,6 @@ export default function EditClientPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <MobileNav user={user} />
-
       <main className="max-w-3xl mx-auto px-4 py-6 lg:py-12">
         {error && (
           <Alert variant="destructive" className="mb-6">

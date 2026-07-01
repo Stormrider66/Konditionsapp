@@ -21,7 +21,7 @@ export default async function OnboardingWizardPage({ params }: PageProps) {
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
       <div className="text-center mb-8">
         <Building2 className="h-10 w-10 mx-auto mb-3 text-blue-600" />
-        <h1 className="text-2xl font-bold dark:text-white">
+        <h1 className="font-display text-2xl font-bold dark:text-white">
           {t('title', { businessName: membership.business.name })}
         </h1>
         <p className="text-muted-foreground mt-1">

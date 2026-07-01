@@ -2,7 +2,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { MobileNav } from '@/components/navigation/MobileNav' // Keep for non-athlete roles if needed, or remove if unused
 import { GlassHeader } from '@/components/athlete/GlassHeader'
 import { AthleteFloatingChat } from '@/components/athlete/ai/AthleteFloatingChat'
 import { createClient } from '@/lib/supabase/client'

@@ -20,7 +20,7 @@ export default async function CompetitionsPage({ params }: CompetitionsPageProps
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       <div className="container mx-auto py-6 px-4 max-w-7xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">{t('title')}</h1>
           <p className="text-muted-foreground text-sm">
             {t('description')}
           </p>

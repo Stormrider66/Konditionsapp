@@ -172,7 +172,7 @@ export default async function AthleteLogsPage({
       </Link>
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">{t('title')}</h1>
+        <h1 className="font-display text-3xl font-bold mb-2">{t('title')}</h1>
         <p className="text-muted-foreground">{client.name}</p>
         {client.athleteAccount?.user && (
           <p className="text-sm text-muted-foreground">

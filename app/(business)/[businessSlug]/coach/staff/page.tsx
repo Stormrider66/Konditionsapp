@@ -39,7 +39,7 @@ export default async function StaffPage({ params }: PageProps) {
   return (
     <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8 max-w-3xl">
       <div className="mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
+        <h1 className="font-display text-xl sm:text-2xl font-bold flex items-center gap-2 dark:text-white">
           <Users className="h-5 w-5 sm:h-6 sm:w-6" />
           {t('title')}
         </h1>

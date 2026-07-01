@@ -157,7 +157,7 @@ export function CoachAppShell({
 
   const basePath = `/${businessSlug}`
   const brandName = branding?.businessName || businessName || t('brand.portalName')
-  const brandAccent = branding?.primaryColor || '#2563eb'
+  const brandAccent = branding?.primaryColor || '#f97316'
   const rolePreviewOptions = [
     { value: 'OWNER', label: t('roles.owner') },
     { value: 'ADMIN', label: t('roles.admin') },

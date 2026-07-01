@@ -229,7 +229,7 @@ export function TeamKioskClient({
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-slate-950 text-white">
                   <Dumbbell className="h-7 w-7" />
                 </div>
-                <h1 className="text-2xl font-bold">
+                <h1 className="font-display text-2xl font-bold">
                   {text(locale, 'Välj spelare', 'Select a player')}
                 </h1>
                 <p className="mt-2 text-sm text-slate-600">

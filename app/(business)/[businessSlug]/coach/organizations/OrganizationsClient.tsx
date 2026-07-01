@@ -248,7 +248,7 @@ export default function OrganizationsClient({ basePath = '/coach' }: Organizatio
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2 dark:text-white">
+          <h1 className="font-display text-3xl font-bold flex items-center gap-2 dark:text-white">
             <Building2 className="h-8 w-8" />
             {t('title')}
           </h1>

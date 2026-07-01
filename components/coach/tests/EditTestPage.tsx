@@ -246,7 +246,7 @@ export default function EditTestPage() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <h1 className="font-display text-2xl font-bold">{t('title')}</h1>
           {clientName && <p className="text-sm text-muted-foreground">{clientName}</p>}
         </div>
       </div>

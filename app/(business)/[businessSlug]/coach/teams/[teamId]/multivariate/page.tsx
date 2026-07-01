@@ -48,7 +48,7 @@ export default async function TeamAnalysisPage({ params }: AnalysisPageProps) {
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-md border border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-300">
             <Lock className="h-6 w-6" />
           </div>
-          <h1 className="text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{t('title')}</h1>
+          <h1 className="font-display text-2xl font-semibold text-zinc-950 dark:text-zinc-50">{t('title')}</h1>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-zinc-600 dark:text-zinc-400">
             {t('upgradeDescription')}
           </p>

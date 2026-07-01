@@ -98,7 +98,7 @@ export default async function BusinessCoachProgramsPage({ params }: BusinessCoac
     <div className="container mx-auto py-8 px-4">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-slate-900 dark:text-white">{t('title')}</h1>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold mb-2 text-slate-900 dark:text-white">{t('title')}</h1>
           <p className="text-slate-600 dark:text-slate-400">
             {t('description')}
           </p>

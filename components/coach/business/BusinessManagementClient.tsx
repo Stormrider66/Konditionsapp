@@ -292,7 +292,7 @@ export function BusinessManagementClient({
           </Link>
           <div className="flex items-center gap-2">
             <Building2 className="h-5 w-5" />
-            <h1 className="text-lg font-semibold">{copy('Business', 'Verksamhet')}</h1>
+            <h1 className="font-display text-lg font-semibold">{copy('Business', 'Verksamhet')}</h1>
           </div>
         </div>
       </div>

@@ -93,7 +93,7 @@ export function CardioReviewInboxClient({
               {text(locale, 'Coach workflow', 'Coachflöde')}
             </span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
+          <h1 className="font-display text-2xl font-black tracking-tight sm:text-3xl">
             {text(locale, 'Cardio Review Inbox', 'Kondition: Granskningsinkorg')}
           </h1>
           <p className="mt-1 max-w-2xl text-sm font-medium text-muted-foreground">

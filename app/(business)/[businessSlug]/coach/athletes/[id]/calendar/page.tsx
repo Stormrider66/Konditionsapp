@@ -111,7 +111,7 @@ export default async function BusinessAthleteCalendarPage({
               {t('backToAthlete', { athleteName: client.name })}
             </Button>
           </Link>
-          <h1 className="text-2xl font-bold">{t('title', { athleteName: client.name })}</h1>
+          <h1 className="font-display text-2xl font-bold">{t('title', { athleteName: client.name })}</h1>
           <p className="text-muted-foreground">
             {t('description')}
           </p>

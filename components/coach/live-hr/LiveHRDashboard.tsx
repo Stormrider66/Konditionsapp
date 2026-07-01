@@ -258,7 +258,7 @@ export function LiveHRDashboard({
           <Button variant="ghost" size="icon" onClick={() => router.push(`${basePath}/coach/live-hr`)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl font-bold flex items-center gap-1.5">Live HR <InfoTooltip conceptKey="liveHrZones" /></h1>
+          <h1 className="font-display text-2xl font-bold flex items-center gap-1.5">Live HR <InfoTooltip conceptKey="liveHrZones" /></h1>
         </div>
 
         <div className="flex items-center gap-2">

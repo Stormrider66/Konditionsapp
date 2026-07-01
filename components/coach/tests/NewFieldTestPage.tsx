@@ -51,7 +51,7 @@ export default async function NewFieldTestPage({ businessSlug }: NewFieldTestPag
   return (
     <div className="container mx-auto py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Create Field Test</h1>
+        <h1 className="font-display text-3xl font-bold">Create Field Test</h1>
         <p className="text-muted-foreground">
           Submit and analyze field test results for your athletes
         </p>

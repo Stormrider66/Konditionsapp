@@ -67,7 +67,7 @@ export default async function TeamLayout({ children, params }: TeamLayoutProps) 
         <div className="mb-6 flex flex-col gap-3">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold dark:text-white">{team.name}</h1>
+              <h1 className="font-display text-3xl font-bold dark:text-white">{team.name}</h1>
               {team.sportType && (
                 <Badge variant="secondary" className="text-sm">
                   {sportLabelKey ? tSports(sportLabelKey) : team.sportType}

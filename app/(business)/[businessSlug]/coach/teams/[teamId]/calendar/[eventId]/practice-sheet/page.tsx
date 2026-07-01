@@ -215,7 +215,7 @@ export default async function PracticeSheetPage({ params, searchParams }: PagePr
               <p className="text-sm font-medium uppercase tracking-wide text-slate-500">
                 {isPlayerVersion ? t('audience.player') : t('audience.staff')} · {t('labels.iceSession')}
               </p>
-              <h1 className="mt-1 text-3xl font-bold">{event.title}</h1>
+              <h1 className="font-display mt-1 text-3xl font-bold">{event.title}</h1>
               <p className="mt-2 text-sm text-slate-600">{team.name} · {formatDate(event.startDate, locale)}</p>
             </div>
             <div className="flex flex-wrap gap-2">

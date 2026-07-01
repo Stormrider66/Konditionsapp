@@ -17,7 +17,7 @@ export function BrowseAthletesClient({ businessId }: BrowseAthletesClientProps) 
     <div className="min-h-screen bg-background">
       <div className="container max-w-4xl mx-auto py-6 px-4 space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-white mb-2">{t('title')}</h1>
+          <h1 className="font-display text-2xl font-bold text-white mb-2">{t('title')}</h1>
           <p className="text-sm text-slate-400">
             {t('description')}
           </p>

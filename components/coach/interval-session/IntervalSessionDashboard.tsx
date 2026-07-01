@@ -226,7 +226,7 @@ export function IntervalSessionDashboard({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="min-w-0">
-            <h1 className="text-lg sm:text-xl font-bold dark:text-white truncate">
+            <h1 className="font-display text-lg sm:text-xl font-bold dark:text-white truncate">
               {data.sessionName || copy(locale, 'Interval session', 'Intervallsession')}
             </h1>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

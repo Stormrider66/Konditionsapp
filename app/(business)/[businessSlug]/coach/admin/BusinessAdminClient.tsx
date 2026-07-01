@@ -54,7 +54,7 @@ export function BusinessAdminClient({
         {/* Header */}
         <div className="flex items-start justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">
               {businessName} Admin
             </h1>
             <p className="text-muted-foreground text-sm">

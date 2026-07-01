@@ -192,7 +192,7 @@ export function TeamKioskWorkoutPanel({
               <Badge className="bg-slate-950 text-white">
                 {text(locale, 'Loggar för', 'Logging for')}
               </Badge>
-              <h1 className="truncate text-xl font-bold">{athleteName}</h1>
+              <h1 className="font-display truncate text-xl font-bold">{athleteName}</h1>
               <span className={cn('h-2.5 w-2.5 rounded-full', statusTone(data.assignment.status))} />
               <span className="text-sm text-slate-600">{statusLabel(data.assignment.status, locale)}</span>
             </div>

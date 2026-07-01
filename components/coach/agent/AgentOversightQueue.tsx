@@ -284,7 +284,7 @@ export function AgentOversightQueue({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="flex items-center gap-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
+          <h1 className="font-display flex items-center gap-3 text-2xl font-semibold text-zinc-950 dark:text-zinc-50">
             <span className="flex h-10 w-10 items-center justify-center rounded-md border border-cyan-100 bg-cyan-50 text-cyan-600 dark:border-cyan-900/60 dark:bg-cyan-950/30 dark:text-cyan-300">
               <Bot className="h-5 w-5" />
             </span>

@@ -531,7 +531,7 @@ export async function CoachQuickErgSessionDetail({
               {machineIcon(displayMachineType)}
             </div>
             <div>
-              <h1 className="text-2xl font-semibold tracking-normal">{machineName}</h1>
+              <h1 className="font-display text-2xl font-semibold tracking-normal">{machineName}</h1>
               <p className="text-sm text-muted-foreground">
                 {session.client.name} / {formatDate(session.startedAt, locale)}
               </p>

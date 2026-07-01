@@ -24,7 +24,7 @@ function EmptyPrintState({ title, message }: { title: string; message: string })
     <div className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
       <div className="max-w-md rounded-lg border bg-white p-6 text-center shadow-sm">
         <AlertCircle className="mx-auto h-8 w-8 text-amber-500" />
-        <h1 className="mt-3 text-lg font-semibold">{title}</h1>
+        <h1 className="font-display mt-3 text-lg font-semibold">{title}</h1>
         <p className="mt-2 text-sm text-slate-600">{message}</p>
       </div>
     </div>
