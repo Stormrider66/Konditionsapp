@@ -132,7 +132,7 @@ export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDet
       <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-700 sm:mb-10">
         <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-end sm:gap-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-black tracking-tighter text-white sm:text-5xl">
+            <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-5xl">
               {parsed?.name || adHocWorkout.workoutName || 'Ad-hoc pass'}
             </h1>
             <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-500 sm:gap-3 sm:text-[11px]">

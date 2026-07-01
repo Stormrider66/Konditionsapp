@@ -111,7 +111,7 @@ export function TrainingLibraryClient({
     <div className="space-y-8">
       {/* Page Header */}
       <div className="flex flex-col gap-1">
-        <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
+        <h1 className="font-display text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white uppercase italic">
           {t('header.title')}
         </h1>
         <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">

@@ -119,7 +119,7 @@ export function AgilityDashboard({
     <div className="container mx-auto py-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
+        <h1 className="font-display text-2xl font-bold flex items-center gap-2">
           <Zap className="h-6 w-6 text-yellow-500" />
           Agility
         </h1>

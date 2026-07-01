@@ -248,7 +248,7 @@ export default function AgentSettingsPage() {
           </Link>
         </Button>
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
+          <h1 className="font-display text-2xl font-bold flex items-center gap-2">
             <Bot className="h-6 w-6" />
             AI Agent Settings
           </h1>

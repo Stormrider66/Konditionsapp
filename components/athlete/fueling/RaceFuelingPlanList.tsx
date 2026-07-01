@@ -226,7 +226,7 @@ export function RaceFuelingPlanList({ clientId, basePath = '', detailBasePath }:
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{text(locale, 'Tävlingsenergi', 'Race fueling')}</h1>
+          <h1 className="font-display text-3xl font-bold tracking-tight text-slate-900 dark:text-white">{text(locale, 'Tävlingsenergi', 'Race fueling')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {text(locale, 'Sparade raceplaner, packlista och carb-träning mot tävling.', 'Saved race plans, packing list, and carb training toward competition.')}
           </p>

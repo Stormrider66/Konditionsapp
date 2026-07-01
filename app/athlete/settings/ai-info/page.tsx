@@ -92,7 +92,7 @@ export default function AthleteAIInfoPage() {
               <Sparkles className="h-5 w-5 text-green-600 dark:text-green-400 transition-colors" />
             </div>
             <div>
-              <h1 className="text-lg font-black uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">{t('title')}</h1>
+              <h1 className="font-display text-lg font-bold uppercase italic tracking-tight text-slate-900 dark:text-white leading-none transition-colors">{t('title')}</h1>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-1 transition-colors">{t('subtitle')}</p>
             </div>
           </div>

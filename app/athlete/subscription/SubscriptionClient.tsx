@@ -374,7 +374,7 @@ export function SubscriptionClient({
             </Link>
             <div className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              <h1 className="text-lg font-semibold">{t('header.title')}</h1>
+              <h1 className="font-display text-lg font-semibold">{t('header.title')}</h1>
             </div>
           </div>
           {status?.trialActive && status.trialDaysRemaining && (

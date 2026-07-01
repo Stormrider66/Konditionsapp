@@ -208,7 +208,7 @@ export default function AthleteMessagesPage() {
               <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 shadow-[0_0_15px_rgba(249,115,22,0.1)]">
                 <MessageSquare className="h-6 w-6 text-orange-400" />
               </div>
-              <h1 className="text-4xl font-black tracking-tight text-slate-950 uppercase italic dark:text-white">
+              <h1 className="font-display text-4xl font-bold tracking-tight text-slate-900 uppercase italic dark:text-white">
                 {t('title')}
               </h1>
             </div>

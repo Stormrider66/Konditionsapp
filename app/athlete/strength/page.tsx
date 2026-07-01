@@ -6,6 +6,7 @@
  */
 
 import { Suspense } from 'react'
+import { Dumbbell } from 'lucide-react'
 import { requireAthleteOrCoachInAthleteMode } from '@/lib/auth-utils'
 import { getAthleteSelfServiceAccess } from '@/lib/auth/tier-utils'
 import { prisma } from '@/lib/prisma'
@@ -95,13 +96,16 @@ export default async function AthleteStrengthPage() {
 
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-          {t('title')}
-        </h1>
-        <p className="text-muted-foreground mt-2">
-          {t('description')}
-        </p>
+      <div className="mb-8 flex items-start gap-4">
+        <div className="p-3 bg-orange-100 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20 rounded-2xl shadow-xl shadow-orange-500/5 transition-colors">
+          <Dumbbell className="h-8 w-8 text-orange-600 dark:text-orange-400 transition-colors" />
+        </div>
+        <div>
+          <h1 className="font-display text-3xl sm:text-4xl font-bold italic uppercase tracking-tight leading-none mb-1 text-slate-900 dark:text-white transition-colors">{t('title')}</h1>
+          <p className="text-slate-600 dark:text-slate-400 font-medium transition-colors">
+            {t('description')}
+          </p>
+        </div>
       </div>
 
       <Suspense fallback={<LoadingSkeleton />}>

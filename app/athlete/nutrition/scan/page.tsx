@@ -41,7 +41,7 @@ export default function NutritionScanPage() {
             <Camera className="h-7 w-7 text-emerald-400" />
           </div>
           <div>
-            <h1 className="text-3xl font-black italic uppercase tracking-tight text-slate-950 leading-none dark:text-white">
+            <h1 className="font-display text-3xl font-bold italic uppercase tracking-tight text-slate-900 leading-none dark:text-white transition-colors">
               {t('title')}
             </h1>
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mt-2">

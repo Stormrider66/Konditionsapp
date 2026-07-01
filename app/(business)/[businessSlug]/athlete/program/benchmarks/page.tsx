@@ -55,7 +55,7 @@ export default async function BusinessBenchmarkSchedulePage({ params, searchPara
   if (!programId) {
     return (
       <div className="container max-w-4xl mx-auto py-8">
-        <h1 className="text-3xl font-bold mb-4">{t('emptyTitle')}</h1>
+        <h1 className="font-display text-3xl font-bold mb-4">{t('emptyTitle')}</h1>
         <p className="text-muted-foreground">
           {t('emptyDescription')}
         </p>

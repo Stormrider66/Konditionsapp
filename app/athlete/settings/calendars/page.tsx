@@ -109,7 +109,7 @@ export default async function CalendarConnectionsPage() {
             <CalendarIcon className="h-8 w-8 text-orange-400" />
           </div>
           <div>
-            <h1 className="text-4xl font-black italic uppercase tracking-tighter mb-1 text-slate-950 dark:text-white">
+            <h1 className="font-display text-4xl font-bold italic uppercase tracking-tight mb-1 text-slate-900 dark:text-white">
               {t('titlePrefix')}<span className="text-orange-400">{t('titleAccent')}</span>
             </h1>
             <p className="text-slate-600 font-medium max-w-2xl dark:text-slate-400">
