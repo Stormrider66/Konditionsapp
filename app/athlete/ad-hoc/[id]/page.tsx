@@ -43,7 +43,7 @@ interface AdHocWorkoutDetailPageProps {
 export default async function AdHocWorkoutDetailPage({ params }: AdHocWorkoutDetailPageProps) {
   const { id } = await params
   const { clientId } = await requireAthleteOrCoachInAthleteMode()
-  const t = await getTranslations('pages.athlete.adHocDetail')
+  const t = await getTranslations('athletePages.adHocDetail')
   const locale = await getLocale()
   const dateLocale = locale === 'en' ? enUS : sv
 

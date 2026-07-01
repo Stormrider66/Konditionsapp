@@ -75,7 +75,7 @@ export function MatchesPageClient({
   sportType,
   basePath = '',
 }: MatchesPageClientProps) {
-  const t = useTranslations('pages.athlete.matches')
+  const t = useTranslations('athletePages.matches')
   const locale = useLocale()
   const dateLocale = locale === 'en' ? enUS : sv
   const searchParams = useSearchParams()

@@ -40,7 +40,7 @@ interface RaceResultSummary {
 
 export default async function WorkoutDetailPage({ params }: WorkoutDetailPageProps) {
   const { user, clientId } = await requireAthleteOrCoachInAthleteMode()
-  const t = await getTranslations('pages.athlete.workoutDetail')
+  const t = await getTranslations('athletePages.workoutDetail')
   const locale = await getLocale()
   const dateLocale = locale === 'en' ? enUS : sv
   const { id } = await params

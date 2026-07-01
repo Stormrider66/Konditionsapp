@@ -46,7 +46,7 @@ export function AddMatchDialog({
   onOpenChange,
   onMatchAdded,
 }: AddMatchDialogProps) {
-  const t = useTranslations('pages.athlete.matches')
+  const t = useTranslations('athletePages.matches')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 

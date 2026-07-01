@@ -75,7 +75,7 @@ export function MatchDetailDialog({
   onMatchDeleted,
   sportType,
 }: MatchDetailDialogProps) {
-  const t = useTranslations('pages.athlete.matches')
+  const t = useTranslations('athletePages.matches')
   const locale = useLocale()
   const dateLocale = locale === 'en' ? enUS : sv
   const [isLoading, setIsLoading] = useState(false)
