@@ -93,6 +93,17 @@ export interface HistoryFeedItem {
   workoutId?: string
   source?: string
   linkHref?: string
+  // Garmin-synced activity extras (source === 'garmin')
+  deviceName?: string | null
+  avgHR?: number | null
+  maxHR?: number | null
+  calories?: number | null
+  /** m/s */
+  avgSpeed?: number | null
+  avgPower?: number | null
+  tss?: number | null
+  elevationGain?: number | null
+  avgCadence?: number | null
 }
 
 export interface HistoryFeedStats {
@@ -146,9 +157,12 @@ export async function getAthleteHistoryFeed(params: {
   typeFilter?: string | null
   /** Localized fallback name for ad-hoc workouts without a parsed name. */
   fallbackAdHocName: string
+  /** '' for solo athletes, '/<businessSlug>' in business context — prefixes item links. */
+  basePath?: string
   now?: Date
 }): Promise<AthleteHistoryFeed> {
   const { userId, clientId, fallbackAdHocName } = params
+  const basePath = params.basePath ?? ''
   const now = params.now ?? new Date()
   const timeframe = resolveHistoryTimeframe(params.timeframe)
   const startDate = historyTimeframeStart(timeframe, now)
@@ -163,6 +177,7 @@ export async function getAthleteHistoryFeed(params: {
     completedWODs,
     quickErgSessions,
     phoneRunSessions,
+    garminActivities,
   ] = await Promise.all([
     prisma.workoutLog.findMany({
       where: {
@@ -266,17 +281,28 @@ export async function getAthleteHistoryFeed(params: {
       },
       orderBy: { completedAt: 'desc' },
     }),
+    prisma.garminActivity.findMany({
+      where: {
+        clientId,
+        startDate: { gte: startDate, lte: now },
+      },
+      orderBy: { startDate: 'desc' },
+    }),
   ])
 
   const adHocWithParsedData = adHocWorkouts.map((adHoc) => {
     const parsed = adHoc.parsedStructure as ParsedAdHocHistory | null
+    // Distance in parsedStructure is stored in meters — convert to km for display
+    const distanceKm = parsed?.distance
+      ? (parsed.distance >= 100 ? parsed.distance / 1000 : parsed.distance)
+      : null
     return {
       id: adHoc.id,
       workoutDate: adHoc.workoutDate,
       name: parsed?.name || adHoc.workoutName || fallbackAdHocName,
       type: parsed?.type || 'OTHER',
       sport: parsed?.sport,
-      distance: parsed?.distance,
+      distance: distanceKm,
       duration: parsed?.duration,
       perceivedEffort: parsed?.perceivedEffort,
       isAdHoc: true,
@@ -293,7 +319,7 @@ export async function getAthleteHistoryFeed(params: {
     perceivedEffort: a.rpe || null,
     distance: null as number | null,
     source: 'strength-assignment' as const,
-    linkHref: `/athlete/workout/${a.id}`,
+    linkHref: `${basePath}/athlete/workout/${a.id}`,
   }))
 
   const cardioItems = cardioAssignments.map((a) => ({
@@ -305,7 +331,7 @@ export async function getAthleteHistoryFeed(params: {
     perceivedEffort: null as number | null,
     distance: a.actualDistance ? a.actualDistance / 1000 : null, // meters → km
     source: 'cardio-assignment' as const,
-    linkHref: `/athlete/cardio`,
+    linkHref: `${basePath}/athlete/cardio`,
   }))
 
   const hybridItems = hybridAssignments.map((a) => ({
@@ -317,7 +343,7 @@ export async function getAthleteHistoryFeed(params: {
     perceivedEffort: null as number | null,
     distance: null as number | null,
     source: 'hybrid-assignment' as const,
-    linkHref: `/athlete/hybrid/${a.id}`,
+    linkHref: `${basePath}/athlete/hybrid/${a.id}`,
   }))
 
   const agilityItems = agilityAssignments.map((a) => ({
@@ -329,7 +355,7 @@ export async function getAthleteHistoryFeed(params: {
     perceivedEffort: null as number | null,
     distance: null as number | null,
     source: 'agility-assignment' as const,
-    linkHref: `/athlete/agility/${a.id}`,
+    linkHref: `${basePath}/athlete/agility/${a.id}`,
   }))
 
   const allAssignmentItems = [...strengthItems, ...cardioItems, ...hybridItems, ...agilityItems]
@@ -343,7 +369,7 @@ export async function getAthleteHistoryFeed(params: {
     perceivedEffort: wod.sessionRPE || null,
     distance: null as number | null,
     source: wod.source === 'chat' ? 'ai-chat' : 'wod',
-    linkHref: `/athlete/wod/${wod.id}`,
+    linkHref: `${basePath}/athlete/wod/${wod.id}`,
   }))
 
   const quickErgItems = quickErgSessions.map((session) => {
@@ -362,7 +388,7 @@ export async function getAthleteHistoryFeed(params: {
       perceivedEffort: session.rpe || null,
       distance: session.distanceMeters ? session.distanceMeters / 1000 : null,
       source: 'quick-erg' as const,
-      linkHref: `/athlete/quick-erg/${session.id}`,
+      linkHref: `${basePath}/athlete/quick-erg/${session.id}`,
     }
   })
 
@@ -375,24 +401,73 @@ export async function getAthleteHistoryFeed(params: {
     perceivedEffort: session.rpe || null,
     distance: session.distanceMeters / 1000,
     source: 'phone-run' as const,
-    linkHref: `/athlete/dashboard`,
+    linkHref: `${basePath}/athlete/dashboard`,
   }))
 
+  const garminItems = garminActivities.map((a) => ({
+    id: a.id,
+    date: a.startDate,
+    name: a.name || a.type || 'Garmin Activity',
+    type: a.mappedType || a.type || 'OTHER',
+    duration: a.duration ? Math.round(a.duration / 60) : null, // seconds → minutes
+    perceivedEffort: null as number | null,
+    distance: a.distance ? a.distance / 1000 : null, // meters → km
+    source: 'garmin' as const,
+    deviceName: a.deviceName || null,
+    avgHR: a.averageHeartrate || null,
+    maxHR: a.maxHeartrate || null,
+    calories: a.calories || null,
+    avgSpeed: a.averageSpeed || null, // m/s
+    avgPower: a.averageWatts || null,
+    tss: a.tss || null,
+    elevationGain: a.elevationGain || null,
+    avgCadence: a.averageCadence || null,
+  }))
+
+  // Deduplicate: drop Garmin items that match a manually logged workout
+  // (same day + duration within 20% or distance within 10%)
+  const manualDates = [...adHocWithParsedData, ...logs].map((w) => {
+    const d = 'workoutDate' in w ? w.workoutDate : w.completedAt
+    return {
+      dateKey: d ? new Date(d).toISOString().split('T')[0] : '',
+      duration: ('duration' in w ? w.duration : 0) || 0,
+      distance: ('distance' in w ? w.distance : 0) || 0,
+    }
+  })
+
+  const deduplicatedGarminItems = garminItems.filter((g) => {
+    const gDateKey = new Date(g.date).toISOString().split('T')[0]
+    return !manualDates.some((m) => {
+      if (m.dateKey !== gDateKey) return false
+      if (g.duration && m.duration) {
+        const durRatio = Math.abs(g.duration - m.duration) / Math.max(g.duration, m.duration)
+        if (durRatio < 0.20) return true
+      }
+      if (g.distance && m.distance && g.distance > 0 && m.distance > 0) {
+        const distRatio = Math.abs(g.distance - m.distance) / Math.max(g.distance, m.distance)
+        if (distRatio < 0.10) return true
+      }
+      return false
+    })
+  })
+
   const totalWorkouts =
-    logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + quickErgItems.length + phoneRunItems.length
+    logs.length + adHocWorkouts.length + allAssignmentItems.length + wodItems.length + quickErgItems.length + phoneRunItems.length + deduplicatedGarminItems.length
   const totalDistanceKm =
     logs.reduce((sum, log) => sum + (log.distance || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.distance || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.distance || 0), 0) +
     quickErgItems.reduce((sum, s) => sum + (s.distance || 0), 0) +
-    phoneRunItems.reduce((sum, s) => sum + (s.distance || 0), 0)
+    phoneRunItems.reduce((sum, s) => sum + (s.distance || 0), 0) +
+    deduplicatedGarminItems.reduce((sum, a) => sum + (a.distance || 0), 0)
   const totalDurationMin =
     logs.reduce((sum, log) => sum + (log.duration || 0), 0) +
     adHocWithParsedData.reduce((sum, w) => sum + (w.duration || 0), 0) +
     allAssignmentItems.reduce((sum, a) => sum + (a.duration || 0), 0) +
     wodItems.reduce((sum, w) => sum + (w.duration || 0), 0) +
     quickErgItems.reduce((sum, s) => sum + (s.duration || 0), 0) +
-    phoneRunItems.reduce((sum, s) => sum + (s.duration || 0), 0)
+    phoneRunItems.reduce((sum, s) => sum + (s.duration || 0), 0) +
+    deduplicatedGarminItems.reduce((sum, a) => sum + (a.duration || 0), 0)
 
   const allEfforts = [
     ...logs.filter((log) => log.perceivedEffort).map((log) => log.perceivedEffort!),
@@ -483,6 +558,27 @@ export async function getAthleteHistoryFeed(params: {
       isAdHoc: false,
       source: session.source,
       linkHref: session.linkHref,
+    })),
+    ...deduplicatedGarminItems.map((a) => ({
+      id: a.id,
+      date: a.date,
+      name: a.name,
+      type: a.type,
+      programName: undefined,
+      distance: a.distance,
+      duration: a.duration,
+      perceivedEffort: a.perceivedEffort,
+      isAdHoc: false,
+      source: a.source,
+      deviceName: a.deviceName,
+      avgHR: a.avgHR,
+      maxHR: a.maxHR,
+      calories: a.calories,
+      avgSpeed: a.avgSpeed,
+      avgPower: a.avgPower,
+      tss: a.tss,
+      elevationGain: a.elevationGain,
+      avgCadence: a.avgCadence,
     })),
   ]
     .filter((item) => !params.typeFilter || item.type === params.typeFilter)

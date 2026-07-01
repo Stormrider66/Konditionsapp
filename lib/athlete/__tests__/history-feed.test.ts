@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   wodFindMany: vi.fn(),
   quickErgFindMany: vi.fn(),
   phoneRunFindMany: vi.fn(),
+  garminFindMany: vi.fn(),
 }))
 
 vi.mock('@/lib/prisma', () => ({
@@ -23,6 +24,7 @@ vi.mock('@/lib/prisma', () => ({
     aIGeneratedWOD: { findMany: mocks.wodFindMany },
     quickErgSession: { findMany: mocks.quickErgFindMany },
     phoneRunSession: { findMany: mocks.phoneRunFindMany },
+    garminActivity: { findMany: mocks.garminFindMany },
   },
 }))
 
@@ -44,6 +46,7 @@ function emptyAll() {
   mocks.wodFindMany.mockResolvedValue([])
   mocks.quickErgFindMany.mockResolvedValue([])
   mocks.phoneRunFindMany.mockResolvedValue([])
+  mocks.garminFindMany.mockResolvedValue([])
 }
 
 beforeEach(() => {
