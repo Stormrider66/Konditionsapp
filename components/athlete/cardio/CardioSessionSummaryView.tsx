@@ -26,6 +26,7 @@ import {
   Radio,
   ShieldAlert,
   Target,
+  Timer,
   TrendingDown,
   TrendingUp,
   X,
@@ -236,6 +237,9 @@ function HeroStats({ data, tw }: { data: SummaryResponse; tw: Tw }) {
   if (data.log.actualDuration != null) {
     stats.push({ icon: Clock, label: tw('Total tid', 'Total time'), value: fmtClock(data.log.actualDuration) })
   }
+  if (data.totals.forTimeSeconds != null) {
+    stats.push({ icon: Timer, label: tw('Intervalltid', 'Interval time'), value: fmtClock(data.totals.forTimeSeconds) })
+  }
   if (data.totals.calories != null) {
     stats.push({ icon: Flame, label: tw('Kalorier', 'Calories'), value: `${data.totals.calories}` })
   }
@@ -254,7 +258,7 @@ function HeroStats({ data, tw }: { data: SummaryResponse; tw: Tw }) {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {stats.map((stat) => (
         <div key={stat.label} className="rounded-xl border bg-card p-3">
           <div className="mb-1 flex items-center gap-1.5 text-muted-foreground">

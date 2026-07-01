@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { buildCardioFocusModeSegments, type FocusModeSegment } from '@/lib/cardio/focus-mode-segments'
 import {
   recordedCardioSegmentDurationSeconds,
+  resolveCardioForTimeResultSeconds,
   resolveRecordedCardioDurationSeconds,
 } from '@/lib/cardio/recorded-duration'
 import { resolveRequestLocale, type AppLocale } from '@/lib/i18n/request-locale'
@@ -260,6 +261,11 @@ export async function GET(request: NextRequest) {
       actualDuration:
         recordedCardioSegmentDurationSeconds(segmentLog) ?? segmentLog.actualDuration,
     }))
+    const resultSegments = buildCardioFocusModeSegments({
+      segments: assignment.session.segments,
+      segmentLogs: segmentLogs ?? [],
+      locale,
+    })
     const benchmarkIndex = plannedSegments.find((p) => p.isBenchmark)?.index
     const openerWatts = benchmarkIndex != null
       ? (segmentLogs?.find((s) => s.segmentIndex === benchmarkIndex)?.actualAvgPower ?? null)
@@ -275,6 +281,10 @@ export async function GET(request: NextRequest) {
     const completedAt = log?.completedAt ?? assignment.completedAt
     const metrics = compactMetrics([
       metric(t(locale, 'Time', 'Tid'), formatSecondsToClock(actualDuration)),
+      metric(
+        t(locale, 'Interval time', 'Intervalltid'),
+        formatSecondsToClock(resolveCardioForTimeResultSeconds(resultSegments)),
+      ),
       metric(t(locale, 'Distance', 'Distans'), formatDistanceKm(log?.actualDistance) ?? formatDistanceMeters(assignment.actualDistance)),
       metric(t(locale, 'Avg HR', 'Snittpuls'), log?.avgHeartRate ?? assignment.avgHeartRate),
       metric(t(locale, 'Max HR', 'Maxpuls'), log?.maxHeartRate),

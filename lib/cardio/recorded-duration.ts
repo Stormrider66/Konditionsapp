@@ -7,6 +7,16 @@ type RecordedCardioSegment = {
   skipped: boolean
 }
 
+type ForTimeCardioSegment = {
+  type: string
+  plannedDuration?: number | null
+  plannedDistance?: number | null
+  plannedCalories?: number | null
+  actualDuration?: number | null
+  completed: boolean
+  skipped: boolean
+}
+
 function timestampMs(value: Date | string | null | undefined): number | null {
   if (!value) return null
   const milliseconds = value instanceof Date ? value.getTime() : new Date(value).getTime()
@@ -73,4 +83,33 @@ export function resolveRecordedCardioDurationSeconds({
   }
 
   return total
+}
+
+/**
+ * Returns the scored interval result for a completed "for time" workout.
+ * Warm-up, cool-down, recovery, and fixed-duration intervals are excluded.
+ */
+export function resolveCardioForTimeResultSeconds(
+  segments: ForTimeCardioSegment[],
+): number | null {
+  const workTypes = new Set(['INTERVAL', 'STEADY', 'HILL', 'DRILLS'])
+  const scoredSegments = segments.filter((segment) => (
+    workTypes.has(segment.type) &&
+    segment.plannedDuration == null &&
+    (segment.plannedCalories != null || segment.plannedDistance != null)
+  ))
+
+  if (scoredSegments.length === 0) return null
+  if (scoredSegments.some((segment) => (
+    !segment.completed ||
+    segment.skipped ||
+    typeof segment.actualDuration !== 'number' ||
+    !Number.isFinite(segment.actualDuration) ||
+    segment.actualDuration <= 0
+  ))) return null
+
+  return scoredSegments.reduce(
+    (total, segment) => total + Math.round(segment.actualDuration ?? 0),
+    0,
+  )
 }

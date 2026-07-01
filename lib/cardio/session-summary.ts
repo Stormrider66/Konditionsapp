@@ -19,6 +19,7 @@ import {
 import { summarizeCardioSensorSamples, type CardioSensorSeriesStats } from './sensor-samples'
 import {
   recordedCardioSegmentDurationSeconds,
+  resolveCardioForTimeResultSeconds,
   resolveRecordedCardioDurationSeconds,
 } from './recorded-duration'
 import {
@@ -223,6 +224,7 @@ export interface CardioSessionSummaryData {
     completedSegments: number
     skippedSegments: number
     workSeconds: number | null
+    forTimeSeconds: number | null
     restSeconds: number | null
     calories: number | null
     distanceKm: number | null
@@ -286,7 +288,10 @@ function weightedAvgPower(windows: SummaryWindow[]): number | null {
 
 function windowScoreKind(seg: FocusModeSegment): WindowScoreKind {
   if (seg.plannedCalories != null && seg.plannedDuration != null) return 'calories'
-  if (seg.plannedCalories != null) return 'time'
+  if (
+    seg.plannedDuration == null &&
+    (seg.plannedCalories != null || seg.plannedDistance != null)
+  ) return 'time'
   return 'none'
 }
 
@@ -1187,6 +1192,7 @@ export function buildCardioSessionSummary({
       completedSegments: segments.filter((s) => s.completed).length,
       skippedSegments: segments.filter((s) => s.skipped).length,
       workSeconds: sum(workSegments.map((s) => s.actualDuration ?? s.plannedDuration)),
+      forTimeSeconds: resolveCardioForTimeResultSeconds(workSegments),
       restSeconds: sum(restSegments.map((s) => s.actualDuration ?? s.plannedDuration)),
       calories: sum(segments.map((s) => s.actualCalories)),
       distanceKm: sum(segments.map((s) => s.actualDistance)),

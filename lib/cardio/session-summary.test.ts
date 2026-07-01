@@ -234,6 +234,7 @@ describe('buildCardioSessionSummary', () => {
 
     expect(summary.windows).toHaveLength(3)
     expect(summary.windows.every((w) => w.scoreKind === 'time')).toBe(true)
+    expect(summary.totals.forTimeSeconds).toBe(165)
 
     const row = summary.equipment.find((e) => e.equipment === 'ROW')!
     expect(row.scoreKind).toBe('time')
@@ -551,5 +552,6 @@ describe('buildCardioSessionSummary', () => {
 
     expect(summary.log.actualDuration).toBe(1309)
     expect(summary.totals.workSeconds).toBe(109)
+    expect(summary.totals.forTimeSeconds).toBe(109)
   })
 })

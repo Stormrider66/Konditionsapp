@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   recordedCardioSegmentDurationSeconds,
+  resolveCardioForTimeResultSeconds,
   resolveRecordedCardioDurationSeconds,
 } from './recorded-duration'
 
@@ -59,5 +60,21 @@ describe('recorded cardio duration', () => {
       expectedSegmentCount: 3,
       fallbackDuration: 1200,
     })).toBe(1200)
+  })
+
+  it('totals only completed time-to-target intervals', () => {
+    expect(resolveCardioForTimeResultSeconds([
+      { type: 'WARMUP', plannedDuration: 600, actualDuration: 600, completed: true, skipped: false },
+      { type: 'INTERVAL', plannedCalories: 60, actualDuration: 256, completed: true, skipped: false },
+      { type: 'INTERVAL', plannedCalories: 60, actualDuration: 258, completed: true, skipped: false },
+      { type: 'COOLDOWN', plannedDuration: 600, actualDuration: 600, completed: true, skipped: false },
+    ])).toBe(514)
+  })
+
+  it('does not publish a for-time result until every scored interval is complete', () => {
+    expect(resolveCardioForTimeResultSeconds([
+      { type: 'INTERVAL', plannedCalories: 60, actualDuration: 256, completed: true, skipped: false },
+      { type: 'INTERVAL', plannedCalories: 60, actualDuration: null, completed: false, skipped: false },
+    ])).toBeNull()
   })
 })
