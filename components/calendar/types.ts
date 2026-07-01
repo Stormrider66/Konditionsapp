@@ -6,6 +6,18 @@ import { CalendarEventType, CalendarEventStatus, EventImpact, AltitudeAdaptation
 
 export type UnifiedItemType = 'WORKOUT' | 'RACE' | 'FIELD_TEST' | 'CALENDAR_EVENT' | 'CHECK_IN' | 'WOD' | 'AD_HOC' | 'GARMIN' | 'QUICK_ERG'
 
+/**
+ * Format a distance in km for display, rounding to a whole number when exact
+ * and otherwise one decimal (e.g. 10.533 → "10.5 km", 5 → "5 km"). Garmin/GPS
+ * distances arrive as metres/1000, hence the long tails we want to trim.
+ * Returns null for missing/zero/invalid values.
+ */
+export function formatDistanceKm(distance: unknown): string | null {
+  if (typeof distance !== 'number' || !Number.isFinite(distance) || distance <= 0) return null
+  const rounded = distance % 1 === 0 ? distance.toFixed(0) : distance.toFixed(1)
+  return `${rounded} km`
+}
+
 export interface UnifiedCalendarItem {
   id: string
   type: UnifiedItemType

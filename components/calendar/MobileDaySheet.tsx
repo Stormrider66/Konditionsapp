@@ -32,6 +32,7 @@ import { AdHocDetailPanel } from './day-sidebar/detail-panels/adhoc'
 import { QuickErgDetailPanel } from './day-sidebar/detail-panels/quick-erg'
 import { RaceDetailPanel } from './day-sidebar/detail-panels/race'
 import { FieldTestDetailPanel } from './day-sidebar/detail-panels/field-test'
+import { GarminDetailPanel } from './day-sidebar/detail-panels/garmin'
 import { useLocale } from '@/i18n/client'
 
 interface MobileDaySheetProps {
@@ -78,6 +79,7 @@ export function MobileDaySheet({
   const detailPanelRef = useRef<HTMLDivElement>(null)
   const [dragY, setDragY] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
+  const [expanded, setExpanded] = useState(false)
   const startY = useRef(0)
 
   // Handle backdrop touch to close
@@ -90,7 +92,7 @@ export function MobileDaySheet({
     [onClose]
   )
 
-  // Handle drag to dismiss
+  // Handle drag on the grab handle: up = expand, down = collapse / dismiss.
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const target = e.target as HTMLElement
     // Only allow drag from handle area
@@ -103,14 +105,8 @@ export function MobileDaySheet({
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
       if (!isDragging) return
-
-      const currentY = e.touches[0].clientY
-      const delta = currentY - startY.current
-
-      // Only allow dragging down
-      if (delta > 0) {
-        setDragY(delta)
-      }
+      const delta = e.touches[0].clientY - startY.current
+      setDragY(delta)
     },
     [isDragging]
   )
@@ -119,14 +115,25 @@ export function MobileDaySheet({
     if (!isDragging) return
 
     setIsDragging(false)
-
-    // If dragged more than 100px, close the sheet
-    if (dragY > 100) {
-      onClose()
-    }
-
+    const delta = dragY
     setDragY(0)
-  }, [isDragging, dragY, onClose])
+
+    // Dragged up → expand to full height.
+    if (delta < -50) {
+      setExpanded(true)
+      return
+    }
+    // Dragged down → collapse if expanded, otherwise dismiss.
+    if (delta > 50) {
+      if (expanded) {
+        setExpanded(false)
+        return
+      }
+      if (delta > 100) {
+        onClose()
+      }
+    }
+  }, [isDragging, dragY, expanded, onClose])
 
   // Close on escape key
   useEffect(() => {
@@ -169,6 +176,7 @@ export function MobileDaySheet({
   const races = items.filter((i) => i.type === 'RACE')
   const events = items.filter((i) => i.type === 'CALENDAR_EVENT')
   const fieldTests = items.filter((i) => i.type === 'FIELD_TEST')
+  const garminActivities = items.filter((i) => i.type === 'GARMIN')
 
   return (
     <div
@@ -194,12 +202,17 @@ export function MobileDaySheet({
           isGlass
             ? 'bg-slate-950/90 backdrop-blur-xl border-t border-white/10 rounded-t-[2.5rem]'
             : 'bg-background rounded-t-2xl shadow-xl',
-          'max-h-[85vh] flex flex-col',
+          'flex flex-col',
+          // Snap heights: expanded fills the screen, collapsed hugs its content
+          // (up to 85vh). Drag the handle up to expand, down to collapse.
+          expanded ? 'h-[92vh]' : 'max-h-[85vh]',
           isOpen && !isDragging ? 'translate-y-0' : '',
           !isOpen ? 'translate-y-full' : ''
         )}
         style={{
-          transform: isDragging ? `translateY(${dragY}px)` : undefined,
+          // Only follow a downward drag (dismiss/collapse preview); upward drag
+          // just snaps to expanded on release, so the sheet never lifts away.
+          transform: isDragging && dragY > 0 ? `translateY(${dragY}px)` : undefined,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -208,12 +221,20 @@ export function MobileDaySheet({
         {/* Drag Handle */}
         <div
           data-drag-handle
-          className="flex justify-center pt-3 pb-2 cursor-grab active:cursor-grabbing"
+          className="flex flex-col items-center pt-3 pb-2 cursor-grab active:cursor-grabbing touch-none"
         >
           <div className={cn(
             "w-12 h-1.5 rounded-full transition-colors",
             isGlass ? "bg-white/10" : "bg-muted-foreground/30"
           )} />
+          {!expanded && (
+            <span className={cn(
+              "mt-1 text-[9px] font-bold uppercase tracking-widest",
+              isGlass ? "text-slate-500" : "text-muted-foreground/60"
+            )}>
+              {appLocale === 'sv' ? 'Dra upp' : 'Drag up'}
+            </span>
+          )}
         </div>
 
         {/* Header */}
@@ -393,6 +414,22 @@ export function MobileDaySheet({
                 </Section>
               )}
 
+              {/* Garmin activities */}
+              {garminActivities.length > 0 && (
+                <Section title="Garmin" count={garminActivities.length} isGlass={isGlass}>
+                  {garminActivities.map((activity) => (
+                    <WorkoutCard
+                      key={activity.id}
+                      workout={activity}
+                      isSelected={selectedItem?.id === activity.id}
+                      onClick={() => onItemClick(activity)}
+                      isGlass={isGlass}
+                      locale={appLocale}
+                    />
+                  ))}
+                </Section>
+              )}
+
               {/* Selected item details — logged weights, cardio time, splits.
                   Mirrors the desktop day sidebar's inline detail panels so a
                   tapped workout shows its history right here. */}
@@ -422,6 +459,9 @@ export function MobileDaySheet({
                 )}
                 {selectedItem?.type === 'FIELD_TEST' && (
                   <FieldTestDetailPanel test={selectedItem} isGlass={isGlass} />
+                )}
+                {selectedItem?.type === 'GARMIN' && (
+                  <GarminDetailPanel activity={selectedItem} isGlass={isGlass} />
                 )}
               </div>
 

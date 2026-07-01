@@ -19,7 +19,7 @@ import { startOfWeek, addDays, format, isToday, isSameDay, isSameMonth } from 'd
 import { enUS, sv } from 'date-fns/locale'
 import { Plus, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { UnifiedCalendarItem } from './types'
+import { UnifiedCalendarItem, formatDistanceKm } from './types'
 
 interface WeekViewProps {
   anchor: Date
@@ -90,9 +90,8 @@ function getMeta(item: UnifiedCalendarItem, locale: 'en' | 'sv'): string {
 }
 
 function getPreview(item: UnifiedCalendarItem): string | null {
-  if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
-    return `${item.metadata.distance} km`
-  }
+  const km = formatDistanceKm(item.metadata.distance)
+  if (km) return km
   if (typeof item.metadata.duration === 'number' && item.metadata.duration > 0) {
     return `${item.metadata.duration} min`
   }

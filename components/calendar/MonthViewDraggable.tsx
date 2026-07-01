@@ -35,7 +35,7 @@ import {
 import { enUS, sv } from 'date-fns/locale'
 import { Check, Copy, GripVertical, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { UnifiedCalendarItem, DayData, EVENT_TYPE_CONFIG, WORKOUT_TYPE_COLORS } from './types'
+import { UnifiedCalendarItem, DayData, EVENT_TYPE_CONFIG, WORKOUT_TYPE_COLORS, formatDistanceKm } from './types'
 import { useLocale } from '@/i18n/client'
 
 interface MonthViewDraggableProps {
@@ -744,9 +744,8 @@ function isCompletedCalendarItem(item: UnifiedCalendarItem): boolean {
 
 function getMonthPreview(item: UnifiedCalendarItem, locale: 'en' | 'sv'): string | null {
   if (item.type === 'WORKOUT' || item.type === 'AD_HOC' || item.type === 'QUICK_ERG') {
-    if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
-      return `${item.metadata.distance} km`
-    }
+    const km = formatDistanceKm(item.metadata.distance)
+    if (km) return km
     if (typeof item.metadata.duration === 'number' && item.metadata.duration > 0) {
       return `${item.metadata.duration} min`
     }

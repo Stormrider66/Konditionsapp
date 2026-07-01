@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
 import { useSwipeNavigation, useIsMobile } from './hooks/useSwipeNavigation'
-import { UnifiedCalendarItem } from './types'
+import { UnifiedCalendarItem, formatDistanceKm } from './types'
 import type { Conflict, ConflictResolution } from '@/lib/calendar/conflict-detection'
 import { CalendarEventType } from '@prisma/client'
 import { cn } from '@/lib/utils'
@@ -1787,9 +1787,8 @@ function getAgendaMeta(item: UnifiedCalendarItem, locale: 'en' | 'sv'): string {
 }
 
 function getAgendaPreview(item: UnifiedCalendarItem): string | null {
-  if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
-    return `${item.metadata.distance} km`
-  }
+  const km = formatDistanceKm(item.metadata.distance)
+  if (km) return km
   if (typeof item.metadata.duration === 'number' && item.metadata.duration > 0) {
     return `${item.metadata.duration} min`
   }

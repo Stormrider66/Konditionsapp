@@ -160,35 +160,19 @@ export function useSwipeNavigation(
     const deltaX = touch.clientX - g.startX
     const deltaY = touch.clientY - g.startY
 
-    // Decide the axis once, after we've moved past the slop threshold.
+    // Decide the axis once, after we've moved past the slop threshold. We only
+    // record the axis in the ref — we deliberately do NOT setState or animate a
+    // translateX offset mid-gesture. Animating shifted the grid horizontally
+    // under the finger, so a tap that drifted sideways landed on a different
+    // cell (or none) when released — the "some days aren't clickable" bug.
+    // Swipes are detected purely from the start→end delta on touchend, and the
+    // element's `touch-action: pan-y` keeps vertical scrolling native.
     if (g.axis === 'pending') {
       if (Math.abs(deltaX) < DIRECTION_SLOP && Math.abs(deltaY) < DIRECTION_SLOP) {
-        return // still could be a tap — do nothing, don't preventDefault
+        return
       }
       g.axis = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'scroll'
-      if (g.axis === 'horizontal') {
-        setSwipeState((prev) => ({ ...prev, isSwiping: true }))
-      }
     }
-
-    // Vertical scroll: hand control back to the browser entirely.
-    if (g.axis === 'scroll') return
-
-    // Committed horizontal swipe: just animate the offset. We deliberately do
-    // NOT call preventDefault — the swipeable element uses `touch-action:
-    // pan-y` so the browser already refuses horizontal panning, and the
-    // browser cancels the synthesized click itself once a touch moves far
-    // enough. Calling preventDefault here used to kill the click for taps that
-    // drifted 12–80px, which is why "some days weren't clickable".
-    const maxOffset = 100
-    const offset = Math.max(-maxOffset, Math.min(maxOffset, deltaX * 0.5))
-    setSwipeOffset(offset)
-    setSwipeState((prev) => ({
-      ...prev,
-      deltaX,
-      deltaY,
-      direction: deltaX < 0 ? 'left' : 'right',
-    }))
   }, [])
 
   const onTouchEnd = useCallback((e: TouchEvent) => {
