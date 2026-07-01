@@ -5,7 +5,13 @@ import { requireCoach } from '@/lib/auth-utils'
 import { validateBusinessMembership } from '@/lib/business-context'
 import { getAccessibleTeam } from '@/lib/coach/team-access'
 import { prisma } from '@/lib/prisma'
-import { listTeamCaptureWorkoutOptions, loadTeamCaptureWorkoutOption } from '@/lib/team-capture/workout-template'
+import {
+  listPlannedTeamCaptureWorkoutOptions,
+  listTeamCaptureWorkoutOptions,
+  loadTeamCaptureWorkoutOption,
+  mergeTeamCaptureWorkoutOptions,
+  teamCaptureAssignmentDayBounds,
+} from '@/lib/team-capture/workout-template'
 
 interface PageProps {
   params: Promise<{
@@ -42,6 +48,7 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
   if (!team) notFound()
 
   const bounds = dayBounds(query.date)
+  const assignmentBounds = teamCaptureAssignmentDayBounds(query.date)
   const plannedEvent = query.teamEventId
     ? await prisma.teamEvent.findFirst({
         where: {
@@ -75,11 +82,7 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
         })
       : null
 
-  const initialWorkoutType = query.workoutType ?? plannedEvent?.linkedWorkoutType ?? undefined
-  const initialWorkoutId = query.workoutId ?? plannedEvent?.linkedWorkoutId ?? undefined
-  const initialTeamEventId = query.teamEventId ?? plannedEvent?.id ?? undefined
-
-  const [members, existingSessions, workoutOptions] = await Promise.all([
+  const [members, existingSessions, workoutOptions, plannedWorkoutOptions] = await Promise.all([
     prisma.client.findMany({
       where: { teamId },
       orderBy: [{ jerseyNumber: 'asc' }, { name: 'asc' }],
@@ -109,7 +112,21 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
       businessId: membership.businessId,
       take: 16,
     }),
+    assignmentBounds
+      ? listPlannedTeamCaptureWorkoutOptions({
+          teamId,
+          businessId: membership.businessId,
+          dayStart: assignmentBounds.dayStart,
+          dayEnd: assignmentBounds.dayEnd,
+        })
+      : Promise.resolve([]),
   ])
+  const firstPlannedWorkout = plannedWorkoutOptions[0]
+  const initialWorkoutType =
+    query.workoutType ?? plannedEvent?.linkedWorkoutType ?? firstPlannedWorkout?.type
+  const initialWorkoutId =
+    query.workoutId ?? plannedEvent?.linkedWorkoutId ?? firstPlannedWorkout?.id
+  const initialTeamEventId = plannedEvent?.id ?? undefined
   const plannedOption = initialWorkoutType && initialWorkoutId
     ? await loadTeamCaptureWorkoutOption({
         coachId: user.id,
@@ -119,10 +136,11 @@ export default async function TeamCapturePage({ params, searchParams }: PageProp
         workoutId: initialWorkoutId,
       })
     : null
-  const normalizedWorkoutOptions = plannedOption &&
-    !workoutOptions.some((option) => option.id === plannedOption.id && option.type === plannedOption.type)
-    ? [plannedOption, ...workoutOptions]
-    : workoutOptions
+  const normalizedWorkoutOptions = mergeTeamCaptureWorkoutOptions(
+    plannedWorkoutOptions,
+    plannedOption ? [plannedOption] : [],
+    workoutOptions,
+  )
 
   return (
     <TeamCaptureLauncher

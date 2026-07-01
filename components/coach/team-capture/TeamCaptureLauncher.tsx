@@ -37,6 +37,10 @@ interface TeamCaptureLauncherProps {
     type: 'CARDIO' | 'HYBRID'
     name: string
     template: TeamCaptureTemplate
+    plannedFor?: Array<{
+      id: string
+      name: string
+    }>
   }>
   initialWorkoutType?: string
   initialWorkoutId?: string
@@ -53,6 +57,12 @@ function formatShortDuration(seconds: number): string {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return minutes > 0 ? `${minutes}:${String(remainingSeconds).padStart(2, '0')} min` : `${seconds} s`
+}
+
+function formatPlannedAthletes(athletes: Array<{ name: string }>): string {
+  const names = athletes.map((athlete) => athlete.name)
+  if (names.length <= 2) return names.join(', ')
+  return `${names.slice(0, 2).join(', ')} +${names.length - 2}`
 }
 
 export function TeamCaptureLauncher({
@@ -84,6 +94,8 @@ export function TeamCaptureLauncher({
     () => workoutOptions.find((option) => `${option.type}:${option.id}` === selectedWorkoutKey),
     [selectedWorkoutKey, workoutOptions]
   )
+  const plannedWorkoutOptions = workoutOptions.filter((option) => (option.plannedFor?.length ?? 0) > 0)
+  const savedWorkoutOptions = workoutOptions.filter((option) => !option.plannedFor?.length)
   const template = selectedWorkout?.template ?? (selectedWorkoutKey === 'DEFAULT' ? defaultTemplate : null)
   const plan = useMemo(
     () => (template ? buildTeamCaptureLanePlan(members, { template, laneCount }) : null),
@@ -198,12 +210,30 @@ export function TeamCaptureLauncher({
                   : text(locale, 'No Team cardio workout selected', 'Inget lagkonditionspass valt')}
               </option>
               <option value="DEFAULT">{text(locale, 'Manual default: BikeErg + RowErg + Run', 'Manuell standard: BikeErg + RowErg + löpning')}</option>
-              {workoutOptions.map((option) => (
-                <option key={`${option.type}:${option.id}`} value={`${option.type}:${option.id}`}>
-                  {option.type} · {option.name}
-                </option>
-              ))}
+              {plannedWorkoutOptions.length > 0 && (
+                <optgroup label={text(locale, 'Planned for this day', 'Planerat för dagen')}>
+                  {plannedWorkoutOptions.map((option) => (
+                    <option key={`${option.type}:${option.id}`} value={`${option.type}:${option.id}`}>
+                      {option.type} · {option.name} — {formatPlannedAthletes(option.plannedFor ?? [])}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+              {savedWorkoutOptions.length > 0 && (
+                <optgroup label={text(locale, 'Saved workouts', 'Sparade pass')}>
+                  {savedWorkoutOptions.map((option) => (
+                    <option key={`${option.type}:${option.id}`} value={`${option.type}:${option.id}`}>
+                      {option.type} · {option.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
+            {selectedWorkout?.plannedFor?.length ? (
+              <p className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400">
+                {text(locale, 'Planned for', 'Planerat för')}: {formatPlannedAthletes(selectedWorkout.plannedFor)}
+              </p>
+            ) : null}
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium dark:text-white">

@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client'
+import { AssignmentStatus, type Prisma } from '@prisma/client'
 
 import { prisma } from '@/lib/prisma'
 import { getWorkoutBusinessTag } from '@/lib/workouts/business-tags'
@@ -19,6 +19,10 @@ export interface CaptureWorkoutOption {
   type: 'CARDIO' | 'HYBRID'
   name: string
   template: TeamCaptureTemplate
+  plannedFor?: Array<{
+    id: string
+    name: string
+  }>
 }
 
 function asRecord(value: unknown): JsonRecord | null {
@@ -41,6 +45,31 @@ function asString(value: unknown): string | undefined {
 function positiveInt(value: unknown): number | undefined {
   const numberValue = asNumber(value)
   return numberValue && numberValue > 0 ? Math.round(numberValue) : undefined
+}
+
+export function teamCaptureAssignmentDayBounds(
+  dateParam?: string,
+  now: Date = new Date(),
+): { dayStart: Date; dayEnd: Date } | null {
+  const dateMatch = dateParam?.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (dateParam && !dateMatch) return null
+  const year = dateMatch ? Number(dateMatch[1]) : now.getFullYear()
+  const monthIndex = dateMatch ? Number(dateMatch[2]) - 1 : now.getMonth()
+  const day = dateMatch ? Number(dateMatch[3]) : now.getDate()
+  const dayStart = new Date(Date.UTC(year, monthIndex, day))
+
+  if (
+    Number.isNaN(dayStart.getTime()) ||
+    dayStart.getUTCFullYear() !== year ||
+    dayStart.getUTCMonth() !== monthIndex ||
+    dayStart.getUTCDate() !== day
+  ) {
+    return null
+  }
+
+  const dayEnd = new Date(dayStart)
+  dayEnd.setUTCDate(dayEnd.getUTCDate() + 1)
+  return { dayStart, dayEnd }
 }
 
 export function teamCaptureCardioSessionWhere(input: {
@@ -455,6 +484,128 @@ export async function loadTeamCaptureWorkoutOption(input: {
   }
 
   return null
+}
+
+export function mergeTeamCaptureWorkoutOptions(
+  ...optionGroups: CaptureWorkoutOption[][]
+): CaptureWorkoutOption[] {
+  const merged = new Map<string, CaptureWorkoutOption>()
+
+  for (const option of optionGroups.flat()) {
+    const key = `${option.type}:${option.id}`
+    const existing = merged.get(key)
+    if (!existing) {
+      merged.set(key, option)
+      continue
+    }
+
+    const plannedFor = new Map(
+      [...(existing.plannedFor ?? []), ...(option.plannedFor ?? [])]
+        .map((athlete) => [athlete.id, athlete] as const)
+    )
+    if (plannedFor.size > 0) {
+      merged.set(key, { ...existing, plannedFor: Array.from(plannedFor.values()) })
+    }
+  }
+
+  return Array.from(merged.values())
+}
+
+export async function listPlannedTeamCaptureWorkoutOptions(input: {
+  teamId: string
+  businessId?: string
+  dayStart: Date
+  dayEnd: Date
+}): Promise<CaptureWorkoutOption[]> {
+  const athleteWhere = {
+    teamId: input.teamId,
+    ...(input.businessId ? { businessId: input.businessId } : {}),
+  }
+  const assignmentWhere = {
+    assignedDate: { gte: input.dayStart, lt: input.dayEnd },
+    status: {
+      in: [AssignmentStatus.PENDING, AssignmentStatus.SCHEDULED, AssignmentStatus.MODIFIED],
+    },
+    athlete: athleteWhere,
+  }
+
+  const [cardioAssignments, hybridAssignments] = await Promise.all([
+    prisma.cardioSessionAssignment.findMany({
+      where: assignmentWhere,
+      orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        athlete: { select: { id: true, name: true } },
+        session: { select: { id: true, name: true, sport: true, segments: true } },
+      },
+    }),
+    prisma.hybridWorkoutAssignment.findMany({
+      where: assignmentWhere,
+      orderBy: [{ startTime: 'asc' }, { createdAt: 'asc' }],
+      select: {
+        athlete: { select: { id: true, name: true } },
+        workout: {
+          select: {
+            id: true,
+            name: true,
+            format: true,
+            totalRounds: true,
+            restTime: true,
+            metconData: true,
+            movements: {
+              orderBy: { order: 'asc' },
+              select: {
+                order: true,
+                reps: true,
+                calories: true,
+                distance: true,
+                duration: true,
+                notes: true,
+                exercise: {
+                  select: {
+                    name: true,
+                    nameSv: true,
+                    nameEn: true,
+                    equipment: true,
+                    equipmentTypes: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    }),
+  ])
+
+  const cardioOptions = cardioAssignments.map((assignment): CaptureWorkoutOption | null => {
+    const template = buildTeamCaptureTemplateFromCardioSession(assignment.session)
+    return template
+      ? {
+          id: assignment.session.id,
+          type: 'CARDIO',
+          name: assignment.session.name,
+          template,
+          plannedFor: [assignment.athlete],
+        }
+      : null
+  })
+  const hybridOptions = hybridAssignments.map((assignment): CaptureWorkoutOption | null => {
+    const template = buildTeamCaptureTemplateFromHybridWorkout(assignment.workout)
+    return template
+      ? {
+          id: assignment.workout.id,
+          type: 'HYBRID',
+          name: assignment.workout.name,
+          template,
+          plannedFor: [assignment.athlete],
+        }
+      : null
+  })
+
+  return mergeTeamCaptureWorkoutOptions(
+    [...cardioOptions, ...hybridOptions]
+      .filter((option): option is CaptureWorkoutOption => Boolean(option))
+  )
 }
 
 export async function listTeamCaptureWorkoutOptions(input: {
