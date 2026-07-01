@@ -33,6 +33,7 @@ import { QuickErgDetailPanel } from './day-sidebar/detail-panels/quick-erg'
 import { RaceDetailPanel } from './day-sidebar/detail-panels/race'
 import { FieldTestDetailPanel } from './day-sidebar/detail-panels/field-test'
 import { GarminDetailPanel } from './day-sidebar/detail-panels/garmin'
+import { GarminAttribution } from '@/components/ui/GarminAttribution'
 import { useLocale } from '@/i18n/client'
 
 interface MobileDaySheetProps {
@@ -431,6 +432,9 @@ export function MobileDaySheet({
                       onClick={() => onItemClick(activity)}
                       isGlass={isGlass}
                       locale={appLocale}
+                      attribution={
+                        <GarminAttribution deviceModel={activity.metadata.deviceName as string | undefined} />
+                      }
                     />
                   ))}
                 </Section>
@@ -546,6 +550,9 @@ interface WorkoutCardProps {
   onViewDetails?: () => void
   isGlass?: boolean
   locale?: 'en' | 'sv'
+  /** Optional attribution row rendered at the foot of the card (e.g. the
+      official Garmin logo + device model for Garmin-sourced activities). */
+  attribution?: React.ReactNode
 }
 
 function WorkoutCard({
@@ -556,6 +563,7 @@ function WorkoutCard({
   onViewDetails,
   isGlass = false,
   locale = 'en',
+  attribution,
 }: WorkoutCardProps) {
   const workoutType = workout.metadata.workoutType as string
   const isCompleted = workout.metadata.isCompleted as boolean
@@ -641,6 +649,12 @@ function WorkoutCard({
         >
           {locale === 'sv' ? 'Visa detaljer' : 'View details'}
         </Button>
+      )}
+
+      {attribution && (
+        <div className="mt-2 pt-2 border-t border-white/5">
+          {attribution}
+        </div>
       )}
     </div>
   )
