@@ -56,6 +56,7 @@ import { getUserPrimaryBusinessSlug } from '@/lib/business-context'
 import { getLocale, getTranslations } from '@/i18n/server'
 import { getAssignmentRoute, getWODRoute } from '@/types/dashboard-items'
 import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
+import { isStructuredTrainingProgram } from '@/lib/training/program-kind'
 
 interface AthleteDashboardPageProps {
   searchParams?: Promise<{ details?: string }>
@@ -310,7 +311,11 @@ export default async function AthleteDashboardPage({ searchParams }: AthleteDash
 
       {/* AI insights — always visible on the main overview */}
       <div className="mb-8">
-        <MorningBriefingCard />
+        <MorningBriefingCard
+          hasActiveProgram={activePrograms.some(isStructuredTrainingProgram)}
+          isAICoached={client.isAICoached}
+          primarySport={primarySport}
+        />
       </div>
 
       {showTrainingDetails && (

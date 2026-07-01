@@ -10292,7 +10292,8 @@
       "readiness": "Readiness:",
       "actions": {
         "showDetails": "Show details",
-        "hideDetails": "Hide details"
+        "hideDetails": "Hide details",
+        "createProgram": "Create training program"
       }
     },
     "mentalPrepCard": {

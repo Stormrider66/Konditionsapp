@@ -53,6 +53,7 @@ import {
   buildMentalPrepPageContext,
   type MentalPrepChatEvent,
 } from '@/lib/events/mental-prep-chat'
+import { ATHLETE_FLOATING_CHAT_EVENT } from '@/lib/events/athlete-floating-chat'
 import { parseAIProgram, type ParseResult } from '@/lib/ai/program-parser'
 import { MemoryIndicator } from './MemoryIndicator'
 import { ChatWorkoutCard } from './ChatWorkoutCard'
@@ -345,6 +346,18 @@ export function AthleteFloatingChat({
     window.addEventListener(MENTAL_PREP_CHAT_EVENT, handleMentalPrepEvent)
     return () => {
       window.removeEventListener(MENTAL_PREP_CHAT_EVENT, handleMentalPrepEvent)
+    }
+  }, [])
+
+  // Open the same floating chat from dashboard cards and other athlete actions.
+  useEffect(() => {
+    function handleOpenChat() {
+      setIsOpen(true)
+    }
+
+    window.addEventListener(ATHLETE_FLOATING_CHAT_EVENT, handleOpenChat)
+    return () => {
+      window.removeEventListener(ATHLETE_FLOATING_CHAT_EVENT, handleOpenChat)
     }
   }, [])
 

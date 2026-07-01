@@ -77,6 +77,7 @@ import { getDashboardRecentActivitySummary, getDashboardWeeklyLoad } from '@/lib
 import { resolveAthleteWidgets, visibleKeys } from '@/lib/dashboard/resolve-widgets'
 import { canClientReportInjuryToTeamPhysio } from '@/lib/medical/care-team-recipients'
 import { getWODUsageStats } from '@/lib/ai/wod-context-builder'
+import { isStructuredTrainingProgram } from '@/lib/training/program-kind'
 
 interface BusinessAthleteDashboardProps {
   params: Promise<{ businessSlug: string }>
@@ -839,7 +840,11 @@ export default async function BusinessAthleteDashboardPage({ params, searchParam
       {/* AI insights — always visible on the main overview */}
       {isVisible('morning-briefing') && (
         <div className="mb-8">
-          <MorningBriefingCard />
+          <MorningBriefingCard
+            hasActiveProgram={activePrograms.some(isStructuredTrainingProgram)}
+            isAICoached={client.isAICoached}
+            primarySport={primarySport}
+          />
         </div>
       )}
 

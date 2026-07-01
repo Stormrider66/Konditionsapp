@@ -16,11 +16,14 @@ import {
   ClipboardCheck,
   Calendar,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import { useBasePath } from '@/lib/contexts/BasePathContext'
 import { useLocale, useTranslations } from '@/i18n/client'
+import { openAthleteFloatingChat } from '@/lib/events/athlete-floating-chat'
+import { NewProgramDialog } from '@/components/athlete/workout/NewProgramDialog'
 
 interface BriefingAlert {
   type: 'warning' | 'info' | 'success'
@@ -46,7 +49,17 @@ interface Briefing {
   createdAt: string
 }
 
-export function MorningBriefingCard() {
+interface MorningBriefingCardProps {
+  hasActiveProgram?: boolean
+  isAICoached?: boolean
+  primarySport?: string | null
+}
+
+export function MorningBriefingCard({
+  hasActiveProgram = false,
+  isAICoached = false,
+  primarySport = null,
+}: MorningBriefingCardProps) {
   const t = useTranslations('components.morningBriefingCard')
   const locale = useLocale()
   const router = useRouter()
@@ -55,6 +68,7 @@ export function MorningBriefingCard() {
   const [isLoading, setIsLoading] = useState(true)
   const [isDismissing, setIsDismissing] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isProgramDialogOpen, setIsProgramDialogOpen] = useState(false)
 
   useEffect(() => {
     async function fetchBriefing() {
@@ -107,14 +121,17 @@ export function MorningBriefingCard() {
         router.push(`${basePath}/athlete/training`)
         break
       case 'open_chat':
-        // Open the floating chat
-        document.querySelector('[data-chat-trigger]')?.scrollIntoView({ behavior: 'smooth' })
+        openAthleteFloatingChat()
         break
       case 'check_in':
         router.push(`${basePath}/athlete/check-in`)
         break
       case 'view_program':
-        router.push(`${basePath}/athlete/program`)
+        if (hasActiveProgram) {
+          router.push(`${basePath}/athlete/programs`)
+        } else {
+          setIsProgramDialogOpen(true)
+        }
         break
       default:
         break
@@ -143,7 +160,9 @@ export function MorningBriefingCard() {
       case 'check_in':
         return <ClipboardCheck className="h-4 w-4" />
       case 'view_program':
-        return <Calendar className="h-4 w-4" />
+        return hasActiveProgram
+          ? <Calendar className="h-4 w-4" />
+          : <Sparkles className="h-4 w-4" />
       default:
         return <ChevronRight className="h-4 w-4" />
     }
@@ -298,12 +317,24 @@ export function MorningBriefingCard() {
                 onClick={() => handleAction(action.action)}
               >
                 {getActionIcon(action.action)}
-                <span className="ml-1.5 font-medium">{action.label}</span>
+                <span className="ml-1.5 font-medium">
+                  {action.action === 'view_program' && !hasActiveProgram
+                    ? t('actions.createProgram')
+                    : action.label}
+                </span>
               </Button>
             ))}
           </div>
         )}
       </GlassCardContent>
+
+      <NewProgramDialog
+        open={isProgramDialogOpen}
+        onOpenChange={setIsProgramDialogOpen}
+        isAICoached={isAICoached}
+        primarySport={primarySport}
+        basePath={basePath}
+      />
     </GlassCard>
   )
 }

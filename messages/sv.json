@@ -10659,7 +10659,8 @@
       "readiness": "Readiness:",
       "actions": {
         "showDetails": "Visa detaljer",
-        "hideDetails": "Dölj detaljer"
+        "hideDetails": "Dölj detaljer",
+        "createProgram": "Skapa träningsprogram"
       }
     },
     "mentalPrepCard": {
