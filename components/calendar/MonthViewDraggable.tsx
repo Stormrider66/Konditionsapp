@@ -502,11 +502,19 @@ function DroppableDayCell({
     })
   }
 
+  const dateLocale = locale === 'sv' ? sv : enUS
+
   return (
     <div
       ref={setNodeRef}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      aria-label={format(day.date, 'PPPP', { locale: dateLocale })}
       className={cn(
-        'min-h-[80px] md:min-h-[100px] p-1 md:p-2 bg-card text-left transition-colors',
+        'min-h-[76px] md:min-h-[100px] p-1 md:p-2 bg-card text-left transition-colors cursor-pointer select-none',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset',
+        'active:bg-muted/60 md:hover:bg-muted/40',
         !day.isCurrentMonth && 'bg-muted/50 text-muted-foreground',
         isSelected && 'ring-2 ring-primary ring-inset',
         day.isBlocked && 'bg-red-50 dark:bg-red-950/30',
@@ -514,6 +522,12 @@ function DroppableDayCell({
         (isOver || isDropTarget) && 'bg-blue-100 dark:bg-blue-900/40 ring-2 ring-blue-400'
       )}
       onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onClick()
+        }
+      }}
     >
       {/* Date Number */}
       <div className="flex justify-between items-start mb-1">

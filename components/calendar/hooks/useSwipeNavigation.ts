@@ -37,8 +37,13 @@ interface SwipeState {
 }
 
 interface UseSwipeNavigationReturn {
-  /** Ref to attach to the swipeable element */
-  ref: React.RefObject<HTMLDivElement | null>
+  /**
+   * Callback ref to attach to the swipeable element. Using a callback ref
+   * (rather than an object ref) means listeners are (re)attached whenever the
+   * element mounts — important because the month grid unmounts when the user
+   * switches to the agenda view and remounts on return.
+   */
+  ref: (node: HTMLDivElement | null) => void
   /** Current swipe state */
   swipeState: SwipeState
   /** Whether a swipe is in progress */
@@ -58,22 +63,21 @@ const DEFAULT_OPTIONS: Required<SwipeNavigationOptions> = {
   enabled: true,
 }
 
+/**
+ * Movement (px) before we decide whether a gesture is a horizontal swipe or a
+ * vertical scroll/tap. Below this slop, the gesture is treated as a potential
+ * tap and we never touch preventDefault, so the synthesized click always fires.
+ */
+const DIRECTION_SLOP = 12
+
 export function useSwipeNavigation(
   options: SwipeNavigationOptions = {}
 ): UseSwipeNavigationReturn {
-  const mergedOptions = { ...DEFAULT_OPTIONS, ...options }
-  const {
-    threshold,
-    maxSwipeTime,
-    onSwipeLeft,
-    onSwipeRight,
-    onSwipeUp,
-    onSwipeDown,
-    preventScrollOnSwipe,
-    enabled,
-  } = mergedOptions
+  const { threshold, maxSwipeTime, preventScrollOnSwipe, enabled } = {
+    ...DEFAULT_OPTIONS,
+    ...options,
+  }
 
-  const ref = useRef<HTMLDivElement>(null)
   const [swipeOffset, setSwipeOffset] = useState(0)
   const [swipeState, setSwipeState] = useState<SwipeState>({
     startX: 0,
@@ -85,145 +89,150 @@ export function useSwipeNavigation(
     direction: null,
   })
 
-  const handleTouchStart = useCallback(
-    (e: TouchEvent) => {
-      if (!enabled) return
+  // Per-gesture bookkeeping lives in a ref so the touch handlers never depend
+  // on React state. This keeps their identity stable, so the listeners are
+  // attached exactly once (not re-added mid-gesture, which used to drop taps).
+  const gesture = useRef({
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    // 'pending' until we've moved past the slop; then 'horizontal' (swipe) or
+    // 'scroll' (vertical / let the browser handle it). A gesture that never
+    // leaves 'pending' is a tap — we never preventDefault it.
+    axis: 'pending' as 'pending' | 'horizontal' | 'scroll',
+    tracking: false,
+  })
 
-      const touch = e.touches[0]
-      setSwipeState({
-        startX: touch.clientX,
-        startY: touch.clientY,
-        startTime: Date.now(),
-        deltaX: 0,
-        deltaY: 0,
-        isSwiping: true,
-        direction: null,
-      })
-      setSwipeOffset(0)
-    },
-    [enabled]
-  )
-
-  const handleTouchMove = useCallback(
-    (e: TouchEvent) => {
-      if (!enabled || !swipeState.isSwiping) return
-
-      const touch = e.touches[0]
-      const deltaX = touch.clientX - swipeState.startX
-      const deltaY = touch.clientY - swipeState.startY
-
-      // Determine direction (prioritize horizontal)
-      const isHorizontal = Math.abs(deltaX) > Math.abs(deltaY)
-
-      if (isHorizontal && preventScrollOnSwipe && Math.abs(deltaX) > 10) {
-        e.preventDefault()
-      }
-
-      let direction: 'left' | 'right' | 'up' | 'down' | null = null
-      if (isHorizontal) {
-        direction = deltaX < 0 ? 'left' : 'right'
-      } else {
-        direction = deltaY < 0 ? 'up' : 'down'
-      }
-
-      setSwipeState((prev) => ({
-        ...prev,
-        deltaX,
-        deltaY,
-        direction,
-      }))
-
-      // Set offset for visual feedback (limit to reasonable range)
-      if (isHorizontal) {
-        const maxOffset = 100
-        const offset = Math.max(-maxOffset, Math.min(maxOffset, deltaX * 0.5))
-        setSwipeOffset(offset)
-      }
-    },
-    [enabled, swipeState.isSwiping, swipeState.startX, swipeState.startY, preventScrollOnSwipe]
-  )
-
-  const handleTouchEnd = useCallback(() => {
-    if (!enabled || !swipeState.isSwiping) return
-
-    const { deltaX, deltaY, startTime, direction } = swipeState
-    const swipeTime = Date.now() - startTime
-
-    // Reset offset with animation
-    setSwipeOffset(0)
-
-    // Check if swipe meets criteria
-    const isValidSwipe =
-      swipeTime <= maxSwipeTime &&
-      (Math.abs(deltaX) >= threshold || Math.abs(deltaY) >= threshold)
-
-    if (isValidSwipe && direction) {
-      switch (direction) {
-        case 'left':
-          onSwipeLeft()
-          break
-        case 'right':
-          onSwipeRight()
-          break
-        case 'up':
-          onSwipeUp()
-          break
-        case 'down':
-          onSwipeDown()
-          break
-      }
-    }
-
-    setSwipeState({
-      startX: 0,
-      startY: 0,
-      startTime: 0,
-      deltaX: 0,
-      deltaY: 0,
-      isSwiping: false,
-      direction: null,
-    })
-  }, [
-    enabled,
-    swipeState,
+  // Keep the latest options/callbacks in a ref so stable handlers can read them
+  // without being recreated on every render. Synced in an effect (not during
+  // render) so the listeners can be attached exactly once.
+  const optionsRef = useRef({
     threshold,
     maxSwipeTime,
-    onSwipeLeft,
-    onSwipeRight,
-    onSwipeUp,
-    onSwipeDown,
-  ])
+    preventScrollOnSwipe,
+    enabled,
+    onSwipeLeft: options.onSwipeLeft,
+    onSwipeRight: options.onSwipeRight,
+    onSwipeUp: options.onSwipeUp,
+    onSwipeDown: options.onSwipeDown,
+  })
+  useEffect(() => {
+    optionsRef.current = {
+      threshold,
+      maxSwipeTime,
+      preventScrollOnSwipe,
+      enabled,
+      onSwipeLeft: options.onSwipeLeft,
+      onSwipeRight: options.onSwipeRight,
+      onSwipeUp: options.onSwipeUp,
+      onSwipeDown: options.onSwipeDown,
+    }
+  })
 
-  const handleTouchCancel = useCallback(() => {
+  const resetGesture = useCallback(() => {
+    gesture.current.tracking = false
+    gesture.current.axis = 'pending'
     setSwipeOffset(0)
-    setSwipeState({
-      startX: 0,
-      startY: 0,
-      startTime: 0,
-      deltaX: 0,
-      deltaY: 0,
-      isSwiping: false,
-      direction: null,
-    })
+    setSwipeState((prev) => (prev.isSwiping ? { ...prev, isSwiping: false, direction: null } : prev))
   }, [])
 
-  // Attach event listeners
-  useEffect(() => {
-    const element = ref.current
-    if (!element || !enabled) return
-
-    element.addEventListener('touchstart', handleTouchStart, { passive: true })
-    element.addEventListener('touchmove', handleTouchMove, { passive: false })
-    element.addEventListener('touchend', handleTouchEnd, { passive: true })
-    element.addEventListener('touchcancel', handleTouchCancel, { passive: true })
-
-    return () => {
-      element.removeEventListener('touchstart', handleTouchStart)
-      element.removeEventListener('touchmove', handleTouchMove)
-      element.removeEventListener('touchend', handleTouchEnd)
-      element.removeEventListener('touchcancel', handleTouchCancel)
+  // Stable touch handlers — they read live values from refs, so they never need
+  // to be recreated. This is the core fix for "some days aren't tappable": we
+  // only preventDefault after a gesture has committed to a horizontal swipe, so
+  // taps and vertical scrolls keep their native click behaviour.
+  const onTouchStart = useCallback((e: TouchEvent) => {
+    if (!optionsRef.current.enabled) return
+    const touch = e.touches[0]
+    gesture.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      startTime: Date.now(),
+      axis: 'pending',
+      tracking: true,
     }
-  }, [enabled, handleTouchStart, handleTouchMove, handleTouchEnd, handleTouchCancel])
+  }, [])
+
+  const onTouchMove = useCallback((e: TouchEvent) => {
+    const g = gesture.current
+    if (!optionsRef.current.enabled || !g.tracking) return
+
+    const touch = e.touches[0]
+    const deltaX = touch.clientX - g.startX
+    const deltaY = touch.clientY - g.startY
+
+    // Decide the axis once, after we've moved past the slop threshold.
+    if (g.axis === 'pending') {
+      if (Math.abs(deltaX) < DIRECTION_SLOP && Math.abs(deltaY) < DIRECTION_SLOP) {
+        return // still could be a tap — do nothing, don't preventDefault
+      }
+      g.axis = Math.abs(deltaX) > Math.abs(deltaY) ? 'horizontal' : 'scroll'
+      if (g.axis === 'horizontal') {
+        setSwipeState((prev) => ({ ...prev, isSwiping: true }))
+      }
+    }
+
+    // Vertical scroll: hand control back to the browser entirely.
+    if (g.axis === 'scroll') return
+
+    // Committed horizontal swipe: suppress native scroll and animate.
+    if (optionsRef.current.preventScrollOnSwipe && e.cancelable) {
+      e.preventDefault()
+    }
+    const maxOffset = 100
+    const offset = Math.max(-maxOffset, Math.min(maxOffset, deltaX * 0.5))
+    setSwipeOffset(offset)
+    setSwipeState((prev) => ({
+      ...prev,
+      deltaX,
+      deltaY,
+      direction: deltaX < 0 ? 'left' : 'right',
+    }))
+  }, [])
+
+  const onTouchEnd = useCallback((e: TouchEvent) => {
+    const g = gesture.current
+    if (!optionsRef.current.enabled || !g.tracking) {
+      resetGesture()
+      return
+    }
+
+    const touch = e.changedTouches[0]
+    const deltaX = touch ? touch.clientX - g.startX : 0
+    const swipeTime = Date.now() - g.startTime
+    const opts = optionsRef.current
+
+    if (
+      g.axis === 'horizontal' &&
+      swipeTime <= opts.maxSwipeTime &&
+      Math.abs(deltaX) >= opts.threshold
+    ) {
+      if (deltaX < 0) opts.onSwipeLeft?.()
+      else opts.onSwipeRight?.()
+    }
+
+    resetGesture()
+  }, [resetGesture])
+
+  // Track the element listeners are currently bound to, so a callback ref can
+  // move them when the swipeable element mounts/unmounts (e.g. month ⇄ agenda).
+  const boundEl = useRef<HTMLDivElement | null>(null)
+
+  const ref = useCallback((node: HTMLDivElement | null) => {
+    const prev = boundEl.current
+    if (prev) {
+      prev.removeEventListener('touchstart', onTouchStart)
+      prev.removeEventListener('touchmove', onTouchMove)
+      prev.removeEventListener('touchend', onTouchEnd)
+      prev.removeEventListener('touchcancel', resetGesture)
+    }
+    boundEl.current = node
+    if (node) {
+      node.addEventListener('touchstart', onTouchStart, { passive: true })
+      node.addEventListener('touchmove', onTouchMove, { passive: false })
+      node.addEventListener('touchend', onTouchEnd, { passive: true })
+      node.addEventListener('touchcancel', resetGesture, { passive: true })
+    }
+  }, [onTouchStart, onTouchMove, onTouchEnd, resetGesture])
 
   return {
     ref,

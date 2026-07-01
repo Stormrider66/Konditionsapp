@@ -15,7 +15,7 @@
 
 import { useState, useCallback, useRef, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay } from 'date-fns'
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, isSameDay, isToday } from 'date-fns'
 import { enUS, sv } from 'date-fns/locale'
 import useSWR from 'swr'
 import { ChevronLeft, ChevronRight, Plus, Calendar as CalendarIcon, Loader2 } from 'lucide-react'
@@ -806,64 +806,87 @@ export function UnifiedCalendar({ clientId, clientName, isCoachView = false, var
             </div>
 
             {/* Month Navigation */}
-            <div className="flex items-center justify-between mt-4">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={handlePreviousMonth} className="hover:bg-white/10 text-slate-400">
+            <div className="mt-4 space-y-3">
+              {/* Row 1: arrows flanking a prominent, always-readable month title */}
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handlePreviousMonth}
+                  aria-label={appLocale === 'sv' ? 'Föregående månad' : 'Previous month'}
+                  className="shrink-0 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
+                >
                   <ChevronLeft className="h-5 w-5" />
                 </Button>
-                <Button variant="ghost" size="icon" onClick={handleNextMonth} className="hover:bg-white/10 text-slate-400">
+
+                <h2 className="flex-1 text-center text-lg sm:text-xl font-black capitalize tracking-tight text-slate-900 dark:text-white">
+                  {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
+                </h2>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleNextMonth}
+                  aria-label={appLocale === 'sv' ? 'Nästa månad' : 'Next month'}
+                  className="shrink-0 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10"
+                >
                   <ChevronRight className="h-5 w-5" />
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleToday} className="text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-white hover:bg-white/10">
-                  {appLocale === 'sv' ? 'Idag' : 'Today'}
                 </Button>
               </div>
 
-              <h2 className="text-xl font-black capitalize text-white tracking-tight">
-                {format(currentMonth, 'MMMM yyyy', { locale: dateLocale })}
-              </h2>
+              {/* Row 2: Today + view toggle — now reachable on mobile */}
+              <div className="flex items-center justify-between gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleToday}
+                  className="text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/10"
+                >
+                  {appLocale === 'sv' ? 'Idag' : 'Today'}
+                </Button>
 
-              <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'month' | 'agenda')} className="hidden sm:block">
-                <TabsList className="h-8 bg-white/5 border border-white/10">
-                  <TabsTrigger value="month" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white/10 data-[state=active]:text-white">
-                    {appLocale === 'sv' ? 'Månad' : 'Month'}
-                  </TabsTrigger>
-                  <TabsTrigger value="agenda" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white/10 data-[state=active]:text-white">
-                    {appLocale === 'sv' ? 'Lista' : 'List'}
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+                <Tabs value={activeView} onValueChange={(v) => setActiveView(v as 'month' | 'agenda')}>
+                  <TabsList className="h-8 bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10">
+                    <TabsTrigger value="month" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white">
+                      {appLocale === 'sv' ? 'Månad' : 'Month'}
+                    </TabsTrigger>
+                    <TabsTrigger value="agenda" className="text-[10px] uppercase font-bold tracking-widest px-3 data-[state=active]:bg-white dark:data-[state=active]:bg-white/10 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white">
+                      {appLocale === 'sv' ? 'Lista' : 'List'}
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </div>
 
             {/* Summary Stats */}
             {data?.counts && (
-              <div className="flex gap-4 mt-4 text-[10px] font-bold uppercase tracking-wider">
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5 mt-4 text-[10px] font-bold uppercase tracking-wider">
                 {data.counts.workouts > 0 && (
-                  <span className="flex items-center gap-1.5 text-slate-500">
+                  <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                     {data.counts.workouts} {appLocale === 'sv' ? 'pass' : 'workouts'}
                   </span>
                 )}
                 {data.counts.races > 0 && (
-                  <span className="flex items-center gap-1.5 text-slate-500">
+                  <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                     {data.counts.races} {appLocale === 'sv' ? 'tävlingar' : 'races'}
                   </span>
                 )}
                 {data.counts.calendarEvents > 0 && (
-                  <span className="flex items-center gap-1.5 text-slate-500">
+                  <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]" />
                     {data.counts.calendarEvents} {appLocale === 'sv' ? 'händelser' : 'events'}
                   </span>
                 )}
                 {data.counts.adHoc > 0 && (
-                  <span className="flex items-center gap-1.5 text-slate-500">
+                  <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-teal-500 shadow-[0_0_8px_rgba(20,184,166,0.5)]" />
                     {data.counts.adHoc} ad-hoc
                   </span>
                 )}
                 {data.counts.garmin > 0 && (
-                  <span className="flex items-center gap-1.5 text-slate-500">
+                  <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_8px_rgba(6,182,212,0.5)]" />
                     {data.counts.garmin} Garmin
                   </span>
@@ -1549,25 +1572,46 @@ function AgendaView({ items, onItemClick, selectedItem, isGlass = false, locale 
   }
 
   return (
-    <div className="space-y-4 max-h-[500px] overflow-y-auto">
-      {sortedDates.map((dateKey) => (
-        <div key={dateKey}>
-          <h3 className="text-sm font-medium text-muted-foreground mb-2 capitalize">
-            {format(new Date(dateKey), 'EEEE d MMMM', { locale: dateLocale })}
-          </h3>
-          <div className="space-y-2">
-            {groupedItems[dateKey].map((item) => (
-              <AgendaItem
-                key={item.id}
-                item={item}
-                isSelected={selectedItem?.id === item.id}
-                onClick={() => onItemClick(item)}
-                isGlass={isGlass}
-              />
-            ))}
+    <div className="space-y-5 max-h-[65vh] lg:max-h-[560px] overflow-y-auto overscroll-contain pr-1 -mr-1">
+      {sortedDates.map((dateKey) => {
+        const dayDate = new Date(dateKey)
+        const today = isToday(dayDate)
+        return (
+          <div key={dateKey}>
+            <div className="flex items-baseline gap-2 mb-2">
+              <h3
+                className={cn(
+                  'text-sm font-bold capitalize',
+                  today
+                    ? 'text-orange-600 dark:text-orange-400'
+                    : isGlass
+                      ? 'text-slate-700 dark:text-slate-300'
+                      : 'text-foreground'
+                )}
+              >
+                {format(dayDate, 'EEEE d MMMM', { locale: dateLocale })}
+              </h3>
+              {today && (
+                <span className="text-[10px] font-black uppercase tracking-widest text-orange-600 dark:text-orange-400">
+                  {locale === 'sv' ? 'Idag' : 'Today'}
+                </span>
+              )}
+            </div>
+            <div className="space-y-2">
+              {groupedItems[dateKey].map((item) => (
+                <AgendaItem
+                  key={item.id}
+                  item={item}
+                  isSelected={selectedItem?.id === item.id}
+                  onClick={() => onItemClick(item)}
+                  isGlass={isGlass}
+                  locale={locale}
+                />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
@@ -1577,26 +1621,75 @@ interface AgendaItemProps {
   isSelected: boolean
   onClick: () => void
   isGlass?: boolean
+  locale?: 'en' | 'sv'
 }
 
-function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemProps) {
-  const typeColors: Record<string, string> = {
-    WORKOUT: 'border-l-blue-500',
-    RACE: 'border-l-red-500',
-    FIELD_TEST: 'border-l-green-500',
-    CALENDAR_EVENT: 'border-l-purple-500',
-    CHECK_IN: 'border-l-gray-500',
-    AD_HOC: 'border-l-teal-500',
-    WOD: 'border-l-orange-500',
-    GARMIN: 'border-l-cyan-500',
-    QUICK_ERG: 'border-l-lime-500',
+const AGENDA_DOT_COLORS: Record<string, string> = {
+  WORKOUT: 'bg-blue-500',
+  RACE: 'bg-red-500',
+  FIELD_TEST: 'bg-green-500',
+  CALENDAR_EVENT: 'bg-purple-500',
+  CHECK_IN: 'bg-gray-500',
+  AD_HOC: 'bg-teal-500',
+  WOD: 'bg-emerald-500',
+  GARMIN: 'bg-cyan-500',
+  QUICK_ERG: 'bg-lime-500',
+}
+
+const AGENDA_BORDER_COLORS: Record<string, string> = {
+  WORKOUT: 'border-l-blue-500',
+  RACE: 'border-l-red-500',
+  FIELD_TEST: 'border-l-green-500',
+  CALENDAR_EVENT: 'border-l-purple-500',
+  CHECK_IN: 'border-l-gray-500',
+  AD_HOC: 'border-l-teal-500',
+  WOD: 'border-l-emerald-500',
+  GARMIN: 'border-l-cyan-500',
+  QUICK_ERG: 'border-l-lime-500',
+}
+
+function getAgendaMeta(item: UnifiedCalendarItem, locale: 'en' | 'sv'): string {
+  switch (item.type) {
+    case 'WORKOUT':
+      return (item.metadata.workoutType as string)?.replace(/_/g, ' ').toLowerCase() || (locale === 'sv' ? 'pass' : 'workout')
+    case 'RACE':
+      return String(item.metadata.classification || (locale === 'sv' ? 'tävling' : 'race'))
+    case 'CALENDAR_EVENT':
+      return (item.metadata.eventType as string)?.replace(/_/g, ' ').toLowerCase() || (locale === 'sv' ? 'händelse' : 'event')
+    case 'AD_HOC':
+      return 'ad-hoc'
+    case 'WOD':
+      return locale === 'sv' ? 'ai-pass' : 'ai workout'
+    case 'QUICK_ERG':
+      return 'quick erg'
+    case 'FIELD_TEST':
+      return locale === 'sv' ? 'test' : 'field test'
+    case 'GARMIN':
+      return item.metadata.deviceName ? `garmin ${item.metadata.deviceName as string}` : 'garmin'
+    default:
+      return ''
   }
+}
+
+function getAgendaPreview(item: UnifiedCalendarItem): string | null {
+  if (typeof item.metadata.distance === 'number' && item.metadata.distance > 0) {
+    return `${item.metadata.distance} km`
+  }
+  if (typeof item.metadata.duration === 'number' && item.metadata.duration > 0) {
+    return `${item.metadata.duration} min`
+  }
+  return null
+}
+
+function AgendaItem({ item, isSelected, onClick, isGlass = false, locale = 'en' }: AgendaItemProps) {
+  const isCompleted = Boolean(item.metadata.isCompleted)
+  const preview = getAgendaPreview(item)
 
   return (
     <button
       className={cn(
-        "w-full text-left p-4 rounded-xl border-l-4 transition-all duration-300",
-        typeColors[item.type],
+        "w-full text-left p-3.5 rounded-xl border-l-4 transition-all duration-300 active:scale-[0.99]",
+        AGENDA_BORDER_COLORS[item.type],
         isGlass
           ? "bg-white/5 border-r border-t border-b border-white/10 hover:bg-white/10 hover:border-white/20"
           : "bg-card hover:bg-accent border shadow-sm",
@@ -1604,23 +1697,27 @@ function AgendaItem({ item, isSelected, onClick, isGlass = false }: AgendaItemPr
       )}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between">
-        <span className="font-medium text-sm">{item.title}</span>
-        <span className="text-xs text-muted-foreground capitalize">
-          {item.type === 'WORKOUT' && (item.metadata.workoutType as string)?.toLowerCase()}
-          {item.type === 'RACE' && String(item.metadata.classification || '')}
-          {item.type === 'CALENDAR_EVENT' && (item.metadata.eventType as string)?.replace(/_/g, ' ').toLowerCase()}
-          {item.type === 'AD_HOC' && 'ad-hoc'}
-          {item.type === 'WOD' && 'wod'}
-          {item.type === 'QUICK_ERG' && 'Quick Erg'}
-          {item.type === 'GARMIN' &&
-            (item.metadata.deviceName
-              ? `Garmin ${item.metadata.deviceName as string}`
-              : 'Garmin')}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className={cn('w-2 h-2 rounded-full shrink-0', AGENDA_DOT_COLORS[item.type])} />
+          <span className="font-semibold text-sm truncate">{item.title}</span>
+          {isCompleted && (
+            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 shrink-0">
+              ✓ {locale === 'sv' ? 'Klar' : 'Done'}
+            </span>
+          )}
+        </div>
+        {preview && (
+          <span className="text-xs font-medium text-muted-foreground shrink-0">{preview}</span>
+        )}
+      </div>
+      <div className="flex items-center justify-between gap-2 mt-1 pl-4">
+        <span className="text-xs text-muted-foreground capitalize truncate">
+          {getAgendaMeta(item, locale)}
         </span>
       </div>
       {item.description && (
-        <p className="text-xs text-muted-foreground mt-1 truncate">{item.description}</p>
+        <p className="text-xs text-muted-foreground mt-1 pl-4 truncate">{item.description}</p>
       )}
     </button>
   )
