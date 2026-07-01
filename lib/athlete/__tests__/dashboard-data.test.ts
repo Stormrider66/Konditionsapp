@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
   trainingProgramFindMany: vi.fn(),
+  trainingProgramFindFirst: vi.fn(),
+  athletePlanFindMany: vi.fn(),
+  athleteSubscriptionFindUnique: vi.fn(),
   dailyMetricsFindFirst: vi.fn(),
   workoutLogFindMany: vi.fn(),
   injuryFindMany: vi.fn(),
@@ -19,7 +22,9 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
-    trainingProgram: { findMany: mocks.trainingProgramFindMany },
+    trainingProgram: { findMany: mocks.trainingProgramFindMany, findFirst: mocks.trainingProgramFindFirst },
+    athletePlan: { findMany: mocks.athletePlanFindMany },
+    athleteSubscription: { findUnique: mocks.athleteSubscriptionFindUnique },
     dailyMetrics: { findFirst: mocks.dailyMetricsFindFirst },
     workoutLog: { findMany: mocks.workoutLogFindMany },
     injuryAssessment: { findMany: mocks.injuryFindMany },
@@ -49,6 +54,9 @@ const NOW = new Date('2026-06-11T12:00:00.000Z')
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.trainingProgramFindMany.mockResolvedValue([])
+  mocks.trainingProgramFindFirst.mockResolvedValue(null)
+  mocks.athletePlanFindMany.mockResolvedValue([])
+  mocks.athleteSubscriptionFindUnique.mockResolvedValue(null)
   mocks.dailyMetricsFindFirst.mockResolvedValue(null)
   mocks.workoutLogFindMany.mockResolvedValue([])
   mocks.injuryFindMany.mockResolvedValue([])

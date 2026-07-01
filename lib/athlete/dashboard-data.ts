@@ -63,6 +63,7 @@ export async function getAthleteDashboardData(params: {
   // Parallel data fetching for better performance
   const [
     activePrograms,
+    activeAthletePlans,
     latestMetrics,
     recentLogsWithSetLogs,
     weeklyLoad,
@@ -70,6 +71,7 @@ export async function getAthleteDashboardData(params: {
     wodHistory,
     confirmedAdHocWorkouts,
     recentActivitySummary,
+    subscriptionInfo,
   ] = await Promise.all([
     // 1. Active Programs
     prisma.trainingProgram.findMany({
@@ -95,7 +97,38 @@ export async function getAthleteDashboardData(params: {
       },
     }),
 
-    // 2. Latest DailyMetrics for readiness score
+    // 1b. Active athlete plans (coach-authored macro plans)
+    prisma.athletePlan.findMany({
+      where: {
+        clientId,
+        status: 'ACTIVE',
+        startDate: { lte: now },
+        endDate: { gte: now },
+      },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        blocks: {
+          orderBy: { order: 'asc' },
+          select: {
+            id: true,
+            title: true,
+            focus: true,
+            description: true,
+            order: true,
+            startDate: true,
+            endDate: true,
+          },
+        },
+      },
+      orderBy: { startDate: 'desc' },
+    }),
+
+    // 2. Latest DailyMetrics for readiness score + Garmin/Oura health data
     prisma.dailyMetrics.findFirst({
       where: {
         clientId: clientId,
@@ -105,6 +138,13 @@ export async function getAthleteDashboardData(params: {
       select: {
         readinessScore: true,
         date: true,
+        hrvRMSSD: true,
+        hrvStatus: true,
+        restingHR: true,
+        sleepHours: true,
+        sleepQuality: true,
+        stress: true,
+        factorScores: true,
       },
     }),
 
@@ -190,7 +230,27 @@ export async function getAthleteDashboardData(params: {
       },
     }),
     getDashboardRecentActivitySummary(clientId),
+
+    // 8. Coach assignment (for "What's Next?" messaging)
+    prisma.athleteSubscription.findUnique({
+      where: { clientId },
+      select: { assignedCoachId: true },
+    }),
   ])
+
+  // Last completed program (for "What's Next?" card when no active programs)
+  const lastCompletedProgram =
+    activePrograms.length === 0
+      ? await prisma.trainingProgram.findFirst({
+          where: {
+            clientId: clientId,
+            isActive: false,
+            endDate: { lt: now },
+          },
+          orderBy: { endDate: 'desc' },
+          select: { id: true, name: true, endDate: true },
+        })
+      : null
 
   // AI workouts in the dashboard history window
   const rangeWODs = await prisma.aIGeneratedWOD.findMany({
@@ -451,6 +511,10 @@ export async function getAthleteDashboardData(params: {
 
   return {
     activePrograms,
+    activeAthletePlans,
+    lastCompletedProgram,
+    latestMetrics,
+    hasCoach: !!subscriptionInfo?.assignedCoachId,
     todayItems,
     sortedTodayItems,
     dashboardItems,
